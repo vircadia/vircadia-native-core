@@ -221,6 +221,14 @@ function entityHasActions(entityID) {
     return Entities.getActionIDs(entityID).length > 0;
 }
 
+function findRayIntersection(pickRay, precise, include, exclude) {
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var overlays = Overlays.findRayIntersection(pickRay);
+    if (!overlays.intersects || (entities.distance <= overlays.distance)) {
+        return entities;
+    }
+    return overlays;
+}
 function entityIsGrabbedByOther(entityID) {
     // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
@@ -251,6 +259,10 @@ function propsArePhysical(props) {
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
+var EDIT_SETTING = "io.highfidelity.isEditting";
+function isEditing() {
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Settings.getValue(EDIT_SETTING);
+}
 function isIn2DMode() {
     // In this version, we make our own determination of whether we're aimed a HUD element,
     // because other scripts (such as handControllerPointer) might be using some other visualization
@@ -1069,20 +1081,15 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = Entities.findRayIntersection(pickRayBacked, true, [], blacklist);
+            intersection = findRayIntersection(pickRayBacked, true, [], blacklist);
         } else {
-            intersection = Entities.findRayIntersection(pickRayBacked, true);
-        }
-
-        var overlayIntersection = Overlays.findRayIntersection(pickRayBacked);
-        if (!intersection.intersects ||
-            (overlayIntersection.intersects && (intersection.distance > overlayIntersection.distance))) {
-            intersection = overlayIntersection;
+            intersection = findRayIntersection(pickRayBacked, true);
         }
 
         if (intersection.intersects) {
             return {
                 entityID: intersection.entityID,
+                overlayID: intersection.overlayID,
                 searchRay: pickRay,
                 distance: Vec3.distance(pickRay.origin, intersection.intersection)
             };
@@ -1326,6 +1333,8 @@ function MyController(hand) {
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
                 grabbableEntities.push(rayPickInfo.entityID);
             }
+        } else if (rayPickInfo.overlayID) {
+            this.intersectionDistance = rayPickInfo.distance;
         } else {
             this.intersectionDistance = 0;
         }
@@ -1382,7 +1391,7 @@ function MyController(hand) {
                     // TODO: highlight the far-triggerable object?
                 }
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab()) {
+                if (this.triggerSmoothedGrab() && !isEditing()) {
                     this.grabbedEntity = entity;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
@@ -1942,8 +1951,8 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = Entities.findRayIntersection(pickRay, true);
-            if (intersection.accurate) {
+            var intersection = findRayIntersection(pickRay, true);
+            if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
