@@ -608,7 +608,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert that all geometries exist and are loaded
-        assert(_model->isLoaded() && _model->isCollisionLoaded());
+        assert(_model && _model->isLoaded() && _model->isCollisionLoaded());
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
@@ -696,15 +696,15 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         updateModelBounds();
 
         // should never fall in here when model not fully loaded
-        assert(_model->isLoaded());
+        assert(_model && _model->isLoaded());
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
-        const FBXGeometry& geometry = _model->getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
+        const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
+        int numberOfMeshes = fbxGeometry.meshes.size();
         int totalNumVertices = 0;
         for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
+            const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
                 auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
