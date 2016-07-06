@@ -64,13 +64,20 @@ public:
     // interleaved int16_t input/output
     void render(const int16_t* input, int16_t* output, int numFrames);
 
+    // interleaved float input/output
+    void render(const float* input, float* output, int numFrames);
+
 private:
     ReverbImpl *_impl;
     ReverbParameters _params;
 
     float* _inout[2];
-    void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
-    void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
+
+    void convertInput(const int16_t* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, int16_t* output, int numFrames);
+
+    void convertInput(const float* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, float* output, int numFrames);
 };
 
 #endif // hifi_AudioReverb_h
