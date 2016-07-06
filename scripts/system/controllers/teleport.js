@@ -26,28 +26,6 @@
 //v?: haptic feedback
 //v?: show room boundaries when choosing a place to teleport
 
-var inTeleportMode = false;
-
-var currentFadeSphereOpacity = 1;
-var fadeSphereInterval = null;
-//milliseconds between fading one-tenth -- so this is a half second fade total
-var FADE_IN_INTERVAL = 50;
-var FADE_OUT_INTERVAL = 50;
-
-var BEAM_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam.fbx";
-var BEAM_MODEL_URL_NO_INTERSECTION = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam2.fbx";
-
-
-var STRETCHY_BEAM_DIMENSIONS_X = 0.04;
-var STRETCHY_BEAM_DIMENSIONS_Y = 0.04;
-var STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION = 20;
-
-var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
-var TARGET_MODEL_DIMENSIONS = {
-    x: 1.15,
-    y: 0.5,
-    z: 1.15
-};
 
 
 //swirly thing, not sure we'll get to use it
@@ -58,6 +36,29 @@ var TARGET_MODEL_DIMENSIONS = {
 //     y: 0.93,
 //     z: 1.22
 // };
+
+
+var inTeleportMode = false;
+
+var currentFadeSphereOpacity = 1;
+var fadeSphereInterval = null;
+//milliseconds between fading one-tenth -- so this is a half second fade total
+var FADE_IN_INTERVAL = 50;
+var FADE_OUT_INTERVAL = 50;
+
+var BEAM_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam.fbx";
+
+var STRETCHY_BEAM_DIMENSIONS_X = 0.04;
+var STRETCHY_BEAM_DIMENSIONS_Y = 0.04;
+var STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION = 20;
+
+var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
+var TARGET_MODEL_DIMENSIONS = {
+    x: 1.15,
+    y: 0.5,
+    z: 1.15
+
+};
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -117,11 +118,15 @@ function Teleporter() {
 
     this.rotateTargetTorwardMe = function() {
         var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
+        print('camera euler' + JSON.stringify(cameraEuler))
         var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
             x: 0,
             y: 1,
             z: 0
         });
+
+        print('towardsMe' + JSON.stringify(towardsMe))
+        return towardsMe
     }
 
 
@@ -179,25 +184,18 @@ function Teleporter() {
 
         var position;
         if (noIntersection === true) {
-             this.deleteTargetOverlay();
+            this.deleteTargetOverlay();
             print('no intersection')
-            position = Vec3.sum(handPosition, Vec3.multiply(STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION/2 , direction));
+            position = Vec3.sum(handPosition, Vec3.multiply(STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION / 2, direction));
         } else {
             print('intersection, find midpoint')
             position = _this.findMidpoint(handPosition, intersection);
         }
 
-
-        print('rotation: ' + JSON.stringify(rotation));
-        print('position: ' + JSON.stringify(position));
-        print('dimensions: ' + JSON.stringify(dimensions));
-
-
-
         Overlays.editOverlay(_this.stretchyBeam, {
             dimensions: dimensions,
             position: position,
-            rotation:  Quat.multiply(rotation, Quat.angleAxis(180, {
+            rotation: Quat.multiply(rotation, Quat.angleAxis(180, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -406,14 +404,21 @@ function Teleporter() {
 
     this.updateTargetOverlay = function(intersection) {
         this.intersection = intersection;
+        print('intersection is: ' + JSON.stringify(intersection))
+
+        // var rotation = Quat.getUp(intersection.intersection.surfaceNormal);
+
+        var rotation = Quat.lookAt(intersection.intersection,MyAvatar.position,Vec3.UP)
+        var euler = Quat.safeEulerAngles(rotation)
         var position = {
             x: intersection.intersection.x,
-            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y/2,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
             z: intersection.intersection.z
         }
         Overlays.editOverlay(this.targetOverlay, {
             position: position,
-            visible: true
+            rotation:Quat.fromPitchYawRollDegrees(0,euler.y,0),
+            // rotation: this.rotateTargetTorwardMe()
         });
 
     };
