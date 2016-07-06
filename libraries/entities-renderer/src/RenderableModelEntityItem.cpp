@@ -607,7 +607,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     // BEGIN temp HACK
     int numSubMeshes = _model->getFBXGeometry().meshes.size();
     if (numSubMeshes > 1) {
-        qDebug() << "HACK entity  name =" << getName() << " modelURL =" << " pos =" << getPosition() << " numSubMeshes =" << numSubMeshes;
+        qDebug() << "HACK entity  name =" << getName() << " modelURL =" << getModelURL() << " pos =" << getPosition() << " numSubMeshes = " << numSubMeshes;
     }
     // END temp HACK
 
