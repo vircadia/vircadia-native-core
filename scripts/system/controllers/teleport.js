@@ -256,16 +256,15 @@ function Teleporter() {
 
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 500));
 
-        this.rightLineOn(rightPickRay.origin, location, {
-            red: 7,
-            green: 36,
-            blue: 44
-        });
 
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-
+            this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, {
+                red: 7,
+                green: 36,
+                blue: 44
+            });
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(rightIntersection);
             } else {
@@ -273,6 +272,12 @@ function Teleporter() {
             }
 
         } else {
+
+            this.rightLineOn(rightPickRay.origin, location, {
+                red: 7,
+                green: 36,
+                blue: 44
+            });
             this.deleteTargetOverlay();
         }
     }
@@ -300,16 +305,16 @@ function Teleporter() {
 
         var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 500));
 
-        this.leftLineOn(leftPickRay.origin, location, {
-            red: 7,
-            green: 36,
-            blue: 44
-        });
 
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
 
         if (leftIntersection.intersects) {
 
+            this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, {
+                red: 7,
+                green: 36,
+                blue: 44
+            });
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(leftIntersection);
             } else {
@@ -318,6 +323,12 @@ function Teleporter() {
 
 
         } else {
+
+            this.leftLineOn(leftPickRay.origin, location, {
+                red: 7,
+                green: 36,
+                blue: 44
+            });
             this.deleteTargetOverlay();
         }
     };
