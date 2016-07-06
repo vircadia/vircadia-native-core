@@ -1208,10 +1208,13 @@ Window.svoImportRequested.connect(importSVO);
 // attempt to start ZIP download project
 function importZIP(importURL) {
     print("Import ZIP requested: " + importURL);
-    if (!Entities.canAdjustLocks()) {
+    /*if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
-    }
+    }*/
+    var path = File.getTempDir();
+    print("Temporary path to zip: " + path);
+    File.runUnzip(path, importURL);
 
     
 }

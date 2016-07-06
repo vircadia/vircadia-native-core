@@ -1,6 +1,6 @@
 //
 //  FileScriptingInterface.cpp
-//  interface/src/scripting
+//  libraries/script-engine/src
 //
 //  Created by Elisa Lupin-Jimenez on 6/28/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -10,15 +10,18 @@
 //
 
 #include <QTemporaryDir>
+#include <QDir>
 #include <QFile>
 #include <QDebug>
 #include <QBuffer>
+#include <QTextCodec>
+#include <QIODevice>
 #include <QUrl>
 #include <QByteArray>
 #include <QString>
 #include <QFileInfo>
-#include <quazip/quazip.h>
-#include <quazip/JlCompress.h>
+#include <quazip5/quazip.h>
+#include <quazip5/JlCompress.h>
 #include "ResourceManager.h"
 
 #include "FileScriptingInterface.h"
@@ -28,27 +31,43 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 	// nothing for now
 }
 
-void FileScriptingInterface::downloadZip() {
-	QUrl url(*parent);
+void FileScriptingInterface::runUnzip(QString path, QString importURL) {
+	downloadZip(path, importURL);
+
+}
+
+QString FileScriptingInterface::getTempDir() {
+	QTemporaryDir dir;
+	dir.setAutoRemove(false);
+	return dir.path();
+	// remember I must do something to delete this temp dir later
+}
+
+void FileScriptingInterface::downloadZip(QString path, const QString link) {
+	QUrl url = QUrl(link);
 	auto request = ResourceManager::createResourceRequest(nullptr, url);
-    connect(request, &ResourceRequest::finished, this, &FileScriptingInterface::unzipFile);
+	connect(request, &ResourceRequest::finished, this, [this, path]{
+		unzipFile(path);
+	});
     request->send();
 }
 
 // clement's help :D
-void FileScriptingInterface::unzipFile() {
+void FileScriptingInterface::unzipFile(QString path) {
 	ResourceRequest* request = qobject_cast<ResourceRequest*>(sender());
     QUrl url = request->getUrl();
 
     if (request->getResult() == ResourceRequest::Success) {
         qDebug() << "Zip file was downloaded";
-	    QTemporaryDir dir;
+	    QDir dir(path);
         QByteArray compressedFileContent = request->getData(); // <-- Downloaded file is in here
         QBuffer buffer(&compressedFileContent);
         buffer.open(QIODevice::ReadOnly);
 
+		//QString zipFileName = QFile::decodeName(compressedFileContent);
         QString dirName = dir.path();
-        JlCompress::extractDir(buffer, dirName);
+		qDebug() << "Zip directory is stored at: " + dirName;
+        JlCompress::extractDir(&buffer, dirName);
 
         QFileInfoList files = dir.entryInfoList();
         foreach (QFileInfo file, files) {
@@ -67,7 +86,7 @@ void FileScriptingInterface::unzipFile() {
         }*/
 
 
-        //QString zipFileName = QFile::decodeName(&compressedFileContent);
+        
 
         //QFile file = 
         //need to convert this byte array to a file
@@ -100,10 +119,10 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
     QFileInfoList files;
 
 	if (file.fileName().contains(".zip")) {
-		JlCompress::extractDir(file);
+		JlCompress::extractDir(file.fileName());
         qDebug() << "Extracting archive: " + file.fileName();
     }
-    files = file.entryInfoList();
+    files = file.dir().entryInfoList();
 
 	/*if (files.empty()) {
 		files = JlCompress::getFileList(file.fileName());
@@ -111,7 +130,7 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
 
 	foreach (QFileInfo file, files) {
         qDebug() << "Looking into file: " + file.fileName();
-        recursiveFileScan(file, &dirName);
+        recursiveFileScan(file, dirName);
 	}
     return;
 }

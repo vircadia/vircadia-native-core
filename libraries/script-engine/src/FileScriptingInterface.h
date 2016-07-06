@@ -1,6 +1,6 @@
 //
 //  FileScriptingInterface.h
-//  interface/src/scripting
+//  libraries/script-engine/src
 //
 //  Created by Elisa Lupin-Jimenez on 6/28/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -14,23 +14,26 @@
 
 #include <QtCore/QObject>
 #include <QFileInfo>
+#include <QString>
 
 class FileScriptingInterface : public QObject {
     Q_OBJECT
 
 public:
     FileScriptingInterface(QObject* parent);
+	void runUnzip(QString path, QString importURL);
+	QString getTempDir();
 
 public slots:
-	void unzipFile();
+	void unzipFile(QString path);
 
 signals:
-	void downloadZip();
 
 private:
 	//void downloadZip();
 	//void unzipFile();
 	void recursiveFileScan(QFileInfo file, QString* dirName);
+	void downloadZip(QString path, const QString link);
 
 };
 

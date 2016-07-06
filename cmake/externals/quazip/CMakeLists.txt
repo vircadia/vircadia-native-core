@@ -14,8 +14,8 @@ endif ()
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.6.2.zip
-  URL_MD5 514851970f1a14d815bdc3ad6267af4d
+  URL https://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.7.2.zip
+  URL_MD5 2955176048a31262c09259ca8d309d19
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_PREFIX_PATH=${QT_CMAKE_PREFIX_PATH} -DCMAKE_INSTALL_NAME_DIR:PATH=<INSTALL_DIR>/lib -DZLIB_ROOT=${ZLIB_ROOT}
   LOG_DOWNLOAD 1
@@ -37,11 +37,11 @@ set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIR} CA
 set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/lib CACHE FILEPATH "Location of QuaZip DLL")
 
 if (APPLE)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip5d.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
 elseif (WIN32)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/quazip.lib CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/quazip5d.lib CACHE FILEPATH "Location of QuaZip release library")
 else ()
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip.so CACHE FILEPATH "Location of QuaZip release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip5d.so CACHE FILEPATH "Location of QuaZip release library")
 endif ()
 
 include(SelectLibraryConfigurations)
