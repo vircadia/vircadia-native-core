@@ -40,7 +40,9 @@ var numberLeftRunning = scriptData.length - otherScripts.length;
 print('initially running', otherScripts.length, 'scripts. Leaving', numberLeftRunning, 'and stopping', otherScripts);
 var typedEntities = {Light: [], ParticleEffect: []};
 var interestingTypes = Object.keys(typedEntities);
-var loads = ['ignore', 'baseline'].concat(otherScripts, interestingTypes);
+var propertiedEntities = {dynamic: []};
+var interestingProperties = Object.keys(propertiedEntities);
+var loads = ['ignore', 'baseline'].concat(otherScripts, interestingTypes, interestingProperties);
 var loadIndex = 0, nLoads = loads.length, load;
 var results = [];
 var initialLodIsAutomatic = LODManager.getAutomaticLODAdjust();
@@ -51,19 +53,40 @@ LODManager.setOctreeSizeScale(DEFAULT_LOD);
 
 // Fill the typedEnties with the entityIDs that are already visible. It would be nice if this were more efficient.
 var allEntities = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
-print('Searching', allEntities.length, 'entities for', interestingTypes);
+print('Searching', allEntities.length, 'entities for', interestingTypes, 'and', interestingProperties);
+var propertiesToGet = ['type', 'visible'].concat(interestingProperties);
 allEntities.forEach(function (entityID) {
-    var properties = Entities.getEntityProperties(entityID, ['type', 'visible']);
-    if (properties.visible && (interestingTypes.indexOf(properties.type) >= 0)) {
-        typedEntities[properties.type].push(entityID);
+    var properties = Entities.getEntityProperties(entityID, propertiesToGet);
+    if (properties.visible) {
+        if (interestingTypes.indexOf(properties.type) >= 0) {
+            typedEntities[properties.type].push(entityID);
+        } else {
+            interestingProperties.forEach(function (property) {
+                if (entityID && properties[property]) {
+                    propertiedEntities[property].push(entityID);
+                    entityID = false; // Put in only one bin
+                }
+            });
+        }
     }
 });
+allEntities = undefined; // free them
 interestingTypes.forEach(function (type) {
     print('There are', typedEntities[type].length, type, 'entities.');
+});
+interestingProperties.forEach(function (property) {
+    print('There are', propertiedEntities[property].length, property, 'entities.');
 });
 function toggleVisibility(type, on) {
     typedEntities[type].forEach(function (entityID) {
         Entities.editEntity(entityID, {visible: on});
+    });
+}
+function toggleProperty(property, on) {
+    propertiedEntities[property].forEach(function (entityID) {
+        var properties = {};
+        properties[property] = on;
+        Entities.editEntity(entityID, properties);
     });
 }
 function restoreOneTest(load) {
@@ -75,6 +98,9 @@ function restoreOneTest(load) {
     case 'Light':
     case 'ParticleEffect':
         toggleVisibility(load, true);
+        break;
+    case 'dynamic':
+        toggleProperty(load, 1);
         break;
     default:
         Script.load(load);
@@ -89,6 +115,9 @@ function undoOneTest(load) {
     case 'Light':
     case 'ParticleEffect':
         toggleVisibility(load, false);
+        break;
+    case 'dynamic':
+        toggleProperty(load, 0);
         break;
     default:
         ScriptDiscoveryService.stopScript(load);
