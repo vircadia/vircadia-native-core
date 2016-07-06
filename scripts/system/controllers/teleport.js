@@ -1,5 +1,8 @@
 // by james b. pollack @imgntn on 7/2/2016
 
+
+///BUG: there is currently something going on when you try to adjust the dimensions of a second overlay model, it seems to be off by a factor of 10 or already changed or something weird.  
+
 //v1
 //check if trigger is down xxx
 //if trigger is down, check if thumb is down xxx
@@ -13,22 +16,15 @@
 //v2
 // try just thumb to teleport xxx
 
-//v2
-//fade in/out 
-//stretchy beam instead of GL line
-
 //v3
-//
+//fade in/out 
+//stretchy beam instead of GL line xxx
+
 
 //try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
 
-
-//terminate the line when there is an intersection (moving away from lines so...)
-//when there's not an intersection, set a fixed distance?  (no)
-
-//v2: show room boundaries when choosing a place to teleport
-//v2: smooth fade screen in/out?
-//v2: haptic feedback
+//v?: haptic feedback
+//v?: show room boundaries when choosing a place to teleport
 
 var inTeleportMode = false;
 
@@ -220,7 +216,7 @@ function Teleporter() {
         var dimensions = {
             x: 0.04,
             y: 0.04,
-            z:0.1
+            z: 0.1
         };
 
 
@@ -231,7 +227,7 @@ function Teleporter() {
         }));
 
         var beamProps = {
-            dimensions: dimensions,
+            // dimensions: dimensions,
             url: BEAM_MODEL_URL_NO_INTERSECTION,
             position: midpoint,
             rotation: finalRotation,
@@ -258,9 +254,9 @@ function Teleporter() {
             y: STRETCHY_BEAM_DIMENSIONS_Y,
             z: Vec3.distance(handPosition, ahead)
         };
-        dimensions=Vec3.multiply(10,dimensions)
-                print('dimensions in update:: ' + JSON.stringify(dimensions));
- 
+        dimensions = Vec3.multiply(10, dimensions)
+        print('dimensions in update:: ' + JSON.stringify(dimensions));
+
 
         var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
             x: 0,
