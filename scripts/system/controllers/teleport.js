@@ -44,7 +44,7 @@ var BEAM_MODEL_URL_NO_INTERSECTION = "http://hifi-content.s3.amazonaws.com/james
 
 var STRETCHY_BEAM_DIMENSIONS_X = 0.04;
 var STRETCHY_BEAM_DIMENSIONS_Y = 0.04;
-var STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION = 10;
+var STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION = 20;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 var TARGET_MODEL_DIMENSIONS = {
@@ -185,7 +185,7 @@ function Teleporter() {
             y: STRETCHY_BEAM_DIMENSIONS_Y,
             z: Vec3.distance(handPosition, intersection.intersection)
         };
-        print('dimensions in update:: ' + JSON.stringify(dimensions));
+
 
         var position = _this.findMidpoint(handPosition, intersection);
         Overlays.editOverlay(_this.stretchyBeam, {
@@ -220,7 +220,7 @@ function Teleporter() {
         var dimensions = {
             x: 0.04,
             y: 0.04,
-            z: Vec3.distance(handPosition, ahead)
+            z:0.1
         };
 
 
@@ -258,8 +258,9 @@ function Teleporter() {
             y: STRETCHY_BEAM_DIMENSIONS_Y,
             z: Vec3.distance(handPosition, ahead)
         };
-
-        print('dimensions in update:: ' + JSON.stringify(dimensions));
+        dimensions=Vec3.multiply(10,dimensions)
+                print('dimensions in update:: ' + JSON.stringify(dimensions));
+ 
 
         var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
             x: 0,
