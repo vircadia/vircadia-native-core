@@ -29,7 +29,6 @@ function ThumbPad(hand) {
     var _this = this;
 
     this.buttonPress = function(value) {
-        print('jbp pad press: ' + value + " on: " + _this.hand)
         _this.buttonValue = value;
     };
 
@@ -62,14 +61,11 @@ function Teleporter() {
     this.updateConnected = null;
 
     this.initialize = function() {
-        print('jbp initialize')
         this.createMappings();
         this.disableGrab();
     };
 
     this.createTargetOverlay = function() {
-        print('creating target overlay')
-
 
         var targetOverlayProps = {
             url: TARGET_MODEL_URL,
@@ -81,7 +77,6 @@ function Teleporter() {
     };
 
     this.createMappings = function() {
-        print('jbp create mappings internal');
         // peek at the trigger and thumbs to store their values
         teleporter.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
         teleporter.teleportMappingInternal = Controller.newMapping(teleporter.telporterMappingInternalName);
@@ -90,7 +85,6 @@ function Teleporter() {
     };
 
     this.disableMappings = function() {
-        print('jbp disable mappings internal')
         Controller.disableMapping(teleporter.telporterMappingInternalName);
     };
 
@@ -99,7 +93,6 @@ function Teleporter() {
             return;
         }
 
-        print('jbp hand on entering teleport mode: ' + hand);
         inTeleportMode = true;
         this.teleportHand = hand;
         this.initialize();
@@ -199,7 +192,6 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        print('jbp value on exit: ' + value);
         Script.update.disconnect(this.update);
         this.updateConnected = null;
         this.disableMappings();
@@ -363,8 +355,6 @@ function Teleporter() {
     };
 
     this.leftLineOn = function(closePoint, farPoint, color) {
-        // draw a line
-        print('COLOR ON LINE : ' + JSON.stringify(color))
         if (this.leftOverlayLine === null) {
             var lineProperties = {
                 ignoreRayIntersection: true, // always ignore this
@@ -437,7 +427,6 @@ function Teleporter() {
 
     this.teleport = function(value) {
 
-        print('TELEPORT CALLED');
 
         if (_this.intersection !== null) {
             var offset = getAvatarFootOffset();
