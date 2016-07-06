@@ -603,14 +603,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
     glm::vec3 dimensions = getDimensions();
-
-    // BEGIN temp HACK
-    int numSubMeshes = _model->getFBXGeometry().meshes.size();
-    if (numSubMeshes > 1) {
-        qDebug() << "HACK entity  name =" << getName() << " modelURL =" << getModelURL() << " pos =" << getPosition() << " numSubMeshes = " << numSubMeshes;
-    }
-    // END temp HACK
-
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
