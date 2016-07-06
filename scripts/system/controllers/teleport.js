@@ -104,23 +104,25 @@ function Teleporter() {
 
     this.createTargetOverlay = function() {
         print('creating target overlay')
-        var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
-        var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
-            x: 0,
-            y: 1,
-            z: 0
-        });
+
 
         var targetOverlayProps = {
             url: TARGET_MODEL_URL,
-            position: MyAvatar.position,
-            rotation: towardsMe,
             dimensions: TARGET_MODEL_DIMENSIONS,
             visible: true,
         };
 
         _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
     };
+
+    this.rotateTargetTorwardMe = function() {
+        var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
+        var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
+            x: 0,
+            y: 1,
+            z: 0
+        });
+    }
 
 
     this.createMappings = function() {
@@ -157,37 +159,45 @@ function Teleporter() {
         return midpoint
     };
 
+    this.updateOrCreateStretchyBeam = function(handPosition, intersection, rotation, direction, noIntersection) {
 
-    this.createStretchyBeam = function(handPosition, intersection, rotation) {
+        if (_this.stretchyBeam === null) {
+            var beamProps = {
+                url: BEAM_MODEL_URL,
+                position: MyAvatar.position,
 
-        var beamProps = {
-            url: BEAM_MODEL_URL,
-            position: _this.findMidpoint(handPosition, intersection),
-            dimensions: {
-                x: STRETCHY_BEAM_DIMENSIONS_X,
-                y: STRETCHY_BEAM_DIMENSIONS_Y,
-                z: 0.1
-            },
-            ignoreRayIntersection: true,
-        };
+            };
 
-        _this.stretchyBeam = Overlays.addOverlay("model", beamProps);
-    };
+            _this.stretchyBeam = Overlays.addOverlay("model", beamProps);
+        }
 
-
-    this.updateStretchyBeam = function(handPosition, intersection, rotation) {
         var dimensions = {
             x: STRETCHY_BEAM_DIMENSIONS_X,
             y: STRETCHY_BEAM_DIMENSIONS_Y,
-            z: Vec3.distance(handPosition, intersection.intersection)
+            z: intersection !== null ? Vec3.distance(handPosition, intersection.intersection) : STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION
         };
 
+        var position;
+        if (noIntersection === true) {
+             this.deleteTargetOverlay();
+            print('no intersection')
+            position = Vec3.sum(handPosition, Vec3.multiply(STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION/2 , direction));
+        } else {
+            print('intersection, find midpoint')
+            position = _this.findMidpoint(handPosition, intersection);
+        }
 
-        var position = _this.findMidpoint(handPosition, intersection);
+
+        print('rotation: ' + JSON.stringify(rotation));
+        print('position: ' + JSON.stringify(position));
+        print('dimensions: ' + JSON.stringify(dimensions));
+
+
+
         Overlays.editOverlay(_this.stretchyBeam, {
             dimensions: dimensions,
             position: position,
-            rotation: Quat.multiply(rotation, Quat.angleAxis(180, {
+            rotation:  Quat.multiply(rotation, Quat.angleAxis(180, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -203,82 +213,6 @@ function Teleporter() {
         }
     };
 
-    this.createNoIntersectionStretchyBeam = function(handPosition, direction, rotation) {
-
-        var howBig = STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION;
-
-        var ahead = Vec3.sum(handPosition, Vec3.multiply(howBig, direction));
-
-        var midpoint = this.findMidpoint(handPosition, {
-            intersection: ahead
-        });
-
-        var dimensions = {
-            x: 0.04,
-            y: 0.04,
-            z: 0.1
-        };
-
-
-        var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
-            x: 0,
-            y: 1,
-            z: 0
-        }));
-
-        var beamProps = {
-            // dimensions: dimensions,
-            url: BEAM_MODEL_URL_NO_INTERSECTION,
-            position: midpoint,
-            rotation: finalRotation,
-            ignoreRayIntersection: true,
-        };
-
-        this.noIntersectionStretchyBeam = Overlays.addOverlay("model", beamProps);
-
-
-    };
-
-    this.updateNoIntersectionStretchyBeam = function(handPosition, direction, rotation) {
-
-        var howBig = STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION;
-
-        var ahead = Vec3.sum(handPosition, Vec3.multiply(howBig, direction));
-
-        var midpoint = this.findMidpoint(handPosition, {
-            intersection: ahead
-        });
-
-        var dimensions = {
-            x: STRETCHY_BEAM_DIMENSIONS_X,
-            y: STRETCHY_BEAM_DIMENSIONS_Y,
-            z: Vec3.distance(handPosition, ahead)
-        };
-        dimensions = Vec3.multiply(10, dimensions)
-        print('dimensions in update:: ' + JSON.stringify(dimensions));
-
-
-        var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
-            x: 0,
-            y: 1,
-            z: 0
-        }));
-
-        var goodEdit = Overlays.editOverlay(_this.noIntersectionStretchyBeam, {
-            dimensions: dimensions,
-            position: midpoint,
-            rotation: rotation
-        })
-
-    };
-
-
-    this.deleteNoIntersectionStretchyBeam = function() {
-        if (_this.noIntersectionStretchyBeam !== null) {
-            Overlays.deleteOverlay(_this.noIntersectionStretchyBeam);
-            _this.noIntersectionStretchyBeam = null;
-        }
-    };
 
     this.createFadeSphere = function(avatarHead) {
         var sphereProps = {
@@ -364,7 +298,6 @@ function Teleporter() {
         this.updateConnected = null;
         this.disableMappings();
         this.deleteStretchyBeam();
-        this.deleteNoIntersectionStretchyBeam();
         this.deleteTargetOverlay();
         this.enableGrab();
         Script.setTimeout(function() {
@@ -417,27 +350,17 @@ function Teleporter() {
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            this.deleteNoIntersectionStretchyBeam();
 
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(rightIntersection);
             } else {
                 this.createTargetOverlay();
             }
-            if (this.stretchyBeam !== null) {
-                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightFinal);
-            } else {
-                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightFinal);
-            }
+            this.updateOrCreateStretchyBeam(rightPickRay.origin, rightIntersection, rightFinal, rightPickRay.direction, false);
         } else {
-            this.deleteTargetOverlay();
-            this.deleteStretchyBeam();
-            if (this.noIntersectionStretchyBeam !== null) {
-                this.updateNoIntersectionStretchyBeam(rightPickRay.origin, rightPickRay.direction, rightFinal);
 
-            } else {
-                this.createNoIntersectionStretchyBeam(rightPickRay.origin, rightPickRay.direction, rightFinal);
-            }
+            this.updateOrCreateStretchyBeam(rightPickRay.origin, null, rightFinal, rightPickRay.direction, true);
+
         }
     }
 
@@ -452,7 +375,6 @@ function Teleporter() {
             direction: Quat.getUp(leftRotation),
         };
 
-
         var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
             x: 1,
             y: 0,
@@ -466,28 +388,18 @@ function Teleporter() {
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
 
         if (leftIntersection.intersects) {
-            this.deleteNoIntersectionStretchyBeam();
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(leftIntersection);
             } else {
                 this.createTargetOverlay();
             }
-
-            if (this.stretchyBeam !== null) {
-                this.updateStretchyBeam(leftPickRay.origin, leftIntersection, leftFinal);
-            } else {
-                this.createStretchyBeam(leftPickRay.origin, leftIntersection, leftFinal);
-
-            }
+            this.updateOrCreateStretchyBeam(leftPickRay.origin, leftIntersection, leftFinal, leftPickRay.direction, false);
 
         } else {
-            this.deleteTargetOverlay();
-            this.deleteStretchyBeam();
-            if (this.noIntersectionStretchyBeam !== null) {
-                this.updateNoIntersectionStretchyBeam(leftPickRay.origin, leftPickRay.direction, leftFinal);
-            } else {
-                this.createNoIntersectionStretchyBeam(leftPickRay.origin, leftPickRay.direction, leftFinal);
-            }
+
+            this.updateOrCreateStretchyBeam(leftPickRay.origin, null, leftFinal, leftPickRay.direction, true);
+
+
         }
     };
 
@@ -496,7 +408,7 @@ function Teleporter() {
         this.intersection = intersection;
         var position = {
             x: intersection.intersection.x,
-            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y + 0.1,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y/2,
             z: intersection.intersection.z
         }
         Overlays.editOverlay(this.targetOverlay, {
@@ -611,7 +523,6 @@ function cleanup() {
     teleporter.disableMappings();
     teleporter.deleteStretchyBeam();
     teleporter.deleteTargetOverlay();
-    teleporter.deleteNoIntersectionStretchyBeam();
     if (teleporter.updateConnected !== null) {
         Script.update.disconnect(teleporter.update);
     }
