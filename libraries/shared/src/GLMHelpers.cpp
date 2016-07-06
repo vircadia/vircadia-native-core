@@ -466,6 +466,12 @@ glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& 
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
+// cancel out roll 
+glm::quat cancelOutRoll(const glm::quat& q) {
+    glm::vec3 forward = q * Vectors::FRONT;
+    return glm::quat_cast(glm::inverse(glm::lookAt(Vectors::ZERO, forward, Vectors::UP)));
+}
+
 // cancel out roll and pitch
 glm::quat cancelOutRollAndPitch(const glm::quat& q) {
     glm::vec3 zAxis = q * glm::vec3(0.0f, 0.0f, 1.0f);

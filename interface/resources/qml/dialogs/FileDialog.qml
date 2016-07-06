@@ -603,7 +603,7 @@ ModalWindow {
 
         TextField {
             id: currentSelection
-            label: "Path:"
+            label: selectDirectory ? "Directory:" : "File name:"
             anchors {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right

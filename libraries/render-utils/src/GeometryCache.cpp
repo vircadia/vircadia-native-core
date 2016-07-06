@@ -309,6 +309,7 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
 }
 
 render::ShapePipelinePointer GeometryCache::_simplePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
 GeometryCache::GeometryCache() :
     _nextID(0)
@@ -323,6 +324,10 @@ GeometryCache::GeometryCache() :
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
                     DependencyManager::get<TextureCache>()->getNormalFittingTexture());
             }
+        );
+    GeometryCache::_simpleWirePipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) { }
         );
 }
 

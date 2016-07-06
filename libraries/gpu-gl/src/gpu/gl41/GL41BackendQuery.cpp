@@ -16,7 +16,7 @@ using namespace gpu;
 using namespace gpu::gl41; 
 
 class GL41Query : public gpu::gl::GLQuery {
-    using Parent = gpu::gl::GLBuffer;
+    using Parent = gpu::gl::GLQuery;
 public:
     static GLuint allocateQuery() {
         GLuint result;
@@ -25,7 +25,7 @@ public:
     }
 
     GL41Query(const Query& query) 
-        : gl::GLQuery(query, allocateQuery()) { }
+        : Parent(query, allocateQuery()) { }
 };
 
 gl::GLQuery* GL41Backend::syncGPUObject(const Query& query) {

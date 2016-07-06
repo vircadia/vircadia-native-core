@@ -141,7 +141,9 @@ CameraManager = function() {
     };
 
     that.enable = function() {
-        if (Camera.mode == "independent" || that.enabled) return;
+        if (Camera.mode == "independent" || that.enabled || HMD.active) {
+            return;
+        }
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({
@@ -179,7 +181,9 @@ CameraManager = function() {
     }
 
     that.disable = function(ignoreCamera) {
-        if (!that.enabled) return;
+        if (!that.enabled) {
+            return;
+        }
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.releaseKeyEvents({
@@ -352,27 +356,21 @@ CameraManager = function() {
     that.mousePressEvent = function(event) {
 
         if (cameraTool.mousePressEvent(event)) {
-
             return true;
         }
 
-
-        if (!that.enabled) return;
+        if (!that.enabled) {
+            return;
+        }
 
         if (event.isRightButton || (event.isLeftButton && event.isControl && !event.isShifted)) {
-
             that.mode = MODE_ORBIT;
         } else if (event.isMiddleButton || (event.isLeftButton && event.isControl && event.isShifted)) {
-
-
             that.mode = MODE_PAN;
         }
 
         if (that.mode !== MODE_INACTIVE) {
-
-
             hasDragged = false;
-
             return true;
         }
 
@@ -381,7 +379,9 @@ CameraManager = function() {
 
     that.mouseReleaseEvent = function(event) {
 
-        if (!that.enabled) return;
+        if (!that.enabled) {
+            return;
+        }
 
         that.mode = MODE_INACTIVE;
         Reticle.setVisible(true);
@@ -403,7 +403,9 @@ CameraManager = function() {
     };
 
     that.wheelEvent = function(event) {
-        if (!that.enabled) return;
+        if (!that.enabled) {
+            return;
+        }
 
         var dZoom = -event.delta * SCROLL_SENSITIVITY;
 
@@ -459,8 +461,12 @@ CameraManager = function() {
     }
 
     function normalizeDegrees(degrees) {
-        while (degrees > 180) degrees -= 360;
-        while (degrees < -180) degrees += 360;
+        while (degrees > 180) {
+            degrees -= 360;
+        }
+        while (degrees < -180) {
+            degrees += 360;
+        }
         return degrees;
     }
 
@@ -482,7 +488,6 @@ CameraManager = function() {
             that.targetZoomDistance += dZoom;
             that.targetZoomDistance = clamp(that.targetZoomDistance, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
         }
-
 
         if (easing) {
             easingTime = Math.min(EASE_TIME, easingTime + dt);

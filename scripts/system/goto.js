@@ -14,16 +14,22 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 var button = toolBar.addButton({
     objectName: "goto",
-    imageURL: Script.resolvePath("assets/images/tools/directory-01.svg"),
+    imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
     visible: true,
-    yOffset: 50,
+    buttonState: 1,
     alpha: 0.9,
 });
-    
-button.clicked.connect(function(){
+
+function onAddressBarShown(visible) {
+    button.writeProperty('buttonState', visible ? 0 : 1);
+}
+function onClicked(){
     DialogsManager.toggleAddressBar();
-});
+}
+button.clicked.connect(onClicked);
+DialogsManager.addressBarShown.connect(onAddressBarShown);
 
 Script.scriptEnding.connect(function () {
-    button.clicked.disconnect();    
+    button.clicked.disconnect(onClicked);
+    DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });
