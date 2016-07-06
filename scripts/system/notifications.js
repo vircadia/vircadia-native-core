@@ -251,16 +251,23 @@ function notify(notice, button, height, imageProperties, image) {
         notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
         notice.bottomMargin = 0;
         notice.rightMargin = 0;
-        notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
-        notice.isFacingAvatar = false;
+
+        positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
+
+        if (!image) {
+            notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
+            notice.isFacingAvatar = false;
+
+            notificationText = Overlays.addOverlay("text3d", notice);
+            notifications.push(notificationText);
+        } else {
+            notifications.push(Overlays.addOverlay("image3d", notice));
+        }
 
         button.url = button.imageURL;
         button.scale = button.width * NOTIFICATION_3D_SCALE;
         button.isFacingAvatar = false;
 
-        positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
-
-        notifications.push((Overlays.addOverlay("text3d", notice)));
         buttons.push((Overlays.addOverlay("image3d", button)));
         overlay3DDetails.push({
             notificationOrientation: positions.notificationOrientation,
@@ -294,6 +301,8 @@ function notify(notice, button, height, imageProperties, image) {
             y: notice.y + height,
             width: notice.width,
             height: imageHeight,
+            topMargin: 0,
+            leftMargin: 0,
             imageURL: imageProperties.path
         };
         notify(notice, button, imageHeight, imageProperties, true);
