@@ -224,7 +224,7 @@ function entityHasActions(entityID) {
 function findRayIntersection(pickRay, precise, include, exclude) {
     var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
     var overlays = Overlays.findRayIntersection(pickRay);
-    if (!overlays.intersects || (entities.distance <= overlays.distance)) {
+    if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
         return entities;
     }
     return overlays;
