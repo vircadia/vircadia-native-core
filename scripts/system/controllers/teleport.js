@@ -1,41 +1,11 @@
-// by james b. pollack @imgntn on 7/2/2016
+// Created by james b. pollack @imgntn on 7/2/2016
+// Copyright 2016 High Fidelity, Inc.
+//
+//  Creates a beam and target and then teleports you there when you let go of the activation button.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-
-///BUG: there is currently something going on when you try to adjust the dimensions of a second overlay model, it seems to be off by a factor of 10 or already changed or something weird.  
-
-//v1
-//check if trigger is down xxx
-//if trigger is down, check if thumb is down xxx
-//if both are down, enter 'teleport mode' xxx
-//aim controller to change landing spot xxx
-//visualize aim + spot (line + circle) xxx
-//release trigger to teleport then exit teleport mode xxx
-//if thumb is release, exit teleport mode xxx
-
-
-//v2
-// try just thumb to teleport xxx
-
-//v3
-//fade in/out 
-//stretchy beam instead of GL line xxx
-
-
-//try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
-
-//v?: haptic feedback
-//v?: show room boundaries when choosing a place to teleport
-
-
-
-//swirly thing, not sure we'll get to use it
-// var TARGET_MODEL_URL='http://hifi-content.s3.amazonaws.com/alan/dev/Cyclone-4.fbx';
-
-// var TARGET_MODEL_DIMENSIONS = {
-//     x: 0.93,
-//     y: 0.93,
-//     z: 1.22
-// };
 
 
 var inTeleportMode = false;
@@ -116,20 +86,6 @@ function Teleporter() {
         _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
     };
 
-    this.rotateTargetTorwardMe = function() {
-        var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
-        print('camera euler' + JSON.stringify(cameraEuler))
-        var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
-            x: 0,
-            y: 1,
-            z: 0
-        });
-
-        print('towardsMe' + JSON.stringify(towardsMe))
-        return towardsMe
-    }
-
-
     this.createMappings = function() {
         print('jbp create mappings internal');
         // peek at the trigger and thumbs to store their values
@@ -192,6 +148,14 @@ function Teleporter() {
             position = _this.findMidpoint(handPosition, intersection);
         }
 
+
+        print('AT UPDATE DIMENSIONS: ' + JSON.stringify(dimensions))
+        print('AT UPDATE POSITION: ' + JSON.stringify(position))
+        print('AT UPDATE ROTATION: ' + JSON.stringify(rotation))
+        if (noIntersection === false) {
+            print('AT UPDATE NORMAL: ' + JSON.stringify(intersection.surfaceNormal))
+
+        }
         Overlays.editOverlay(_this.stretchyBeam, {
             dimensions: dimensions,
             position: position,
@@ -325,21 +289,24 @@ function Teleporter() {
 
     this.rightRay = function() {
 
+
         var rightPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).translation), MyAvatar.position);
 
-        var rightRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).rotation)
+        var rightControllerRotation = Controller.getPoseValue(Controller.Standard.RightHand).rotation;
 
+        var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation)
 
-        var rightPickRay = {
-            origin: rightPosition,
-            direction: Quat.getUp(rightRotation),
-        };
 
         var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
             x: 1,
             y: 0,
             z: 0
         }));
+
+        var rightPickRay = {
+            origin: rightPosition,
+            direction: Quat.getUp(rightRotation),
+        };
 
         this.rightPickRay = rightPickRay;
 
@@ -349,6 +316,10 @@ function Teleporter() {
 
         if (rightIntersection.intersects) {
 
+            if (rightIntersection.distance > 250) {
+                print('VERY FAR INTERSECTION')
+
+            }
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(rightIntersection);
             } else {
@@ -368,16 +339,18 @@ function Teleporter() {
 
         var leftRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).rotation)
 
-        var leftPickRay = {
-            origin: leftPosition,
-            direction: Quat.getUp(leftRotation),
-        };
 
         var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
             x: 1,
             y: 0,
             z: 0
         }));
+
+
+        var leftPickRay = {
+            origin: leftPosition,
+            direction: Quat.getUp(leftRotation),
+        };
 
         this.leftPickRay = leftPickRay;
 
@@ -386,6 +359,11 @@ function Teleporter() {
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
 
         if (leftIntersection.intersects) {
+            if (leftIntersection.distance > 250) {
+                print('VERY FAR INTERSECTION')
+                this.updateOrCreateStretchyBeam(leftPickRay.origin, null, leftFinal, leftPickRay.direction, true);
+                return
+            }
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(leftIntersection);
             } else {
@@ -404,11 +382,8 @@ function Teleporter() {
 
     this.updateTargetOverlay = function(intersection) {
         this.intersection = intersection;
-        print('intersection is: ' + JSON.stringify(intersection))
 
-        // var rotation = Quat.getUp(intersection.intersection.surfaceNormal);
-
-        var rotation = Quat.lookAt(intersection.intersection,MyAvatar.position,Vec3.UP)
+        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP)
         var euler = Quat.safeEulerAngles(rotation)
         var position = {
             x: intersection.intersection.x,
@@ -417,8 +392,7 @@ function Teleporter() {
         }
         Overlays.editOverlay(this.targetOverlay, {
             position: position,
-            rotation:Quat.fromPitchYawRollDegrees(0,euler.y,0),
-            // rotation: this.rotateTargetTorwardMe()
+            rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
         });
 
     };
@@ -431,15 +405,22 @@ function Teleporter() {
         Messages.sendLocalMessage('Hifi-Hand-Disabler', 'none');
     };
 
+    this.triggerHaptics = function() {
+        var hand = this.hand === 'left' ? 0 : 1;
+        var haptic = Controller.triggerShortHapticPulse(0.2, hand);
+    };
+
     this.teleport = function(value) {
 
         print('TELEPORT CALLED');
 
-        var offset = getAvatarFootOffset();
         if (_this.intersection !== null) {
+            var offset = getAvatarFootOffset();
             _this.intersection.intersection.y += offset;
             MyAvatar.position = _this.intersection.intersection;
         }
+
+        this.triggerHaptics();
         this.exitTeleportMode();
     };
 }
