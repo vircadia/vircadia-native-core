@@ -100,7 +100,9 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         if (newScale.x <= 0 || newScale.y <= 0 || newScale.z <= 0) {
             setDimensions(scale);
         } else {
-            _model->setScaleToFit(true, getDimensions());
+            QMetaObject::invokeMethod(_model.get(), "setScaleToFit", Qt::AutoConnection,
+                                      Q_ARG(const bool&, true),
+                                      Q_ARG(const glm::vec3&, getDimensions()));
             _updateModel = true;
         }
     }
