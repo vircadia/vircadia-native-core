@@ -247,14 +247,14 @@ function notify(notice, button, height, imageProperties, image) {
         noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
 
         notice.size = { x: noticeWidth, y: noticeHeight };
-        notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
-        notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
-        notice.bottomMargin = 0;
-        notice.rightMargin = 0;
 
         positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
 
         if (!image) {
+            notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
+            notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
+            notice.bottomMargin = 0;
+            notice.rightMargin = 0;
             notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
             notice.isFacingAvatar = false;
 
@@ -289,8 +289,8 @@ function notify(notice, button, height, imageProperties, image) {
     height = height + 1.0;
     heights.push(height);
     times.push(new Date().getTime() / 1000);
-    myAlpha.push(0);
     last = notifications.length - 1;
+    myAlpha.push(notifications[last].alpha);
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
     fadeIn(notifications[last], buttons[last]);
 
@@ -301,9 +301,11 @@ function notify(notice, button, height, imageProperties, image) {
             y: notice.y + height,
             width: notice.width,
             height: imageHeight,
-            topMargin: 0,
-            leftMargin: 0,
-            imageURL: imageProperties.path
+            subImage: { x: 0, y: 0 },
+            color: { red: 255, green: 255, blue: 255},
+            visible: true,
+            imageURL: imageProperties.path,
+            alpha: backgroundAlpha
         };
         notify(notice, button, imageHeight, imageProperties, true);
     }
@@ -335,10 +337,6 @@ function createNotification(text, notificationType, imageProperties) {
 
     level = (stack + 20.0);
     height = height + extraLine;
-
-    if (imageProperties && imageProperties.path) {
-        imageProperties.path = Script.resolvePath(imageProperties.path);
-    }
 
     noticeProperties = {
         x: overlayLocationX,
@@ -397,7 +395,7 @@ function stringDivider(str, slotWidth, spaceReplacer) {
 
     if (str.length > slotWidth && slotWidth > 0) {
         left = str.substring(0, slotWidth);
-        right = str.substring(slotWidth + 1);
+        right = str.substring(slotWidth);
         return left + spaceReplacer + stringDivider(right, slotWidth, spaceReplacer);
     }
     return str;
@@ -531,7 +529,7 @@ function onDomainConnectionRefused(reason) {
 
 function onSnapshotTaken(path) {
     var imageProperties = {
-        path: path,
+        path: Script.resolvePath("file:///" + path),
         aspectRatio: Window.innerWidth / Window.innerHeight
     }
     createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
