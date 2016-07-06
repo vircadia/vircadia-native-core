@@ -49,10 +49,10 @@
 //  2. Declare a text string.
 //  3. Call createNotifications(text, NotificationType) parsing the text.
 //  example:
-//  if (key.text === "s") {
+//  if (key.text === "o") {
 //      if (ctrlIsPressed === true) {
-//          noteString = "Snapshot taken.";
-//          createNotification(noteString, NotificationType.SNAPSHOT);
+//          noteString = "Open script";
+//          createNotification(noteString, NotificationType.OPEN_SCRIPT);
 //      }
 //  }
 
@@ -233,8 +233,9 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
 //  Pushes data to each array and sets up data for 2nd dimension array 
 //  to handle auxiliary data not carried by the overlay class
 //  specifically notification "heights", "times" of creation, and . 
-function notify(notice, button, height) {
-    var noticeWidth,
+function notify(notice, button, height, imageProperties, image) {
+    var notificationText,
+        noticeWidth,
         noticeHeight,
         positions,
         last;
@@ -269,9 +270,13 @@ function notify(notice, button, height) {
             height: noticeHeight
         });
     } else {
-        var notificationText = Overlays.addOverlay("text", notice);
-        notifications.push((notificationText));
-        buttons.push((Overlays.addOverlay("image", button)));
+        if (!image) {
+            notificationText = Overlays.addOverlay("text", notice);
+            notifications.push((notificationText));
+        } else {
+            notifications.push(Overlays.addOverlay("image", notice));
+        }
+        buttons.push(Overlays.addOverlay("image", button));
     }
 
     height = height + 1.0;
@@ -281,11 +286,24 @@ function notify(notice, button, height) {
     last = notifications.length - 1;
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
     fadeIn(notifications[last], buttons[last]);
+
+    if (imageProperties && !image) {
+        var imageHeight = notice.width / imageProperties.aspectRatio;
+        notice = {
+            x: notice.x,
+            y: notice.y + height,
+            width: notice.width,
+            height: imageHeight,
+            imageURL: imageProperties.path
+        };
+        notify(notice, button, imageHeight, imageProperties, true);
+    }
+
     return notificationText;
 }
 
 //  This function creates and sizes the overlays
-function createNotification(text, notificationType) {
+function createNotification(text, notificationType, imageProperties) {
     var count = (text.match(/\n/g) || []).length,
         breakPoint = 43.0, // length when new line is added
         extraLine = 0,
@@ -308,6 +326,11 @@ function createNotification(text, notificationType) {
 
     level = (stack + 20.0);
     height = height + extraLine;
+
+    if (imageProperties && imageProperties.path) {
+        imageProperties.path = Script.resolvePath(imageProperties.path);
+    }
+
     noticeProperties = {
         x: overlayLocationX,
         y: level,
@@ -336,12 +359,11 @@ function createNotification(text, notificationType) {
     };
 
     if (Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) &&
-        Menu.isOptionChecked(NotificationType.getMenuString(notificationType)))
-    {
+        Menu.isOptionChecked(NotificationType.getMenuString(notificationType))) {
         randomSounds.playRandom();
     }
 
-    return notify(noticeProperties, buttonProperties, height);
+    return notify(noticeProperties, buttonProperties, height, imageProperties);
 }
 
 function deleteNotification(index) {
@@ -362,21 +384,12 @@ function deleteNotification(index) {
 
 //  wraps whole word to newline
 function stringDivider(str, slotWidth, spaceReplacer) {
-    var p,
-        left,
-        right;
+    var left, right;
 
-    if (str.length > slotWidth) {
-        p = slotWidth;
-        while (p > 0 && str[p] !== ' ') {
-            p -= 1;
-        }
-
-        if (p > 0) {
-            left = str.substring(0, p);
-            right = str.substring(p + 1);
-            return left + spaceReplacer + stringDivider(right, slotWidth, spaceReplacer);
-        }
+    if (str.length > slotWidth && slotWidth > 0) {
+        left = str.substring(0, slotWidth);
+        right = str.substring(slotWidth + 1);
+        return left + spaceReplacer + stringDivider(right, slotWidth, spaceReplacer);
     }
     return str;
 }
@@ -504,7 +517,15 @@ function onMuteStateChanged() {
 }
 
 function onDomainConnectionRefused(reason) {
-    createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED );
+    createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
+}
+
+function onSnapshotTaken(path) {
+    var imageProperties = {
+        path: path,
+        aspectRatio: Window.innerWidth / Window.innerHeight
+    }
+    createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
 }
 
 //  handles mouse clicks on buttons
@@ -540,13 +561,6 @@ function keyPressEvent(key) {
 
     if (key.key === 16777249) {
         ctrlIsPressed = true;
-    }
-
-    if (key.text === "s") {
-        if (ctrlIsPressed === true) {
-            noteString = "Snapshot taken.";
-            createNotification(noteString, NotificationType.SNAPSHOT);
-        }
     }
 }
 
@@ -615,5 +629,6 @@ Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
+Window.snapshotTaken.connect(onSnapshotTaken);
 
 setup();

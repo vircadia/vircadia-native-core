@@ -4988,7 +4988,9 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
 }
 
 float Application::getRenderResolutionScale() const {
