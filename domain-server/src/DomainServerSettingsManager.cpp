@@ -232,36 +232,37 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             foreach (QString allowedUser, allowedUsers) {
                 // even if isRestrictedAccess is false, we have to add explicit rows for these users.
-                _agentPermissions[allowedUser].reset(new NodePermissions(allowedUser));
-                _agentPermissions[allowedUser]->set(NodePermissions::Permission::canConnectToDomain);
+                _agentPermissions[NodePermissionsKey(allowedUser, 0)].reset(new NodePermissions(allowedUser));
+                _agentPermissions[NodePermissionsKey(allowedUser, 0)]->set(NodePermissions::Permission::canConnectToDomain);
             }
 
             foreach (QString allowedEditor, allowedEditors) {
-                if (!_agentPermissions.contains(allowedEditor)) {
-                    _agentPermissions[allowedEditor].reset(new NodePermissions(allowedEditor));
+                NodePermissionsKey editorKey(allowedEditor, 0);
+                if (!_agentPermissions.contains(editorKey)) {
+                    _agentPermissions[editorKey].reset(new NodePermissions(allowedEditor));
                     if (isRestrictedAccess) {
                         // they can change locks, but can't connect.
-                        _agentPermissions[allowedEditor]->clear(NodePermissions::Permission::canConnectToDomain);
+                        _agentPermissions[editorKey]->clear(NodePermissions::Permission::canConnectToDomain);
                     }
                 }
-                _agentPermissions[allowedEditor]->set(NodePermissions::Permission::canAdjustLocks);
+                _agentPermissions[editorKey]->set(NodePermissions::Permission::canAdjustLocks);
             }
 
-            QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+            QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
             permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
             foreach (auto permissionsSet, permissionsSets) {
-                foreach (QString userName, permissionsSet.keys()) {
+                foreach (NodePermissionsKey userKey, permissionsSet.keys()) {
                     if (onlyEditorsAreRezzers) {
-                        if (permissionsSet[userName]->can(NodePermissions::Permission::canAdjustLocks)) {
-                            permissionsSet[userName]->set(NodePermissions::Permission::canRezPermanentEntities);
-                            permissionsSet[userName]->set(NodePermissions::Permission::canRezTemporaryEntities);
+                        if (permissionsSet[userKey]->can(NodePermissions::Permission::canAdjustLocks)) {
+                            permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);
+                            permissionsSet[userKey]->set(NodePermissions::Permission::canRezTemporaryEntities);
                         } else {
-                            permissionsSet[userName]->clear(NodePermissions::Permission::canRezPermanentEntities);
-                            permissionsSet[userName]->clear(NodePermissions::Permission::canRezTemporaryEntities);
+                            permissionsSet[userKey]->clear(NodePermissions::Permission::canRezPermanentEntities);
+                            permissionsSet[userKey]->clear(NodePermissions::Permission::canRezTemporaryEntities);
                         }
                     } else {
-                        permissionsSet[userName]->set(NodePermissions::Permission::canRezPermanentEntities);
-                        permissionsSet[userName]->set(NodePermissions::Permission::canRezTemporaryEntities);
+                        permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);
+                        permissionsSet[userKey]->set(NodePermissions::Permission::canRezTemporaryEntities);
                     }
                 }
             }
@@ -343,11 +344,17 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
         (*permissions) = QVariantList();
     }
 
-    // convert details for each member of the section
+    // convert details for each member of the subsection
     QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
     (*permissionsList).clear();
-    foreach (QString userName, agentPermissions.keys()) {
-        *permissionsList += agentPermissions[userName]->toVariant();
+    foreach (NodePermissionsKey userKey, agentPermissions.keys()) {
+        NodePermissionsPointer perms = agentPermissions[userKey];
+        if (perms->isGroup()) {
+            QVector<QString> rankNames = _groupRanks[perms->getGroupID()];
+            *permissionsList += perms->toVariant(rankNames);
+        } else {
+            *permissionsList += perms->toVariant();
+        }
     }
 }
 
@@ -413,16 +420,17 @@ void DomainServerSettingsManager::unpackPermissions() {
     foreach (QVariant permsHash, standardPermissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        foundLocalhost |= (id == NodePermissions::standardNameLocalhost);
-        foundAnonymous |= (id == NodePermissions::standardNameAnonymous);
-        foundLoggedIn |= (id == NodePermissions::standardNameLoggedIn);
-        foundFriends |= (id == NodePermissions::standardNameFriends);
-        if (_standardAgentPermissions.contains(id)) {
+        NodePermissionsKey idKey = NodePermissionsKey(id, 0);
+        foundLocalhost |= (idKey == NodePermissions::standardNameLocalhost);
+        foundAnonymous |= (idKey == NodePermissions::standardNameAnonymous);
+        foundLoggedIn |= (idKey == NodePermissions::standardNameLoggedIn);
+        foundFriends |= (idKey == NodePermissions::standardNameFriends);
+        if (_standardAgentPermissions.contains(idKey)) {
             qDebug() << "duplicate name in standard permissions table: " << id;
-            _standardAgentPermissions[id] |= perms;
+            _standardAgentPermissions[idKey] |= perms;
             needPack = true;
         } else {
-            _standardAgentPermissions[id] = perms;
+            _standardAgentPermissions[idKey] = perms;
         }
     }
 
@@ -430,12 +438,13 @@ void DomainServerSettingsManager::unpackPermissions() {
     foreach (QVariant permsHash, permissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        if (_agentPermissions.contains(id)) {
+        NodePermissionsKey idKey = NodePermissionsKey(id, 0);
+        if (_agentPermissions.contains(idKey)) {
             qDebug() << "duplicate name in permissions table: " << id;
-            _agentPermissions[id] |= perms;
+            _agentPermissions[idKey] |= perms;
             needPack = true;
         } else {
-            _agentPermissions[id] = perms;
+            _agentPermissions[idKey] = perms;
         }
     }
 
@@ -443,16 +452,18 @@ void DomainServerSettingsManager::unpackPermissions() {
     foreach (QVariant permsHash, groupPermissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        if (_groupPermissions.contains(id)) {
+        NodePermissionsKey idKey = perms->getKey();
+        if (_groupPermissions.contains(idKey)) {
             qDebug() << "duplicate name in group permissions table: " << id;
-            _groupPermissions[id] |= perms;
+            _groupPermissions[idKey] |= perms;
             needPack = true;
         } else {
-            _groupPermissions[id] = perms;
+            _groupPermissions[idKey] = perms;
         }
         if (perms->isGroup()) {
-            // the group-id was cached.  hook-up the id in the id->group hash
-            _groupByID[perms->getGroupID()] = _groupPermissions[id];
+            // the group-id was cached.  hook-up the uuid in the uuid->group hash
+            _groupPermissionsByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRank())] = _groupPermissions[idKey];
+            needPack |= setGroupID(perms->getID(), perms->getGroupID());
         }
     }
 
@@ -460,16 +471,18 @@ void DomainServerSettingsManager::unpackPermissions() {
     foreach (QVariant permsHash, groupForbiddensList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        if (_groupForbiddens.contains(id)) {
+        NodePermissionsKey idKey = perms->getKey();
+        if (_groupForbiddens.contains(idKey)) {
             qDebug() << "duplicate name in group forbiddens table: " << id;
-            _groupForbiddens[id] |= perms;
+            _groupForbiddens[idKey] |= perms;
             needPack = true;
         } else {
-            _groupForbiddens[id] = perms;
+            _groupForbiddens[idKey] = perms;
         }
         if (perms->isGroup()) {
-            // the group-id was cached.  hook-up the id in the id->group hash
-            _groupByID[perms->getGroupID()] = _groupForbiddens[id];
+            // the group-id was cached.  hook-up the uuid in the uuid->group hash
+            _groupForbiddensByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRank())] = _groupPermissions[idKey];
+            needPack |= setGroupID(perms->getID(), perms->getGroupID());
         }
     }
 
@@ -477,40 +490,42 @@ void DomainServerSettingsManager::unpackPermissions() {
     if (!foundLocalhost) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
         perms->setAll(true);
-        _standardAgentPermissions[perms->getID()] = perms;
+        _standardAgentPermissions[perms->getKey()] = perms;
         needPack = true;
     }
     if (!foundAnonymous) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
-        _standardAgentPermissions[perms->getID()] = perms;
+        _standardAgentPermissions[perms->getKey()] = perms;
         needPack = true;
     }
     if (!foundLoggedIn) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
-        _standardAgentPermissions[perms->getID()] = perms;
+        _standardAgentPermissions[perms->getKey()] = perms;
         needPack = true;
     }
     if (!foundFriends) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameFriends) };
-        _standardAgentPermissions[perms->getID()] = perms;
+        _standardAgentPermissions[perms->getKey()] = perms;
         needPack = true;
     }
+
+    needPack |= ensurePermissionsForGroupRanks();
 
     if (needPack) {
         packPermissions();
     }
 
-    // attempt to retrieve any missing group-IDs
-    requestMissingGroupIDs();
+    // attempt to retrieve any missing group-IDs, etc
+    apiRefreshGroupInformation();
 
 
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
-    QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+    QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
                     << _groupPermissions.get() << _groupForbiddens.get();
     foreach (auto permissionSet, permissionsSets) {
-        QHashIterator<QString, NodePermissionsPointer> i(permissionSet);
+        QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {
             i.next();
             NodePermissionsPointer perms = i.value();
@@ -524,7 +539,63 @@ void DomainServerSettingsManager::unpackPermissions() {
     #endif
 }
 
-NodePermissions DomainServerSettingsManager::getStandardPermissionsForName(const QString& name) const {
+bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
+    // make sure each rank in each group has its own set of permissions
+    bool changed = false;
+    QList<QUuid> permissionGroupIDs = getGroupIDs();
+    foreach (QUuid groupID, permissionGroupIDs) {
+        QString groupName = _groupNames[groupID];
+        int rankCountForGroup = _groupRanks[groupID].size();
+        for (int rank = 0; rank < rankCountForGroup; rank++) {
+            NodePermissionsKey nameKey = NodePermissionsKey(groupName, rank);
+            GroupByUUIDKey idKey = GroupByUUIDKey(groupID, rank);
+            NodePermissionsPointer perms;
+            if (_groupPermissions.contains(nameKey)) {
+                perms = _groupPermissions[nameKey];
+            } else {
+                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms->setGroupID(groupID);
+                _groupPermissions[nameKey] = perms;
+                changed = true;
+            }
+            _groupPermissionsByUUID[idKey] = perms;
+        }
+    }
+
+    QList<QUuid> forbiddenGroupIDs = getBlacklistGroupIDs();
+    foreach (QUuid groupID, forbiddenGroupIDs) {
+        QString groupName = _groupNames[groupID];
+        int rankCountForGroup = _groupRanks[groupID].size();
+        for (int rank = 0; rank < rankCountForGroup; rank++) {
+            NodePermissionsKey nameKey = NodePermissionsKey(groupName, rank);
+            GroupByUUIDKey idKey = GroupByUUIDKey(groupID, rank);
+            NodePermissionsPointer perms;
+            if (_groupForbiddens.contains(nameKey)) {
+                perms = _groupForbiddens[nameKey];
+            } else {
+                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms->setGroupID(groupID);
+                _groupForbiddens[nameKey] = perms;
+                changed = true;
+            }
+            _groupForbiddensByUUID[idKey] = perms;
+        }
+    }
+
+    debugDumpGroupsState();
+
+    return changed;
+}
+
+QStringList DomainServerSettingsManager::getAllNames() const {
+    QStringList result;
+    foreach (auto key, _agentPermissions.keys()) {
+        result << key.first.toLower();
+    }
+    return result;
+}
+
+NodePermissions DomainServerSettingsManager::getStandardPermissionsForName(const NodePermissionsKey& name) const {
     if (_standardAgentPermissions.contains(name)) {
         return *(_standardAgentPermissions[name].get());
     }
@@ -534,54 +605,59 @@ NodePermissions DomainServerSettingsManager::getStandardPermissionsForName(const
 }
 
 NodePermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {
-    if (_agentPermissions.contains(name)) {
-        return *(_agentPermissions[name].get());
+    NodePermissionsKey nameKey = NodePermissionsKey(name, 0);
+    if (_agentPermissions.contains(nameKey)) {
+        return *(_agentPermissions[nameKey].get());
     }
     NodePermissions nullPermissions;
     nullPermissions.setAll(false);
     return nullPermissions;
 }
 
-NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QString& groupname) const {
-    if (_groupPermissions.contains(groupname)) {
-        return *(_groupPermissions[groupname].get());
+NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QString& groupName, int rank) const {
+    NodePermissionsKey groupRankKey = NodePermissionsKey(groupName, rank);
+    if (_groupPermissions.contains(groupRankKey)) {
+        return *(_groupPermissions[groupRankKey].get());
     }
     NodePermissions nullPermissions;
     nullPermissions.setAll(false);
     return nullPermissions;
 }
 
-NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QUuid& groupID) const {
-    if (!_groupByID.contains(groupID)) {
+NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QUuid& groupID, int rank) const {
+    GroupByUUIDKey byUUIDKey = GroupByUUIDKey(groupID, rank);
+    if (!_groupPermissionsByUUID.contains(byUUIDKey)) {
         NodePermissions nullPermissions;
         nullPermissions.setAll(false);
         return nullPermissions;
     }
-    QString groupName = _groupByID[groupID]->getID();
-    return getPermissionsForGroup(groupName);
+    NodePermissionsKey groupKey = _groupPermissionsByUUID[byUUIDKey]->getKey();
+    return getPermissionsForGroup(groupKey.first, groupKey.second);
 }
 
-
-NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QString& groupname) const {
-    if (_groupForbiddens.contains(groupname)) {
-        return *(_groupForbiddens[groupname].get());
+NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QString& groupName, int rank) const {
+    NodePermissionsKey groupRankKey = NodePermissionsKey(groupName, rank);
+    if (_groupForbiddens.contains(groupRankKey)) {
+        return *(_groupForbiddens[groupRankKey].get());
     }
     NodePermissions nullForbiddens;
+    // XXX should this be setAll(true) ?
     nullForbiddens.setAll(false);
     return nullForbiddens;
 }
 
-NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& groupID) const {
-    if (!_groupByID.contains(groupID)) {
+NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& groupID, int rank) const {
+    GroupByUUIDKey byUUIDKey = GroupByUUIDKey(groupID, rank);
+    if (!_groupForbiddensByUUID.contains(byUUIDKey)) {
         NodePermissions nullForbiddens;
+        // XXX should this be setAll(true) ?
         nullForbiddens.setAll(false);
         return nullForbiddens;
     }
-    QString groupName = _groupByID[groupID]->getID();
-    return getForbiddensForGroup(groupName);
+
+    NodePermissionsKey groupKey = _groupForbiddensByUUID[byUUIDKey]->getKey();
+    return getForbiddensForGroup(groupKey.first, groupKey.second);
 }
-
-
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
     const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
@@ -854,7 +930,8 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
     sortPermissions();
 }
 
-QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName) {
+QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJsonObject& groupObject,
+                                                                     const QString& settingName) {
     foreach(const QJsonValue& settingValue, groupObject[DESCRIPTION_SETTINGS_KEY].toArray()) {
         QJsonObject settingObject = settingValue.toObject();
         if (settingObject[DESCRIPTION_NAME_KEY].toString() == settingName) {
@@ -967,6 +1044,12 @@ bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
         !m2.contains("permissions_id")) {
         return v1.toString() < v2.toString();
     }
+
+    if (m1.contains("rank_name") && m2.contains("rank_name") &&
+        m1["permissions_id"].toString() == m2["permissions_id"].toString()) {
+        return m1["rank_name"].toString() < m2["rank_name"].toString();
+    }
+
     return m1["permissions_id"].toString() < m2["permissions_id"].toString();
 }
 
@@ -1003,62 +1086,94 @@ void DomainServerSettingsManager::persistToFile() {
     }
 }
 
-void DomainServerSettingsManager::requestMissingGroupIDs() {
+QStringList DomainServerSettingsManager::getAllKnownGroupNames() {
+    // extract all the group names from the group-permissions and group-forbiddens settings
+    QSet<QString> result;
+
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i_permissions(_groupPermissions.get());
+    while (i_permissions.hasNext()) {
+        i_permissions.next();
+        NodePermissionsKey key = i_permissions.key();
+        result += key.first;
+    }
+
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i_forbiddens(_groupForbiddens.get());
+    while (i_forbiddens.hasNext()) {
+        i_forbiddens.next();
+        NodePermissionsKey key = i_forbiddens.key();
+        result += key.first;
+    }
+
+    return result.toList();
+}
+
+bool DomainServerSettingsManager::setGroupID(const QString& groupName, const QUuid& groupID) {
+    bool changed = false;
+    _groupIDs[groupName.toLower()] = groupID;
+    _groupNames[groupID] = groupName;
+
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i_permissions(_groupPermissions.get());
+    while (i_permissions.hasNext()) {
+        i_permissions.next();
+        NodePermissionsPointer perms = i_permissions.value();
+        if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
+            changed = true;
+            perms->setGroupID(groupID);
+        }
+    }
+
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i_forbiddens(_groupForbiddens.get());
+    while (i_forbiddens.hasNext()) {
+        i_forbiddens.next();
+        NodePermissionsPointer perms = i_forbiddens.value();
+        if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
+            changed = true;
+            perms->setGroupID(groupID);
+        }
+    }
+
+    return changed;
+}
+
+void DomainServerSettingsManager::apiRefreshGroupInformation() {
+    const int STALE_DATA_AGE = 600; // seconds
+
     if (!DependencyManager::get<AccountManager>()->hasAuthEndpoint()) {
         // can't yet.
         return;
     }
 
-    QHashIterator<QString, NodePermissionsPointer> i_permissions(_groupPermissions.get());
-    while (i_permissions.hasNext()) {
-        i_permissions.next();
-        NodePermissionsPointer perms = i_permissions.value();
-        if (!perms->getGroupID().isNull()) {
-            // we already know this group's ID
+    QStringList groupNames = getAllKnownGroupNames();
+    foreach (QString groupName, groupNames) {
+        if (_groupIDs.contains(groupName.toLower())) {
+            // we already know about this one
             continue;
         }
-
-        // make a call to metaverse api to turn the group name into a group ID
-        getGroupID(perms->getID());
+        apiGetGroupID(groupName);
     }
-    QHashIterator<QString, NodePermissionsPointer> i_forbiddens(_groupForbiddens.get());
-    while (i_forbiddens.hasNext()) {
-        i_forbiddens.next();
-        NodePermissionsPointer perms = i_forbiddens.value();
-        if (!perms->getGroupID().isNull()) {
-            // we already know this group's ID
-            continue;
-        }
 
-        // make a call to metaverse api to turn the group name into a group ID
-        getGroupID(perms->getID());
+    quint64 now = usecTimestampNow();
+    foreach (QUuid groupID, _groupNames.keys()) {
+        if (now - _groupRanksLastFetched[groupID] > STALE_DATA_AGE * USECS_PER_SECOND) {
+            apiGetGroupRanks(groupID);
+        }
     }
 }
 
-NodePermissionsPointer DomainServerSettingsManager::lookupGroupByID(const QUuid& id) {
-    if (_groupByID.contains(id)) {
-        return _groupByID[id];
-    }
-    return nullptr;
-}
-
-void DomainServerSettingsManager::getGroupID(const QString& groupname) {
+void DomainServerSettingsManager::apiGetGroupID(const QString& groupName) {
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "getGroupIDJSONCallback";
+    callbackParams.jsonCallbackMethod = "apiGetGroupIDJSONCallback";
     callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "getGroupIDErrorCallback";
+    callbackParams.errorCallbackMethod = "apiGetGroupIDErrorCallback";
 
-    const QString GET_GROUP_ID_PATH = "api/v1/groups/name/%1";
-
-    qDebug() << "************* Requesting group ID for group named" << groupname;
-
-    DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_ID_PATH.arg(groupname),
+    const QString GET_GROUP_ID_PATH = "api/v1/groups/names/%1";
+    DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_ID_PATH.arg(groupName),
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
-void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupIDJSONCallback(QNetworkReply& requestReply) {
     // {
     //     "data":{
     //         "groups":[{
@@ -1090,7 +1205,6 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
     //     "status":"success"
     // }
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-
     if (jsonObject["status"].toString() == "success") {
         QJsonArray groups = jsonObject["data"].toObject()["groups"].toArray();
         for (int i = 0; i < groups.size(); i++) {
@@ -1098,25 +1212,10 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
             QString groupName = group["name"].toString();
             QUuid groupID = QUuid(group["id"].toString());
 
-            bool found = false;
-            if (_groupPermissions.contains(groupName)) {
-                qDebug() << "ID for group:" << groupName << "is" << groupID;
-                _groupPermissions[groupName]->setGroupID(groupID);
-                _groupByID[groupID] = _groupPermissions[groupName];
-                found = true;
-            }
-            if (_groupForbiddens.contains(groupName)) {
-                qDebug() << "ID for group:" << groupName << "is" << groupID;
-                _groupForbiddens[groupName]->setGroupID(groupID);
-                _groupByID[groupID] = _groupForbiddens[groupName];
-                found = true;
-            }
-
-            if (found) {
+            bool changed = setGroupID(groupName, groupID);
+            if (changed) {
                 packPermissions();
-                getGroupRanks(groupID);
-            } else {
-                qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
+                apiGetGroupRanks(groupID);
             }
         }
     } else {
@@ -1124,27 +1223,26 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
     }
 }
 
-void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupIDErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "******************** getGroupID api call failed:" << requestReply.error();
 }
 
-void DomainServerSettingsManager::getGroupRanks(const QUuid& groupID) {
+void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
+    _groupRanksLastFetched[groupID] = usecTimestampNow();
+
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
-    callbackParams.jsonCallbackMethod = "getGroupRanksJSONCallback";
+    callbackParams.jsonCallbackMethod = "apiGetGroupRanksJSONCallback";
     callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "getGroupRanksErrorCallback";
+    callbackParams.errorCallbackMethod = "apiGetGroupRanksErrorCallback";
 
     const QString GET_GROUP_RANKS_PATH = "api/v1/groups/%1/ranks";
-
-    qDebug() << "************* Requesting group ranks for group" << groupID;
-
     DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_RANKS_PATH.arg(groupID.toString().mid(1,36)),
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
-void DomainServerSettingsManager::getGroupRanksJSONCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& requestReply) {
     // {
     //     "current_page":1,
     //     "data":{
@@ -1195,6 +1293,7 @@ void DomainServerSettingsManager::getGroupRanksJSONCallback(QNetworkReply& reque
     //     "total_pages":1
     // }
 
+    bool changed = false;
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         QJsonObject groups = jsonObject["data"].toObject()["groups"].toObject();
@@ -1205,47 +1304,97 @@ void DomainServerSettingsManager::getGroupRanksJSONCallback(QNetworkReply& reque
                 QJsonObject rank = ranks.at(rankIndex).toObject();
                 QString rankName = rank["name"].toString();
                 int rankOrder = rank["order"].toInt();
-                qDebug() << "**** " << groupID << "rank name =" << rankName << " order =" << rankOrder;
                 QVector<QString>& ranksForGroup = _groupRanks[groupID];
                 if (ranksForGroup.size() < rankOrder + 1) {
                     ranksForGroup.resize(rankOrder + 1);
+                    changed = true;
                 }
-                ranksForGroup[rankOrder] = rankName;
+                if (ranksForGroup[rankOrder] != rankName) {
+                    ranksForGroup[rankOrder] = rankName;
+                    changed = true;
+                }
             }
+        }
+
+        changed |= ensurePermissionsForGroupRanks();
+        if (changed) {
+            packPermissions();
         }
     } else {
         qDebug() << "getGroupRanks api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
     }
 }
 
-void DomainServerSettingsManager::getGroupRanksErrorCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupRanksErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "******************** getGroupRanks api call failed:" << requestReply.error();
 }
 
-void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, bool isMember) {
-    _groupMembership[name][groupID] = isMember;
+void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, int rank) {
+    if (rank >= 0) {
+        _groupMembership[name][groupID] = rank;
+    } else {
+        _groupMembership[name].remove(groupID);
+    }
 }
 
-bool DomainServerSettingsManager::isGroupMember(const QString& name, const QUuid& groupID) {
-    return _groupMembership[name][groupID];
+int DomainServerSettingsManager::isGroupMember(const QString& name, const QUuid& groupID) {
+    const QHash<QUuid, int>& groupsForName = _groupMembership[name];
+    if (groupsForName.contains(groupID)) {
+        return groupsForName[groupID];
+    }
+    return -1;
 }
 
 QList<QUuid> DomainServerSettingsManager::getGroupIDs() {
-    QList<QUuid> result;
-    foreach (QString groupName, _groupPermissions.keys()) {
-        if (_groupPermissions[groupName]->isGroup()) {
-            result << _groupPermissions[groupName]->getGroupID();
+    QSet<QUuid> result;
+    foreach (NodePermissionsKey groupKey, _groupPermissions.keys()) {
+        if (_groupPermissions[groupKey]->isGroup()) {
+            result += _groupPermissions[groupKey]->getGroupID();
         }
     }
-    return result;
+    return result.toList();
 }
 
 QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
-    QList<QUuid> result;
-    foreach (QString groupName, _groupForbiddens.keys()) {
-        if (_groupForbiddens[groupName]->isGroup()) {
-            result << _groupForbiddens[groupName]->getGroupID();
+    QSet<QUuid> result;
+    foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
+        if (_groupForbiddens[groupKey]->isGroup()) {
+            result += _groupForbiddens[groupKey]->getGroupID();
         }
     }
-    return result;
+    return result.toList();
+}
+
+void DomainServerSettingsManager::debugDumpGroupsState() {
+    qDebug() << "--------- GROUPS ---------";
+
+    qDebug() << "_groupPermissions:";
+    foreach (NodePermissionsKey groupKey, _groupPermissions.keys()) {
+        NodePermissionsPointer perms = _groupPermissions[groupKey];
+        qDebug() << "|  " << groupKey << perms;
+    }
+
+    qDebug() << "_groupIDs:";
+    foreach (QString groupName, _groupIDs.keys()) {
+        qDebug() << "|  " << groupName << "==>" << _groupIDs[groupName];
+    }
+
+    qDebug() << "_groupNames:";
+    foreach (QUuid groupID, _groupNames.keys()) {
+        qDebug() << "|  " << groupID << "==>" << _groupNames[groupID];
+    }
+
+    qDebug() << "_groupRanks:";
+    foreach (QUuid groupID, _groupRanks.keys()) {
+        QVector<QString>& ranksForGroup = _groupRanks[groupID];
+        QString readableRanks;
+        foreach (QString rankName, ranksForGroup) {
+            if (readableRanks == "") {
+                readableRanks = rankName;
+            } else {
+                readableRanks += "," + rankName;
+            }
+        }
+        qDebug() << "|  " << groupID << "==>" << readableRanks;
+    }
 }

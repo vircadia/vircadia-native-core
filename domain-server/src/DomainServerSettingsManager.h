@@ -30,6 +30,8 @@ const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
 
+using GroupByUUIDKey = QPair<QUuid, int>;
+
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:
@@ -46,40 +48,46 @@ public:
     QVariantMap& getDescriptorsMap();
 
     // these give access to anonymous/localhost/logged-in settings from the domain-server settings page
-    bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
-    NodePermissions getStandardPermissionsForName(const QString& name) const;
+    bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name, 0); }
+    NodePermissions getStandardPermissionsForName(const NodePermissionsKey& name) const;
 
     // these give access to permissions for specific user-names from the domain-server settings page
-    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
+    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name, 0); }
     NodePermissions getPermissionsForName(const QString& name) const;
-    QStringList getAllNames() { return _agentPermissions.keys(); }
+    NodePermissions getPermissionsForName(const NodePermissionsKey& key) const { return getPermissionsForName(key.first); }
+    QStringList getAllNames() const;
 
     // these give access to permissions for specific groups from the domain-server settings page
-    bool havePermissionsForGroup(const QString& groupname) const { return _groupPermissions.contains(groupname); }
-    NodePermissions getPermissionsForGroup(const QString& groupname) const;
-    NodePermissions getPermissionsForGroup(const QUuid& groupID) const;
+    bool havePermissionsForGroup(const QString& groupName, int rank) const {
+        return _groupPermissions.contains(groupName, rank);
+    }
+    NodePermissions getPermissionsForGroup(const QString& groupName, int rank) const;
+    NodePermissions getPermissionsForGroup(const QUuid& groupID, int rank) const;
 
     // these remove permissions from users in certain groups
-    bool haveForbiddensForGroup(const QString& groupname) const { return _groupForbiddens.contains(groupname); }
-    NodePermissions getForbiddensForGroup(const QString& groupname) const;
-    NodePermissions getForbiddensForGroup(const QUuid& groupID) const;
+    bool haveForbiddensForGroup(const QString& groupName, int rank) const { return _groupForbiddens.contains(groupName, rank); }
+    NodePermissions getForbiddensForGroup(const QString& groupName, int rank) const;
+    NodePermissions getForbiddensForGroup(const QUuid& groupID, int rank) const;
+
+    QStringList getAllKnownGroupNames();
+    bool setGroupID(const QString& groupName, const QUuid& groupID);
 
     QList<QUuid> getGroupIDs();
     QList<QUuid> getBlacklistGroupIDs();
 
     // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
     void clearGroupMemberships(const QString& name) { _groupMembership[name].clear(); }
-    void recordGroupMembership(const QString& name, const QUuid groupID, bool isMember);
-    bool isGroupMember(const QString& name, const QUuid& groupID);
+    void recordGroupMembership(const QString& name, const QUuid groupID, int rank);
+    int isGroupMember(const QString& name, const QUuid& groupID); // returns rank or -1 if not a member
 
 signals:
     void updateNodePermissions();
 
 public slots:
-    void getGroupIDJSONCallback(QNetworkReply& requestReply);
-    void getGroupIDErrorCallback(QNetworkReply& requestReply);
-    void getGroupRanksJSONCallback(QNetworkReply& requestReply);
-    void getGroupRanksErrorCallback(QNetworkReply& requestReply);
+    void apiGetGroupIDJSONCallback(QNetworkReply& requestReply);
+    void apiGetGroupIDErrorCallback(QNetworkReply& requestReply);
+    void apiGetGroupRanksJSONCallback(QNetworkReply& requestReply);
+    void apiGetGroupRanksErrorCallback(QNetworkReply& requestReply);
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
@@ -105,26 +113,36 @@ private:
     void validateDescriptorsMap();
 
     // these cause calls to metaverse's group api
-    void requestMissingGroupIDs();
-    void getGroupID(const QString& groupname);
-    NodePermissionsPointer lookupGroupByID(const QUuid& id);
-    void getGroupRanks(const QUuid& groupID);
+    void apiRefreshGroupInformation();
+    void apiGetGroupID(const QString& groupName);
+    void apiGetGroupRanks(const QUuid& groupID);
 
     void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
+    bool ensurePermissionsForGroupRanks();
 
-    NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
+    NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost, friend-of-domain-owner
     NodePermissionsMap _agentPermissions; // specific account-names
+
     NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
     NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group
-    QHash<QUuid, NodePermissionsPointer> _groupByID; // similar to _groupPermissions but key is group-id rather than name
+    // these are like _groupPermissions and _groupForbiddens but with uuids rather than group-names in the keys
+    QHash<GroupByUUIDKey, NodePermissionsPointer> _groupPermissionsByUUID;
+    QHash<GroupByUUIDKey, NodePermissionsPointer> _groupForbiddensByUUID;
+
+    QHash<QString, QUuid> _groupIDs; // keep track of group-name to group-id mappings
+    QHash<QUuid, QString> _groupNames; // keep track of group-id to group-name mappings
 
     // remember the responses to api/v1/groups/%1/ranks
-    QHash<QUuid, QVector<QString>> _groupRanks;
+    QHash<QUuid, QVector<QString>> _groupRanks; // QHash<group-id, QVector<rank-name>>
+    QHash<QUuid, quint64> _groupRanksLastFetched; // when did we last update _groupRanks
 
     // keep track of answers to api queries about which users are in which groups
-    QHash<QString, QHash<QUuid, bool>> _groupMembership;
+    QHash<QString, QHash<QUuid, int>> _groupMembership; // QHash<user-name, QHash<group-id, rank>>
+
+
+    void debugDumpGroupsState();
 };
 
 #endif // hifi_DomainServerSettingsManager_h

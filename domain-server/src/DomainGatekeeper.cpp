@@ -150,8 +150,9 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
 
             // if this user is a known member of a group, give them the implied permissions
             foreach (QUuid groupID, _server->_settingsManager.getGroupIDs()) {
-                if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
-                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID);
+                int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                if (rank >= 0) {
+                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rank);
                     qDebug() << "user-permissions: user is in group:" << groupID << "so:" << userPerms;
                 }
             }
@@ -159,11 +160,13 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
             // if this user is a known member of a blacklist group, remove the implied permissions
             foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
                 if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
-                    userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID);
-                    qDebug() << "user-permissions: user is in blacklist group:" << groupID << "so:" << userPerms;
+                    int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                    if (rank >= 0) {
+                        userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rank);
+                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << "so:" << userPerms;
+                    }
                 }
             }
-
         }
     }
 
@@ -183,7 +186,7 @@ void DomainGatekeeper::updateNodePermissions() {
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and username is only set once they user's key has been confirmed.
         QString username = node->getPermissions().getUserName();
-        NodePermissions userPerms(username);
+        NodePermissions userPerms(NodePermissionsKey(username, 0));
 
         if (node->getPermissions().isAssignment) {
             // this node is an assignment-client
@@ -273,7 +276,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // start with empty permissions
-    NodePermissions userPerms(username);
+    NodePermissions userPerms(NodePermissionsKey(username, 0));
     userPerms.setAll(false);
 
     // check if this user is on our local machine - if this is true set permissions to those for a "localhost" connection
@@ -711,7 +714,7 @@ void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid gro
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
 
-    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/membership/%2";
+    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/members/%2";
     QString groupIDStr = groupID.toString().mid(1,36);
     DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
                                                           AccountManagerAuth::Required,

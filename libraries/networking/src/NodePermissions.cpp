@@ -13,22 +13,27 @@
 #include <QtCore/QDebug>
 #include "NodePermissions.h"
 
-QString NodePermissions::standardNameLocalhost = QString("localhost");
-QString NodePermissions::standardNameLoggedIn = QString("logged-in");
-QString NodePermissions::standardNameAnonymous = QString("anonymous");
-QString NodePermissions::standardNameFriends = QString("friends");
+NodePermissionsKey NodePermissions::standardNameLocalhost = NodePermissionsKey("localhost", 0);
+NodePermissionsKey NodePermissions::standardNameLoggedIn = NodePermissionsKey("logged-in", 0);
+NodePermissionsKey NodePermissions::standardNameAnonymous = NodePermissionsKey("anonymous", 0);
+NodePermissionsKey NodePermissions::standardNameFriends = NodePermissionsKey("friends", 0);
 
 QStringList NodePermissions::standardNames = QList<QString>()
-    << NodePermissions::standardNameLocalhost
-    << NodePermissions::standardNameLoggedIn
-    << NodePermissions::standardNameAnonymous
-    << NodePermissions::standardNameFriends;
+    << NodePermissions::standardNameLocalhost.first
+    << NodePermissions::standardNameLoggedIn.first
+    << NodePermissions::standardNameAnonymous.first
+    << NodePermissions::standardNameFriends.first;
 
 NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
-    _id = perms["permissions_id"].toString();
+    _id = perms["permissions_id"].toString().toLower();
     if (perms.contains("group_id")) {
-        _groupIDSet = true;
         _groupID = perms["group_id"].toUuid();
+        if (!_groupID.isNull()) {
+            _groupIDSet = true;
+        }
+    }
+    if (perms.contains("rank")) {
+        _rank = perms["rank"].toInt();
     }
 
     permissions = NodePermissions::Permissions();
@@ -41,11 +46,15 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
         Permission::canConnectPastMaxCapacity : Permission::none;
 }
 
-QVariant NodePermissions::toVariant() {
+QVariant NodePermissions::toVariant(QVector<QString> rankNames) {
     QMap<QString, QVariant> values;
     values["permissions_id"] = _id;
     if (_groupIDSet) {
         values["group_id"] = _groupID;
+        values["rank"] = _rank;
+        if (rankNames.size() > _rank) {
+            values["rank_name"] = rankNames[_rank];
+        }
     }
     values["id_can_connect"] = can(Permission::canConnectToDomain);
     values["id_can_adjust_locks"] = can(Permission::canAdjustLocks);
@@ -137,7 +146,9 @@ QDataStream& operator>>(QDataStream& in, NodePermissions& perms) {
 }
 
 QDebug operator<<(QDebug debug, const NodePermissions& perms) {
-    debug.nospace() << "[permissions: " << perms.getID() << " --";
+    debug.nospace() << "[permissions: " << perms.getID() << "/" << perms.getUserName() << " -- ";
+    debug.nospace() << "rank=" << perms.getRank()
+                    << ", groupID=" << perms.getGroupID() << "/" << (perms.isGroup() ? "y" : "n");
     if (perms.can(NodePermissions::Permission::canConnectToDomain)) {
         debug << " connect";
     }

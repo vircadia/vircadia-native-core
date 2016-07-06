@@ -112,7 +112,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         return;
     }
 
-    _settingsManager.requestMissingGroupIDs();
+    _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
     setupAutomaticNetworking();
@@ -1096,7 +1096,6 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
 
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
-
 
     // add access level for anonymous connections
     // consider the domain to be "restricted" if anonymous connections are disallowed

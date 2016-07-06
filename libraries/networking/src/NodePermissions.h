@@ -20,30 +20,35 @@
 
 class NodePermissions;
 using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
+using NodePermissionsKey = QPair<QString, int>;
+using NodePermissionsKeyList = QList<QPair<QString, int>>;
 
 class NodePermissions {
 public:
-    NodePermissions() { _id = QUuid::createUuid().toString(); }
-    NodePermissions(const QString& name) { _id = name.toLower(); }
+    NodePermissions() { _id = QUuid::createUuid().toString(); _rank = 0; }
+    NodePermissions(const QString& name) { _id = name.toLower(); _rank = 0; }
+    NodePermissions(const NodePermissionsKey& key) { _id = key.first.toLower(); _rank = key.second; }
     NodePermissions(QMap<QString, QVariant> perms);
 
-    QString getID() const { return _id; }
+    QString getID() const { return _id; } // a user-name or a group-name, not verified
+    int getRank() const { return _rank; }
+    NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rank); }
 
-    // the _id member isn't authenticated and _username is.
+    // the _id member isn't authenticated/verified and _username is.
     void setUserName(QString userName) { _userName = userName.toLower(); }
-    QString getUserName() { return _userName; }
+    QString getUserName() const { return _userName; }
 
-    void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; } }
-    QUuid getGroupID() { return _groupID; }
-    bool isGroup() { return _groupIDSet; }
+    void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
+    QUuid getGroupID() const { return _groupID; }
+    bool isGroup() const { return _groupIDSet; }
 
     bool isAssignment { false };
 
     // these 3 names have special meaning.
-    static QString standardNameLocalhost;
-    static QString standardNameLoggedIn;
-    static QString standardNameAnonymous;
-    static QString standardNameFriends;
+    static NodePermissionsKey standardNameLocalhost;
+    static NodePermissionsKey standardNameLoggedIn;
+    static NodePermissionsKey standardNameAnonymous;
+    static NodePermissionsKey standardNameFriends;
     static QStringList standardNames;
 
     enum class Permission {
@@ -58,7 +63,7 @@ public:
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;
 
-    QVariant toVariant();
+    QVariant toVariant(QVector<QString> rankNames = QVector<QString>());
 
     void setAll(bool value);
 
@@ -76,6 +81,7 @@ public:
 
 protected:
     QString _id;
+    int _rank { 0 }; // 0 unless this is for a group
     QString _userName;
 
     bool _groupIDSet { false };
@@ -88,15 +94,28 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(NodePermissions::Permissions)
 class NodePermissionsMap {
 public:
     NodePermissionsMap() { }
-    NodePermissionsPointer& operator[](const QString& key) { return _data[key.toLower()]; }
-    NodePermissionsPointer operator[](const QString& key) const { return _data.value(key.toLower()); }
-    bool contains(const QString& key) const { return _data.contains(key.toLower()); }
-    QList<QString> keys() const { return _data.keys(); }
-    QHash<QString, NodePermissionsPointer> get() { return _data; }
+    NodePermissionsPointer& operator[](const NodePermissionsKey& key) {
+        NodePermissionsKey dataKey(key.first.toLower(), key.second);
+        if (!_data.contains(dataKey)) {
+            _data[dataKey] = NodePermissionsPointer(new NodePermissions(key));
+        }
+        return _data[dataKey];
+    }
+    NodePermissionsPointer operator[](const NodePermissionsKey& key) const {
+        return _data.value(NodePermissionsKey(key.first.toLower(), key.second));
+    }
+    bool contains(const NodePermissionsKey& key) const {
+        return _data.contains(NodePermissionsKey(key.first.toLower(), key.second));
+    }
+    bool contains(const QString& keyFirst, int keySecond) const {
+        return _data.contains(NodePermissionsKey(keyFirst.toLower(), keySecond));
+    }
+    QList<NodePermissionsKey> keys() const { return _data.keys(); }
+    QHash<NodePermissionsKey, NodePermissionsPointer> get() { return _data; }
     void clear() { _data.clear(); }
 
 private:
-    QHash<QString, NodePermissionsPointer> _data;
+    QHash<NodePermissionsKey, NodePermissionsPointer> _data;
 };
 
 
