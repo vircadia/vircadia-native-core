@@ -44,6 +44,7 @@ const QString URL = "highfidelity_url";
 
 Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+Setting::Handle<bool> Snapshot::hasSetSnapshotsLocation("hasSetSnapshotsLocation", false);
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 
@@ -103,7 +104,14 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
-        QString snapshotFullPath = snapshotsLocation.get();
+        QString snapshotFullPath;
+        if (!hasSetSnapshotsLocation.get()) {
+            snapshotFullPath = QFileDialog::getExistingDirectory(nullptr, "Choose Snapshots Directory", snapshotsLocation.get());
+            hasSetSnapshotsLocation.set(true);
+            snapshotsLocation.set(snapshotFullPath);
+        } else {
+            snapshotFullPath = snapshotsLocation.get();
+        }
 
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());

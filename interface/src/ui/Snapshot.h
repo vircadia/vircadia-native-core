@@ -39,6 +39,7 @@ public:
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
     static Setting::Handle<QString> snapshotsLocation;
+    static Setting::Handle<bool> hasSetSnapshotsLocation;
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
 };
