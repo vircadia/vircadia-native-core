@@ -692,7 +692,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
         info.setParams(type, dimensions, _compoundShapeURL);
-        assert(pointCollection.size() > 0); // adebug
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
 
