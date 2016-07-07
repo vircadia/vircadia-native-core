@@ -55,7 +55,7 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var NUMBER_OF_STEPS = 20;
 
 
-var USE_THUMB_AND_TRIGGER_MODE = false;
+var USE_THUMB_AND_TRIGGER_MODE = true;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
 var TARGET_MODEL_DIMENSIONS = {
@@ -299,24 +299,16 @@ function Teleporter() {
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
-            if (leftPad.buttonValue === 0) {
-                _this.exitTeleportMode();
-                _this.deleteTargetOverlay();
-                return;
-            }
-            if (leftTrigger.buttonValue === 0 && inTeleportMode === true) {
+
+            if ((leftPad.buttonValue === 0 || leftTrigger.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
 
         } else {
             teleporter.rightRay();
-            if (rightPad.buttonValue === 0) {
-                _this.exitTeleportMode();
-                _this.deleteTargetOverlay();
-                return;
-            }
-            if (rightTrigger.buttonValue === 0 && inTeleportMode === true) {
+
+            if ((rightPad.buttonValue === 0 || rightTrigger.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
@@ -692,6 +684,12 @@ function registerMappingsWithThumbAndTrigger() {
         teleporter.enterTeleportMode('left')
     });
     teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function(value) {
+        teleporter.enterTeleportMode('right')
+    });
+    teleportMapping.from(leftTrigger.down).when(leftPad.down).to(function(value) {
+        teleporter.enterTeleportMode('left')
+    });
+    teleportMapping.from(rightTrigger.down).when(rightPad.down).to(function(value) {
         teleporter.enterTeleportMode('right')
     });
 }
