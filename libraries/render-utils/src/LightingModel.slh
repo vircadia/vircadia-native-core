@@ -66,13 +66,47 @@ float isShowContour() {
 
 <@endfunc@>
 
+<@func declareBeckmannSpecular()@>
 
+uniform sampler2D scatteringSpecularBeckmann;
+
+float fetchSpecularBeckmann(float ndoth, float roughness) {
+    return pow(2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);
+}
+
+float fresnelSchlickScalar(float fresnelColor, vec3 lightDir, vec3 halfDir) {
+    float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
+    float exponential = pow(base, 5.0);
+    return (exponential)+fresnelColor * (1.0 - exponential);
+}
+
+vec2 skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
+    vec2 result = vec2(0.0, 1.0);
+    float ndotl = dot(N, L);
+    if (ndotl > 0.0) {
+        vec3 h = L + V;
+        vec3 H = normalize(h);
+        float ndoth = dot(N, H);
+        float PH = fetchSpecularBeckmann(ndoth, roughness);
+        float F = fresnelSchlickScalar(0.028, H, V);
+        float frSpec = max(PH * F / dot(h, h), 0.0);
+        result.x = ndotl * intensity * frSpec;
+        result.y -= F;
+    }
+
+    return result;
+}
+<@endfunc@>
 
 <@func declareEvalPBRShading()@>
 
-vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
-    return fresnelColor + (1.0 - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+vec3 fresnelSchlickColor(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
+    float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
+    float exponential = pow(base, 5.0);
+    return vec3(exponential) + fresnelColor * (1.0 - exponential);
 }
+
+
 
 float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
@@ -96,7 +130,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
 
     // Specular Lighting
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
-    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
+    vec3 fresnelColor = fresnelSchlickColor(fresnel, fragLightDir, halfDir);
     float power = specularDistribution(roughness, fragNormal, halfDir);
     vec3 specular = power * fresnelColor * diffuse;
 
@@ -104,73 +138,42 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
 }
 <@endfunc@>
 
+
+
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
-vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 specular, float roughness) {
-    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, specular, roughness);
-}
-<!
-uniform sampler2D scatteringSpecularBeckmann;
-
-float fetchSpecularBeckmann(float ndoth, float roughness) {
-    return pow(2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);
+vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
 }
 
-float fresnelReflectance(vec3 H, vec3 V, float Fo) {
-    float base = 1.0 - dot(V, H);
-    float exponential = pow(base, 5.0);
-    return exponential + Fo * (1.0 - exponential);
-}
 
-float skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
-    float result = 0.0;
-    float ndotl = dot(N, L);
-    if (ndotl > 0.0) {
-        vec3 h = L + V;
-        vec3 H = normalize(h);
-        float ndoth = dot(N, H);
-        float PH = fetchSpecularBeckmann(ndoth, roughness);
-        float F = fresnelReflectance(H, V, 0.028);
-        float frSpec = max(PH * F / dot(h, h), 0.0);
-        result = ndotl * intensity * frSpec;
+<$declareBeckmannSpecular()$>
+<@include SubsurfaceScattering.slh@>
+<$declareSubsurfaceScatteringBRDF()$>
+
+void evalFragShading(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float roughness,
+    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
+    if (scattering > 0.0) {
+        vec3 brdf = evalSkinBRDF(fragLightDir, fragNormal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
+        float NdotL = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+        diffuse = mix(vec3(NdotL), brdf, scattering);
+
+        // Specular Lighting
+        vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+        vec2 specularBrdf = skinSpecular(fragNormal, fragLightDir, fragEyeDir, roughness, 1.0);
+        
+        diffuse *= specularBrdf.y;
+        specular = vec3(specularBrdf.x);
+
+    } else {
+        vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, specular, roughness); 
+        diffuse = vec3(shading.w);
+        specular = shading.xyz;
     }
-
-    return result;
 }
 
-// Eval shading
-vec3 brdf = evalSkinBRDF(fragLightDir, normal, midNormal, lowNormal, curvature);
-float scatteringLevel = getScatteringLevel();
-vec4 shading;
-float standardDiffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
-{ // Key Sun Lighting
-    // Diffuse Lighting
-    //float diffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
-
-    // Specular Lighting
-    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
-
-    float specular = skinSpecular(normal, fragLightDir, fragEyeDir, roughness, 1.0);
-
-    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
-    float power = specularDistribution(roughness, normal, halfDir);
-    //vec3 specular = power * fresnelColor * standardDiffuse;
-
-    shading = vec4(vec3(specular), (1 - fresnelColor.x));
-}
-
-
-if (scatteringLevel < 0.1) {
-    brdf = vec3(standardDiffuse);
-}
-brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
-
-
-diffuse = albedo * brdf.xyz * lightEnergy;
-
-specular = shading.rgb * lightEnergy;
-
-!>
 
 <@endif@>

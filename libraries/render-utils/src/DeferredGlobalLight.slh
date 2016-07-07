@@ -34,16 +34,15 @@
     vec3 color = vec3(0.0);
     
 <@if isScattering@>
-    vec3 fresnel = vec3(0.028); // Default Di-electric fresnel value for skin
-    float metallic = 0.0;
 <@else@>
+    color += emissive * isEmissiveEnabled();
+<@endif@>
+
     vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
     if (metallic > 0.5) {
         fresnel = albedo;
         metallic = 1.0;
     }
-    color += emissive * isEmissiveEnabled();
-<@endif@>
 
 <@endfunc@>
 
@@ -87,7 +86,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
 <$declareDeferredCurvature()$>
 
-vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
+vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
 
     <$prepareGlobalLight(1)$>
 
@@ -155,10 +154,10 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
 <$declareDeferredCurvature()$>
 
-vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
+vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
     <$prepareGlobalLight(1)$>
 
-        vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
+    vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
     vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
     float highCurvature = unpackCurvature(blurredCurvature.w);
     float lowCurvature = unpackCurvature(diffusedCurvature.w);

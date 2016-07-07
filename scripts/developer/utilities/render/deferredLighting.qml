@@ -11,10 +11,11 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "configSlider"
 
-Column {
+Row {
     spacing: 8
+
+
     Column {
-        id: deferredLighting
         spacing: 10
         Repeater {
             model: [
@@ -22,9 +23,36 @@ Column {
                  "Shaded:LightingModel:enableShaded", 
                  "Emissive:LightingModel:enableEmissive", 
                  "Lightmap:LightingModel:enableLightmap",
+            ]
+            CheckBox {
+                text: modelData.split(":")[0]
+                checked: Render.getConfig(modelData.split(":")[1])
+                onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+            }
+        }
+    }
+
+
+    Column {
+        spacing: 10
+        Repeater {
+            model: [
                  "Scattering:LightingModel:enableScattering",
                  "Diffuse:LightingModel:enableDiffuse",
                  "Specular:LightingModel:enableSpecular",
+            ]
+            CheckBox {
+                text: modelData.split(":")[0]
+                checked: Render.getConfig(modelData.split(":")[1])
+                onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+            }
+        }
+    }
+
+    Column {
+        spacing: 10
+        Repeater {
+            model: [
                  "Ambient:LightingModel:enableAmbientLight",
                  "Directional:LightingModel:enableDirectionalLight",
                  "Point:LightingModel:enablePointLight",
@@ -37,4 +65,5 @@ Column {
             }
         }
     }
+    
 }

@@ -25,46 +25,23 @@ void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
 
 <@if supportScattering@>
 
-<@include SubsurfaceScattering.slh@>
-<$declareSubsurfaceScatteringBRDF()$>
-<$declareSkinSpecularLighting()$>
-
 void evalLightingDirectionalScattering(out vec3 diffuse, out vec3 specular, Light light,
     vec3 eyeDir, vec3 normal, float roughness,
     float metallic, vec3 fresnel, vec3 albedo, float shadow,
     float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
 
     vec3 fragLightDir = -normalize(getLightDirection(light));
-    vec3 brdf = evalSkinBRDF(fragLightDir, normal, midNormal, lowNormal, curvature);
-    float scatteringLevel = getScatteringLevel();
-    vec4 shading;
-    float standardDiffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
-    { // Key Sun Lighting
-        // Diffuse Lighting
-        //float diffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
 
-        // Specular Lighting
-        vec3 halfDir = normalize(eyeDir + fragLightDir);
+    evalFragShading(diffuse, specular,
+        normal, fragLightDir, eyeDir,
+        metallic, fresnel, roughness,
+        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
 
-        float specular = skinSpecular(normal, fragLightDir, eyeDir, roughness, 1.0);
+    vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
 
-        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
-        float power = specularDistribution(roughness, normal, halfDir);
-        //vec3 specular = power * fresnelColor * standardDiffuse;
+    diffuse *= albedo * lightEnergy;
 
-        shading = vec4(vec3(specular), (1 - fresnelColor.x));
-    }
-
-
-    if (scatteringLevel < 0.1) {
-        brdf = vec3(standardDiffuse);
-    }
-    brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
-
-
-    diffuse = albedo * brdf.xyz * shadow * getLightColor(light) * getLightIntensity(light);
-
-    specular = shading.rgb * shadow * getLightColor(light) * getLightIntensity(light);
+    specular *= lightEnergy;
 }
 
 <@endif@>

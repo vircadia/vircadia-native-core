@@ -140,6 +140,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
 
+    addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
+
 
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
@@ -151,7 +153,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
-        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, curvatureFramebuffer));

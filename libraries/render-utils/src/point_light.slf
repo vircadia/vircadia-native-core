@@ -69,7 +69,7 @@ void main(void) {
     vec3 diffuse;
     vec3 specular;
 
-    if ((isScatteringEnabled() > 0.0) && (frag.mode == FRAG_MODE_SCATTERING)) {
+    if (frag.mode == FRAG_MODE_SCATTERING) {
         vec4 blurredCurvature = fetchCurvature(texCoord);
         vec4 diffusedCurvature = fetchDiffusedCurvature(texCoord);
         vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
@@ -79,7 +79,7 @@ void main(void) {
         evalLightingPointScattering(diffuse, specular, light,
             fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
             frag.metallic, frag.specular, frag.diffuse, 1.0,
-            frag.scattering, midNormal, lowNormal, lowCurvature);
+            frag.scattering * isScatteringEnabled(), midNormal, lowNormal, lowCurvature);
     } else {
         evalLightingPoint(diffuse, specular, light,
             fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
