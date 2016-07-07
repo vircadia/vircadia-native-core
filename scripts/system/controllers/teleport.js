@@ -16,11 +16,13 @@ var fadeSphereInterval = null;
 var FADE_IN_INTERVAL = 50;
 var FADE_OUT_INTERVAL = 50;
 
-// var NUMBER_OF_STEPS = 0;
-// var SMOOTH_ARRIVAL_SPACING = 0;
-// slow
-var SMOOTH_ARRIVAL_SPACING = 150;
-var NUMBER_OF_STEPS = 2;
+// instant
+var NUMBER_OF_STEPS = 0;
+var SMOOTH_ARRIVAL_SPACING = 0;
+
+// // slow
+// var SMOOTH_ARRIVAL_SPACING = 150;
+// var NUMBER_OF_STEPS = 2;
 
 //medium-slow
 // var SMOOTH_ARRIVAL_SPACING = 100;
@@ -77,7 +79,7 @@ function Teleporter() {
     this.leftOverlayLine = null;
     this.targetOverlay = null;
     this.updateConnected = null;
-    this.smoothArrivalInterval=null;
+    this.smoothArrivalInterval = null;
 
     this.initialize = function() {
         this.createMappings();
@@ -112,7 +114,7 @@ function Teleporter() {
             return;
         }
 
-        if(this.smoothArrivalInterval!==null){
+        if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
         }
         inTeleportMode = true;
@@ -565,6 +567,8 @@ var rightTrigger = new Trigger('right');
 
 var mappingName, teleportMapping;
 
+var TELEPORT_DELAY = 100;
+
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
     teleportMapping = Controller.newMapping(mappingName);
@@ -572,11 +576,24 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
-    teleportMapping.from(leftPad.down).to(function() {
-        teleporter.enterTeleportMode('left')
+    teleportMapping.from(leftPad.down).to(function(value) {
+        print('left down' + value)
+        if (value === 1) {
+
+            Script.setTimeout(function() {
+                teleporter.enterTeleportMode('left')
+            }, TELEPORT_DELAY)
+        }
+
     });
-    teleportMapping.from(rightPad.down).to(function() {
-        teleporter.enterTeleportMode('right')
+    teleportMapping.from(rightPad.down).to(function(value) {
+        print('right down' + value)
+        if (value === 1) {
+
+            Script.setTimeout(function() {
+                teleporter.enterTeleportMode('right')
+            }, TELEPORT_DELAY)
+        }
     });
 }
 
