@@ -36,6 +36,8 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
+var USE_THUMB_AND_TRIGGER_MODE = true;
+
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
@@ -121,8 +123,12 @@ function Teleporter() {
         this.teleportHand = hand;
         this.initialize();
         this.updateConnected = true;
-        Script.update.connect(this.updateForThumbAndTrigger);
+        if (USE_THUMB_AND_TRIGGER_MODE === true) {
+            Script.update.connect(this.updateForThumbAndTrigger);
 
+        } else {
+            Script.update.connect(this.update);
+        }
     };
 
     this.findMidpoint = function(start, end) {
@@ -216,7 +222,14 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        Script.update.disconnect(this.updateForThumbAndTrigger);
+        if (USE_THUMB_AND_TRIGGER_MODE === true) {
+            Script.update.disconnect(this.updateForThumbAndTrigger);
+
+        } else {
+            Script.update.disconnect(this.update);
+
+        }
+
         this.updateConnected = null;
         this.disableMappings();
         this.turnOffOverlayBeams();
@@ -644,8 +657,12 @@ function registerMappingsWithThumbAndTrigger() {
     });
 }
 
-//registerMappings();
-registerMappingsWithThumbAndTrigger()
+if (USE_THUMB_AND_TRIGGER_MODE === true) {
+    registerMappingsWithThumbAndTrigger();
+} else {
+    registerMappings();
+}
+
 var teleporter = new Teleporter();
 
 Controller.enableMapping(mappingName);
@@ -658,6 +675,12 @@ function cleanup() {
     teleporter.deleteTargetOverlay();
     teleporter.turnOffOverlayBeams();
     if (teleporter.updateConnected !== null) {
-        Script.update.disconnect(teleporter.updateForThumbAndTrigger);
+
+        if (USE_THUMB_AND_TRIGGER_MODE === true) {
+            Script.update.disconnect(teleporter.updateForThumbAndTrigger);
+
+        } else {
+            Script.update.disconnect(teleporter.update);
+        }
     }
 }
