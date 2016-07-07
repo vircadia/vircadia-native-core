@@ -491,7 +491,6 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         auto eyePoint = viewFrustum.getPosition();
         float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
-        float nearClip = 1.01f *  viewFrustum.getNearClip();
 
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 

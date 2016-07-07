@@ -137,9 +137,7 @@ void SubsurfaceScattering::configure(const Config& config) {
 void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
-
-    RenderArgs* args = renderContext->args;
-
+    
     if (!_scatteringResource->getScatteringTable()) {
         _scatteringResource->generateScatteringTable(renderContext->args);
     }
@@ -510,7 +508,6 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
 
 
     auto& frameTransform = inputs.get0();
-    auto& lightingModel = inputs.get1();
     auto& curvatureFramebuffer = inputs.get2();
     auto& diffusedFramebuffer = inputs.get3();
     auto& scatteringResource = inputs.get4();
