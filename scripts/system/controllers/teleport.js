@@ -16,6 +16,23 @@ var fadeSphereInterval = null;
 var FADE_IN_INTERVAL = 50;
 var FADE_OUT_INTERVAL = 50;
 
+
+//slow
+var SMOOTH_ARRIVAL_SPACING = 150;
+var NUMBER_OF_STEPS = 2;
+
+//medium-slow
+var SMOOTH_ARRIVAL_SPACING = 100;
+var NUMBER_OF_STEPS = 4;
+
+//medium-fast
+var SMOOTH_ARRIVAL_SPACING = 33;
+var NUMBER_OF_STEPS = 6;
+
+//fast
+var SMOOTH_ARRIVAL_SPACING = 10;
+var NUMBER_OF_STEPS = 20;
+
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
@@ -101,8 +118,8 @@ function Teleporter() {
 
     };
 
-    this.findMidpoint = function(handPosition, intersection) {
-        var xy = Vec3.sum(handPosition, intersection.intersection);
+    this.findMidpoint = function(start, end) {
+        var xy = Vec3.sum(start, end);
         var midpoint = Vec3.multiply(0.5, xy);
         return midpoint
     };
@@ -196,7 +213,7 @@ function Teleporter() {
         this.updateConnected = null;
         this.disableMappings();
         this.turnOffOverlayBeams();
-        this.deleteTargetOverlay();
+
         this.enableGrab();
         Script.setTimeout(function() {
             inTeleportMode = false;
@@ -396,7 +413,7 @@ function Teleporter() {
     };
 
     this.updateTargetOverlay = function(intersection) {
-        this.intersection = intersection;
+        _this.intersection = intersection;
 
         var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP)
         var euler = Quat.safeEulerAngles(rotation)
@@ -427,16 +444,60 @@ function Teleporter() {
 
     this.teleport = function(value) {
 
-
         if (_this.intersection !== null) {
+
             var offset = getAvatarFootOffset();
             _this.intersection.intersection.y += offset;
-            MyAvatar.position = _this.intersection.intersection;
+            // MyAvatar.position = _this.intersection.intersection;
+               this.exitTeleportMode();
+            this.smoothArrival();
+         
         }
 
-        this.triggerHaptics();
-        this.exitTeleportMode();
     };
+
+    this.getArrivalPoints = function(startPoint, endPoint) {
+        var arrivalPoints = [];
+
+
+        var i;
+        var lastPoint;
+
+        for (i = 0; i < NUMBER_OF_STEPS; i++) {
+            if (i === 0) {
+                lastPoint = startPoint;
+            }
+            var newPoint = _this.findMidpoint(lastPoint, endPoint);
+            lastPoint = newPoint;
+            arrivalPoints.push(newPoint);
+        }
+
+        arrivalPoints.push(endPoint)
+
+        return arrivalPoints
+    };
+
+    this.smoothArrival = function() {
+
+        _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
+        print('ARRIVAL POINTS: ' + JSON.stringify(_this.arrivalPoints));
+        print('end point: ' + JSON.stringify(_this.intersection.intersection))
+        _this.smoothArrivalInterval = Script.setInterval(function() {
+            print(_this.arrivalPoints.length+" arrival points remaining")
+            if (_this.arrivalPoints.length === 0) {
+                Script.clearInterval(_this.smoothArrivalInterval);
+                _this.triggerHaptics();
+                _this.deleteTargetOverlay();
+                return;
+            }
+
+            var landingPoint = _this.arrivalPoints.shift();
+            print('landing at: ' + JSON.stringify(landingPoint))
+            MyAvatar.position =landingPoint;
+
+
+        }, SMOOTH_ARRIVAL_SPACING)
+    }
 }
 
 
