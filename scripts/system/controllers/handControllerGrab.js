@@ -10,9 +10,10 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, Reticle, Messages, setEntityCustomData, getEntityCustomData, vec3toStr */
+/* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform */
 
 Script.include("/~/system/libraries/utils.js");
+Script.include("../libraries/Xform.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -138,7 +139,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-//we've created various ways of visualizing looking for and moving distant objects
+// we've created various ways of visualizing looking for and moving distant objects
 var USE_ENTITY_LINES_FOR_SEARCHING = false;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
 
@@ -220,6 +221,14 @@ function entityHasActions(entityID) {
     return Entities.getActionIDs(entityID).length > 0;
 }
 
+function findRayIntersection(pickRay, precise, include, exclude) {
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var overlays = Overlays.findRayIntersection(pickRay);
+    if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
+        return entities;
+    }
+    return overlays;
+}
 function entityIsGrabbedByOther(entityID) {
     // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
@@ -250,11 +259,16 @@ function propsArePhysical(props) {
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
+var EDIT_SETTING = "io.highfidelity.isEditting";
+function isEditing() {
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Settings.getValue(EDIT_SETTING);
+}
 function isIn2DMode() {
     // In this version, we make our own determination of whether we're aimed a HUD element,
     // because other scripts (such as handControllerPointer) might be using some other visualization
     // instead of setting Reticle.visible.
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position));
+    return (EXTERNALLY_MANAGED_2D_MINOR_MODE &&
+            (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)));
 }
 function restore2DMode() {
     if (!EXTERNALLY_MANAGED_2D_MINOR_MODE) {
@@ -273,7 +287,7 @@ EntityPropertiesCache.prototype.clear = function() {
 EntityPropertiesCache.prototype.findEntities = function(position, radius) {
     var entities = Entities.findEntities(position, radius);
     var _this = this;
-    entities.forEach(function (x) {
+    entities.forEach(function(x) {
         _this.updateEntity(x);
     });
 };
@@ -285,7 +299,7 @@ EntityPropertiesCache.prototype.updateEntity = function(entityID) {
     if (props.userData) {
         try {
             userData = JSON.parse(props.userData);
-        } catch(err) {
+        } catch (err) {
             print("WARNING: malformed userData on " + entityID + ", name = " + props.name + ", error = " + err);
         }
     }
@@ -295,9 +309,9 @@ EntityPropertiesCache.prototype.updateEntity = function(entityID) {
 };
 EntityPropertiesCache.prototype.getEntities = function() {
     return Object.keys(this.cache);
-}
+};
 EntityPropertiesCache.prototype.getProps = function(entityID) {
-    var obj = this.cache[entityID]
+    var obj = this.cache[entityID];
     return obj ? obj : undefined;
 };
 EntityPropertiesCache.prototype.getGrabbableProps = function(entityID) {
@@ -324,6 +338,14 @@ EntityPropertiesCache.prototype.getWearableProps = function(entityID) {
         return undefined;
     }
 };
+EntityPropertiesCache.prototype.getEquipHotspotsProps = function(entityID) {
+    var props = this.cache[entityID];
+    if (props) {
+        return props.userData.equipHotspots ? props.userData.equipHotspots : {};
+    } else {
+        return undefined;
+    }
+};
 
 function MyController(hand) {
     this.hand = hand;
@@ -337,7 +359,7 @@ function MyController(hand) {
     this.getHandRotation = function() {
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         return Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
-    }
+    };
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
@@ -350,11 +372,11 @@ function MyController(hand) {
     this.rawSecondaryValue = 0;
     this.rawThumbValue = 0;
 
-    //for visualizations
+    // for visualizations
     this.overlayLine = null;
     this.particleBeamObject = null;
 
-    //for lights
+    // for lights
     this.spotlight = null;
     this.pointlight = null;
     this.overlayLine = null;
@@ -379,7 +401,7 @@ function MyController(hand) {
     var _this = this;
 
     var suppressedIn2D = [STATE_OFF, STATE_SEARCHING];
-    this.ignoreInput = function () {
+    this.ignoreInput = function() {
         // We've made the decision to use 'this' for new code, even though it is fragile,
         // in order to keep/ the code uniform without making any no-op line changes.
         return (-1 !== suppressedIn2D.indexOf(this.state)) && isIn2DMode();
@@ -410,7 +432,7 @@ function MyController(hand) {
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
         var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
         Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
-    }
+    };
 
     this.setState = function(newState, reason) {
 
@@ -508,7 +530,7 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: true, // Even when burried inside of something, show it.
                 visible: true
-            }
+            };
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
         } else {
             Overlays.editOverlay(this.searchSphere, {
@@ -518,7 +540,7 @@ function MyController(hand) {
                 visible: true
             });
         }
-    }
+    };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
@@ -567,7 +589,7 @@ function MyController(hand) {
             this.overlayLineOn(handPosition, searchSphereLocation,
                                (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
-    }
+    };
 
     this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
 
@@ -634,7 +656,7 @@ function MyController(hand) {
             "alphaFinish": 1,
             "additiveBlending": 0,
             "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
-        }
+        };
 
         this.particleBeamObject = Entities.addEntity(particleBeamPropertiesObject);
     };
@@ -648,7 +670,7 @@ function MyController(hand) {
             emitSpeed: speed,
             speedSpread: spread,
             lifespan: lifespan
-        })
+        });
     };
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
@@ -702,9 +724,9 @@ function MyController(hand) {
             this.spotlight = Entities.addEntity(lightProperties);
         } else {
             Entities.editEntity(this.spotlight, {
-                //without this, this light would maintain rotation with its parent
+                // without this, this light would maintain rotation with its parent
                 rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0)
-            })
+            });
         }
     };
 
@@ -768,7 +790,7 @@ function MyController(hand) {
             Entities.deleteEntity(this.particleBeamObject);
             this.particleBeamObject = null;
         }
-    }
+    };
 
     this.turnLightsOff = function() {
         if (this.spotlight !== null) {
@@ -844,7 +866,7 @@ function MyController(hand) {
 
     this.thumbPress = function(value) {
         _this.rawThumbValue = value;
-    }
+    };
 
     this.thumbPressed = function() {
         return _this.rawThumbValue > THUMB_ON_VALUE;
@@ -869,8 +891,8 @@ function MyController(hand) {
         }
     };
 
-    this.createHotspots = function () {
-        var props, overlay;
+    this.createHotspots = function() {
+        var _this = this;
 
         var HAND_EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
         var HAND_EQUIP_SPHERE_ALPHA = 0.7;
@@ -888,6 +910,7 @@ function MyController(hand) {
 
         this.hotspotOverlays = [];
 
+        var overlay;
         if (DRAW_HAND_SPHERES) {
             // add tiny green sphere around the palm.
             var handPosition = this.getHandPosition();
@@ -901,7 +924,6 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
-
             this.hotspotOverlays.push({
                 entityID: undefined,
                 overlay: overlay,
@@ -919,11 +941,11 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
-
             this.hotspotOverlays.push({
                 entityID: undefined,
                 overlay: overlay,
-                type: "hand"
+                type: "hand",
+                localPosition: {x: 0, y: 0, z: 0}
             });
         }
 
@@ -931,64 +953,71 @@ function MyController(hand) {
         this.entityPropertyCache.clear();
         this.entityPropertyCache.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
 
-        var _this = this;
-        this.entityPropertyCache.getEntities().forEach(function (entityID) {
-            if (_this.entityIsEquippableWithoutDistanceCheck(entityID)) {
-                props = _this.entityPropertyCache.getProps(entityID);
+        if (DRAW_GRAB_BOXES) {
+            // add blue box overlays for grabbable entities.
+            this.entityPropertyCache.getEntities().forEach(function(entityID) {
+                var props = _this.entityPropertyCache.getProps(entityID);
+                if (_this.entityIsGrabbable(entityID)) {
+                    var overlay = Overlays.addOverlay("cube", {
+                        rotation: props.rotation,
+                        position: props.position,
+                        size: props.dimensions,
+                        color: GRAB_BOX_COLOR,
+                        alpha: GRAB_BOX_ALPHA,
+                        solid: true,
+                        visible: true,
+                        ignoreRayIntersection: true,
+                        drawInFront: false
+                    });
+                    _this.hotspotOverlays.push({
+                        entityID: entityID,
+                        overlay: overlay,
+                        type: "near",
+                        localPosition: {x: 0, y: 0, z: 0}
+                    });
+                }
+            });
+        }
 
-                overlay = Overlays.addOverlay("sphere", {
-                    rotation: props.rotation,
-                    position: props.position,
-                    size: EQUIP_RADIUS * 2,
-                    color: EQUIP_SPHERE_COLOR,
-                    alpha: EQUIP_SPHERE_ALPHA,
-                    solid: true,
-                    visible: true,
-                    ignoreRayIntersection: true,
-                    drawInFront: false
-                });
-
-                _this.hotspotOverlays.push({
-                    entityID: entityID,
-                    overlay: overlay,
-                    type: "equip"
-                });
-            }
-
-            if (DRAW_GRAB_BOXES && _this.entityIsGrabbable(entityID)) {
-                props = _this.entityPropertyCache.getProps(entityID);
-
-                overlay = Overlays.addOverlay("cube", {
-                    rotation: props.rotation,
-                    position: props.position,
-                    size: props.dimensions, //{x: props.dimensions.x, y: props.dimensions.y, z: props.dimensions.z},
-                    color: GRAB_BOX_COLOR,
-                    alpha: GRAB_BOX_ALPHA,
-                    solid: true,
-                    visible: true,
-                    ignoreRayIntersection: true,
-                    drawInFront: false
-                });
-
-                _this.hotspotOverlays.push({
-                    entityID: entityID,
-                    overlay: overlay,
-                    type: "near"
-                });
-            }
+        // add green spheres for each equippable hotspot.
+        flatten(this.entityPropertyCache.getEntities().map(function(entityID) {
+            return _this.collectEquipHotspots(entityID);
+        })).filter(function(hotspot) {
+            return _this.hotspotIsEquippable(hotspot);
+        }).forEach(function(hotspot) {
+            var overlay = Overlays.addOverlay("sphere", {
+                position: hotspot.worldPosition,
+                size: hotspot.radius * 2,
+                color: EQUIP_SPHERE_COLOR,
+                alpha: EQUIP_SPHERE_ALPHA,
+                solid: true,
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: false
+            });
+            _this.hotspotOverlays.push({
+                entityID: hotspot.entityID,
+                overlay: overlay,
+                type: "equip",
+                localPosition: hotspot.localPosition
+            });
         });
     };
 
     this.updateHotspots = function() {
         var _this = this;
         var props;
-        this.hotspotOverlays.forEach(function (overlayInfo) {
+        this.hotspotOverlays.forEach(function(overlayInfo) {
             if (overlayInfo.type === "hand") {
                 Overlays.editOverlay(overlayInfo.overlay, { position: _this.getHandPosition() });
             } else if (overlayInfo.type === "equip") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
                 props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
-                Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
+                var entityXform = new Xform(props.rotation, props.position);
+                Overlays.editOverlay(overlayInfo.overlay, {
+                    position: entityXform.xformPoint(overlayInfo.localPosition),
+                    rotation: props.rotation
+                });
             } else if (overlayInfo.type === "near") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
                 props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
@@ -998,7 +1027,7 @@ function MyController(hand) {
     };
 
     this.destroyHotspots = function() {
-        this.hotspotOverlays.forEach(function (overlayInfo) {
+        this.hotspotOverlays.forEach(function(overlayInfo) {
             Overlays.deleteOverlay(overlayInfo.overlay);
         });
         this.hotspotOverlays = [];
@@ -1012,14 +1041,14 @@ function MyController(hand) {
         this.destroyHotspots();
     };
 
-    ///
     // Performs ray pick test from the hand controller into the world
     // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
     // @returns {object} returns object with two keys entityID and distance
     //
     this.calcRayPickInfo = function(hand) {
 
-        var pose = Controller.getPoseValue((hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var pose = Controller.getPoseValue(standardControllerValue);
         var worldHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
         var worldHandRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);
 
@@ -1052,69 +1081,83 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = Entities.findRayIntersection(pickRayBacked, true, [], blacklist);
+            intersection = findRayIntersection(pickRayBacked, true, [], blacklist);
         } else {
-            intersection = Entities.findRayIntersection(pickRayBacked, true);
-        }
-
-        var overlayIntersection = Overlays.findRayIntersection(pickRayBacked);
-        if (!intersection.intersects || (overlayIntersection.intersects && (intersection.distance > overlayIntersection.distance))) {
-            intersection = overlayIntersection;
+            intersection = findRayIntersection(pickRayBacked, true);
         }
 
         if (intersection.intersects) {
-            return { entityID: intersection.entityID,
-                     searchRay: pickRay,
-                     distance: Vec3.distance(pickRay.origin, intersection.intersection) }
+            return {
+                entityID: intersection.entityID,
+                overlayID: intersection.overlayID,
+                searchRay: pickRay,
+                distance: Vec3.distance(pickRay.origin, intersection.intersection)
+            };
         } else {
             return result;
         }
     };
 
-    this.entityWantsTrigger = function (entityID) {
+    this.entityWantsTrigger = function(entityID) {
         var grabbableProps = this.entityPropertyCache.getGrabbableProps(entityID);
         return grabbableProps && grabbableProps.wantsTrigger;
     };
 
-    this.entityIsEquippableWithoutDistanceCheck = function (entityID) {
+    // returns a list of all equip-hotspots assosiated with this entity.
+    // @param {UUID} entityID
+    // @returns {Object[]} array of objects with the following fields.
+    //      * entityID {UUID}
+    //      * localPosition {Vec3} position of the hotspot in object space.
+    //      * worldPosition {vec3} position of the hotspot in world space.
+    //      * radius {number} radius of equip hotspot
+    //      * joints {Object} keys are joint names values are arrays of two elements:
+    //        offset position {Vec3} and offset rotation {Quat}, both are in the coordinate system of the joint.
+    this.collectEquipHotspots = function(entityID) {
+        var result = [];
         var props = this.entityPropertyCache.getProps(entityID);
-        var handPosition = props.position;
-        return this.entityIsEquippableWithDistanceCheck(entityID, handPosition);
+        var entityXform = new Xform(props.rotation, props.position);
+        var equipHotspotsProps = this.entityPropertyCache.getEquipHotspotsProps(entityID);
+        if (equipHotspotsProps && equipHotspotsProps.length > 0) {
+            var i, length = equipHotspotsProps.length;
+            for (i = 0; i < length; i++) {
+                var hotspot = equipHotspotsProps[i];
+                if (hotspot.position && hotspot.radius && hotspot.joints) {
+                    result.push({
+                        entityID: entityID,
+                        localPosition: hotspot.position,
+                        worldPosition: entityXform.xformPoint(hotspot.position),
+                        radius: hotspot.radius,
+                        joints: hotspot.joints
+                    });
+                }
+            }
+        } else {
+            var wearableProps = this.entityPropertyCache.getWearableProps(entityID);
+            if (wearableProps && wearableProps.joints) {
+                result.push({
+                    entityID: entityID,
+                    localPosition: {x: 0, y: 0, z: 0},
+                    worldPosition: entityXform.pos,
+                    radius: EQUIP_RADIUS,
+                    joints: wearableProps.joints
+                });
+            }
+        }
+        return result;
     };
 
-    this.entityIsEquippableWithDistanceCheck = function (entityID, handPosition) {
-        var props = this.entityPropertyCache.getProps(entityID);
-        var distance = Vec3.distance(props.position, handPosition);
-        var grabProps = this.entityPropertyCache.getGrabProps(entityID);
+    this.hotspotIsEquippable = function(hotspot) {
+        var props = this.entityPropertyCache.getProps(hotspot.entityID);
+        var grabProps = this.entityPropertyCache.getGrabProps(hotspot.entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
         var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
-        if (refCount > 0) {
+        var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
+                                       this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
+                                      this.getOtherHandController().grabbedEntity == hotspot.entityID);
+        if (refCount > 0 && !okToEquipFromOtherHand) {
             if (debug) {
-                print("equip is skipping '" + props.name + "': it is already grabbed");
-            }
-            return false;
-        }
-
-        if (distance > EQUIP_RADIUS) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': too far away, " + distance + " meters");
-            }
-            return false;
-        }
-
-        var wearableProps = this.entityPropertyCache.getWearableProps(entityID);
-        if (!wearableProps || !wearableProps.joints) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': no wearable attach-point");
-            }
-            return false;
-        }
-
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (!wearableProps.joints[handJointName]) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': no wearable joint for " + handJointName);
+                print("equip is skipping '" + props.name + "': grabbed by someone else");
             }
             return false;
         }
@@ -1122,7 +1165,7 @@ function MyController(hand) {
         return true;
     };
 
-    this.entityIsGrabbable = function (entityID) {
+    this.entityIsGrabbable = function(entityID) {
         var grabbableProps = this.entityPropertyCache.getGrabbableProps(entityID);
         var grabProps = this.entityPropertyCache.getGrabProps(entityID);
         var props = this.entityPropertyCache.getProps(entityID);
@@ -1255,29 +1298,31 @@ function MyController(hand) {
         this.entityPropertyCache.findEntities(handPosition, NEAR_GRAB_RADIUS);
         var candidateEntities = this.entityPropertyCache.getEntities();
 
-        var equippableEntities = candidateEntities.filter(function (entity) {
-            return _this.entityIsEquippableWithDistanceCheck(entity, handPosition);
+        var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
+            return _this.collectEquipHotspots(entityID);
+        })).filter(function(hotspot) {
+            return _this.hotspotIsEquippable(hotspot) && Vec3.distance(hotspot.worldPosition, handPosition) < hotspot.radius;
         });
 
         var entity;
-        if (equippableEntities.length > 0) {
+        if (equippableHotspots.length > 0) {
             // sort by distance
-            equippableEntities.sort(function (a, b) {
-                var aDistance = Vec3.distance(_this.entityPropertyCache.getProps(a).position, handPosition);
-                var bDistance = Vec3.distance(_this.entityPropertyCache.getProps(b).position, handPosition);
+            equippableHotspots.sort(function(a, b) {
+                var aDistance = Vec3.distance(a.worldPosition, handPosition);
+                var bDistance = Vec3.distance(b.worldPosition, handPosition);
                 return aDistance - bDistance;
             });
-            entity = equippableEntities[0];
             if (this.triggerSmoothedGrab()) {
-                this.grabbedEntity = entity;
-                this.setState(STATE_HOLD, "eqipping '" + this.entityPropertyCache.getProps(entity).name + "'");
+                this.grabbedHotspot = equippableHotspots[0];
+                this.grabbedEntity = equippableHotspots[0].entityID;
+                this.setState(STATE_HOLD, "eqipping '" + this.entityPropertyCache.getProps(this.grabbedEntity).name + "'");
                 return;
             } else {
                 // TODO: highlight the equippable object?
             }
         }
 
-        var grabbableEntities = candidateEntities.filter(function (entity) {
+        var grabbableEntities = candidateEntities.filter(function(entity) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
 
@@ -1288,13 +1333,15 @@ function MyController(hand) {
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
                 grabbableEntities.push(rayPickInfo.entityID);
             }
+        } else if (rayPickInfo.overlayID) {
+            this.intersectionDistance = rayPickInfo.distance;
         } else {
             this.intersectionDistance = 0;
         }
 
         if (grabbableEntities.length > 0) {
             // sort by distance
-            grabbableEntities.sort(function (a, b) {
+            grabbableEntities.sort(function(a, b) {
                 var aDistance = Vec3.distance(_this.entityPropertyCache.getProps(a).position, handPosition);
                 var bDistance = Vec3.distance(_this.entityPropertyCache.getProps(b).position, handPosition);
                 return aDistance - bDistance;
@@ -1344,7 +1391,7 @@ function MyController(hand) {
                     // TODO: highlight the far-triggerable object?
                 }
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab()) {
+                if (this.triggerSmoothedGrab() && !isEditing()) {
                     this.grabbedEntity = entity;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
@@ -1354,9 +1401,11 @@ function MyController(hand) {
             }
         }
 
-        //search line visualizations
+        // search line visualizations
         if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
-            this.lineOn(rayPickInfo.searchRay.origin, Vec3.multiply(rayPickInfo.searchRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+            this.lineOn(rayPickInfo.searchRay.origin,
+                        Vec3.multiply(rayPickInfo.searchRay.direction, LINE_LENGTH),
+                        NO_INTERSECT_COLOR);
         }
 
         this.searchIndicatorOn(rayPickInfo.searchRay);
@@ -1371,11 +1420,11 @@ function MyController(hand) {
             timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
         }
         return timeScale;
-    }
+    };
 
     this.getMass = function(dimensions, density) {
         return (dimensions.x * dimensions.y * dimensions.z) * density;
-    }
+    };
 
     this.distanceHoldingEnter = function() {
 
@@ -1502,7 +1551,8 @@ function MyController(hand) {
 
         var RADIAL_GRAB_AMPLIFIER = 10.0;
         if (Math.abs(this.grabRadialVelocity) > 0.0) {
-            this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime * this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+            this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime *
+                                                 this.grabRadius * RADIAL_GRAB_AMPLIFIER);
         }
 
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(controllerRotation));
@@ -1530,30 +1580,9 @@ function MyController(hand) {
             }
         }
 
-        // var defaultConstraintData = {
-        //     axisStart: false,
-        //     axisEnd: false
-        // }
-        //
-        // var constraintData = getEntityCustomData('lightModifierKey', this.grabbedEntity, defaultConstraintData);
-        // var clampedVector;
-        // var targetPosition;
-        // if (constraintData.axisStart !== false) {
-        //     clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition,
-        //                                                 constraintData.axisStart,
-        //                                                 constraintData.axisEnd);
-        //     targetPosition = clampedVector;
-        // } else {
-        //     targetPosition = {
-        //         x: this.currentObjectPosition.x,
-        //         y: this.currentObjectPosition.y,
-        //         z: this.currentObjectPosition.z
-        //     }
-        // }
-
         var handPosition = this.getHandPosition();
 
-        //visualizations
+        // visualizations
         if (USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
         }
@@ -1561,7 +1590,7 @@ function MyController(hand) {
             this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR)
+            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
         if (USE_POINTLIGHT === true) {
             this.handlePointLight(this.grabbedEntity);
@@ -1621,38 +1650,8 @@ function MyController(hand) {
             scalar = 1;
         }
         var projection = Vec3.sum(axisStart, Vec3.multiply(scalar, Vec3.normalize(bPrime)));
-        return projection
+        return projection;
     };
-
-    this.hasPresetOffsets = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
-        if ("joints" in wearableData) {
-            var allowedJoints = wearableData.joints;
-            var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-            if (handJointName in allowedJoints) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    this.getPresetPosition = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
-        var allowedJoints = wearableData.joints;
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (handJointName in allowedJoints) {
-            return allowedJoints[handJointName][0];
-        }
-    }
-
-    this.getPresetRotation = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
-        var allowedJoints = wearableData.joints;
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (handJointName in allowedJoints) {
-            return allowedJoints[handJointName][1];
-        }
-    }
 
     this.dropGestureReset = function() {
         this.fastHandMoveDetected = false;
@@ -1660,7 +1659,8 @@ function MyController(hand) {
     };
 
     this.dropGestureProcess = function(deltaTime) {
-        var pose = Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var standardControllerValue = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var pose = Controller.getPoseValue(standardControllerValue);
         var worldHandVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, pose.velocity);
         var worldHandRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);
 
@@ -1710,6 +1710,12 @@ function MyController(hand) {
             this.grabbedEntity = saveGrabbedID;
         }
 
+        var otherHandController = this.getOtherHandController();
+        if (otherHandController.grabbedEntity == this.grabbedEntity &&
+            (otherHandController.state == STATE_NEAR_GRABBING || otherHandController.state == STATE_DISTANCE_HOLDING)) {
+            otherHandController.setState(STATE_OFF, "other hand grabbed this entity");
+        }
+
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties, false);
 
@@ -1718,13 +1724,17 @@ function MyController(hand) {
         var handPosition = this.getHandPosition();
 
         var hasPresetPosition = false;
-        if (this.state == STATE_HOLD && this.hasPresetOffsets()) {
+        if (this.state == STATE_HOLD && this.grabbedHotspot) {
             var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
-            this.offsetPosition = this.getPresetPosition();
-            this.offsetRotation = this.getPresetRotation();
-            hasPresetPosition = true;
+
+            var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+            if (this.grabbedHotspot.joints[handJointName]) {
+                this.offsetPosition = this.grabbedHotspot.joints[handJointName][0];
+                this.offsetRotation = this.grabbedHotspot.joints[handJointName][1];
+                hasPresetPosition = true;
+            }
         } else {
             this.ignoreIK = false;
 
@@ -1757,7 +1767,7 @@ function MyController(hand) {
             var reparentProps = {
                 parentID: MyAvatar.sessionUUID,
                 parentJointIndex: handJointIndex
-            }
+            };
             if (hasPresetPosition) {
                 reparentProps["localPosition"] = this.offsetPosition;
                 reparentProps["localRotation"] = this.offsetRotation;
@@ -1825,7 +1835,6 @@ function MyController(hand) {
             this.setState(STATE_OFF, "entity has no position property");
             return;
         }
-
 
         var now = Date.now();
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
@@ -1942,8 +1951,8 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = Entities.findRayIntersection(pickRay, true);
-            if (intersection.accurate) {
+            var intersection = findRayIntersection(pickRay, true);
+            if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
@@ -1995,6 +2004,7 @@ function MyController(hand) {
         }));
 
         this.grabbedEntity = null;
+        this.grabbedHotspot = null;
 
         if (this.triggerSmoothedGrab()) {
             this.waitForTriggerRelease = true;
@@ -2097,7 +2107,7 @@ function MyController(hand) {
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
             Entities.editEntity(childID, {parentID: NULL_UUID});
         });
-    }
+    };
 
     this.deactivateEntity = function(entityID, noVelocity) {
         var deactiveProps;
@@ -2122,7 +2132,7 @@ function MyController(hand) {
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
-                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"])
+                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"]);
                 var parentID = props.parentID;
 
                 var doSetVelocity = false;
@@ -2183,6 +2193,10 @@ function MyController(hand) {
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
+
+    this.getOtherHandController = function() {
+        return (this.hand === RIGHT_HAND) ? leftController : rightController;
+    };
 }
 
 var rightController = new MyController(RIGHT_HAND);
@@ -2204,7 +2218,8 @@ mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.
 
 Controller.enableMapping(MAPPING_NAME);
 
-//the section below allows the grab script to listen for messages that disable either one or both hands.  useful for two handed items
+// the section below allows the grab script to listen for messages
+// that disable either one or both hands.  useful for two handed items
 var handToDisable = 'none';
 
 function update(deltaTime) {
@@ -2267,7 +2282,7 @@ var handleHandMessages = function(channel, message, sender) {
             }
         }
     }
-}
+};
 
 Messages.messageReceived.connect(handleHandMessages);
 

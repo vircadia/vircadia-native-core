@@ -40,6 +40,7 @@ protected:
     virtual void updatePresentPose();
 
     bool internalActivate() override;
+    void internalDeactivate() override;
     void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
@@ -89,8 +90,17 @@ private:
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
-    ShapeWrapperPtr _sphereSection;
+    bool _firstPreview { true };
+
+    ProgramPtr _previewProgram;
+    float _previewAspect { 0 };
+    GLuint _previewTextureID { 0 };
+    glm::uvec2 _prevWindowSize { 0, 0 };
+    qreal _prevDevicePixelRatio { 0 };
+
     ProgramPtr _reprojectionProgram;
+    ShapeWrapperPtr _sphereSection;
+
     ProgramPtr _laserProgram;
     ShapeWrapperPtr _laserGeometry;
 };

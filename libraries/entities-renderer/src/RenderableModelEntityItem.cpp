@@ -342,16 +342,23 @@ void RenderableModelEntityItem::updateModelBounds() {
     if (!hasModel() || !_model) {
         return;
     }
+    if (!_dimensionsInitialized || !_model->isActive()) {
+        return;
+    }
+
+        
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     glm::vec3 dimensions = getDimensions();
-    if ((movingOrAnimating ||
+    bool success;
+    auto transform = getTransform(success);
+
+    if (movingOrAnimating ||
          _needsInitialSimulation ||
          _needsJointSimulation ||
-         _model->getTranslation() != getPosition() ||
+         _model->getTranslation() != transform.getTranslation() ||
          _model->getScaleToFitDimensions() != dimensions ||
-         _model->getRotation() != getRotation() ||
-         _model->getRegistrationPoint() != getRegistrationPoint())
-        && _model->isActive() && _dimensionsInitialized) {
+         _model->getRotation() != transform.getRotation() ||
+         _model->getRegistrationPoint() != getRegistrationPoint()) {
         doInitialModelSimulation();
         _needsJointSimulation = false;
     }
