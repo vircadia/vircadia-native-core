@@ -319,6 +319,7 @@ public:
     }
 
     QTestWindow() {
+        QThread::currentThread()->setPriority(QThread::HighestPriority);
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
