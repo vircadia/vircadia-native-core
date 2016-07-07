@@ -1,0 +1,119 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 7/5/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+<@func declareLightingSpot(supportScattering)@>
+
+
+<@include DeferredLighting.slh@>
+
+void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
+    vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow) {
+
+    // Allright we re valid in the volume
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
+
+    // Eval attenuation  
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
+    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+
+    // Eval shading
+    vec4 shading = evalFragShading(normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+
+    diffuse = albedo * shading.w * lightEnergy;
+
+    specular = shading.rgb * lightEnergy;
+
+    if (getLightShowContour(light) > 0.0) {
+        // Show edges
+        float edgeDistR = (getLightRadius(light) - fragLightDistance);
+        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
+        float edgeDist = min(edgeDistR, edgeDistS);
+        float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
+        }
+    }
+}
+
+<@if supportScattering@>
+
+<@include SubsurfaceScattering.slh@>
+<$declareSubsurfaceScatteringBRDF()$>
+<$declareSkinSpecularLighting()$>
+
+void evalLightingSpotScattering(out vec3 diffuse, out vec3 specular, Light light,
+    vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow,
+    float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
+
+    // Allright we re valid in the volume
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
+
+    // Eval attenuation
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
+    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+
+    // Eval shading
+    vec3 brdf = evalSkinBRDF(fragLightDir, normal, midNormal, lowNormal, curvature);
+    float scatteringLevel = getScatteringLevel();
+    vec4 shading;
+    float standardDiffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
+    { // Key Sun Lighting
+        // Diffuse Lighting
+        //float diffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
+
+        // Specular Lighting
+        vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+
+        float specular = skinSpecular(normal, fragLightDir, fragEyeDir, roughness, 1.0);
+
+        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
+        float power = specularDistribution(roughness, normal, halfDir);
+        //vec3 specular = power * fresnelColor * standardDiffuse;
+
+        shading = vec4(vec3(specular), (1 - fresnelColor.x));
+    }
+
+
+    if (scatteringLevel < 0.1) {
+        brdf = vec3(standardDiffuse);
+    }
+    brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
+
+
+    diffuse = albedo * brdf.xyz * lightEnergy;
+
+    specular = shading.rgb * lightEnergy;
+
+    if (getLightShowContour(light) > 0.0) {
+        // Show edges
+        float edgeDistR = (getLightRadius(light) - fragLightDistance);
+        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
+        float edgeDist = min(edgeDistR, edgeDistS);
+        float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
+        }
+    }
+}
+
+<@endif@>
+
+<@endfunc@>
+
+

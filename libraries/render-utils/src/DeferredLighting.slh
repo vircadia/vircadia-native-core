@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 !>
+<!
 <@if not DEFERRED_LIGHTING_SLH@>
 <@def DEFERRED_LIGHTING_SLH@>
 
@@ -25,14 +26,15 @@ float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float power = gloss2 / (3.14159 * denom * denom);
     return power;
 }
-<! //NOTE: ANother implementation for specularDistribution
+/* //NOTE: ANother implementation for specularDistribution
 float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float gloss = exp2(10 * (1.0 - roughness) + 1);
     float power = pow(clamp(dot(halfDir, normal), 0.0, 1.0), gloss);
     power *= (gloss * 0.125 + 0.25);
     return power;
 }
-!>
+*/
+
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
 vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
     // Diffuse Lighting
@@ -69,7 +71,6 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 
 <@endfunc@>
 
-
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
@@ -78,3 +79,4 @@ vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float 
 }
 
 <@endif@>
+!>

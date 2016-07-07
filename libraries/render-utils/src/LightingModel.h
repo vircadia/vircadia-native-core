@@ -52,6 +52,8 @@ public:
     void setSpotLight(bool enable);
     bool isSpotLightEnabled() const;
 
+    void setShowLightContour(bool enable);
+    bool isShowLightContourEnabled() const;
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
@@ -76,6 +78,9 @@ protected:
         float enableDirectionalLight{ 1.0f };
         float enablePointLight{ 1.0f };
         float enableSpotLight{ 1.0f };
+
+        float showLightContour{ 1.0f };
+        glm::vec3 spares{ 0.0f };
 
         Parameters() {}
     };
@@ -104,6 +109,8 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enablePointLight MEMBER enablePointLight NOTIFY dirty)
     Q_PROPERTY(bool enableSpotLight MEMBER enableSpotLight NOTIFY dirty)
 
+    Q_PROPERTY(bool showLightContour MEMBER showLightContour NOTIFY dirty)
+
 public:
     MakeLightingModelConfig() : render::Job::Config() {} // Make Lighting Model is always on
 
@@ -120,6 +127,8 @@ public:
     bool enableDirectionalLight{ true };
     bool enablePointLight{ true };
     bool enableSpotLight{ true };
+
+    bool showLightContour{ true };
 
 signals:
     void dirty();

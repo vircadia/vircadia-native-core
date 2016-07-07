@@ -12,7 +12,7 @@
 <@def DEFERRED_GLOBAL_LIGHT_SLH@>
 
 <@include model/Light.slh@>
-<@include DeferredLighting.slh@>
+<!<@include DeferredLighting.slh@>!>
 
 <@include LightingModel.slh@>
 <$declareLightingModel()$>

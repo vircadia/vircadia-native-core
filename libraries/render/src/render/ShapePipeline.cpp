@@ -69,6 +69,10 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
 
     auto locations = std::make_shared<Locations>();
     locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    if (program->getTextures().findLocation("normalFittingMap") > -1) {
+        locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+
+    }
     locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
     locations->roughnessTextureUnit = program->getTextures().findLocation("roughnessMap");
     locations->normalTextureUnit = program->getTextures().findLocation("normalMap");
