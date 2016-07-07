@@ -26,7 +26,7 @@
 #include "Transform.h"
 
 class QDebug;
-
+#define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
 
 enum ReservedSlot {
@@ -481,7 +481,7 @@ protected:
 };
 
 template <typename T>
-size_t Batch::Cache<T>::_max = 128;
+size_t Batch::Cache<T>::_max = BATCH_PREALLOCATE_MIN;
 
 }
 

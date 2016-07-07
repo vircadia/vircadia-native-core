@@ -30,12 +30,12 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 
 using namespace gpu;
 
-size_t Batch::_commandsMax { 128 };
-size_t Batch::_commandOffsetsMax { 128 };
-size_t Batch::_paramsMax { 128 };
-size_t Batch::_dataMax { 128 };
-size_t Batch::_objectsMax { 128 };
-size_t Batch::_drawCallInfosMax { 128 };
+size_t Batch::_commandsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_commandOffsetsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_paramsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
 
 Batch::Batch() {
     _commands.reserve(_commandsMax);
