@@ -16,22 +16,23 @@ var fadeSphereInterval = null;
 var FADE_IN_INTERVAL = 50;
 var FADE_OUT_INTERVAL = 50;
 
-
+var NUMBER_OF_STEPS=0;
+var SMOOTH_ARRIVAL_SPACING=0;
 //slow
-var SMOOTH_ARRIVAL_SPACING = 150;
-var NUMBER_OF_STEPS = 2;
+// var SMOOTH_ARRIVAL_SPACING = 150;
+// var NUMBER_OF_STEPS = 2;
 
 //medium-slow
-var SMOOTH_ARRIVAL_SPACING = 100;
-var NUMBER_OF_STEPS = 4;
+// var SMOOTH_ARRIVAL_SPACING = 100;
+// var NUMBER_OF_STEPS = 4;
 
-//medium-fast
-var SMOOTH_ARRIVAL_SPACING = 33;
-var NUMBER_OF_STEPS = 6;
+// //medium-fast
+// var SMOOTH_ARRIVAL_SPACING = 33;
+// var NUMBER_OF_STEPS = 6;
 
-//fast
-var SMOOTH_ARRIVAL_SPACING = 10;
-var NUMBER_OF_STEPS = 20;
+// //fast
+// var SMOOTH_ARRIVAL_SPACING = 10;
+// var NUMBER_OF_STEPS = 20;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 var TARGET_MODEL_DIMENSIONS = {
@@ -449,9 +450,9 @@ function Teleporter() {
             var offset = getAvatarFootOffset();
             _this.intersection.intersection.y += offset;
             // MyAvatar.position = _this.intersection.intersection;
-               this.exitTeleportMode();
+            this.exitTeleportMode();
             this.smoothArrival();
-         
+
         }
 
     };
@@ -483,7 +484,7 @@ function Teleporter() {
         print('ARRIVAL POINTS: ' + JSON.stringify(_this.arrivalPoints));
         print('end point: ' + JSON.stringify(_this.intersection.intersection))
         _this.smoothArrivalInterval = Script.setInterval(function() {
-            print(_this.arrivalPoints.length+" arrival points remaining")
+            print(_this.arrivalPoints.length + " arrival points remaining")
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
                 _this.triggerHaptics();
@@ -493,7 +494,7 @@ function Teleporter() {
 
             var landingPoint = _this.arrivalPoints.shift();
             print('landing at: ' + JSON.stringify(landingPoint))
-            MyAvatar.position =landingPoint;
+            MyAvatar.position = landingPoint;
 
 
         }, SMOOTH_ARRIVAL_SPACING)
