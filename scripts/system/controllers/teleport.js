@@ -121,7 +121,7 @@ function Teleporter() {
         this.teleportHand = hand;
         this.initialize();
         this.updateConnected = true;
-        Script.update.connect(this.update);
+        Script.update.connect(this.updateForThumbAndTrigger);
 
     };
 
@@ -216,11 +216,10 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        Script.update.disconnect(this.update);
+        Script.update.disconnect(this.updateForThumbAndTrigger);
         this.updateConnected = null;
         this.disableMappings();
         this.turnOffOverlayBeams();
-
         this.enableGrab();
         Script.setTimeout(function() {
             inTeleportMode = false;
@@ -240,6 +239,35 @@ function Teleporter() {
         } else {
             teleporter.rightRay();
             if (rightPad.buttonValue === 0) {
+                _this.teleport();
+                return;
+            }
+        }
+
+    };
+
+    this.updateForThumbAndTrigger = function() {
+
+        if (teleporter.teleportHand === 'left') {
+            teleporter.leftRay();
+            if (leftPad.buttonValue === 0) {
+                _this.exitTeleportMode();
+                _this.deleteTargetOverlay();
+                return;
+            }
+            if (leftTrigger.buttonValue === 0 && inTeleportMode === true) {
+                _this.teleport();
+                return;
+            }
+
+        } else {
+            teleporter.rightRay();
+            if (rightPad.buttonValue === 0) {
+                _this.exitTeleportMode();
+                _this.deleteTargetOverlay();
+                return;
+            }
+            if (rightTrigger.buttonValue === 0 && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
@@ -595,9 +623,29 @@ function registerMappings() {
             }, TELEPORT_DELAY)
         }
     });
+
 }
 
-registerMappings();
+
+function registerMappingsWithThumbAndTrigger() {
+    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
+    teleportMapping = Controller.newMapping(mappingName);
+    teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
+    teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
+
+    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
+    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
+
+    teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function(value) {
+        teleporter.enterTeleportMode('left')
+    });
+    teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function(value) {
+        teleporter.enterTeleportMode('right')
+    });
+}
+
+//registerMappings();
+registerMappingsWithThumbAndTrigger()
 var teleporter = new Teleporter();
 
 Controller.enableMapping(mappingName);
@@ -610,6 +658,6 @@ function cleanup() {
     teleporter.deleteTargetOverlay();
     teleporter.turnOffOverlayBeams();
     if (teleporter.updateConnected !== null) {
-        Script.update.disconnect(teleporter.update);
+        Script.update.disconnect(teleporter.updateForThumbAndTrigger);
     }
 }
