@@ -209,6 +209,9 @@ Fadable {
 
             var targetVisibility = getTargetVisibility();
             if (targetVisibility === visible) {
+                if (force) {
+                    window.raise();
+                }
                 return;
             }
 
