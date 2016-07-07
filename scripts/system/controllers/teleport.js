@@ -16,11 +16,11 @@ var fadeSphereInterval = null;
 var FADE_IN_INTERVAL = 50;
 var FADE_OUT_INTERVAL = 50;
 
-var NUMBER_OF_STEPS=0;
-var SMOOTH_ARRIVAL_SPACING=0;
-//slow
-// var SMOOTH_ARRIVAL_SPACING = 150;
-// var NUMBER_OF_STEPS = 2;
+// var NUMBER_OF_STEPS = 0;
+// var SMOOTH_ARRIVAL_SPACING = 0;
+// slow
+var SMOOTH_ARRIVAL_SPACING = 150;
+var NUMBER_OF_STEPS = 2;
 
 //medium-slow
 // var SMOOTH_ARRIVAL_SPACING = 100;
@@ -77,6 +77,7 @@ function Teleporter() {
     this.leftOverlayLine = null;
     this.targetOverlay = null;
     this.updateConnected = null;
+    this.smoothArrivalInterval=null;
 
     this.initialize = function() {
         this.createMappings();
@@ -111,6 +112,9 @@ function Teleporter() {
             return;
         }
 
+        if(this.smoothArrivalInterval!==null){
+            Script.clearInterval(this.smoothArrivalInterval);
+        }
         inTeleportMode = true;
         this.teleportHand = hand;
         this.initialize();
@@ -487,14 +491,17 @@ function Teleporter() {
             print(_this.arrivalPoints.length + " arrival points remaining")
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
-                _this.triggerHaptics();
-                _this.deleteTargetOverlay();
                 return;
             }
 
             var landingPoint = _this.arrivalPoints.shift();
             print('landing at: ' + JSON.stringify(landingPoint))
             MyAvatar.position = landingPoint;
+            if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
+                print('clear target overlay')
+                _this.deleteTargetOverlay();
+                _this.triggerHaptics();
+            }
 
 
         }, SMOOTH_ARRIVAL_SPACING)
