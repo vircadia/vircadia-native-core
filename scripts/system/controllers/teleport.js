@@ -36,9 +36,9 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
-var USE_THUMB_AND_TRIGGER_MODE = true;
+var USE_THUMB_AND_TRIGGER_MODE = false;
 
-var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
+var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
