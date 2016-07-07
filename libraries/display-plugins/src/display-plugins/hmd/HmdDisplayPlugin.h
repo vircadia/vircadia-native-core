@@ -15,7 +15,6 @@
 #include "../OpenGLDisplayPlugin.h"
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
-    Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
 public:
     bool isHmd() const override final { return true; }
@@ -87,9 +86,6 @@ protected:
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
 
-public slots:
-    void downloadFinished();
-
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
@@ -97,7 +93,6 @@ private:
     bool _firstPreview { true };
 
     ProgramPtr _previewProgram;
-    QImage _previewTexture;
     float _previewAspect { 0 };
     GLuint _previewTextureID { 0 };
     glm::uvec2 _prevWindowSize { 0, 0 };

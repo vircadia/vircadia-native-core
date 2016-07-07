@@ -21,11 +21,10 @@
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
 
-#include <NetworkAccessManager.h>
-#include <QNetworkRequest>
-#include <QNetworkReply>
 #include <gpu/DrawUnitQuadTexcoord_vert.h>
 #include <gpu/DrawTexture_frag.h>
+
+#include <PathUtils.h>
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
@@ -65,31 +64,22 @@ bool HmdDisplayPlugin::internalActivate() {
     });
 
     if (_previewTextureID == 0) {
-        const QUrl previewURL("https://hifi-content.s3.amazonaws.com/samuel/preview.png");
-        QNetworkAccessManager& manager = NetworkAccessManager::getInstance();
-        QNetworkRequest request(previewURL);
-        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        auto rep = manager.get(request);
-        connect(rep, SIGNAL(finished()), this, SLOT(downloadFinished()));
+        QImage previewTexture(PathUtils::resourcesPath() + "images/preview.png");
+        if (!previewTexture.isNull()) {
+            glGenTextures(1, &_previewTextureID);
+            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
+                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.mirrored(false, true).bits());
+            using namespace oglplus;
+            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
+            _firstPreview = true;
+        }
     }
 
     return Parent::internalActivate();
-}
-
-void HmdDisplayPlugin::downloadFinished() {
-    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
-
-    if (reply->error() != QNetworkReply::NetworkError::NoError) {
-        qDebug() << "HMDDisplayPlugin: error downloading preview image" << reply->errorString();
-        return;
-    }
-
-    _previewTexture.loadFromData(reply->readAll());
-
-    if (!_previewTexture.isNull()) {
-        _previewAspect = ((float)_previewTexture.width())/((float)_previewTexture.height());
-        _firstPreview = true;
-    }
 }
 
 void HmdDisplayPlugin::internalDeactivate() {
@@ -427,19 +417,8 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
-        if (_firstPreview) {
-            glGenTextures(1, &_previewTextureID);
-            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _previewTexture.width(), _previewTexture.height(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, _previewTexture.mirrored(false, true).bits());
-            using namespace oglplus;
-            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            _firstPreview = false;
-        }
         useProgram(_previewProgram);
-        glEnable (GL_BLEND);
+        glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -449,6 +428,7 @@ void HmdDisplayPlugin::internalPresent() {
         glBindTexture(GL_TEXTURE_2D, _previewTextureID);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         swapBuffers();
+        _firstPreview = false;
         _prevWindowSize = windowSize;
         _prevDevicePixelRatio = devicePixelRatio;
     }
