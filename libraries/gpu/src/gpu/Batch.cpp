@@ -30,24 +30,39 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 
 using namespace gpu;
 
-Batch::Batch(const CacheState& cacheState) : Batch() {
-    _commands.reserve(cacheState.commandsSize);
-    _commandOffsets.reserve(cacheState.offsetsSize);
-    _params.reserve(cacheState.paramsSize);
-    _data.reserve(cacheState.dataSize);
-}
+size_t Batch::_commandsMax { 128 };
+size_t Batch::_commandOffsetsMax { 128 };
+size_t Batch::_paramsMax { 128 };
+size_t Batch::_dataMax { 128 };
+size_t Batch::_objectsMax { 128 };
+size_t Batch::_drawCallInfosMax { 128 };
 
-Batch::CacheState Batch::getCacheState() {
-    return CacheState(_commands.size(), _commandOffsets.size(), _params.size(), _data.size(),
-                _buffers.size(), _textures.size(), _streamFormats.size(), _transforms.size(), _pipelines.size(), 
-                _framebuffers.size(), _queries.size());
+Batch::Batch() {
+    _commands.reserve(_commandsMax);
+    _commandOffsets.reserve(_commandOffsetsMax);
+    _params.reserve(_paramsMax);
+    _data.reserve(_dataMax);
+    _objects.reserve(_objectsMax);
+    _drawCallInfos.reserve(_drawCallInfosMax);
 }
 
 Batch::~Batch() {
-    //qDebug() << "Batch::~Batch()... " << getCacheState();
+    _commandsMax = std::max(_commands.size(), _commandsMax);
+    _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
+    _paramsMax = std::max(_params.size(), _paramsMax);
+    _dataMax = std::max(_data.size(), _dataMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
+    _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
 }
 
 void Batch::clear() {
+    _commandsMax = std::max(_commands.size(), _commandsMax);
+    _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
+    _paramsMax = std::max(_params.size(), _paramsMax);
+    _dataMax = std::max(_data.size(), _dataMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
+    _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
+
     _commands.clear();
     _commandOffsets.clear();
     _params.clear();
@@ -58,6 +73,8 @@ void Batch::clear() {
     _transforms.clear();
     _pipelines.clear();
     _framebuffers.clear();
+    _objects.clear();
+    _drawCallInfos.clear();
 }
 
 size_t Batch::cacheData(size_t size, const void* data) {
@@ -456,17 +473,6 @@ void Batch::preExecute() {
         instance.process(*this);
         stopNamedCall();
     }
-}
-
-QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {
-    debug << "Batch::CacheState[ "
-        << "commandsSize:" << cacheState.commandsSize
-        << "offsetsSize:" << cacheState.offsetsSize
-        << "paramsSize:" << cacheState.paramsSize
-        << "dataSize:" << cacheState.dataSize
-        << "]";
-
-    return debug;
 }
 
 // Debugging
