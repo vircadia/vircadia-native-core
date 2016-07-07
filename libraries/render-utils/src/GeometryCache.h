@@ -402,8 +402,6 @@ private:
     QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
-    QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
-    
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _unlitShader;
     static render::ShapePipelinePointer _simplePipeline;
