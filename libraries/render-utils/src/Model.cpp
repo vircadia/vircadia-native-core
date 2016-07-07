@@ -442,31 +442,23 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     PROFILE_RANGE(__FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
-    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded ||
-        (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
+    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
         const FBXGeometry& geometry = getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
-
-
-
-        int okCount = 0;
-        int notOkCount = 0;
-
-
-        for (int meshIndex = 0; meshIndex < numberOfMeshes; meshIndex++) {
-            const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents, _translation, _rotation);
 
-            _calculatedMeshBoxes[meshIndex] = AABox(scaledMeshExtents);
+            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
-                for (int partIndex = 0; partIndex < mesh.parts.size(); partIndex++) {
-                    const FBXMeshPart& part = mesh.parts.at(partIndex);
+                for (int j = 0; j < mesh.parts.size(); j++) {
+                    const FBXMeshPart& part = mesh.parts.at(j);
 
                     bool atLeastOnePointInBounds = false;
                     AABox thisPartBounds;
@@ -483,62 +475,10 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i2 = part.quadIndices[vIndex++];
                             int i3 = part.quadIndices[vIndex++];
 
-                            glm::vec3 v[3];
-                            int ok = 0;
-                            if (meshIndex < _meshStates.size()) {
-                                int quadPointIndexes[ 4 ] = {i0, i1, i2, i3};
-                                for (int pointInQuadIndex = 0; pointInQuadIndex < 4; pointInQuadIndex++) {
-                                    int vertexIndex = quadPointIndexes[pointInQuadIndex];
-                                    glm::vec4 clusterIndices = mesh.clusterIndices[vertexIndex];
-                                    glm::vec4 clusterWeights = mesh.clusterWeights[vertexIndex];
-
-                                    bool vSet = false;
-                                    for (int ci = 0; ci < 4; ci++) {
-                                        int clusterIndex = (int) clusterIndices[ci];
-                                        float clusterWeight = clusterWeights[ci];
-                                        if (clusterIndex < 0 ||
-                                            clusterIndex >= mesh.clusters.size() ||
-                                            clusterWeight == 0.0f) {
-                                            continue;
-                                        }
-                                        const FBXCluster& cluster = mesh.clusters.at(clusterIndex);
-                                        auto clusterMatrix = _meshStates[meshIndex].clusterMatrices[cluster.jointIndex];
-                                        glm::vec3 meshVertex = mesh.vertices[vertexIndex];
-                                        glm::vec3 fuh = transformPoint(clusterMatrix, meshVertex);
-                                        glm::vec3 tpoint = clusterWeight * (_translation + fuh);
-                                        v[pointInQuadIndex] += tpoint;
-                                        vSet = true;
-                                    }
-                                    if (vSet) {
-                                        ok++;
-                                    }
-                                }
-                            }
-
-
-                            glm::vec3 v0;
-                            glm::vec3 v1;
-                            glm::vec3 v2;
-                            glm::vec3 v3;
-
                             glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
                             glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
                             glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
                             glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
-
-                            if (ok == 4) {
-                                okCount++;
-                                v0 = v[0];
-                                v1 = v[1];
-                                v2 = v[2];
-                                v3 = v[3];
-                            } else {
-                                notOkCount++;
-                                v0 = calculateScaledOffsetPoint(mv0);
-                                v1 = calculateScaledOffsetPoint(mv1);
-                                v2 = calculateScaledOffsetPoint(mv2);
-                                v3 = calculateScaledOffsetPoint(mv3);
-                            }
 
                             // track the mesh parts in model space
                             if (!atLeastOnePointInBounds) {
@@ -551,6 +491,11 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             thisPartBounds += mv2;
                             thisPartBounds += mv3;
 
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
+                            glm::vec3 v3 = calculateScaledOffsetPoint(mv3);
+
                             // Sam's recommended triangle slices
                             Triangle tri1 = { v0, v1, v3 };
                             Triangle tri2 = { v1, v2, v3 };
@@ -561,6 +506,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
+
                         }
                     }
 
@@ -572,57 +518,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i1 = part.triangleIndices[vIndex++];
                             int i2 = part.triangleIndices[vIndex++];
 
-                            glm::vec3 v[3];
-                            int ok = 0;
-                            if (meshIndex < _meshStates.size()) {
-                                int trianglePointIndexes[ 3 ] = {i0, i1, i2};
-                                for (int pointInTriIndex = 0; pointInTriIndex < 3; pointInTriIndex++) {
-                                    int vertexIndex = trianglePointIndexes[pointInTriIndex];
-                                    glm::vec4 clusterIndices = mesh.clusterIndices[vertexIndex];
-                                    glm::vec4 clusterWeights = mesh.clusterWeights[vertexIndex];
-
-                                    bool vSet = false;
-                                    for (int ci = 0; ci < 4; ci++) {
-                                        int clusterIndex = (int) clusterIndices[ci];
-                                        float clusterWeight = clusterWeights[ci];
-                                        if (clusterIndex < 0 ||
-                                            clusterIndex >= mesh.clusters.size() ||
-                                            clusterWeight == 0.0f) {
-                                            continue;
-                                        }
-                                        const FBXCluster& cluster = mesh.clusters.at(clusterIndex);
-                                        auto clusterMatrix = _meshStates[meshIndex].clusterMatrices[cluster.jointIndex];
-                                        glm::vec3 meshVertex = mesh.vertices[vertexIndex];
-                                        glm::vec3 fuh = transformPoint(clusterMatrix, meshVertex);
-                                        glm::vec3 tpoint = clusterWeight * (_translation + fuh);
-                                        v[pointInTriIndex] += tpoint;
-                                        vSet = true;
-                                    }
-                                    if (vSet) {
-                                        ok++;
-                                    }
-                                }
-                            }
-
                             glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
                             glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
                             glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
-
-                            glm::vec3 v0;
-                            glm::vec3 v1;
-                            glm::vec3 v2;
-
-                            if (ok == 3) {
-                                okCount++;
-                                v0 = v[0];
-                                v1 = v[1];
-                                v2 = v[2];
-                            } else {
-                                notOkCount++;
-                                v0 = calculateScaledOffsetPoint(mv0);
-                                v1 = calculateScaledOffsetPoint(mv1);
-                                v2 = calculateScaledOffsetPoint(mv2);
-                            }
 
                             // track the mesh parts in model space
                             if (!atLeastOnePointInBounds) {
@@ -634,20 +532,21 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             thisPartBounds += mv1;
                             thisPartBounds += mv2;
 
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
+
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
                         }
                     }
-                    _calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)] = thisPartBounds;
+                    _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
                 }
-                _calculatedMeshTriangles[meshIndex] = thisMeshTriangles;
+                _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
             }
         }
-
-        qDebug() << "ok = " << okCount << " not-ok =" << notOkCount;
-
         _calculatedMeshBoxesValid = true;
         _calculatedMeshTrianglesValid = pickAgainstTriangles;
     }

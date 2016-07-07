@@ -429,18 +429,34 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
         glm::vec3 surfaceNormal;
 
         SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-        AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        if (!avatarBounds.findRayIntersection(ray.origin, normDirection, distance, face, surfaceNormal)) {
-            // ray doesn't intersect avatar's bounding-box
+
+        // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
+        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
+        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        // if (!avatarBounds.findRayIntersection(ray.origin, normDirection, distance, face, surfaceNormal)) {
+        //     // ray doesn't intersect avatar's bounding-box
+        //     continue;
+        // }
+
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
+        if (!intersects) {
+            // ray doesn't intersect avatar's capsule
             continue;
         }
 
-        avatarModel->invalidCalculatedMeshBoxes();
-        avatarModel->recalculateMeshBoxes(true);
-
         QString extraInfo;
-        bool intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
-                                                                           distance, face, surfaceNormal, extraInfo, true);
+        intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
+                                                                      distance, face, surfaceNormal, extraInfo, true);
 
         if (intersects && (!result.intersects || distance < result.distance)) {
             result.intersects = true;
