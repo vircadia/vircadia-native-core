@@ -6,8 +6,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+//FEATURES:
 
+// ENTRY MODES
+// Thumbpad only
+// Thumpad + trigger
 
+// JUMP MODES
+// Instant
+// Smoth arrival aka stepwise (number of steps, duration of step)
+
+// FADE MODE
+// Cube-overlay (steps,duration)
+// Model-overlay (steps, duration)
+// Fade out / fade in
+
+// defaults with instant jump with fade.  to try smooth arrival mode, change use fade to false and then switch the number of arrival steps and spacing
 var inTeleportMode = false;
 
 var currentFadeSphereOpacity = 1;
@@ -19,7 +33,6 @@ var USE_FADE_IN = false;
 var USE_FADE_OUT = true;
 var FADE_IN_INTERVAL = 25;
 var FADE_OUT_INTERVAL = 25;
-
 
 // instant
 var NUMBER_OF_STEPS = 0;
@@ -33,7 +46,7 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 100;
 // var NUMBER_OF_STEPS = 4;
 
-// //medium-fast
+//medium-fast
 // var SMOOTH_ARRIVAL_SPACING = 33;
 // var NUMBER_OF_STEPS = 6;
 
@@ -42,8 +55,6 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var NUMBER_OF_STEPS = 20;
 
 
-// var NUMBER_OF_STEPS=9;
-// var SMOOTH_ARRIVAL_SPACING=25;
 var USE_THUMB_AND_TRIGGER_MODE = false;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
@@ -166,7 +177,7 @@ function Teleporter() {
 
         currentFadeSphereOpacity = 10;
 
-        _this.fadeSphere = Overlays.addOverlay("cube", sphereProps);
+        _this.fadeSphere = Overlays.addOverlay("sphere", sphereProps);
         Script.clearInterval(fadeSphereInterval)
         Script.update.connect(_this.updateFadeSphere);
         if (USE_FADE_OUT === true) {
@@ -184,7 +195,7 @@ function Teleporter() {
             if (currentFadeSphereOpacity <= 0) {
                 Script.clearInterval(fadeSphereInterval);
                 _this.deleteFadeSphere();
-               fadeSphereInterval = null;
+                fadeSphereInterval = null;
                 print('sphere done fading out');
                 return;
             }
