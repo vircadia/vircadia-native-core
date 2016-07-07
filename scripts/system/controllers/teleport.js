@@ -12,9 +12,14 @@ var inTeleportMode = false;
 
 var currentFadeSphereOpacity = 1;
 var fadeSphereInterval = null;
+var fadeSphereUpdateInterval = null;
 //milliseconds between fading one-tenth -- so this is a half second fade total
-var FADE_IN_INTERVAL = 50;
-var FADE_OUT_INTERVAL = 50;
+var USE_FADE_MODE = true;
+var USE_FADE_IN = false;
+var USE_FADE_OUT = true;
+var FADE_IN_INTERVAL = 25;
+var FADE_OUT_INTERVAL = 25;
+
 
 // instant
 var NUMBER_OF_STEPS = 0;
@@ -24,7 +29,7 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 150;
 // var NUMBER_OF_STEPS = 2;
 
-//medium-slow
+// medium-slow
 // var SMOOTH_ARRIVAL_SPACING = 100;
 // var NUMBER_OF_STEPS = 4;
 
@@ -32,10 +37,13 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 33;
 // var NUMBER_OF_STEPS = 6;
 
-// //fast
+//fast
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
+
+// var NUMBER_OF_STEPS=9;
+// var SMOOTH_ARRIVAL_SPACING=25;
 var USE_THUMB_AND_TRIGGER_MODE = false;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
@@ -82,6 +90,7 @@ function Teleporter() {
     this.targetOverlay = null;
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
+    this.fadeSphere = null;
 
     this.initialize = function() {
         this.createMappings();
@@ -138,10 +147,11 @@ function Teleporter() {
     };
 
 
+
     this.createFadeSphere = function(avatarHead) {
         var sphereProps = {
             position: avatarHead,
-            size: 0.25,
+            size: -1,
             color: {
                 red: 0,
                 green: 0,
@@ -151,30 +161,40 @@ function Teleporter() {
             solid: true,
             visible: true,
             ignoreRayIntersection: true,
-            drawInFront: true
+            drawInFront: false
         };
 
-        currentFadeSphereOpacity = 1;
+        currentFadeSphereOpacity = 10;
 
-        _this.fadeSphere = Overlays.addOverlay("sphere", sphereProps);
-
+        _this.fadeSphere = Overlays.addOverlay("cube", sphereProps);
+        Script.clearInterval(fadeSphereInterval)
         Script.update.connect(_this.updateFadeSphere);
+        if (USE_FADE_OUT === true) {
+            this.fadeSphereOut();
+        }
+        if (USE_FADE_IN === true) {
+            this.fadeSphereIn();
+        }
+
     };
 
     this.fadeSphereOut = function() {
 
         fadeSphereInterval = Script.setInterval(function() {
-            if (currentFadeSphereOpacity === 0) {
+            if (currentFadeSphereOpacity <= 0) {
                 Script.clearInterval(fadeSphereInterval);
                 _this.deleteFadeSphere();
-                fadeSphereInterval = null;
+               fadeSphereInterval = null;
+                print('sphere done fading out');
                 return;
             }
             if (currentFadeSphereOpacity > 0) {
-                currentFadeSphereOpacity -= 0.1;
+                currentFadeSphereOpacity = currentFadeSphereOpacity - 1;
             }
+
+            print('setting sphere alpha to: ' + currentFadeSphereOpacity)
             Overlays.editOverlay(_this.fadeSphere, {
-                alpha: currentFadeSphereOpacity
+                alpha: currentFadeSphereOpacity / 10
             })
 
         }, FADE_OUT_INTERVAL);
@@ -182,17 +202,18 @@ function Teleporter() {
 
     this.fadeSphereIn = function() {
         fadeSphereInterval = Script.setInterval(function() {
-            if (currentFadeSphereOpacity === 1) {
+            if (currentFadeSphereOpacity >= 1) {
                 Script.clearInterval(fadeSphereInterval);
                 _this.deleteFadeSphere();
                 fadeSphereInterval = null;
+                print('sphere done fading in')
                 return;
             }
             if (currentFadeSphereOpacity < 1) {
-                currentFadeSphereOpacity += 0.1;
+                currentFadeSphereOpacity = currentFadeSphereOpacity - 1;
             }
             Overlays.editOverlay(_this.fadeSphere, {
-                alpha: currentFadeSphereOpacity
+                alpha: currentFadeSphereOpacity / 10
             })
 
         }, FADE_IN_INTERVAL);
@@ -206,8 +227,13 @@ function Teleporter() {
     };
 
     this.deleteFadeSphere = function() {
-        Script.update.disconnect(_this.updateFadeSphere);
-        Overlays.deleteOverlay(_this.fadeSphere);
+        if (_this.fadeSphere !== null) {
+            print('deleting fade sphere');
+            Script.update.disconnect(_this.updateFadeSphere);
+            Overlays.deleteOverlay(_this.fadeSphere);
+            _this.fadeSphere = null;
+        }
+
     };
 
     this.deleteTargetOverlay = function() {
@@ -227,7 +253,6 @@ function Teleporter() {
 
         } else {
             Script.update.disconnect(this.update);
-
         }
 
         this.updateConnected = null;
@@ -492,10 +517,12 @@ function Teleporter() {
 
     this.teleport = function(value) {
 
-        if (_this.intersection !== null) {
-
+        if (this.intersection !== null) {
+            if (USE_FADE_MODE === true) {
+                this.createFadeSphere();
+            }
             var offset = getAvatarFootOffset();
-            _this.intersection.intersection.y += offset;
+            this.intersection.intersection.y += offset;
             // MyAvatar.position = _this.intersection.intersection;
             this.exitTeleportMode();
             this.smoothArrival();
@@ -540,6 +567,7 @@ function Teleporter() {
             var landingPoint = _this.arrivalPoints.shift();
             print('landing at: ' + JSON.stringify(landingPoint))
             MyAvatar.position = landingPoint;
+
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
                 print('clear target overlay')
                 _this.deleteTargetOverlay();
@@ -674,6 +702,7 @@ function cleanup() {
     teleporter.disableMappings();
     teleporter.deleteTargetOverlay();
     teleporter.turnOffOverlayBeams();
+    teleporter.deleteFadeSphere();
     if (teleporter.updateConnected !== null) {
 
         if (USE_THUMB_AND_TRIGGER_MODE === true) {
