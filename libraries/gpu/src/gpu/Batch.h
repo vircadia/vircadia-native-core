@@ -390,7 +390,7 @@ public:
             size_t size() const { return _items.size(); }
             size_t cache(const Data& data) {
                 size_t offset = _items.size();
-                _items.push_back(Cache<T>(data));
+                _items.emplace_back(data);
                 return offset;
             }
 
