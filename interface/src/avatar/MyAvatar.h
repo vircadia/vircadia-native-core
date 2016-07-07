@@ -212,8 +212,8 @@ public:
     virtual void clearJointsData() override;
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
-    Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
-    Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
+    Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
+    Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
     void resetFullAvatarURL();
 
 
