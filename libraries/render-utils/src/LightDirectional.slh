@@ -18,9 +18,11 @@ void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
     
     vec4 shading = evalFragShading(normal, -getLightDirection(light), eyeDir, metallic, fresnel, roughness);
 
-    diffuse = albedo * shading.w * shadow * getLightColor(light) * getLightIntensity(light);
+    vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
 
-    specular = shading.rgb * shadow * getLightColor(light) * getLightIntensity(light);
+    diffuse = albedo * shading.w * lightEnergy;
+
+    specular = shading.rgb * lightEnergy;
 }
 
 <@if supportScattering@>
@@ -28,14 +30,14 @@ void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
 void evalLightingDirectionalScattering(out vec3 diffuse, out vec3 specular, Light light,
     vec3 eyeDir, vec3 normal, float roughness,
     float metallic, vec3 fresnel, vec3 albedo, float shadow,
-    float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
+    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
 
     vec3 fragLightDir = -normalize(getLightDirection(light));
 
     evalFragShading(diffuse, specular,
         normal, fragLightDir, eyeDir,
         metallic, fresnel, roughness,
-        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
+        scattering, midNormalCurvature, lowNormalCurvature);
 
     vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
 

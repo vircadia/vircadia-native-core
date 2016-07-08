@@ -60,7 +60,8 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obsc
 <$declareLightingAmbient(1, 0, 0, supportScattering)$>
 <$declareLightingDirectional(supportScattering)$>
 
-vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness) {
+vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal,
+    vec3 albedo, float metallic, vec3 emissive, float roughness) {
 
     <$prepareGlobalLight()$>
 
@@ -86,14 +87,10 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
 <$declareDeferredCurvature()$>
 
-vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
+vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal,
+    vec3 albedo, float metallic, vec3 emissive, float roughness, float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
 
     <$prepareGlobalLight(1)$>
-
-        vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
-    vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
-    float highCurvature = unpackCurvature(blurredCurvature.w);
-    float lowCurvature = unpackCurvature(diffusedCurvature.w);
 
     // Ambient
     vec3 ambientDiffuse;
@@ -101,7 +98,7 @@ vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenua
     evalLightingAmbientScattering(ambientDiffuse, ambientSpecular, light,
         fragEyeDir, fragNormal, roughness,
         metallic, fresnel, albedo, obscurance,
-        isScatteringEnabled() * scattering, lowNormal, highCurvature, lowCurvature);
+        isScatteringEnabled() * scattering, midNormalCurvature, lowNormalCurvature);
     color += ambientDiffuse * isDiffuseEnabled() * isAmbientEnabled();
     color += ambientSpecular * isSpecularEnabled() * isAmbientEnabled();
 
@@ -112,7 +109,7 @@ vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenua
     evalLightingDirectionalScattering(directionalDiffuse, directionalSpecular, light,
         fragEyeDir, fragNormal, roughness,
         metallic, fresnel, albedo, shadowAttenuation,
-        isScatteringEnabled() * scattering, midNormal, lowNormal, lowCurvature);
+        isScatteringEnabled() * scattering, midNormalCurvature, lowNormalCurvature);
     color += directionalDiffuse * isDiffuseEnabled() * isDirectionalEnabled();
     color += directionalSpecular * isSpecularEnabled() * isDirectionalEnabled();
 
@@ -157,12 +154,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature) {
     <$prepareGlobalLight(1)$>
 
-    vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
-    vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
-    float highCurvature = unpackCurvature(blurredCurvature.w);
-    float lowCurvature = unpackCurvature(diffusedCurvature.w);
-
-    // Ambient
+        // Ambient
     vec3 ambientDiffuse;
     vec3 ambientSpecular;
     evalLightingAmbientScattering(ambientDiffuse, ambientSpecular, light,
@@ -178,7 +170,7 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     evalLightingDirectionalScattering(directionalDiffuse, directionalSpecular, light,
         fragEyeDir, fragNormal, roughness,
         metallic, fresnel, albedo, shadowAttenuation,
-        isScatteringEnabled() * scattering, midNormal, lowNormal, lowCurvature);
+        isScatteringEnabled() * scattering, , midNormalCurvature, lowNormalCurvature);
     color += directionalDiffuse * isDiffuseEnabled() * isDirectionalEnabled();
     color += directionalSpecular * isSpecularEnabled() * isDirectionalEnabled();
 

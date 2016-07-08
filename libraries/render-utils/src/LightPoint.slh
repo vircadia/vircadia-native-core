@@ -64,7 +64,7 @@ void evalLightingPointScattering(out vec3 diffuse, out vec3 specular, Light ligh
     evalFragShading(diffuse, specular,
         normal, fragLightDir, fragEyeDir,
         metallic, fresnel, roughness,
-        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
+        scattering, midNormalCurvature, lowNormalCurvature);
 
     diffuse *= albedo * lightEnergy;
 

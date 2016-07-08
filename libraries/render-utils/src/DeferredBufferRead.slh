@@ -135,7 +135,14 @@ vec4 fetchDiffusedCurvature(vec2 texcoord) {
     return texture(diffusedCurvatureMap, texcoord);
 }
 
-
+void unpackMidLowNormalCurvature(vec2 texcoord, out vec4 midNormalCurvature, out vec4 vec4 lowNormalCurvature) {
+    midNormalCurvature = fetchCurvature(_texCoord0);
+    lowNormalCurvature = fetchDiffusedCurvature(_texCoord0);
+    midNormalCurvature.xyz = normalize((midNormalCurvature.xyz - 0.5f) * 2.0f);
+    lowNormalCurvature.xyz = normalize((lowNormalCurvature.xyz - 0.5f) * 2.0f);
+    midNormalCurvature.w = (midNormalCurvature.w * 2 - 1);
+    lowNormalCurvature.w = (lowNormalCurvature.w * 2 - 1);
+}
 <@endfunc@>
 
 <@endif@>
