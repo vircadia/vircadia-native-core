@@ -283,7 +283,9 @@ public:
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec2>& points, const QVector<glm::vec4>& colors);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec4>& colors);
     void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
 
@@ -360,7 +362,7 @@ private:
 
     QHash<IntPair, VerticesIndices> _coneVBOs;
 
-    int _nextID{ 0 };
+    int _nextID{ 1 };
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
     QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
