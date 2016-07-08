@@ -44,7 +44,6 @@ void BlurParams::setWidthHeight(int width, int height, bool isStereo) {
         _parametersBuffer.edit<Params>().resolutionInfo = glm::vec4((float) width, (float) height, 1.0f / (float) width, 1.0f / (float) height);
     }
 
-    auto stereoInfo = _parametersBuffer.get<Params>().stereoInfo;
     if (isStereo || resChanged) {
         _parametersBuffer.edit<Params>().stereoInfo = glm::vec4((float)width, (float)height, 1.0f / (float)width, 1.0f / (float)height);
     }
