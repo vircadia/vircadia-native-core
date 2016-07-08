@@ -762,7 +762,6 @@ function MyController(hand) {
     };
 
     this.overlayLineOff = function() {
-        return;
         if (this.overlayLine !== null) {
              Overlays.deleteOverlay(this.overlayLine);
             print('REMOVING OVERLAY LINE'  + this.overlayLine)
