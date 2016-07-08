@@ -520,6 +520,8 @@ function MyController(hand) {
                 visible: true
             };
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
+                        print('CREATED SEARCH OVERLAY : '+  this.searchSphere)
+
         } else {
             Overlays.editOverlay(this.searchSphere, {
                 position: location,
@@ -527,6 +529,7 @@ function MyController(hand) {
                 color: color,
                 visible: true
             });
+                      print('EDITED SEARCH OVERLAY : '+  this.searchSphere)
         }
     };
 
@@ -762,10 +765,10 @@ function MyController(hand) {
     };
 
     this.overlayLineOff = function() {
-        if (this.overlayLine !== null) {
+        if (_this.overlayLine !== null) {
              Overlays.deleteOverlay(this.overlayLine);
             print('REMOVING OVERLAY LINE'  + this.overlayLine)
-         this.overlayLine = null;
+         _this.overlayLine = null;
         }
 
        // print('overlay shoudl be null and is line is ' + this.overlayLine)
@@ -933,6 +936,7 @@ function MyController(hand) {
                 overlay: overlay,
                 type: "hand"
             });
+            print('ADDED HAND SPHERE OVERLAY : '+overlay)
 
             // add larger blue sphere around the palm.
             overlay = Overlays.addOverlay("sphere", {
@@ -945,6 +949,8 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
+                        print('ADDED HAND SPHERE OVERLAY : '+overlay)
+
             this.hotspotOverlays.push({
                 entityID: undefined,
                 overlay: overlay,
@@ -973,6 +979,8 @@ function MyController(hand) {
                         ignoreRayIntersection: true,
                         drawInFront: false
                     });
+                                        print('ADDED GRAB BOX OVERLAY : '+ overlay)
+
                     _this.hotspotOverlays.push({
                         entityID: entityID,
                         overlay: overlay,
@@ -999,6 +1007,8 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
+                         print('ADDED SPHERE HOTSTPOT OVERLAY : '+ overlay)
+
             _this.hotspotOverlays.push({
                 entityID: hotspot.entityID,
                 overlay: overlay,
@@ -1032,6 +1042,8 @@ function MyController(hand) {
 
     this.destroyHotspots = function() {
         this.hotspotOverlays.forEach(function(overlayInfo) {
+                        print('deleting overlay hotspot ' + overlayInfo.overlay)
+
             Overlays.deleteOverlay(overlayInfo.overlay);
         });
         this.hotspotOverlays = [];
@@ -2220,8 +2232,8 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.secondaryPress);
 mapping.from([Controller.Standard.LeftGrip]).peek().to(leftController.secondaryPress);
 mapping.from([Controller.Standard.RightGrip]).peek().to(rightController.secondaryPress);
 
-mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
-mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
+// mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
+// mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
@@ -2243,25 +2255,26 @@ Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 Messages.subscribe('Hifi-Object-Manipulation');
 
+
 var handleHandMessages = function(channel, message, sender) {
     var data;
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Hand-Disabler') {
             if (message === 'left') {
-                leftController.turnOffVisualizations('left');
-                handToDisable = LEFT_HAND;
+               leftController.turnOffVisualizations('left');
+               handToDisable = LEFT_HAND;
             }
             if (message === 'right') {
-                rightController.turnOffVisualizations('right');
-                handToDisable = RIGHT_HAND;
+               rightController.turnOffVisualizations('right');
+               handToDisable = RIGHT_HAND;
             }
             if (message === "both") {
                 print('disable both')
-                leftController.turnOffVisualizations('left');
-                rightController.turnOffVisualizations('right');
+               leftController.turnOffVisualizations('left');
+               rightController.turnOffVisualizations('right');
             }
             if (message === 'both' || message === 'none') {
-                handToDisable = message;
+             //   handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {

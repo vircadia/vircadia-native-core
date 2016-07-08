@@ -447,7 +447,8 @@ function Teleporter() {
                 color: color,
                 visible: true,
                 ignoreRayIntersection: true, // always ignore this
-                alpha: 1
+                alpha: 1,
+                glow: 1.0
             });
         }
     };
