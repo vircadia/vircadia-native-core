@@ -772,7 +772,6 @@ function MyController(hand) {
 
     this.searchSphereOff = function() {
         if (this.searchSphere !== null) {
-            print('removing search sphere' + this.searchSphere)
             Overlays.deleteOverlay(this.searchSphere);
             this.searchSphere = null;
             this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
@@ -2302,8 +2301,8 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.secondaryPress);
 mapping.from([Controller.Standard.LeftGrip]).peek().to(leftController.secondaryPress);
 mapping.from([Controller.Standard.RightGrip]).peek().to(rightController.secondaryPress);
 
-// mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
-// mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
+mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
+mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
@@ -2339,12 +2338,11 @@ var handleHandMessages = function(channel, message, sender) {
                 handToDisable = RIGHT_HAND;
             }
             if (message === "both") {
-                print('disable both')
                 leftController.turnOffVisualizations('left');
                 rightController.turnOffVisualizations('right');
             }
             if (message === 'both' || message === 'none') {
-                //   handToDisable = message;
+                handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
