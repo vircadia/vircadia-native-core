@@ -39,7 +39,7 @@ var NUMBER_OF_STEPS = 6;
 // var NUMBER_OF_STEPS = 20;
 
 
-var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
+var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport.fbx");
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
@@ -584,22 +584,18 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).when(leftTrigger.down).to(function(value) {
-        print('tel 1')
         teleporter.enterTeleportMode('left')
         return;
     });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).when(rightTrigger.down).to(function(value) {
-        print('tel 2')
         teleporter.enterTeleportMode('right')
         return;
     });
     teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
-        print('tel 3')
         teleporter.enterTeleportMode('right')
         return;
     });
     teleportMapping.from(Controller.Standard.LT).when(Controller.Standard.LeftPrimaryThumb).to(function(value) {
-        print('tel 4')
         teleporter.enterTeleportMode('left')
         return;
     });
