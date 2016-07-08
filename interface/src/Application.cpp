@@ -4827,7 +4827,10 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
 
     QString shortName = scriptFilenameOrURL;
-    if (shortName.contains(MARKETPLACE_CDN_HOSTNAME)) {
+
+    QUrl scriptURL { scriptFilenameOrURL };
+
+    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
         shortName = shortName.mid(shortName.lastIndexOf('/') + 1);
     }
 
