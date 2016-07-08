@@ -6,8 +6,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-
-// defaults with instant jump with fade.  to try smooth arrival mode, change use fade to false and then switch the number of arrival steps and spacing
 var inTeleportMode = false;
 
 var currentFadeSphereOpacity = 1;
@@ -566,8 +564,6 @@ var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-
-//create a controller mapping and make sure to disable it when the script is stopped
 
 var mappingName, teleportMapping;
 
