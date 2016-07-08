@@ -3049,17 +3049,20 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    glm::vec3 offset(x, y, z);
+    glm::vec3 center(x, y, z);
+    glm::vec3 minCorner = center - vec3(scale);
+    float cubeSize = scale * 2;
+    AACube boundingCube(minCorner, cubeSize);
     QVector<EntityItemPointer> entities;
     QVector<EntityItemID> ids;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->findEntities(AACube(offset, scale), entities);
+        entityTree->findEntities(boundingCube, entities);
         foreach(EntityItemPointer entity, entities) {
             ids << entity->getEntityItemID();
         }
     });
-    return exportEntities(filename, ids, &offset);
+    return exportEntities(filename, ids, &center);
 }
 
 void Application::loadSettings() {

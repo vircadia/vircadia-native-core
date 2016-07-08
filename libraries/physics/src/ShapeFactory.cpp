@@ -204,7 +204,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     if (numIndices < INT16_MAX) {
         int16_t* indices = static_cast<int16_t*>((void*)(mesh.m_triangleIndexBase));
         for (int32_t i = 0; i < numIndices; ++i) {
-            indices[i] = triangleIndices[i];
+            indices[i] = (int16_t)triangleIndices[i];
         }
     } else {
         int32_t* indices = static_cast<int32_t*>((void*)(mesh.m_triangleIndexBase));
@@ -257,7 +257,9 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             shape = new btCapsuleShape(radius, height);
         }
         break;
-        case SHAPE_TYPE_COMPOUND: {
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND: {
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {

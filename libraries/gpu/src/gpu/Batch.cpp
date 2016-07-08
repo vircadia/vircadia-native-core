@@ -26,28 +26,43 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 }
 #endif
 
-#define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
+#define ADD_COMMAND(call) _commands.emplace_back(COMMAND_##call); _commandOffsets.emplace_back(_params.size());
 
 using namespace gpu;
 
-Batch::Batch(const CacheState& cacheState) : Batch() {
-    _commands.reserve(cacheState.commandsSize);
-    _commandOffsets.reserve(cacheState.offsetsSize);
-    _params.reserve(cacheState.paramsSize);
-    _data.reserve(cacheState.dataSize);
-}
+size_t Batch::_commandsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_commandOffsetsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_paramsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
 
-Batch::CacheState Batch::getCacheState() {
-    return CacheState(_commands.size(), _commandOffsets.size(), _params.size(), _data.size(),
-                _buffers.size(), _textures.size(), _streamFormats.size(), _transforms.size(), _pipelines.size(), 
-                _framebuffers.size(), _queries.size());
+Batch::Batch() {
+    _commands.reserve(_commandsMax);
+    _commandOffsets.reserve(_commandOffsetsMax);
+    _params.reserve(_paramsMax);
+    _data.reserve(_dataMax);
+    _objects.reserve(_objectsMax);
+    _drawCallInfos.reserve(_drawCallInfosMax);
 }
 
 Batch::~Batch() {
-    //qDebug() << "Batch::~Batch()... " << getCacheState();
+    _commandsMax = std::max(_commands.size(), _commandsMax);
+    _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
+    _paramsMax = std::max(_params.size(), _paramsMax);
+    _dataMax = std::max(_data.size(), _dataMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
+    _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
 }
 
 void Batch::clear() {
+    _commandsMax = std::max(_commands.size(), _commandsMax);
+    _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
+    _paramsMax = std::max(_params.size(), _paramsMax);
+    _dataMax = std::max(_data.size(), _dataMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
+    _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
+
     _commands.clear();
     _commandOffsets.clear();
     _params.clear();
@@ -58,6 +73,8 @@ void Batch::clear() {
     _transforms.clear();
     _pipelines.clear();
     _framebuffers.clear();
+    _objects.clear();
+    _drawCallInfos.clear();
 }
 
 size_t Batch::cacheData(size_t size, const void* data) {
@@ -72,9 +89,9 @@ size_t Batch::cacheData(size_t size, const void* data) {
 void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex) {
     ADD_COMMAND(draw);
 
-    _params.push_back(startVertex);
-    _params.push_back(numVertices);
-    _params.push_back(primitiveType);
+    _params.emplace_back(startVertex);
+    _params.emplace_back(numVertices);
+    _params.emplace_back(primitiveType);
 
     captureDrawCallInfo();
 }
@@ -82,9 +99,9 @@ void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex
 void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex) {
     ADD_COMMAND(drawIndexed);
 
-    _params.push_back(startIndex);
-    _params.push_back(numIndices);
-    _params.push_back(primitiveType);
+    _params.emplace_back(startIndex);
+    _params.emplace_back(numIndices);
+    _params.emplace_back(primitiveType);
 
     captureDrawCallInfo();
 }
@@ -92,11 +109,11 @@ void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 start
 void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex, uint32 startInstance) {
     ADD_COMMAND(drawInstanced);
 
-    _params.push_back(startInstance);
-    _params.push_back(startVertex);
-    _params.push_back(numVertices);
-    _params.push_back(primitiveType);
-    _params.push_back(numInstances);
+    _params.emplace_back(startInstance);
+    _params.emplace_back(startVertex);
+    _params.emplace_back(numVertices);
+    _params.emplace_back(primitiveType);
+    _params.emplace_back(numInstances);
 
     captureDrawCallInfo();
 }
@@ -104,11 +121,11 @@ void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 n
 void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex, uint32 startInstance) {
     ADD_COMMAND(drawIndexedInstanced);
 
-    _params.push_back(startInstance);
-    _params.push_back(startIndex);
-    _params.push_back(numIndices);
-    _params.push_back(primitiveType);
-    _params.push_back(numInstances);
+    _params.emplace_back(startInstance);
+    _params.emplace_back(startIndex);
+    _params.emplace_back(numIndices);
+    _params.emplace_back(primitiveType);
+    _params.emplace_back(numInstances);
 
     captureDrawCallInfo();
 }
@@ -116,16 +133,16 @@ void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, u
 
 void Batch::multiDrawIndirect(uint32 numCommands, Primitive primitiveType) {
     ADD_COMMAND(multiDrawIndirect);
-    _params.push_back(numCommands);
-    _params.push_back(primitiveType);
+    _params.emplace_back(numCommands);
+    _params.emplace_back(primitiveType);
 
     captureDrawCallInfo();
 }
 
 void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType) {
     ADD_COMMAND(multiDrawIndexedIndirect);
-    _params.push_back(nbCommands);
-    _params.push_back(primitiveType);
+    _params.emplace_back(nbCommands);
+    _params.emplace_back(primitiveType);
 
     captureDrawCallInfo();
 }
@@ -133,16 +150,16 @@ void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType)
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
-    _params.push_back(_streamFormats.cache(format));
+    _params.emplace_back(_streamFormats.cache(format));
 }
 
 void Batch::setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride) {
     ADD_COMMAND(setInputBuffer);
 
-    _params.push_back(stride);
-    _params.push_back(offset);
-    _params.push_back(_buffers.cache(buffer));
-    _params.push_back(channel);
+    _params.emplace_back(stride);
+    _params.emplace_back(offset);
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(channel);
 }
 
 void Batch::setInputBuffer(Slot channel, const BufferView& view) {
@@ -163,9 +180,9 @@ void Batch::setInputStream(Slot startChannel, const BufferStream& stream) {
 void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset) {
     ADD_COMMAND(setIndexBuffer);
 
-    _params.push_back(offset);
-    _params.push_back(_buffers.cache(buffer));
-    _params.push_back(type);
+    _params.emplace_back(offset);
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(type);
 }
 
 void Batch::setIndexBuffer(const BufferView& buffer) {
@@ -175,9 +192,9 @@ void Batch::setIndexBuffer(const BufferView& buffer) {
 void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
     ADD_COMMAND(setIndirectBuffer);
 
-    _params.push_back(_buffers.cache(buffer));
-    _params.push_back(offset);
-    _params.push_back(stride);
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(offset);
+    _params.emplace_back(stride);
 }
 
 
@@ -191,56 +208,56 @@ void Batch::setModelTransform(const Transform& model) {
 void Batch::setViewTransform(const Transform& view) {
     ADD_COMMAND(setViewTransform);
 
-    _params.push_back(_transforms.cache(view));
+    _params.emplace_back(_transforms.cache(view));
 }
 
 void Batch::setProjectionTransform(const Mat4& proj) {
     ADD_COMMAND(setProjectionTransform);
 
-    _params.push_back(cacheData(sizeof(Mat4), &proj));
+    _params.emplace_back(cacheData(sizeof(Mat4), &proj));
 }
 
 void Batch::setViewportTransform(const Vec4i& viewport) {
     ADD_COMMAND(setViewportTransform);
 
-    _params.push_back(cacheData(sizeof(Vec4i), &viewport));
+    _params.emplace_back(cacheData(sizeof(Vec4i), &viewport));
 }
 
 void Batch::setDepthRangeTransform(float nearDepth, float farDepth) {
     ADD_COMMAND(setDepthRangeTransform);
 
-    _params.push_back(farDepth);
-    _params.push_back(nearDepth);
+    _params.emplace_back(farDepth);
+    _params.emplace_back(nearDepth);
 }
 
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);
 
-    _params.push_back(_pipelines.cache(pipeline));
+    _params.emplace_back(_pipelines.cache(pipeline));
 }
 
 void Batch::setStateBlendFactor(const Vec4& factor) {
     ADD_COMMAND(setStateBlendFactor);
 
-    _params.push_back(factor.x);
-    _params.push_back(factor.y);
-    _params.push_back(factor.z);
-    _params.push_back(factor.w);
+    _params.emplace_back(factor.x);
+    _params.emplace_back(factor.y);
+    _params.emplace_back(factor.z);
+    _params.emplace_back(factor.w);
 }
 
 void Batch::setStateScissorRect(const Vec4i& rect) {
     ADD_COMMAND(setStateScissorRect);
 
-    _params.push_back(cacheData(sizeof(Vec4i), &rect));
+    _params.emplace_back(cacheData(sizeof(Vec4i), &rect));
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
     ADD_COMMAND(setUniformBuffer);
 
-    _params.push_back(size);
-    _params.push_back(offset);
-    _params.push_back(_buffers.cache(buffer));
-    _params.push_back(slot);
+    _params.emplace_back(size);
+    _params.emplace_back(offset);
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(slot);
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
@@ -251,8 +268,8 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
     ADD_COMMAND(setResourceTexture);
 
-    _params.push_back(_textures.cache(texture));
-    _params.push_back(slot);
+    _params.emplace_back(_textures.cache(texture));
+    _params.emplace_back(slot);
 }
 
 void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
@@ -262,21 +279,21 @@ void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
 void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
     ADD_COMMAND(setFramebuffer);
 
-    _params.push_back(_framebuffers.cache(framebuffer));
+    _params.emplace_back(_framebuffers.cache(framebuffer));
 
 }
 
 void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
     ADD_COMMAND(clearFramebuffer);
 
-    _params.push_back(enableScissor);
-    _params.push_back(stencil);
-    _params.push_back(depth);
-    _params.push_back(color.w);
-    _params.push_back(color.z);
-    _params.push_back(color.y);
-    _params.push_back(color.x);
-    _params.push_back(targets);
+    _params.emplace_back(enableScissor);
+    _params.emplace_back(stencil);
+    _params.emplace_back(depth);
+    _params.emplace_back(color.w);
+    _params.emplace_back(color.z);
+    _params.emplace_back(color.y);
+    _params.emplace_back(color.x);
+    _params.emplace_back(targets);
 }
 
 void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
@@ -299,40 +316,40 @@ void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
     const FramebufferPointer& dst, const Vec4i& dstViewport) {
     ADD_COMMAND(blit);
 
-    _params.push_back(_framebuffers.cache(src));
-    _params.push_back(srcViewport.x);
-    _params.push_back(srcViewport.y);
-    _params.push_back(srcViewport.z);
-    _params.push_back(srcViewport.w);
-    _params.push_back(_framebuffers.cache(dst));
-    _params.push_back(dstViewport.x);
-    _params.push_back(dstViewport.y);
-    _params.push_back(dstViewport.z);
-    _params.push_back(dstViewport.w);
+    _params.emplace_back(_framebuffers.cache(src));
+    _params.emplace_back(srcViewport.x);
+    _params.emplace_back(srcViewport.y);
+    _params.emplace_back(srcViewport.z);
+    _params.emplace_back(srcViewport.w);
+    _params.emplace_back(_framebuffers.cache(dst));
+    _params.emplace_back(dstViewport.x);
+    _params.emplace_back(dstViewport.y);
+    _params.emplace_back(dstViewport.z);
+    _params.emplace_back(dstViewport.w);
 }
 
 void Batch::generateTextureMips(const TexturePointer& texture) {
     ADD_COMMAND(generateTextureMips);
 
-    _params.push_back(_textures.cache(texture));
+    _params.emplace_back(_textures.cache(texture));
 }
 
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 
-    _params.push_back(_queries.cache(query));
+    _params.emplace_back(_queries.cache(query));
 }
 
 void Batch::endQuery(const QueryPointer& query) {
     ADD_COMMAND(endQuery);
 
-    _params.push_back(_queries.cache(query));
+    _params.emplace_back(_queries.cache(query));
 }
 
 void Batch::getQuery(const QueryPointer& query) {
     ADD_COMMAND(getQuery);
 
-    _params.push_back(_queries.cache(query));
+    _params.emplace_back(_queries.cache(query));
 }
 
 void Batch::resetStages() {
@@ -341,12 +358,12 @@ void Batch::resetStages() {
 
 void Batch::runLambda(std::function<void()> f) {
     ADD_COMMAND(runLambda);
-    _params.push_back(_lambdas.cache(f));
+    _params.emplace_back(_lambdas.cache(f));
 }
 
 void Batch::startNamedCall(const std::string& name) {
     ADD_COMMAND(startNamedCall);
-    _params.push_back(_names.cache(name));
+    _params.emplace_back(_names.cache(name));
     
     _currentNamedCall = name;
 }
@@ -422,14 +439,14 @@ void Batch::captureDrawCallInfoImpl() {
         //_model.getInverseMatrix(_object._modelInverse);
         object._modelInverse = glm::inverse(object._model);
 
-        _objects.push_back(object);
+        _objects.emplace_back(object);
 
         // Flag is clean
         _invalidModel = false;
     }
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.push_back((uint16)_objects.size() - 1);
+    drawCallInfos.emplace_back((uint16)_objects.size() - 1);
 }
 
 void Batch::captureDrawCallInfo() {
@@ -458,22 +475,11 @@ void Batch::preExecute() {
     }
 }
 
-QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {
-    debug << "Batch::CacheState[ "
-        << "commandsSize:" << cacheState.commandsSize
-        << "offsetsSize:" << cacheState.offsetsSize
-        << "paramsSize:" << cacheState.paramsSize
-        << "dataSize:" << cacheState.dataSize
-        << "]";
-
-    return debug;
-}
-
 // Debugging
 void Batch::pushProfileRange(const char* name) {
 #if defined(NSIGHT_FOUND)
     ADD_COMMAND(pushProfileRange);
-    _params.push_back(_profileRanges.cache(name));
+    _params.emplace_back(_profileRanges.cache(name));
 #endif
 }
 
@@ -490,9 +496,9 @@ void Batch::_glActiveBindTexture(uint32 unit, uint32 target, uint32 texture) {
     setResourceTexture(unit - GL_TEXTURE0, nullptr);
 
     ADD_COMMAND(glActiveBindTexture);
-    _params.push_back(texture);
-    _params.push_back(target);
-    _params.push_back(unit);
+    _params.emplace_back(texture);
+    _params.emplace_back(target);
+    _params.emplace_back(unit);
 }
 
 void Batch::_glUniform1i(int32 location, int32 v0) {
@@ -500,8 +506,8 @@ void Batch::_glUniform1i(int32 location, int32 v0) {
         return;
     }
     ADD_COMMAND(glUniform1i);
-    _params.push_back(v0);
-    _params.push_back(location);
+    _params.emplace_back(v0);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform1f(int32 location, float v0) {
@@ -509,89 +515,89 @@ void Batch::_glUniform1f(int32 location, float v0) {
         return;
     }
     ADD_COMMAND(glUniform1f);
-    _params.push_back(v0);
-    _params.push_back(location);
+    _params.emplace_back(v0);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform2f(int32 location, float v0, float v1) {
     ADD_COMMAND(glUniform2f);
 
-    _params.push_back(v1);
-    _params.push_back(v0);
-    _params.push_back(location);
+    _params.emplace_back(v1);
+    _params.emplace_back(v0);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform3f(int32 location, float v0, float v1, float v2) {
     ADD_COMMAND(glUniform3f);
 
-    _params.push_back(v2);
-    _params.push_back(v1);
-    _params.push_back(v0);
-    _params.push_back(location);
+    _params.emplace_back(v2);
+    _params.emplace_back(v1);
+    _params.emplace_back(v0);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform4f(int32 location, float v0, float v1, float v2, float v3) {
     ADD_COMMAND(glUniform4f);
 
-    _params.push_back(v3);
-    _params.push_back(v2);
-    _params.push_back(v1);
-    _params.push_back(v0);
-    _params.push_back(location);
+    _params.emplace_back(v3);
+    _params.emplace_back(v2);
+    _params.emplace_back(v1);
+    _params.emplace_back(v0);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform3fv(int32 location, int count, const float* value) {
     ADD_COMMAND(glUniform3fv);
 
     const int VEC3_SIZE = 3 * sizeof(float);
-    _params.push_back(cacheData(count * VEC3_SIZE, value));
-    _params.push_back(count);
-    _params.push_back(location);
+    _params.emplace_back(cacheData(count * VEC3_SIZE, value));
+    _params.emplace_back(count);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform4fv(int32 location, int count, const float* value) {
     ADD_COMMAND(glUniform4fv);
 
     const int VEC4_SIZE = 4 * sizeof(float);
-    _params.push_back(cacheData(count * VEC4_SIZE, value));
-    _params.push_back(count);
-    _params.push_back(location);
+    _params.emplace_back(cacheData(count * VEC4_SIZE, value));
+    _params.emplace_back(count);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniform4iv(int32 location, int count, const int32* value) {
     ADD_COMMAND(glUniform4iv);
 
     const int VEC4_SIZE = 4 * sizeof(int);
-    _params.push_back(cacheData(count * VEC4_SIZE, value));
-    _params.push_back(count);
-    _params.push_back(location);
+    _params.emplace_back(cacheData(count * VEC4_SIZE, value));
+    _params.emplace_back(count);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniformMatrix3fv(int32 location, int count, uint8 transpose, const float* value) {
     ADD_COMMAND(glUniformMatrix3fv);
 
     const int MATRIX3_SIZE = 9 * sizeof(float);
-    _params.push_back(cacheData(count * MATRIX3_SIZE, value));
-    _params.push_back(transpose);
-    _params.push_back(count);
-    _params.push_back(location);
+    _params.emplace_back(cacheData(count * MATRIX3_SIZE, value));
+    _params.emplace_back(transpose);
+    _params.emplace_back(count);
+    _params.emplace_back(location);
 }
 
 void Batch::_glUniformMatrix4fv(int32 location, int count, uint8 transpose, const float* value) {
     ADD_COMMAND(glUniformMatrix4fv);
 
     const int MATRIX4_SIZE = 16 * sizeof(float);
-    _params.push_back(cacheData(count * MATRIX4_SIZE, value));
-    _params.push_back(transpose);
-    _params.push_back(count);
-    _params.push_back(location);
+    _params.emplace_back(cacheData(count * MATRIX4_SIZE, value));
+    _params.emplace_back(transpose);
+    _params.emplace_back(count);
+    _params.emplace_back(location);
 }
 
 void Batch::_glColor4f(float red, float green, float blue, float alpha) {
     ADD_COMMAND(glColor4f);
 
-    _params.push_back(alpha);
-    _params.push_back(blue);
-    _params.push_back(green);
-    _params.push_back(red);
+    _params.emplace_back(alpha);
+    _params.emplace_back(blue);
+    _params.emplace_back(green);
+    _params.emplace_back(red);
 }
