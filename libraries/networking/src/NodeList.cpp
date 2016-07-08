@@ -513,7 +513,14 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
 
 void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
     if (_domainHandler.getSockAddr().isNull()) {
+        qWarning() << "IGNORING DomainList packet while not connect to a Domain Server";
         // refuse to process this packet if we aren't currently connected to the DS
+        return;
+    }
+    auto domainUuid = _domainHandler.getUUID();
+    auto messageSourceUuid = message->getSourceID();
+    if (!domainUuid.isNull() && domainUuid != messageSourceUuid) {
+        qWarning() << "IGNORING DomainList packet from" << messageSourceUuid << "while connected to" << domainUuid;
         return;
     }
 
