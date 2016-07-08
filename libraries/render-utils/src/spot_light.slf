@@ -70,22 +70,15 @@ void main(void) {
 
     vec3 diffuse;
     vec3 specular;
+    vec4 midNormalCurvature;
+    vec4 lowNormalCurvature;
     if (frag.mode == FRAG_MODE_SCATTERING) {
-        vec4 blurredCurvature = fetchCurvature(texCoord);
-        vec4 diffusedCurvature = fetchDiffusedCurvature(texCoord);
-        vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
-        vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
-        float highCurvature = unpackCurvature(blurredCurvature.w);
-        float lowCurvature = unpackCurvature(diffusedCurvature.w);
-        evalLightingSpotScattering(diffuse, specular, light,
-            fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
-            frag.metallic, frag.specular, frag.diffuse, 1.0,
-            frag.scattering * isScatteringEnabled(), midNormal, lowNormal, lowCurvature);
-    } else {
-        evalLightingSpot(diffuse, specular, light,
-            fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
-            frag.metallic, frag.specular, frag.diffuse, 1.0);
+        unpackMidLowNormalCurvature(texCoord, midNormalCurvature, lowNormalCurvature);
     }
+    evalLightingSpot(diffuse, specular, light,
+        fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
+        frag.metallic, frag.specular, frag.diffuse, 1.0,
+        frag.scattering * isScatteringEnabled(), midNormalCurvature, lowNormalCurvature);
 
     _fragColor.rgb += diffuse * isDiffuseEnabled() * isSpotEnabled();
     _fragColor.rgb += specular * isSpecularEnabled() * isSpotEnabled();

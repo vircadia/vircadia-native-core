@@ -209,11 +209,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
 
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
-
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
+        // additive blending
+        state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
     pipeline = gpu::Pipeline::create(program, state);
 
@@ -334,11 +336,11 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         batch.setStateScissorRect(args->_viewport);
 
         // Clear Lighting buffer
-        auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
+     /*   auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
 
         batch.setFramebuffer(lightingFbo);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
-
+*/
         // Clear deferred
         auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 

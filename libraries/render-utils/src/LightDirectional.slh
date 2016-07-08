@@ -10,34 +10,20 @@
 
 
 <@func declareLightingDirectional(supportScattering)@>
-<@include DeferredLighting.slh@>
 
 void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
     vec3 eyeDir, vec3 normal, float roughness,
-    float metallic, vec3 fresnel, vec3 albedo, float shadow) {
-    
-    vec4 shading = evalFragShading(normal, -getLightDirection(light), eyeDir, metallic, fresnel, roughness);
-
-    vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
-
-    diffuse = albedo * shading.w * lightEnergy;
-
-    specular = shading.rgb * lightEnergy;
-}
-
+    float metallic, vec3 fresnel, vec3 albedo, float shadow
 <@if supportScattering@>
-
-void evalLightingDirectionalScattering(out vec3 diffuse, out vec3 specular, Light light,
-    vec3 eyeDir, vec3 normal, float roughness,
-    float metallic, vec3 fresnel, vec3 albedo, float shadow,
-    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
-
-    vec3 fragLightDir = -normalize(getLightDirection(light));
-
-    evalFragShading(diffuse, specular,
-        normal, fragLightDir, eyeDir,
-        metallic, fresnel, roughness,
-        scattering, midNormalCurvature, lowNormalCurvature);
+    , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
+<@endif@>
+    ) {
+    
+    evalFragShading(diffuse, specular, normal, -getLightDirection(light), eyeDir, metallic, fresnel, roughness
+<@if supportScattering@>
+    ,scattering, midNormalCurvature, lowNormalCurvature
+<@endif@>
+    );
 
     vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
 
@@ -45,8 +31,6 @@ void evalLightingDirectionalScattering(out vec3 diffuse, out vec3 specular, Ligh
 
     specular *= lightEnergy;
 }
-
-<@endif@>
 
 <@endfunc@>
 

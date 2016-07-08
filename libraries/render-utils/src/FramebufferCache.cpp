@@ -104,6 +104,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
+    _deferredFramebuffer->setRenderBuffer(3, _lightingTexture);
 
     // For AO:
     auto pointMipSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT);

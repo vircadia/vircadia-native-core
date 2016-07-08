@@ -57,44 +57,38 @@ vec3 evalAmbientSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal
 }
 <@endfunc@>
 
-<@func declareLightingAmbient(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere, supportScattering)@>
+<@func declareLightingAmbient(supportAmbientSphere1, supportAmbientMap1, supportIfAmbientMapElseAmbientSphere1, supportScattering)@>
 
-<$declareEvalAmbientSpecularIrradiance(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere)$>
-
-void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 eyeDir, vec3 normal, float roughness, float metallic, vec3 fresnel, vec3 albedo, float obscurance) {
-    // Diffuse from ambient
-    diffuse = (1 - metallic) * albedo * evalSphericalLight(getLightAmbientSphere(light), normal).xyz * obscurance * getLightAmbientIntensity(light);
-
-    // Specular highlight from ambient
-    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
-}
+<$declareEvalAmbientSpecularIrradiance(supportAmbientSphere1, supportAmbientMap1, supportIfAmbientMapElseAmbientSphere1)$>
 
 <@if supportScattering@>
-
-<!<@include SubsurfaceScattering.slh@>!>
-
 float curvatureAO(in float k) {
     return 1.0f - (0.0022f * k * k) + (0.0776f * k) + 0.7369;
 }
+<@endif@>
 
-void evalLightingAmbientScattering(out vec3 diffuse, out vec3 specular, Light light,
-    vec3 eyeDir, vec3 normal, float roughness,
-    float metallic, vec3 fresnel, vec3 albedo, float obscurance,
-    float scatttering, vec3 lowNormal, float highCurvature, float lowCurvature) {
+void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 eyeDir, vec3 normal,
+    float roughness, float metallic, vec3 fresnel, vec3 albedo, float obscurance
+<@if supportScattering@>
+    , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
+<@endif@>
+    ) {
 
-    float ambientOcclusion = curvatureAO(lowCurvature * 20.0f) * 0.5f;
-    float ambientOcclusionHF = curvatureAO(highCurvature * 8.0f) * 0.5f;
+<@if supportScattering@>
+
+    float ambientOcclusion = curvatureAO(lowNormalCurvature.w * 20.0f) * 0.5f;
+    float ambientOcclusionHF = curvatureAO(midNormalCurvature.w * 8.0f) * 0.5f;
     ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);
 
-  /*  if (showCurvature()) {
-        diffuse = vec3(ambientOcclusion);
-        specular = vec3(0.0);
-        return;
-    }*/
+    /*  if (showCurvature()) {
+     diffuse = vec3(ambientOcclusion);
+     specular = vec3(0.0);
+     return;
+     }*/
 
 
     // Diffuse from ambient
-    diffuse = ambientOcclusion * albedo * evalSphericalLight(getLightAmbientSphere(light), lowNormal).xyz *getLightAmbientIntensity(light);
+    diffuse = ambientOcclusion * albedo * evalSphericalLight(getLightAmbientSphere(light), lowNormalCurvature.xyz).xyz *getLightAmbientIntensity(light);
 
     // Specular highlight from ambient
     //  vec3 specularLighting = evalGlobalSpecularIrradiance(light, fragEyeDir, fragNormal, roughness, fresnel);
@@ -102,10 +96,16 @@ void evalLightingAmbientScattering(out vec3 diffuse, out vec3 specular, Light li
 
 
     // Specular highlight from ambient
-//    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
+    //    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
     specular = vec3(0.0);
-}
 
+<@else@>
+    // Diffuse from ambient
+    diffuse = (1 - metallic) * albedo * evalSphericalLight(getLightAmbientSphere(light), normal).xyz * obscurance * getLightAmbientIntensity(light);
+
+    // Specular highlight from ambient
+    specular = evalAmbientSpecularIrradiance(light, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(light);
 <@endif@>
+}
 
 <@endfunc@>

@@ -143,10 +143,17 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
-vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
-    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
-}
+//vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+//    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+//}
 
+void evalFragShading(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float roughness) {
+    vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+    diffuse = vec3(shading.w);
+    specular = shading.xyz;
+}
 
 <$declareBeckmannSpecular()$>
 <@include SubsurfaceScattering.slh@>
