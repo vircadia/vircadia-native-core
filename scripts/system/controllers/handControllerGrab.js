@@ -28,7 +28,7 @@ var WANT_DEBUG_SEARCH_NAME = null;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.75; //  Squeezed far enough to complete distant grab
+var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
@@ -80,6 +80,7 @@ var EQUIP_RADIUS_EMBIGGEN_FACTOR = 1.1;
 //
 
 var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
+var EQUIP_HOTSPOT_RENDER_RADIUS = 0.3; // radius used for palm vs equip-hotspot for rendering hot-spots
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
@@ -182,9 +183,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
-    updateMethod: "search",
-    enterMethod: "searchEnter",
-    exitMethod: "searchExit"
+    updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
     name: "distance_holding",
@@ -388,6 +387,8 @@ function MyController(hand) {
     this.lastUnequipCheckTime = 0;
 
     this.entityPropertyCache = new EntityPropertiesCache();
+
+    this.equipOverlayInfoSetMap = {};
 
     var _this = this;
 
@@ -881,126 +882,17 @@ function MyController(hand) {
             }
         }
 
+        this.entityPropertyCache.clear();
+        this.entityPropertyCache.findEntities(this.getHandPosition(), EQUIP_HOTSPOT_RENDER_RADIUS);
+        var candidateEntities = this.entityPropertyCache.getEntities();
+
+        var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
-            // update haptics when hand is near an equip hotspot
-            this.entityPropertyCache.clear();
-            this.entityPropertyCache.findEntities(this.getHandPosition(), NEAR_GRAB_RADIUS);
-            var candidateEntities = this.entityPropertyCache.getEntities();
-            var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
             this.updateEquipHaptics(potentialEquipHotspot);
         }
-    };
 
-    this.createHotspots = function () {
-        var _this = this;
-
-        var HAND_EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
-        var HAND_EQUIP_SPHERE_ALPHA = 0.7;
-        var HAND_EQUIP_SPHERE_RADIUS = 0.01;
-
-        var HAND_GRAB_SPHERE_COLOR = { red: 90, green: 90, blue: 255 };
-        var HAND_GRAB_SPHERE_ALPHA = 0.3;
-        var HAND_GRAB_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
-
-        var GRAB_BOX_COLOR = { red: 90, green: 90, blue: 255 };
-        var GRAB_BOX_ALPHA = 0.1;
-
-        this.hotspotOverlays = [];
-
-        var overlay;
-        if (DRAW_HAND_SPHERES) {
-            // add tiny green sphere around the palm.
-            var handPosition = this.getHandPosition();
-            overlay = Overlays.addOverlay("sphere", {
-                position: handPosition,
-                size: HAND_EQUIP_SPHERE_RADIUS * 2,
-                color: HAND_EQUIP_SPHERE_COLOR,
-                alpha: HAND_EQUIP_SPHERE_ALPHA,
-                solid: true,
-                visible: true,
-                ignoreRayIntersection: true,
-                drawInFront: false
-            });
-            this.hotspotOverlays.push({
-                entityID: undefined,
-                overlay: overlay,
-                type: "hand",
-                localPosition: {x: 0, y: 0, z: 0},
-                hotspot: {}
-            });
-
-            // add larger blue sphere around the palm.
-            overlay = Overlays.addOverlay("sphere", {
-                position: handPosition,
-                size: HAND_GRAB_SPHERE_RADIUS * 2,
-                color: HAND_GRAB_SPHERE_COLOR,
-                alpha: HAND_GRAB_SPHERE_ALPHA,
-                solid: true,
-                visible: true,
-                ignoreRayIntersection: true,
-                drawInFront: false
-            });
-            this.hotspotOverlays.push({
-                entityID: undefined,
-                overlay: overlay,
-                type: "hand",
-                localPosition: {x: 0, y: 0, z: 0},
-                hotspot: {}
-            });
-        }
-
-        // find entities near the avatar that might be equipable.
-        this.entityPropertyCache.clear();
-        this.entityPropertyCache.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
-
-        if (DRAW_GRAB_BOXES) {
-            // add blue box overlays for grabbable entities.
-            this.entityPropertyCache.getEntities().forEach(function (entityID) {
-                var props = _this.entityPropertyCache.getProps(entityID);
-                if (_this.entityIsGrabbable(entityID)) {
-                    var overlay = Overlays.addOverlay("cube", {
-                        rotation: props.rotation,
-                        position: props.position,
-                        size: props.dimensions,
-                        color: GRAB_BOX_COLOR,
-                        alpha: GRAB_BOX_ALPHA,
-                        solid: true,
-                        visible: true,
-                        ignoreRayIntersection: true,
-                        drawInFront: false
-                    });
-                    _this.hotspotOverlays.push({
-                        entityID: entityID,
-                        overlay: overlay,
-                        type: "near",
-                        localPosition: {x: 0, y: 0, z: 0},
-                        hotspot: {}
-                    });
-                }
-            });
-        }
-
-        // add green spheres for each equippable hotspot.
-        flatten(this.entityPropertyCache.getEntities().map(function (entityID) {
-            return _this.collectEquipHotspots(entityID);
-        })).filter(function (hotspot) {
-            return _this.hotspotIsEquippable(hotspot);
-        }).forEach(function (hotspot) {
-            var overlay = Overlays.addOverlay("model", {
-                url: "http://hifi-content.s3.amazonaws.com/alan/dev/equip-ico-2.fbx",
-                position: hotspot.worldPosition,
-                rotation: {x: 0, y: 0, z: 0, w: 1},
-                dimensions: (hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR,
-                ignoreRayIntersection: true
-            });
-            _this.hotspotOverlays.push({
-                entityID: hotspot.entityID,
-                overlay: overlay,
-                type: "equip",
-                localPosition: hotspot.localPosition,
-                hotspot: hotspot
-            });
-        });
+        var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
+        this.updateEquipHotspotRendering(nearEquipHotspots, potentialEquipHotspot);
     };
 
     this.clearEquipHaptics = function () {
@@ -1010,57 +902,109 @@ function MyController(hand) {
     this.updateEquipHaptics = function (potentialEquipHotspot) {
         if (potentialEquipHotspot && !this.prevPotentialEquipHotspot ||
             !potentialEquipHotspot && this.prevPotentialEquipHotspot) {
-            Controller.triggerShortHapticPulse(1.0, this.hand);
+            Controller.triggerShortHapticPulse(0.5, this.hand);
         }
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
-    this.updateHotspots = function (potentialEquipHotspot) {
+    this.clearEquipHotspotRendering = function () {
+        var keys = Object.keys(this.equipOverlayInfoSetMap);
+        for (var i = 0; i < keys.length; i++) {
+            var overlayInfoSet = this.equipOverlayInfoSetMap[keys[i]];
+            this.deleteOverlayInfoSet(overlayInfoSet);
+        }
+        this.equipOverlayInfoSetMap = {};
+    };
+
+    this.createOverlayInfoSet = function (hotspot, timestamp) {
+        var overlayInfoSet = {
+            timestamp: timestamp,
+            entityID: hotspot.entityID,
+            localPosition: hotspot.localPosition,
+            hotspot: hotspot,
+            overlays: []
+        };
+
+        overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
+            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Equip-Spark.fbx",
+            position: hotspot.worldPosition,
+            rotation: {x: 0, y: 0, z: 0, w: 1},
+            dimensions: (hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR,
+            ignoreRayIntersection: true
+        }));
+
+        // TODO: use shader to achive fresnel effect.
+        overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
+            url: "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx",
+            position: hotspot.worldPosition,
+            rotation: {x: 0, y: 0, z: 0, w: 1},
+            dimensions: (hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR * 0.5,
+            ignoreRayIntersection: true
+        }));
+
+        // TODO: add light
+
+        return overlayInfoSet;
+    };
+
+    this.updateOverlayInfoSet = function (overlayInfoSet, timestamp, potentialEquipHotspot) {
+        overlayInfoSet.timestamp = timestamp;
+
+        var radius = (overlayInfoSet.hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR;
+
+        // embiggen the overlays if it maches the potentialEquipHotspot
+        if (potentialEquipHotspot && overlayInfoSet.entityID == potentialEquipHotspot.entityID &&
+            Vec3.equal(overlayInfoSet.localPosition, potentialEquipHotspot.localPosition)) {
+            radius = radius * EQUIP_RADIUS_EMBIGGEN_FACTOR;
+        }
+
+        var props = _this.entityPropertyCache.getProps(overlayInfoSet.entityID);
+        var entityXform = new Xform(props.rotation, props.position);
+        var position = entityXform.xformPoint(overlayInfoSet.localPosition);
+
+        // spark
+        Overlays.editOverlay(overlayInfoSet.overlays[0], {
+            position: position,
+            rotation: props.rotation,
+            dimensions: radius
+        });
+
+        // fresnel sphere
+        Overlays.editOverlay(overlayInfoSet.overlays[1], {
+            position: position,
+            rotation: props.rotation,
+            dimensions: radius * 0.5   // HACK to adjust sphere size...
+        });
+    };
+
+    this.deleteOverlayInfoSet = function (overlayInfoSet) {
+        overlayInfoSet.overlays.forEach(function (overlay) {
+            Overlays.deleteOverlay(overlay);
+        });
+    };
+
+    this.updateEquipHotspotRendering = function (hotspots, potentialEquipHotspot) {
+        var now = Date.now();
         var _this = this;
-        var props;
-        this.hotspotOverlays.forEach(function (overlayInfo) {
-            if (overlayInfo.type === "hand") {
-                Overlays.editOverlay(overlayInfo.overlay, { position: _this.getHandPosition() });
-            } else if (overlayInfo.type === "equip") {
 
-                var radius = (overlayInfo.hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR;
-
-                // embiggen the equipHotspot if it maches the potentialEquipHotspot
-                if (potentialEquipHotspot && overlayInfo.entityID == potentialEquipHotspot.entityID &&
-                    Vec3.equal(overlayInfo.localPosition, potentialEquipHotspot.localPosition)) {
-                    radius = (overlayInfo.hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR *
-                        EQUIP_RADIUS_EMBIGGEN_FACTOR;
-                }
-
-                _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
-                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
-                var entityXform = new Xform(props.rotation, props.position);
-                Overlays.editOverlay(overlayInfo.overlay, {
-                    position: entityXform.xformPoint(overlayInfo.localPosition),
-                    rotation: props.rotation,
-                    dimensions: radius
-                });
-            } else if (overlayInfo.type === "near") {
-                _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
-                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
-                Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
+        hotspots.forEach(function (hotspot) {
+            var overlayInfoSet = _this.equipOverlayInfoSetMap[hotspot.key];
+            if (overlayInfoSet) {
+                _this.updateOverlayInfoSet(overlayInfoSet, now, potentialEquipHotspot);
+            } else {
+                _this.equipOverlayInfoSetMap[hotspot.key] = _this.createOverlayInfoSet(hotspot, now);
             }
         });
-    };
 
-    this.destroyHotspots = function () {
-        this.hotspotOverlays.forEach(function (overlayInfo) {
-            Overlays.deleteOverlay(overlayInfo.overlay);
-        });
-        this.hotspotOverlays = [];
-    };
-
-    this.searchEnter = function () {
-        this.createHotspots();
-    };
-
-    this.searchExit = function () {
-        this.destroyHotspots();
+        // delete sets with old timestamps.
+        var keys = Object.keys(this.equipOverlayInfoSetMap);
+        for (var i = 0; i < keys.length; i++) {
+            var overlayInfoSet = this.equipOverlayInfoSetMap[keys[i]];
+            if (overlayInfoSet.timestamp !== now) {
+                this.deleteOverlayInfoSet(overlayInfoSet);
+                delete this.equipOverlayInfoSetMap[keys[i]];
+            }
+        }
     };
 
     // Performs ray pick test from the hand controller into the world
@@ -1133,6 +1077,7 @@ function MyController(hand) {
     // returns a list of all equip-hotspots assosiated with this entity.
     // @param {UUID} entityID
     // @returns {Object[]} array of objects with the following fields.
+    //      * key {string} a string that can be used to uniquely identify this hotspot
     //      * entityID {UUID}
     //      * localPosition {Vec3} position of the hotspot in object space.
     //      * worldPosition {vec3} position of the hotspot in world space.
@@ -1150,6 +1095,7 @@ function MyController(hand) {
                 var hotspot = equipHotspotsProps[i];
                 if (hotspot.position && hotspot.radius && hotspot.joints) {
                     result.push({
+                        key: entityID.toString() + i.toString(),
                         entityID: entityID,
                         localPosition: hotspot.position,
                         worldPosition: entityXform.xformPoint(hotspot.position),
@@ -1162,6 +1108,7 @@ function MyController(hand) {
             var wearableProps = this.entityPropertyCache.getWearableProps(entityID);
             if (wearableProps && wearableProps.joints) {
                 result.push({
+                    key: entityID.toString() + "0",
                     entityID: entityID,
                     localPosition: {x: 0, y: 0, z: 0},
                     worldPosition: entityXform.pos,
@@ -1302,14 +1249,19 @@ function MyController(hand) {
         return true;
     };
 
-    this.chooseBestEquipHotspot = function (candidateEntities) {
+    this.chooseNearEquipHotspots = function (candidateEntities, distance) {
         var equippableHotspots = flatten(candidateEntities.map(function (entityID) {
             return _this.collectEquipHotspots(entityID);
         })).filter(function (hotspot) {
             return (_this.hotspotIsEquippable(hotspot) &&
-                    Vec3.distance(hotspot.worldPosition, _this.getHandPosition()) < hotspot.radius);
+                    Vec3.distance(hotspot.worldPosition, _this.getHandPosition()) < hotspot.radius + distance);
         });
+        return equippableHotspots;
+    };
 
+    this.chooseBestEquipHotspot = function (candidateEntities) {
+        var DISTANCE = 0;
+        var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function (a, b) {
@@ -1431,7 +1383,9 @@ function MyController(hand) {
         }
 
         this.updateEquipHaptics(potentialEquipHotspot);
-        this.updateHotspots(potentialEquipHotspot);
+
+        var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
+        this.updateEquipHotspotRendering(nearEquipHotspots, potentialEquipHotspot);
 
         // search line visualizations
         if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
@@ -1460,6 +1414,7 @@ function MyController(hand) {
 
     this.distanceHoldingEnter = function () {
 
+        this.clearEquipHotspotRendering();
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
@@ -1738,6 +1693,9 @@ function MyController(hand) {
 
         this.dropGestureReset();
         this.clearEquipHaptics();
+        this.clearEquipHotspotRendering();
+
+        Controller.triggerShortHapticPulse(1.0, this.hand);
 
         if (this.entityActivated) {
             var saveGrabbedID = this.grabbedEntity;
@@ -1955,11 +1913,18 @@ function MyController(hand) {
     };
 
     this.nearTriggerEnter = function () {
+
+        this.clearEquipHotspotRendering();
+        this.clearEquipHaptics();
+
         Controller.triggerShortHapticPulse(1.0, this.hand);
         this.callEntityMethodOnGrabbed("startNearTrigger");
     };
 
     this.farTriggerEnter = function () {
+        this.clearEquipHotspotRendering();
+        this.clearEquipHaptics();
+
         this.callEntityMethodOnGrabbed("startFarTrigger");
     };
 
