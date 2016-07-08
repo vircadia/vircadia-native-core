@@ -550,7 +550,7 @@ function MyController(hand) {
     this.overlayLineOn = function (closePoint, farPoint, color) {
         if (this.overlayLine === null) {
             var lineProperties = {
-                lineWidth: 5,
+                glow: 1.0,
                 start: closePoint,
                 end: farPoint,
                 color: color,
