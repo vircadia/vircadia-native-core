@@ -26,6 +26,8 @@ var WANT_DEBUG_SEARCH_NAME = null;
 // these tune time-averaging and "on" value for analog trigger
 //
 
+var SPARK_MODEL_SCALE_FACTOR = 0.75;
+
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
 var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
@@ -72,7 +74,6 @@ var LINE_ENTITY_DIMENSIONS = {
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
-var EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR = 0.75;
 var EQUIP_RADIUS_EMBIGGEN_FACTOR = 1.1;
 
 //
@@ -929,7 +930,7 @@ function MyController(hand) {
             url: "http://hifi-content.s3.amazonaws.com/alan/dev/Equip-Spark.fbx",
             position: hotspot.worldPosition,
             rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: (hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR,
+            dimensions: hotspot.radius * 2 * SPARK_MODEL_SCALE_FACTOR,
             ignoreRayIntersection: true
         }));
 
@@ -938,7 +939,7 @@ function MyController(hand) {
             url: "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx",
             position: hotspot.worldPosition,
             rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: (hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR * 0.5,
+            dimensions: hotspot.radius * 2,
             ignoreRayIntersection: true
         }));
 
@@ -950,7 +951,7 @@ function MyController(hand) {
     this.updateOverlayInfoSet = function (overlayInfoSet, timestamp, potentialEquipHotspot) {
         overlayInfoSet.timestamp = timestamp;
 
-        var radius = (overlayInfoSet.hotspot.radius / EQUIP_RADIUS) * EQUIP_RADIUS_TO_MODEL_SCALE_FACTOR;
+        var radius = overlayInfoSet.hotspot.radius;
 
         // embiggen the overlays if it maches the potentialEquipHotspot
         if (potentialEquipHotspot && overlayInfoSet.entityID == potentialEquipHotspot.entityID &&
@@ -966,14 +967,14 @@ function MyController(hand) {
         Overlays.editOverlay(overlayInfoSet.overlays[0], {
             position: position,
             rotation: props.rotation,
-            dimensions: radius
+            dimensions: radius * 2 * SPARK_MODEL_SCALE_FACTOR
         });
 
         // fresnel sphere
         Overlays.editOverlay(overlayInfoSet.overlays[1], {
             position: position,
             rotation: props.rotation,
-            dimensions: radius * 0.5   // HACK to adjust sphere size...
+            dimensions: radius * 2
         });
     };
 
