@@ -1190,9 +1190,7 @@ float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
 
 float AudioClient::gainForSource(const glm::vec3& relativePosition, float volume) {
     // TODO: put these in a place where we can share with AudioMixer!
-    const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
     const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
-    const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
     const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 
 
@@ -1233,15 +1231,14 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // of what maxSize requests.
     static const qint64 MAX_FRAMES = 256;
     static float hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*MAX_FRAMES];
+    static float mixed48Khz[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*MAX_FRAMES*2];
     static int16_t scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*MAX_FRAMES];
-    
-    // injectors are 24Khz, use this to limit the injector audio only
-    static AudioLimiter audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
     
     // final output is 48Khz, so use this to limit network audio plus upsampled injectors
     static AudioLimiter finalAudioLimiter(2*AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
     
     // Injectors are 24khz, but we are running at 48Khz here, so need an AudioSRC to upsample
+    // TODO: probably an existing src the AudioClient is appropriate, check!
     static AudioSRC audioSRC(AudioConstants::SAMPLE_RATE, 2*AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
     
     // limit maxSize
@@ -1251,121 +1248,98 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     // initialize stuff
     memset(hrtfBuffer, 0, sizeof(hrtfBuffer));
+    memset(mixed48Khz, 0, sizeof(mixed48Khz));
     QVector<AudioInjector*> injectorsToRemove;
     qint64 framesReadFromInjectors = 0;
     
-    //qDebug() << "maxSize=" << maxSize << "data ptr: "<< (qint64)data;
+    qDebug() << "maxSize=" << maxSize;
     
-    for (AudioInjector* injector : _audio->getActiveLocalAudioInjectors()) {
-        // pop off maxSize/4 (since it is mono, and 24Khz instead of 48Khz)
-        // bytes from the injector's localBuffer, using the data ptr as a temporary buffer
-        // note we are only hrtf-ing mono buffers, so we request half of what maxSize is, since it
-        // wants that many stereo bytes
-        if (injector->getLocalBuffer() ) {
-            
-            glm::vec3 relativePosition = injector->getPosition() - _audio->_positionGetter();
+    // first, grab the stuff from the network.  Read into a 
+    if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
+        AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
+        lastPopOutput.readSamples((int16_t*)data, samplesPopped);
 
-            qint64 bytesReadFromInjector = injector->getLocalBuffer()->readData(data, maxSize/4);
-            qint64 framesReadFromInjector = bytesReadFromInjector/sizeof(int16_t);
-            if (framesReadFromInjector > framesReadFromInjectors) {
-                framesReadFromInjectors = framesReadFromInjector;
-            }
-            if (framesReadFromInjector > 0) {
+        qDebug() << "AudioClient::AudioOutputIODevice::readData popped " << samplesPopped << "samples"; 
+
+        // no matter what, this is how many bytes will be written
+        bytesWritten = samplesPopped * sizeof(int16_t);
+
+
+        // now, grab same number of frames (samplesPopped/2 since network is stereo) 
+        // and divide by 2 again because these are 24Khz not 48Khz
+        // from each of the localInjectors, if any
+        for (AudioInjector* injector : _audio->getActiveLocalAudioInjectors()) {
+            if (injector->getLocalBuffer() ) {
+
+                // we want to get the same number of frames that we got from 
+                // the network.  Since network is stereo, that is samplesPopped/2.  
+                // Since each frame is 2 bytes, we read samplesPopped bytes
+                qint64 bytesReadFromInjector = injector->getLocalBuffer()->readData((char*)scratchBuffer, samplesPopped/2);
+                qint64 framesReadFromInjector = bytesReadFromInjector/sizeof(int16_t);
                 
-                //qDebug() << "AudioClient::AudioOutputIODevice::readData found " << framesReadFromInjector << " frames";
+                // keep track of max frames read for all injectors
+                if (framesReadFromInjector > framesReadFromInjectors) {
+                    framesReadFromInjectors = framesReadFromInjector;
+                }
 
-                // calculate these shortly
-                float gain = _audio->gainForSource(relativePosition, injector->getVolume()); 
-                float azimuth = _audio->azimuthForSource(relativePosition); 
+                if (framesReadFromInjector > 0) {
 
-                // now hrtf this guy, one NETWORK_FRAME_SAMPLES_PER_CHANNEL at a time
-                this->renderHRTF(injector->getLocalHRTF(), (int16_t*)data, hrtfBuffer, azimuth, gain, framesReadFromInjector);
+                    qDebug() << "AudioClient::AudioOutputIODevice::readData found " << framesReadFromInjector << " frames";
 
+                    // calculate gain and azimuth for hrtf
+                    glm::vec3 relativePosition = injector->getPosition() - _audio->_positionGetter();
+                    float gain = _audio->gainForSource(relativePosition, injector->getVolume()); 
+                    float azimuth = _audio->azimuthForSource(relativePosition); 
+
+                    // now hrtf this guy, one NETWORK_FRAME_SAMPLES_PER_CHANNEL at a time
+                    this->renderHRTF(injector->getLocalHRTF(), scratchBuffer, hrtfBuffer, azimuth, gain, framesReadFromInjector);
+
+                } else {
+
+                    qDebug() << "AudioClient::AudioOutputIODevice::readData no more data, adding to list of injectors to remove";
+                    injectorsToRemove.append(injector);
+                    injector->finish();
+                }
             } else {
 
-                // probably need to be more clever here than just getting rid of the injector?
-                //qDebug() << "AudioClient::AudioOutputIODevice::readData no more data, adding to list of injectors to remove";
+                qDebug() << "AudioClient::AudioOutputIODevice::readData injector " << injector << " has no local buffer, adding to list of injectors to remove";
                 injectorsToRemove.append(injector);
                 injector->finish();
             }
-        } else {
-
-            // probably need to be more clever here then just getting rid of injector?
-            //qDebug() << "AudioClient::AudioOutputIODevice::readData injector " << injector << " has no local buffer, adding to list of injectors to remove";
-            injectorsToRemove.append(injector);
-            injector->finish();
         }
-    }
-    
-    if (framesReadFromInjectors > 0) {
-        // resample the 24Khz injector audio to 48Khz
-        // but first, hit with limiter :(
-        audioLimiter.render(hrtfBuffer, (int16_t*)data, framesReadFromInjectors);
-        audioSRC.render((int16_t*)data, scratchBuffer, framesReadFromInjectors);
-        
-        // now, lets move this back into the hrtfBuffer
-        for(int i=0; i<framesReadFromInjectors*4; i++) {
-            hrtfBuffer[i] = (float)(scratchBuffer[i]) * 1/32676.0f;
-        }
-        
-        //qDebug() << "upsampled " << framesReadFromInjectors*2 << " frames, stereo";
 
+        if (framesReadFromInjectors > 0) {
+            // resample the 24Khz injector audio in hrtfBuffer to 48Khz
+            audioSRC.render(hrtfBuffer, mixed48Khz, framesReadFromInjectors);
+            
+            qDebug() << "upsampled to" << framesReadFromInjectors*2 << " frames, stereo";
+
+            int16_t* dataPtr = (int16_t*)data;
+            
+            // now mix in the network data
+            for (int i=0; i<samplesPopped; i++) {
+                mixed48Khz[i] += (float)(*dataPtr++) * 1/32676.0f;
+            }
+
+            qDebug() << "mixed network data into upsampled hrtf'd mixed injector data" ;
+            
+            finalAudioLimiter.render(mixed48Khz, (int16_t*)data, samplesPopped/2);
+        }
+    } else {
+        // nothing on network, don't grab anything from injectors, and just 
+        // return 0s
+        memset(data, 0, maxSize);
+        bytesWritten = maxSize;
+        
     }
 
     // k get rid of finished injectors
     for (AudioInjector* injector : injectorsToRemove) {
-        // TODO: I'd expect concurrency issues here -- fix?
         _audio->getActiveLocalAudioInjectors().removeOne(injector);
-        
-        //qDebug() << "removed injector " << injector << " from active injector list!";
+        qDebug() << "removed injector " << injector << " from active injector list!";
     }
 
-    // now grab the stuff from the network, and mix it in...
-    if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
-        AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
-        lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-        
-        //qDebug() << "AudioClient::AudioOutputIODevice::readData popped " << samplesPopped << "samples" << "to " << (qint64)data;
-        
-        bytesWritten = samplesPopped * sizeof(int16_t);
-        if (framesReadFromInjectors > 0) {
-
-            int16_t* dataPtr = (int16_t*)data;
-            // convert audio to floats for mixing with limiter...
-            //qDebug() << "AudioClient::AudioOUtputIODevice::readData converting to floats...";
-            for (int i=0; i<samplesPopped; i++) {
-                hrtfBuffer[i] += (float)(*dataPtr++) * 1/32676.0f;
-            }
-            
-            // now use limiter, outputting to the data buffer.  
-            // TODO:Since there
-            // are possibilities for pulling less data from the network than
-            // we got from injectors (or more), we need to look at being
-            // more clever here.  If we get more bytes here than in the injectors, I'd assume
-            // that is ok -- we are at the 'end' of the injector sound(s). But
-            // if we get less here than at the injectors, we maybe want to ponder
-            // what to do.
-
-            //qDebug() << "calling limiter...";
-            finalAudioLimiter.render(hrtfBuffer, (int16_t*)data, samplesPopped/2);
-            // the 2 is because the htrf turned the mono into stereo, to match
-            // what the network data has (2 channels)
-            if (8*framesReadFromInjectors > bytesWritten) {
-                bytesWritten = 8*framesReadFromInjectors;
-            }
-            
-            //qDebug() << "done, bytes written = " << bytesWritten;
-        }
-    } else if (framesReadFromInjectors == 0) {
-        // if nobody has data, 0 out buffer...
-        memset(data, 0, maxSize);
-        bytesWritten = maxSize;
-    } else {
-        // only sound from injectors, multiply by 2 as the htrf is stereo
-        finalAudioLimiter.render(hrtfBuffer, (int16_t*)data, framesReadFromInjectors*2);
-        bytesWritten = 8*framesReadFromInjectors;
-    }
-
+    qDebug() << "bytesWritten=" << bytesWritten;
     
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     if (!bytesAudioOutputUnplayed) {
