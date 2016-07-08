@@ -11,11 +11,12 @@
 
 #include "GeometryCache.h"
 
+
 #include <cmath>
 
-#include <QNetworkReply>
-#include <QThreadPool>
+#include <QtCore/QThreadPool>
 #include <QtCore/QFileInfo>
+#include <QtNetwork/QNetworkReply>
 
 #include <FSTReader.h>
 #include <NumericalConstants.h>
@@ -1462,11 +1463,11 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
         auto GS = gpu::Shader::createGeometry(std::string(glowLine_geom));
         auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
         auto program = gpu::Shader::createProgram(VS, GS, PS);
-        state->setCullMode(gpu::State::CULL_BACK);
+        state->setCullMode(gpu::State::CULL_NONE);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setDepthBias(1.0f);
-        state->setDepthBiasSlopeScale(1.0f);
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        state->setBlendFunction(true, 
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
         gpu::Shader::makeProgram(*program, slotBindings);

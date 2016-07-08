@@ -10,6 +10,9 @@
 //
 #extension GL_EXT_geometry_shader4 : enable
 
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
 layout(location = 0) in vec4 inColor[];
 
 layout(location = 0) out vec4 outColor;
@@ -17,30 +20,6 @@ layout(location = 1) out vec3 outLineDistance;
 
 layout(lines) in;
 layout(triangle_strip, max_vertices = 24) out;
-
-struct TransformCamera {
-    mat4 _view;
-    mat4 _viewInverse;
-    mat4 _projectionViewUntranslated;
-    mat4 _projection;
-    mat4 _projectionInverse;
-    vec4 _viewport;
-};
-
-layout(std140) uniform transformCameraBuffer {
-    TransformCamera _camera;
-};
-
-TransformCamera getTransformCamera() {
-    return _camera;
-}
-
-vec3 getEyeWorldPos() {
-    return _camera._viewInverse[3].xyz;
-}
-
-
-
 
 vec3 ndcToEyeSpace(in vec4 v) {
     TransformCamera cam = getTransformCamera();
