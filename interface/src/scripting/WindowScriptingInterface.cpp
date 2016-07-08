@@ -61,6 +61,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
     });
     // attempt to start ZIP download project
     connect(qApp, &Application::zipImportRequested, [this](const QString& urlString) {
+		qDebug() << "zip import has been requested";
         static const QMetaMethod zipImportRequestedSignal = 
             QMetaMethod::fromSignal(&WindowScriptingInterface::zipImportRequested);
 

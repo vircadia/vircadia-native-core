@@ -2010,13 +2010,13 @@ bool Application::importJSONFromURL(const QString& urlString) {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-
     emit svoImportRequested(urlString);
     return true;
 }
 
 // attempt to start ZIP download project
 bool Application::importZIPFromURL(const QString& urlString) {
+	qDebug() << "zip import request has been emitted";
     emit zipImportRequested(urlString);
     return true;
 }
@@ -2141,13 +2141,16 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+		qDebug() << "we have received one url!: ";
+		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
+			qDebug() << "we got a url!: " + urlString;
             if (canAcceptURL(urlString)) {
+				qDebug() << "we got an ACCEPTED url!: " + urlString;
                 return acceptURL(urlString);
             }
         }
