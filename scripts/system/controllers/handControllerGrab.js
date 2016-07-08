@@ -13,7 +13,7 @@
 /* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform */
 
 Script.include("/~/system/libraries/utils.js");
-Script.include("../libraries/Xform.js");
+Script.include("/~/system/libraries/Xform.js");
 
 //
 // add lines where the hand ray picking is happening

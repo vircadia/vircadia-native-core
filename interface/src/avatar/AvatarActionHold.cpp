@@ -168,7 +168,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         position = palmPosition + rotation * _relativePosition;
 
         // update linearVelocity based on offset via _relativePosition;
-        linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
+        // linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
     });
 
     return true;
