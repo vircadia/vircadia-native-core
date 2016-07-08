@@ -1,0 +1,26 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Bradley Austin Davis on 2016/07/05
+//  Copyright 2013-2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+layout(location = 0) out vec4 _color;
+
+void main(void) {
+    _color = inColor;
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+}
