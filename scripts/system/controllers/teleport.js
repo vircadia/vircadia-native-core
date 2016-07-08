@@ -1,24 +1,11 @@
 // Created by james b. pollack @imgntn on 7/2/2016
 // Copyright 2016 High Fidelity, Inc.
 //
-//  Creates a beam and target and then teleports you there when you let go of the activation button.
+//  Creates a beam and target and then teleports you there when you let go of either activation button.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-//FEATURES:
-
-// ENTRY MODE
-// Thumpad + trigger
-
-// JUMP MODES
-// Instant
-// Smoth arrival aka stepwise (number of steps, duration of step)
-
-// FADE MODE
-// Cube-overlay (steps,duration)
-// Model-overlay (steps, duration)
-// Fade out / fade in
 
 // defaults with instant jump with fade.  to try smooth arrival mode, change use fade to false and then switch the number of arrival steps and spacing
 var inTeleportMode = false;
@@ -68,7 +55,6 @@ function ThumbPad(hand) {
         _thisPad.buttonValue = value;
     };
 
-
 }
 
 function Trigger(hand) {
@@ -114,7 +100,6 @@ function Teleporter() {
     };
 
     this.createMappings = function() {
-        // peek at the trigger and thumbs to store their values
         teleporter.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
         teleporter.teleportMappingInternal = Controller.newMapping(teleporter.telporterMappingInternalName);
 
@@ -360,7 +345,6 @@ function Teleporter() {
     };
 
     this.rightLineOn = function(closePoint, farPoint, color) {
-        // draw a line
         if (this.rightOverlayLine === null) {
             var lineProperties = {
                 start: closePoint,
@@ -472,7 +456,6 @@ function Teleporter() {
             }
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
-            // MyAvatar.position = _this.intersection.intersection;
             this.exitTeleportMode();
             this.smoothArrival();
 
@@ -621,9 +604,7 @@ function registerMappings() {
         return;
     });
 
-
 }
-
 
 registerMappings();
 
