@@ -47,13 +47,16 @@ void GLWidget::initializeGL() {
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
 
-    // TODO: write the proper code for linux
     makeCurrent();
-#if defined(Q_OS_WIN)
     if (isValid() && context() && context()->contextHandle()) {
-        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");;
-    }
+#if defined(Q_OS_WIN)
+        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");
+#elif defined(Q_OS_MAC)
+        _vsyncSupported = true;
+#else
+        // TODO: write the proper code for linux
 #endif
+    }
 }
 
 void GLWidget::paintEvent(QPaintEvent* event) {

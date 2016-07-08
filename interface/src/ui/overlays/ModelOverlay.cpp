@@ -45,7 +45,7 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         
         _model->setSnapModelToCenter(true);
-        _model->setScale(getDimensions());
+        _model->setScaleToFit(true, getDimensions());
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
         _model->setURL(_url);
@@ -100,7 +100,6 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         if (newScale.x <= 0 || newScale.y <= 0 || newScale.z <= 0) {
             setDimensions(scale);
         } else {
-            _model->setScaleToFit(true, getDimensions());
             _updateModel = true;
         }
     }
