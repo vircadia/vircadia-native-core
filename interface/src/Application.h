@@ -329,7 +329,7 @@ private slots:
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
-    bool askToLoadScript(QString scriptFilenameOrURL);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
