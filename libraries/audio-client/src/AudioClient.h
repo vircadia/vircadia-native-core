@@ -38,11 +38,14 @@
 #include <Sound.h>
 #include <StDev.h>
 #include <AudioHRTF.h>
+#include <AudioSRC.h>
+#include <AudioInjector.h>
+#include <AudioReverb.h>
+#include <AudioLimiter.h>
+#include <AudioConstants.h>
 
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
-#include "AudioSRC.h"
-#include "AudioReverb.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -92,7 +95,6 @@ public:
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
-        void renderHRTF(AudioHRTF& hrtf, int16_t* data, float* hrtfBuffer, float azimuth, float gain, qint64 numSamples);
     };
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
@@ -208,6 +210,9 @@ protected:
 
 private:
     void outputFormatChanged();
+    void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer);
+    float azimuthForSource(const glm::vec3& relativePosition);
+    float gainForSource(const glm::vec3& relativePosition, float volume);
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
@@ -264,6 +269,11 @@ private:
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
 
+    // for local hrtf-ing
+    float _hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    AudioLimiter _audioLimiter;
+
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
@@ -296,10 +306,6 @@ private:
     bool _hasReceivedFirstPacket = false;
     
     QVector<AudioInjector*> _activeLocalAudioInjectors;
-
-    float azimuthForSource(const glm::vec3& relativePosition);
-    float gainForSource(const glm::vec3& relativePosition, float volume);
-
 };
 
 
