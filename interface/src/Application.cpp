@@ -4804,9 +4804,17 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 }
 
 
-bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
+bool Application::askToLoadScript(QString scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
+
+    static const QString MARKETPLACE_SCRIPT_URL_HOSTNAME_SUFFIX = "mpassets.highfidelity.com";
+
+    if (scriptFilenameOrURL.contains(MARKETPLACE_SCRIPT_URL_HOSTNAME_SUFFIX)) {
+        scriptFilenameOrURL = scriptFilenameOrURL.mid(scriptFilenameOrURL.lastIndexOf('/') + 1);
+    }
+
     QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
+
     reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
