@@ -1252,14 +1252,14 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     QVector<AudioInjector*> injectorsToRemove;
     qint64 framesReadFromInjectors = 0;
     
-    qDebug() << "maxSize=" << maxSize;
+    //qDebug() << "maxSize=" << maxSize;
     
     // first, grab the stuff from the network.  Read into a 
     if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
 
-        qDebug() << "AudioClient::AudioOutputIODevice::readData popped " << samplesPopped << "samples"; 
+        //qDebug() << "AudioClient::AudioOutputIODevice::readData popped " << samplesPopped << "samples"; 
 
         // no matter what, this is how many bytes will be written
         bytesWritten = samplesPopped * sizeof(int16_t);
@@ -1284,7 +1284,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
                 if (framesReadFromInjector > 0) {
 
-                    qDebug() << "AudioClient::AudioOutputIODevice::readData found " << framesReadFromInjector << " frames";
+                    //qDebug() << "AudioClient::AudioOutputIODevice::readData found " << framesReadFromInjector << " frames";
 
                     // calculate gain and azimuth for hrtf
                     glm::vec3 relativePosition = injector->getPosition() - _audio->_positionGetter();
@@ -1312,7 +1312,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
             // resample the 24Khz injector audio in hrtfBuffer to 48Khz
             audioSRC.render(hrtfBuffer, mixed48Khz, framesReadFromInjectors);
             
-            qDebug() << "upsampled to" << framesReadFromInjectors*2 << " frames, stereo";
+            //qDebug() << "upsampled to" << framesReadFromInjectors*2 << " frames, stereo";
 
             int16_t* dataPtr = (int16_t*)data;
             
@@ -1321,7 +1321,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
                 mixed48Khz[i] += (float)(*dataPtr++) * 1/32676.0f;
             }
 
-            qDebug() << "mixed network data into upsampled hrtf'd mixed injector data" ;
+            //qDebug() << "mixed network data into upsampled hrtf'd mixed injector data" ;
             
             finalAudioLimiter.render(mixed48Khz, (int16_t*)data, samplesPopped/2);
         }
@@ -1336,10 +1336,10 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // k get rid of finished injectors
     for (AudioInjector* injector : injectorsToRemove) {
         _audio->getActiveLocalAudioInjectors().removeOne(injector);
-        qDebug() << "removed injector " << injector << " from active injector list!";
+        //qDebug() << "removed injector " << injector << " from active injector list!";
     }
 
-    qDebug() << "bytesWritten=" << bytesWritten;
+    //qDebug() << "bytesWritten=" << bytesWritten;
     
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     if (!bytesAudioOutputUnplayed) {
