@@ -367,7 +367,6 @@ function MyController(hand) {
     // for lights
     this.spotlight = null;
     this.pointlight = null;
-    this.overlayLine = null;
     this.searchSphere = null;
 
     this.waitForTriggerRelease = false;
@@ -400,6 +399,7 @@ function MyController(hand) {
         this.updateSmoothedTrigger();
 
         if (this.ignoreInput()) {
+          //  print('in ignore input turn off')
             this.turnOffVisualizations();
             return;
         }
@@ -531,6 +531,7 @@ function MyController(hand) {
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
+
         if (this.overlayLine === null) {
             var lineProperties = {
                 lineWidth: 5,
@@ -543,6 +544,7 @@ function MyController(hand) {
                 alpha: 1
             };
             this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+            print('CREATED OVERLAY IT IS '  +  this.overlayLine )
 
         } else {
             Overlays.editOverlay(this.overlayLine, {
@@ -555,7 +557,9 @@ function MyController(hand) {
                 drawInFront: true, // Even when burried inside of something, show it.
                 alpha: 1
             });
+             print('edited overlay line ' +  this.overlayLine )
         }
+        
     };
 
     this.searchIndicatorOn = function(distantPickRay) {
@@ -758,14 +762,20 @@ function MyController(hand) {
     };
 
     this.overlayLineOff = function() {
+        return;
         if (this.overlayLine !== null) {
-            Overlays.deleteOverlay(this.overlayLine);
+             Overlays.deleteOverlay(this.overlayLine);
+            print('REMOVING OVERLAY LINE'  + this.overlayLine)
+         this.overlayLine = null;
         }
-        this.overlayLine = null;
+
+       // print('overlay shoudl be null and is line is ' + this.overlayLine)
+   
     };
 
     this.searchSphereOff = function() {
         if (this.searchSphere !== null) {
+            print('removing search sphere' + this.searchSphere)
             Overlays.deleteOverlay(this.searchSphere);
             this.searchSphere = null;
             this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
@@ -792,20 +802,27 @@ function MyController(hand) {
         }
     };
 
-    this.turnOffVisualizations = function() {
+    this.turnOffVisualizations = function(hand) {
+       // print('TURN OFF VISUALIZATIONS: ' + hand)
         if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOff();
+       //     print('after line off')
         }
 
         if (USE_OVERLAY_LINES_FOR_SEARCHING === true || USE_OVERLAY_LINES_FOR_MOVING === true) {
             this.overlayLineOff();
+       //     print('after overlay line off')
         }
 
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.particleBeamOff();
+      //      print('after particle beam off')
+
         }
         this.searchSphereOff();
         restore2DMode();
+
+     //   print('after all turn off calls')
 
     };
 
@@ -2232,10 +2249,17 @@ var handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Hand-Disabler') {
             if (message === 'left') {
+                leftController.turnOffVisualizations('left');
                 handToDisable = LEFT_HAND;
             }
             if (message === 'right') {
+                rightController.turnOffVisualizations('right');
                 handToDisable = RIGHT_HAND;
+            }
+            if (message === "both") {
+                print('disable both')
+                leftController.turnOffVisualizations('left');
+                rightController.turnOffVisualizations('right');
             }
             if (message === 'both' || message === 'none') {
                 handToDisable = message;

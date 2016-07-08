@@ -102,6 +102,7 @@ function Teleporter() {
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.fadeSphere = null;
+    this.teleportHand = null;
 
     this.initialize = function() {
         this.createMappings();
@@ -265,7 +266,7 @@ function Teleporter() {
         } else {
             Script.update.disconnect(this.update);
         }
-
+        this.teleportHand = null;
         this.updateConnected = null;
         this.disableMappings();
         this.turnOffOverlayBeams();
@@ -301,6 +302,7 @@ function Teleporter() {
             teleporter.leftRay();
 
             if ((leftPad.buttonValue === 0 || leftTrigger.buttonValue === 0) && inTeleportMode === true) {
+                print('TELEPORTING LEFT')
                 _this.teleport();
                 return;
             }
@@ -309,6 +311,8 @@ function Teleporter() {
             teleporter.rightRay();
 
             if ((rightPad.buttonValue === 0 || rightTrigger.buttonValue === 0) && inTeleportMode === true) {
+
+                print('TELEPORTING RIGHT')
                 _this.teleport();
                 return;
             }
@@ -429,6 +433,7 @@ function Teleporter() {
                 visible: true,
                 alpha: 1,
                 solid: true,
+                drawInFront: true,
                 glow: 1.0
             };
 
@@ -457,7 +462,8 @@ function Teleporter() {
                 visible: true,
                 alpha: 1,
                 solid: true,
-                glow: 1.0
+                glow: 1.0,
+                drawInFront: true
             };
 
             this.leftOverlayLine = Overlays.addOverlay("line3d", lineProperties);
@@ -506,7 +512,7 @@ function Teleporter() {
     };
 
     this.disableGrab = function() {
-        Messages.sendLocalMessage('Hifi-Hand-Disabler', 'both');
+        Messages.sendLocalMessage('Hifi-Hand-Disabler', this.teleportHand);
     };
 
     this.enableGrab = function() {
@@ -514,7 +520,7 @@ function Teleporter() {
     };
 
     this.triggerHaptics = function() {
-        var hand = this.hand === 'left' ? 0 : 1;
+        var hand = this.teleportHand === 'left' ? 0 : 1;
         var haptic = Controller.triggerShortHapticPulse(0.2, hand);
     };
 
