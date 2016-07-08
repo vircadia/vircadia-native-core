@@ -264,7 +264,8 @@ function propsArePhysical(props) {
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
 var EDIT_SETTING = "io.highfidelity.isEditting";
 function isEditing() {
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Settings.getValue(EDIT_SETTING);
+    var actualSettingValue = Settings.getValue(EDIT_SETTING) === "false" ? false : !!Settings.getValue(EDIT_SETTING);
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && actualSettingValue;
 }
 function isIn2DMode() {
     // In this version, we make our own determination of whether we're aimed a HUD element,
