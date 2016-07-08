@@ -207,12 +207,13 @@ function Teleporter() {
         }
         this.disableMappings();
         this.turnOffOverlayBeams();
-        this.enableGrab();
+
 
         this.updateConnected = null;
 
         Script.setTimeout(function() {
             inTeleportMode = false;
+            _this.enableGrab();
         }, 100);
     };
 

@@ -49,8 +49,8 @@ var DROP_WITHOUT_SHAKE = false;
 
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
-var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
-var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_MASS = 1200;  //  The mass at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_DISTANCE = 6;  //  The distance at which the distance holding action timeframe is unmodified
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 
 var NO_INTERSECT_COLOR = {
@@ -81,7 +81,7 @@ var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
 var NEAR_GRAB_RADIUS = 0.15; // radius used for palm vs object for near grabbing.
-var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
+var NEAR_GRAB_MAX_DISTANCE = 1.0;  // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 
@@ -221,6 +221,14 @@ function entityHasActions(entityID) {
     return Entities.getActionIDs(entityID).length > 0;
 }
 
+function findRayIntersection(pickRay, precise, include, exclude) {
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var overlays = Overlays.findRayIntersection(pickRay);
+    if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
+        return entities;
+    }
+    return overlays;
+}
 function entityIsGrabbedByOther(entityID) {
     // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
@@ -251,15 +259,17 @@ function propsArePhysical(props) {
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
-
+var EDIT_SETTING = "io.highfidelity.isEditting";
+function isEditing() {
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Settings.getValue(EDIT_SETTING);
+}
 function isIn2DMode() {
     // In this version, we make our own determination of whether we're aimed a HUD element,
     // because other scripts (such as handControllerPointer) might be using some other visualization
     // instead of setting Reticle.visible.
     return (EXTERNALLY_MANAGED_2D_MINOR_MODE &&
-        (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)));
+            (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)));
 }
-
 function restore2DMode() {
     if (!EXTERNALLY_MANAGED_2D_MINOR_MODE) {
         Reticle.setVisible(true);
@@ -369,6 +379,7 @@ function MyController(hand) {
     // for lights
     this.spotlight = null;
     this.pointlight = null;
+    this.overlayLine = null;
     this.searchSphere = null;
 
     this.waitForTriggerRelease = false;
@@ -521,8 +532,6 @@ function MyController(hand) {
                 visible: true
             };
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
-
-
         } else {
             Overlays.editOverlay(this.searchSphere, {
                 position: location,
@@ -530,12 +539,10 @@ function MyController(hand) {
                 color: color,
                 visible: true
             });
-
         }
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
-
         if (this.overlayLine === null) {
             var lineProperties = {
                 lineWidth: 5,
@@ -561,7 +568,6 @@ function MyController(hand) {
                 alpha: 1
             });
         }
-
     };
 
     this.searchIndicatorOn = function(distantPickRay) {
@@ -576,12 +582,12 @@ function MyController(hand) {
         }
 
         var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
+                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
         this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
-            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
             this.overlayLineOn(handPosition, searchSphereLocation,
-                (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                               (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
     };
 
@@ -764,10 +770,10 @@ function MyController(hand) {
     };
 
     this.overlayLineOff = function() {
-        if (_this.overlayLine !== null) {
+        if (this.overlayLine !== null) {
             Overlays.deleteOverlay(this.overlayLine);
-            _this.overlayLine = null;
         }
+        this.overlayLine = null;
     };
 
     this.searchSphereOff = function() {
@@ -798,7 +804,7 @@ function MyController(hand) {
         }
     };
 
-    this.turnOffVisualizations = function(hand) {
+    this.turnOffVisualizations = function() {
         if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOff();
         }
@@ -809,7 +815,6 @@ function MyController(hand) {
 
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.particleBeamOff();
-
         }
         this.searchSphereOff();
         restore2DMode();
@@ -889,34 +894,18 @@ function MyController(hand) {
     this.createHotspots = function() {
         var _this = this;
 
-        var HAND_EQUIP_SPHERE_COLOR = {
-            red: 90,
-            green: 255,
-            blue: 90
-        };
+        var HAND_EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
         var HAND_EQUIP_SPHERE_ALPHA = 0.7;
         var HAND_EQUIP_SPHERE_RADIUS = 0.01;
 
-        var HAND_GRAB_SPHERE_COLOR = {
-            red: 90,
-            green: 90,
-            blue: 255
-        };
+        var HAND_GRAB_SPHERE_COLOR = { red: 90, green: 90, blue: 255 };
         var HAND_GRAB_SPHERE_ALPHA = 0.3;
         var HAND_GRAB_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 
-        var EQUIP_SPHERE_COLOR = {
-            red: 90,
-            green: 255,
-            blue: 90
-        };
+        var EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
         var EQUIP_SPHERE_ALPHA = 0.3;
 
-        var GRAB_BOX_COLOR = {
-            red: 90,
-            green: 90,
-            blue: 255
-        };
+        var GRAB_BOX_COLOR = { red: 90, green: 90, blue: 255 };
         var GRAB_BOX_ALPHA = 0.1;
 
         this.hotspotOverlays = [];
@@ -952,16 +941,11 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
-
             this.hotspotOverlays.push({
                 entityID: undefined,
                 overlay: overlay,
                 type: "hand",
-                localPosition: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }
+                localPosition: {x: 0, y: 0, z: 0}
             });
         }
 
@@ -985,16 +969,11 @@ function MyController(hand) {
                         ignoreRayIntersection: true,
                         drawInFront: false
                     });
-
                     _this.hotspotOverlays.push({
                         entityID: entityID,
                         overlay: overlay,
                         type: "near",
-                        localPosition: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        }
+                        localPosition: {x: 0, y: 0, z: 0}
                     });
                 }
             });
@@ -1016,7 +995,6 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             });
-
             _this.hotspotOverlays.push({
                 entityID: hotspot.entityID,
                 overlay: overlay,
@@ -1031,9 +1009,7 @@ function MyController(hand) {
         var props;
         this.hotspotOverlays.forEach(function(overlayInfo) {
             if (overlayInfo.type === "hand") {
-                Overlays.editOverlay(overlayInfo.overlay, {
-                    position: _this.getHandPosition()
-                });
+                Overlays.editOverlay(overlayInfo.overlay, { position: _this.getHandPosition() });
             } else if (overlayInfo.type === "equip") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
                 props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
@@ -1045,10 +1021,7 @@ function MyController(hand) {
             } else if (overlayInfo.type === "near") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
                 props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
-                Overlays.editOverlay(overlayInfo.overlay, {
-                    position: props.position,
-                    rotation: props.rotation
-                });
+                Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
             }
         });
     };
@@ -1082,8 +1055,8 @@ function MyController(hand) {
         var pickRay = {
             origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Vec3.mix(Quat.getUp(worldHandRotation),
-                Quat.getFront(Camera.orientation),
-                HAND_HEAD_MIX_RATIO),
+                                                                                     Quat.getFront(Camera.orientation),
+                                                                                     HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1108,20 +1081,15 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = Entities.findRayIntersection(pickRayBacked, true, [], blacklist);
+            intersection = findRayIntersection(pickRayBacked, true, [], blacklist);
         } else {
-            intersection = Entities.findRayIntersection(pickRayBacked, true);
-        }
-
-        var overlayIntersection = Overlays.findRayIntersection(pickRayBacked);
-        if (!intersection.intersects ||
-            (overlayIntersection.intersects && (intersection.distance > overlayIntersection.distance))) {
-            intersection = overlayIntersection;
+            intersection = findRayIntersection(pickRayBacked, true);
         }
 
         if (intersection.intersects) {
             return {
                 entityID: intersection.entityID,
+                overlayID: intersection.overlayID,
                 searchRay: pickRay,
                 distance: Vec3.distance(pickRay.origin, intersection.intersection)
             };
@@ -1168,11 +1136,7 @@ function MyController(hand) {
             if (wearableProps && wearableProps.joints) {
                 result.push({
                     entityID: entityID,
-                    localPosition: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
+                    localPosition: {x: 0, y: 0, z: 0},
                     worldPosition: entityXform.pos,
                     radius: EQUIP_RADIUS,
                     joints: wearableProps.joints
@@ -1189,8 +1153,8 @@ function MyController(hand) {
 
         var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
         var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
-                this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
-            this.getOtherHandController().grabbedEntity == hotspot.entityID);
+                                       this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
+                                      this.getOtherHandController().grabbedEntity == hotspot.entityID);
         if (refCount > 0 && !okToEquipFromOtherHand) {
             if (debug) {
                 print("equip is skipping '" + props.name + "': grabbed by someone else");
@@ -1369,6 +1333,8 @@ function MyController(hand) {
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
                 grabbableEntities.push(rayPickInfo.entityID);
             }
+        } else if (rayPickInfo.overlayID) {
+            this.intersectionDistance = rayPickInfo.distance;
         } else {
             this.intersectionDistance = 0;
         }
@@ -1425,7 +1391,7 @@ function MyController(hand) {
                     // TODO: highlight the far-triggerable object?
                 }
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab()) {
+                if (this.triggerSmoothedGrab() && !isEditing()) {
                     this.grabbedEntity = entity;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
@@ -1438,8 +1404,8 @@ function MyController(hand) {
         // search line visualizations
         if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
             this.lineOn(rayPickInfo.searchRay.origin,
-                Vec3.multiply(rayPickInfo.searchRay.direction, LINE_LENGTH),
-                NO_INTERSECT_COLOR);
+                        Vec3.multiply(rayPickInfo.searchRay.direction, LINE_LENGTH),
+                        NO_INTERSECT_COLOR);
         }
 
         this.searchIndicatorOn(rayPickInfo.searchRay);
@@ -1530,7 +1496,7 @@ function MyController(hand) {
 
         // controller pose is in avatar frame
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
-            Controller.Standard.RightHand : Controller.Standard.LeftHand);
+                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
 
         // transform it into world frame
         var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
@@ -1552,7 +1518,7 @@ function MyController(hand) {
 
         // scale delta controller hand movement by radius.
         var handMoved = Vec3.multiply(Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar),
-            radius);
+                                      radius);
 
         /// double delta controller rotation
         // var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
@@ -1577,7 +1543,7 @@ function MyController(hand) {
         var lastVelocity = Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar);
         lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaObjectTime);
         var newRadialVelocity = Vec3.dot(lastVelocity,
-            Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
+                                         Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
 
         var VELOCITY_AVERAGING_TIME = 0.016;
         this.grabRadialVelocity = (deltaObjectTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
@@ -1586,7 +1552,7 @@ function MyController(hand) {
         var RADIAL_GRAB_AMPLIFIER = 10.0;
         if (Math.abs(this.grabRadialVelocity) > 0.0) {
             this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime *
-                this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+                                                 this.grabRadius * RADIAL_GRAB_AMPLIFIER);
         }
 
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(controllerRotation));
@@ -1704,28 +1670,16 @@ function MyController(hand) {
         if (this.fastHandMoveTimer < 0) {
             this.fastHandMoveDetected = false;
         }
-        var FAST_HAND_SPEED_REST_TIME = 1; // sec
+        var FAST_HAND_SPEED_REST_TIME = 1;  // sec
         var FAST_HAND_SPEED_THRESHOLD = 0.4; // m/sec
         if (Vec3.length(worldHandVelocity) > FAST_HAND_SPEED_THRESHOLD) {
             this.fastHandMoveDetected = true;
             this.fastHandMoveTimer = FAST_HAND_SPEED_REST_TIME;
         }
 
-        var localHandUpAxis = this.hand === RIGHT_HAND ? {
-            x: 1,
-            y: 0,
-            z: 0
-        } : {
-            x: -1,
-            y: 0,
-            z: 0
-        };
+        var localHandUpAxis = this.hand === RIGHT_HAND ? {x: 1, y: 0, z: 0} : {x: -1, y: 0, z: 0};
         var worldHandUpAxis = Vec3.multiplyQbyV(worldHandRotation, localHandUpAxis);
-        var DOWN = {
-            x: 0,
-            y: -1,
-            z: 0
-        };
+        var DOWN = {x: 0, y: -1, z: 0};
         var ROTATION_THRESHOLD = Math.cos(Math.PI / 8);
 
         var handIsUpsideDown = false;
@@ -1827,16 +1781,8 @@ function MyController(hand) {
         }
 
         Entities.editEntity(this.grabbedEntity, {
-            velocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            angularVelocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
+            velocity: {x: 0, y: 0, z: 0},
+            angularVelocity: {x: 0, y: 0, z: 0},
             dynamic: false
         });
 
@@ -1903,7 +1849,7 @@ function MyController(hand) {
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                        props.parentID + " " + vec3toStr(props.position));
+                          props.parentID + " " + vec3toStr(props.position));
 
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
@@ -2005,8 +1951,8 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = Entities.findRayIntersection(pickRay, true);
-            if (intersection.accurate) {
+            var intersection = findRayIntersection(pickRay, true);
+            if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
@@ -2145,9 +2091,7 @@ function MyController(hand) {
                 // people are holding something and one of them will be able (if the other releases at the right time) to
                 // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
                 // the collision mask hinges on who the physics simulation owner is.
-                Entities.editEntity(entityID, {
-                    "collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED
-                });
+                Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
             }
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
@@ -2161,9 +2105,7 @@ function MyController(hand) {
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
         children.forEach(function(childID) {
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
-            Entities.editEntity(childID, {
-                parentID: NULL_UUID
-            });
+            Entities.editEntity(childID, {parentID: NULL_UUID});
         });
     };
 
@@ -2209,24 +2151,12 @@ function MyController(hand) {
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
-                    deactiveProps["velocity"] = {
-                        x: 0.0,
-                        y: 0.1,
-                        z: 0.0
-                    };
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.1, z: 0.0};
                     doSetVelocity = false;
                 }
                 if (noVelocity) {
-                    deactiveProps["velocity"] = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
-                    deactiveProps["angularVelocity"] = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.0, z: 0.0};
+                    deactiveProps["angularVelocity"] = {x: 0.0, y: 0.0, z: 0.0};
                     doSetVelocity = false;
                 }
 
@@ -2239,7 +2169,7 @@ function MyController(hand) {
                     // be fixed.
                     Entities.editEntity(entityID, {
                         velocity: this.currentVelocity
-                            // angularVelocity: this.currentAngularVelocity
+                        // angularVelocity: this.currentAngularVelocity
                     });
                 }
 
@@ -2249,32 +2179,14 @@ function MyController(hand) {
                 deactiveProps = {
                     parentID: this.previousParentID,
                     parentJointIndex: this.previousParentJointIndex,
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    }
+                    velocity: {x: 0.0, y: 0.0, z: 0.0},
+                    angularVelocity: {x: 0.0, y: 0.0, z: 0.0}
                 };
                 Entities.editEntity(entityID, deactiveProps);
             } else if (noVelocity) {
-                Entities.editEntity(entityID, {
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    dynamic: data["dynamic"]
-                });
+                Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               dynamic: data["dynamic"]});
             }
         } else {
             data = null;
@@ -2324,24 +2236,24 @@ Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 Messages.subscribe('Hifi-Object-Manipulation');
 
-
 var handleHandMessages = function(channel, message, sender) {
     var data;
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Hand-Disabler') {
             if (message === 'left') {
-                leftController.turnOffVisualizations('left');
                 handToDisable = LEFT_HAND;
+                leftController.turnOffVisualizations();
             }
             if (message === 'right') {
-                rightController.turnOffVisualizations('right');
                 handToDisable = RIGHT_HAND;
-            }
-            if (message === "both") {
-                leftController.turnOffVisualizations('left');
-                rightController.turnOffVisualizations('right');
+                rightController.turnOffVisualizations();
             }
             if (message === 'both' || message === 'none') {
+                if (message === 'both') {
+                    rightController.turnOffVisualizations();
+                    leftController.turnOffVisualizations();
+
+                }
                 handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
