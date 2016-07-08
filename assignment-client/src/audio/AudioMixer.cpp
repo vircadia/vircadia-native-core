@@ -496,6 +496,14 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
 
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
 
+    // FIXME - why would we not have client data at this point??
+    if (!clientData) {
+        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
+        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
     clientData->_codec = selectedCoded;
     clientData->_selectedCodecName = selectedCodecName;
     qDebug() << "selectedCodecName:" << selectedCodecName;

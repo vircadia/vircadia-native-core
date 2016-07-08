@@ -187,7 +187,16 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
         decodedBuffer = packetAfterStreamProperties;
     }
 
-    return _ringBuffer.writeData(decodedBuffer.data(), numAudioSamples * sizeof(int16_t)); // FIXME?
+    auto actualSize = decodedBuffer.size();
+
+    /*
+    auto expectedSize = numAudioSamples * sizeof(int16_t);
+    if (expectedSize != actualSize) {
+        qDebug() << "DECODED SIZE NOT EXPECTED!!!! ----- buffer size:" << actualSize << "expected:" << expectedSize;
+    }
+    */
+
+    return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {

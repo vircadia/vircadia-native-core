@@ -534,14 +534,13 @@ void AudioClient::negotiateAudioFormat() {
 void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
     qDebug() << __FUNCTION__;
 
-    // write them to our packet
-    _selectedCodecName = message->readString();
+    _receivedAudioStream._selectedCodecName = _selectedCodecName = message->readString();
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
-            _codec = plugin;
+            _receivedAudioStream._codec = _codec = plugin;
             qDebug() << "Selected Codec Plugin:" << _codec.get();
             break;
         }
@@ -849,16 +848,7 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
-void AudioClient::processReceivedSamples(const QByteArray& networkBuffer, QByteArray& outputBuffer) {
-
-    // TODO - codec decode goes here
-    QByteArray decodedBuffer;
-    if (_codec) {
-        _codec->decode(networkBuffer, decodedBuffer);
-    } else {
-        decodedBuffer = networkBuffer;
-    }
-
+void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteArray& outputBuffer) {
     const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
     const int numDeviceOutputSamples = _outputFrameSize;
 

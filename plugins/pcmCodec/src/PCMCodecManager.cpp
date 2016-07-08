@@ -15,7 +15,7 @@
 
 #include "PCMCodecManager.h"
 
-const QString PCMCodecManager::NAME = "PCM Codec";
+const QString PCMCodecManager::NAME = "zlib";
 
 void PCMCodecManager::init() {
 }
@@ -39,17 +39,11 @@ bool PCMCodecManager::isSupported() const {
 
 
 void PCMCodecManager::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
-    // this codec doesn't actually do anything....
-    decodedBuffer = encodedBuffer;
-
-    //decodedBuffer = qUncompress(encodedBuffer);
-    //qDebug() << __FUNCTION__ << "from:" << encodedBuffer.size() << " to:" << decodedBuffer.size();
+    //decodedBuffer = encodedBuffer;
+    decodedBuffer = qUncompress(encodedBuffer);
 }
 
 void PCMCodecManager::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
-    // this codec doesn't actually do anything....
-    encodedBuffer = decodedBuffer;
-
-    //encodedBuffer = qCompress(decodedBuffer);
-    //qDebug() << __FUNCTION__ << "from:" << decodedBuffer.size() << " to:" << encodedBuffer.size();
+    //encodedBuffer = decodedBuffer;
+    encodedBuffer = qCompress(decodedBuffer);
 }
