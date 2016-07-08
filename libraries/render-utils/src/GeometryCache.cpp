@@ -1464,7 +1464,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
         auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
         auto program = gpu::Shader::createProgram(VS, GS, PS);
         state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, 
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
