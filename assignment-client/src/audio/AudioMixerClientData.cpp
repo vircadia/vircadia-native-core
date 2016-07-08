@@ -101,9 +101,14 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
+                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
+                avatarAudioStream->_codec = _codec;
+                avatarAudioStream->_selectedCodecName = _selectedCodecName;
+                qDebug() << "creating new AvatarAudioStream... codec:" << avatarAudioStream->_selectedCodecName;
+
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
-                    std::unique_ptr<PositionalAudioStream> { new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()) }
+                    std::unique_ptr<PositionalAudioStream> { avatarAudioStream }
                 );
 
                 micStreamIt = emplaced.first;

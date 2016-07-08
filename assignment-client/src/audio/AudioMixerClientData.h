@@ -19,6 +19,8 @@
 #include <AudioLimiter.h>
 #include <UUIDHasher.h>
 
+#include <plugins/CodecPlugin.h>
+
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
 
@@ -64,6 +66,11 @@ public:
     bool shouldSendStats(int frameNumber);
 
     AudioLimiter audioLimiter;
+
+    // FIXME -- maybe make these private
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);

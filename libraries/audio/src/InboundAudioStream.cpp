@@ -178,7 +178,16 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
 }
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+
+    // codec decode goes here
+    QByteArray decodedBuffer;
+    if (_codec) {
+        _codec->decode(packetAfterStreamProperties, decodedBuffer);
+    } else {
+        decodedBuffer = packetAfterStreamProperties;
+    }
+
+    return _ringBuffer.writeData(decodedBuffer.data(), numAudioSamples * sizeof(int16_t)); // FIXME?
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {

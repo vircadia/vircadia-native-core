@@ -18,6 +18,8 @@
 #include <ReceivedMessage.h>
 #include <StDev.h>
 
+#include <plugins/CodecPlugin.h>
+
 #include "AudioRingBuffer.h"
 #include "MovingMinMaxAvg.h"
 #include "SequenceNumberStats.h"
@@ -173,6 +175,10 @@ public:
     float getWetLevel() const { return _wetLevel; }
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
+
+    // FIXME -- maybe make these private
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers

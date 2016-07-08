@@ -837,7 +837,7 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     audioTransform.setTranslation(_positionGetter());
     audioTransform.setRotation(_orientationGetter());
 
-    // TODO - codec decode goes here
+    // TODO - codec encode goes here
     QByteArray encodedBuffer;
     if (_codec) {
         _codec->encode(audio, encodedBuffer);

@@ -477,21 +477,39 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
     }
     qDebug() << "all requested codecs:" << codecList;
 
+    CodecPluginPointer selectedCoded;
+    QString selectedCodecName;
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     if (codecPlugins.size() > 0) {
         for (auto& plugin : codecPlugins) {
             qDebug() << "Codec available:" << plugin->getName();
+
+            // choose first codec
+            if (!selectedCoded) {
+                selectedCoded = plugin;
+                selectedCodecName = plugin->getName();
+            }
         }
     } else {
         qDebug() << "No Codecs available...";
     }
 
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+
+    clientData->_codec = selectedCoded;
+    clientData->_selectedCodecName = selectedCodecName;
+    qDebug() << "selectedCodecName:" << selectedCodecName;
+
+    auto avatarAudioStream = clientData->getAvatarAudioStream();
+    if (avatarAudioStream) {
+        avatarAudioStream->_codec = selectedCoded;
+        avatarAudioStream->_selectedCodecName = selectedCodecName;
+    }
+
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
 
     // write them to our packet
-    QString selectedCodec = codecList.front();
-    qDebug() << "selectedCodec:" << selectedCodec;
-    replyPacket->writeString(selectedCodec);
+    replyPacket->writeString(selectedCodecName);
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *sendingNode);
@@ -720,9 +738,17 @@ void AudioMixer::broadcastMixes() {
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
 
+                        // TODO - codec encode goes here
+                        QByteArray decocedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        QByteArray encodedBuffer;
+                        if (nodeData->_codec) {
+                            nodeData->_codec->encode(decocedBuffer, encodedBuffer);
+                        } else {
+                            encodedBuffer = decocedBuffer;
+                        }
+
                         // pack mixed audio samples
-                        mixPacket->write(reinterpret_cast<char*>(_clampedSamples),
-                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
