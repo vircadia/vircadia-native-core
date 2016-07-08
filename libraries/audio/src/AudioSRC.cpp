@@ -389,7 +389,7 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 }
 
 // convert int16_t to float, deinterleave stereo
-void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const int16_t* input, float** outputs, int numFrames) {
     __m128 scale = _mm_set1_ps(1/32768.0f);
 
     if (_numChannels == 1) {
@@ -467,8 +467,8 @@ static inline __m128 dither4() {
     return _mm_mul_ps(d0, _mm_set1_ps(1/65536.0f));
 }
 
-// convert float to int16_t, interleave stereo
-void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioSRC::convertOutput(float** inputs, int16_t* output, int numFrames) {
     __m128 scale = _mm_set1_ps(32768.0f);
 
     if (_numChannels == 1) {
@@ -535,6 +535,58 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
             // interleave
             a0 = _mm_unpacklo_epi16(a0, a1);
             *(int32_t*)&output[2*i] = _mm_cvtsi128_si32(a0);
+        }
+    }
+}
+
+// deinterleave stereo
+void AudioSRC::convertInput(const float* input, float** outputs, int numFrames) {
+
+    if (_numChannels == 1) {
+
+        memcpy(outputs[0], input, numFrames * sizeof(float));
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128 f0 = _mm_loadu_ps(&input[2*i + 0]);
+            __m128 f1 = _mm_loadu_ps(&input[2*i + 4]);
+
+            // deinterleave
+            _mm_storeu_ps(&outputs[0][i], _mm_shuffle_ps(f0, f1, _MM_SHUFFLE(2,0,2,0)));
+            _mm_storeu_ps(&outputs[1][i], _mm_shuffle_ps(f0, f1, _MM_SHUFFLE(3,1,3,1)));
+        }
+        for (; i < numFrames; i++) {
+            // deinterleave
+            outputs[0][i] = input[2*i + 0];
+            outputs[1][i] = input[2*i + 1];
+        }
+    }
+}
+
+// interleave stereo
+void AudioSRC::convertOutput(float** inputs, float* output, int numFrames) {
+
+    if (_numChannels == 1) {
+
+        memcpy(output, inputs[0], numFrames * sizeof(float));
+
+    } else if (_numChannels == 2) {
+
+        int i = 0;
+        for (; i < numFrames - 3; i += 4) {
+            __m128 f0 = _mm_loadu_ps(&inputs[0][i]);
+            __m128 f1 = _mm_loadu_ps(&inputs[1][i]);
+
+            // interleave
+            _mm_storeu_ps(&output[2*i + 0], _mm_unpacklo_ps(f0, f1));
+            _mm_storeu_ps(&output[2*i + 4], _mm_unpackhi_ps(f0, f1));
+        }
+        for (; i < numFrames; i++) {
+            // interleave
+            output[2*i + 0] = inputs[0][i];
+            output[2*i + 1] = inputs[1][i];
         }
     }
 }
@@ -674,7 +726,7 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 }
 
 // convert int16_t to float, deinterleave stereo
-void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const int16_t* input, float** outputs, int numFrames) {
     const float scale = 1/32768.0f;
 
     if (_numChannels == 1) {
@@ -698,8 +750,8 @@ static inline float dither() {
     return (int32_t)(r0 - r1) * (1/65536.0f);
 }
 
-// convert float to int16_t, interleave stereo
-void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioSRC::convertOutput(float** inputs, int16_t* output, int numFrames) {
     const float scale = 32768.0f;
 
     if (_numChannels == 1) {
@@ -738,9 +790,41 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
     }
 }
 
+// deinterleave stereo
+void AudioSRC::convertInput(const float* input, float** outputs, int numFrames) {
+
+    if (_numChannels == 1) {
+
+        memcpy(outputs[0], input, numFrames * sizeof(float));
+
+    } else if (_numChannels == 2) {
+        for (int i = 0; i < numFrames; i++) {
+            // deinterleave
+            outputs[0][i] = input[2*i + 0];
+            outputs[1][i] = input[2*i + 1];
+        }
+    }
+}
+
+// interleave stereo
+void AudioSRC::convertOutput(float** inputs, float* output, int numFrames) {
+
+    if (_numChannels == 1) {
+
+        memcpy(output, inputs[0], numFrames * sizeof(float));
+
+    } else if (_numChannels == 2) {
+        for (int i = 0; i < numFrames; i++) {
+            // interleave
+            output[2*i + 0] = inputs[0][i];
+            output[2*i + 1] = inputs[1][i];
+        }
+    }
+}
+
 #endif
 
-int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
+int AudioSRC::render(float** inputs, float** outputs, int inputFrames) {
     int outputFrames = 0;
 
     int nh = std::min(_numHistory, inputFrames);    // number of frames from history buffer
@@ -749,19 +833,19 @@ int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
     if (_numChannels == 1) {
 
         // refill history buffers
-        memcpy(_history[0] + _numHistory, _inputs[0], nh * sizeof(float));
+        memcpy(_history[0] + _numHistory, inputs[0], nh * sizeof(float));
 
         // process history buffer
-        outputFrames += multirateFilter1(_history[0], _outputs[0], nh);
+        outputFrames += multirateFilter1(_history[0], outputs[0], nh);
 
         // process remaining input
         if (ni) {
-            outputFrames += multirateFilter1(_inputs[0], _outputs[0] + outputFrames, ni);
+            outputFrames += multirateFilter1(inputs[0], outputs[0] + outputFrames, ni);
         }
 
         // shift history buffers
         if (ni) {
-            memcpy(_history[0], _inputs[0] + ni, _numHistory * sizeof(float));
+            memcpy(_history[0], inputs[0] + ni, _numHistory * sizeof(float));
         } else {
             memmove(_history[0], _history[0] + nh, _numHistory * sizeof(float));
         }
@@ -769,15 +853,15 @@ int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
     } else if (_numChannels == 2) {
 
         // refill history buffers
-        memcpy(_history[0] + _numHistory, _inputs[0], nh * sizeof(float));
-        memcpy(_history[1] + _numHistory, _inputs[1], nh * sizeof(float));
+        memcpy(_history[0] + _numHistory, inputs[0], nh * sizeof(float));
+        memcpy(_history[1] + _numHistory, inputs[1], nh * sizeof(float));
 
         // process history buffer
-        outputFrames += multirateFilter2(_history[0], _history[1], _outputs[0], _outputs[1], nh);
+        outputFrames += multirateFilter2(_history[0], _history[1], outputs[0], outputs[1], nh);
 
         // process remaining input
         if (ni) {
-            outputFrames += multirateFilter2(_inputs[0], _inputs[1], _outputs[0] + outputFrames, _outputs[1] + outputFrames, ni);
+            outputFrames += multirateFilter2(inputs[0], inputs[1], outputs[0] + outputFrames, outputs[1] + outputFrames, ni);
         }
 
         // shift history buffers
@@ -869,12 +953,38 @@ int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
 
         int ni = std::min(inputFrames, _inputBlock);
 
-        convertInputFromInt16(input, _inputs, ni);
+        convertInput(input, _inputs, ni);
 
-        int no = processFloat(_inputs, _outputs, ni);
+        int no = render(_inputs, _outputs, ni);
         assert(no <= SRC_BLOCK);
 
-        convertOutputToInt16(_outputs, output, no);
+        convertOutput(_outputs, output, no);
+
+        input += _numChannels * ni;
+        output += _numChannels * no;
+        inputFrames -= ni;
+        outputFrames += no;
+    }
+
+    return outputFrames;
+}
+
+//
+// This version handles input/output as interleaved float
+//
+int AudioSRC::render(const float* input, float* output, int inputFrames) {
+    int outputFrames = 0;
+
+    while (inputFrames) {
+
+        int ni = std::min(inputFrames, _inputBlock);
+
+        convertInput(input, _inputs, ni);
+
+        int no = render(_inputs, _outputs, ni);
+        assert(no <= SRC_BLOCK);
+
+        convertOutput(_outputs, output, no);
 
         input += _numChannels * ni;
         output += _numChannels * no;

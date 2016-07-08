@@ -21,6 +21,11 @@
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
 
+#include <gpu/DrawUnitQuadTexcoord_vert.h>
+#include <gpu/DrawTexture_frag.h>
+
+#include <PathUtils.h>
+
 #include "../Logging.h"
 #include "../CompositorHelper.h"
 
@@ -58,7 +63,31 @@ bool HmdDisplayPlugin::internalActivate() {
         _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
     });
 
+    if (_previewTextureID == 0) {
+        QImage previewTexture(PathUtils::resourcesPath() + "images/preview.png");
+        if (!previewTexture.isNull()) {
+            glGenTextures(1, &_previewTextureID);
+            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
+                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.mirrored(false, true).bits());
+            using namespace oglplus;
+            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
+            _firstPreview = true;
+        }
+    }
+
     return Parent::internalActivate();
+}
+
+void HmdDisplayPlugin::internalDeactivate() {
+    if (_previewTextureID != 0) {
+        glDeleteTextures(1, &_previewTextureID);
+        _previewTextureID = 0;
+    }
+    Parent::internalDeactivate();
 }
 
 
@@ -196,6 +225,7 @@ static ProgramPtr getReprojectionProgram() {
 }
 #endif
 
+static GLint PREVIEW_TEXTURE_LOCATION = -1;
 
 static const char * LASER_VS = R"VS(#version 410 core
 uniform mat4 mvp = mat4(1);
@@ -227,14 +257,24 @@ void main() {
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     // Only enable mirroring if we know vsync is disabled
+    // On Mac, this won't work due to how the contexts are handled, so don't try
+#if !defined(Q_OS_MAC)
     enableVsync(false);
+#endif
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
-    compileProgram(_laserProgram, LASER_VS, LASER_FS);
-    _laserGeometry = loadLaser(_laserProgram);
-    compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
 
     using namespace oglplus;
+    if (!_enablePreview) {
+        const std::string version("#version 410 core\n");
+        compileProgram(_previewProgram, version + DrawUnitQuadTexcoord_vert, version + DrawTexture_frag);
+        PREVIEW_TEXTURE_LOCATION = Uniform<int>(*_previewProgram, "colorMap").Location();
+    }
+
+    compileProgram(_laserProgram, LASER_VS, LASER_FS);
+    _laserGeometry = loadLaser(_laserProgram);
+
+    compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
     REPROJECTION_MATRIX_LOCATION = Uniform<glm::mat3>(*_reprojectionProgram, "reprojection").Location();
     INVERSE_PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "inverseProjections").Location();
     PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "projections").Location();
@@ -243,6 +283,7 @@ void HmdDisplayPlugin::customizeContext() {
 void HmdDisplayPlugin::uncustomizeContext() {
     _sphereSection.reset();
     _compositeFramebuffer.reset();
+    _previewProgram.reset();
     _reprojectionProgram.reset();
     _laserProgram.reset();
     _laserGeometry.reset();
@@ -335,30 +376,32 @@ void HmdDisplayPlugin::internalPresent() {
     hmdPresent();
 
     // screen preview mirroring
+    auto window = _container->getPrimaryWidget();
+    auto devicePixelRatio = window->devicePixelRatio();
+    auto windowSize = toGlm(window->size());
+    windowSize *= devicePixelRatio;
+    float windowAspect = aspect(windowSize);
+    float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
+    if (_enablePreview && _monoPreview) {
+        sceneAspect /= 2.0f;
+    }
+    float aspectRatio = sceneAspect / windowAspect;
+
+    uvec2 targetViewportSize = windowSize;
+    if (aspectRatio < 1.0f) {
+        targetViewportSize.x *= aspectRatio;
+    } else {
+        targetViewportSize.y /= aspectRatio;
+    }
+
+    uvec2 targetViewportPosition;
+    if (targetViewportSize.x < windowSize.x) {
+        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
+    } else if (targetViewportSize.y < windowSize.y) {
+        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
+    }
+
     if (_enablePreview) {
-        auto window = _container->getPrimaryWidget();
-        auto windowSize = toGlm(window->size());
-        float windowAspect = aspect(windowSize);
-        float sceneAspect = aspect(_renderTargetSize);
-        if (_monoPreview) {
-            sceneAspect /= 2.0f;
-        }
-        float aspectRatio = sceneAspect / windowAspect;
-
-        uvec2 targetViewportSize = windowSize;
-        if (aspectRatio < 1.0f) {
-            targetViewportSize.x *= aspectRatio;
-        } else {
-            targetViewportSize.y /= aspectRatio;
-        }
-
-        uvec2 targetViewportPosition;
-        if (targetViewportSize.x < windowSize.x) {
-            targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-        } else if (targetViewportSize.y < windowSize.y) {
-            targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-        }
-        
         using namespace oglplus;
         Context::Clear().ColorBuffer();
         auto sourceSize = _compositeFramebuffer->size;
@@ -373,6 +416,21 @@ void HmdDisplayPlugin::internalPresent() {
                 BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
         });
         swapBuffers();
+    } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
+        useProgram(_previewProgram);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glViewport(targetViewportPosition.x, targetViewportPosition.y, targetViewportSize.x, targetViewportSize.y);
+        glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        swapBuffers();
+        _firstPreview = false;
+        _prevWindowSize = windowSize;
+        _prevDevicePixelRatio = devicePixelRatio;
     }
 
     postPreview();

@@ -25,40 +25,45 @@ GLShader::~GLShader() {
     }
 }
 
+// GLSL version
+static const std::string glslVersion {
+    "#version 410 core"
+};
+
+// Shader domain
+static const size_t NUM_SHADER_DOMAINS = 3;
+
+// GL Shader type enums
+// Must match the order of type specified in gpu::Shader::Type
+static const std::array<GLenum, NUM_SHADER_DOMAINS> SHADER_DOMAINS { {
+    GL_VERTEX_SHADER,
+    GL_FRAGMENT_SHADER,
+    GL_GEOMETRY_SHADER,
+} };
+
+// Domain specific defines
+// Must match the order of type specified in gpu::Shader::Type
+static const std::array<std::string, NUM_SHADER_DOMAINS> DOMAIN_DEFINES { {
+    "#define GPU_VERTEX_SHADER",
+    "#define GPU_PIXEL_SHADER",
+    "#define GPU_GEOMETRY_SHADER",
+} };
+
+// Versions specific of the shader
+static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
+    ""
+} };
+
 GLShader* compileBackendShader(const Shader& shader) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
-
-    // GLSL version
-    const std::string glslVersion = {
-        "#version 410 core"
-    };
-
-    // Shader domain
-    const int NUM_SHADER_DOMAINS = 2;
-    const GLenum SHADER_DOMAINS[NUM_SHADER_DOMAINS] = {
-        GL_VERTEX_SHADER,
-        GL_FRAGMENT_SHADER
-    };
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
-
-    // Domain specific defines
-    const std::string domainDefines[NUM_SHADER_DOMAINS] = {
-        "#define GPU_VERTEX_SHADER",
-        "#define GPU_PIXEL_SHADER"
-    };
-
-    // Versions specific of the shader
-    const std::string versionDefines[GLShader::NumVersions] = {
-        ""
-    };
-
     GLShader::ShaderObjects shaderObjects;
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
-        std::string shaderDefines = glslVersion + "\n" + domainDefines[shader.getType()] + "\n" + versionDefines[version];
+        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
 
         bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
         if (!result) {

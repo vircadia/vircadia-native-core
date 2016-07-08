@@ -44,13 +44,10 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
+        _model->setScaleToFit(true, getDimensions());
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
         _model->setURL(_url);
-
-        // dimensions are ALWAYS scale to fit.
-        _model->setScaleToFit(true, getDimensions());
-
         _model->simulate(deltatime, true);
     } else {
         _model->simulate(deltatime);

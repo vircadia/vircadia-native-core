@@ -342,16 +342,23 @@ void RenderableModelEntityItem::updateModelBounds() {
     if (!hasModel() || !_model) {
         return;
     }
+    if (!_dimensionsInitialized || !_model->isActive()) {
+        return;
+    }
+
+        
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     glm::vec3 dimensions = getDimensions();
-    if ((movingOrAnimating ||
+    bool success;
+    auto transform = getTransform(success);
+
+    if (movingOrAnimating ||
          _needsInitialSimulation ||
          _needsJointSimulation ||
-         _model->getTranslation() != getPosition() ||
+         _model->getTranslation() != transform.getTranslation() ||
          _model->getScaleToFitDimensions() != dimensions ||
-         _model->getRotation() != getRotation() ||
-         _model->getRegistrationPoint() != getRegistrationPoint())
-        && _model->isActive() && _dimensionsInitialized) {
+         _model->getRotation() != transform.getRotation() ||
+         _model->getRegistrationPoint() != getRegistrationPoint()) {
         doInitialModelSimulation();
         _needsJointSimulation = false;
     }
@@ -423,7 +430,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
             // fix them up in the scene
-            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
+            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0
+                && getShapeType() == SHAPE_TYPE_COMPOUND;
             if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
                 _showCollisionHull = shouldShowCollisionHull;
                 render::PendingChanges pendingChanges;
@@ -593,7 +601,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         // the model is still being downloaded.
         return false;
-    } else if (type == SHAPE_TYPE_STATIC_MESH) {
+    } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         return (_model && _model->isLoaded());
     }
     return true;
@@ -607,7 +615,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert that all geometries exist and are loaded
-        assert(_model->isLoaded() && _model->isCollisionLoaded());
+        assert(_model && _model->isLoaded() && _model->isCollisionLoaded());
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
@@ -691,14 +699,19 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
         info.setParams(type, dimensions, _compoundShapeURL);
-    } else if (type == SHAPE_TYPE_STATIC_MESH) {
+    } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
+        updateModelBounds();
+
+        // should never fall in here when model not fully loaded
+        assert(_model && _model->isLoaded());
+
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
-        const FBXGeometry& geometry = _model->getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
+        const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
+        int numberOfMeshes = fbxGeometry.meshes.size();
         int totalNumVertices = 0;
         for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
+            const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
                 auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
@@ -716,30 +729,42 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             return;
         }
 
-        updateModelBounds();
-
-        // should never fall in here when collision model not fully loaded
-        assert(_model->isLoaded());
+        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
+        int32_t numMeshes = (int32_t)(meshes.size());
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
         pointCollection.clear();
-
-        ShapeInfo::PointList points;
-        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
+        if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            pointCollection.resize(numMeshes);
+        } else {
+            pointCollection.resize(1);
+        }
 
         Extents extents;
         int meshCount = 0;
+        int pointListIndex = 0;
         for (auto& mesh : meshes) {
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
             const gpu::BufferView& indices = mesh->getIndexBuffer();
             const gpu::BufferView& parts = mesh->getPartBuffer();
 
+            ShapeInfo::PointList& points = pointCollection[pointListIndex];
+
+            // reserve room
+            int32_t sizeToReserve = (int32_t)(vertices.getNumElements());
+            if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                // a list of points for each mesh
+                pointListIndex++;
+            } else {
+                // only one list of points
+                sizeToReserve += (int32_t)((gpu::Size)points.size());
+            }
+            points.reserve(sizeToReserve);
+
             // copy points
-            const glm::mat4& localTransform = localTransforms[meshCount];
             uint32_t meshIndexOffset = (uint32_t)points.size();
+            const glm::mat4& localTransform = localTransforms[meshCount];
             gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
-            points.reserve((int32_t)((gpu::Size)points.size() + vertices.getNumElements()));
             while (vertexItr != vertices.cend<const glm::vec3>()) {
                 glm::vec3 point = extractTranslation(localTransform * glm::translate(*vertexItr));
                 points.push_back(point);
@@ -747,55 +772,57 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 ++vertexItr;
             }
 
-            // copy triangleIndices
-            triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
-            gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
-            while (partItr != parts.cend<const model::Mesh::Part>()) {
-
-                if (partItr->_topology == model::Mesh::TRIANGLES) {
-                    assert(partItr->_numIndices % 3 == 0);
-                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
-                    auto indexEnd = indexItr + partItr->_numIndices;
-                    while (indexItr != indexEnd) {
-                        triangleIndices.push_back(*indexItr + meshIndexOffset);
-                        ++indexItr;
-                    }
-                } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
-                    assert(partItr->_numIndices > 2);
-                    uint32_t approxNumIndices = 3 * partItr->_numIndices;
-                    if (approxNumIndices > (uint32_t)(triangleIndices.capacity() - triangleIndices.size())) {
-                        // we underestimated the final size of triangleIndices so we pre-emptively expand it
-                        triangleIndices.reserve(triangleIndices.size() + approxNumIndices);
-                    }
-
-                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
-                    auto indexEnd = indexItr + (partItr->_numIndices - 2);
-
-                    // first triangle uses the first three indices
-                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
-
-                    // the rest use previous and next index
-                    uint32_t triangleCount = 1;
-                    while (indexItr != indexEnd) {
-                        if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
-                            if (triangleCount % 2 == 0) {
-                                // even triangles use first two indices in order
-                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
-                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
-                            } else {
-                                // odd triangles swap order of first two indices
-                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
-                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
-                            }
+            if (type == SHAPE_TYPE_STATIC_MESH) {
+                // copy into triangleIndices
+                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+                triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
+                gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
+                while (partItr != parts.cend<const model::Mesh::Part>()) {
+                    if (partItr->_topology == model::Mesh::TRIANGLES) {
+                        assert(partItr->_numIndices % 3 == 0);
+                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexEnd = indexItr + partItr->_numIndices;
+                        while (indexItr != indexEnd) {
                             triangleIndices.push_back(*indexItr + meshIndexOffset);
-                            ++triangleCount;
+                            ++indexItr;
                         }
-                        ++indexItr;
+                    } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                        assert(partItr->_numIndices > 2);
+                        uint32_t approxNumIndices = 3 * partItr->_numIndices;
+                        if (approxNumIndices > (uint32_t)(triangleIndices.capacity() - triangleIndices.size())) {
+                            // we underestimated the final size of triangleIndices so we pre-emptively expand it
+                            triangleIndices.reserve(triangleIndices.size() + approxNumIndices);
+                        }
+
+                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexEnd = indexItr + (partItr->_numIndices - 2);
+
+                        // first triangle uses the first three indices
+                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                        triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+
+                        // the rest use previous and next index
+                        uint32_t triangleCount = 1;
+                        while (indexItr != indexEnd) {
+                            if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                                if (triangleCount % 2 == 0) {
+                                    // even triangles use first two indices in order
+                                    triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                                    triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                                } else {
+                                    // odd triangles swap order of first two indices
+                                    triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                                    triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                                }
+                                triangleIndices.push_back(*indexItr + meshIndexOffset);
+                                ++triangleCount;
+                            }
+                            ++indexItr;
+                        }
                     }
+                    ++partItr;
                 }
-                ++partItr;
             }
             ++meshCount;
         }
@@ -808,12 +835,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 scaleToFit[i] = 1.0f;
             }
         }
-        for (int i = 0; i < points.size(); ++i) {
-            points[i] = (points[i] * scaleToFit);
+        for (auto points : pointCollection) {
+            for (int i = 0; i < points.size(); ++i) {
+                points[i] = (points[i] * scaleToFit);
+            }
         }
 
-        pointCollection.push_back(points);
-        info.setParams(SHAPE_TYPE_STATIC_MESH, 0.5f * dimensions, _modelURL);
+        info.setParams(type, 0.5f * dimensions, _modelURL);
     } else {
         ModelEntityItem::computeShapeInfo(info);
         info.setParams(type, 0.5f * dimensions);
