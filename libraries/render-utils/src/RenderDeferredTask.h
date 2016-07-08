@@ -15,28 +15,6 @@
 #include <gpu/Pipeline.h>
 #include <render/CullTask.h>
 
-class SetupDeferred {
-public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    using JobModel = render::Job::Model<SetupDeferred>;
-};
-
-
-class PrepareDeferred {
-public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    using JobModel = render::Job::Model<PrepareDeferred>;
-};
-
-class RenderDeferred {
-public:
-    using JobModel = render::Job::Model<RenderDeferred>;
-
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-};
-
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)

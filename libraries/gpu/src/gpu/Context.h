@@ -104,6 +104,7 @@ public:
         Mat4 _projection;
         mutable Mat4 _projectionInverse;
         Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+        mutable Vec4 _stereoInfo;
 
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
         TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;

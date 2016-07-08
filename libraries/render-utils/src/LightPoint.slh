@@ -1,0 +1,87 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 7/5/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+<@func declareLightingPoint(supportScattering)@>
+
+
+<@include DeferredLighting.slh@>
+
+void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
+    vec3 fragLightVec, vec3 fragEyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow) {
+
+    // Allright we re valid in the volume
+    float fragLightDistance = length(fragLightVec);
+    vec3 fragLightDir = fragLightVec / fragLightDistance;
+
+    // Eval attenuation  
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+
+    vec3 lightEnergy = radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+
+    // Eval shading
+    vec4 shading = evalFragShading(normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+
+    diffuse = albedo * shading.w * lightEnergy;
+
+    specular = shading.rgb * lightEnergy;
+
+    if (getLightShowContour(light) > 0.0) {
+        // Show edge
+        float edge = abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            diffuse = vec3(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light));
+        }
+    }
+}
+
+<@if supportScattering@>
+
+void evalLightingPointScattering(out vec3 diffuse, out vec3 specular, Light light,
+    vec3 fragLightVec, vec3 fragEyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow,
+    float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
+
+    // Allright we re valid in the volume
+    float fragLightDistance = length(fragLightVec);
+    vec3 fragLightDir = fragLightVec / fragLightDistance;
+
+    // Eval attenuation
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+
+    vec3 lightEnergy = radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+
+    // Eval shading
+    evalFragShading(diffuse, specular,
+        normal, fragLightDir, fragEyeDir,
+        metallic, fresnel, roughness,
+        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
+
+    diffuse *= albedo * lightEnergy;
+
+    specular *= lightEnergy;
+
+    if (getLightShowContour(light) > 0.0) {
+        // Show edge
+        float edge = abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            diffuse = vec3(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light));
+        }
+    }
+}
+
+<@endif@>
+
+<@endfunc@>
+
+

@@ -16,13 +16,14 @@
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
-<$declareEvalAmbientSphereGlobalColor()$>
+<$declareEvalAmbientSphereGlobalColor(supportScattering)$>
+
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
     float shadowAttenuation = 1.0;
@@ -31,16 +32,35 @@ void main(void) {
         _fragColor = vec4(frag.diffuse, 1.0);
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
         vec3 color = evalLightmappedColor(
-                        deferredTransform.viewInverse,
+                        getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.normal,
                         frag.diffuse,
                         frag.specularVal.xyz);
         _fragColor = vec4(color, 1.0);
-    } else {
+    } else { //if (frag.mode == FRAG_MODE_SCATTERING) {
+
+        vec4 blurredCurvature = fetchCurvature(_texCoord0);
+        vec4 diffusedCurvature = fetchDiffusedCurvature(_texCoord0);
+
+        vec3 color = evalAmbientSphereGlobalColorScattering(
+            getViewInverse(),
+            shadowAttenuation,
+            frag.obscurance,
+            frag.position.xyz,
+            frag.normal,
+            frag.diffuse,
+            frag.metallic,
+            frag.emissive,
+            frag.roughness,
+            frag.scattering,
+            blurredCurvature,
+            diffusedCurvature);
+        _fragColor = vec4(color, 1.0);
+  /*  } else {
         vec3 color =  evalAmbientSphereGlobalColor(
-                        deferredTransform.viewInverse,
+                        getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.position.xyz,
@@ -49,6 +69,6 @@ void main(void) {
                         frag.metallic,
                         frag.emissive,
                         frag.roughness);
-        _fragColor = vec4(color, frag.normalVal.a);
+        _fragColor = vec4(color, frag.normalVal.a);*/
     }
 }

@@ -98,7 +98,8 @@ void TestWindow::beginFrame() {
 
 #ifdef DEFERRED_LIGHTING
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-    deferredLightingEffect->prepare(_renderArgs);
+
+    _prepareDeferred.run(_sceneContext, _renderContext);
 #else
     gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.0f, 0.1f, 0.2f, 1.0f });
@@ -128,8 +129,12 @@ void TestWindow::endFrame() {
         batch.setResourceTexture(0, nullptr);
     });
 
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-    deferredLightingEffect->render(_renderContext);
+    DeferredFrameTransformPointer frameTransform;
+    _generateDeferredFrameTransform.run(_sceneContext, _renderContext, frameTransform);
+
+    RenderDeferred::Inputs deferredInputs;
+    deferredInputs.edit0() = frameTransform;
+    _renderDeferred.run(_sceneContext, _renderContext, deferredInputs);
 
     gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "blit");

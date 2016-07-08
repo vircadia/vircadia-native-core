@@ -23,9 +23,12 @@
 #include <render/DrawTask.h>
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
+#include <render/BlurTask.h>
 
+#include "LightingModel.h"
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
+#include "SurfaceGeometryPass.h"
 #include "FramebufferCache.h"
 #include "HitEffect.h"
 #include "TextureCache.h"
@@ -33,20 +36,13 @@
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
+#include "SubsurfaceScattering.h"
 
 using namespace render;
 
 extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
-
-void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
-}
-
-void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
-}
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
@@ -92,6 +88,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
+    // Prepare deferred, generate the shared Deferred Frame Transform
+    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+
+
     // GPU jobs: Start preparing the deferred and lighting buffer
     addJob<PrepareDeferred>("PrepareDeferred");
 
@@ -104,21 +105,44 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Use Stencil and start drawing background in Lighting buffer
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
+    // Opaque all rendered, generate surface geometry buffers
+    const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
+
+
+    const auto theCurvatureVarying = curvatureFramebufferAndDepth[0];
+
+//#define SIMPLE_BLUR 1
+#if SIMPLE_BLUR
+    const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);
+    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature2", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first, true);
+#else
+    const auto curvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
+    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
+#endif
+
+    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
+
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
+    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, lightingModel, curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
+   
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    addJob<RenderDeferred>("RenderDeferred");
+    addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing");
 
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-    
+
+    addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
+
+
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
 
@@ -126,11 +150,13 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaques, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparents, false);
 
-
+    
     // Debugging stages
     {
+
         // Debugging Deferred buffer job
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, curvatureFramebuffer));
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job
         {
@@ -146,9 +172,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
             addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
     }
-
-    // FIXME: Hit effect is never used, let's hide it for now, probably a more generic way to add custom post process effects
-    // addJob<HitEffect>("HitEffect");
 
     // Blit!
     addJob<Blit>("Blit");

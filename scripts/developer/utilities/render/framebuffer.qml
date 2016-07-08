@@ -10,6 +10,7 @@
 //
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import "configSlider"
 
 Column {
     spacing: 8
@@ -22,7 +23,19 @@ Column {
             debug.config.mode = mode;
         }
 
-        Label { text: qsTr("Debug Buffer") }
+        function setX(x) {
+            print(x)
+
+            debug.config.size = Vec4({ x: x, y: -1, z: 1, w: 1 });
+        }       
+        Slider {
+            minimumValue: -1.0
+            value: debug.config.size.x
+            onValueChanged: {
+                debug.setX( value);
+            }
+        }
+
         ExclusiveGroup { id: bufferGroup }
         Repeater {
             model: [
@@ -36,9 +49,15 @@ Column {
                 "Unlit",
                 "Occlusion",
                 "Lightmap",
+                "Scattering",
                 "Lighting",
                 "Shadow",
                 "Pyramid Depth",
+                "Curvature",
+                "NormalCurvature",
+                "DiffusedCurvature",
+                "DiffusedNormalCurvature",
+                "Debug Scattering",
                 "Ambient Occlusion",
                 "Ambient Occlusion Blurred",
                 "Custom Shader"

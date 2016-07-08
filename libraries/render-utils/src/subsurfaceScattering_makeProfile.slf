@@ -1,0 +1,20 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/27/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include SubsurfaceScattering.slh@>
+<$declareSubsurfaceScatteringGenerateProfileMap()$>
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+void main(void) {
+    outFragColor = vec4(generateProfile(varTexCoord0.xy), 1.0);
+}

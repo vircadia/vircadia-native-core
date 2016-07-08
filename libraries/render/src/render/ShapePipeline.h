@@ -209,6 +209,7 @@ public:
             EMISSIVE_LIGHTMAP,
             ROUGHNESS,
             OCCLUSION,
+            SCATTERING,
             LIGHT_AMBIENT,
 
             NORMAL_FITTING = 10,

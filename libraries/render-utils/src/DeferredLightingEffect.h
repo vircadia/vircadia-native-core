@@ -21,13 +21,20 @@
 #include "model/Geometry.h"
 
 #include "render/Context.h"
+#include <render/CullTask.h>
+
+#include "DeferredFrameTransform.h"
+#include "LightingModel.h"
 
 #include "LightStage.h"
+
+#include "SubsurfaceScattering.h"
 
 class RenderArgs;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
-/// Handles deferred lighting for the bits that require it (voxels...)
+
+// THis is where we currently accumulate the local lights, let s change that sooner than later
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
@@ -42,9 +49,6 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, float falloffRadius = 0.01f,
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
-    
-    void prepare(RenderArgs* args);
-    void render(const render::RenderContextPointer& renderContext);
 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
@@ -95,19 +99,73 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
+    
+    friend class RenderDeferredSetup;
+    friend class RenderDeferredLocals;
+    friend class RenderDeferredCleanup;
+};
 
-    // Class describing the uniform buffer with all the parameters common to the deferred shaders
-    class DeferredTransform {
-    public:
-        glm::mat4 projection;
-        glm::mat4 viewInverse;
-        float stereoSide { 0.f };
-        float spareA, spareB, spareC;
+class PrepareDeferred {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-        DeferredTransform() {}
-    };
-    typedef gpu::BufferView UniformBufferView;
-    UniformBufferView _deferredTransformBuffer[2];
+    using JobModel = render::Job::Model<PrepareDeferred>;
+};
+
+class RenderDeferredSetup {
+public:
+  //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+        const DeferredFrameTransformPointer& frameTransform,
+        const LightingModelPointer& lightingModel,
+        const gpu::TexturePointer& diffusedCurvature2,
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
+};
+
+class RenderDeferredLocals {
+public:
+    using JobModel = render::Job::ModelI<RenderDeferredLocals, DeferredFrameTransformPointer>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, bool points, bool spots);
+};
+
+
+class RenderDeferredCleanup {
+public:
+    using JobModel = render::Job::Model<RenderDeferredCleanup>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+};
+
+
+class RenderDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+public:
+    RenderDeferredConfig() : render::Job::Config(true) {}
+
+signals:
+    void dirty();
+};
+
+
+class RenderDeferred {
+public:
+    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Config = RenderDeferredConfig;
+    using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
+
+    RenderDeferred();
+
+    void configure(const Config& config);
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    
+    RenderDeferredSetup setupJob;
+    RenderDeferredLocals lightsJob;
+    RenderDeferredCleanup cleanupJob;
+
+protected:
 };
 
 #endif // hifi_DeferredLightingEffect_h

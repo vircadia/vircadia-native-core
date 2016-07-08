@@ -1,0 +1,50 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 7/5/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+<@func declareLightingDirectional(supportScattering)@>
+<@include DeferredLighting.slh@>
+
+void evalLightingDirectional(out vec3 diffuse, out vec3 specular, Light light,
+    vec3 eyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow) {
+    
+    vec4 shading = evalFragShading(normal, -getLightDirection(light), eyeDir, metallic, fresnel, roughness);
+
+    diffuse = albedo * shading.w * shadow * getLightColor(light) * getLightIntensity(light);
+
+    specular = shading.rgb * shadow * getLightColor(light) * getLightIntensity(light);
+}
+
+<@if supportScattering@>
+
+void evalLightingDirectionalScattering(out vec3 diffuse, out vec3 specular, Light light,
+    vec3 eyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow,
+    float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
+
+    vec3 fragLightDir = -normalize(getLightDirection(light));
+
+    evalFragShading(diffuse, specular,
+        normal, fragLightDir, eyeDir,
+        metallic, fresnel, roughness,
+        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
+
+    vec3 lightEnergy = shadow * getLightColor(light) * getLightIntensity(light);
+
+    diffuse *= albedo * lightEnergy;
+
+    specular *= lightEnergy;
+}
+
+<@endif@>
+
+<@endfunc@>
+

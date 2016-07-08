@@ -1,0 +1,27 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/8/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include SubsurfaceScattering.slh@>
+<$declareSubsurfaceScatteringProfileSource()$>
+<$declareSubsurfaceScatteringIntegrate(2000)$>
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+void main(void) {
+
+    // Lookup by: x: NDotL y: 1 / r
+    //float y = 2.0 * 1.0 / ((j + 1.0) / (double)height);
+    //float x = ((i / (double)width) * 2.0) - 1.0;
+
+    outFragColor = vec4(integrate(varTexCoord0.x * 2.0 - 1.0, 2.0 / varTexCoord0.y), 1.0);
+}
+

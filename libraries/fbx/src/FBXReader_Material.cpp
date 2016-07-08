@@ -253,6 +253,14 @@ void FBXReader::consolidateFBXMaterials() {
             }
         }
 
+        if (material.name.contains("body_mat") || material.name.contains("skin")) {
+            material._material->setScattering(1.0);
+            if (!material.emissiveTexture.isNull()) {
+                material.scatteringTexture = material.emissiveTexture;
+                material.emissiveTexture = FBXTexture();
+            }
+        }
+
         if (material.opacity <= 0.0f) {
             material._material->setOpacity(1.0f);
         } else {

@@ -462,7 +462,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QVector<ExtractedBlendshape> blendshapes;
 
     QHash<QString, FBXModel> models;
-    QHash<QString, Cluster> clusters;
+    QHash<QString, Cluster> clusters; 
     QHash<QString, AnimationCurve> animationCurves;
 
     QHash<QString, QString> typeFlags;

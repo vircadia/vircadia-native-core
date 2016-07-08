@@ -31,9 +31,14 @@ protected:
 #ifdef DEFERRED_LIGHTING
     // Prepare the ShapePipelines
     render::ShapePlumberPointer _shapePlumber { std::make_shared<render::ShapePlumber>() };
-    render::RenderContextPointer _renderContext { std::make_shared<render::RenderContext>() };
+    render::SceneContextPointer _sceneContext{ std::make_shared<render::SceneContext>() };
+    render::RenderContextPointer _renderContext{ std::make_shared<render::RenderContext>() };
     gpu::PipelinePointer _opaquePipeline;
     model::LightPointer _light { std::make_shared<model::Light>() };
+    
+    GenerateDeferredFrameTransform _generateDeferredFrameTransform;
+    PrepareDeferred _prepareDeferred;
+    RenderDeferred _renderDeferred;
 #endif
 
     RenderArgs* _renderArgs { new RenderArgs() };

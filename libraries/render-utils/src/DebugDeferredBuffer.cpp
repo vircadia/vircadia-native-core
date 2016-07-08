@@ -47,6 +47,9 @@ enum Slot {
     Lighting,
     Shadow,
     Pyramid,
+    Curvature,
+    DiffusedCurvature,
+    Scattering,
     AmbientOcclusion,
     AmbientOcclusionBlurred
 };
@@ -108,6 +111,13 @@ static const std::string DEFAULT_LIGHTMAP_SHADER{
     " }"
 };
 
+static const std::string DEFAULT_SCATTERING_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return (frag.mode == FRAG_MODE_SCATTERING ? vec4(vec3(pow(frag.scattering, 1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
 static const std::string DEFAULT_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
@@ -135,6 +145,45 @@ static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+   // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+     "    return vec4(vec3(texture(curvatureMap, uv).xyz), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_DIFFUSED_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(vec3(texture(diffusedCurvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+    // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(vec3(texture(diffusedCurvatureMap, uv).xyz), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+  //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
     " }"
 };
 
@@ -197,12 +246,24 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_OCCLUSION_SHADER;
         case LightmapMode:
             return DEFAULT_LIGHTMAP_SHADER;
+        case ScatteringMode:
+            return DEFAULT_SCATTERING_SHADER;
         case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
         case ShadowMode:
             return DEFAULT_SHADOW_SHADER;
         case PyramidDepthMode:
             return DEFAULT_PYRAMID_DEPTH_SHADER;
+        case CurvatureMode:
+            return DEFAULT_CURVATURE_SHADER;
+        case NormalCurvatureMode:
+            return DEFAULT_NORMAL_CURVATURE_SHADER;
+        case DiffusedCurvatureMode:
+            return DEFAULT_DIFFUSED_CURVATURE_SHADER;
+        case DiffusedNormalCurvatureMode:
+            return DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER;
+        case ScatteringDebugMode:
+            return DEFAULT_DEBUG_SCATTERING_SHADER;
         case AmbientOcclusionMode:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case AmbientOcclusionBlurredMode:
@@ -257,6 +318,9 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
         slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
+        slotBindings.insert(gpu::Shader::Binding("curvatureMap", Curvature));
+        slotBindings.insert(gpu::Shader::Binding("diffusedCurvatureMap", DiffusedCurvature));
+        slotBindings.insert(gpu::Shader::Binding("scatteringMap", Scattering));
         slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -282,12 +346,18 @@ void DebugDeferredBuffer::configure(const Config& config) {
     _size = config.size;
 }
 
-void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
+    auto& diffusedCurvatureFramebuffer = inputs.get0();
+    auto& scatteringFramebuffer = inputs.get1();
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
@@ -313,6 +383,9 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
+        batch.setResourceTexture(Curvature, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(Scattering, scatteringFramebuffer->getRenderBuffer(0));
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         } else {

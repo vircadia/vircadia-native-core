@@ -45,6 +45,8 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
+    float scattering = getMaterialScattering(mat);
+
     packDeferredFragment(
         normalize(_normal.xyz), 
         opacity,
@@ -52,5 +54,6 @@ void main(void) {
         roughness,
         getMaterialMetallic(mat),
         emissive,
-        occlusionTex);
+        occlusionTex,
+        scattering);
 }

@@ -13,7 +13,13 @@
 #define hifi_QOpenGLDebugLoggerWrapper_h
 
 class QObject;
+class  QOpenGLDebugMessage;
 
 void setupDebugLogger(QObject* window);
+
+class OpenGLDebug {
+public:
+    static void log(const QOpenGLDebugMessage & debugMessage);
+};
 
 #endif // hifi_QOpenGLDebugLoggerWrapper_h
