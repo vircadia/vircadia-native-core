@@ -133,7 +133,9 @@ function Teleporter() {
     };
 
     this.enterTeleportMode = function(hand) {
+        print('entered teleport from ' + hand)
         if (inTeleportMode === true) {
+            print('already in teleport mode so dont enter again')
             return;
         }
 
@@ -144,12 +146,9 @@ function Teleporter() {
         this.teleportHand = hand;
         this.initialize();
         this.updateConnected = true;
-        if (USE_THUMB_AND_TRIGGER_MODE === true) {
-            Script.update.connect(this.updateForThumbAndTrigger);
+        Script.update.connect(this.update);
 
-        } else {
-            Script.update.connect(this.update);
-        }
+
     };
 
     this.findMidpoint = function(start, end) {
@@ -197,14 +196,12 @@ function Teleporter() {
                 Script.clearInterval(fadeSphereInterval);
                 _this.deleteFadeSphere();
                 fadeSphereInterval = null;
-                print('sphere done fading out');
                 return;
             }
             if (currentFadeSphereOpacity > 0) {
                 currentFadeSphereOpacity = currentFadeSphereOpacity - 1;
             }
 
-            print('setting sphere alpha to: ' + currentFadeSphereOpacity)
             Overlays.editOverlay(_this.fadeSphere, {
                 alpha: currentFadeSphereOpacity / 10
             })
@@ -218,7 +215,6 @@ function Teleporter() {
                 Script.clearInterval(fadeSphereInterval);
                 _this.deleteFadeSphere();
                 fadeSphereInterval = null;
-                print('sphere done fading in')
                 return;
             }
             if (currentFadeSphereOpacity < 1) {
@@ -240,7 +236,6 @@ function Teleporter() {
 
     this.deleteFadeSphere = function() {
         if (_this.fadeSphere !== null) {
-            print('deleting fade sphere');
             Script.update.disconnect(_this.updateFadeSphere);
             Overlays.deleteOverlay(_this.fadeSphere);
             _this.fadeSphere = null;
@@ -260,43 +255,23 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        if (USE_THUMB_AND_TRIGGER_MODE === true) {
-            Script.update.disconnect(this.updateForThumbAndTrigger);
+        print('exiting teleport mode')
 
-        } else {
-            Script.update.disconnect(this.update);
-        }
+        Script.update.disconnect(this.update);
         this.teleportHand = null;
         this.updateConnected = null;
         this.disableMappings();
         this.turnOffOverlayBeams();
         this.enableGrab();
         Script.setTimeout(function() {
+            print('fully exited teleport mode')
             inTeleportMode = false;
         }, 100);
     };
 
 
+
     this.update = function() {
-
-        if (teleporter.teleportHand === 'left') {
-            teleporter.leftRay();
-            if (leftPad.buttonValue === 0) {
-                _this.teleport();
-                return;
-            }
-
-        } else {
-            teleporter.rightRay();
-            if (rightPad.buttonValue === 0) {
-                _this.teleport();
-                return;
-            }
-        }
-
-    };
-
-    this.updateForThumbAndTrigger = function() {
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
@@ -526,7 +501,7 @@ function Teleporter() {
     };
 
     this.teleport = function(value) {
-
+        print('teleporting  : ' + value)
         if (this.intersection !== null) {
             if (USE_FADE_MODE === true) {
                 this.createFadeSphere();
@@ -648,37 +623,8 @@ var mappingName, teleportMapping;
 
 var TELEPORT_DELAY = 100;
 
+
 function registerMappings() {
-    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
-    teleportMapping = Controller.newMapping(mappingName);
-
-    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
-    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
-
-    teleportMapping.from(leftPad.down).to(function(value) {
-        print('left down' + value)
-        if (value === 1) {
-
-            Script.setTimeout(function() {
-                teleporter.enterTeleportMode('left')
-            }, TELEPORT_DELAY)
-        }
-
-    });
-    teleportMapping.from(rightPad.down).to(function(value) {
-        print('right down' + value)
-        if (value === 1) {
-
-            Script.setTimeout(function() {
-                teleporter.enterTeleportMode('right')
-            }, TELEPORT_DELAY)
-        }
-    });
-
-}
-
-
-function registerMappingsWithThumbAndTrigger() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
     teleportMapping = Controller.newMapping(mappingName);
     teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
@@ -688,24 +634,32 @@ function registerMappingsWithThumbAndTrigger() {
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
     teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function(value) {
+        print('tel 1')
         teleporter.enterTeleportMode('left')
+        return;
     });
     teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function(value) {
+        print('tel 2')
+
         teleporter.enterTeleportMode('right')
+        return;
     });
     teleportMapping.from(leftTrigger.down).when(leftPad.down).to(function(value) {
+        print('tel 3')
+
         teleporter.enterTeleportMode('left')
+        return;
     });
     teleportMapping.from(rightTrigger.down).when(rightPad.down).to(function(value) {
+        print('tel 4')
+
         teleporter.enterTeleportMode('right')
+        return;
     });
 }
 
-if (USE_THUMB_AND_TRIGGER_MODE === true) {
-    registerMappingsWithThumbAndTrigger();
-} else {
-    registerMappings();
-}
+
+registerMappings();
 
 var teleporter = new Teleporter();
 
