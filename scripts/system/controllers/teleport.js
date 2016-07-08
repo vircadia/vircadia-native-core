@@ -8,8 +8,7 @@
 
 //FEATURES:
 
-// ENTRY MODES
-// Thumbpad only
+// ENTRY MODE
 // Thumpad + trigger
 
 // JUMP MODES
@@ -28,15 +27,13 @@ var currentFadeSphereOpacity = 1;
 var fadeSphereInterval = null;
 var fadeSphereUpdateInterval = null;
 //milliseconds between fading one-tenth -- so this is a half second fade total
-var USE_FADE_MODE = true;
-var USE_FADE_IN = false;
+var USE_FADE_MODE = false;
 var USE_FADE_OUT = true;
-var FADE_IN_INTERVAL = 25;
 var FADE_OUT_INTERVAL = 25;
 
 // instant
-var NUMBER_OF_STEPS = 0;
-var SMOOTH_ARRIVAL_SPACING = 0;
+// var NUMBER_OF_STEPS = 0;
+// var SMOOTH_ARRIVAL_SPACING = 0;
 
 // // slow
 // var SMOOTH_ARRIVAL_SPACING = 150;
@@ -46,16 +43,14 @@ var SMOOTH_ARRIVAL_SPACING = 0;
 // var SMOOTH_ARRIVAL_SPACING = 100;
 // var NUMBER_OF_STEPS = 4;
 
-//medium-fast
-// var SMOOTH_ARRIVAL_SPACING = 33;
-// var NUMBER_OF_STEPS = 6;
+// medium-fast
+var SMOOTH_ARRIVAL_SPACING = 33;
+var NUMBER_OF_STEPS = 6;
 
 //fast
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
-
-var USE_THUMB_AND_TRIGGER_MODE = true;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/target.fbx';
 var TARGET_MODEL_DIMENSIONS = {
@@ -67,15 +62,13 @@ var TARGET_MODEL_DIMENSIONS = {
 
 function ThumbPad(hand) {
     this.hand = hand;
-    var _this = this;
+    var _thisPad = this;
 
     this.buttonPress = function(value) {
-        _this.buttonValue = value;
+        _thisPad.buttonValue = value;
     };
 
-    this.down = function() {
-        return _this.buttonValue === 1 ? 1.0 : 0.0;
-    };
+
 }
 
 function Trigger(hand) {
@@ -88,14 +81,14 @@ function Trigger(hand) {
     };
 
     this.down = function() {
-        return _this.buttonValue === 1 ? 1.0 : 0.0;
+        var down = _this.buttonValue === 1 ? 1.0 : 0.0;
+        return down
     };
 }
 
 function Teleporter() {
     var _this = this;
     this.intersection = null;
-    this.targetProps = null;
     this.rightOverlayLine = null;
     this.leftOverlayLine = null;
     this.targetOverlay = null;
@@ -133,31 +126,21 @@ function Teleporter() {
     };
 
     this.enterTeleportMode = function(hand) {
-        print('entered teleport from ' + hand)
         if (inTeleportMode === true) {
-            print('already in teleport mode so dont enter again')
             return;
         }
-
+        inTeleportMode = true;
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
         }
-        inTeleportMode = true;
+        if (fadeSphereInterval !== null) {
+            Script.clearInterval(fadeSphereInterval);
+        }
         this.teleportHand = hand;
         this.initialize();
-        this.updateConnected = true;
         Script.update.connect(this.update);
-
-
+        this.updateConnected = true;
     };
-
-    this.findMidpoint = function(start, end) {
-        var xy = Vec3.sum(start, end);
-        var midpoint = Vec3.multiply(0.5, xy);
-        return midpoint
-    };
-
-
 
     this.createFadeSphere = function(avatarHead) {
         var sphereProps = {
@@ -183,9 +166,7 @@ function Teleporter() {
         if (USE_FADE_OUT === true) {
             this.fadeSphereOut();
         }
-        if (USE_FADE_IN === true) {
-            this.fadeSphereIn();
-        }
+
 
     };
 
@@ -209,23 +190,6 @@ function Teleporter() {
         }, FADE_OUT_INTERVAL);
     };
 
-    this.fadeSphereIn = function() {
-        fadeSphereInterval = Script.setInterval(function() {
-            if (currentFadeSphereOpacity >= 1) {
-                Script.clearInterval(fadeSphereInterval);
-                _this.deleteFadeSphere();
-                fadeSphereInterval = null;
-                return;
-            }
-            if (currentFadeSphereOpacity < 1) {
-                currentFadeSphereOpacity = currentFadeSphereOpacity - 1;
-            }
-            Overlays.editOverlay(_this.fadeSphere, {
-                alpha: currentFadeSphereOpacity / 10
-            })
-
-        }, FADE_IN_INTERVAL);
-    };
 
     this.updateFadeSphere = function() {
         var headPosition = MyAvatar.getHeadPosition();
@@ -255,16 +219,16 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        print('exiting teleport mode')
-
-        Script.update.disconnect(this.update);
-        this.teleportHand = null;
-        this.updateConnected = null;
+        if (this.updateConnected === true) {
+            Script.update.disconnect(this.update);
+        }
         this.disableMappings();
         this.turnOffOverlayBeams();
         this.enableGrab();
+
+        this.updateConnected = null;
+
         Script.setTimeout(function() {
-            print('fully exited teleport mode')
             inTeleportMode = false;
         }, 100);
     };
@@ -277,7 +241,6 @@ function Teleporter() {
             teleporter.leftRay();
 
             if ((leftPad.buttonValue === 0 || leftTrigger.buttonValue === 0) && inTeleportMode === true) {
-                print('TELEPORTING LEFT')
                 _this.teleport();
                 return;
             }
@@ -286,8 +249,6 @@ function Teleporter() {
             teleporter.rightRay();
 
             if ((rightPad.buttonValue === 0 || rightTrigger.buttonValue === 0) && inTeleportMode === true) {
-
-                print('TELEPORTING RIGHT')
                 _this.teleport();
                 return;
             }
@@ -337,12 +298,12 @@ function Teleporter() {
 
         } else {
 
+            this.deleteTargetOverlay();
             this.rightLineOn(rightPickRay.origin, location, {
                 red: 7,
                 green: 36,
                 blue: 44
             });
-            this.deleteTargetOverlay();
         }
     }
 
@@ -388,12 +349,13 @@ function Teleporter() {
 
         } else {
 
+
+            this.deleteTargetOverlay();
             this.leftLineOn(leftPickRay.origin, location, {
                 red: 7,
                 green: 36,
                 blue: 44
             });
-            this.deleteTargetOverlay();
         }
     };
 
@@ -501,7 +463,9 @@ function Teleporter() {
     };
 
     this.teleport = function(value) {
-        print('teleporting  : ' + value)
+        if (value === undefined) {
+            this.exitTeleportMode();
+        }
         if (this.intersection !== null) {
             if (USE_FADE_MODE === true) {
                 this.createFadeSphere();
@@ -515,6 +479,15 @@ function Teleporter() {
         }
 
     };
+
+
+    this.findMidpoint = function(start, end) {
+        var xy = Vec3.sum(start, end);
+        var midpoint = Vec3.multiply(0.5, xy);
+        return midpoint
+    };
+
+
 
     this.getArrivalPoints = function(startPoint, endPoint) {
         var arrivalPoints = [];
@@ -540,23 +513,17 @@ function Teleporter() {
     this.smoothArrival = function() {
 
         _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
-        print('ARRIVAL POINTS: ' + JSON.stringify(_this.arrivalPoints));
-        print('end point: ' + JSON.stringify(_this.intersection.intersection))
         _this.smoothArrivalInterval = Script.setInterval(function() {
-            print(_this.arrivalPoints.length + " arrival points remaining")
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
                 return;
             }
 
             var landingPoint = _this.arrivalPoints.shift();
-            print('landing at: ' + JSON.stringify(landingPoint))
             MyAvatar.position = landingPoint;
 
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
-                print('clear target overlay')
                 _this.deleteTargetOverlay();
-                _this.triggerHaptics();
             }
 
 
@@ -633,29 +600,28 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
-    teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function(value) {
+    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).when(leftTrigger.down).to(function(value) {
         print('tel 1')
         teleporter.enterTeleportMode('left')
         return;
     });
-    teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function(value) {
+    teleportMapping.from(Controller.Standard.RightPrimaryThumb).when(rightTrigger.down).to(function(value) {
         print('tel 2')
-
         teleporter.enterTeleportMode('right')
         return;
     });
-    teleportMapping.from(leftTrigger.down).when(leftPad.down).to(function(value) {
+    teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
         print('tel 3')
-
+        teleporter.enterTeleportMode('right')
+        return;
+    });
+    teleportMapping.from(Controller.Standard.LT).when(Controller.Standard.LeftPrimaryThumb).to(function(value) {
+        print('tel 4')
         teleporter.enterTeleportMode('left')
         return;
     });
-    teleportMapping.from(rightTrigger.down).when(rightPad.down).to(function(value) {
-        print('tel 4')
 
-        teleporter.enterTeleportMode('right')
-        return;
-    });
+
 }
 
 
@@ -674,12 +640,6 @@ function cleanup() {
     teleporter.turnOffOverlayBeams();
     teleporter.deleteFadeSphere();
     if (teleporter.updateConnected !== null) {
-
-        if (USE_THUMB_AND_TRIGGER_MODE === true) {
-            Script.update.disconnect(teleporter.updateForThumbAndTrigger);
-
-        } else {
-            Script.update.disconnect(teleporter.update);
-        }
+        Script.update.disconnect(teleporter.update);
     }
 }
