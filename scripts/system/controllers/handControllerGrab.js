@@ -45,6 +45,10 @@ var DRAW_GRAB_BOXES = false;
 var DRAW_HAND_SPHERES = false;
 var DROP_WITHOUT_SHAKE = false;
 
+var EQUIP_SPHERE_COLOR = { red: 179, green: 120, blue: 211 };
+var EQUIP_SPHERE_ALPHA = 0.15;
+var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
+
 //
 // distant manipulation
 //
@@ -939,13 +943,12 @@ function MyController(hand) {
             overlays: []
         };
 
-        var EQUIP_SPHERE_COLOR = { red: 179, green: 120, blue: 211 };
-        var EQUIP_SPHERE_ALPHA = 0.3;
+        var diameter = hotspot.radius * 2;
 
         overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
             position: hotspot.worldPosition,
             rotation: {x: 0, y: 0, z: 0, w: 1},
-            size: hotspot.radius * 2,
+            dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
             color: EQUIP_SPHERE_COLOR,
             alpha: EQUIP_SPHERE_ALPHA,
             solid: true,
@@ -960,12 +963,12 @@ function MyController(hand) {
     this.updateOverlayInfoSet = function (overlayInfoSet, timestamp, potentialEquipHotspot) {
         overlayInfoSet.timestamp = timestamp;
 
-        var radius = overlayInfoSet.hotspot.radius;
+        var diameter = overlayInfoSet.hotspot.radius * 2;
 
         // embiggen the overlays if it maches the potentialEquipHotspot
         if (potentialEquipHotspot && overlayInfoSet.entityID == potentialEquipHotspot.entityID &&
             Vec3.equal(overlayInfoSet.localPosition, potentialEquipHotspot.localPosition)) {
-            radius = radius * EQUIP_RADIUS_EMBIGGEN_FACTOR;
+            diameter = diameter * EQUIP_RADIUS_EMBIGGEN_FACTOR;
         }
 
         var props = _this.entityPropertyCache.getProps(overlayInfoSet.entityID);
@@ -976,7 +979,7 @@ function MyController(hand) {
             Overlays.editOverlay(overlay, {
                 position: position,
                 rotation: props.rotation,
-                dimensions: radius * 2
+                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR
             });
         });
     };
