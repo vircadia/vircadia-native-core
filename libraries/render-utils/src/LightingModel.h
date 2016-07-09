@@ -37,11 +37,13 @@ public:
 
     void setScattering(bool enable);
     bool isScatteringEnabled() const;
-
     void setDiffuse(bool enable);
     bool isDiffuseEnabled() const;
     void setSpecular(bool enable);
     bool isSpecularEnabled() const;
+
+    void setAlbedo(bool enable);
+    bool isAlbedoEnabled() const;
 
     void setAmbientLight(bool enable);
     bool isAmbientLightEnabled() const;
@@ -72,7 +74,7 @@ protected:
         float enableScattering{ 1.0f };
         float enableDiffuse{ 1.0f };
         float enableSpecular{ 1.0f };
-        float spare;
+        float enableAlbedo{ 1.0f };
 
         float enableAmbientLight{ 1.0f };
         float enableDirectionalLight{ 1.0f };
@@ -103,6 +105,7 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
     Q_PROPERTY(bool enableDiffuse MEMBER enableDiffuse NOTIFY dirty)
     Q_PROPERTY(bool enableSpecular MEMBER enableSpecular NOTIFY dirty)
+    Q_PROPERTY(bool enableAlbedo MEMBER enableAlbedo NOTIFY dirty)
 
     Q_PROPERTY(bool enableAmbientLight MEMBER enableAmbientLight NOTIFY dirty)
     Q_PROPERTY(bool enableDirectionalLight MEMBER enableDirectionalLight NOTIFY dirty)
@@ -122,6 +125,7 @@ public:
     bool enableScattering{ true };
     bool enableDiffuse{ true };
     bool enableSpecular{ true };
+    bool enableAlbedo{ true };
 
     bool enableAmbientLight{ true };
     bool enableDirectionalLight{ true };

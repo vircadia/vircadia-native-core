@@ -29,17 +29,8 @@ void main(void) {
 
     // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT) {
-        // _fragColor = vec4(frag.diffuse, 1.0);
         discard;
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
-        /*  vec3 color = evalLightmappedColor(
-         getViewInverse(),
-         shadowAttenuation,
-         frag.obscurance,
-         frag.normal,
-         frag.diffuse,
-         frag.specularVal.xyz);
-         _fragColor = vec4(color, 1.0);*/
         discard;
     } else {
         vec4 midNormalCurvature;
@@ -53,13 +44,14 @@ void main(void) {
                         frag.obscurance,
                         frag.position.xyz,
                         frag.normal,
-                        frag.diffuse,
+                        frag.albedo,
+                        frag.fresnel,
                         frag.metallic,
-                      //  frag.emissive,
                         frag.roughness,
                         frag.scattering,
                         midNormalCurvature,
                         lowNormalCurvature);
         _fragColor = vec4(color, 1.0);
+
     }
 }

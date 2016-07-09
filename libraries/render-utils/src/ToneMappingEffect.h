@@ -71,7 +71,7 @@ class ToneMappingConfig : public render::Job::Config {
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
 
-    void setExposure(float newExposure) { exposure = std::max(0.0f, newExposure); emit dirty(); }
+    void setExposure(float newExposure) { exposure = newExposure; emit dirty(); }
     void setCurve(int newCurve) { curve = std::max((int)ToneMappingEffect::None, std::min((int)ToneMappingEffect::Filmic, newCurve)); emit dirty(); }
 
 

@@ -102,12 +102,18 @@ void ToneMappingEffect::init() {
 }
 
 void ToneMappingEffect::setExposure(float exposure) {
-    _parametersBuffer.edit<Parameters>()._exposure = exposure;
-    _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
+    auto& params = _parametersBuffer.get<Parameters>();
+    if (params._exposure != exposure) {
+        _parametersBuffer.edit<Parameters>()._exposure = exposure;
+        _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
+    }
 }
 
 void ToneMappingEffect::setToneCurve(ToneCurve curve) {
-    _parametersBuffer.edit<Parameters>()._toneCurve = curve;
+    auto& params = _parametersBuffer.get<Parameters>();
+    if (params._toneCurve != curve) {
+        _parametersBuffer.edit<Parameters>()._toneCurve = curve;
+    }
 }
 
 void ToneMappingEffect::render(RenderArgs* args) {
@@ -149,13 +155,8 @@ void ToneMappingEffect::render(RenderArgs* args) {
 
 
 void ToneMappingDeferred::configure(const Config& config) {
-    if (config.exposure >= 0.0f) {
-        _toneMappingEffect.setExposure(config.exposure);
-    }
-
-    if (config.curve >= 0) {
-        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
-    }
+     _toneMappingEffect.setExposure(config.exposure);
+     _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
 }
 
 void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {

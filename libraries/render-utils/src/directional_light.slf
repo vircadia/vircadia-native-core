@@ -27,19 +27,9 @@ void main(void) {
 
     float shadowAttenuation = 1.0;
 
-    // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT) {
-       // _fragColor = vec4(frag.diffuse, 1.0);
-       discard;
+        discard;
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
-       /*  vec3 color = evalLightmappedColor(
-                        getViewInverse(),
-                        shadowAttenuation,
-                        frag.obscurance,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal.xyz);
-        _fragColor = vec4(color, 1.0);*/
         discard;
     } else {
         vec3 color =  evalAmbientGlobalColor(
@@ -48,9 +38,9 @@ void main(void) {
                         frag.obscurance,
                         frag.position.xyz,
                         frag.normal,
-                        frag.diffuse,
+                        frag.albedo,
+                        frag.fresnel,
                         frag.metallic,
-                      //  frag.emissive,
                         frag.roughness);
         _fragColor = vec4(color, 1.0);
     }

@@ -75,9 +75,9 @@ void main(void) {
     }
     evalLightingPoint(diffuse, specular, light,
         fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
-        frag.metallic, frag.specular, frag.diffuse, 1.0,
-        frag.scattering * isScatteringEnabled(), midNormalCurvature, lowNormalCurvature);
+        frag.metallic, frag.fresnel, frag.albedo, 1.0,
+        frag.scattering, midNormalCurvature, lowNormalCurvature);
 
-    _fragColor.rgb += diffuse * isDiffuseEnabled() * isPointEnabled();
-    _fragColor.rgb += specular * isSpecularEnabled() * isPointEnabled();
+    _fragColor.rgb += diffuse;
+    _fragColor.rgb += specular;
 }

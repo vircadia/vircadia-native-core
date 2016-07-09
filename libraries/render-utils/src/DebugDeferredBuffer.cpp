@@ -59,7 +59,7 @@ enum Slot {
 static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
 
@@ -93,7 +93,7 @@ static const std::string DEFAULT_OCCLUSION_SHADER{
 static const std::string DEFAULT_EMISSIVE_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
@@ -107,7 +107,7 @@ static const std::string DEFAULT_UNLIT_SHADER{
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
