@@ -208,7 +208,8 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
-    PermissionsGrid
+    PermissionsGrid,
+    IsSourcedPacket
 };
 
 #endif // hifi_PacketHeaders_h

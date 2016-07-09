@@ -31,7 +31,7 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
     << PacketType::DomainServerRequireDTLS << PacketType::DomainConnectRequest
-    << PacketType::DomainList << PacketType::DomainConnectionDenied
+    << PacketType::DomainConnectionDenied
     << PacketType::DomainServerPathQuery << PacketType::DomainServerPathResponse
     << PacketType::DomainServerAddedNode << PacketType::DomainServerConnectionToken
     << PacketType::DomainSettingsRequest << PacketType::DomainSettings
@@ -45,7 +45,7 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::PermissionsGrid);
+            return static_cast<PacketVersion>(DomainListVersion::IsSourcedPacket);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
