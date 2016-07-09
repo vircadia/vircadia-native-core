@@ -207,7 +207,7 @@ protected:
 
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties);
 
     /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentSamples(int silentSamples);

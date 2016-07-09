@@ -1,5 +1,5 @@
 //
-//  PCMCodecManager.cpp
+//  PCMCodec.cpp
 //  plugins/pcmCodec/src
 //
 //  Created by Brad Hefta-Gaub on 6/9/2016
@@ -15,35 +15,64 @@
 
 #include "PCMCodecManager.h"
 
-const QString PCMCodecManager::NAME = "zlib";
+const QString PCMCodec::NAME = "pcm";
 
-void PCMCodecManager::init() {
+void PCMCodec::init() {
 }
 
-void PCMCodecManager::deinit() {
+void PCMCodec::deinit() {
 }
 
-bool PCMCodecManager::activate() {
+bool PCMCodec::activate() {
     CodecPlugin::activate();
     return true;
 }
 
-void PCMCodecManager::deactivate() {
+void PCMCodec::deactivate() {
     CodecPlugin::deactivate();
 }
 
 
-bool PCMCodecManager::isSupported() const {
+bool PCMCodec::isSupported() const {
     return true;
 }
 
 
-void PCMCodecManager::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
-    //decodedBuffer = encodedBuffer;
+void PCMCodec::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
+    decodedBuffer = encodedBuffer;
+}
+
+void PCMCodec::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+    encodedBuffer = decodedBuffer;
+}
+
+
+const QString zLibCodec::NAME = "zlib";
+
+void zLibCodec::init() {
+}
+
+void zLibCodec::deinit() {
+}
+
+bool zLibCodec::activate() {
+    CodecPlugin::activate();
+    return true;
+}
+
+void zLibCodec::deactivate() {
+    CodecPlugin::deactivate();
+}
+
+
+bool zLibCodec::isSupported() const {
+    return true;
+}
+
+void zLibCodec::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
     decodedBuffer = qUncompress(encodedBuffer);
 }
 
-void PCMCodecManager::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
-    //encodedBuffer = decodedBuffer;
+void zLibCodec::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
     encodedBuffer = qCompress(decodedBuffer);
 }

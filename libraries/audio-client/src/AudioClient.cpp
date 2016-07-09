@@ -507,19 +507,14 @@ void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> me
 }
 
 void AudioClient::negotiateAudioFormat() {
-    qDebug() << __FUNCTION__;
-
     auto nodeList = DependencyManager::get<NodeList>();
-
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
-
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
     negotiateFormatPacket->writePrimitive(numberOfCodecs);
     for (auto& plugin : codecPlugins) {
-        qDebug() << "Codec available:" << plugin->getName();
-        negotiateFormatPacket->writeString(plugin->getName());
+        auto codecName = plugin->getName();
+        negotiateFormatPacket->writeString(codecName);
     }
 
     // grab our audio mixer from the NodeList, if it exists

@@ -29,10 +29,17 @@ public:
     virtual CodecPluginList getCodecPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            CodecPluginPointer plugin(new PCMCodecManager());
-            if (plugin->isSupported()) {
-                _codecPlugins.push_back(plugin);
+
+            CodecPluginPointer pcmCodec(new PCMCodec());
+            if (pcmCodec->isSupported()) {
+                _codecPlugins.push_back(pcmCodec);
             }
+
+            CodecPluginPointer zlibCodec(new zLibCodec());
+            if (zlibCodec->isSupported()) {
+                _codecPlugins.push_back(zlibCodec);
+            }
+
         });
         return _codecPlugins;
     }

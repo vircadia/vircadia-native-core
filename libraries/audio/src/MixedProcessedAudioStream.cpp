@@ -42,18 +42,13 @@ int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
     return deviceSamplesWritten;
 }
 
-int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
-
-    // TODO - codec decode goes here
+int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
     if (_codec) {
         _codec->decode(packetAfterStreamProperties, decodedBuffer);
     } else {
         decodedBuffer = packetAfterStreamProperties;
     }
-
-    qDebug() << __FUNCTION__ << "packetAfterStreamProperties:" << packetAfterStreamProperties.size() << "networkSamples:" << networkSamples << "decodedBuffer:" << decodedBuffer.size();
-
 
     emit addedStereoSamples(decodedBuffer);
 

@@ -92,6 +92,8 @@ private:
     int _manualEchoMixes { 0 };
     int _totalMixes { 0 };
 
+    QString _codecPreferenceOrder;
+
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 

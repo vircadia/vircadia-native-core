@@ -15,9 +15,32 @@
 
 #include <plugins/CodecPlugin.h>
 
-class PCMCodecManager : public CodecPlugin {
+class PCMCodec : public CodecPlugin {
     Q_OBJECT
     
+public:
+    // Plugin functions
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
+
+    void init() override;
+    void deinit() override;
+
+    /// Called when a plugin is being activated for use.  May be called multiple times.
+    bool activate() override;
+    /// Called when a plugin is no longer being used.  May be called multiple times.
+    void deactivate() override;
+
+    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
+
+private:
+    static const QString NAME;
+};
+
+class zLibCodec : public CodecPlugin {
+    Q_OBJECT
+
 public:
     // Plugin functions
     bool isSupported() const override;

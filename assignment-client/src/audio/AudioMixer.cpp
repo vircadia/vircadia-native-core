@@ -466,33 +466,60 @@ void saveInputPluginSettings(const InputPluginList& plugins) {
 void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     qDebug() << __FUNCTION__;
 
-    // read the codecs requested by the client
-    quint8 numberOfCodecs = 0;
-    message->readPrimitive(&numberOfCodecs);
-    QStringList codecList;
-    for (quint16 i = 0; i < numberOfCodecs; i++) {
-        QString requestedCodec = message->readString();
-        qDebug() << "requestedCodec:" << requestedCodec;
-        codecList.append(requestedCodec);
-    }
-    qDebug() << "all requested codecs:" << codecList;
-
-    CodecPluginPointer selectedCoded;
-    QString selectedCodecName;
+    QStringList availableCodecs;
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     if (codecPlugins.size() > 0) {
         for (auto& plugin : codecPlugins) {
-            qDebug() << "Codec available:" << plugin->getName();
-
-            // choose first codec
-            if (!selectedCoded) {
-                selectedCoded = plugin;
-                selectedCodecName = plugin->getName();
-            }
+            auto codecName = plugin->getName();
+            qDebug() << "Codec available:" << codecName;
+            availableCodecs.append(codecName);
         }
     } else {
         qDebug() << "No Codecs available...";
     }
+
+    CodecPluginPointer selectedCoded;
+    QString selectedCodecName;
+
+    QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
+
+    // read the codecs requested by the client
+    const int MAX_PREFERENCE = 99999;
+    int preferredCodecIndex = MAX_PREFERENCE;
+    QString preferredCodec;
+    quint8 numberOfCodecs = 0;
+    message->readPrimitive(&numberOfCodecs);
+    qDebug() << "numberOfCodecs:" << numberOfCodecs;
+    QStringList codecList;
+    for (quint16 i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message->readString();
+        int preferenceOfThisCodec = codecPreferenceList.indexOf(requestedCodec);
+        bool codecAvailable = availableCodecs.contains(requestedCodec);
+        qDebug() << "requestedCodec:" << requestedCodec << "preference:" << preferenceOfThisCodec << "available:" << codecAvailable;
+        if (codecAvailable) {
+            codecList.append(requestedCodec);
+            if (preferenceOfThisCodec >= 0 && preferenceOfThisCodec < preferredCodecIndex) {
+                qDebug() << "This codec is preferred...";
+                selectedCodecName  = requestedCodec;
+                preferredCodecIndex = preferenceOfThisCodec;
+            }
+        }
+    }
+    qDebug() << "all requested and available codecs:" << codecList;
+
+    // choose first codec
+    if (!selectedCodecName.isEmpty()) {
+        if (codecPlugins.size() > 0) {
+            for (auto& plugin : codecPlugins) {
+                if (selectedCodecName == plugin->getName()) {
+                    qDebug() << "Selecting codec:" << selectedCodecName;
+                    selectedCoded = plugin;
+                    break;
+                }
+            }
+        }
+    }
+
 
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
 
@@ -881,6 +908,12 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
     if (settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
         QJsonObject audioEnvGroupObject = settingsObject[AUDIO_ENV_GROUP_KEY].toObject();
+
+        const QString CODEC_PREFERENCE_ORDER = "codec_preference_order";
+        if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
+            _codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
+        }
 
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
         if (audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {

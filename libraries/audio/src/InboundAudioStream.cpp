@@ -131,7 +131,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             if (message.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()));
             }
             break;
         }
@@ -177,25 +177,14 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
     }
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-
-    // codec decode goes here
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
     if (_codec) {
         _codec->decode(packetAfterStreamProperties, decodedBuffer);
     } else {
         decodedBuffer = packetAfterStreamProperties;
     }
-
     auto actualSize = decodedBuffer.size();
-
-    /*
-    auto expectedSize = numAudioSamples * sizeof(int16_t);
-    if (expectedSize != actualSize) {
-        qDebug() << "DECODED SIZE NOT EXPECTED!!!! ----- buffer size:" << actualSize << "expected:" << expectedSize;
-    }
-    */
-
     return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
