@@ -14,10 +14,12 @@
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
-
 QString const Circle3DOverlay::TYPE = "circle3d";
 
-Circle3DOverlay::Circle3DOverlay() { }
+Circle3DOverlay::Circle3DOverlay() {
+    memset(&_minorTickMarksColor, 0, sizeof(_minorTickMarksColor));
+    memset(&_majorTickMarksColor, 0, sizeof(_majorTickMarksColor));
+}
 
 Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     Planar3DOverlay(circle3DOverlay),
@@ -84,10 +86,10 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
             float pulseLevel = updatePulse();
             vec4 pulseModifier = vec4(1);
-            if (_alphaPulse != 0.0) {
+            if (_alphaPulse != 0.0f) {
                 pulseModifier.a = (_alphaPulse >= 0.0f) ? pulseLevel : (1.0f - pulseLevel);
             }
-            if (_colorPulse != 0.0) {
+            if (_colorPulse != 0.0f) {
                 float pulseValue = (_colorPulse >= 0.0f) ? pulseLevel : (1.0f - pulseLevel);
                 pulseModifier = vec4(vec3(pulseValue), pulseModifier.a);
             }
@@ -103,7 +105,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
                 for (float angle = _startAt; angle <= _endAt; angle += SLICE_ANGLE) {
                     float range = (angle - _startAt) / (_endAt - _startAt);
                     float angleRadians = glm::radians(angle);
-                    points << glm::vec2(cos(angleRadians) * _outerRadius, sin(angleRadians) * _outerRadius);
+                    points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                     colors << glm::mix(outerStartColor, outerEndColor, range);
                 }
             } else {
@@ -112,10 +114,10 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     float range = (angle - _startAt) / (_endAt - _startAt);
 
                     float angleRadians = glm::radians(angle);
-                    points << glm::vec2(cos(angleRadians) * _innerRadius, sin(angleRadians) * _innerRadius);
+                    points << glm::vec2(cosf(angleRadians) * _innerRadius, sinf(angleRadians) * _innerRadius);
                     colors << glm::mix(innerStartColor, innerEndColor, range);
 
-                    points << glm::vec2(cos(angleRadians) * _outerRadius, sin(angleRadians) * _outerRadius);
+                    points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                     colors << glm::mix(outerStartColor, outerEndColor, range);
                 }
             }

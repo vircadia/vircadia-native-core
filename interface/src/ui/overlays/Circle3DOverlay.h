@@ -78,8 +78,8 @@ protected:
     float _minorTickMarksAngle { 0 };
     float _majorTickMarksLength { 0 };
     float _minorTickMarksLength { 0 };
-    xColor _majorTickMarksColor {};
-    xColor _minorTickMarksColor {};
+    xColor _majorTickMarksColor;
+    xColor _minorTickMarksColor;
     gpu::Primitive _solidPrimitive { gpu::TRIANGLE_FAN };
     int _quadVerticesID { 0 };
     int _lineVerticesID { 0 };

@@ -478,7 +478,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
-    int compactColor;
+    int compactColor = 0;
     for (auto i = 0; i < pointCount; ++i) {
         const auto& point = points[i];
         *(vertex++) = point.x;
