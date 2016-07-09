@@ -210,21 +210,21 @@ void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxG
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
-    std::shared_ptr<GeometryMeshParts> shapes = std::make_shared<GeometryMeshParts>();
+    std::shared_ptr<GeometryMeshParts> parts = std::make_shared<GeometryMeshParts>();
     int meshID = 0;
     for (const FBXMesh& mesh : _fbxGeometry->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
         int partID = 0;
         for (const FBXMeshPart& part : mesh.parts) {
-            // Construct local shapes
-            shapes->push_back(std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]));
+            // Construct local parts
+            parts->push_back(std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]));
             partID++;
         }
         meshID++;
     }
     _meshes = meshes;
-    _meshParts = shapes;
+    _meshParts = parts;
 
     finishedLoading(true);
 }
@@ -334,9 +334,9 @@ bool Geometry::areTexturesLoaded() const {
     return true;
 }
 
-const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int shapeID) const {
-    if ((shapeID >= 0) && (shapeID < (int)_meshParts->size())) {
-        int materialID = _meshParts->at(shapeID)->materialID;
+const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int partID) const {
+    if ((partID >= 0) && (partID < (int)_meshParts->size())) {
+        int materialID = _meshParts->at(partID)->materialID;
         if ((materialID >= 0) && (materialID < (int)_materials.size())) {
             return _materials[materialID];
         }
