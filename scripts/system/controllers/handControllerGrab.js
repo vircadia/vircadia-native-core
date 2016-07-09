@@ -939,24 +939,20 @@ function MyController(hand) {
             overlays: []
         };
 
-        overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
-            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Equip-Spark.fbx",
+        var EQUIP_SPHERE_COLOR = { red: 179, green: 120, blue: 211 };
+        var EQUIP_SPHERE_ALPHA = 0.3;
+
+        overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
             position: hotspot.worldPosition,
             rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: hotspot.radius * 2 * SPARK_MODEL_SCALE_FACTOR,
-            ignoreRayIntersection: true
+            size: hotspot.radius * 2,
+            color: EQUIP_SPHERE_COLOR,
+            alpha: EQUIP_SPHERE_ALPHA,
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: false
         }));
-
-        // TODO: use shader to achive fresnel effect.
-        overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
-            url: "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx",
-            position: hotspot.worldPosition,
-            rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: hotspot.radius * 2,
-            ignoreRayIntersection: true
-        }));
-
-        // TODO: add light
 
         return overlayInfoSet;
     };
@@ -976,18 +972,12 @@ function MyController(hand) {
         var entityXform = new Xform(props.rotation, props.position);
         var position = entityXform.xformPoint(overlayInfoSet.localPosition);
 
-        // spark
-        Overlays.editOverlay(overlayInfoSet.overlays[0], {
-            position: position,
-            rotation: props.rotation,
-            dimensions: radius * 2 * SPARK_MODEL_SCALE_FACTOR
-        });
-
-        // fresnel sphere
-        Overlays.editOverlay(overlayInfoSet.overlays[1], {
-            position: position,
-            rotation: props.rotation,
-            dimensions: radius * 2
+        overlayInfoSet.overlays.forEach(function (overlay) {
+            Overlays.editOverlay(overlay, {
+                position: position,
+                rotation: props.rotation,
+                dimensions: radius * 2
+            });
         });
     };
 
