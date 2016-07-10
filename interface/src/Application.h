@@ -380,6 +380,7 @@ private:
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
+    bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
