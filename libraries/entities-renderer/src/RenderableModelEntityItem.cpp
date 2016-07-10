@@ -874,7 +874,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     }
 
                     // store uniqueIndices in triangleIndices
-                    triangleIndices.reserve(triangleIndices.size() + uniqueIndices.size());
+                    triangleIndices.reserve(triangleIndices.size() + (int32_t)uniqueIndices.size());
                     for (auto index : uniqueIndices) {
                         triangleIndices.push_back(index);
                     }

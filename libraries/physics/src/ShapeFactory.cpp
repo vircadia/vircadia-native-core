@@ -313,7 +313,7 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
                         }
                     }
                 }
-                uint32_t numHulls = hulls.size();
+                uint32_t numHulls = (uint32_t)hulls.size();
                 if (numHulls == 1) {
                     shape = hulls[0];
                 } else {
