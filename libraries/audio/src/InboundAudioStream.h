@@ -179,6 +179,7 @@ public:
     // FIXME -- maybe make these private
     CodecPluginPointer _codec;
     QString _selectedCodecName;
+    Decoder* _decoder { nullptr };
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers

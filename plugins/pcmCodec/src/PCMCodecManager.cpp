@@ -37,15 +37,54 @@ bool PCMCodec::isSupported() const {
     return true;
 }
 
+class PCMEncoder : public Encoder {
+public:
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
+        encodedBuffer = decodedBuffer;
+    }
+};
 
-void PCMCodec::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
-    decodedBuffer = encodedBuffer;
+class PCMDecoder : public Decoder {
+public:
+    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
+        decodedBuffer = encodedBuffer;
+    }
+
+    virtual void trackLostFrames(int numFrames)  override { }
+};
+
+Encoder* PCMCodec::createEncoder(int sampleRate, int numChannels) {
+    return new PCMEncoder();
 }
 
-void PCMCodec::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
-    encodedBuffer = decodedBuffer;
+Decoder* PCMCodec::createDecoder(int sampleRate, int numChannels) {
+    return new PCMDecoder();
 }
 
+void PCMCodec::releaseEncoder(Encoder* encoder) {
+    delete encoder;
+}
+
+void PCMCodec::releaseDecoder(Decoder* decoder) {
+    delete decoder;
+}
+
+
+class zLibEncoder : public Encoder {
+public:
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
+        encodedBuffer = qCompress(decodedBuffer);
+    }
+};
+
+class zLibDecoder : public Decoder {
+public:
+    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
+        decodedBuffer = qUncompress(encodedBuffer);
+    }
+
+    virtual void trackLostFrames(int numFrames)  override { }
+};
 
 const QString zLibCodec::NAME = "zlib";
 
@@ -69,10 +108,19 @@ bool zLibCodec::isSupported() const {
     return true;
 }
 
-void zLibCodec::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
-    decodedBuffer = qUncompress(encodedBuffer);
+Encoder* zLibCodec::createEncoder(int sampleRate, int numChannels) {
+    return new zLibEncoder();
 }
 
-void zLibCodec::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
-    encodedBuffer = qCompress(decodedBuffer);
+Decoder* zLibCodec::createDecoder(int sampleRate, int numChannels) {
+    return new zLibDecoder();
 }
+
+void zLibCodec::releaseEncoder(Encoder* encoder) {
+    delete encoder;
+}
+
+void zLibCodec::releaseDecoder(Decoder* decoder) {
+    delete decoder;
+}
+

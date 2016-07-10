@@ -533,12 +533,16 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
 
     clientData->_codec = selectedCoded;
     clientData->_selectedCodecName = selectedCodecName;
+    clientData->_encoder = selectedCoded->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+    clientData->_decoder = selectedCoded->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+
     qDebug() << "selectedCodecName:" << selectedCodecName;
 
     auto avatarAudioStream = clientData->getAvatarAudioStream();
     if (avatarAudioStream) {
         avatarAudioStream->_codec = selectedCoded;
         avatarAudioStream->_selectedCodecName = selectedCodecName;
+        avatarAudioStream->_decoder = selectedCoded->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
     }
 
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
@@ -777,7 +781,7 @@ void AudioMixer::broadcastMixes() {
                         QByteArray decocedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
                         if (nodeData->_codec) {
-                            nodeData->_codec->encode(decocedBuffer, encodedBuffer);
+                            nodeData->_encoder->encode(decocedBuffer, encodedBuffer);
                         } else {
                             encodedBuffer = decocedBuffer;
                         }

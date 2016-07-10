@@ -39,6 +39,14 @@ AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     _frameToSendStats = distribution(numberGenerator);
 }
 
+AudioMixerClientData::~AudioMixerClientData() {
+    if (_codec) {
+        _codec->releaseDecoder(_decoder);
+        _codec->releaseEncoder(_encoder);
+    }
+}
+
+
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
     
@@ -104,6 +112,9 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
                 avatarAudioStream->_codec = _codec;
                 avatarAudioStream->_selectedCodecName = _selectedCodecName;
+                if (_codec) {
+                    avatarAudioStream->_decoder = _codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+                }
                 qDebug() << "creating new AvatarAudioStream... codec:" << avatarAudioStream->_selectedCodecName;
 
                 auto emplaced = _audioStreams.emplace(

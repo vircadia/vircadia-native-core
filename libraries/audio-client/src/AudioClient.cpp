@@ -536,6 +536,8 @@ void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> mess
     for (auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
             _receivedAudioStream._codec = _codec = plugin;
+            _receivedAudioStream._decoder = plugin->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
             qDebug() << "Selected Codec Plugin:" << _codec.get();
             break;
         }
@@ -815,8 +817,8 @@ void AudioClient::handleAudioInput() {
         // TODO - codec encode goes here
         QByteArray decocedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         QByteArray encodedBuffer;
-        if (_codec) {
-            _codec->encode(decocedBuffer, encodedBuffer);
+        if (_encoder) {
+            _encoder->encode(decocedBuffer, encodedBuffer);
         } else {
             encodedBuffer = decocedBuffer;
         }
@@ -833,8 +835,8 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
 
     // TODO - codec encode goes here
     QByteArray encodedBuffer;
-    if (_codec) {
-        _codec->encode(audio, encodedBuffer);
+    if (_encoder) {
+        _encoder->encode(audio, encodedBuffer);
     } else {
         encodedBuffer = audio;
     }

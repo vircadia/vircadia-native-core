@@ -12,8 +12,30 @@
 #ifndef hifi__PCMCodecManager_h
 #define hifi__PCMCodecManager_h
 
-
 #include <plugins/CodecPlugin.h>
+
+/*
+class Encoder {
+public:
+virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
+};
+
+class Decoder {
+public:
+virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
+
+// numFrames - number of samples (mono) or sample-pairs (stereo)
+virtual void trackLostFrames(int numFrames) = 0;
+};
+
+class CodecPlugin : public Plugin {
+public:
+virtual Encoder* createEncoder(int sampleRate, int numChannels) = 0;
+virtual Decoder* createDecoder(int sampleRate, int numChannels) = 0;
+virtual void releaseEncoder(Encoder* encoder) = 0;
+virtual void releaseDecoder(Decoder* decoder) = 0;
+};
+*/
 
 class PCMCodec : public CodecPlugin {
     Q_OBJECT
@@ -31,8 +53,10 @@ public:
     /// Called when a plugin is no longer being used.  May be called multiple times.
     void deactivate() override;
 
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
+    virtual Encoder* createEncoder(int sampleRate, int numChannels) override;
+    virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
+    virtual void releaseEncoder(Encoder* encoder) override;
+    virtual void releaseDecoder(Decoder* decoder) override;
 
 private:
     static const QString NAME;
@@ -54,8 +78,11 @@ public:
     /// Called when a plugin is no longer being used.  May be called multiple times.
     void deactivate() override;
 
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
+    virtual Encoder* createEncoder(int sampleRate, int numChannels) override;
+    virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
+    virtual void releaseEncoder(Encoder* encoder) override;
+    virtual void releaseDecoder(Decoder* decoder) override;
+
 
 private:
     static const QString NAME;

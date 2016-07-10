@@ -29,6 +29,7 @@ class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
     AudioMixerClientData(const QUuid& nodeID);
+    ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
@@ -70,6 +71,8 @@ public:
     // FIXME -- maybe make these private
     CodecPluginPointer _codec;
     QString _selectedCodecName;
+    Encoder* _encoder { nullptr }; // for outbound mixed stream
+    Decoder* _decoder { nullptr }; // for mic stream
 
 
 signals:

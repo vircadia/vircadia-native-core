@@ -299,6 +299,7 @@ private:
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
+    Encoder* _encoder { nullptr }; // for outbound mic stream
 };
 
 

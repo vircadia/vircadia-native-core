@@ -12,9 +12,23 @@
 
 #include "Plugin.h"
 
-class CodecPlugin : public Plugin {
+class Encoder {
 public:
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
 };
 
+class Decoder {
+public:
+    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
+
+    // numFrames - number of samples (mono) or sample-pairs (stereo)
+    virtual void trackLostFrames(int numFrames) = 0;
+};
+
+class CodecPlugin : public Plugin {
+public:
+    virtual Encoder* createEncoder(int sampleRate, int numChannels) = 0;
+    virtual Decoder* createDecoder(int sampleRate, int numChannels) = 0;
+    virtual void releaseEncoder(Encoder* encoder) = 0;
+    virtual void releaseDecoder(Decoder* decoder) = 0;
+};

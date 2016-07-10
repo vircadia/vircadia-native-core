@@ -44,8 +44,8 @@ int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
 
 int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
-    if (_codec) {
-        _codec->decode(packetAfterStreamProperties, decodedBuffer);
+    if (_decoder) {
+        _decoder->decode(packetAfterStreamProperties, decodedBuffer);
     } else {
         decodedBuffer = packetAfterStreamProperties;
     }
