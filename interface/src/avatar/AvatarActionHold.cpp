@@ -207,6 +207,15 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     }
 
     withWriteLock([&]{
+        glm::vec3 measuredLinearVelocity;
+        // there is a bit of lag between when someone releases the trigger and the software reacts to
+        // the release.  we calculate the velocity from previous frames but not this frame (by having
+        // this code before where _measuredLinearVelocities is set, below) in order to help mask this.
+        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
+            measuredLinearVelocity += _measuredLinearVelocities[i];
+        }
+        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
+
         if (_previousSet) {
             glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
             _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
@@ -214,12 +223,6 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
                 _measuredLinearVelocitiesIndex = 0;
             }
         }
-
-        glm::vec3 measuredLinearVelocity;
-        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
-            measuredLinearVelocity += _measuredLinearVelocities[i];
-        }
-        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
 
         if (_kinematicSetVelocity) {
             // rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
