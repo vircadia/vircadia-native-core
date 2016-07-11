@@ -12,7 +12,7 @@ if (WIN32)
     set(TARGET_NAME hifiCodec)
     setup_hifi_client_server_plugin()
 
-    link_hifi_libraries(shared plugins)
+    link_hifi_libraries(audio shared plugins)
 
     add_dependency_external_projects(HiFiAudioCodec)
     target_include_directories(${TARGET_NAME} PRIVATE ${HIFIAUDIOCODEC_INCLUDE_DIRS})

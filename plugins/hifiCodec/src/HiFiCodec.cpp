@@ -11,7 +11,8 @@
 
 #include <qapplication.h>
 
-#include <AudioCodec.h> // should be from the external...
+#include <AudioCodec.h>
+#include <AudioConstants.h>
 
 #include <PerfStat.h>
 
@@ -39,28 +40,49 @@ bool HiFiCodec::isSupported() const {
     return true;
 }
 
-class HiFiEncoder : public Encoder {
+class HiFiEncoder : public Encoder, public AudioEncoder {
 public:
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = decodedBuffer;
+    HiFiEncoder(int sampleRate, int numChannels) : AudioEncoder(sampleRate, numChannels) { 
+        qDebug() << __FUNCTION__ << "sampleRate:" << sampleRate << "numChannels:" << numChannels;
+        _encodedSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(int16_t) * numChannels) / 4;  // codec reduces by 1/4th
     }
+
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
+        encodedBuffer.resize(_encodedSize);
+        AudioEncoder::process((const int16_t*)decodedBuffer.constData(), (int16_t*)encodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    }
+private:
+    int _encodedSize;
 };
 
-class HiFiDecoder : public Decoder {
+class HiFiDecoder : public Decoder, public AudioDecoder {
 public:
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = encodedBuffer;
+    HiFiDecoder(int sampleRate, int numChannels) : AudioDecoder(sampleRate, numChannels) { 
+        qDebug() << __FUNCTION__ << "sampleRate:" << sampleRate << "numChannels:" << numChannels;
+        _decodedSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(int16_t) * numChannels;
     }
 
-    virtual void trackLostFrames(int numFrames)  override { }
+    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
+        decodedBuffer.resize(_decodedSize);
+        AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, true);
+    }
+
+    virtual void trackLostFrames(int numFrames)  override { 
+        QByteArray encodedBuffer;
+        QByteArray decodedBuffer;
+        decodedBuffer.resize(_decodedSize);
+        AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, false);
+    }
+private:
+    int _decodedSize;
 };
 
 Encoder* HiFiCodec::createEncoder(int sampleRate, int numChannels) {
-    return new HiFiEncoder();
+    return new HiFiEncoder(sampleRate, numChannels);
 }
 
 Decoder* HiFiCodec::createDecoder(int sampleRate, int numChannels) {
-    return new HiFiDecoder();
+    return new HiFiDecoder(sampleRate, numChannels);
 }
 
 void HiFiCodec::releaseEncoder(Encoder* encoder) {
