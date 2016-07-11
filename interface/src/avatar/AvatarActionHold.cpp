@@ -206,6 +206,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     withWriteLock([&]{
         if (_previousSet) {
             _measuredLinearVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+            qDebug() << _measuredLinearVelocity.x << _measuredLinearVelocity.y << _measuredLinearVelocity.z
+                     << deltaTimeStep;
         } else {
             _measuredLinearVelocity = glm::vec3();
         }
