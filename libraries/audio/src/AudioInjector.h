@@ -59,7 +59,8 @@ public:
 
     bool isLocalOnly() const { return _options.localOnly; }
     float getVolume() const { return _options.volume; }
-    glm::vec3 getPosition() const { return _options.position; } 
+    glm::vec3 getPosition() const { return _options.position; }
+    bool isStereo() const { return _options.stereo; }
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 
     static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);

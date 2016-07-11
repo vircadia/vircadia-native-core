@@ -788,24 +788,37 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
 
     memset(_hrtfBuffer, 0, sizeof(_hrtfBuffer));
     QVector<AudioInjector*> injectorsToRemove;
+    static const float INT16_TO_FLOAT_SCALE_FACTOR = 1/32768.0f;
 
     bool injectorsHaveData = false;
 
     for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
         if (injector->getLocalBuffer()) {
 
-            // get one (mono) frame from the injector
-            if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*sizeof(int16_t)) ) {
+            qint64 samplesToRead = injector->isStereo() ? 
+                AudioConstants::NETWORK_FRAME_BYTES_STEREO :
+                AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+
+            // get one frame from the injector (mono or stereo)
+            if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, samplesToRead)) {
                 
                 injectorsHaveData = true;
 
-                // calculate gain and azimuth for hrtf
-                glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
-                float gain = gainForSource(relativePosition, injector->getVolume()); 
-                float azimuth = azimuthForSource(relativePosition); 
+                if (injector->isStereo() ) {
+                    for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+                        _hrtfBuffer[i] += (float)(_scratchBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
+                    }
+                    
+                } else {
+
+                    // calculate gain and azimuth for hrtf
+                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                    float gain = gainForSource(relativePosition, injector->getVolume()); 
+                    float azimuth = azimuthForSource(relativePosition); 
                 
                 
-                injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                }
             
             } else {
                 
@@ -828,7 +841,7 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
         
         // mix network into the hrtfBuffer
         for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-            _hrtfBuffer[i] += (float)(inputBuffer[i]) * 1/32678.0f;
+            _hrtfBuffer[i] += (float)(inputBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
         }
         
         // now, use limiter to write back to the inputBuffer
@@ -920,42 +933,12 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer() && _audioInput ) {
-        if(isStereo) {
-            QAudioFormat localFormat = _desiredOutputFormat;
-            localFormat.setChannelCount(isStereo ? 2 : 1);
-
-            QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                    localFormat,
-                    injector->getLocalBuffer());
-
-            // move the localOutput to the same thread as the local injector buffer
-            localOutput->moveToThread(injector->getLocalBuffer()->thread());
-
-            // have it be stopped when that local buffer is about to close
-            // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
-            // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
-            connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
-                if (state == QAudio::IdleState) {
-                    localOutput->stop();
-                    injector->stop();
-                }
-            });
-
-            connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
-
-            qCDebug(audioclient) << "Starting QAudioOutput for local injector" << localOutput;
-
-            localOutput->start(injector->getLocalBuffer());
-            return localOutput->state() == QAudio::ActiveState;
-        } else {
         // just add it to the vector of active local injectors
         // TODO: deal with concurrency perhaps?  Maybe not
-            qDebug() << "adding new injector!!!!!!!";
+        qDebug() << "adding new injector!!!!!!!";
 
-            _activeLocalAudioInjectors.append(injector);
-            return true;
-        }
-
+        _activeLocalAudioInjectors.append(injector);
+        return true;
     }
 
     return false;
