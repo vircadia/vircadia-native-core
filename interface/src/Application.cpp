@@ -170,7 +170,8 @@ static QTimer pingTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
-static const QString SVO_JSON_EXTENSION  = ".svo.json";
+static const QString SVO_JSON_EXTENSION = ".svo.json";
+static const QString JSON_EXTENSION = ".json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
@@ -202,13 +203,16 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
+static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
+    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
+    { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl },
-    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -1969,7 +1973,22 @@ void Application::resizeGL() {
     }
 }
 
+bool Application::importJSONFromURL(const QString& urlString) {
+    // we only load files that terminate in just .json (not .svo.json and not .ava.json)
+    // if they come from the High Fidelity Marketplace Assets CDN
+
+    QUrl jsonURL { urlString };
+
+    if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        emit svoImportRequested(urlString);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool Application::importSVOFromURL(const QString& urlString) {
+
     emit svoImportRequested(urlString);
     return true;
 }
@@ -4806,7 +4825,17 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
-    QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
+
+    QString shortName = scriptFilenameOrURL;
+
+    QUrl scriptURL { scriptFilenameOrURL };
+
+    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        shortName = shortName.mid(shortName.lastIndexOf('/') + 1);
+    }
+
+    QString message = "Would you like to run this script:\n" + shortName;
+
     reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
