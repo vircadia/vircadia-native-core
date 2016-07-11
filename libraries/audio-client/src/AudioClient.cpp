@@ -939,11 +939,11 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
             // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
             // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
             connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
-                    if (state == QAudio::IdleState) {
+                if (state == QAudio::IdleState) {
                     localOutput->stop();
                     injector->stop();
-                    }
-                    });
+                }
+            });
 
             connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
 

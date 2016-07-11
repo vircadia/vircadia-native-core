@@ -84,9 +84,6 @@ signals:
     void finished();
     void restarting();
     
-/*private slots:
-    void finish();
-*/  
 private:
     void setupInjection();
     int64_t injectNextFrame();
@@ -110,7 +107,6 @@ private:
     
     // when the injector is local, we need this
     AudioHRTF _localHRTF;
-    // for local injection, 
     friend class AudioInjectorManager;
 };
 
