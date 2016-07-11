@@ -43,7 +43,6 @@ bool HiFiCodec::isSupported() const {
 class HiFiEncoder : public Encoder, public AudioEncoder {
 public:
     HiFiEncoder(int sampleRate, int numChannels) : AudioEncoder(sampleRate, numChannels) { 
-        qDebug() << __FUNCTION__ << "sampleRate:" << sampleRate << "numChannels:" << numChannels;
         _encodedSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(int16_t) * numChannels) / 4;  // codec reduces by 1/4th
     }
 
@@ -58,7 +57,6 @@ private:
 class HiFiDecoder : public Decoder, public AudioDecoder {
 public:
     HiFiDecoder(int sampleRate, int numChannels) : AudioDecoder(sampleRate, numChannels) { 
-        qDebug() << __FUNCTION__ << "sampleRate:" << sampleRate << "numChannels:" << numChannels;
         _decodedSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(int16_t) * numChannels;
     }
 
@@ -71,6 +69,7 @@ public:
         QByteArray encodedBuffer;
         QByteArray decodedBuffer;
         decodedBuffer.resize(_decodedSize);
+        // NOTE: we don't actually use the results of this decode, we just do it to keep the state of the codec clean
         AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, false);
     }
 private:

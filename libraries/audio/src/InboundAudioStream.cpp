@@ -172,7 +172,7 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
         return sizeof(quint16);
     } else {
         // mixed audio packets do not have any info between the seq num and the audio data.
-        numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+        numAudioSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
         return 0;
     }
 }
@@ -189,6 +189,10 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+    if (_decoder) {
+        _decoder->trackLostFrames(silentSamples);
+    }
+
     // calculate how many silent frames we should drop.
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
