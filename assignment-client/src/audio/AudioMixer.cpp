@@ -535,11 +535,6 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
 
     qDebug() << "selectedCodecName:" << selectedCodecName;
 
-    auto avatarAudioStream = clientData->getAvatarAudioStream();
-    if (avatarAudioStream) {
-        avatarAudioStream->setupCodec(selectedCodec, selectedCodecName, AudioConstants::MONO);
-    }
-
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
 
     // write them to our packet
