@@ -64,6 +64,8 @@ private:
     glm::vec3 _palmOffsetFromRigidBody;
     // leaving this here for future refernece.
     // glm::quat _palmRotationFromRigidBody;
+
+    glm::vec3 _measuredLinearVelocity;
 };
 
 #endif // hifi_AvatarActionHold_h
