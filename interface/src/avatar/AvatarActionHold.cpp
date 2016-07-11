@@ -222,21 +222,20 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             // of the most recent.
             //
             // if _measuredLinearVelocitiesIndex is
-            //     0 -- ignore i of 3 4 5
-            //     1 -- ignore i of 4 5 0
-            //     2 -- ignore i of 5 0 1
-            //     3 -- ignore i of 0 1 2
-            //     4 -- ignore i of 1 2 3
-            //     5 -- ignore i of 2 3 4
+            //     0 -- ignore i of 4 5
+            //     1 -- ignore i of 5 0
+            //     2 -- ignore i of 0 1
+            //     3 -- ignore i of 1 2
+            //     4 -- ignore i of 2 3
+            //     5 -- ignore i of 3 4
             if ((i + 1) % 6 == _measuredLinearVelocitiesIndex ||
-                (i + 2) % 6 == _measuredLinearVelocitiesIndex ||
-                (i + 3) % 6 == _measuredLinearVelocitiesIndex) {
+                (i + 2) % 6 == _measuredLinearVelocitiesIndex) {
                 continue;
             }
 
             measuredLinearVelocity += _measuredLinearVelocities[i];
         }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3);
+        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 2);
 
 
 
