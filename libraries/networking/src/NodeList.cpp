@@ -215,6 +215,11 @@ void NodeList::reset() {
 
     _numNoReplyDomainCheckIns = 0;
 
+    // lock and clear our set of ignored IDs
+    _ignoredSetLock.lockForWrite();
+    _ignoredNodeIDs.clear();
+    _ignoredSetLock.unlock();
+
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
 
@@ -691,4 +696,44 @@ void NodeList::sendKeepAlivePings() {
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });
+}
+
+void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
+    // enumerate the nodes to send a reliable ignore packet to each that can leverage it
+
+    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+            if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
+                return true;
+            } else {
+                return false;
+            }
+        }, [&nodeID, this](const SharedNodePointer& destinationNode) {
+            // create a reliable NLPacket with space for the ignore UUID
+            auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            ignorePacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            // send off this ignore packet reliably to the matching node
+            sendPacket(std::move(ignorePacket), *destinationNode);
+        });
+
+        QReadLocker setLocker { &_ignoredSetLock };
+
+        // add this nodeID to our set of ignored IDs
+        _ignoredNodeIDs.insert(nodeID);
+
+        emit ignoredNode(nodeID);
+
+    } else {
+        qWarning() << "UsersScriptingInterface::ignore called with an invalid ID or an ID which matches the current session ID.";
+    }
+}
+
+bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
+    QReadLocker setLocker { &_ignoredSetLock };
+    return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
 }

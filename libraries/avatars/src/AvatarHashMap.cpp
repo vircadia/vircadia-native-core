@@ -19,7 +19,9 @@
 #include "AvatarHashMap.h"
 
 AvatarHashMap::AvatarHashMap() {
-    connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
 QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
