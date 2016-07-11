@@ -68,12 +68,15 @@ public:
 
     AudioLimiter audioLimiter;
 
-    // FIXME -- maybe make these private
-    CodecPluginPointer _codec;
-    QString _selectedCodecName;
-    Encoder* _encoder { nullptr }; // for outbound mixed stream
-    Decoder* _decoder { nullptr }; // for mic stream
-
+    void setupCodec(CodecPluginPointer codec, const QString& codecName);
+    void cleanupCodec();
+    void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+        if (_encoder) {
+            _encoder->encode(decodedBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = decodedBuffer;
+        }
+    }
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
@@ -91,6 +94,11 @@ private:
     AudioStreamStats _downstreamAudioStreamStats;
 
     int _frameToSendStats { 0 };
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder{ nullptr }; // for outbound mixed stream
+    Decoder* _decoder{ nullptr }; // for mic stream
 };
 
 #endif // hifi_AudioMixerClientData_h

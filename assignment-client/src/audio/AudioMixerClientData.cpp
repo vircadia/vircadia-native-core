@@ -110,12 +110,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 bool isStereo = channelFlag == 1;
 
                 auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
-                avatarAudioStream->_codec = _codec;
-                avatarAudioStream->_selectedCodecName = _selectedCodecName;
-                if (_codec) {
-                    avatarAudioStream->_decoder = _codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
-                }
-                qDebug() << "creating new AvatarAudioStream... codec:" << avatarAudioStream->_selectedCodecName;
+                avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
+                qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
@@ -339,4 +335,26 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     result["injectors"] = injectorArray;
 
     return result;
+}
+
+void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
+    cleanupCodec(); // cleanup any previously allocated coders first
+    _codec = codec;
+    _selectedCodecName = codecName;
+    _encoder = codec->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+    _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+}
+
+void AudioMixerClientData::cleanupCodec() {
+    // release any old codec encoder/decoder first...
+    if (_codec) {
+        if (_decoder) {
+            _codec->releaseDecoder(_decoder);
+            _decoder = nullptr;
+        }
+        if (_encoder) {
+            _codec->releaseEncoder(_encoder);
+            _encoder = nullptr;
+        }
+    }
 }

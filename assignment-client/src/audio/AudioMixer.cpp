@@ -478,7 +478,7 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         qDebug() << "No Codecs available...";
     }
 
-    CodecPluginPointer selectedCoded;
+    CodecPluginPointer selectedCodec;
     QString selectedCodecName;
 
     QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
@@ -513,7 +513,7 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
             for (auto& plugin : codecPlugins) {
                 if (selectedCodecName == plugin->getName()) {
                     qDebug() << "Selecting codec:" << selectedCodecName;
-                    selectedCoded = plugin;
+                    selectedCodec = plugin;
                     break;
                 }
             }
@@ -531,18 +531,13 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     }
 
-    clientData->_codec = selectedCoded;
-    clientData->_selectedCodecName = selectedCodecName;
-    clientData->_encoder = selectedCoded->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
-    clientData->_decoder = selectedCoded->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+    clientData->setupCodec(selectedCodec, selectedCodecName);
 
     qDebug() << "selectedCodecName:" << selectedCodecName;
 
     auto avatarAudioStream = clientData->getAvatarAudioStream();
     if (avatarAudioStream) {
-        avatarAudioStream->_codec = selectedCoded;
-        avatarAudioStream->_selectedCodecName = selectedCodecName;
-        avatarAudioStream->_decoder = selectedCoded->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+        avatarAudioStream->setupCodec(selectedCodec, selectedCodecName, AudioConstants::MONO);
     }
 
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
@@ -777,14 +772,9 @@ void AudioMixer::broadcastMixes() {
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
 
-                        // TODO - codec encode goes here
-                        QByteArray decocedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
-                        if (nodeData->_codec) {
-                            nodeData->_encoder->encode(decocedBuffer, encodedBuffer);
-                        } else {
-                            encodedBuffer = decocedBuffer;
-                        }
+                        nodeData->encode(decodedBuffer, encodedBuffer);
 
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());

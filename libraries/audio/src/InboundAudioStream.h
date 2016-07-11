@@ -105,6 +105,7 @@ public:
 
 public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings);
+    ~InboundAudioStream() { cleanupCodec(); }
 
     void reset();
     virtual void resetStats();
@@ -176,10 +177,8 @@ public:
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
 
-    // FIXME -- maybe make these private
-    CodecPluginPointer _codec;
-    QString _selectedCodecName;
-    Decoder* _decoder { nullptr };
+    void setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels);
+    void cleanupCodec();
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
@@ -274,6 +273,10 @@ protected:
     bool _hasReverb;
     float _reverbTime;
     float _wetLevel;
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Decoder* _decoder{ nullptr };
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);

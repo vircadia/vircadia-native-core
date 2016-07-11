@@ -140,6 +140,10 @@ AudioClient::AudioClient() :
 
 AudioClient::~AudioClient() {
     stop();
+    if (_codec && _encoder) {
+        _codec->releaseEncoder(_encoder);
+        _encoder = nullptr;
+    }
 }
 
 void AudioClient::reset() {
@@ -529,14 +533,19 @@ void AudioClient::negotiateAudioFormat() {
 void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
     qDebug() << __FUNCTION__;
 
-    _receivedAudioStream._selectedCodecName = _selectedCodecName = message->readString();
+    _selectedCodecName = message->readString();
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
-            _receivedAudioStream._codec = _codec = plugin;
-            _receivedAudioStream._decoder = plugin->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+            // release any old codec encoder/decoder first...
+            if (_codec && _encoder) {
+                _codec->releaseEncoder(_encoder);
+                _encoder = nullptr;
+            }
+            _codec = plugin;
+            _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
             qDebug() << "Selected Codec Plugin:" << _codec.get();
             break;

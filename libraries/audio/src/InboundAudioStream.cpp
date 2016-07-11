@@ -504,3 +504,21 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     return 0.0f;
 }
 
+void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels) {
+    cleanupCodec(); // cleanup any previously allocated coders first
+    _codec = codec;
+    _selectedCodecName = codecName;
+    if (_codec) {
+        _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, numChannels);
+    }
+}
+
+void InboundAudioStream::cleanupCodec() {
+    // release any old codec encoder/decoder first...
+    if (_codec) {
+        if (_decoder) {
+            _codec->releaseDecoder(_decoder);
+            _decoder = nullptr;
+        }
+    }
+}
