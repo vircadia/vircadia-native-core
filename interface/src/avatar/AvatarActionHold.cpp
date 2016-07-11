@@ -207,15 +207,6 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     }
 
     withWriteLock([&]{
-        glm::vec3 measuredLinearVelocity;
-        // there is a bit of lag between when someone releases the trigger and the software reacts to
-        // the release.  we calculate the velocity from previous frames but not this frame (by having
-        // this code before where _measuredLinearVelocities is set, below) in order to help mask this.
-        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
-            measuredLinearVelocity += _measuredLinearVelocities[i];
-        }
-        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
-
         if (_previousSet) {
             glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
             _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
@@ -223,6 +214,31 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
                 _measuredLinearVelocitiesIndex = 0;
             }
         }
+
+        glm::vec3 measuredLinearVelocity;
+        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
+            // there is a bit of lag between when someone releases the trigger and when the software reacts to
+            // the release.  we calculate the velocity from previous frames but we don't include several
+            // of the most recent.
+            //
+            // if _measuredLinearVelocitiesIndex is
+            //     0 -- ignore i of 3 4 5
+            //     1 -- ignore i of 4 5 0
+            //     2 -- ignore i of 5 0 1
+            //     3 -- ignore i of 0 1 2
+            //     4 -- ignore i of 1 2 3
+            //     5 -- ignore i of 2 3 4
+            if ((i + 1) % 6 == _measuredLinearVelocitiesIndex ||
+                (i + 2) % 6 == _measuredLinearVelocitiesIndex ||
+                (i + 3) % 6 == _measuredLinearVelocitiesIndex) {
+                continue;
+            }
+
+            measuredLinearVelocity += _measuredLinearVelocities[i];
+        }
+        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
+
+
 
         if (_kinematicSetVelocity) {
             // rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
