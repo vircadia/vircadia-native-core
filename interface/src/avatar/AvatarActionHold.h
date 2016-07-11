@@ -65,7 +65,9 @@ private:
     // leaving this here for future refernece.
     // glm::quat _palmRotationFromRigidBody;
 
-    glm::vec3 _measuredLinearVelocity;
+    static const int velocitySmoothFrames;
+    QVector<glm::vec3> _measuredLinearVelocities;
+    int _measuredLinearVelocitiesIndex { 0 };
 };
 
 #endif // hifi_AvatarActionHold_h

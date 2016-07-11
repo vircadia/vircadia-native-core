@@ -17,11 +17,14 @@
 #include "CharacterController.h"
 
 const uint16_t AvatarActionHold::holdVersion = 1;
+const int AvatarActionHold::velocitySmoothFrames = 6;
+
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectActionSpring(id, ownerEntity)
 {
     _type = ACTION_TYPE_HOLD;
+    _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
 #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
 #endif
@@ -168,7 +171,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         position = palmPosition + rotation * _relativePosition;
 
         // update linearVelocity based on offset via _relativePosition;
-        // linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
+        linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
     });
 
     return true;
@@ -205,16 +208,22 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
     withWriteLock([&]{
         if (_previousSet) {
-            _measuredLinearVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
-            qDebug() << _measuredLinearVelocity.x << _measuredLinearVelocity.y << _measuredLinearVelocity.z
-                     << deltaTimeStep;
-        } else {
-            _measuredLinearVelocity = glm::vec3();
+            glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+            _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
+            if (_measuredLinearVelocitiesIndex >= AvatarActionHold::velocitySmoothFrames) {
+                _measuredLinearVelocitiesIndex = 0;
+            }
         }
+
+        glm::vec3 measuredLinearVelocity;
+        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
+            measuredLinearVelocity += _measuredLinearVelocities[i];
+        }
+        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
 
         if (_kinematicSetVelocity) {
             // rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
-            rigidBody->setLinearVelocity(glmToBullet(_measuredLinearVelocity));
+            rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
             rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
         }
 
