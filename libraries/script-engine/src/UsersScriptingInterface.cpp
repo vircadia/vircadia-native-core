@@ -20,24 +20,29 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
-        if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
-            return true;
-        } else {
-            return false;
-        }
-    }, [&nodeID, &nodeList](const SharedNodePointer& destinationNode) {
-        // create a reliable NLPacket with space for the ignore UUID
-        auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID, true);
+    if (nodeList->getSessionUUID() != nodeID) {
+        nodeList->eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+            if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
+                return true;
+            } else {
+                return false;
+            }
+        }, [&nodeID, &nodeList](const SharedNodePointer& destinationNode) {
+            // create a reliable NLPacket with space for the ignore UUID
+            auto ignorePacket = NLPacket::create(PacketType::NodeIgnoreRequest, NUM_BYTES_RFC4122_UUID, true);
 
-        // write the node ID to the packet
-        ignorePacket->write(nodeID.toRfc4122());
+            // write the node ID to the packet
+            ignorePacket->write(nodeID.toRfc4122());
 
-        qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+            qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
 
-        // send off this ignore packet reliably to the matching node
-        nodeList->sendPacket(std::move(ignorePacket), *destinationNode);
-    });
-
-    emit ignoredNode(nodeID);
+            // send off this ignore packet reliably to the matching node
+            nodeList->sendPacket(std::move(ignorePacket), *destinationNode);
+        });
+        
+        emit ignoredNode(nodeID);
+    } else {
+        qWarning() << "UsersScriptingInterface was asked to ignore a node ID which matches the current session ID, "
+            << "but self-ignore has no meaning.";
+    }
 }
