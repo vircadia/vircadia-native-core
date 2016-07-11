@@ -43,7 +43,6 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
-        
         _model->setSnapModelToCenter(true);
         _model->setScaleToFit(true, getDimensions());
         _model->setRotation(getRotation());
@@ -87,23 +86,15 @@ void ModelOverlay::render(RenderArgs* args) {
 void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto position = getPosition();
     auto rotation = getRotation();
-    auto scale = getDimensions();
-    
+
     Volume3DOverlay::setProperties(properties);
-    
+
     if (position != getPosition() || rotation != getRotation()) {
         _updateModel = true;
     }
 
-    if (scale != getDimensions()) {
-        auto newScale = getDimensions();
-        if (newScale.x <= 0 || newScale.y <= 0 || newScale.z <= 0) {
-            setDimensions(scale);
-        } else {
-            _updateModel = true;
-        }
-    }
-    
+    _updateModel = true;
+
     auto urlValue = properties["url"];
     if (urlValue.isValid() && urlValue.canConvert<QString>()) {
         _url = urlValue.toString();
