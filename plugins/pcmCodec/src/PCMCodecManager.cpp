@@ -37,54 +37,23 @@ bool PCMCodec::isSupported() const {
     return true;
 }
 
-class PCMEncoder : public Encoder {
-public:
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = decodedBuffer;
-    }
-};
 
-class PCMDecoder : public Decoder {
-public:
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = encodedBuffer;
-    }
-
-    virtual void trackLostFrames(int numFrames)  override { }
-};
 
 Encoder* PCMCodec::createEncoder(int sampleRate, int numChannels) {
-    return new PCMEncoder();
+    return this;
 }
 
 Decoder* PCMCodec::createDecoder(int sampleRate, int numChannels) {
-    return new PCMDecoder();
+    return this;
 }
 
 void PCMCodec::releaseEncoder(Encoder* encoder) {
-    delete static_cast<PCMEncoder*>(encoder);
+    // do nothing
 }
 
 void PCMCodec::releaseDecoder(Decoder* decoder) {
-    delete static_cast<PCMDecoder*>(decoder);
+    // do nothing
 }
-
-
-class zLibEncoder : public Encoder {
-public:
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = qCompress(decodedBuffer);
-    }
-};
-
-class zLibDecoder : public Decoder {
-public:
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = qUncompress(encodedBuffer);
-    }
-
-    virtual void trackLostFrames(int numFrames)  override { }
-};
 
 const QString zLibCodec::NAME = "zlib";
 
@@ -103,24 +72,23 @@ void zLibCodec::deactivate() {
     CodecPlugin::deactivate();
 }
 
-
 bool zLibCodec::isSupported() const {
     return true;
 }
 
 Encoder* zLibCodec::createEncoder(int sampleRate, int numChannels) {
-    return new zLibEncoder();
+    return this;
 }
 
 Decoder* zLibCodec::createDecoder(int sampleRate, int numChannels) {
-    return new zLibDecoder();
+    return this;
 }
 
 void zLibCodec::releaseEncoder(Encoder* encoder) {
-    delete static_cast<zLibEncoder*>(encoder);
+    // do nothing... it wasn't allocated
 }
 
 void zLibCodec::releaseDecoder(Decoder* decoder) {
-    delete static_cast<zLibDecoder*>(decoder);
+    // do nothing... it wasn't allocated
 }
 

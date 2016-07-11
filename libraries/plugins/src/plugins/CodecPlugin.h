@@ -14,11 +14,13 @@
 
 class Encoder {
 public:
+    virtual ~Encoder() { }
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
 };
 
 class Decoder {
 public:
+    virtual ~Decoder() { }
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
 
     // numFrames - number of samples (mono) or sample-pairs (stereo)
