@@ -61,12 +61,28 @@ protected:
         }
     };
 
+    ProgramPtr _overlayProgram;
+    struct OverlayUniforms {
+        int32_t mvp { -1 };
+        int32_t alpha { -1 };
+        int32_t glowPoints { -1 };
+        int32_t resolution { -1 };
+        int32_t radius { -1 };
+    } _overlayUniforms;
+
     Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
     std::array<glm::mat4, 2> _handPoses;
+
+    Transform _presentUiModelTransform;
+    std::array<HandLaserInfo, 2> _presentHandLasers;
+    std::array<mat4, 2> _presentHandPoses;
+
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
     std::array<glm::mat4, 2> _eyeInverseProjections;
+
+
 
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
@@ -87,6 +103,8 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
+    void updateGlowProgram();
+
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };

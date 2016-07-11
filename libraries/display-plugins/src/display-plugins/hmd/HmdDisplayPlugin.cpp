@@ -12,6 +12,8 @@
 #include <glm/gtx/intersect.hpp>
 
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDateTime>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QWidget>
 
@@ -34,6 +36,9 @@ static const QString REPROJECTION = "Allow Reprojection";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
+static const int NUMBER_OF_HANDS = 2;
+static const glm::mat4 IDENTITY_MATRIX;
+
 
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
@@ -241,6 +246,9 @@ void main() {
 
 )VS";
 
+static const char * LASER_GS = R"GS(
+)GS";
+
 static const char * LASER_FS = R"FS(#version 410 core
 
 uniform vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
@@ -254,6 +262,85 @@ void main() {
 
 )FS";
 
+
+static const char * LASER_GLOW_VS = R"VS(#version 410 core
+
+uniform mat4 mvp = mat4(1);
+
+in vec3 Position;
+in vec2 TexCoord;
+
+out vec3 vPosition;
+out vec2 vTexCoord;
+
+void main() {
+  gl_Position = mvp * vec4(Position, 1);
+  vTexCoord = TexCoord;
+  vPosition = Position;
+}
+
+)VS";
+
+static const char * LASER_GLOW_FS = R"FS(#version 410 core
+#line 286
+uniform sampler2D sampler;
+uniform float alpha = 1.0;
+uniform vec4 glowPoints = vec4(-1);
+uniform vec4 glowColor1 = vec4(0.01, 0.7, 0.9, 1.0);
+uniform vec4 glowColor2 = vec4(0.9, 0.7, 0.01, 1.0);
+uniform vec2 resolution = vec2(3960.0, 1188.0);
+uniform float radius = 0.005;
+
+in vec3 vPosition;
+in vec2 vTexCoord;
+in vec4 vGlowPoints;
+
+out vec4 FragColor;
+
+float easeInOutCubic(float f) {
+    const float d = 1.0;
+    const float b = 0.0;
+    const float c = 1.0;
+    float t = f;
+    if ((t /= d / 2.0) < 1.0) return c / 2.0 * t * t * t + b;
+    return c / 2.0 * ((t -= 2.0) * t * t + 2.0) + b;
+}
+
+void main() {
+    vec2 aspect = resolution;
+    aspect /= resolution.x;
+    FragColor = texture(sampler, vTexCoord);
+
+    float glowIntensity = 0.0;
+    float dist1 = distance(vTexCoord * aspect, glowPoints.xy * aspect);
+    float dist2 = distance(vTexCoord * aspect, glowPoints.zw * aspect);
+    float dist = min(dist1, dist2);
+    vec3 glowColor = glowColor1.rgb;
+    if (dist2 < dist1) {
+        glowColor = glowColor2.rgb;
+    }
+
+    if (dist <= radius) {
+       glowIntensity = 1.0 - (dist / radius);
+       glowColor.rgb = pow(glowColor, vec3(1.0 - glowIntensity));
+       glowIntensity = easeInOutCubic(glowIntensity);
+       glowIntensity = pow(glowIntensity, 0.5);
+    }
+
+    if (alpha <= 0.0) {
+        if (glowIntensity <= 0.0) {
+            discard;
+        }
+
+        FragColor = vec4(glowColor, glowIntensity);
+        return;
+    }
+
+    FragColor.rgb = mix(FragColor.rgb, glowColor.rgb, glowIntensity);
+    FragColor.a *= alpha;
+}
+)FS";
+
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     // Only enable mirroring if we know vsync is disabled
@@ -263,7 +350,6 @@ void HmdDisplayPlugin::customizeContext() {
 #endif
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
-
     using namespace oglplus;
     if (!_enablePreview) {
         const std::string version("#version 410 core\n");
@@ -271,6 +357,7 @@ void HmdDisplayPlugin::customizeContext() {
         PREVIEW_TEXTURE_LOCATION = Uniform<int>(*_previewProgram, "colorMap").Location();
     }
 
+    updateGlowProgram();
     compileProgram(_laserProgram, LASER_VS, LASER_FS);
     _laserGeometry = loadLaser(_laserProgram);
 
@@ -280,7 +367,67 @@ void HmdDisplayPlugin::customizeContext() {
     PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "projections").Location();
 }
 
+#if 0
+static QString readFile(const char* filename) {
+    QFile file(filename);
+    file.open(QFile::Text | QFile::ReadOnly);
+    QString result;
+    result.append(QTextStream(&file).readAll());
+    return result;
+}
+#endif
+
+
+void HmdDisplayPlugin::updateGlowProgram() {
+#if 0
+    static qint64 vsBuiltAge = 0;
+    static qint64 fsBuiltAge = 0;
+    static const char* vsFile = "H:/glow_vert.glsl";
+    static const char* fsFile = "H:/glow_frag.glsl";
+    QFileInfo vsInfo(vsFile);
+    QFileInfo fsInfo(fsFile);
+    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
+    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
+    if (!_overlayProgram || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
+        QString vsSource = readFile(vsFile);
+        QString fsSource = readFile(fsFile);
+        ProgramPtr newOverlayProgram;
+        compileProgram(newOverlayProgram, vsSource.toLocal8Bit().toStdString(), fsSource.toLocal8Bit().toStdString());
+        if (newOverlayProgram) {
+            using namespace oglplus;
+            _overlayProgram = newOverlayProgram;
+            auto uniforms = _overlayProgram->ActiveUniforms();
+            _overlayUniforms.mvp = Uniform<glm::mat4>(*_overlayProgram, "mvp").Location();
+            _overlayUniforms.alpha = Uniform<float>(*_overlayProgram, "alpha").Location();
+            _overlayUniforms.glowPoints = Uniform<glm::vec4>(*_overlayProgram, "glowPoints").Location();
+            _overlayUniforms.resolution = Uniform<glm::vec2>(*_overlayProgram, "resolution").Location();
+            _overlayUniforms.radius = Uniform<float>(*_overlayProgram, "radius").Location();
+            useProgram(_overlayProgram);
+            Uniform<glm::vec2>(*_overlayProgram, _overlayUniforms.resolution).Set(CompositorHelper::VIRTUAL_SCREEN_SIZE);
+        }
+        vsBuiltAge = vsAge;
+        fsBuiltAge = fsAge;
+
+    }
+#else
+    if (!_overlayProgram) {
+        compileProgram(_overlayProgram, LASER_GLOW_VS, LASER_GLOW_FS);
+        using namespace oglplus;
+        auto uniforms = _overlayProgram->ActiveUniforms();
+        _overlayUniforms.mvp = Uniform<glm::mat4>(*_overlayProgram, "mvp").Location();
+        _overlayUniforms.alpha = Uniform<float>(*_overlayProgram, "alpha").Location();
+        _overlayUniforms.glowPoints = Uniform<glm::vec4>(*_overlayProgram, "glowPoints").Location();
+        _overlayUniforms.resolution = Uniform<glm::vec2>(*_overlayProgram, "resolution").Location();
+        _overlayUniforms.radius = Uniform<float>(*_overlayProgram, "radius").Location();
+        useProgram(_overlayProgram);
+        Uniform<glm::vec2>(*_overlayProgram, _overlayUniforms.resolution).Set(CompositorHelper::VIRTUAL_SCREEN_SIZE);
+    }
+
+#endif
+}
+
 void HmdDisplayPlugin::uncustomizeContext() {
+    _overlayProgram.reset();
     _sphereSection.reset();
     _compositeFramebuffer.reset();
     _previewProgram.reset();
@@ -327,19 +474,83 @@ void HmdDisplayPlugin::compositeOverlay() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
 
-    useProgram(_program);
-    // set the alpha
-    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
+    withPresentThreadLock([&] {
+        _presentHandLasers = _handLasers;
+        _presentHandPoses = _handPoses;
+        _presentUiModelTransform = _uiModelTransform;
+    });
+    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints { { vec2(-1), vec2(-1) } };
+
+    // compute the glow point interesections
+    for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
+        if (_presentHandPoses[i] == IDENTITY_MATRIX) {
+            continue;
+        }
+        const auto& handLaser = _presentHandLasers[i];
+        if (!handLaser.valid()) {
+            continue;
+        }
+
+        const auto& laserDirection = handLaser.direction;
+        auto model = _presentHandPoses[i];
+        auto castDirection = glm::quat_cast(model) * laserDirection;
+        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
+            castDirection = glm::normalize(castDirection);
+            castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
+        }
+
+        // FIXME fetch the actual UI radius from... somewhere?
+        float uiRadius = 1.0f;
+
+        // Find the intersection of the laser with he UI and use it to scale the model matrix
+        float distance;
+        if (!glm::intersectRaySphere(vec3(_presentHandPoses[i][3]), castDirection, _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
+            continue;
+        }
+
+        vec3 intersectionPosition = vec3(_presentHandPoses[i][3]) + (castDirection * distance) - _presentUiModelTransform.getTranslation();
+        intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
+
+        // Take the interesection normal and convert it to a texture coordinate
+        vec2 yawPitch;
+        {
+            vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
+            yawPitch.x = glm::atan(xdir.x, xdir.y);
+            yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + M_PI_2;
+        }
+        vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
+
+        // Are we out of range
+        if (glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
+            continue;
+        }
+
+        yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
+        yawPitch += 0.5f;
+        handGlowPoints[i] = yawPitch;
+    }
+
+    updateGlowProgram();
+    useProgram(_overlayProgram);
+    // Setup the uniforms
+    {
+        if (_overlayUniforms.alpha >= 0) {
+            Uniform<float>(*_overlayProgram, _overlayUniforms.alpha).Set(_compositeOverlayAlpha);
+        }
+        if (_overlayUniforms.glowPoints >= 0) {
+            vec4 glowPoints(handGlowPoints[0], handGlowPoints[1]);
+            Uniform<glm::vec4>(*_overlayProgram, _overlayUniforms.glowPoints).Set(glowPoints);
+        }
+    }
+
     _sphereSection->Use();
     for_each_eye([&](Eye eye) {
         eyeViewport(eye);
         auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
         auto mvp = _eyeProjections[eye] * modelView;
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
+        Uniform<glm::mat4>(*_overlayProgram, _overlayUniforms.mvp).Set(mvp);
         _sphereSection->Draw();
     });
-    // restore the alpha
-    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::compositePointer() {
@@ -478,23 +689,12 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
 }
 
 void HmdDisplayPlugin::compositeExtra() {
-    const int NUMBER_OF_HANDS = 2;
-    std::array<HandLaserInfo, NUMBER_OF_HANDS> handLasers;
-    std::array<mat4, NUMBER_OF_HANDS> renderHandPoses;
-    Transform uiModelTransform;
-    withPresentThreadLock([&] {
-        handLasers = _handLasers;
-        renderHandPoses = _handPoses;
-        uiModelTransform = _uiModelTransform;
-    });
-
     // If neither hand laser is activated, exit
-    if (!handLasers[0].valid() && !handLasers[1].valid()) {
+    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid()) {
         return;
     }
 
-    static const glm::mat4 identity;
-    if (renderHandPoses[0] == identity && renderHandPoses[1] == identity) {
+    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX) {
         return;
     }
 
@@ -505,16 +705,16 @@ void HmdDisplayPlugin::compositeExtra() {
     std::array<mat4, NUMBER_OF_HANDS> handLaserModelMatrices;
 
     for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
-        if (renderHandPoses[i] == identity) {
+        if (_presentHandPoses[i] == IDENTITY_MATRIX) {
             continue;
         }
-        const auto& handLaser = handLasers[i];
+        const auto& handLaser = _presentHandLasers[i];
         if (!handLaser.valid()) {
             continue;
         }
 
         const auto& laserDirection = handLaser.direction;
-        auto model = renderHandPoses[i];
+        auto model = _presentHandPoses[i];
         auto castDirection = glm::quat_cast(model) * laserDirection;
         if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
             castDirection = glm::normalize(castDirection);
@@ -525,7 +725,7 @@ void HmdDisplayPlugin::compositeExtra() {
 
         // Find the intersection of the laser with he UI and use it to scale the model matrix
         float distance; 
-        if (!glm::intersectRaySphere(vec3(renderHandPoses[i][3]), castDirection, uiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
+        if (!glm::intersectRaySphere(vec3(_presentHandPoses[i][3]), castDirection, _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
             continue;
         }
 
@@ -545,13 +745,12 @@ void HmdDisplayPlugin::compositeExtra() {
         auto view = glm::inverse(eyePose);
         const auto& projection = _eyeProjections[eye];
         for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
-            if (handLaserModelMatrices[i] == identity) {
+            if (handLaserModelMatrices[i] == IDENTITY_MATRIX) {
                 continue;
             }
             Uniform<glm::mat4>(*_laserProgram, "mvp").Set(projection * view * handLaserModelMatrices[i]);
-            Uniform<glm::vec4>(*_laserProgram, "color").Set(handLasers[i].color);
+            Uniform<glm::vec4>(*_laserProgram, "color").Set(_presentHandLasers[i].color);
             _laserGeometry->Draw();
-            // TODO render some kind of visual indicator at the intersection point with the UI.
         }
     });
 }
