@@ -849,16 +849,12 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
     const int16_t* receivedSamples;
-    char inputBufferCopy[AudioConstants::NETWORK_FRAME_BYTES_STEREO];
+    QByteArray inputBufferCopy = inputBuffer;
     assert(inputBuffer.size() == AudioConstants::NETWORK_FRAME_BYTES_STEREO);
     
     if(getActiveLocalAudioInjectors().size() > 0) {
-        // gotta copy the since it is const
-        for(int i = 0; i < sizeof(inputBufferCopy); i++) {
-            inputBufferCopy[i] = inputBuffer.data()[i];
-        }
-        mixLocalAudioInjectors((int16_t*)inputBufferCopy);
-        receivedSamples = reinterpret_cast<const int16_t*>(inputBufferCopy);
+        mixLocalAudioInjectors((int16_t*)inputBufferCopy.data());
+        receivedSamples = reinterpret_cast<const int16_t*>(inputBufferCopy.data());
     } else {
         receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
     }
