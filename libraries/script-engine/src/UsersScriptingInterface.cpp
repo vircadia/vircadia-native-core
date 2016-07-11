@@ -21,10 +21,10 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
-        if (node->getType() != NodeType::AudioMixer || node->getType() != NodeType::AvatarMixer) {
-            return false;
-        } else {
+        if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
             return true;
+        } else {
+            return false;
         }
     }, [&nodeID, &nodeList](const SharedNodePointer& destinationNode) {
         // create a reliable NLPacket with space for the ignore UUID
@@ -32,6 +32,8 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
 
         // write the node ID to the packet
         ignorePacket->write(nodeID.toRfc4122());
+
+        qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
 
         // send off this ignore packet reliably to the matching node
         nodeList->sendPacket(std::move(ignorePacket), *destinationNode);

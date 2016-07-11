@@ -425,7 +425,6 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QMutexLocker locker(&sendingNode->getMutex());
 
     NodeData* linkedData = getOrCreateLinkedData(sendingNode);
 

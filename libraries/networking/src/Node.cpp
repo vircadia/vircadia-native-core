@@ -82,7 +82,8 @@ void Node::handleNodeIgnoreRequest(QSharedPointer<ReceivedMessage> packet) {
     // parse out the UUID being ignored from the packet
     QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    qDebug() << "Adding" << ignoredUUID << "to ignore set for" << _uuid;
+    qDebug() << "Adding" << uuidStringWithoutCurlyBraces(ignoredUUID) << "to ignore set for"
+        << uuidStringWithoutCurlyBraces(_uuid);
 
     // add the session UUID to the set of ignored ones for this listening node
     _ignoredNodeIDSet.insert(ignoredUUID);
