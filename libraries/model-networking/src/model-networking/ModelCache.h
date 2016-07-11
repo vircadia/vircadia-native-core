@@ -127,7 +127,7 @@ class ModelCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    GeometryResource::Pointer fetchResource(const QUrl& url,
+    GeometryResource::Pointer getGeometryResource(const QUrl& url,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
 
 protected:
