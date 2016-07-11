@@ -183,6 +183,7 @@ const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
 const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
 const PacketVersion VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS = 60;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
+const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
