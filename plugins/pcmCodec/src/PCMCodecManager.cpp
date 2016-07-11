@@ -62,11 +62,11 @@ Decoder* PCMCodec::createDecoder(int sampleRate, int numChannels) {
 }
 
 void PCMCodec::releaseEncoder(Encoder* encoder) {
-    delete encoder;
+    delete static_cast<PCMEncoder*>(encoder);
 }
 
 void PCMCodec::releaseDecoder(Decoder* decoder) {
-    delete decoder;
+    delete static_cast<PCMDecoder*>(decoder);
 }
 
 
@@ -117,10 +117,10 @@ Decoder* zLibCodec::createDecoder(int sampleRate, int numChannels) {
 }
 
 void zLibCodec::releaseEncoder(Encoder* encoder) {
-    delete encoder;
+    delete static_cast<zLibEncoder*>(encoder);
 }
 
 void zLibCodec::releaseDecoder(Decoder* decoder) {
-    delete decoder;
+    delete static_cast<zLibDecoder*>(decoder);
 }
 

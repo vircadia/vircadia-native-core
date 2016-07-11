@@ -154,7 +154,7 @@ qint64 BasePacket::writeString(const QString& string) {
     QByteArray data = string.toUtf8();
     uint32_t length = data.length();
     writePrimitive(length);
-    auto result = writeData(data.constData(), data.length());
+    writeData(data.constData(), data.length());
     seek(pos() + length);
     return length + sizeof(uint32_t);
 }
