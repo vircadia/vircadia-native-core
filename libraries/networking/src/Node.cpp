@@ -81,14 +81,14 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
 }
 
 void Node::addIgnoredNode(const QUuid& otherNodeID) {
-    if (otherNodeID != _uuid) {
+    if (!otherNodeID.isNull() && otherNodeID != _uuid) {
         qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"
         << uuidStringWithoutCurlyBraces(_uuid);
 
         // add the session UUID to the set of ignored ones for this listening node
         _ignoredNodeIDSet.insert(otherNodeID);
     } else {
-        qCWarning(networking) << "Node::addIgnoredNode called with ID of ignoring node - nodes cannot self-ignore.";
+        qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
     }
 }
 

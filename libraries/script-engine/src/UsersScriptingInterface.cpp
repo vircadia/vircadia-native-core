@@ -20,7 +20,7 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     auto nodeList = DependencyManager::get<NodeList>();
 
-    if (nodeList->getSessionUUID() != nodeID) {
+    if (!nodeID.isNull() && nodeList->getSessionUUID() != nodeID) {
         nodeList->eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
@@ -42,7 +42,6 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
         
         emit ignoredNode(nodeID);
     } else {
-        qWarning() << "UsersScriptingInterface was asked to ignore a node ID which matches the current session ID, "
-            << "but self-ignore has no meaning.";
+        qWarning() << "UsersScriptingInterface::ignore called with an invalid ID or an ID which matches the current session ID.";
     }
 }

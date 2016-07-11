@@ -441,6 +441,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ModelBlender>();
+    DependencyManager::set<UsersScriptingInterface>();
     DependencyManager::set<AvatarManager>();
     DependencyManager::set<LODManager>();
     DependencyManager::set<StandAloneJSConsole>();
@@ -455,7 +456,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
-    DependencyManager::set<UsersScriptingInterface>();
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();

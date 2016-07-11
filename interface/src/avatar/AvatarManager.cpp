@@ -29,6 +29,7 @@
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
+#include <UsersScriptingInterface.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -73,6 +74,11 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+
+    // when we hear that the user has ignored an avatar by session UUID
+    // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
+    auto usersScriptingInterface = DependencyManager::get<UsersScriptingInterface>();
+    connect(usersScriptingInterface.data(), &UsersScriptingInterface::ignoredNode, this, &AvatarManager::removeAvatar);
 }
 
 AvatarManager::~AvatarManager() {
@@ -85,7 +91,8 @@ void AvatarManager::init() {
         _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
     }
 
-    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged,
+            this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
