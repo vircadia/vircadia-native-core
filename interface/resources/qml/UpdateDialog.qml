@@ -3,13 +3,16 @@ import QtQuick 2.3
 import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
+
 import "controls-uit"
+import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
 
 ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifistyles }
     objectName: "UpdateDialog"
     width: updateDialog.implicitWidth
     height: updateDialog.implicitHeight
@@ -40,22 +43,6 @@ ScrollingWindow {
 
             width: updateDialog.contentWidth + updateDialog.borderWidth * 2
             height: mainContent.height + updateDialog.borderWidth * 2 - updateDialog.closeMargin / 2
-
-            MouseArea {
-                width: parent.width
-                height: parent.height
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
-                drag {
-                    target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? root.maximumX : 0
-                    maximumY: root.parent ? root.maximumY : 0
-                }
-            }
         }
 
         Image {
@@ -89,7 +76,7 @@ ScrollingWindow {
                     text: "Update Available"
                     font {
                         family: updateDialog.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 1.5
+                        pixelSize: hifistyles.fonts.pixelSize * 1.5
                         weight: Font.DemiBold
                     }
                     color: "#303030"
@@ -100,10 +87,10 @@ ScrollingWindow {
                     text: updateDialog.updateAvailableDetails
                     font {
                         family: updateDialog.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 0.6
+                        pixelSize: hifistyles.fonts.pixelSize * 0.6
                         letterSpacing: -0.5
                     }
-                    color: hifi.colors.text
+                    color: hifistyles.colors.text
                     anchors {
                         top: updateAvailable.bottom
                     }
@@ -130,12 +117,12 @@ ScrollingWindow {
                     Text {
                         id: releaseNotes
                         wrapMode: Text.Wrap
-                        width: parent.width - updateDialog.closeMargin
+                        width: parent.parent.width - updateDialog.closeMargin
                         text: updateDialog.releaseNotes
-                        color: hifi.colors.text
+                        color: hifistyles.colors.text
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 0.65
+                            pixelSize: hifistyles.fonts.pixelSize * 0.65
                         }
                     }
                 }
@@ -157,7 +144,7 @@ ScrollingWindow {
                         color: "#0c9ab4"  // Same as logo
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            pixelSize: hifistyles.fonts.pixelSize * 1.2
                             weight: Font.DemiBold
                         }
                         anchors {
@@ -169,7 +156,7 @@ ScrollingWindow {
                     MouseArea {
                         id: cancelButtonAction
                         anchors.fill: parent
-                        onClicked: updateDialog.closeDialog()
+                        onClicked: root.shown = false
                         cursorShape: "PointingHandCursor"
                     }
                 }
@@ -185,7 +172,7 @@ ScrollingWindow {
                         color: "#0c9ab4"  // Same as logo
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            pixelSize: hifistyles.fonts.pixelSize * 1.2
                             weight: Font.DemiBold
                         }
                         anchors {
