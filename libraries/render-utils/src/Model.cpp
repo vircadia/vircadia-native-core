@@ -826,7 +826,7 @@ void Model::setURL(const QUrl& url) {
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
-    if (_collisionUrl == url) {
+    if (_collisionUrl == url && _collisionWatcher.getURL() == url) {
         return;
     }
     _collisionUrl = url;
