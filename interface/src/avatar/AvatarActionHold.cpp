@@ -236,7 +236,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
             measuredLinearVelocity += _measuredLinearVelocities[i];
         }
-        measuredLinearVelocity /= (float)AvatarActionHold::velocitySmoothFrames;
+        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3);
 
 
 
