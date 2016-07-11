@@ -98,6 +98,7 @@
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
+#include <UsersScriptingInterface.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
@@ -454,6 +455,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
+    DependencyManager::set<UsersScriptingInterface>();
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
@@ -4755,6 +4757,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
