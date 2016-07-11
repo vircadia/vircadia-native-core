@@ -70,7 +70,7 @@ public:
     bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
     bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
 
-    void handleNodeIgnoreRequest(QSharedPointer<ReceivedMessage> packet);
+    void addIgnoredNode(const QUuid& otherNodeID);
     bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);

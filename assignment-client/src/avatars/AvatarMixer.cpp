@@ -434,7 +434,10 @@ void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message
 }
 
 void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    senderNode->handleNodeIgnoreRequest(message);
+    // parse out the UUID being ignored from the packet
+    QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    senderNode->addIgnoredNode(ignoredUUID);
 }
 
 void AvatarMixer::sendStatsPacket() {

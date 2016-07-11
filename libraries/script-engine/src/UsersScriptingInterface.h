@@ -22,6 +22,8 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
 public slots:
     void ignore(const QUuid& nodeID);
+signals:
+    void ignoredNode(const QUuid& nodeID);
 };
 
 

@@ -38,4 +38,6 @@ void UsersScriptingInterface::ignore(const QUuid& nodeID) {
         // send off this ignore packet reliably to the matching node
         nodeList->sendPacket(std::move(ignorePacket), *destinationNode);
     });
+
+    emit ignoredNode(nodeID);
 }

@@ -557,7 +557,10 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
 }
 
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
-    sendingNode->handleNodeIgnoreRequest(packet);
+    // parse out the UUID being ignored from the packet
+    QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    sendingNode->addIgnoredNode(ignoredUUID);
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
