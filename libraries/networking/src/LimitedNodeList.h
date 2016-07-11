@@ -149,6 +149,7 @@ public:
     void processKillNode(ReceivedMessage& message);
 
     int updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer matchingNode);
+    NodeData* getOrCreateLinkedData(SharedNodePointer node);
 
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);

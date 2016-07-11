@@ -21,6 +21,10 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <UUIDHasher.h>
+
+#include <tbb/concurrent_unordered_set.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
@@ -66,6 +70,9 @@ public:
     bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
     bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
 
+    void handleNodeIgnoreRequest(QSharedPointer<ReceivedMessage> packet);
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
+
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -84,6 +91,7 @@ private:
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
 };
 
 Q_DECLARE_METATYPE(Node*)

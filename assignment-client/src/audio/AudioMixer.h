@@ -47,6 +47,7 @@ private slots:
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
+    void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 

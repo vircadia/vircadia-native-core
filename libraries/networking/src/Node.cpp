@@ -78,6 +78,14 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
+void Node::handleNodeIgnoreRequest(QSharedPointer<ReceivedMessage> packet) {
+    // parse out the UUID being ignored from the packet
+    QUuid ignoredUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    // add the session UUID to the set of ignored ones for this listening node
+    _ignoredNodeIDSet.insert(ignoredUUID);
+}
+
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;
