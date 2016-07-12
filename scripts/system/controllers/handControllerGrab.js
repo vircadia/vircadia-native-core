@@ -2247,11 +2247,18 @@ var handleHandMessages = function (channel, message, sender) {
         if (channel === 'Hifi-Hand-Disabler') {
             if (message === 'left') {
                 handToDisable = LEFT_HAND;
+                leftController.turnOffVisualizations();
             }
             if (message === 'right') {
                 handToDisable = RIGHT_HAND;
+                rightController.turnOffVisualizations();
             }
             if (message === 'both' || message === 'none') {
+                if (message === 'both') {
+                    rightController.turnOffVisualizations();
+                    leftController.turnOffVisualizations();
+
+                }
                 handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
@@ -2331,4 +2338,3 @@ function handleMenuItemEvent(menuItem) {
 }
 
 Menu.menuItemEvent.connect(handleMenuItemEvent);
-
