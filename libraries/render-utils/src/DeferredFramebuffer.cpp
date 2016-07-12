@@ -15,34 +15,34 @@ DeferredFramebuffer::DeferredFramebuffer() {
 }
 
 
-void DeferredFramebuffer::setPrimaryDepth(const gpu::TexturePointer& depthBuffer) {
-    //If the size changed, we need to delete our FBOs
-    if (_primaryDepthTexture != depthBuffer) {
+void DeferredFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depthBuffer) {
+    //If the depth buffer or size changed, we need to delete our FBOs
+    bool reset = false;
+    if ((_primaryDepthTexture != depthBuffer)) {
         _primaryDepthTexture = depthBuffer;
-
+        reset = true;
     }
-}
+    if (_primaryDepthTexture) {
+        auto newFrameSize = glm::ivec2(_primaryDepthTexture->getDimensions());
+        if (_frameSize != newFrameSize) {
+            _frameSize = newFrameSize;
+            reset = true;
+        }
+    }
 
-void DeferredFramebuffer::setFrameSize(const glm::ivec2& frameBufferSize) {
-    //If the size changed, we need to delete our FBOs
-    if (_frameSize != frameBufferSize) {
-        _frameSize = frameBufferSize;
-         _deferredFramebuffer.reset();
+    if (reset) {
+        _deferredFramebuffer.reset();
         _deferredFramebufferDepthColor.reset();
         _deferredColorTexture.reset();
         _deferredNormalTexture.reset();
         _deferredSpecularTexture.reset();
         _lightingTexture.reset();
         _lightingFramebuffer.reset();
-
-        _occlusionFramebuffer.reset();
-        _occlusionTexture.reset();
-        _occlusionBlurredFramebuffer.reset();
-        _occlusionBlurredTexture.reset();
     }
 }
 
 void DeferredFramebuffer::allocate() {
+
     _deferredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _deferredFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
@@ -52,9 +52,6 @@ void DeferredFramebuffer::allocate() {
     auto height = _frameSize.y;
 
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-   // _primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-
-  //  _primaryFramebuffer->setRenderBuffer(0, _primaryColorTexture);
 
     _deferredColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
 
@@ -66,8 +63,6 @@ void DeferredFramebuffer::allocate() {
     _deferredFramebuffer->setRenderBuffer(2, _deferredSpecularTexture);
 
     _deferredFramebufferDepthColor->setRenderBuffer(0, _deferredColorTexture);
-
-    //  auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
 
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
     if (!_primaryDepthTexture) {
@@ -88,41 +83,7 @@ void DeferredFramebuffer::allocate() {
 
     _deferredFramebuffer->setRenderBuffer(3, _lightingTexture);
 
-    // For AO:
-   // auto pointMipSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT);
- //   _depthPyramidTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
- //   _depthPyramidFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
- //   _depthPyramidFramebuffer->setRenderBuffer(0, _depthPyramidTexture);
-  //  _depthPyramidFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-
-  //  resizeAmbientOcclusionBuffers();
 }
-
-/*
-void DeferredFramebuffer::resizeAmbientOcclusionBuffers() {
-    _occlusionFramebuffer.reset();
-    _occlusionTexture.reset();
-    _occlusionBlurredFramebuffer.reset();
-    _occlusionBlurredTexture.reset();
-
-
-    auto width = _frameBufferSize.width() >> _AOResolutionLevel;
-    auto height = _frameBufferSize.height() >> _AOResolutionLevel;
-    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGB);
-    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-
-    _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-    _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
-    _occlusionFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-
-    _occlusionBlurredTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-    _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
-    _occlusionBlurredFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-}
-*/
 
 
 gpu::TexturePointer DeferredFramebuffer::getPrimaryDepthTexture() {

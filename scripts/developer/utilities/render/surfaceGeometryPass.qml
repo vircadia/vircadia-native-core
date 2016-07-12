@@ -33,12 +33,12 @@ Column {
 
         Column{
             CheckBox {
-                text: "Diffuse Curvature 1"
+                text: "Diffuse Curvature Mid"
                 checked: true
-                onCheckedChanged: { Render.getConfig("DiffuseCurvature").enabled = checked }
+                onCheckedChanged: { Render.getConfig("DiffuseCurvatureMid").enabled = checked }
             }        
             Repeater {
-                model: [ "Blur Scale:DiffuseCurvature:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvature:depthThreshold:1.0", "Blur Scale2:DiffuseCurvature2:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvature2:depthThreshold:1.0"]
+                model: [ "Blur Scale:DiffuseCurvatureMid:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvatureMid:depthThreshold:1.0", "Blur Scale2:DiffuseCurvatureLow:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvatureLow:depthThreshold:1.0"]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
@@ -50,9 +50,9 @@ Column {
             }
 
             CheckBox {
-                text: "Diffuse Curvature 2"
+                text: "Diffuse Curvature Low"
                 checked: true
-                onCheckedChanged: { Render.getConfig("DiffuseCurvature2").enabled = checked }
+                onCheckedChanged: { Render.getConfig("DiffuseCurvatureLow").enabled = checked }
             }
         }
     }

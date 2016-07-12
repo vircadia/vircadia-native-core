@@ -412,7 +412,9 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
 
 gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringProfile(RenderArgs* args) {
     const int PROFILE_RESOLUTION = 512;
-    auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_SRGBA_32, PROFILE_RESOLUTION, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+    //  const auto pixelFormat = gpu::Element::COLOR_SRGBA_32;
+    const auto pixelFormat = gpu::Element::COLOR_R11G11B10;
+    auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(pixelFormat, PROFILE_RESOLUTION, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
     diffuseProfileGPU(profileMap, args);
     return profileMap;
 }
@@ -420,7 +422,9 @@ gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringProfile(Rend
 gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScattering(const gpu::TexturePointer& profile, RenderArgs* args) {
 
     const int TABLE_RESOLUTION = 512;
-    auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_SRGBA_32, TABLE_RESOLUTION, TABLE_RESOLUTION, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+  //  const auto pixelFormat = gpu::Element::COLOR_SRGBA_32;
+    const auto pixelFormat = gpu::Element::COLOR_R11G11B10;
+    auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(pixelFormat, TABLE_RESOLUTION, TABLE_RESOLUTION, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
     //diffuseScatter(scatteringLUT);
     diffuseScatterGPU(profile, scatteringLUT, args);
     return scatteringLUT;
@@ -510,7 +514,10 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
     auto& frameTransform = inputs.get0();
     auto& deferredFramebuffer = inputs.get1();
 
-    auto& curvatureFramebuffer = inputs.get3();
+    auto& surfaceGeometryFramebuffer = inputs.get3();
+    auto& curvatureFramebuffer = surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+    auto& linearDepthTexture = surfaceGeometryFramebuffer->getLinearDepthTexture();
+
     auto& diffusedFramebuffer = inputs.get4();
     auto& scatteringResource = inputs.get5();
 
@@ -521,7 +528,6 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
     auto scatteringTable = scatteringResource->getScatteringTable();
     auto scatteringSpecular = scatteringResource->getScatteringSpecular();
 
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
 
 
 
@@ -567,7 +573,7 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
                 batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
                 batch.setResourceTexture(ScatteringTask_NormalMapSlot, deferredFramebuffer->getDeferredNormalTexture());
                 batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, deferredFramebuffer->getDeferredColorTexture());
-                batch.setResourceTexture(ScatteringTask_LinearMapSlot, framebufferCache->getDepthPyramidTexture());
+                batch.setResourceTexture(ScatteringTask_LinearMapSlot, linearDepthTexture);
 
 
                 batch._glUniform2f(debugScatteringPipeline->getProgram()->getUniforms().findLocation("uniformCursorTexcoord"), _debugCursorTexcoord.x, _debugCursorTexcoord.y);

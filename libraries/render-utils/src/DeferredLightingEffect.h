@@ -28,7 +28,7 @@
 #include "LightingModel.h"
 
 #include "LightStage.h"
-
+#include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
 
 class RenderArgs;
@@ -135,6 +135,7 @@ public:
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
+        const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const gpu::TexturePointer& diffusedCurvature2,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
@@ -167,7 +168,7 @@ signals:
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 

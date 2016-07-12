@@ -110,11 +110,15 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // Opaque all rendered, generate surface geometry buffers
     const auto surfaceGeometryPassInputs = render::Varying(SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer));
-    const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
+    const auto geometryFramebufferAndCurvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
+    const auto surfaceGeometryFramebuffer = geometryFramebufferAndCurvatureFramebufferAndDepth.getN<SurfaceGeometryPass::Outputs>(0);
+    const auto curvatureFramebuffer = geometryFramebufferAndCurvatureFramebufferAndDepth.getN<SurfaceGeometryPass::Outputs>(1);
+    const auto linearDepthTexture = geometryFramebufferAndCurvatureFramebufferAndDepth.getN<SurfaceGeometryPass::Outputs>(2);
 
+    const auto curvatureFramebufferAndDepth = render::Varying(BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture));
 
-    const auto curvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
-    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
+    const auto midCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureMid", curvatureFramebufferAndDepth);
+    const auto lowCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureLow", curvatureFramebufferAndDepth, true);
 
     const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
@@ -125,12 +129,12 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
-   
+        surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, scatteringResource));
+
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-    // Use Stencil and draw background in Lighting buffer
+    // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
     // Render transparent objects forward in LightingBuffer
@@ -150,7 +154,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, diffusedCurvatureFramebuffer, curvatureFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job
@@ -319,7 +323,6 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-       // auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
         auto deferredFboColorDepthStencil = deferredFramebuffer->getDeferredFramebufferDepthColor();
         
 
@@ -347,12 +350,8 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         args->_batch = &batch;
         _gpuTimer.begin(batch);
 
-    //    auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
-
         batch.enableSkybox(true);
-
-   //     batch.setFramebuffer(lightingFBO);
-
+        
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -388,8 +387,6 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
     int height = renderArgs->_viewport.w;
 
     // Blit primary to blit FBO
- //   auto framebufferCache = DependencyManager::get<FramebufferCache>();
- //   auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
     auto primaryFbo = srcFramebuffer;
 
     gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {

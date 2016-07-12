@@ -25,31 +25,17 @@ public:
     gpu::FramebufferPointer getDeferredFramebuffer();
     gpu::FramebufferPointer getDeferredFramebufferDepthColor();
 
-    gpu::TexturePointer getPrimaryDepthTexture();
-
     gpu::TexturePointer getDeferredColorTexture();
     gpu::TexturePointer getDeferredNormalTexture();
     gpu::TexturePointer getDeferredSpecularTexture();
 
-    gpu::FramebufferPointer getDepthPyramidFramebuffer();
-    gpu::TexturePointer getDepthPyramidTexture();
-
-
-    void setAmbientOcclusionResolutionLevel(int level);
-    gpu::FramebufferPointer getOcclusionFramebuffer();
-    gpu::TexturePointer getOcclusionTexture();
-    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
-    gpu::TexturePointer getOcclusionBlurredTexture();
-
-
     gpu::FramebufferPointer getLightingFramebuffer();
     gpu::TexturePointer getLightingTexture();
 
-    void setPrimaryDepth(const gpu::TexturePointer& depthBuffer);
-
-    void setFrameSize(const glm::ivec2& size);
+    // Update the depth buffer which will drive the allocation of all the other resources according to its size.
+    void updatePrimaryDepth(const gpu::TexturePointer& depthBuffer);
+    gpu::TexturePointer getPrimaryDepthTexture();
     const glm::ivec2& getFrameSize() const { return _frameSize; }
-
 
 protected:
     void allocate();
@@ -66,14 +52,7 @@ protected:
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;
 
-    gpu::FramebufferPointer _occlusionFramebuffer;
-    gpu::TexturePointer _occlusionTexture;
-
-    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
-    gpu::TexturePointer _occlusionBlurredTexture;
-
     glm::ivec2 _frameSize;
-
 };
 
 using DeferredFramebufferPointer = std::shared_ptr<DeferredFramebuffer>;

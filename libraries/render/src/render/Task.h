@@ -32,10 +32,6 @@ namespace render {
 class Varying;
 
 
-
-template < class T > void varyingGet(const T& data, uint8_t index, Varying& var) {}
-template <class T> uint8_t varyingLength(const T& data) { return 0; }
-    
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
 class Varying {
@@ -76,10 +72,9 @@ protected:
         
         virtual Varying operator[] (uint8_t index) const {
             Varying var;
-            varyingGet< T >(_data, index, var);
             return var;
         }
-        virtual uint8_t length() const { return varyingLength<T>(_data); }
+        virtual uint8_t length() const { return 0; }
 
         Data _data;
     };
@@ -89,8 +84,6 @@ protected:
 
 using VaryingPairBase = std::pair<Varying, Varying>;
 
-template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
-template <> uint8_t varyingLength(const VaryingPairBase& data);
 
 template < typename T0, typename T1 >
 class VaryingSet2 : public VaryingPairBase {
@@ -108,10 +101,14 @@ public:
     const T1& get1() const { return second.get<T1>(); }
     T1& edit1() { return second.edit<T1>(); }
 
-    Varying operator[] (uint8_t index) const {
-        if (index == 1) { return second; } else { return first; }
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
     }
-
+    virtual uint8_t length() const { return 2; }
 
 };
 
@@ -133,6 +130,18 @@ public:
 
     const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
     T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 3; }
+
 };
 
 template <class T0, class T1, class T2, class T3>
@@ -155,6 +164,20 @@ public:
 
     const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
     T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 3) {
+            return std::get<3>((*this));
+        } else if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 4; }
+
 };
 
 

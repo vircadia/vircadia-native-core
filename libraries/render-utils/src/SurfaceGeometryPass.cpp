@@ -25,6 +25,82 @@ const int SurfaceGeometryPass_NormalMapSlot = 1;
 #include "surfaceGeometry_makeCurvature_frag.h"
 
 
+
+SurfaceGeometryFramebuffer::SurfaceGeometryFramebuffer() {
+}
+
+
+void SurfaceGeometryFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depthBuffer) {
+    //If the depth buffer or size changed, we need to delete our FBOs
+    bool reset = false;
+    if ((_primaryDepthTexture != depthBuffer)) {
+        _primaryDepthTexture = depthBuffer;
+        reset = true;
+    }
+    if (_primaryDepthTexture) {
+        auto newFrameSize = glm::ivec2(_primaryDepthTexture->getDimensions());
+        if (_frameSize != newFrameSize) {
+            _frameSize = newFrameSize;
+            reset = true;
+        }
+    }
+
+    if (reset) {
+        _linearDepthFramebuffer.reset();
+        _linearDepthTexture.reset();
+        _curvatureFramebuffer.reset();
+        _curvatureTexture.reset();
+
+    }
+}
+
+void SurfaceGeometryFramebuffer::allocate() {
+
+    auto width = _frameSize.x;
+    auto height = _frameSize.y;
+
+    // For Linear Depth:
+    _linearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
+    // _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
+    _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
+    // _curvatureFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+}
+
+gpu::FramebufferPointer SurfaceGeometryFramebuffer::getLinearDepthFramebuffer() {
+    if (!_linearDepthFramebuffer) {
+        allocate();
+    }
+    return _linearDepthFramebuffer;
+}
+
+gpu::TexturePointer SurfaceGeometryFramebuffer::getLinearDepthTexture() {
+    if (!_linearDepthTexture) {
+        allocate();
+    }
+    return _linearDepthTexture;
+}
+
+gpu::FramebufferPointer SurfaceGeometryFramebuffer::getCurvatureFramebuffer() {
+    if (!_curvatureFramebuffer) {
+        allocate();
+    }
+    return _curvatureFramebuffer;
+}
+
+gpu::TexturePointer SurfaceGeometryFramebuffer::getCurvatureTexture() {
+    if (!_curvatureTexture) {
+        allocate();
+    }
+    return _curvatureTexture;
+}
+
+
+
 SurfaceGeometryPass::SurfaceGeometryPass() {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
@@ -54,18 +130,24 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     const auto frameTransform = inputs.get0();
     const auto deferredFramebuffer = inputs.get1();
 
+    if (!_surfaceGeometryFramebuffer) {
+        _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
+    }
+    _surfaceGeometryFramebuffer->updatePrimaryDepth(deferredFramebuffer->getPrimaryDepthTexture());
+
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
-    auto pyramidFBO = framebufferCache->getDepthPyramidFramebuffer();
-    
-    auto pyramidTexture = framebufferCache->getDepthPyramidTexture();
-    auto curvatureFBO = framebufferCache->getCurvatureFramebuffer();
 
-    curvatureAndDepth.edit0() = curvatureFBO;
-    curvatureAndDepth.edit1() = pyramidTexture;
+    auto linearDepthFBO = _surfaceGeometryFramebuffer->getLinearDepthFramebuffer();
+    auto linearDepthTexture = _surfaceGeometryFramebuffer->getLinearDepthTexture();
+    auto curvatureFBO = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+    auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
 
-    auto curvatureTexture = framebufferCache->getCurvatureTexture();
+    curvatureAndDepth.edit0() = _surfaceGeometryFramebuffer;
+    curvatureAndDepth.edit1() = curvatureFBO;
+    curvatureAndDepth.edit2() = linearDepthTexture;
+
 
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
     float sMin = args->_viewport.x / (float)framebufferSize.width();
@@ -93,7 +175,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
 
         // Pyramid pass
-        batch.setFramebuffer(pyramidFBO);
+        batch.setFramebuffer(linearDepthFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(args->getViewFrustum().getFarClip(), 0.0f, 0.0f, 0.0f));
         batch.setPipeline(linearDepthPipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, depthBuffer);
@@ -103,7 +185,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setFramebuffer(curvatureFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
         batch.setPipeline(curvaturePipeline);
-        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, pyramidTexture);
+        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, normalTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
@@ -163,4 +245,3 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 
     return _curvaturePipeline;
 }
-

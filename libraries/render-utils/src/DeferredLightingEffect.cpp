@@ -361,8 +361,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
     if (!_deferredFramebuffer) {
         _deferredFramebuffer = std::make_shared<DeferredFramebuffer>();
     }
-    _deferredFramebuffer->setPrimaryDepth(primaryFramebuffer->getDepthStencilBuffer());
-    _deferredFramebuffer->setFrameSize(glm::ivec2(args->_viewport.z, args->_viewport.w));
+    _deferredFramebuffer->updatePrimaryDepth(primaryFramebuffer->getDepthStencilBuffer());
 
     output.edit0() = _deferredFramebuffer;
     output.edit1() = _deferredFramebuffer->getLightingFramebuffer();
@@ -398,7 +397,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const gpu::TexturePointer& diffusedCurvature2,
+    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
+    const gpu::TexturePointer& lowCurvatureNormal,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
@@ -442,8 +442,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
 
         // Subsurface scattering specific
-        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, diffusedCurvature2);
+        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormal);
 
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
 
@@ -673,10 +673,11 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
-    auto diffusedCurvature2 = inputs.get3()->getRenderBuffer(0);
+    auto surfaceGeometryFramebuffer = inputs.get3();
+    auto lowCurvatureNormal = inputs.get4()->getRenderBuffer(0);
     auto subsurfaceScatteringResource = inputs.get5();
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, diffusedCurvature2, subsurfaceScatteringResource);
+    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormal, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
 
