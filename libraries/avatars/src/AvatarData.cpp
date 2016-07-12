@@ -34,6 +34,7 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
+#include <ShapeInfo.h>
 
 #include "AvatarLogging.h"
 
@@ -1680,4 +1681,26 @@ AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
         _avatarEntityDetached.clear();
     });
     return result;
+}
+
+QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    QScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
+    obj.setProperty("avatarID", avatarIDValue);
+    obj.setProperty("distance", value.distance);
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    return obj;
+}
+
+void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    QScriptValue avatarIDValue = object.property("avatarID");
+    quuidFromScriptValue(avatarIDValue, value.avatarID);
+    value.distance = object.property("distance").toVariant().toFloat();
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
 }
