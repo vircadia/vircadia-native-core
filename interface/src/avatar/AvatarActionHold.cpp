@@ -238,7 +238,6 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3); // 3 because of the 3 we skipped, above
 
         if (_kinematicSetVelocity) {
-            // rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
             rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
         }
