@@ -36,6 +36,20 @@ function removeOverlays() {
     ignoreOverlays = {};
 }
 
+// handle clicks on the toolbar button
+function buttonClicked(){
+    if (isShowingOverlays) {
+        removeOverlays();
+        isShowingOverlays = false;
+    } else {
+        isShowingOverlays = true;
+    }
+
+    button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
+}
+
+button.clicked.connect(buttonClicked);
+
 var OVERLAY_SIZE = 0.25;
 
 function updateOverlays() {
@@ -80,19 +94,19 @@ function updateOverlays() {
     }
 }
 
-// handle clicks on the toolbar button
-function buttonClicked(){
+Script.update.connect(updateOverlays);
+
+AvatarList.avatarRemovedEvent.connect(function(avatarID){
     if (isShowingOverlays) {
-        removeOverlays();
-        isShowingOverlays = false;
-    } else {
-        isShowingOverlays = true;
+        // we are currently showing overlays and an avatar just went away
+
+        // first remove the rendered overlay
+        Overlays.deleteOverlay(ignoreOverlays[avatarID]);
+
+        // delete the saved ID of the overlay from our ignored overlays object
+        delete ignoreOverlays[avatarID];
     }
-
-    button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
-}
-
-button.clicked.connect(buttonClicked);
+})
 
 Controller.mousePressEvent.connect(function(event){
     // handle click events so we can detect when our overlays are clicked
@@ -118,16 +132,11 @@ Controller.mousePressEvent.connect(function(event){
             // matched to an overlay, ask for the matching avatar to be ignored
             Users.ignore(avatarID);
 
-            // remove the actual overlay so it is no longer rendered
-            Overlays.deleteOverlay(ignoreOverlay);
-
-            // remove the overlay ID and avatar ID from our internal array
-            delete ignoreOverlays[avatarID];
+            // cleanup of the overlay is handled by the connection to avatarRemovedEvent
         }
     }
 });
 
-Script.update.connect(updateOverlays);
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
