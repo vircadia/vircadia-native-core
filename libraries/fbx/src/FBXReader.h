@@ -444,7 +444,7 @@ public:
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 
-    void consolidateFBXMaterials();
+    void consolidateFBXMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;
