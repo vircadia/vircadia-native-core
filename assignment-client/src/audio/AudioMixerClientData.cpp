@@ -348,8 +348,10 @@ void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& c
     cleanupCodec(); // cleanup any previously allocated coders first
     _codec = codec;
     _selectedCodecName = codecName;
-    _encoder = codec->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
-    _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+    if (codec) {
+        _encoder = codec->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+        _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+    }
 
     auto avatarAudioStream = getAvatarAudioStream();
     if (avatarAudioStream) {
