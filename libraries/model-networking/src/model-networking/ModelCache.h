@@ -106,7 +106,7 @@ public:
 
     void setResource(GeometryResource::Pointer resource);
 
-    QUrl GeometryResourceWatcher::getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
+    QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
 
 private:
     void startWatching();
