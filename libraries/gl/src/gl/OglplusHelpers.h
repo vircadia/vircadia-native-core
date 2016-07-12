@@ -62,6 +62,8 @@ using Mat4Uniform = oglplus::Uniform<mat4>;
 ProgramPtr loadDefaultShader();
 ProgramPtr loadCubemapShader();
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs);
+void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& gs, const std::string& fs);
+
 ShapeWrapperPtr loadSkybox(ProgramPtr program);
 ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect = 1.0f);
 ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 128, int stacks = 128);
