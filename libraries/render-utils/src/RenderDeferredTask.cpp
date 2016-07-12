@@ -113,16 +113,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
 
 
-    const auto theCurvatureVarying = curvatureFramebufferAndDepth[0];
-
-//#define SIMPLE_BLUR 1
-#if SIMPLE_BLUR
-    const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);
-    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature2", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first, true);
-#else
     const auto curvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
     const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
-#endif
 
     const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
@@ -138,16 +130,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-
-    // Use Stencil and start drawing background in Lighting buffer
+    // Use Stencil and draw background in Lighting buffer
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
-
 
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-
-    addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
-
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
@@ -160,6 +147,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
+        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, diffusedCurvatureFramebuffer, curvatureFramebuffer));
