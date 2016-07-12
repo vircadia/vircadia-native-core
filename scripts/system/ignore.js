@@ -111,7 +111,7 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
 Controller.mousePressEvent.connect(function(event){
     // handle click events so we can detect when our overlays are clicked
 
-    if (!event.isLeftButton && !that.triggered) {
+    if (!event.isLeftButton) {
         // if another mouse button than left is pressed ignore it
         return false;
     }
