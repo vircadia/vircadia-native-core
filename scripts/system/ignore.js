@@ -15,69 +15,77 @@ var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 // setup the ignore button and add it to the toolbar
 var button = toolbar.addButton({
     objectName: 'ignore',
-    imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
+    imageURL: Script.resolvePath("assets/images/tools/ignore.svg"),
     visible: true,
     buttonState: 1,
     alpha: 0.9
 });
 
 var isShowingOverlays = false;
-var ignoreOverlays = [];
+var ignoreOverlays = {};
 
-function hideOverlays() {
+function removeOverlays() {
     // enumerate the overlays and remove them
-    while (ignoreOverlays.length) {
-        // shift the element to remove it from the current overlays array when it is removed
-        Overlays.deleteOverlay(ignoreOverlays.shift()['overlayID']);
+    var ignoreOverlayKeys = Object.keys(ignoreOverlays);
+
+    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
+        var avatarID = ignoreOverlayKeys[i];
+        Overlays.deleteOverlay(ignoreOverlays[avatarID]);
     }
+
+    ignoreOverlays = {};
 }
 
 var OVERLAY_SIZE = 0.25;
 
-function showOverlays() {
-    var identifiers = AvatarList.getAvatarIdentifiers();
+function updateOverlays() {
+    if (isShowingOverlays) {
 
-    for (i = 0; i < identifiers.length; ++i) {
-        var identifier = identifiers[i];
+        var identifiers = AvatarList.getAvatarIdentifiers();
 
-        if (identifier === null) {
-            // this is our avatar, skip it
-            break;
+        for (i = 0; i < identifiers.length; ++i) {
+            var avatarID = identifiers[i];
+
+            if (avatarID === null) {
+                // this is our avatar, skip it
+                continue;
+            }
+
+            // get the position for this avatar
+            var avatar = AvatarList.getAvatar(avatarID);
+            var avatarPosition = avatar && avatar.position;
+
+            if (!avatarPosition) {
+                // we don't have a valid position for this avatar, skip it
+                continue;
+            }
+
+            if (avatarID in ignoreOverlays) {
+
+            } else {
+
+                // add the overlay above this avatar
+                var newOverlay = Overlays.addOverlay("cube", {
+                    position: avatarPosition,
+                    size: 0.25,
+                    color: { red: 0, green: 0, blue: 255},
+                    alpha: 1,
+                    solid: true
+                });
+
+                // push this overlay to our array of overlays
+                ignoreOverlays[avatarID] = newOverlay;
+            }
         }
-
-        // get the position for this avatar
-        var avatar = AvatarList.getAvatar(identifier);
-        var avatarPosition = avatar && avatar.position;
-
-        if (!avatarPosition) {
-            // we don't have a valid position for this avatar, skip it
-            break;
-        }
-
-        // add the overlay above this avatar
-        var newOverlay = Overlays.addOverlay("cube", {
-            position: avatarPosition,
-            size: 0.25,
-            color: { red: 0, green: 0, blue: 255},
-            alpha: 1,
-            solid: true
-        });
-
-        // push this overlay to our array of overlays
-        ignoreOverlays.push({
-            avatarID: identifiers[i],
-            overlayID: newOverlay
-        });
     }
 }
 
 // handle clicks on the toolbar button
 function buttonClicked(){
     if (isShowingOverlays) {
-        hideOverlays();
+        removeOverlays();
         isShowingOverlays = false;
     } else {
-        showOverlays();
         isShowingOverlays = true;
     }
 
@@ -101,23 +109,28 @@ Controller.mousePressEvent.connect(function(event){
     var clickedOverlay = Overlays.findRayIntersection(pickRay);
 
     // see this is one of our ignore overlays
-    for (i = 0; i < ignoreOverlays.length; ++i) {
-        var ignoreOverlay = ignoreOverlays[i]['overlayID']
+    var ignoreOverlayKeys = Object.keys(ignoreOverlays)
+    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
+        var avatarID = ignoreOverlayKeys[i];
+        var ignoreOverlay = ignoreOverlays[avatarID];
+
         if (clickedOverlay.overlayID == ignoreOverlay) {
             // matched to an overlay, ask for the matching avatar to be ignored
-            Users.ignore(ignoreOverlays[i]['avatarID']);
+            Users.ignore(avatarID);
 
             // remove the actual overlay so it is no longer rendered
             Overlays.deleteOverlay(ignoreOverlay);
 
             // remove the overlay ID and avatar ID from our internal array
-            ignoreOverlays.splice(i, 1);
+            delete ignoreOverlays[avatarID];
         }
     }
 });
 
+Script.update.connect(updateOverlays);
+
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
     toolbar.removeButton('ignore');
-    hideOverlays();
+    removeOverlays();
 });
