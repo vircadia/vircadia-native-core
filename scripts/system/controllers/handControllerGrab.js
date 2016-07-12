@@ -181,6 +181,10 @@ var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
 var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
 
+var avCollideLater;
+var setCollidesLaterTimeout;
+var collideLaterID;
+
 var CONTROLLER_STATE_MACHINE = {};
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
@@ -2060,6 +2064,17 @@ function MyController(hand) {
         }
         this.entityActivated = true;
 
+        if (setCollidesLaterTimeout && collideLaterID == entityID) {
+            // we have a timeout waiting to set collisions with myAvatar back on (so that when something
+            // is thrown it doesn't collide with the avatar's capsule the moment it's released).  We've
+            // regrabbed the entity before the timeout fired, so cancel the timeout, run the function now
+            // and adjust the grabbedProperties.  This will make the saved set of properties (the ones that
+            // get re-instated after all the grabs have been released) be correct.
+            Script.clearTimeout(setCollidesLaterTimeout);
+            setCollidesLaterTimeout = null;
+            grabbedProperties["collidesWith"] = avCollideLater();
+        }
+
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         var now = Date.now();
 
@@ -2150,10 +2165,18 @@ function MyController(hand) {
                     parentJointIndex: data["parentJointIndex"]
                 };
 
-                Script.setTimeout(function () {
-                    // set collidesWith back to original value a bit later than the rest
-                    Entities.editEntity(entityID, { collidesWith: data["collidesWith"] });
-                }, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY);
+                if (data["collidesWith"].indexOf("myAvatar") >= 0) {
+                    var javaScriptScopingIsBrokenData = data;
+                    avCollideLater = function () {
+                        // set collidesWith back to original value a bit later than the rest
+                        _this.setCollidesLaterTimeout = null;
+                        Entities.editEntity(entityID, { collidesWith: javaScriptScopingIsBrokenData["collidesWith"] });
+                        return javaScriptScopingIsBrokenData["collidesWith"];
+                    }
+                    setCollidesLaterTimeout =
+                        Script.setTimeout(avCollideLater, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY * MSECS_PER_SEC);
+                    collideLaterID = entityID;
+                }
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
