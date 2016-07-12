@@ -22,13 +22,13 @@ var button = toolbar.addButton({
 });
 
 var isShowingOverlays = false;
-var currentOverlays = [];
+var ignoreOverlays = [];
 
 function hideOverlays() {
     // enumerate the overlays and remove them
-    while (currentOverlays.length) {
+    while (ignoreOverlays.length) {
         // shift the element to remove it from the current overlays array when it is removed
-        Overlays.deleteOverlay(currentOverlays.shift());
+        Overlays.deleteOverlay(ignoreOverlays.shift()['overlayID']);
     }
 }
 
@@ -39,7 +39,14 @@ function showOverlays() {
 
     for (i = 0; i < identifiers.length; ++i) {
         // get the position for this avatar
-        var avatar = AvatarList.getAvatar(identifiers[i]);
+        var identifier = identifiers[i];
+
+        if (identifier === null) {
+            // this is our avatar, skip it
+            break;
+        }
+
+        var avatar = AvatarList.getAvatar(identifier);
         var avatarPosition = avatar && avatar.position;
 
         if (!avatarPosition) {
@@ -57,7 +64,10 @@ function showOverlays() {
         });
 
         // push this overlay to our array of overlays
-        currentOverlays.push(newOverlay);
+        ignoreOverlays.push({
+            avatarID: identifiers[i],
+            overlayID: newOverlay
+        });
     }
 }
 
@@ -76,7 +86,37 @@ function buttonClicked(){
 
 button.clicked.connect(buttonClicked);
 
-// remove the toolbar button when script is stopped
+Controller.mousePressEvent.connect(function(event){
+    // handle click events so we can detect when our overlays are clicked
+
+    if (!event.isLeftButton && !that.triggered) {
+        // if another mouse button than left is pressed ignore it
+        return false;
+    }
+
+    // compute the pick ray from the event
+    var pickRay = Camera.computePickRay(event.x, event.y);
+
+    // grab the clicked overlay for the given pick ray
+    var clickedOverlay = Overlays.findRayIntersection(pickRay);
+
+    // see this is one of our ignore overlays
+    for (i = 0; i < ignoreOverlays.length; ++i) {
+        var ignoreOverlay = ignoreOverlays[i]['overlayID']
+        if (clickedOverlay.overlayID == ignoreOverlay) {
+            // matched to an overlay, ask for the matching avatar to be ignored
+            Users.ignore(ignoreOverlays[i]['avatarID']);
+
+            // remove the actual overlay
+            Overlays.deleteOverlay(ignoreOverlay);
+
+            // remove the overlay from our internal array
+            ignoreOverlays.splice(i, 1);
+        }
+    }
+});
+
+// cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
     toolbar.removeButton('ignore');
     hideOverlays();
