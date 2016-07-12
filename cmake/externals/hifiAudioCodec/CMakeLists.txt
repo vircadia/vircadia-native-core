@@ -7,8 +7,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://s3.amazonaws.com/hifi-public/dependencies/codecSDK.zip
-  URL_MD5 4add25b7cc5dfdb3cbfc1156b95cfff7
+  URL https://s3.amazonaws.com/hifi-public/dependencies/codecSDK-1.zip
+  URL_MD5 23ec3fe51eaa155ea159a4971856fc13
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -24,27 +24,10 @@ set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE TYPE INTERNA
 
 if (WIN32)
     set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/Release/audio.lib CACHE TYPE INTERNAL)
-
-  # FIXME need to account for different architectures
-  #if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-  #  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win64/audio.lib CACHE TYPE INTERNAL)
-  #  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win64)
-  #else()
-  #  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win32/audio.lib CACHE TYPE INTERNAL)
-  #  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
-  #endif()
-
 elseif(APPLE)
-
-  # FIXME need to account for different architectures 
-  #set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx32/audio.dylib CACHE TYPE INTERNAL)
-  #add_paths_to_fixup_libs(${SOURCE_DIR}/bin/osx32)
-
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/Release/libaudio.a CACHE TYPE INTERNAL)
 elseif(NOT ANDROID)
-
   # FIXME need to account for different architectures 
   #set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux64/audio.so CACHE TYPE INTERNAL)
-  #add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux64)
-  
 endif()
 
