@@ -210,7 +210,7 @@ protected:
 
 private:
     void outputFormatChanged();
-    void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer);
+    void mixLocalAudioInjectors(int16_t* inputBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(const glm::vec3& relativePosition, float volume);
 

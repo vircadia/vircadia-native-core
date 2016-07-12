@@ -102,13 +102,13 @@ AudioClient::AudioClient() :
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
+    _audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
     _inputGate(),
     _positionGetter(DEFAULT_POSITION_GETTER),
-    _orientationGetter(DEFAULT_ORIENTATION_GETTER),
-    _audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO)
+    _orientationGetter(DEFAULT_ORIENTATION_GETTER)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
