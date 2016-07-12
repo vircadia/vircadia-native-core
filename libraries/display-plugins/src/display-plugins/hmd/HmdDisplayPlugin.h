@@ -61,15 +61,6 @@ protected:
         }
     };
 
-    ProgramPtr _overlayProgram;
-    struct OverlayUniforms {
-        int32_t mvp { -1 };
-        int32_t alpha { -1 };
-        int32_t glowPoints { -1 };
-        int32_t resolution { -1 };
-        int32_t radius { -1 };
-    } _overlayUniforms;
-
     Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
     std::array<glm::mat4, 2> _handPoses;
@@ -81,8 +72,6 @@ protected:
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
     std::array<glm::mat4, 2> _eyeInverseProjections;
-
-
 
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
@@ -103,23 +92,49 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
-    void updateGlowProgram();
+    void updateOverlayProgram();
+    void updateLaserProgram();
+    void updateReprojectionProgram();
 
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
     bool _firstPreview { true };
 
+    ProgramPtr _overlayProgram;
+    struct OverlayUniforms {
+        int32_t mvp { -1 };
+        int32_t alpha { -1 };
+        int32_t glowColors { -1 };
+        int32_t glowPoints { -1 };
+        int32_t resolution { -1 };
+        int32_t radius { -1 };
+    } _overlayUniforms;
+
     ProgramPtr _previewProgram;
+    struct PreviewUniforms {
+        int32_t previewTexture { -1 };
+    } _previewUniforms;
+
     float _previewAspect { 0 };
     GLuint _previewTextureID { 0 };
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
 
     ProgramPtr _reprojectionProgram;
+    struct ReprojectionUniforms {
+        int32_t reprojectionMatrix { -1 };
+        int32_t inverseProjectionMatrix { -1 };
+        int32_t projectionMatrix { -1 };
+    } _reprojectionUniforms;
+
     ShapeWrapperPtr _sphereSection;
 
     ProgramPtr _laserProgram;
+    struct LaserUniforms {
+        int32_t mvp { -1 };
+        int32_t color { -1 };
+    } _laserUniforms;
     ShapeWrapperPtr _laserGeometry;
 };
 
