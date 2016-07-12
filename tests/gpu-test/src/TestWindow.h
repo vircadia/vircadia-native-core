@@ -37,6 +37,7 @@ protected:
     model::LightPointer _light { std::make_shared<model::Light>() };
     
     GenerateDeferredFrameTransform _generateDeferredFrameTransform;
+    DeferredFramebufferPointer _deferredFramebuffer;
     PrepareDeferred _prepareDeferred;
     RenderDeferred _renderDeferred;
 #endif

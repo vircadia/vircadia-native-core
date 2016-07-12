@@ -87,11 +87,12 @@ protected:
     bool _stateSort;
 };
 
+class DeferredFramebuffer;
 class DrawStencilDeferred {
 public:
-    using JobModel = render::Job::Model<DrawStencilDeferred>;
+    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
     static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
@@ -157,9 +158,9 @@ protected:
 
 class Blit {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
 
-    using JobModel = render::Job::Model<Blit>;
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
 class RenderDeferredTask : public render::Task {

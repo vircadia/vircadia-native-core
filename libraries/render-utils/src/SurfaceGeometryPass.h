@@ -16,6 +16,7 @@
 
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
+#include "DeferredFramebuffer.h"
 
 class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_OBJECT
@@ -40,14 +41,15 @@ signals:
 
 class SurfaceGeometryPass {
 public:
+    using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, DeferredFramebufferPointer>;
     using Outputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = SurfaceGeometryPassConfig;
-    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, Inputs, Outputs, Config>;
 
     SurfaceGeometryPass();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, Outputs& curvatureAndDepth);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& curvatureAndDepth);
     
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
     float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }

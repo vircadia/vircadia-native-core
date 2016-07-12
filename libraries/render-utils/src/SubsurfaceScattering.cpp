@@ -508,9 +508,11 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
 
 
     auto& frameTransform = inputs.get0();
-    auto& curvatureFramebuffer = inputs.get2();
-    auto& diffusedFramebuffer = inputs.get3();
-    auto& scatteringResource = inputs.get4();
+    auto& deferredFramebuffer = inputs.get1();
+
+    auto& curvatureFramebuffer = inputs.get3();
+    auto& diffusedFramebuffer = inputs.get4();
+    auto& scatteringResource = inputs.get5();
 
     if (!scatteringResource) {
         return;
@@ -563,8 +565,8 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
                 batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
                 batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
                 batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
-                batch.setResourceTexture(ScatteringTask_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
-                batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, framebufferCache->getDeferredColorTexture());
+                batch.setResourceTexture(ScatteringTask_NormalMapSlot, deferredFramebuffer->getDeferredNormalTexture());
+                batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, deferredFramebuffer->getDeferredColorTexture());
                 batch.setResourceTexture(ScatteringTask_LinearMapSlot, framebufferCache->getDepthPyramidTexture());
 
 

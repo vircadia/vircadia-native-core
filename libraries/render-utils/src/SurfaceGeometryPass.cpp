@@ -45,16 +45,18 @@ void SurfaceGeometryPass::configure(const Config& config) {
     }
 }
 
-void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, Outputs& curvatureAndDepth) {
+void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& curvatureAndDepth) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
+    const auto frameTransform = inputs.get0();
+    const auto deferredFramebuffer = inputs.get1();
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
-    auto normalTexture = framebufferCache->getDeferredNormalTexture();
+    auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
+    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
     auto pyramidFBO = framebufferCache->getDepthPyramidFramebuffer();
     
     auto pyramidTexture = framebufferCache->getDepthPyramidTexture();

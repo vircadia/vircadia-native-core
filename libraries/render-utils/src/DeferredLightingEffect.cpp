@@ -328,8 +328,46 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     return _spotLightMesh;
 }
 
-void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
     auto args = renderContext->args;
+
+    glm::ivec2 frameSize(args->_viewport.z, args->_viewport.w);
+
+    if (!_primaryFramebuffer) {
+        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        auto primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+
+
+        _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
+
+
+        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+        auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+
+        _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
+
+    }
+    _primaryFramebuffer->resize(frameSize.x, frameSize.y);
+
+    primaryFramebuffer = _primaryFramebuffer;
+}
+
+void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& primaryFramebuffer, Outputs& output) {
+    auto args = renderContext->args;
+
+    if (!_deferredFramebuffer) {
+        _deferredFramebuffer = std::make_shared<DeferredFramebuffer>();
+    }
+    _deferredFramebuffer->setPrimaryDepth(primaryFramebuffer->getDepthStencilBuffer());
+    _deferredFramebuffer->setFrameSize(glm::ivec2(args->_viewport.z, args->_viewport.w));
+
+    output.edit0() = _deferredFramebuffer;
+    output.edit1() = _deferredFramebuffer->getLightingFramebuffer();
+
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
@@ -342,13 +380,13 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
 */
         // Clear deferred
-        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
-
+    //    auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
+        auto deferredFbo = _deferredFramebuffer->getDeferredFramebuffer();
         batch.setFramebuffer(deferredFbo);
 
         // Clear Color, Depth and Stencil for deferred buffer
         batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 | gpu::Framebuffer::BUFFER_COLOR3 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 0), 1.0, 0.0, true);
@@ -358,6 +396,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
 void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
+    const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const gpu::TexturePointer& diffusedCurvature2,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
@@ -370,11 +409,12 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         
         // perform deferred lighting, rendering to free fbo
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
+            
         auto textureCache = DependencyManager::get<TextureCache>();
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
         // binding the first framebuffer
-        auto lightingFBO = framebufferCache->getLightingFramebuffer();
+        auto lightingFBO = deferredFramebuffer->getLightingFramebuffer();
         batch.setFramebuffer(lightingFBO);
         
         batch.setViewportTransform(args->_viewport);
@@ -382,10 +422,10 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         
         
         // Bind the G-Buffer surfaces
-        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, framebufferCache->getDeferredColorTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, deferredFramebuffer->getDeferredColorTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, deferredFramebuffer->getDeferredNormalTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, deferredFramebuffer->getDeferredSpecularTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
         
         // FIXME: Different render modes should have different tasks
         if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
@@ -631,11 +671,12 @@ void RenderDeferred::configure(const Config& config) {
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     auto deferredTransform = inputs.get0();
-    auto lightingModel = inputs.get1();
-    auto diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
-    auto subsurfaceScatteringResource = inputs.get4();
+    auto deferredFramebuffer = inputs.get1();
+    auto lightingModel = inputs.get2();
+    auto diffusedCurvature2 = inputs.get3()->getRenderBuffer(0);
+    auto subsurfaceScatteringResource = inputs.get5();
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, lightingModel, diffusedCurvature2, subsurfaceScatteringResource);
+    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, diffusedCurvature2, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
 

@@ -27,7 +27,7 @@ public:
     ToneMappingEffect();
     virtual ~ToneMappingEffect() {}
 
-    void render(RenderArgs* args);
+    void render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& destinationBuffer);
 
     void setExposure(float exposure);
     float getExposure() const { return _parametersBuffer.get<Parameters>()._exposure; }
@@ -83,11 +83,13 @@ signals:
 
 class ToneMappingDeferred {
 public:
+    // Inputs: lightingFramebuffer, destinationFramebuffer
+    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = ToneMappingConfig;
-    using JobModel = render::Job::Model<ToneMappingDeferred, Config>;
+    using JobModel = render::Job::ModelI<ToneMappingDeferred, Inputs, Config>;
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
     ToneMappingEffect _toneMappingEffect;
 };

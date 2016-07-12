@@ -24,6 +24,7 @@
 #include <render/CullTask.h>
 
 #include "DeferredFrameTransform.h"
+#include "DeferredFramebuffer.h"
 #include "LightingModel.h"
 
 #include "LightStage.h"
@@ -105,11 +106,25 @@ private:
     friend class RenderDeferredCleanup;
 };
 
+class PreparePrimaryFramebuffer {
+public:
+    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, gpu::FramebufferPointer>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer);
+
+    gpu::FramebufferPointer _primaryFramebuffer;
+};
+
 class PrepareDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    // Output: DeferredFramebuffer, LightingFramebuffer
+    using Outputs = render::VaryingSet2<DeferredFramebufferPointer, gpu::FramebufferPointer>;
 
-    using JobModel = render::Job::Model<PrepareDeferred>;
+    using JobModel = render::Job::ModelIO<PrepareDeferred, gpu::FramebufferPointer, Outputs>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& primaryFramebuffer, Outputs& output);
+
+    DeferredFramebufferPointer _deferredFramebuffer;
 };
 
 class RenderDeferredSetup {
@@ -118,6 +133,7 @@ public:
     
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
         const DeferredFrameTransformPointer& frameTransform,
+        const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
         const gpu::TexturePointer& diffusedCurvature2,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
@@ -151,7 +167,7 @@ signals:
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
