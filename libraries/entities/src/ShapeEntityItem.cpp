@@ -20,17 +20,19 @@
 #include "ShapeEntityItem.h"
 
 namespace entity {
-    static const std::vector<QString> shapeStrings { { 
+    static const std::array<QString, Shape::NUM_SHAPES> shapeStrings { {
         "Triangle", 
         "Quad", 
-        "Circle", 
+        "Hexagon",
+        "Octagon",
+        "Circle",
         "Cube", 
         "Sphere", 
         "Tetrahedron", 
         "Octahedron", 
         "Dodecahedron", 
         "Icosahedron", 
-        "Torus", 
+        "Torus",
         "Cone", 
         "Cylinder" 
     } };
