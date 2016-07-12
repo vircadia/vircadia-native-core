@@ -464,8 +464,6 @@ void saveInputPluginSettings(const InputPluginList& plugins) {
 
 
 void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    qDebug() << __FUNCTION__;
-
     QStringList availableCodecs;
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     if (codecPlugins.size() > 0) {

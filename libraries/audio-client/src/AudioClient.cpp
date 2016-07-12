@@ -531,8 +531,6 @@ void AudioClient::negotiateAudioFormat() {
 }
 
 void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
-    qDebug() << __FUNCTION__;
-
     _selectedCodecName = message->readString();
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
