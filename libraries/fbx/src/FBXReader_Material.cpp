@@ -18,6 +18,8 @@
 #include <QtDebug>
 #include <QtEndian>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include "FBXReader.h"
 
 #include <memory>
@@ -67,9 +69,13 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
     return texture;
 }
 
-void FBXReader::consolidateFBXMaterials() {
-    
-  // foreach (const QString& materialID, materials) {
+void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
+
+    QString materialMapString = mapping.value("materialMap").toString();
+    QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());
+    QJsonObject materialMap = materialMapDocument.object();
+
+    // foreach (const QString& materialID, materials) {
     for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
         FBXMaterial& material = (*it);
 
@@ -253,12 +259,15 @@ void FBXReader::consolidateFBXMaterials() {
             }
         }
 
-        if (material.name.contains("body_mat") || material.name.contains("skin")) {
-            material._material->setScattering(1.0);
-            if (!material.emissiveTexture.isNull()) {
-                material.scatteringTexture = material.emissiveTexture;
-                material.emissiveTexture = FBXTexture();
-            }
+        if (materialMap.contains(material.name)) {
+            QJsonObject materialOptions = materialMap.value(material.name).toObject();
+            float scattering = materialOptions.contains("scattering") ? materialOptions.value("scattering").toDouble() : 1.0f;
+            QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
+            qDebug() << "Replacing material:" << material.name << "with skin scattering effect. scattering:" << scattering << "scatteringMap:" << scatteringMap;
+            material._material->setScattering(scattering);
+            material.scatteringTexture = FBXTexture();
+            material.scatteringTexture.name = material.name + ".scatteringMap";
+            material.scatteringTexture.filename = scatteringMap;
         }
 
         if (material.opacity <= 0.0f) {
