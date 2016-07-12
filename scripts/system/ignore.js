@@ -38,7 +38,6 @@ function showOverlays() {
     var identifiers = AvatarList.getAvatarIdentifiers();
 
     for (i = 0; i < identifiers.length; ++i) {
-        // get the position for this avatar
         var identifier = identifiers[i];
 
         if (identifier === null) {
@@ -46,6 +45,7 @@ function showOverlays() {
             break;
         }
 
+        // get the position for this avatar
         var avatar = AvatarList.getAvatar(identifier);
         var avatarPosition = avatar && avatar.position;
 
@@ -107,10 +107,10 @@ Controller.mousePressEvent.connect(function(event){
             // matched to an overlay, ask for the matching avatar to be ignored
             Users.ignore(ignoreOverlays[i]['avatarID']);
 
-            // remove the actual overlay
+            // remove the actual overlay so it is no longer rendered
             Overlays.deleteOverlay(ignoreOverlay);
 
-            // remove the overlay from our internal array
+            // remove the overlay ID and avatar ID from our internal array
             ignoreOverlays.splice(i, 1);
         }
     }
