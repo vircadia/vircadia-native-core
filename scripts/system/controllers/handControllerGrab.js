@@ -33,6 +33,8 @@ var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near 
 var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
+var COLLIDE_WITH_AV_AFTER_RELEASE_DELAY = 0.25; // seconds
+
 var BUMPER_ON_VALUE = 0.5;
 
 var THUMB_ON_VALUE = 0.5;
@@ -261,6 +263,17 @@ function propsArePhysical(props) {
     }
     var isPhysical = (props.shapeType && props.shapeType != 'none');
     return isPhysical;
+}
+
+function removeMyAvatarFromCollidesWith(origCollidesWith) {
+    var collidesWithSplit = origCollidesWith.split(",");
+    // remove myAvatar from the array
+    for (var i = collidesWithSplit.length - 1; i >= 0; i--) {
+        if (collidesWithSplit[i] === "myAvatar") {
+            collidesWithSplit.splice(i, 1);
+        }
+    }
+    return collidesWithSplit.join();
 }
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
@@ -2128,12 +2141,19 @@ function MyController(hand) {
             if (data["refCount"] < 1) {
                 deactiveProps = {
                     gravity: data["gravity"],
-                    collidesWith: data["collidesWith"],
+                    // don't set collidesWith back right away, because thrown things tend to bounce off the
+                    // avatar's capsule.
+                    collidesWith: removeMyAvatarFromCollidesWith(data["collidesWith"]),
                     collisionless: data["collisionless"],
                     dynamic: data["dynamic"],
                     parentID: data["parentID"],
                     parentJointIndex: data["parentJointIndex"]
                 };
+
+                Script.setTimeout(function () {
+                    // set collidesWith back to original value a bit later than the rest
+                    Entities.editEntity(entityID, { collidesWith: data["collidesWith"] });
+                }, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY);
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
