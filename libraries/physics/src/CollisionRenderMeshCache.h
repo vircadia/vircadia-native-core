@@ -16,11 +16,9 @@
 #include <vector>
 #include <unordered_map>
 
-class btCollisionShape;
+#include <model/Geometry.h>
 
-// BEGIN TEST HACK
-using MeshPointer = std::shared_ptr<int>;
-// END TEST HACK
+class btCollisionShape;
 
 namespace std {
     template <>
@@ -39,7 +37,7 @@ public:
     ~CollisionRenderMeshCache();
 
     /// \return pointer to geometry
-    MeshPointer getMesh(Key key);
+    model::MeshPointer getMesh(Key key);
 
     /// \return true if geometry was found and released
     bool releaseMesh(Key key);
@@ -52,7 +50,7 @@ public:
     bool hasMesh(Key key) const { return _geometryMap.find(key) == _geometryMap.end(); }
 
 private:
-    using CollisionMeshMap = std::unordered_map<Key, MeshPointer>;
+    using CollisionMeshMap = std::unordered_map<Key, model::MeshPointer>;
     CollisionMeshMap _geometryMap;
     std::vector<Key> _pendingGarbage;
 };

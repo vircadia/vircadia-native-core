@@ -9,16 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "CollisionRenderMeshCache.h"
+
 #include <cassert>
 //#include <glm/gtx/norm.hpp>
 
 //#include "ShapeFactory.h"
-#include "CollisionRenderMeshCache.h"
+#include <btBulletDynamicsCommon.h>
 
-int foo = 0;
 
-MeshPointer createMeshFromShape(CollisionRenderMeshCache::Key key) {
-    return std::make_shared<int>(++foo);
+model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
+    if (!shape) {
+        return std::make_shared<model::Mesh>();
+    }
+    int32_t shapeType = shape->getShapeType();
+    if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
+        const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
+        int32_t numSubShapes = compoundShape->getNumChildShapes();
+        for (int i = 0; i < numSubShapes; ++i) {
+            const btCollisionShape* childShape = compoundShape->getChildShape(i);
+            std::cout << "adebug " << i << "  " << (void*)(childShape) << std::endl;  // adebug
+        }
+    } else if (shape->isConvex()) {
+        std::cout << "adebug " << (void*)(shape)<< std::endl;  // adebug
+    }
+    return std::make_shared<model::Mesh>();
 }
 
 CollisionRenderMeshCache::CollisionRenderMeshCache() {
@@ -29,21 +44,19 @@ CollisionRenderMeshCache::~CollisionRenderMeshCache() {
     _pendingGarbage.clear();
 }
 
-MeshPointer CollisionRenderMeshCache::getMesh(CollisionRenderMeshCache::Key key) {
-    if (!key) {
-        return MeshPointer();
-    }
-    MeshPointer geometry = 0;
-
-    CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
-    if (itr != _geometryMap.end()) {
-        // make geometry and add it to map
-        geometry = createMeshFromShape(key);
-        if (geometry) {
-            _geometryMap.insert(std::make_pair(key, geometry));
+model::MeshPointer CollisionRenderMeshCache::getMesh(CollisionRenderMeshCache::Key key) {
+    model::MeshPointer mesh;
+    if (key) {
+        CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
+        if (itr != _geometryMap.end()) {
+            // make mesh and add it to map
+            mesh = createMeshFromShape(key);
+            if (mesh) {
+                _geometryMap.insert(std::make_pair(key, mesh));
+            }
         }
     }
-    return geometry;
+    return mesh;
 }
 
 bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
