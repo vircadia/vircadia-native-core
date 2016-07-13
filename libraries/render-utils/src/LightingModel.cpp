@@ -122,7 +122,7 @@ void LightingModel::setShowLightContour(bool enable) {
     }
 }
 bool LightingModel::isShowLightContourEnabled() const {
-    return (bool)_parametersBuffer.get<Parameters>().showLightContour;
+    return (bool)(_parametersBuffer.get<Parameters>().showLightContour > 0.0);
 }
 
 MakeLightingModel::MakeLightingModel() {

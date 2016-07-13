@@ -51,6 +51,7 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter) {
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
     slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
@@ -79,6 +80,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->metallicTextureUnit = program->getTextures().findLocation("metallicMap");
     locations->emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
+    locations->lightingModelBufferUnit = program->getBuffers().findLocation("lightingModelBuffer");
     locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");

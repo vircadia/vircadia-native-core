@@ -12,9 +12,6 @@
 <@def LIGHTING_MODEL_SLH@>
 
 <@func declareLightingModel()@>
-<@endfunc@>
-
-<@func declareLightingModelMaster()@>
 
 struct LightingModel {
     vec4 _UnlitShadedEmissiveLightmap;
@@ -66,12 +63,12 @@ float isSpotEnabled() {
     return lightingModel._AmbientDirectionalPointSpot.w;
 }
 
-float isShowContour() {
+float isShowLightContour() {
     return lightingModel._ShowContour.x;
 }
 
 <@endfunc@>
-<$declareLightingModelMaster()$>
+<$declareLightingModel()$>
 
 <@func declareBeckmannSpecular()@>
 

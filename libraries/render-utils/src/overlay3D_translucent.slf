@@ -15,7 +15,6 @@
 <@include model/Light.slh@>
 
 <@include LightingModel.slh@>
-<$declareLightingModel()$>
 
 <@include LightDirectional.slh@>
 <$declareLightingDirectional()$>
@@ -40,8 +39,8 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 a
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
-    color += directionalDiffuse * isDiffuseEnabled() * isDirectionalEnabled();
-    color += directionalSpecular * isSpecularEnabled() * isDirectionalEnabled();
+    color += directionalDiffuse;
+    color += directionalSpecular / opacity;
 
     return vec4(color, opacity);
 }

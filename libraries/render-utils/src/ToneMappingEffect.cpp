@@ -156,10 +156,7 @@ void ToneMappingDeferred::configure(const Config& config) {
 }
 
 void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-  /*  auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto lightingBuffer = framebufferCache->getLightingTexture();
-    auto destFbo = framebufferCache->getPrimaryFramebuffer();
-    */
+
     auto lightingBuffer = inputs.get0()->getRenderBuffer(0);
     auto destFbo = inputs.get1();
     _toneMappingEffect.render(renderContext->args, lightingBuffer, destFbo);

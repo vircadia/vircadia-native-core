@@ -22,7 +22,6 @@ Column {
             Repeater {
                 model: [
                      "Unlit:LightingModel:enableUnlit", 
-                     "Shaded:LightingModel:enableShaded", 
                      "Emissive:LightingModel:enableEmissive", 
                      "Lightmap:LightingModel:enableLightmap",
                 ]
@@ -60,6 +59,19 @@ Column {
                      "Directional:LightingModel:enableDirectionalLight",
                      "Point:LightingModel:enablePointLight",
                      "Spot:LightingModel:enableSpotLight" 
+                ]
+                CheckBox {
+                    text: modelData.split(":")[0]
+                    checked: Render.getConfig(modelData.split(":")[1])
+                    onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                }
+            }
+        }
+        Column {
+            spacing: 10
+            Repeater {
+                model: [
+                     "Light Contour:LightingModel:showLightContour"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]

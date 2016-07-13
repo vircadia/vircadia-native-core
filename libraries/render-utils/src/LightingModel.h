@@ -81,7 +81,7 @@ protected:
         float enablePointLight{ 1.0f };
         float enableSpotLight{ 1.0f };
 
-        float showLightContour{ 1.0f };
+        float showLightContour{ 0.0f }; // false by default
         glm::vec3 spares{ 0.0f };
 
         Parameters() {}
@@ -132,7 +132,7 @@ public:
     bool enablePointLight{ true };
     bool enableSpotLight{ true };
 
-    bool showLightContour{ true };
+    bool showLightContour{ false }; // false by default
 
 signals:
     void dirty();

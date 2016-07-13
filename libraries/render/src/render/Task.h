@@ -83,8 +83,6 @@ protected:
 };
 
 using VaryingPairBase = std::pair<Varying, Varying>;
-
-
 template < typename T0, typename T1 >
 class VaryingSet2 : public VaryingPairBase {
 public:
@@ -110,6 +108,7 @@ public:
     }
     virtual uint8_t length() const { return 2; }
 
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 
@@ -142,6 +141,7 @@ public:
     }
     virtual uint8_t length() const { return 3; }
 
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3>
@@ -178,6 +178,7 @@ public:
     }
     virtual uint8_t length() const { return 4; }
 
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 
@@ -204,6 +205,8 @@ public:
 
     const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
     T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3, class T4, class T5>
@@ -232,6 +235,8 @@ public:
 
     const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
     T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 template < class T, int NUM >

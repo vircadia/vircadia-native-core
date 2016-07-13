@@ -15,7 +15,6 @@
 <@include model/Light.slh@>
 
 <@include LightingModel.slh@>
-<$declareLightingModel()$>
 
 <@include LightDirectional.slh@>
 <$declareLightingDirectional()$>

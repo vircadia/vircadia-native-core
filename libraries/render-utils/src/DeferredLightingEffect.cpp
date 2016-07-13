@@ -66,9 +66,9 @@ enum DeferredShader_MapSlot {
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
-    LIGHTING_MODEL_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
-    LIGHT_GPU_SLOT,
+    LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
+    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -355,16 +355,19 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
     primaryFramebuffer = _primaryFramebuffer;
 }
 
-void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& primaryFramebuffer, Outputs& output) {
+void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     auto args = renderContext->args;
+
+    auto primaryFramebuffer = inputs.get0();
+    auto lightingModel = inputs.get1();
 
     if (!_deferredFramebuffer) {
         _deferredFramebuffer = std::make_shared<DeferredFramebuffer>();
     }
     _deferredFramebuffer->updatePrimaryDepth(primaryFramebuffer->getDepthStencilBuffer());
 
-    output.edit0() = _deferredFramebuffer;
-    output.edit1() = _deferredFramebuffer->getLightingFramebuffer();
+    outputs.edit0() = _deferredFramebuffer;
+    outputs.edit1() = _deferredFramebuffer->getLightingFramebuffer();
 
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -372,14 +375,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        // Clear Lighting buffer
-     /*   auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
-
-        batch.setFramebuffer(lightingFbo);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
-*/
         // Clear deferred
-    //    auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
         auto deferredFbo = _deferredFramebuffer->getDeferredFramebuffer();
         batch.setFramebuffer(deferredFbo);
 
@@ -389,6 +385,9 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 0), 1.0, 0.0, true);
+
+        // For the rest of the rendering, bind the lighting model
+        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
     });
 }
 
@@ -646,7 +645,7 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, nullptr);
         
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
-        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
+   //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     });
     

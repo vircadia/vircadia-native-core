@@ -21,7 +21,6 @@
 <@include model/Light.slh@>
 
 <@include LightingModel.slh@>
-<$declareLightingModel()$>
 
 <@include LightPoint.slh@>
 <$declareLightingPoint(supportScattering)$>
