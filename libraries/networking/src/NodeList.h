@@ -110,6 +110,8 @@ private slots:
     void pingPunchForDomainServer();
     
     void sendKeepAlivePings();
+
+    void maybeSendIgnoreSetToNode(SharedNodePointer node);
     
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile

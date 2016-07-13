@@ -80,6 +80,17 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
+void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    while (message->getBytesLeftToRead()) {
+        // parse out the UUID being ignored from the packet
+        QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        addIgnoredNode(ignoredUUID);
+
+        message->seek(message->getPosition() + NUM_BYTES_RFC4122_UUID);
+    }
+}
+
 void Node::addIgnoredNode(const QUuid& otherNodeID) {
     if (!otherNodeID.isNull() && otherNodeID != _uuid) {
         qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"

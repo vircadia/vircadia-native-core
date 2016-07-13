@@ -93,6 +93,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+
+    // anytime we get a new node we may need to re-send our set of ignored node IDs to it
+    connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::maybeSendIgnoreSetToNode);
     
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
@@ -736,4 +739,27 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
 bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
     QReadLocker setLocker { &_ignoredSetLock };
     return _ignoredNodeIDs.find(nodeID) != _ignoredNodeIDs.cend();
+}
+
+void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
+    if (newNode->getType() == NodeType::AudioMixer || newNode->getType() == NodeType::AvatarMixer) {
+        // this is a mixer that we just added - it's unlikely it knows who we were previously ignoring in this session,
+        // so send that list along now (assuming it isn't empty)
+
+        QReadLocker setLocker { &_ignoredSetLock };
+        if (_ignoredNodeIDs.size() > 0) {
+            // setup a packet list so we can send the stream of ignore IDs
+            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+
+            // enumerate the ignored IDs and write them to the packet list
+            auto it = _ignoredNodeIDs.cbegin();
+            while (it != _ignoredNodeIDs.end()) {
+                ignorePacketList->write(it->toRfc4122());
+                ++it;
+            }
+
+            // send this NLPacketList to the new node
+            sendPacketList(std::move(ignorePacketList), *newNode);
+        }
+    }
 }
