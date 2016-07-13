@@ -191,9 +191,10 @@ function makeTriggerHandler(hand) {
         }
     };
 }
-
 triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
 triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+
+triggerMapping.enable();
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
