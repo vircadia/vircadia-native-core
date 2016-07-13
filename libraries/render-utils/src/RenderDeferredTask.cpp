@@ -217,6 +217,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+        
+        // Setup camera, projection and viewport for all items
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -227,6 +229,9 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
+
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
@@ -248,6 +253,8 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+
+        // Setup camera, projection and viewport for all items
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -258,6 +265,9 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
+
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         if (_stateSort) {
             renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
@@ -315,6 +325,9 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
 
+            // Setup lighting model for all items;
+            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
         });
@@ -361,7 +374,8 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     assert(renderContext->args->hasViewFrustum());
 
     const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
+    // Not used yet
+    // const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {

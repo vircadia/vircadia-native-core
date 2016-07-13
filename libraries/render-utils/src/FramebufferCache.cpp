@@ -43,13 +43,11 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
 }
 
 void FramebufferCache::createPrimaryFramebuffer() {
-  auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-    auto linearFormat = gpu::Element::COLOR_RGBA_32;
+    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
     auto width = _frameBufferSize.width();
     auto height = _frameBufferSize.height();
 
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
 
     _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
@@ -74,7 +72,7 @@ void FramebufferCache::resizeAmbientOcclusionBuffers() {
     auto height = _frameBufferSize.height() >> _AOResolutionLevel;
     auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGB);
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+    // auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
 
     _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
     _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());

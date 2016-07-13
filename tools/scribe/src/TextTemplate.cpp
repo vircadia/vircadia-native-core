@@ -741,7 +741,6 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                     std::vector< String > paramCache;
                     paramCache.push_back("");
                     String val;
-                    bool valIsVar = false;
                     for (int i = 1; i < nbParams; i++) {
                         val = block->command.arguments[i];
                         if ((val[0] == Tag::VAR) && (val[val.length()-1] == Tag::VAR)) {
@@ -752,7 +751,6 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             } else {
                                 val = Tag::NULL_VAR;
                             }
-                            valIsVar = true;
                         }
 
                         Vars::iterator it = vars.find(funcBlock->command.arguments[i]);
