@@ -49,11 +49,15 @@ function Trigger(label) {
     var that = this;
     that.label = label;
     that.TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
-    that.TRIGGER_ON_VALUE = 0.4;     //  Squeezed just enough to activate search or near grab
-    that.TRIGGER_GRAB_VALUE = 0.85;  //  Squeezed far enough to complete distant grab
-    that.TRIGGER_OFF_VALUE = 0.15;
+    that.TRIGGER_OFF_VALUE = 0.10;
+    that.TRIGGER_ON_VALUE = that.TRIGGER_OFF_VALUE + 0.05;     //  Squeezed just enough to activate search or near grab
     that.rawTriggerValue = 0;
     that.triggerValue = 0;           // rolling average of trigger value
+    that.triggerClicked = false;
+    that.triggerClick = function (value) {
+        print("Trigger clicked is now " + value);
+        that.triggerClicked = value;
+    };
     that.triggerPress = function (value) {
         that.rawTriggerValue = value;
     };
@@ -64,8 +68,8 @@ function Trigger(label) {
             (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
     };
     // Current smoothed state, without hysteresis. Answering booleans.
-    that.triggerSmoothedGrab = function () {
-        return that.triggerValue > that.TRIGGER_GRAB_VALUE;
+    that.triggerSmoothedClick = function () {
+        return that.triggerClicked;
     };
     that.triggerSmoothedSqueezed = function () {
         return that.triggerValue > that.TRIGGER_ON_VALUE;
@@ -81,7 +85,7 @@ function Trigger(label) {
         that.updateSmoothedTrigger();
 
         // The first two are independent of previous state:
-        if (that.triggerSmoothedGrab()) {
+        if (that.triggerSmoothedClick()) {
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
             state = null;
@@ -365,6 +369,8 @@ Script.scriptEnding.connect(clickMapping.disable);
 // Gather the trigger data for smoothing.
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
+clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
+clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
 // Full smoothed trigger is a click.
 function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     // true if isPointingAtOverlay AND we were NOT full triggered when we became so.

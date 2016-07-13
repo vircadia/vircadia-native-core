@@ -11,6 +11,9 @@
 
 #include "ViveControllerManager.h"
 
+#include <sstream>
+#include <QtCore/QDebug>
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -21,6 +24,7 @@
 #include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
 #include <OffscreenUi.h>
+
 
 #include <controllers/UserInputMapper.h>
 
@@ -284,7 +288,9 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_system->GetControllerState(deviceIndex, &controllerState)) {
-
+            //std::stringstream stream;
+            //stream << std::hex << controllerState.ulButtonPressed << " " << std::hex << controllerState.ulButtonTouched;
+            //qDebug() << deviceIndex << " " << stream.str().c_str() << controllerState.rAxis[1].x;
             // process each button
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
@@ -342,6 +348,11 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
+        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
+        // so we can expose that as an additional button
+        if (x >= 1.0f) {
+            _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
+        }
     }
 }
 
@@ -463,9 +474,14 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(RS_X, "RSX"),
         makePair(RS_Y, "RSY"),
 
+
         // triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
+
+        // Trigger clicks
+        makePair(LT_CLICK, "LTClick"),
+        makePair(RT_CLICK, "RTClick"),
 
         // low profile side grip button.
         makePair(LEFT_GRIP, "LeftGrip"),

@@ -29,9 +29,8 @@ var WANT_DEBUG_SEARCH_NAME = null;
 var SPARK_MODEL_SCALE_FACTOR = 0.75;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
-var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
-var TRIGGER_OFF_VALUE = 0.15;
+var TRIGGER_OFF_VALUE = 0.1;
+var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
 
 var BUMPER_ON_VALUE = 0.5;
 
@@ -376,6 +375,7 @@ function MyController(hand) {
     this.entityActivated = false;
 
     this.triggerValue = 0; // rolling average of trigger value
+    this.triggerClicked = false;
     this.rawTriggerValue = 0;
     this.rawSecondaryValue = 0;
     this.rawThumbValue = 0;
@@ -835,6 +835,10 @@ function MyController(hand) {
         _this.rawTriggerValue = value;
     };
 
+    this.triggerClick = function (value) {
+        _this.triggerClicked = value;
+    };
+
     this.secondaryPress = function (value) {
         _this.rawSecondaryValue = value;
     };
@@ -847,7 +851,7 @@ function MyController(hand) {
     };
 
     this.triggerSmoothedGrab = function () {
-        return this.triggerValue > TRIGGER_GRAB_VALUE;
+        return this.triggerClicked;
     };
 
     this.triggerSmoothedSqueezed = function () {
@@ -2225,7 +2229,10 @@ var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
 var mapping = Controller.newMapping(MAPPING_NAME);
 mapping.from([Controller.Standard.RT]).peek().to(rightController.triggerPress);
+mapping.from([Controller.Standard.RTClick]).peek().to(rightController.triggerClick);
+
 mapping.from([Controller.Standard.LT]).peek().to(leftController.triggerPress);
+mapping.from([Controller.Standard.LTClick]).peek().to(leftController.triggerClick);
 
 mapping.from([Controller.Standard.RB]).peek().to(rightController.secondaryPress);
 mapping.from([Controller.Standard.LB]).peek().to(leftController.secondaryPress);

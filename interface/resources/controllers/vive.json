@@ -9,6 +9,8 @@
                 { "type": "deadZone", "min": 0.05 }
             ]
         },
+        { "from": "Vive.LTClick", "to": "Standard.LTClick" },
+
         { "from": "Vive.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
@@ -21,6 +23,8 @@
                 { "type": "deadZone", "min": 0.05 }
             ]
         },
+        { "from": "Vive.RTClick", "to": "Standard.RTClick" },
+
         { "from": "Vive.RightGrip", "to": "Standard.RightGrip" },
         { "from": "Vive.RS", "to": "Standard.RS" },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
