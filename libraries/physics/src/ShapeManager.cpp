@@ -30,13 +30,13 @@ ShapeManager::~ShapeManager() {
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
-        return NULL;
+        return nullptr;
     }
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
     if (4.0f * glm::length2(info.getHalfExtents()) < MIN_SHAPE_DIAGONAL_SQUARED) {
         // tiny shapes are not supported
         // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
-        return NULL;
+        return nullptr;
     }
 
     DoubleHashKey key = info.getHash();

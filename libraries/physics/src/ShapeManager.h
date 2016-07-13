@@ -43,11 +43,12 @@ public:
 private:
     bool releaseShapeByKey(const DoubleHashKey& key);
 
-    struct ShapeReference {
+    class ShapeReference {
+    public:
         int refCount;
         btCollisionShape* shape;
         DoubleHashKey key;
-        ShapeReference() : refCount(0), shape(NULL) {}
+        ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
     btHashMap<DoubleHashKey, ShapeReference> _shapeMap;
