@@ -117,6 +117,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
     const auto linearDepthTexture = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
 
+    // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
     const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture).hasVarying();
     const auto midCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureMid", diffuseCurvaturePassInputs);
     const auto lowCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureLow", diffuseCurvaturePassInputs, true); // THis blur pass generates it s render resource

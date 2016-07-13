@@ -97,9 +97,26 @@ void TestWindow::beginFrame() {
     _renderArgs->_context->syncCache();
 
 #ifdef DEFERRED_LIGHTING
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
-    _prepareDeferred.run(_sceneContext, _renderContext, _deferredFramebuffer);
+    gpu::FramebufferPointer primaryFramebuffer;
+    _preparePrimaryFramebuffer.run(_sceneContext, _renderContext, primaryFramebuffer);
+
+    DeferredFrameTransformPointer frameTransform;
+    _generateDeferredFrameTransform.run(_sceneContext, _renderContext, frameTransform);
+
+    LightingModelPointer lightingModel;
+    _generateLightingModel.run(_sceneContext, _renderContext, lightingModel);
+
+    _prepareDeferredInputs.edit0() = primaryFramebuffer;
+    _prepareDeferredInputs.edit1() = lightingModel;
+    _prepareDeferred.run(_sceneContext, _renderContext, _prepareDeferredInputs, _prepareDeferredOutputs);
+
+
+    _renderDeferredInputs.edit0() = frameTransform; // Pass the deferredFrameTransform
+    _renderDeferredInputs.edit1() = _prepareDeferredOutputs.get0(); // Pass the deferredFramebuffer
+    _renderDeferredInputs.edit2() = lightingModel; // Pass the lightingModel
+    // the rest of the renderDeferred inputs can be omitted
+
 #else
     gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.0f, 0.1f, 0.2f, 1.0f });
@@ -120,7 +137,7 @@ void TestWindow::endFrame() {
     RenderArgs* args = _renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = _prepareDeferredOutputs.get0()->getDeferredFramebufferDepthColor();
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         batch.setFramebuffer(deferredFboColorDepthStencil);
@@ -129,20 +146,14 @@ void TestWindow::endFrame() {
         batch.setResourceTexture(0, nullptr);
     });
 
-    DeferredFrameTransformPointer frameTransform;
-    _generateDeferredFrameTransform.run(_sceneContext, _renderContext, frameTransform);
-
-    RenderDeferred::Inputs deferredInputs;
-    deferredInputs.edit0() = frameTransform;
-    deferredInputs.edit1() = _deferredFramebuffer;
-    _renderDeferred.run(_sceneContext, _renderContext, deferredInputs);
+    _renderDeferred.run(_sceneContext, _renderContext, _renderDeferredInputs);
 
     gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "blit");
         // Blit to screen
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
        // auto framebuffer = framebufferCache->getLightingFramebuffer();
-        auto framebuffer = _deferredFramebuffer->getLightingFramebuffer();
+        auto framebuffer = _prepareDeferredOutputs.get0()->getLightingFramebuffer();
         batch.blit(framebuffer, _renderArgs->_viewport, nullptr, _renderArgs->_viewport);
     });
 #endif

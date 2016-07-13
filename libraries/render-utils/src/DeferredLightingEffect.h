@@ -138,7 +138,7 @@ public:
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
-        const gpu::TexturePointer& diffusedCurvature2,
+        const gpu::FramebufferPointer& lowCurvatureNormalFramebuffer,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 

@@ -397,7 +397,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
-    const gpu::TexturePointer& lowCurvatureNormal,
+    const gpu::FramebufferPointer& lowCurvatureNormalFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
@@ -441,15 +441,17 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
 
         // Subsurface scattering specific
-        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormal);
-
-        batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
-
-
-        batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
-        batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, subsurfaceScatteringResource->getScatteringSpecular());
-
+        if (surfaceGeometryFramebuffer) {
+            batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
+        }
+        if (lowCurvatureNormalFramebuffer) {
+            batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormalFramebuffer->getRenderBuffer(0));
+        }
+        if (subsurfaceScatteringResource) {
+            batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
+            batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
+            batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, subsurfaceScatteringResource->getScatteringSpecular());
+        }
 
         // Global directional light and ambient pass
 
@@ -673,10 +675,12 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
     auto surfaceGeometryFramebuffer = inputs.get3();
-    auto lowCurvatureNormal = inputs.get4()->getRenderBuffer(0);
+    auto lowCurvatureNormalFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormal, subsurfaceScatteringResource);
+
+
+    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
 

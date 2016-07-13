@@ -147,5 +147,5 @@ void MakeLightingModel::configure(const Config& config) {
 
 void MakeLightingModel::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
 
-    lightingModel = _lightingModel;
+    lightingModel = _lightingModel; 
 }

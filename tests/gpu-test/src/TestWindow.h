@@ -35,11 +35,18 @@ protected:
     render::RenderContextPointer _renderContext{ std::make_shared<render::RenderContext>() };
     gpu::PipelinePointer _opaquePipeline;
     model::LightPointer _light { std::make_shared<model::Light>() };
-    
+
     GenerateDeferredFrameTransform _generateDeferredFrameTransform;
-    DeferredFramebufferPointer _deferredFramebuffer;
+    MakeLightingModel _generateLightingModel;
+    PreparePrimaryFramebuffer _preparePrimaryFramebuffer;
+
+    PrepareDeferred::Inputs _prepareDeferredInputs;
     PrepareDeferred _prepareDeferred;
+    PrepareDeferred::Outputs _prepareDeferredOutputs;
+
+    RenderDeferred::Inputs _renderDeferredInputs;
     RenderDeferred _renderDeferred;
+
 #endif
 
     RenderArgs* _renderArgs { new RenderArgs() };
