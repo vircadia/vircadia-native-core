@@ -75,7 +75,7 @@ public slots:
     void stopAndDeleteLater();
     
     const AudioInjectorOptions& getOptions() const { return _options; }
-    void setOptions(const AudioInjectorOptions& options) { _options = options;  }
+    void setOptions(const AudioInjectorOptions& options);
     
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return _state == State::NotFinished || _state == State::NotFinishedWithPendingDelete; }
@@ -110,6 +110,5 @@ private:
     AudioHRTF _localHRTF;
     friend class AudioInjectorManager;
 };
-
 
 #endif // hifi_AudioInjector_h

@@ -823,7 +823,6 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
             } else {
                 
                 qDebug() << "injector has no more data, marking finished for removal";
-                
                 injector->finish();
                 injectorsToRemove.append(injector);
             }
@@ -831,7 +830,6 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
         } else {
             
             qDebug() << "injector has no local buffer, marking as finished for removal";
-            
             injector->finish();
             injectorsToRemove.append(injector);
         }
@@ -933,15 +931,24 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer() && _audioInput ) {
-        // just add it to the vector of active local injectors
-        // TODO: deal with concurrency perhaps?  Maybe not
-        qDebug() << "adding new injector!!!!!!!";
-
-        _activeLocalAudioInjectors.append(injector);
+        // just add it to the vector of active local injectors, if 
+        // not already there.
+        // Since this is invoked with invokeMethod, there _should_ be
+        // no reason to lock access to the vector of injectors.
+        if (!_activeLocalAudioInjectors.contains(injector)) {
+            qDebug() << "adding new injector";
+            
+            _activeLocalAudioInjectors.append(injector);
+        } else {
+            qDebug() << "injector exists in active list already";
+        }
+        
         return true;
-    }
 
-    return false;
+    } else {
+        // no local buffer or audio
+        return false;
+    }
 }
 
 void AudioClient::outputFormatChanged() {
