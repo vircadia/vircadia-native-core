@@ -168,28 +168,30 @@ function controllerComputePickRay() {
                                           MyAvatar.position);
         // This gets point direction right, but if you want general quaternion it would be more complicated:
         var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
-        return {origin: controllerPosition, direction: controllerDirection};
+        return { origin: controllerPosition, direction: controllerDirection };
     }
 }
 
 function makeTriggerHandler(hand) {
     return function (value) {
-        if (!triggered && (value > TRIGGER_GRAB_VALUE)) { // should we smooth?
-            triggered = true;
-            if (activeHand !== hand) {
-                // No switching while the other is already triggered, so no need to release.
-                activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
-            }
-
-            var pickRay = controllerComputePickRay();
-            if (pickRay) {
-                var overlayIntersection = Overlays.findRayIntersection(pickRay);
-                if (overlayIntersection.intersects) {
-                    handleSelectedOverlay(overlayIntersection);
+        if (isShowingOverlays) {
+            if (!triggered && (value > TRIGGER_GRAB_VALUE)) { // should we smooth?
+                triggered = true;
+                if (activeHand !== hand) {
+                    // No switching while the other is already triggered, so no need to release.
+                    activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
                 }
+
+                var pickRay = controllerComputePickRay();
+                if (pickRay) {
+                    var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                    if (overlayIntersection.intersects) {
+                        handleSelectedOverlay(overlayIntersection);
+                    }
+                }
+            } else if (triggered && (value < TRIGGER_OFF_VALUE)) {
+                triggered = false;
             }
-        } else if (triggered && (value < TRIGGER_OFF_VALUE)) {
-            triggered = false;
         }
     };
 }
