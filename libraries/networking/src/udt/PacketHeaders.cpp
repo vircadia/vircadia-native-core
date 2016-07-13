@@ -60,6 +60,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
             return 18;
+        case PacketType::NodeIgnoreRequest:
+            return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
