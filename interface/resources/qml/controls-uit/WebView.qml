@@ -49,6 +49,7 @@ WebEngineView {
 
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
+		console.log("loading change requested url");
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {
             var url = loadRequest.url.toString();
             if (urlHandler.canHandleUrl(url)) {
@@ -59,11 +60,18 @@ WebEngineView {
         }
     }
 
-    onNewViewRequested:{
-            var component = Qt.createComponent("../Browser.qml");
-            var newWindow = component.createObject(desktop);
-            request.openIn(newWindow.webView)
+    onNewViewRequested: {
+        console.log("new view requested url");
+		console.log(request.url.toString());
+		//if (toString(request.url) )
+		var component = Qt.createComponent("../Browser.qml");
+        var newWindow = component.createObject(desktop);
+        request.openIn(newWindow.webView);
     }
+
+	onLinkHovered: {
+		console.log(hoveredUrl);
+	}
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521
