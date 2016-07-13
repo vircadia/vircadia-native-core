@@ -420,20 +420,30 @@ EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
 
         var diameter = hotspot.radius * 2;
 
-        // TODO: check for custom hotspot model urls.
-
-        // default sphere
-        overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
-            position: hotspot.worldPosition,
-            rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
-            color: EQUIP_SPHERE_COLOR,
-            alpha: EQUIP_SPHERE_ALPHA,
-            solid: true,
-            visible: true,
-            ignoreRayIntersection: true,
-            drawInFront: false
-        }));
+        if (hotspot.modelURL) {
+            // override default sphere with a user specified model
+            overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
+                url: hotspot.modelURL,
+                position: hotspot.worldPosition,
+                rotation: {x: 0, y: 0, z: 0, w: 1},
+                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
+                scale: hotspot.modelScale,
+                ignoreRayIntersection: true
+            }));
+        } else {
+            // default sphere overlay
+            overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
+                position: hotspot.worldPosition,
+                rotation: {x: 0, y: 0, z: 0, w: 1},
+                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
+                color: EQUIP_SPHERE_COLOR,
+                alpha: EQUIP_SPHERE_ALPHA,
+                solid: true,
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: false
+            }));
+        }
 
         this.map[hotspot.key] = overlayInfoSet;
     } else {
@@ -1119,6 +1129,8 @@ function MyController(hand) {
     //      * radius {number} radius of equip hotspot
     //      * joints {Object} keys are joint names values are arrays of two elements:
     //        offset position {Vec3} and offset rotation {Quat}, both are in the coordinate system of the joint.
+    //      * modelURL {string} url for model to use instead of default sphere.
+    //      * modelScale {Vec3} scale factor for model
     this.collectEquipHotspots = function (entityID) {
         var result = [];
         var props = entityPropertiesCache.getProps(entityID);
@@ -1135,7 +1147,9 @@ function MyController(hand) {
                         localPosition: hotspot.position,
                         worldPosition: entityXform.xformPoint(hotspot.position),
                         radius: hotspot.radius,
-                        joints: hotspot.joints
+                        joints: hotspot.joints,
+                        modelURL: hotspot.modelURL,
+                        modelScale: hotspot.modelScale
                     });
                 }
             }
@@ -1148,7 +1162,9 @@ function MyController(hand) {
                     localPosition: {x: 0, y: 0, z: 0},
                     worldPosition: entityXform.pos,
                     radius: EQUIP_RADIUS,
-                    joints: wearableProps.joints
+                    joints: wearableProps.joints,
+                    modelURL: null,
+                    modelScale: null
                 });
             }
         }
