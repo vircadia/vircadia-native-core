@@ -85,6 +85,7 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
@@ -1244,6 +1245,11 @@ QString Application::getUserAgent() {
         if (ip->isActive()) {
             userAgent += " " + formatPluginName(ip->getName());
         }
+    }
+    // for codecs, we include all of them, even if not active
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& cp : codecPlugins) {
+        userAgent += " " + formatPluginName(cp->getName());
     }
 
     return userAgent;
@@ -4482,6 +4488,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
+    if (node->getType() == NodeType::AudioMixer) {
+        DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
