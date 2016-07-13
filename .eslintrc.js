@@ -57,6 +57,7 @@ module.exports = {
         "comma-dangle": ["error", "never"],
         "camelcase": ["error"],
         "curly": ["error", "all"],
+        "eqeqeq": ["error", "always"],
         "indent": ["error", 4, { "SwitchCase": 1 }],
         "keyword-spacing": ["error", { "before": true, "after": true }],
         "max-len": ["error", 128, 4],

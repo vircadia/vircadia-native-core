@@ -178,7 +178,7 @@ var toolBar = (function () {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
-        if (position != null) {
+        if (position !== null && position !== undefined) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
                 properties.position = position;
             entityID = Entities.addEntity(properties);
@@ -431,7 +431,7 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
-        if (active == isActive) {
+        if (active === isActive) {
             return;
         }
         if (active && !Entities.canRez() && !Entities.canRezTmp()) {
@@ -481,8 +481,8 @@ var toolBar = (function () {
 
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
-    if (location.hostname == "hq.highfidelity.io" &&
-        properties.modelURL == HIFI_PUBLIC_BUCKET + "ozan/Terrain_Reduce_forAlpha.fbx") {
+    if (location.hostname === "hq.highfidelity.io" &&
+        properties.modelURL === HIFI_PUBLIC_BUCKET + "ozan/Terrain_Reduce_forAlpha.fbx") {
         return true;
     }
     return false;
@@ -682,7 +682,7 @@ function mouseClickEvent(event) {
     var result, properties;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        if (result === null) {
+        if (result === null || result === undefined) {
             if (!event.isShifted) {
                 selectionManager.clearSelections();
             }
@@ -711,7 +711,7 @@ function mouseClickEvent(event) {
             //              x           x - distance from A
             //
             //            |X-A| = (P-A).B
-            //            X == A + ((P-A).B)B
+            //            X === A + ((P-A).B)B
             //            d = |P-X|
 
             var A = pickRay.origin;
@@ -882,7 +882,7 @@ function setupModelMenus() {
         menuName: "Edit",
         menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true",
+        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -890,7 +890,7 @@ function setupModelMenus() {
         menuItemName: MENU_EASE_ON_FOCUS,
         afterItem: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true",
+        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -898,7 +898,7 @@ function setupModelMenus() {
         menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true",
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) === "true",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -906,7 +906,7 @@ function setupModelMenus() {
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
         afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true",
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) === "true",
         grouping: "Advanced"
     });
 
@@ -990,7 +990,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
         if (!keepIfTouching) {
             var isValid;
-            if (selectionManager.localPosition === null) {
+            if (selectionManager.localPosition === null || selectionManager.localPosition === undefined) {
                 isValid = function (position) {
                     return insideBox(selectionManager.worldPosition, selectionManager.worldDimensions, position);
                 };
@@ -1070,15 +1070,15 @@ function toggleSelectedEntitiesVisible() {
 }
 
 function handeMenuEvent(menuItem) {
-    if (menuItem == "Allow Selecting of Small Models") {
+    if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
-    } else if (menuItem == "Allow Selecting of Large Models") {
+    } else if (menuItem === "Allow Selecting of Large Models") {
         allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
-    } else if (menuItem == "Allow Selecting of Lights") {
+    } else if (menuItem === "Allow Selecting of Lights") {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
-    } else if (menuItem == "Delete") {
+    } else if (menuItem === "Delete") {
         deleteSelectedEntities();
-    } else if (menuItem == "Export Entities") {
+    } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
             Window.alert("No entities have been selected.");
         } else {
@@ -1090,10 +1090,10 @@ function handeMenuEvent(menuItem) {
                 }
             }
         }
-    } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
+    } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
 
         var importURL = null;
-        if (menuItem == "Import Entities") {
+        if (menuItem === "Import Entities") {
             var fullPath = Window.browse("Select Model to Import", "", "*.json");
             if (fullPath) {
                 importURL = "file:///" + fullPath;
@@ -1105,15 +1105,15 @@ function handeMenuEvent(menuItem) {
         if (importURL) {
             importSVO(importURL);
         }
-    } else if (menuItem == "Entity List...") {
+    } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();
-    } else if (menuItem == "Select All Entities In Box") {
+    } else if (menuItem === "Select All Entities In Box") {
         selectAllEtitiesInCurrentSelectionBox(false);
-    } else if (menuItem == "Select All Entities Touching Box") {
+    } else if (menuItem === "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
-    } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
+    } else if (menuItem === MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-    } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
+    } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
@@ -1175,7 +1175,7 @@ function importSVO(importURL) {
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
-        if (position != null) {
+        if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
 
             if (isActive) {
@@ -1212,13 +1212,13 @@ Controller.keyReleaseEvent.connect(function (event) {
         cameraManager.keyReleaseEvent(event);
     }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text == "BACKSPACE" || event.text == "DELETE") {
+    if (event.text === "BACKSPACE" || event.text === "DELETE") {
         deleteSelectedEntities();
-    } else if (event.text == "ESC") {
+    } else if (event.text === "ESC") {
         selectionManager.clearSelections();
-    } else if (event.text == "TAB") {
+    } else if (event.text === "TAB") {
         selectionDisplay.toggleSpaceMode();
-    } else if (event.text == "f") {
+    } else if (event.text === "f") {
         if (isActive) {
             if (selectionManager.hasSelection()) {
                 cameraManager.enable();
@@ -1227,11 +1227,11 @@ Controller.keyReleaseEvent.connect(function (event) {
                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         }
-    } else if (event.text == '[') {
+    } else if (event.text === '[') {
         if (isActive) {
             cameraManager.enable();
         }
-    } else if (event.text == 'g') {
+    } else if (event.text === 'g') {
         if (isActive && selectionManager.hasSelection()) {
             var newPosition = selectionManager.worldPosition;
             newPosition = Vec3.subtract(newPosition, {
@@ -1368,11 +1368,11 @@ var PropertiesTool = function (opts) {
     webView.webEventReceived.connect(function (data) {
         data = JSON.parse(data);
         var i, properties, dY, diff, newPosition;
-        if (data.type == "print") {
+        if (data.type === "print") {
             if (data.message) {
                 print(data.message);
             }
-        } else if (data.type == "update") {
+        } else if (data.type === "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 properties = {
@@ -1414,10 +1414,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if (data.type == "showMarketplace") {
+        } else if (data.type === "showMarketplace") {
             showMarketplace();
-        } else if (data.type == "action") {
-            if (data.action == "moveSelectionToGrid") {
+        } else if (data.type === "action") {
+            if (data.action === "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2);
@@ -1436,7 +1436,7 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
-            } else if (data.action == "moveAllToGrid") {
+            } else if (data.action === "moveAllToGrid") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
@@ -1456,7 +1456,7 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
-            } else if (data.action == "resetToNaturalDimensions") {
+            } else if (data.action === "resetToNaturalDimensions") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
@@ -1464,8 +1464,8 @@ var PropertiesTool = function (opts) {
                         var naturalDimensions = properties.naturalDimensions;
 
                         // If any of the natural dimensions are not 0, resize
-                        if (properties.type == "Model" && naturalDimensions.x == 0 && naturalDimensions.y == 0 &&
-                                naturalDimensions.z == 0) {
+                        if (properties.type === "Model" && naturalDimensions.x === 0 && naturalDimensions.y === 0 &&
+                                naturalDimensions.z === 0) {
                             Window.alert("Cannot reset entity to its natural dimensions: Model URL" +
                                          " is invalid or the model has not yet been loaded.");
                         } else {
@@ -1477,12 +1477,12 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
-            } else if (data.action == "previewCamera") {
+            } else if (data.action === "previewCamera") {
                 if (selectionManager.hasSelection()) {
                     Camera.mode = "entity";
                     Camera.cameraEntity = selectionManager.selections[0];
                 }
-            } else if (data.action == "rescaleDimensions") {
+            } else if (data.action === "rescaleDimensions") {
                 var multiplier = data.percentage / 100;
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
@@ -1495,7 +1495,7 @@ var PropertiesTool = function (opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
-            } else if (data.action == "reloadScript") {
+            } else if (data.action === "reloadScript") {
                 if (selectionManager.hasSelection()) {
                     var timestamp = Date.now();
                     for (i = 0; i < selectionManager.selections.length; i++) {
@@ -1605,13 +1605,13 @@ var PopupMenu = function () {
                 y: event.y
             });
             if (!pressingOverlay) {
-                if (hoveringOverlay != null && overlay != hoveringOverlay) {
+                if (hoveringOverlay !== null && hoveringOverlay !== null && overlay !== hoveringOverlay) {
                     Overlays.editOverlay(hoveringOverlay, {
                         backgroundColor: upColor
                     });
                     hoveringOverlay = null;
                 }
-                if (overlay != hoveringOverlay && overlay in overlayInfo) {
+                if (overlay !== hoveringOverlay && overlay in overlayInfo) {
                     Overlays.editOverlay(overlay, {
                         backgroundColor: overColor
                     });
@@ -1626,8 +1626,8 @@ var PopupMenu = function () {
             x: event.x,
             y: event.y
         });
-        if (pressingOverlay != null) {
-            if (overlay == pressingOverlay) {
+        if (pressingOverlay !== null && pressingOverlay !== undefined) {
+            if (overlay === pressingOverlay) {
                 self.onSelectMenuItem(overlayInfo[overlay].name);
             }
             Overlays.editOverlay(pressingOverlay, {
@@ -1641,7 +1641,7 @@ var PopupMenu = function () {
     var visible = false;
 
     self.setVisible = function (newVisible) {
-        if (newVisible != visible) {
+        if (newVisible !== visible) {
             visible = newVisible;
             for (var key in overlayInfo) {
                 Overlays.editOverlay(key, {
@@ -1688,7 +1688,7 @@ var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if (data.type == "selectionUpdate") {
+    if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
