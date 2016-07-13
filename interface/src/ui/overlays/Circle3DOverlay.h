@@ -59,28 +59,34 @@ public:
     virtual Circle3DOverlay* createClone() const override;
     
 protected:
-    float _startAt;
-    float _endAt;
-    float _outerRadius;
-    float _innerRadius;
-    bool _hasTickMarks;
-    float _majorTickMarksAngle;
-    float _minorTickMarksAngle;
-    float _majorTickMarksLength;
-    float _minorTickMarksLength;
+    float _startAt { 0 };
+    float _endAt { 360 };
+    float _outerRadius { 1 };
+    float _innerRadius { 0 };
+
+    xColor _innerStartColor;
+    xColor _innerEndColor;
+    xColor _outerStartColor;
+    xColor _outerEndColor;
+    float _innerStartAlpha;
+    float _innerEndAlpha;
+    float _outerStartAlpha;
+    float _outerEndAlpha;
+
+    bool _hasTickMarks { false };
+    float _majorTickMarksAngle { 0 };
+    float _minorTickMarksAngle { 0 };
+    float _majorTickMarksLength { 0 };
+    float _minorTickMarksLength { 0 };
     xColor _majorTickMarksColor;
     xColor _minorTickMarksColor;
-    
-    int _quadVerticesID;
-    int _lineVerticesID;
-    int _majorTicksVerticesID;
-    int _minorTicksVerticesID;
+    gpu::Primitive _solidPrimitive { gpu::TRIANGLE_FAN };
+    int _quadVerticesID { 0 };
+    int _lineVerticesID { 0 };
+    int _majorTicksVerticesID { 0 };
+    int _minorTicksVerticesID { 0 };
 
-    xColor _lastColor;
-    float _lastStartAt;
-    float _lastEndAt;
-    float _lastOuterRadius;
-    float _lastInnerRadius;
+    bool _dirty { true };
 };
 
  

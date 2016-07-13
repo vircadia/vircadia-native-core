@@ -957,8 +957,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
 
-    // Setup the keyboardMouseDevice and the user input mapper with the default bindings
+    // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
+    // if the _touchscreenDevice is not supported it will not be registered
+    if (_touchscreenDevice) {
+        userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
+    }
 
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
@@ -1521,7 +1525,6 @@ void Application::initializeUi() {
 
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
-    rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
@@ -1599,6 +1602,9 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }
+        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
+            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }
     _window->setMenuBar(new Menu());
@@ -2095,6 +2101,9 @@ bool Application::event(QEvent* event) {
             return true;
         case QEvent::TouchUpdate:
             touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Gesture:
+            touchGestureEvent((QGestureEvent*)event);
             return true;
         case QEvent::Wheel:
             wheelEvent(static_cast<QWheelEvent*>(event));
@@ -2727,6 +2736,9 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchUpdateEvent(event);
+    }
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
@@ -2745,6 +2757,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchBeginEvent(event);
+    }
 
 }
 
@@ -2762,8 +2777,17 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchEndEvent(event);
+    }
 
     // put any application specific touch behavior below here..
+}
+
+void Application::touchGestureEvent(QGestureEvent* event) {
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchGestureEvent(event);
+    }
 }
 
 void Application::wheelEvent(QWheelEvent* event) const {
@@ -5021,16 +5045,9 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (!accountManager->isLoggedIn()) {
-        return;
-    }
-
-    DependencyManager::get<OffscreenUi>()->load("hifi/dialogs/SnapshotShareDialog.qml", [=](QQmlContext*, QObject* dialog) {
-        dialog->setProperty("source", QUrl::fromLocalFile(fileName));
-    });
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
 }
 
 float Application::getRenderResolutionScale() const {

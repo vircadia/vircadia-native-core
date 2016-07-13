@@ -70,6 +70,10 @@ public:
 
     void addAvatarToSimulation(Avatar* avatar);
 
+    Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
+                                                                  const QScriptValue& avatarIdsToInclude = QScriptValue(),
+                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue());
+
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);

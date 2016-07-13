@@ -87,6 +87,36 @@ ProgramPtr loadCubemapShader() {
     return result;
 }
 
+void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& gs, const std::string& fs) {
+    using namespace oglplus;
+    try {
+        result = std::make_shared<Program>();
+        // attach the shaders to the program
+        result->AttachShader(
+            VertexShader()
+            .Source(GLSLSource(vs))
+            .Compile()
+            );
+        result->AttachShader(
+            GeometryShader()
+            .Source(GLSLSource(gs))
+            .Compile()
+            );
+        result->AttachShader(
+            FragmentShader()
+            .Source(GLSLSource(fs))
+            .Compile()
+            );
+        result->Link();
+    } catch (ProgramBuildError& err) {
+        Q_UNUSED(err);
+        qWarning() << err.Log().c_str();
+        Q_ASSERT_X(false, "compileProgram", "Failed to build shader program");
+        qFatal("%s", (const char*)err.Message);
+        result.reset();
+    }
+}
+
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs) {
     using namespace oglplus;
     try {
