@@ -95,7 +95,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
 
     // anytime we get a new node we may need to re-send our set of ignored node IDs to it
-    connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::maybeSendIgnoreSetToNode);
+    connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
     
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
@@ -747,6 +747,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
         // so send that list along now (assuming it isn't empty)
 
         QReadLocker setLocker { &_ignoredSetLock };
+
         if (_ignoredNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
             auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
