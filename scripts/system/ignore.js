@@ -188,6 +188,8 @@ function makeTriggerHandler(hand) {
                     handleClickedOverlay(overlayIntersection);
                 }
             }
+        } else if (triggered && (value < TRIGGER_OFF_VALUE)) {
+            triggered = false;
         }
     };
 }
