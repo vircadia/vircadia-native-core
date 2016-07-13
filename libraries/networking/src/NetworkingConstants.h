@@ -15,7 +15,9 @@
 #include <QtCore/QUrl>
 
 namespace NetworkingConstants {
-    const QUrl METAVERSE_SERVER_URL = QUrl("https://metaverse.highfidelity.com");
+    // const QUrl METAVERSE_SERVER_URL = QUrl("https://metaverse.highfidelity.com");
+    // const QUrl METAVERSE_SERVER_URL = QUrl("http://localhost:3000");
+    const QUrl METAVERSE_SERVER_URL = QUrl("https://devdataweb.highfidelity.com");
 }
 
 #endif // hifi_NetworkingConstants_h

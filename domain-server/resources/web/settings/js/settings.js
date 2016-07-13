@@ -1,6 +1,8 @@
 var Settings = {
   showAdvanced: false,
-  METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  // METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  // METAVERSE_URL: 'http://localhost:3000',
+  METAVERSE_URL: 'https://devdataweb.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
