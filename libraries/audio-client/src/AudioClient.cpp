@@ -34,6 +34,8 @@
 #include <QtMultimedia/QAudioOutput>
 
 #include <NodeList.h>
+#include <plugins/CodecPlugin.h>
+#include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
@@ -133,10 +135,15 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 }
 
 AudioClient::~AudioClient() {
     stop();
+    if (_codec && _encoder) {
+        _codec->releaseEncoder(_encoder);
+        _encoder = nullptr;
+    }
 }
 
 void AudioClient::reset() {
@@ -503,6 +510,49 @@ void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> me
     emit muteEnvironmentRequested(position, radius);
 }
 
+void AudioClient::negotiateAudioFormat() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    quint8 numberOfCodecs = (quint8)codecPlugins.size();
+    negotiateFormatPacket->writePrimitive(numberOfCodecs);
+    for (auto& plugin : codecPlugins) {
+        auto codecName = plugin->getName();
+        negotiateFormatPacket->writeString(codecName);
+    }
+
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+
+    if (audioMixer) {
+        // send off this mute packet
+        nodeList->sendPacket(std::move(negotiateFormatPacket), *audioMixer);
+    }
+}
+
+void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
+    _selectedCodecName = message->readString();
+
+    qDebug() << "Selected Codec:" << _selectedCodecName;
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& plugin : codecPlugins) {
+        if (_selectedCodecName == plugin->getName()) {
+            // release any old codec encoder/decoder first...
+            if (_codec && _encoder) {
+                _codec->releaseEncoder(_encoder);
+                _encoder = nullptr;
+            }
+            _codec = plugin;
+            _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
+            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+            qDebug() << "Selected Codec Plugin:" << _codec.get();
+            break;
+        }
+    }
+
+}
+   
+
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
     QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
     return deviceInfo.deviceName();
@@ -770,7 +820,17 @@ void AudioClient::handleAudioInput() {
         audioTransform.setTranslation(_positionGetter());
         audioTransform.setRotation(_orientationGetter());
         // FIXME find a way to properly handle both playback audio and user audio concurrently
-        emitAudioPacket(networkAudioSamples, numNetworkBytes, _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
+
+        // TODO - codec encode goes here
+        QByteArray decocedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        QByteArray encodedBuffer;
+        if (_encoder) {
+            _encoder->encode(decocedBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = decocedBuffer;
+        }
+
+        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
         _stats.sentPacket();
     }
 }
@@ -779,23 +839,34 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     Transform audioTransform;
     audioTransform.setTranslation(_positionGetter());
     audioTransform.setRotation(_orientationGetter());
+
+    // TODO - codec encode goes here
+    QByteArray encodedBuffer;
+    if (_encoder) {
+        _encoder->encode(audio, encodedBuffer);
+    } else {
+        encodedBuffer = audio;
+    }
+
     // FIXME check a flag to see if we should echo audio?
-    emitAudioPacket(audio.data(), audio.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
-void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
-    const int numNetworkOutputSamples = inputBuffer.size() / sizeof(int16_t);
-    const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
-        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
+void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteArray& outputBuffer) {
+    const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
+    const int numDeviceOutputSamples = _outputFrameSize;
+
+    Q_ASSERT(_outputFrameSize == numDecodecSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
+        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount()));
 
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
-    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
+    const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
     // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, receivedSamples, outputSamples,
-                       numNetworkOutputSamples, numDeviceOutputSamples,
+    possibleResampling(_networkToOutputResampler, decodedSamples, outputSamples,
+                       numDecodecSamples, numDeviceOutputSamples,
                        _desiredOutputFormat, _outputFormat);
 
     // apply stereo reverb at the listener, to the received audio
@@ -1185,6 +1256,13 @@ void AudioClient::loadSettings() {
                                                                         windowSecondsForDesiredCalcOnTooManyStarves.get());
     _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
     _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
+
+    qDebug() << "---- Initializing Audio Client ----";
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& plugin : codecPlugins) {
+        qDebug() << "Codec available:" << plugin->getName();
+    }
+
 }
 
 void AudioClient::saveSettings() {

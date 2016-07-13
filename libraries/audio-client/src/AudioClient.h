@@ -38,6 +38,8 @@
 #include <Sound.h>
 #include <StDev.h>
 
+#include <plugins/CodecPlugin.h>
+
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 #include "AudioSRC.h"
@@ -94,6 +96,8 @@ public:
         int _unfulfilledReads;
     };
 
+    void negotiateAudioFormat();
+
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
@@ -139,6 +143,7 @@ public slots:
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message);
+    void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
@@ -291,6 +296,10 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder { nullptr }; // for outbound mic stream
 };
 
 

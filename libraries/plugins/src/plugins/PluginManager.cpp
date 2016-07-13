@@ -18,6 +18,7 @@
 #include <UserActivityLogger.h>
 
 #include "RuntimePlugin.h"
+#include "CodecPlugin.h"
 #include "DisplayPlugin.h"
 #include "InputPlugin.h"
 
@@ -117,6 +118,7 @@ PluginManager::PluginManager() {
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
+extern CodecPluginList getCodecPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 static DisplayPluginList displayPlugins;
 
@@ -201,6 +203,35 @@ const InputPluginList& PluginManager::getInputPlugins() {
     });
     return inputPlugins;
 }
+
+const CodecPluginList& PluginManager::getCodecPlugins() {
+    static CodecPluginList codecPlugins;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        //codecPlugins = ::getCodecPlugins();
+
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            CodecProvider* codecProvider = qobject_cast<CodecProvider*>(loader->instance());
+            if (codecProvider) {
+                for (auto codecPlugin : codecProvider->getCodecPlugins()) {
+                    if (codecPlugin->isSupported()) {
+                        codecPlugins.push_back(codecPlugin);
+                    }
+                }
+            }
+        }
+
+        for (auto plugin : codecPlugins) {
+            plugin->setContainer(_container);
+            plugin->init();
+
+            qDebug() << "init codec:" << plugin->getName();
+        }
+    });
+    return codecPlugins;
+}
+
 
 void PluginManager::setPreferredDisplayPlugins(const QStringList& displays) {
     preferredDisplayPlugins = displays;

@@ -18,6 +18,7 @@ public:
 
     const DisplayPluginList& getDisplayPlugins();
     const InputPluginList& getInputPlugins();
+    const CodecPluginList& getCodecPlugins();
 
     DisplayPluginList getPreferredDisplayPlugins();
     void setPreferredDisplayPlugins(const QStringList& displays);

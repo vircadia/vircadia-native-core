@@ -47,6 +47,8 @@
 #include <NodeList.h>
 #include <Node.h>
 #include <OctreeConstants.h>
+#include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
@@ -90,6 +92,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -446,6 +449,99 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+DisplayPluginList getDisplayPlugins() {
+    DisplayPluginList result;
+    return result;
+}
+
+InputPluginList getInputPlugins() {
+    InputPluginList result;
+    return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+
+
+void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QStringList availableCodecs;
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    if (codecPlugins.size() > 0) {
+        for (auto& plugin : codecPlugins) {
+            auto codecName = plugin->getName();
+            qDebug() << "Codec available:" << codecName;
+            availableCodecs.append(codecName);
+        }
+    } else {
+        qDebug() << "No Codecs available...";
+    }
+
+    CodecPluginPointer selectedCodec;
+    QString selectedCodecName;
+
+    QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
+
+    // read the codecs requested by the client
+    const int MAX_PREFERENCE = 99999;
+    int preferredCodecIndex = MAX_PREFERENCE;
+    QString preferredCodec;
+    quint8 numberOfCodecs = 0;
+    message->readPrimitive(&numberOfCodecs);
+    qDebug() << "numberOfCodecs:" << numberOfCodecs;
+    QStringList codecList;
+    for (quint16 i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message->readString();
+        int preferenceOfThisCodec = codecPreferenceList.indexOf(requestedCodec);
+        bool codecAvailable = availableCodecs.contains(requestedCodec);
+        qDebug() << "requestedCodec:" << requestedCodec << "preference:" << preferenceOfThisCodec << "available:" << codecAvailable;
+        if (codecAvailable) {
+            codecList.append(requestedCodec);
+            if (preferenceOfThisCodec >= 0 && preferenceOfThisCodec < preferredCodecIndex) {
+                qDebug() << "This codec is preferred...";
+                selectedCodecName  = requestedCodec;
+                preferredCodecIndex = preferenceOfThisCodec;
+            }
+        }
+    }
+    qDebug() << "all requested and available codecs:" << codecList;
+
+    // choose first codec
+    if (!selectedCodecName.isEmpty()) {
+        if (codecPlugins.size() > 0) {
+            for (auto& plugin : codecPlugins) {
+                if (selectedCodecName == plugin->getName()) {
+                    qDebug() << "Selecting codec:" << selectedCodecName;
+                    selectedCodec = plugin;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+
+    // FIXME - why would we not have client data at this point??
+    if (!clientData) {
+        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
+        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    clientData->setupCodec(selectedCodec, selectedCodecName);
+
+    qDebug() << "selectedCodecName:" << selectedCodecName;
+
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+
+    // write them to our packet
+    replyPacket->writeString(selectedCodecName);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *sendingNode);
+}
+
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
@@ -669,9 +765,12 @@ void AudioMixer::broadcastMixes() {
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
 
+                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        QByteArray encodedBuffer;
+                        nodeData->encode(decodedBuffer, encodedBuffer);
+
                         // pack mixed audio samples
-                        mixPacket->write(reinterpret_cast<char*>(_clampedSamples),
-                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
@@ -796,6 +895,12 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
     if (settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
         QJsonObject audioEnvGroupObject = settingsObject[AUDIO_ENV_GROUP_KEY].toObject();
+
+        const QString CODEC_PREFERENCE_ORDER = "codec_preference_order";
+        if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
+            _codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
+        }
 
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
         if (audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
