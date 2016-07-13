@@ -11,10 +11,10 @@
 // Set up the qml ui
 var qml = Script.resolvePath('deferredLighting.qml');
 var window = new OverlayWindow({
-    title: 'Deferred Lighting Pass',
+    title: 'Lighting',
     source: qml,
-    width: 400, height: 100,
+    width: 400, height: 150,
 });
-window.setPosition(250, 800);
+window.setPosition(250, 800);a
 window.closed.connect(function() { Script.stop(); });
 

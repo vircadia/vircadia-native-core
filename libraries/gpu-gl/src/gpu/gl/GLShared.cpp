@@ -11,6 +11,7 @@
 
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
+#include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
 
@@ -671,14 +672,14 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     // if compilation fails
     if (!compiled) {
         // save the source code to a temp file so we can debug easily
-        /* std::ofstream filestream;
+         std::ofstream filestream;
         filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-        filestream << shaderSource->source;
+        filestream << srcstr[0];
+        filestream << srcstr[1];
         filestream.close();
         }
-        */
-
+        
         GLint infoLength = 0;
         glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
 

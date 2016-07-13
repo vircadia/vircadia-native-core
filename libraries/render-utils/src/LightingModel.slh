@@ -15,7 +15,7 @@
 
 struct LightingModel {
     vec4 _UnlitShadedEmissiveLightmap;
-    vec4 _ScatteringDiffuseSpecular;
+    vec4 _ScatteringDiffuseSpecularAlbedo;
     vec4 _AmbientDirectionalPointSpot;
     vec4 _ShowContour;
 };
@@ -38,13 +38,16 @@ float isLightmapEnabled() {
 }
 
 float isScatteringEnabled() {
-    return lightingModel._ScatteringDiffuseSpecular.x;
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.x;
 }
 float isDiffuseEnabled() {
-    return lightingModel._ScatteringDiffuseSpecular.y;
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.y;
 }
 float isSpecularEnabled() {
-    return lightingModel._ScatteringDiffuseSpecular.z;
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.z;
+}
+float isAlbedoEnabled() {
+    return lightingModel._ScatteringDiffuseSpecularAlbedo.w;
 }
 
 float isAmbientEnabled() {
@@ -60,11 +63,12 @@ float isSpotEnabled() {
     return lightingModel._AmbientDirectionalPointSpot.w;
 }
 
-float isShowContour() {
+float isShowLightContour() {
     return lightingModel._ShowContour.x;
 }
 
 <@endfunc@>
+<$declareLightingModel()$>
 
 <@func declareBeckmannSpecular()@>
 
@@ -143,20 +147,31 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
-vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
-    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
-}
+//vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+//    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+//}
 
+void evalFragShading(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float roughness, vec3 albedo) {
+    vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+    diffuse = vec3(shading.w);
+    if (isAlbedoEnabled() > 0.0) {
+        diffuse *= albedo;
+    }
+    specular = shading.xyz;
+}
 
 <$declareBeckmannSpecular()$>
 <@include SubsurfaceScattering.slh@>
 <$declareSubsurfaceScatteringBRDF()$>
 
+
 void evalFragShading(out vec3 diffuse, out vec3 specular,
     vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
-    float metallic, vec3 fresnel, float roughness,
+    float metallic, vec3 fresnel, float roughness, vec3 albedo,
     float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
-    if (scattering > 0.0) {
+    if (scattering * isScatteringEnabled() > 0.0) {
         vec3 brdf = evalSkinBRDF(fragLightDir, fragNormal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
         float NdotL = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
         diffuse = mix(vec3(NdotL), brdf, scattering);
@@ -167,11 +182,13 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
         
         diffuse *= specularBrdf.y;
         specular = vec3(specularBrdf.x);
-
     } else {
-        vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, specular, roughness); 
+        vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
         diffuse = vec3(shading.w);
         specular = shading.xyz;
+    }
+    if (isAlbedoEnabled() > 0.0) {
+        diffuse *= albedo;
     }
 }
 

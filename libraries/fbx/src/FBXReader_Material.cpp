@@ -261,13 +261,19 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
 
         if (materialMap.contains(material.name)) {
             QJsonObject materialOptions = materialMap.value(material.name).toObject();
-            float scattering = materialOptions.contains("scattering") ? materialOptions.value("scattering").toDouble() : 1.0f;
-            QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
-            qDebug() << "Replacing material:" << material.name << "with skin scattering effect. scattering:" << scattering << "scatteringMap:" << scatteringMap;
-            material._material->setScattering(scattering);
-            material.scatteringTexture = FBXTexture();
-            material.scatteringTexture.name = material.name + ".scatteringMap";
-            material.scatteringTexture.filename = scatteringMap;
+            qDebug() << "Mapping fbx material:" << material.name << " with HifiMaterial: " << materialOptions; 
+
+            if (materialOptions.contains("scattering")) {
+                float scattering = (float) materialOptions.value("scattering").toDouble();
+                material._material->setScattering(scattering);
+            }
+
+            if (materialOptions.contains("scatteringMap")) {
+                QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
+                material.scatteringTexture = FBXTexture();
+                material.scatteringTexture.name = material.name + ".scatteringMap";
+                material.scatteringTexture.filename = scatteringMap;
+            }
         }
 
         if (material.opacity <= 0.0f) {

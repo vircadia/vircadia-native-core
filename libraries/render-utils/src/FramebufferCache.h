@@ -30,38 +30,11 @@ public:
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
-    /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
-    /// used for scene rendering.
-    gpu::FramebufferPointer getPrimaryFramebuffer();
-
-    gpu::TexturePointer getPrimaryDepthTexture();
-    gpu::TexturePointer getPrimaryColorTexture();
-
-    gpu::FramebufferPointer getDeferredFramebuffer();
-    gpu::FramebufferPointer getDeferredFramebufferDepthColor();
-
-    gpu::TexturePointer getDeferredColorTexture();
-    gpu::TexturePointer getDeferredNormalTexture();
-    gpu::TexturePointer getDeferredSpecularTexture();
-
-    gpu::FramebufferPointer getDepthPyramidFramebuffer();
-    gpu::TexturePointer getDepthPyramidTexture();
-
-    gpu::FramebufferPointer getCurvatureFramebuffer();
-    gpu::TexturePointer getCurvatureTexture();
-
-    gpu::FramebufferPointer getScatteringFramebuffer();
-    gpu::TexturePointer getScatteringTexture();
-
     void setAmbientOcclusionResolutionLevel(int level);
     gpu::FramebufferPointer getOcclusionFramebuffer();
     gpu::TexturePointer getOcclusionTexture();
     gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
     gpu::TexturePointer getOcclusionBlurredTexture();
-    
-
-    gpu::TexturePointer getLightingTexture();
-    gpu::FramebufferPointer getLightingFramebuffer();
 
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
@@ -79,31 +52,9 @@ private:
 
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebuffer;
-
-    gpu::TexturePointer _primaryDepthTexture;
-    gpu::TexturePointer _primaryColorTexture;
-
-    gpu::FramebufferPointer _deferredFramebuffer;
-    gpu::FramebufferPointer _deferredFramebufferDepthColor;
-
-    gpu::TexturePointer _deferredColorTexture;
-    gpu::TexturePointer _deferredNormalTexture;
-    gpu::TexturePointer _deferredSpecularTexture;
-
-    gpu::TexturePointer _lightingTexture;
-    gpu::FramebufferPointer _lightingFramebuffer;
-
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;
-
-    gpu::FramebufferPointer _depthPyramidFramebuffer;
-    gpu::TexturePointer _depthPyramidTexture;
-    
-
-    gpu::FramebufferPointer _curvatureFramebuffer;
-    gpu::TexturePointer _curvatureTexture;
 
     gpu::FramebufferPointer _occlusionFramebuffer;
     gpu::TexturePointer _occlusionTexture;

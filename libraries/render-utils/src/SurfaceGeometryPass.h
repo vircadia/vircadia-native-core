@@ -16,6 +16,41 @@
 
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
+#include "DeferredFramebuffer.h"
+
+
+// SurfaceGeometryFramebuffer is  a helper class gathering in one place theframebuffers and targets describing the surface geometry linear depth and curvature generated
+// from a z buffer and a normal buffer
+class SurfaceGeometryFramebuffer {
+public:
+    SurfaceGeometryFramebuffer();
+
+    gpu::FramebufferPointer getLinearDepthFramebuffer();
+    gpu::TexturePointer getLinearDepthTexture();
+
+    gpu::FramebufferPointer getCurvatureFramebuffer();
+    gpu::TexturePointer getCurvatureTexture();
+    
+    // Update the depth buffer which will drive the allocation of all the other resources according to its size.
+    void updatePrimaryDepth(const gpu::TexturePointer& depthBuffer);
+    gpu::TexturePointer getPrimaryDepthTexture();
+    const glm::ivec2& getFrameSize() const { return _frameSize; }
+
+protected:
+    void allocate();
+
+    gpu::TexturePointer _primaryDepthTexture;
+
+    gpu::FramebufferPointer _linearDepthFramebuffer;
+    gpu::TexturePointer _linearDepthTexture;
+
+    gpu::FramebufferPointer _curvatureFramebuffer;
+    gpu::TexturePointer _curvatureTexture;
+
+    glm::ivec2 _frameSize;
+};
+
+using SurfaceGeometryFramebufferPointer = std::shared_ptr<SurfaceGeometryFramebuffer>;
 
 class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_OBJECT
@@ -40,14 +75,15 @@ signals:
 
 class SurfaceGeometryPass {
 public:
-    using Outputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, DeferredFramebufferPointer>;
+    using Outputs = render::VaryingSet3<SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = SurfaceGeometryPassConfig;
-    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, Inputs, Outputs, Config>;
 
     SurfaceGeometryPass();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, Outputs& curvatureAndDepth);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& curvatureAndDepth);
     
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
     float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }
@@ -68,11 +104,14 @@ private:
     };
     gpu::BufferView _parametersBuffer;
 
+    SurfaceGeometryFramebufferPointer _surfaceGeometryFramebuffer;
+
     const gpu::PipelinePointer& getLinearDepthPipeline();
     const gpu::PipelinePointer& getCurvaturePipeline();
 
     gpu::PipelinePointer _linearDepthPipeline;
     gpu::PipelinePointer _curvaturePipeline;
+
 
     gpu::RangeTimer _gpuTimer;
 };

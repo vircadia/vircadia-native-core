@@ -75,6 +75,14 @@ void LightingModel::setSpecular(bool enable) {
 bool LightingModel::isSpecularEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableSpecular;
 }
+void LightingModel::setAlbedo(bool enable) {
+    if (enable != isAlbedoEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableAlbedo = (float)enable;
+    }
+}
+bool LightingModel::isAlbedoEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableAlbedo;
+}
 
 void LightingModel::setAmbientLight(bool enable) {
     if (enable != isAmbientLightEnabled()) {
@@ -114,7 +122,7 @@ void LightingModel::setShowLightContour(bool enable) {
     }
 }
 bool LightingModel::isShowLightContourEnabled() const {
-    return (bool)_parametersBuffer.get<Parameters>().showLightContour;
+    return (bool)(_parametersBuffer.get<Parameters>().showLightContour > 0.0f);
 }
 
 MakeLightingModel::MakeLightingModel() {
@@ -129,6 +137,7 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setScattering(config.enableScattering);
     _lightingModel->setDiffuse(config.enableDiffuse);
     _lightingModel->setSpecular(config.enableSpecular);
+    _lightingModel->setAlbedo(config.enableAlbedo);
     _lightingModel->setAmbientLight(config.enableAmbientLight);
     _lightingModel->setDirectionalLight(config.enableDirectionalLight);
     _lightingModel->setPointLight(config.enablePointLight);
@@ -138,5 +147,5 @@ void MakeLightingModel::configure(const Config& config) {
 
 void MakeLightingModel::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
 
-    lightingModel = _lightingModel;
+    lightingModel = _lightingModel; 
 }

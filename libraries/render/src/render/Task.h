@@ -32,10 +32,6 @@ namespace render {
 class Varying;
 
 
-
-template < class T > void varyingGet(const T& data, uint8_t index, Varying& var) {}
-template <class T> uint8_t varyingLength(const T& data) { return 0; }
-    
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
 class Varying {
@@ -55,6 +51,9 @@ public:
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
     uint8_t length() const { return (*_concept).length(); }
+
+    template <class T> Varying getN (uint8_t index) const { return get<T>()[index]; }
+    template <class T> Varying editN (uint8_t index) { return edit<T>()[index]; }
     
 protected:
     class Concept {
@@ -73,10 +72,9 @@ protected:
         
         virtual Varying operator[] (uint8_t index) const {
             Varying var;
-            varyingGet< T >(_data, index, var);
             return var;
         }
-        virtual uint8_t length() const { return varyingLength<T>(_data); }
+        virtual uint8_t length() const { return 0; }
 
         Data _data;
     };
@@ -85,10 +83,6 @@ protected:
 };
 
 using VaryingPairBase = std::pair<Varying, Varying>;
-
-template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
-template <> uint8_t varyingLength(const VaryingPairBase& data);
-
 template < typename T0, typename T1 >
 class VaryingSet2 : public VaryingPairBase {
 public:
@@ -104,6 +98,17 @@ public:
 
     const T1& get1() const { return second.get<T1>(); }
     T1& edit1() { return second.edit<T1>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 2; }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 
@@ -124,6 +129,19 @@ public:
 
     const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
     T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 3; }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3>
@@ -146,6 +164,21 @@ public:
 
     const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
     T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 3) {
+            return std::get<3>((*this));
+        } else if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 4; }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 
@@ -172,6 +205,38 @@ public:
 
     const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
     T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+template <class T0, class T1, class T2, class T3, class T4, class T5>
+class VaryingSet6 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying, Varying, Varying>;
+
+    VaryingSet6() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3()), Varying(T4()), Varying(T5())) {}
+    VaryingSet6(const VaryingSet6& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src), std::get<4>(src), std::get<5>(src)) {}
+    VaryingSet6(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth, const Varying& fifth, const Varying& sixth) : Parent(first, second, third, fourth, fifth, sixth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
+    T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+
+    const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
+    T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
+
+    Varying hasVarying() const { return Varying((*this)); }
 };
 
 template < class T, int NUM >

@@ -27,6 +27,7 @@
 
 #include "LightingModel.h"
 #include "DebugDeferredBuffer.h"
+#include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
 #include "FramebufferCache.h"
@@ -93,32 +94,33 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
 
 
-    // GPU jobs: Start preparing the deferred and lighting buffer
-    addJob<PrepareDeferred>("PrepareDeferred");
+    // GPU jobs: Start preparing the primary, deferred and lighting buffer
+    const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+
+    const auto prepareDeferredInputs = SurfaceGeometryPass::Inputs(primaryFramebuffer, lightingModel).hasVarying();
+    const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
+    const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
+    const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
     // Render opaque objects in DeferredBuffer
-    addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
+    const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
+    addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     // Once opaque is all rendered create stencil background
-    addJob<DrawStencilDeferred>("DrawOpaqueStencil");
+    addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
 
-    // Use Stencil and start drawing background in Lighting buffer
-    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
     // Opaque all rendered, generate surface geometry buffers
-    const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
+    const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
+    const auto surfaceGeometryPassOutputs = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
+    const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
+    const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
+    const auto linearDepthTexture = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
 
-
-    const auto theCurvatureVarying = curvatureFramebufferAndDepth[0];
-
-//#define SIMPLE_BLUR 1
-#if SIMPLE_BLUR
-    const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);
-    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature2", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first, true);
-#else
-    const auto curvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
-    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
-#endif
+    // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
+    const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture).hasVarying();
+    const auto midCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureMid", diffuseCurvaturePassInputs);
+    const auto lowCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureLow", diffuseCurvaturePassInputs, true); // THis blur pass generates it s render resource
 
     const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
@@ -128,34 +130,37 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, lightingModel, curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
-   
+    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
+        surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, scatteringResource).hasVarying();
+
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-
-    // AA job to be revisited
-    addJob<Antialiasing>("Antialiasing");
+    // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
+    const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
+    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
 
     // Render transparent objects forward in LightingBuffer
-    addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-
-    addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
-
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
+    addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // Lighting Buffer ready for tone mapping
-    addJob<ToneMappingDeferred>("ToneMapping");
+    const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
+    addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Overlays
-    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaques, true);
-    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparents, false);
+    const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
+    const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
+    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
+    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
     
     // Debugging stages
     {
+        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, curvatureFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job
@@ -173,8 +178,12 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         }
     }
 
+
+    // AA job to be revisited
+    addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
+
     // Blit!
-    addJob<Blit>("Blit");
+    addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -195,16 +204,21 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 }
 
-void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
+void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
+
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+        
+        // Setup camera, projection and viewport for all items
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -215,6 +229,9 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
+
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
@@ -223,16 +240,21 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     config->setNumDrawn((int)inItems.size());
 }
 
-void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
+void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
+
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+
+        // Setup camera, projection and viewport for all items
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -243,6 +265,9 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
+
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         if (_stateSort) {
             renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
@@ -261,12 +286,15 @@ DrawOverlay3D::DrawOverlay3D(bool opaque) :
     initOverlay3DPipelines(*_shapePlumber);
 }
 
-void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const render::ItemBounds& inItems) {
+void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
+    
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
 
@@ -297,6 +325,9 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
 
+            // Setup lighting model for all items;
+            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
         });
@@ -311,7 +342,7 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     return _opaquePipeline;
 }
 
-void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFramebufferPointer& deferredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -320,7 +351,8 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = deferredFramebuffer->getDeferredFramebufferDepthColor();
+        
 
         batch.enableStereo(false);
 
@@ -337,21 +369,21 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     args->_batch = nullptr;
 }
 
-void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
+void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
+
+    const auto& inItems = inputs.get0();
+    // Not used yet
+    // const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         _gpuTimer.begin(batch);
 
-        auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
-
         batch.enableSkybox(true);
-
-        batch.setFramebuffer(lightingFBO);
-
+        
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -371,7 +403,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
 
-void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
@@ -387,8 +419,7 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
     int height = renderArgs->_viewport.w;
 
     // Blit primary to blit FBO
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+    auto primaryFbo = srcFramebuffer;
 
     gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);

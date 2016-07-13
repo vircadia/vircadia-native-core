@@ -15,6 +15,8 @@
 #include <QFileInfo>
 
 #include <render/DrawTask.h>
+#include "DeferredFramebuffer.h"
+#include "SurfaceGeometryPass.h"
 
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
@@ -34,7 +36,7 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet3<DeferredFramebufferPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     

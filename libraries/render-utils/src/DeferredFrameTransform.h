@@ -75,4 +75,4 @@ public:
 private:
 };
 
-#endif // hifi_SurfaceGeometryPass_h
+#endif // hifi_DeferredFrameTransform_h

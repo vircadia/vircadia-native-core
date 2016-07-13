@@ -17,7 +17,7 @@
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
-<$declareEvalAmbientSphereGlobalColor()$>
+<$declareEvalAmbientSphereGlobalColor(isScattering)$>
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
@@ -30,27 +30,29 @@ void main(void) {
     float shadowAttenuation = evalShadowAttenuation(worldPos);
 
     if (frag.mode == FRAG_MODE_UNLIT) {
-        _fragColor = vec4(frag.diffuse, 1.0);
+        discard;
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
-        vec3 color = evalLightmappedColor(
-                        getViewInverse(),
-                        shadowAttenuation,
-                        frag.obscurance,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal.xyz);
-        _fragColor = vec4(color, 1.0);
+        discard;
     } else {
+        vec4 midNormalCurvature;
+        vec4 lowNormalCurvature;
+        if (frag.mode == FRAG_MODE_SCATTERING) {
+            unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
+        }
         vec3 color =  evalAmbientSphereGlobalColor(
                         getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.position.xyz,
                         frag.normal,
-                        frag.diffuse,
+                        frag.albedo,
+                        frag.fresnel,
                         frag.metallic,
-                        frag.emissive,
-                        frag.roughness);
-        _fragColor = vec4(color, frag.normalVal.a);
+                        frag.roughness,
+                        frag.scattering,
+                        midNormalCurvature,
+                        lowNormalCurvature);
+                        
+        _fragColor = vec4(color, 1.0);
     }
 }

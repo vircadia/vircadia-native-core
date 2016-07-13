@@ -59,7 +59,7 @@ enum Slot {
 static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
 
@@ -93,21 +93,21 @@ static const std::string DEFAULT_OCCLUSION_SHADER{
 static const std::string DEFAULT_EMISSIVE_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
 static const std::string DEFAULT_UNLIT_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_UNLIT ? vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_UNLIT ? vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
@@ -351,8 +351,9 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
-    auto& diffusedCurvatureFramebuffer = inputs.get0();
-    auto& scatteringFramebuffer = inputs.get1();
+    auto& deferredFramebuffer = inputs.get0();
+    auto& surfaceGeometryFramebuffer = inputs.get1();
+    auto& diffusedCurvatureFramebuffer = inputs.get2();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -376,16 +377,15 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
 
         batch.setPipeline(getPipeline(_mode, first));
 
-        batch.setResourceTexture(Albedo, framebufferCache->getDeferredColorTexture());
-        batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
-        batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
-        batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
+        batch.setResourceTexture(Albedo, deferredFramebuffer->getDeferredColorTexture());
+        batch.setResourceTexture(Normal, deferredFramebuffer->getDeferredNormalTexture());
+        batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
+        batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
+        batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
-        batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
-        batch.setResourceTexture(Curvature, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(Pyramid, surfaceGeometryFramebuffer->getLinearDepthTexture());
+        batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
         batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureFramebuffer->getRenderBuffer(0));
-        batch.setResourceTexture(Scattering, scatteringFramebuffer->getRenderBuffer(0));
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         } else {

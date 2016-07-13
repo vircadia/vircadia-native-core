@@ -13,7 +13,11 @@
 
 void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
-    float metallic, vec3 fresnel, vec3 albedo, float shadow) {
+    float metallic, vec3 fresnel, vec3 albedo, float shadow
+<@if supportScattering@>
+    , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
+<@endif@>
+    ) {
 
     // Allright we re valid in the volume
     float fragLightDistance = fragLightDirLen.w;
@@ -25,52 +29,16 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
 
     // Eval shading
-    vec4 shading = evalFragShading(normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
-
-    diffuse = albedo * shading.w * lightEnergy;
-
-    specular = shading.rgb * lightEnergy;
-
-    if (getLightShowContour(light) > 0.0) {
-        // Show edges
-        float edgeDistR = (getLightRadius(light) - fragLightDistance);
-        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
-        float edgeDist = min(edgeDistR, edgeDistS);
-        float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
-        if (edge < 1) {
-            float edgeCoord = exp2(-8.0*edge*edge);
-            diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
-        }
-    }
-}
-
+    evalFragShading(diffuse, specular, normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness, albedo
 <@if supportScattering@>
+    ,scattering, midNormalCurvature, lowNormalCurvature
+<@endif@>
+    );
+    
+    diffuse *= lightEnergy * isDiffuseEnabled() * isSpotEnabled();
+    specular *= lightEnergy * isSpecularEnabled() * isSpotEnabled();
 
-void evalLightingSpotScattering(out vec3 diffuse, out vec3 specular, Light light,
-    vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
-    float metallic, vec3 fresnel, vec3 albedo, float shadow,
-    float scattering, vec3 midNormal, vec3 lowNormal, float curvature) {
-
-    // Allright we re valid in the volume
-    float fragLightDistance = fragLightDirLen.w;
-    vec3 fragLightDir = fragLightDirLen.xyz;
-
-    // Eval attenuation
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
-    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
-    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
-
-    // Eval shading
-    evalFragShading(diffuse, specular,
-        normal, fragLightDir, fragEyeDir,
-        metallic, fresnel, roughness,
-        scattering, vec4(midNormal, curvature), vec4(lowNormal, curvature));
-
-    diffuse *= albedo * lightEnergy;
-
-    specular *= lightEnergy;
-
-    if (getLightShowContour(light) > 0.0) {
+    if (isShowLightContour() > 0.0) {
         // Show edges
         float edgeDistR = (getLightRadius(light) - fragLightDistance);
         float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
@@ -82,8 +50,6 @@ void evalLightingSpotScattering(out vec3 diffuse, out vec3 specular, Light light
         }
     }
 }
-
-<@endif@>
 
 <@endfunc@>
 

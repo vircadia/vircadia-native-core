@@ -102,26 +102,28 @@ void ToneMappingEffect::init() {
 }
 
 void ToneMappingEffect::setExposure(float exposure) {
-    _parametersBuffer.edit<Parameters>()._exposure = exposure;
-    _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
+    auto& params = _parametersBuffer.get<Parameters>();
+    if (params._exposure != exposure) {
+        _parametersBuffer.edit<Parameters>()._exposure = exposure;
+        _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
+    }
 }
 
 void ToneMappingEffect::setToneCurve(ToneCurve curve) {
-    _parametersBuffer.edit<Parameters>()._toneCurve = curve;
+    auto& params = _parametersBuffer.get<Parameters>();
+    if (params._toneCurve != curve) {
+        _parametersBuffer.edit<Parameters>()._toneCurve = curve;
+    }
 }
 
-void ToneMappingEffect::render(RenderArgs* args) {
+void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& destinationFramebuffer) {
     if (!_blitLightBuffer) {
         init();
     }
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    auto framebufferSize = glm::ivec2(lightingBuffer->getDimensions());
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        QSize framebufferSize = framebufferCache->getFrameBufferSize();
-
-        auto lightingBuffer = framebufferCache->getLightingTexture();
-        auto destFbo = framebufferCache->getPrimaryFramebuffer();
-        batch.setFramebuffer(destFbo);
+        batch.setFramebuffer(destinationFramebuffer);
 
         // FIXME: Generate the Luminosity map
         //batch.generateTextureMips(lightingBuffer);
@@ -130,10 +132,10 @@ void ToneMappingEffect::render(RenderArgs* args) {
         batch.setProjectionTransform(glm::mat4());
         batch.setViewTransform(Transform());
         {
-            float sMin = args->_viewport.x / (float)framebufferSize.width();
-            float sWidth = args->_viewport.z / (float)framebufferSize.width();
-            float tMin = args->_viewport.y / (float)framebufferSize.height();
-            float tHeight = args->_viewport.w / (float)framebufferSize.height();
+            float sMin = args->_viewport.x / (float)framebufferSize.x;
+            float sWidth = args->_viewport.z / (float)framebufferSize.x;
+            float tMin = args->_viewport.y / (float)framebufferSize.y;
+            float tHeight = args->_viewport.w / (float)framebufferSize.y;
             Transform model;
             batch.setPipeline(_blitLightBuffer);
             model.setTranslation(glm::vec3(sMin, tMin, 0.0));
@@ -149,15 +151,13 @@ void ToneMappingEffect::render(RenderArgs* args) {
 
 
 void ToneMappingDeferred::configure(const Config& config) {
-    if (config.exposure >= 0.0f) {
-        _toneMappingEffect.setExposure(config.exposure);
-    }
-
-    if (config.curve >= 0) {
-        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
-    }
+     _toneMappingEffect.setExposure(config.exposure);
+     _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
 }
 
-void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    _toneMappingEffect.render(renderContext->args);
+void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+
+    auto lightingBuffer = inputs.get0()->getRenderBuffer(0);
+    auto destFbo = inputs.get1();
+    _toneMappingEffect.render(renderContext->args, lightingBuffer, destFbo);
 }

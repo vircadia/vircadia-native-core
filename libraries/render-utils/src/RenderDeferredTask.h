@@ -14,6 +14,8 @@
 
 #include <gpu/Pipeline.h>
 #include <render/CullTask.h>
+#include "LightingModel.h"
+
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
@@ -37,13 +39,14 @@ protected:
 
 class DrawDeferred {
 public:
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
     using Config = DrawConfig;
-    using JobModel = render::Job::ModelI<DrawDeferred, render::ItemBounds, Config>;
+    using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
     DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -73,13 +76,15 @@ protected:
 
 class DrawStateSortDeferred {
 public:
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+
     using Config = DrawStateSortConfig;
-    using JobModel = render::Job::ModelI<DrawStateSortDeferred, render::ItemBounds, Config>;
+    using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
     DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -87,11 +92,12 @@ protected:
     bool _stateSort;
 };
 
+class DeferredFramebuffer;
 class DrawStencilDeferred {
 public:
-    using JobModel = render::Job::Model<DrawStencilDeferred>;
+    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
     static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
@@ -111,11 +117,13 @@ protected:
 
 class DrawBackgroundDeferred {
 public:
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+
     using Config = DrawBackgroundDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, render::ItemBounds, Config>;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs, Config>;
 
     void configure(const Config& config) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     gpu::RangeTimer _gpuTimer;
@@ -141,13 +149,15 @@ protected:
 
 class DrawOverlay3D {
 public:
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+
     using Config = DrawOverlay3DConfig;
-    using JobModel = render::Job::ModelI<DrawOverlay3D, render::ItemBounds, Config>;
+    using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
     DrawOverlay3D(bool opaque);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -157,9 +167,9 @@ protected:
 
 class Blit {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
 
-    using JobModel = render::Job::Model<Blit>;
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
 class RenderDeferredTask : public render::Task {

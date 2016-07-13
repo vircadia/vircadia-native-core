@@ -16,7 +16,7 @@
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
-<$declareEvalSkyboxGlobalColor(supportScattering)$>
+<$declareEvalSkyboxGlobalColor(isScattering)$>
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
@@ -29,48 +29,29 @@ void main(void) {
 
     // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT) {
-        _fragColor = vec4(frag.diffuse, 1.0);
+        discard;
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
-        vec3 color = evalLightmappedColor(
-                        getViewInverse(),
-                        shadowAttenuation,
-                        frag.obscurance,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal.xyz);
-        _fragColor = vec4(color, 1.0);
-    } else {// if (frag.mode == FRAG_MODE_SCATTERING) {
-    
-        vec4 blurredCurvature = fetchCurvature(_texCoord0);
-        vec4 diffusedCurvature = fetchDiffusedCurvature(_texCoord0);
-
-        vec3 color = evalSkyboxGlobalColorScattering(
+        discard;
+    } else {
+        vec4 midNormalCurvature;
+        vec4 lowNormalCurvature;
+        if (frag.mode == FRAG_MODE_SCATTERING) {
+            unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
+        }
+        vec3 color = evalSkyboxGlobalColor(
                         getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.position.xyz,
                         frag.normal,
-                        frag.diffuse,
+                        frag.albedo,
+                        frag.fresnel,
                         frag.metallic,
-                        frag.emissive,
                         frag.roughness,
                         frag.scattering,
-                        blurredCurvature,
-                        diffusedCurvature);
+                        midNormalCurvature,
+                        lowNormalCurvature);
         _fragColor = vec4(color, 1.0);
-  /*  } else {
-        vec3 color =  evalSkyboxGlobalColor(
-                        getViewInverse(),
-                        shadowAttenuation,
-                        frag.obscurance,
-                        frag.position.xyz,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.metallic,
-                        frag.emissive,
-                        frag.roughness);
 
-        _fragColor = vec4(color, frag.normalVal.a);
-        */
     }
 }
