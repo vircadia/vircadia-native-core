@@ -134,20 +134,22 @@ function handleSelectedOverlay(clickedOverlay) {
 }
 
 Controller.mousePressEvent.connect(function(event){
-    // handle click events so we can detect when our overlays are clicked
+    if (isShowingOverlays) {
+        // handle click events so we can detect when our overlays are clicked
 
-    if (!event.isLeftButton) {
-        // if another mouse button than left is pressed ignore it
-        return false;
-    }
+        if (!event.isLeftButton) {
+            // if another mouse button than left is pressed ignore it
+            return false;
+        }
 
-    // compute the pick ray from the event
-    var pickRay = Camera.computePickRay(event.x, event.y);
+        // compute the pick ray from the event
+        var pickRay = Camera.computePickRay(event.x, event.y);
 
-    // grab the clicked overlay for the given pick ray
-    var clickedOverlay = Overlays.findRayIntersection(pickRay);
-    if (clickedOverlay.intersects) {
-        handleSelectedOverlay(clickedOverlay);
+        // grab the clicked overlay for the given pick ray
+        var clickedOverlay = Overlays.findRayIntersection(pickRay);
+        if (clickedOverlay.intersects) {
+            handleSelectedOverlay(clickedOverlay);
+        }
     }
 });
 
