@@ -619,6 +619,14 @@
               "label": "Group Name"
             },
             {
+              "name": "rank",
+              "label": "Rank"
+            },
+            {
+              "name": "rank_name",
+              "label": "Rank Name"
+            },
+            {
               "name": "group_id",
               "label": "Group ID",
               "readonly": true
