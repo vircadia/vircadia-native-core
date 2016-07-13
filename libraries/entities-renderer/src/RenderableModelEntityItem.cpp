@@ -10,6 +10,7 @@
 //
 
 #include <glm/gtx/quaternion.hpp>
+#include <set>
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
@@ -690,8 +691,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 scaleToFit = dimensions / _model->getFBXGeometry().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
-        for (int i = 0; i < pointCollection.size(); i++) {
-            for (int j = 0; j < pointCollection[i].size(); j++) {
+        for (int32_t i = 0; i < pointCollection.size(); i++) {
+            for (int32_t j = 0; j < pointCollection[i].size(); j++) {
                 // compensate for registration
                 pointCollection[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
@@ -708,9 +709,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
-        int numberOfMeshes = fbxGeometry.meshes.size();
-        int totalNumVertices = 0;
-        for (int i = 0; i < numberOfMeshes; i++) {
+        int32_t numMeshes = (int32_t)fbxGeometry.meshes.size();
+        int32_t totalNumVertices = 0;
+        for (int32_t i = 0; i < numMeshes; i++) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
@@ -722,7 +723,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
             totalNumVertices += mesh.vertices.size();
         }
-        const int MAX_VERTICES_PER_STATIC_MESH = 1e6;
+        const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
         if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
             qWarning() << "model" << getModelURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
             info.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
@@ -730,7 +731,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
-        int32_t numMeshes = (int32_t)(meshes.size());
+
+        // the render geometry's mesh count should match that of the FBXGeometry
+        assert(numMeshes == (int32_t)(meshes.size()));
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
         pointCollection.clear();
@@ -741,8 +744,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         Extents extents;
-        int meshCount = 0;
-        int pointListIndex = 0;
+        int32_t meshCount = 0;
+        int32_t pointListIndex = 0;
         for (auto& mesh : meshes) {
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
             const gpu::BufferView& indices = mesh->getIndexBuffer();
@@ -775,6 +778,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             if (type == SHAPE_TYPE_STATIC_MESH) {
                 // copy into triangleIndices
                 ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+                triangleIndices.clear();
                 triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
                 gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
                 while (partItr != parts.cend<const model::Mesh::Part>()) {
@@ -823,6 +827,64 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     }
                     ++partItr;
                 }
+            } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                // for each mesh copy unique part indices, separated by special bogus (flag) index values
+                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+                triangleIndices.clear();
+                gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
+                while (partItr != parts.cend<const model::Mesh::Part>()) {
+                    // collect unique list of indices for this part
+                    std::set<int32_t> uniqueIndices;
+                    if (partItr->_topology == model::Mesh::TRIANGLES) {
+                        assert(partItr->_numIndices % 3 == 0);
+                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexEnd = indexItr + partItr->_numIndices;
+                        while (indexItr != indexEnd) {
+                            uniqueIndices.insert(*indexItr);
+                            ++indexItr;
+                        }
+                    } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                        assert(partItr->_numIndices > 2);
+                        auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                        auto indexEnd = indexItr + (partItr->_numIndices - 2);
+
+                        // first triangle uses the first three indices
+                        uniqueIndices.insert(*(indexItr++));
+                        uniqueIndices.insert(*(indexItr++));
+                        uniqueIndices.insert(*(indexItr++));
+
+                        // the rest use previous and next index
+                        uint32_t triangleCount = 1;
+                        while (indexItr != indexEnd) {
+                            if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                                if (triangleCount % 2 == 0) {
+                                    // even triangles use first two indices in order
+                                    uniqueIndices.insert(*(indexItr - 2));
+                                    uniqueIndices.insert(*(indexItr - 1));
+                                } else {
+                                    // odd triangles swap order of first two indices
+                                    uniqueIndices.insert(*(indexItr - 1));
+                                    uniqueIndices.insert(*(indexItr - 2));
+                                }
+                                uniqueIndices.insert(*indexItr);
+                                ++triangleCount;
+                            }
+                            ++indexItr;
+                        }
+                    }
+
+                    // store uniqueIndices in triangleIndices
+                    triangleIndices.reserve(triangleIndices.size() + (int32_t)uniqueIndices.size());
+                    for (auto index : uniqueIndices) {
+                        triangleIndices.push_back(index);
+                    }
+                    // flag end of part
+                    triangleIndices.push_back(END_OF_MESH_PART);
+
+                    ++partItr;
+                }
+                // flag end of mesh
+                triangleIndices.push_back(END_OF_MESH);
             }
             ++meshCount;
         }
@@ -830,13 +892,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // scale and shift
         glm::vec3 extentsSize = extents.size();
         glm::vec3 scaleToFit = dimensions / extentsSize;
-        for (int i = 0; i < 3; ++i) {
+        for (int32_t i = 0; i < 3; ++i) {
             if (extentsSize[i] < 1.0e-6f) {
                 scaleToFit[i] = 1.0f;
             }
         }
         for (auto points : pointCollection) {
-            for (int i = 0; i < points.size(); ++i) {
+            for (int32_t i = 0; i < points.size(); ++i) {
                 points[i] = (points[i] * scaleToFit);
             }
         }
