@@ -522,6 +522,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    const NodePermissions& permissions,
                                                    const QUuid& connectionSecret) {
+    QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
     if (it != _nodeHash.end()) {
