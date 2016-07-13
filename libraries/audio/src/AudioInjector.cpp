@@ -301,16 +301,23 @@ int64_t AudioInjector::injectNextFrame() {
 
     _currentPacket->seek(audioDataOffset);
 
+    // This code is copying bytes from the _audioData directly into the packet, handling looping appropriately.
+    // Might be a reasonable place to do the encode step here.
+    QByteArray decodedAudio;
     while (totalBytesLeftToCopy > 0) {
         int bytesToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
 
-        _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
+        decodedAudio.append(_audioData.data() + _currentSendOffset, bytesToCopy);
         _currentSendOffset += bytesToCopy;
         totalBytesLeftToCopy -= bytesToCopy;
         if (_options.loop && _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
     }
+    // FIXME -- good place to call codec encode here. We need to figure out how to tell the AudioInjector which 
+    // codec to use... possible through AbstractAudioInterface.
+    QByteArray encodedAudio = decodedAudio;
+    _currentPacket->write(encodedAudio.data(), encodedAudio.size());
 
     // set the correct size used for this packet
     _currentPacket->setPayloadSize(_currentPacket->pos());

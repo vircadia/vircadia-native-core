@@ -95,7 +95,9 @@ public:
         AssetMappingOperation,
         AssetMappingOperationReply,
         ICEServerHeartbeatACK,
-        LAST_PACKET_TYPE = ICEServerHeartbeatACK
+        NegotiateAudioFormat,
+        SelectedAudioFormat,
+        LAST_PACKET_TYPE = SelectedAudioFormat
     };
 };
 
