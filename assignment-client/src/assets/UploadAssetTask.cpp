@@ -43,7 +43,7 @@ void UploadAssetTask::run() {
     qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from"
         << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
     
-    auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
+    auto replyPacket = NLPacket::create(PacketType::AssetUploadReply, -1, true);
     replyPacket->writePrimitive(messageID);
     
     if (fileSize > MAX_UPLOAD_SIZE) {

@@ -298,7 +298,8 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     message->readPrimitive(&messageID);
     assetHash = message->readWithoutCopy(SHA256_HASH_LENGTH);
 
-    auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
+    auto size = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(AssetServerError) + sizeof(qint64));
+    auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply, size, true);
 
     QByteArray hexHash = assetHash.toHex();
 
@@ -347,7 +348,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
         // for now this also means it isn't allowed to add assets
         // so return a packet with error that indicates that
 
-        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
+        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError), true);
 
         MessageID messageID;
         message->readPrimitive(&messageID);
