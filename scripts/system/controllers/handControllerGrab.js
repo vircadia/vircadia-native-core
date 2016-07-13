@@ -380,6 +380,106 @@ EntityPropertiesCache.prototype.getEquipHotspotsProps = function (entityID) {
 // global cache
 var entityPropertiesCache = new EntityPropertiesCache();
 
+// Each overlayInfoSet describes a single equip hotspot.
+// It is an object with the following keys:
+//   timestamp - last time this object was updated, used to delete stale hotspot overlays.
+//   entityID - entity assosicated with this hotspot
+//   localPosition - position relative to the entity
+//   hotspot - hotspot object
+//   overlays - array of overlay objects created by Overlay.addOverlay()
+function EquipHotspotBuddy() {
+    // holds map from {string} hotspot.key to {object} overlayInfoSet.
+    this.map = {};
+
+    // array of all hotspots that are highlighed.
+    this.highlightedHotspots = [];
+}
+EquipHotspotBuddy.prototype.clear = function () {
+    var keys = Object.keys(this.map);
+    for (var i = 0; i < keys.length; i++) {
+        var overlayInfoSet = this.map[keys[i]];
+        this.deleteOverlayInfoSet(overlayInfoSet);
+    }
+    this.map = {};
+    this.highlightedHotspots = [];
+};
+EquipHotspotBuddy.prototype.highlightHotspot = function (hotspot) {
+    this.highlightedHotspots.push(hotspot);
+};
+EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
+    var overlayInfoSet = this.map[hotspot.key];
+    if (!overlayInfoSet) {
+        // create a new overlayInfoSet
+        overlayInfoSet = {
+            timestamp: timestamp,
+            entityID: hotspot.entityID,
+            localPosition: hotspot.localPosition,
+            hotspot: hotspot,
+            overlays: []
+        };
+
+        var diameter = hotspot.radius * 2;
+
+        // TODO: check for custom hotspot model urls.
+
+        // default sphere
+        overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
+            position: hotspot.worldPosition,
+            rotation: {x: 0, y: 0, z: 0, w: 1},
+            dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
+            color: EQUIP_SPHERE_COLOR,
+            alpha: EQUIP_SPHERE_ALPHA,
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: false
+        }));
+
+        this.map[hotspot.key] = overlayInfoSet;
+    } else {
+        overlayInfoSet.timestamp = timestamp;
+    }
+};
+EquipHotspotBuddy.prototype.updateHotspots = function (hotspots, timestamp) {
+    var _this = this;
+    hotspots.forEach(function (hotspot) {
+        _this.updateHotspot(hotspot, timestamp);
+    });
+    this.highlightedHotspots = [];
+};
+EquipHotspotBuddy.prototype.update = function (deltaTime, timestamp) {
+    var keys = Object.keys(this.map);
+    for (var i = 0; i < keys.length; i++) {
+        var overlayInfoSet = this.map[keys[i]];
+
+        // TODO: figure out how to do animation.... fade in, fade out, highlight, un-highlight
+
+        if (overlayInfoSet.timestamp != timestamp) {
+            // this is an old stale overlay, delete it!
+            overlayInfoSet.overlays.forEach(function (overlay) {
+                Overlays.deleteOverlay(overlay);
+            });
+            delete this.map[keys[i]];
+        } else {
+            // update overlay position, rotation to follow the object it's attached to.
+
+            var props = entityPropertiesCache.getProps(overlayInfoSet.entityID);
+            var entityXform = new Xform(props.rotation, props.position);
+            var position = entityXform.xformPoint(overlayInfoSet.localPosition);
+
+            overlayInfoSet.overlays.forEach(function (overlay) {
+                Overlays.editOverlay(overlay, {
+                    position: position,
+                    rotation: props.rotation
+                });
+            });
+        }
+    }
+};
+
+// global EquipHotspotBuddy instance
+var equipHotspotBuddy = new EquipHotspotBuddy();
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -440,7 +540,7 @@ function MyController(hand) {
         return (-1 !== suppressedIn2D.indexOf(this.state)) && isIn2DMode();
     };
 
-    this.update = function (deltaTime) {
+    this.update = function (deltaTime, timestamp) {
 
         this.updateSmoothedTrigger();
 
@@ -453,7 +553,7 @@ function MyController(hand) {
             var updateMethodName = CONTROLLER_STATE_MACHINE[this.state].updateMethod;
             var updateMethod = this[updateMethodName];
             if (updateMethod) {
-                updateMethod.call(this, deltaTime);
+                updateMethod.call(this, deltaTime, timestamp);
             } else {
                 print("WARNING: could not find updateMethod for state " + stateToName(this.state));
             }
@@ -909,7 +1009,7 @@ function MyController(hand) {
         return _this.rawThumbValue < THUMB_ON_VALUE;
     };
 
-    this.off = function () {
+    this.off = function (deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.waitForTriggerRelease = false;
         }
@@ -931,7 +1031,8 @@ function MyController(hand) {
         }
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
-        this.updateEquipHotspotRendering(nearEquipHotspots, potentialEquipHotspot);
+        equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
+        equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
     };
 
     this.clearEquipHaptics = function () {
@@ -944,95 +1045,6 @@ function MyController(hand) {
             Controller.triggerShortHapticPulse(0.5, this.hand);
         }
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
-    };
-
-    this.clearEquipHotspotRendering = function () {
-        var keys = Object.keys(this.equipOverlayInfoSetMap);
-        for (var i = 0; i < keys.length; i++) {
-            var overlayInfoSet = this.equipOverlayInfoSetMap[keys[i]];
-            this.deleteOverlayInfoSet(overlayInfoSet);
-        }
-        this.equipOverlayInfoSetMap = {};
-    };
-
-    this.createOverlayInfoSet = function (hotspot, timestamp) {
-        var overlayInfoSet = {
-            timestamp: timestamp,
-            entityID: hotspot.entityID,
-            localPosition: hotspot.localPosition,
-            hotspot: hotspot,
-            overlays: []
-        };
-
-        var diameter = hotspot.radius * 2;
-
-        overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
-            position: hotspot.worldPosition,
-            rotation: {x: 0, y: 0, z: 0, w: 1},
-            dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
-            color: EQUIP_SPHERE_COLOR,
-            alpha: EQUIP_SPHERE_ALPHA,
-            solid: true,
-            visible: true,
-            ignoreRayIntersection: true,
-            drawInFront: false
-        }));
-
-        return overlayInfoSet;
-    };
-
-    this.updateOverlayInfoSet = function (overlayInfoSet, timestamp, potentialEquipHotspot) {
-        overlayInfoSet.timestamp = timestamp;
-
-        var diameter = overlayInfoSet.hotspot.radius * 2;
-
-        // embiggen the overlays if it maches the potentialEquipHotspot
-        if (potentialEquipHotspot && overlayInfoSet.entityID == potentialEquipHotspot.entityID &&
-            Vec3.equal(overlayInfoSet.localPosition, potentialEquipHotspot.localPosition)) {
-            diameter = diameter * EQUIP_RADIUS_EMBIGGEN_FACTOR;
-        }
-
-        var props = entityPropertiesCache.getProps(overlayInfoSet.entityID);
-        var entityXform = new Xform(props.rotation, props.position);
-        var position = entityXform.xformPoint(overlayInfoSet.localPosition);
-
-        overlayInfoSet.overlays.forEach(function (overlay) {
-            Overlays.editOverlay(overlay, {
-                position: position,
-                rotation: props.rotation,
-                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR
-            });
-        });
-    };
-
-    this.deleteOverlayInfoSet = function (overlayInfoSet) {
-        overlayInfoSet.overlays.forEach(function (overlay) {
-            Overlays.deleteOverlay(overlay);
-        });
-    };
-
-    this.updateEquipHotspotRendering = function (hotspots, potentialEquipHotspot) {
-        var now = Date.now();
-        var _this = this;
-
-        hotspots.forEach(function (hotspot) {
-            var overlayInfoSet = _this.equipOverlayInfoSetMap[hotspot.key];
-            if (overlayInfoSet) {
-                _this.updateOverlayInfoSet(overlayInfoSet, now, potentialEquipHotspot);
-            } else {
-                _this.equipOverlayInfoSetMap[hotspot.key] = _this.createOverlayInfoSet(hotspot, now);
-            }
-        });
-
-        // delete sets with old timestamps.
-        var keys = Object.keys(this.equipOverlayInfoSetMap);
-        for (var i = 0; i < keys.length; i++) {
-            var overlayInfoSet = this.equipOverlayInfoSetMap[keys[i]];
-            if (overlayInfoSet.timestamp !== now) {
-                this.deleteOverlayInfoSet(overlayInfoSet);
-                delete this.equipOverlayInfoSetMap[keys[i]];
-            }
-        }
     };
 
     // Performs ray pick test from the hand controller into the world
@@ -1298,7 +1310,7 @@ function MyController(hand) {
         }
     };
 
-    this.search = function () {
+    this.search = function (deltaTime, timestamp) {
         var _this = this;
         var name;
 
@@ -1409,7 +1421,8 @@ function MyController(hand) {
         this.updateEquipHaptics(potentialEquipHotspot);
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
-        this.updateEquipHotspotRendering(nearEquipHotspots, potentialEquipHotspot);
+        equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
+        equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
 
         // search line visualizations
         if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
@@ -1438,7 +1451,6 @@ function MyController(hand) {
 
     this.distanceHoldingEnter = function () {
 
-        this.clearEquipHotspotRendering();
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
@@ -1498,7 +1510,7 @@ function MyController(hand) {
         this.previousControllerRotation = controllerRotation;
     };
 
-    this.distanceHolding = function () {
+    this.distanceHolding = function (deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
@@ -1717,7 +1729,6 @@ function MyController(hand) {
 
         this.dropGestureReset();
         this.clearEquipHaptics();
-        this.clearEquipHotspotRendering();
 
         Controller.triggerShortHapticPulse(1.0, this.hand);
 
@@ -1819,7 +1830,7 @@ function MyController(hand) {
         this.currentAngularVelocity = ZERO_VEC;
     };
 
-    this.nearGrabbing = function (deltaTime) {
+    this.nearGrabbing = function (deltaTime, timestamp) {
 
         var dropDetected = this.dropGestureProcess(deltaTime);
 
@@ -1938,7 +1949,6 @@ function MyController(hand) {
 
     this.nearTriggerEnter = function () {
 
-        this.clearEquipHotspotRendering();
         this.clearEquipHaptics();
 
         Controller.triggerShortHapticPulse(1.0, this.hand);
@@ -1946,13 +1956,12 @@ function MyController(hand) {
     };
 
     this.farTriggerEnter = function () {
-        this.clearEquipHotspotRendering();
         this.clearEquipHaptics();
 
         this.callEntityMethodOnGrabbed("startFarTrigger");
     };
 
-    this.nearTrigger = function () {
+    this.nearTrigger = function (deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             this.setState(STATE_OFF, "trigger released");
@@ -1961,7 +1970,7 @@ function MyController(hand) {
         this.callEntityMethodOnGrabbed("continueNearTrigger");
     };
 
-    this.farTrigger = function () {
+    this.farTrigger = function (deltaTime, timestamp) {
         if (this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             this.setState(STATE_OFF, "trigger released");
@@ -2262,12 +2271,15 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update(deltaTime) {
+    var timestamp = Date.now();
+
     if (handToDisable !== LEFT_HAND && handToDisable !== 'both') {
-        leftController.update(deltaTime);
+        leftController.update(deltaTime, timestamp);
     }
     if (handToDisable !== RIGHT_HAND && handToDisable !== 'both') {
-        rightController.update(deltaTime);
+        rightController.update(deltaTime, timestamp);
     }
+    equipHotspotBuddy.update(deltaTime, timestamp);
     entityPropertiesCache.update();
 }
 
