@@ -169,6 +169,14 @@ static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+
+// For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
+// 2 logical cores available for time sensitive tasks.
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
+static const int PROCESSING_THREAD_POOL_SIZE = std::max(MIN_PROCESSING_THREAD_POOL_SIZE,
+                                                        QThread::idealThreadCount() - 2);
+
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
@@ -516,13 +524,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    // FIXME this may be excessively conservative.  On the other hand
-    // maybe I'm used to having an 8-core machine
-    // Perhaps find the ideal thread count  and subtract 2 or 3
-    // (main thread, present thread, random OS load)
-    // More threads == faster concurrent loads, but also more concurrent
-    // load on the GPU until we can serialize GPU transfers (off the main thread)
-    QThreadPool::globalInstance()->setMaxThreadCount(2);
+    QThreadPool::globalInstance()->setMaxThreadCount(PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
@@ -733,7 +735,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    ResourceCache::setRequestLimit(3);
+    ResourceCache::setRequestLimit(MAX_CONCURRENT_RESOURCE_DOWNLOADS);
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
