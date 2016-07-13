@@ -1,4 +1,4 @@
-import QtQuick 2.3
+import QtQuick 2.5
 import QtQuick.Controls 1.2
 import QtWebEngine 1.1
 
@@ -131,6 +131,9 @@ ScrollingWindow {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
+            onFeaturePermissionRequested: {
+                grantFeaturePermission(securityOrigin, feature, true);
+            }
             onLoadingChanged: {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
