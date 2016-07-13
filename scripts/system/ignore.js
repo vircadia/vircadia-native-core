@@ -114,7 +114,24 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
         // delete the saved ID of the overlay from our ignored overlays object
         delete ignoreOverlays[avatarID];
     }
-})
+});
+
+function handleSelectedOverlay(clickedOverlay) {
+    // see this is one of our ignore overlays
+
+    var ignoreOverlayKeys = Object.keys(ignoreOverlays)
+    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
+        var avatarID = ignoreOverlayKeys[i];
+        var ignoreOverlay = ignoreOverlays[avatarID];
+
+        if (clickedOverlay.overlayID == ignoreOverlay) {
+            // matched to an overlay, ask for the matching avatar to be ignored
+            Users.ignore(avatarID);
+
+            // cleanup of the overlay is handled by the connection to avatarRemovedEvent
+        }
+    }
+}
 
 Controller.mousePressEvent.connect(function(event){
     // handle click events so we can detect when our overlays are clicked
@@ -129,25 +146,58 @@ Controller.mousePressEvent.connect(function(event){
 
     // grab the clicked overlay for the given pick ray
     var clickedOverlay = Overlays.findRayIntersection(pickRay);
-
-    // see this is one of our ignore overlays
-    var ignoreOverlayKeys = Object.keys(ignoreOverlays)
-    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
-        var avatarID = ignoreOverlayKeys[i];
-        var ignoreOverlay = ignoreOverlays[avatarID];
-
-        if (clickedOverlay.overlayID == ignoreOverlay) {
-            // matched to an overlay, ask for the matching avatar to be ignored
-            Users.ignore(avatarID);
-
-            // cleanup of the overlay is handled by the connection to avatarRemovedEvent
-        }
+    if (clickedOverlay.intersects) {
+        handleSelectedOverlay(clickedOverlay);
     }
 });
 
+// We get mouseMoveEvents from the handControllers, via handControllerPointer.
+// But we dont' get mousePressEvents.
+var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+
+var TRIGGER_GRAB_VALUE = 0.85;  //  From handControllerGrab/Pointer.js. Should refactor.
+var TRIGGER_ON_VALUE = 0.4;
+var TRIGGER_OFF_VALUE = 0.15;
+var triggered = false;
+var activeHand = Controller.Standard.RightHand;
+
+function controllerComputePickRay() {
+    var controllerPose = Controller.getPoseValue(activeHand);
+    if (controllerPose.valid && triggered) {
+        var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
+                                          MyAvatar.position);
+        // This gets point direction right, but if you want general quaternion it would be more complicated:
+        var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
+        return {origin: controllerPosition, direction: controllerDirection};
+    }
+}
+
+function makeTriggerHandler(hand) {
+    return function (value) {
+        if (!triggered && (value > TRIGGER_GRAB_VALUE)) { // should we smooth?
+            triggered = true;
+            if (activeHand !== hand) {
+                // No switching while the other is already triggered, so no need to release.
+                activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+            }
+
+            var pickRay = controllerComputePickRay();
+            if (pickRay) {
+                var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                if (overlayIntersection.intersects) {
+                    handleClickedOverlay(overlayIntersection);
+                }
+            }
+        }
+    };
+}
+
+triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
+triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
     toolbar.removeButton('ignore');
     removeOverlays();
+    triggerMapping.disable();
 });
