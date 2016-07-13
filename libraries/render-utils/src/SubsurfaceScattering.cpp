@@ -515,8 +515,8 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
     auto& deferredFramebuffer = inputs.get1();
 
     auto& surfaceGeometryFramebuffer = inputs.get3();
-    auto& curvatureFramebuffer = surfaceGeometryFramebuffer->getCurvatureFramebuffer();
-    auto& linearDepthTexture = surfaceGeometryFramebuffer->getLinearDepthTexture();
+    auto curvatureFramebuffer = surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+    auto linearDepthTexture = surfaceGeometryFramebuffer->getLinearDepthTexture();
 
     auto& diffusedFramebuffer = inputs.get4();
     auto& scatteringResource = inputs.get5();
