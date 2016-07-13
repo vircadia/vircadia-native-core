@@ -19,8 +19,7 @@ QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
     : _model(std::make_shared<Model>(std::make_shared<Rig>())),
-      _modelTextures(QVariantMap()),
-      _updateModel(false)
+      _modelTextures(QVariantMap())
 {
     _model->init();
     _isLoaded = false;
@@ -44,7 +43,11 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
-        _model->setScaleToFit(true, getDimensions());
+        if (_scaleToFit) {
+            _model->setScaleToFit(true, getScale() * getDimensions());
+        } else {
+            _model->setScale(getScale());
+        }
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
         _model->setURL(_url);
@@ -84,16 +87,33 @@ void ModelOverlay::render(RenderArgs* args) {
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
-    auto position = getPosition();
-    auto rotation = getRotation();
+    auto origPosition = getPosition();
+    auto origRotation = getRotation();
+    auto origDimensions = getDimensions();
+    auto origScale = getScale();
 
-    Volume3DOverlay::setProperties(properties);
+    Base3DOverlay::setProperties(properties);
 
-    if (position != getPosition() || rotation != getRotation()) {
-        _updateModel = true;
+    auto scale = properties["scale"];
+    if (scale.isValid()) {
+        setScale(vec3FromVariant(scale));
     }
 
-    _updateModel = true;
+    auto dimensions = properties["dimensions"];
+    if (dimensions.isValid()) {
+        _scaleToFit = true;
+        setDimensions(vec3FromVariant(dimensions));
+    } else if (scale.isValid()) {
+        // if "scale" property is set but "dimentions" is not.
+        // do NOT scale to fit.
+        if (scale.isValid()) {
+            _scaleToFit = false;
+        }
+    }
+
+    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getScale()) {
+        _updateModel = true;
+    }
 
     auto urlValue = properties["url"];
     if (urlValue.isValid() && urlValue.canConvert<QString>()) {
@@ -101,15 +121,15 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _updateModel = true;
         _isLoaded = false;
     }
-    
+
     auto texturesValue = properties["textures"];
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         QVariantMap textureMap = texturesValue.toMap();
         foreach(const QString& key, textureMap.keys()) {
-            
+
             QUrl newTextureURL = textureMap[key].toUrl();
             qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
-            
+
             QMetaObject::invokeMethod(_model.get(), "setTextureWithNameToURL", Qt::AutoConnection,
                                       Q_ARG(const QString&, key),
                                       Q_ARG(const QUrl&, newTextureURL));
@@ -123,8 +143,11 @@ QVariant ModelOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url.toString();
     }
-    if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3toVariant(_model->getScaleToFitDimensions());
+    if (property == "dimensions" || property == "size") {
+        return vec3toVariant(getDimensions());
+    }
+    if (property == "scale") {
+        return vec3toVariant(getScale());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
@@ -143,14 +166,14 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-    
+
     QString subMeshNameTemp;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, subMeshNameTemp);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
-    
+
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
 }
 
