@@ -1,5 +1,5 @@
 //
-//  CollisionGeometryCache.cpp
+//  CollisionRenderMeshCache.cpp
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2016.07.13
@@ -13,32 +13,32 @@
 //#include <glm/gtx/norm.hpp>
 
 //#include "ShapeFactory.h"
-#include "CollisionGeometryCache.h"
+#include "CollisionRenderMeshCache.h"
 
 int foo = 0;
 
-GeometryPointer createGeometryFromShape(CollisionGeometryCache::Key key) {
+MeshPointer createMeshFromShape(CollisionRenderMeshCache::Key key) {
     return std::make_shared<int>(++foo);
 }
 
-CollisionGeometryCache::CollisionGeometryCache() {
+CollisionRenderMeshCache::CollisionRenderMeshCache() {
 }
 
-CollisionGeometryCache::~CollisionGeometryCache() {
+CollisionRenderMeshCache::~CollisionRenderMeshCache() {
     _geometryMap.clear();
     _pendingGarbage.clear();
 }
 
-GeometryPointer CollisionGeometryCache::getGeometry(CollisionGeometryCache::Key key) {
+MeshPointer CollisionRenderMeshCache::getMesh(CollisionRenderMeshCache::Key key) {
     if (!key) {
-        return GeometryPointer();
+        return MeshPointer();
     }
-    GeometryPointer geometry = 0;
+    MeshPointer geometry = 0;
 
-    CollisionGeometryMap::const_iterator itr = _geometryMap.find(key);
+    CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
     if (itr != _geometryMap.end()) {
         // make geometry and add it to map
-        geometry = createGeometryFromShape(key);
+        geometry = createMeshFromShape(key);
         if (geometry) {
             _geometryMap.insert(std::make_pair(key, geometry));
         }
@@ -46,11 +46,11 @@ GeometryPointer CollisionGeometryCache::getGeometry(CollisionGeometryCache::Key 
     return geometry;
 }
 
-bool CollisionGeometryCache::releaseGeometry(CollisionGeometryCache::Key key) {
+bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
     if (!key) {
         return false;
     }
-    CollisionGeometryMap::const_iterator itr = _geometryMap.find(key);
+    CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
     if (itr != _geometryMap.end()) {
         assert((*itr).second.use_count() != 1);
         if ((*itr).second.use_count() == 2) {
@@ -62,11 +62,11 @@ bool CollisionGeometryCache::releaseGeometry(CollisionGeometryCache::Key key) {
     return false;
 }
 
-void CollisionGeometryCache::collectGarbage() {
+void CollisionRenderMeshCache::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
-        CollisionGeometryCache::Key key = _pendingGarbage[i];
-        CollisionGeometryMap::const_iterator itr = _geometryMap.find(key);
+        CollisionRenderMeshCache::Key key = _pendingGarbage[i];
+        CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
         if (itr != _geometryMap.end()) {
             if ((*itr).second.use_count() == 1) {
                 // we hold the only reference

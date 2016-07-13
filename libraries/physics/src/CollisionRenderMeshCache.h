@@ -1,5 +1,5 @@
 //
-//  CollisionGeometryCache.h
+//  CollisionRenderMeshCache.h
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2016.07.13
@@ -9,19 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CollisionGeometryCache
-#define hifi_CollisionGeometryCache
+#ifndef hifi_CollisionRenderMeshCache_h
+#define hifi_CollisionRenderMeshCache_h
 
 #include <memory>
 #include <vector>
 #include <unordered_map>
-//#include <btBulletDynamicsCommon.h>
-//#include <LinearMath/btHashMap.h>
 
 class btCollisionShape;
 
 // BEGIN TEST HACK
-using GeometryPointer = std::shared_ptr<int>;
+using MeshPointer = std::shared_ptr<int>;
 // END TEST HACK
 
 namespace std {
@@ -33,30 +31,30 @@ namespace std {
     };
 }
 
-class CollisionGeometryCache {
+class CollisionRenderMeshCache {
 public:
 	using Key = btCollisionShape const *;
 
-    CollisionGeometryCache();
-    ~CollisionGeometryCache();
+    CollisionRenderMeshCache();
+    ~CollisionRenderMeshCache();
 
     /// \return pointer to geometry
-    GeometryPointer getGeometry(Key key);
+    MeshPointer getMesh(Key key);
 
     /// \return true if geometry was found and released
-    bool releaseGeometry(Key key);
+    bool releaseMesh(Key key);
 
     /// delete geometries that have zero references
     void collectGarbage();
 
     // validation methods
     uint32_t getNumGeometries() const { return (uint32_t)_geometryMap.size(); }
-    bool hasGeometry(Key key) const { return _geometryMap.find(key) == _geometryMap.end(); }
+    bool hasMesh(Key key) const { return _geometryMap.find(key) == _geometryMap.end(); }
 
 private:
-    using CollisionGeometryMap = std::unordered_map<Key, GeometryPointer>;
-    CollisionGeometryMap _geometryMap;
+    using CollisionMeshMap = std::unordered_map<Key, MeshPointer>;
+    CollisionMeshMap _geometryMap;
     std::vector<Key> _pendingGarbage;
 };
 
-#endif // hifi_CollisionGeometryCache
+#endif // hifi_CollisionRenderMeshCache_h
