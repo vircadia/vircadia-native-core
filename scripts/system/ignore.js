@@ -185,7 +185,7 @@ function makeTriggerHandler(hand) {
             if (pickRay) {
                 var overlayIntersection = Overlays.findRayIntersection(pickRay);
                 if (overlayIntersection.intersects) {
-                    handleClickedOverlay(overlayIntersection);
+                    handleSelectedOverlay(overlayIntersection);
                 }
             }
         } else if (triggered && (value < TRIGGER_OFF_VALUE)) {
