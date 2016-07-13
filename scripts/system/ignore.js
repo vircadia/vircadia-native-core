@@ -50,8 +50,6 @@ function buttonClicked(){
 
 button.clicked.connect(buttonClicked);
 
-var OVERLAY_SIZE = 0.25;
-
 function updateOverlays() {
     if (isShowingOverlays) {
 
@@ -74,17 +72,27 @@ function updateOverlays() {
                 continue;
             }
 
+            // setup a position for the overlay that is just above this avatar's head
+            var overlayPosition = avatar.getJointPosition("Head");
+            overlayPosition.y += 0.45;
+
             if (avatarID in ignoreOverlays) {
-
+                // keep the overlay above the current position of this avatar
+                Overlays.editOverlay(ignoreOverlays[avatarID], {
+                    position: overlayPosition
+                });
             } else {
-
                 // add the overlay above this avatar
-                var newOverlay = Overlays.addOverlay("cube", {
-                    position: avatarPosition,
-                    size: 0.25,
-                    color: { red: 0, green: 0, blue: 255},
+                var newOverlay = Overlays.addOverlay("image3d", {
+                    url: Script.resolvePath("assets/images/ignore-target-01.svg"),
+                    position: overlayPosition,
+                    size: 0.4,
+                    scale: 0.4,
+                    color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
-                    solid: true
+                    solid: true,
+                    isFacingAvatar: true,
+                    drawInFront: true
                 });
 
                 // push this overlay to our array of overlays
