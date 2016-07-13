@@ -13,11 +13,13 @@
 #include <plugins/PluginManager.h>
 
 #include "KeyboardMouseDevice.h"
+#include "TouchscreenDevice.h"
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {
         new KeyboardMouseDevice(),
+        new TouchscreenDevice(),
         nullptr
     };
 

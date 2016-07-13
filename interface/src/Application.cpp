@@ -170,7 +170,8 @@ static QTimer pingTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
-static const QString SVO_JSON_EXTENSION  = ".svo.json";
+static const QString SVO_JSON_EXTENSION = ".svo.json";
+static const QString JSON_EXTENSION = ".json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
@@ -202,13 +203,16 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
+static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
+    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
+    { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl },
-    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -953,8 +957,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
 
-    // Setup the keyboardMouseDevice and the user input mapper with the default bindings
+    // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
+    // if the _touchscreenDevice is not supported it will not be registered
+    if (_touchscreenDevice) {
+        userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
+    }
 
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
@@ -1517,7 +1525,6 @@ void Application::initializeUi() {
 
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
-    rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
@@ -1595,6 +1602,9 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }
+        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
+            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }
     _window->setMenuBar(new Menu());
@@ -1969,7 +1979,22 @@ void Application::resizeGL() {
     }
 }
 
+bool Application::importJSONFromURL(const QString& urlString) {
+    // we only load files that terminate in just .json (not .svo.json and not .ava.json)
+    // if they come from the High Fidelity Marketplace Assets CDN
+
+    QUrl jsonURL { urlString };
+
+    if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        emit svoImportRequested(urlString);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool Application::importSVOFromURL(const QString& urlString) {
+
     emit svoImportRequested(urlString);
     return true;
 }
@@ -2076,6 +2101,9 @@ bool Application::event(QEvent* event) {
             return true;
         case QEvent::TouchUpdate:
             touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Gesture:
+            touchGestureEvent((QGestureEvent*)event);
             return true;
         case QEvent::Wheel:
             wheelEvent(static_cast<QWheelEvent*>(event));
@@ -2708,6 +2736,9 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchUpdateEvent(event);
+    }
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
@@ -2726,6 +2757,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchBeginEvent(event);
+    }
 
 }
 
@@ -2743,8 +2777,17 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchEndEvent(event);
+    }
 
     // put any application specific touch behavior below here..
+}
+
+void Application::touchGestureEvent(QGestureEvent* event) {
+    if (_touchscreenDevice->isActive()) {
+        _touchscreenDevice->touchGestureEvent(event);
+    }
 }
 
 void Application::wheelEvent(QWheelEvent* event) const {
@@ -4806,7 +4849,17 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
-    QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
+
+    QString shortName = scriptFilenameOrURL;
+
+    QUrl scriptURL { scriptFilenameOrURL };
+
+    if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+        shortName = shortName.mid(shortName.lastIndexOf('/') + 1);
+    }
+
+    QString message = "Would you like to run this script:\n" + shortName;
+
     reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
@@ -4992,16 +5045,9 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (!accountManager->isLoggedIn()) {
-        return;
-    }
-
-    DependencyManager::get<OffscreenUi>()->load("hifi/dialogs/SnapshotShareDialog.qml", [=](QQmlContext*, QObject* dialog) {
-        dialog->setProperty("source", QUrl::fromLocalFile(fileName));
-    });
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
 }
 
 float Application::getRenderResolutionScale() const {

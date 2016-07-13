@@ -35,7 +35,7 @@ void setupPreferences() {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
-        auto getter = [=]()->QString {return myAvatar->getDisplayName(); };
+        auto getter = [=]()->QString { return myAvatar->getDisplayName(); };
         auto setter = [=](const QString& value) { myAvatar->setDisplayName(value); };
         auto preference = new EditPreference(AVATAR_BASICS, "Avatar display name (optional)", getter, setter);
         preference->setPlaceholderText("Not showing a name");
@@ -43,7 +43,7 @@ void setupPreferences() {
     }
 
     {
-        auto getter = [=]()->QString {return myAvatar->getCollisionSoundURL(); };
+        auto getter = [=]()->QString { return myAvatar->getCollisionSoundURL(); };
         auto setter = [=](const QString& value) { myAvatar->setCollisionSoundURL(value); };
         auto preference = new EditPreference(AVATAR_BASICS, "Avatar collision sound URL (optional)", getter, setter);
         preference->setPlaceholderText("Enter the URL of a sound to play when you bump into something");
@@ -56,20 +56,24 @@ void setupPreferences() {
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
+
     {
-        auto getter = [=]()->bool {return myAvatar->getSnapTurn(); };
+        auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
         auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
     }
     {
-        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenMoving(); };
+        auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
+
+    // Snapshots
+    static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
-        auto preference = new BrowsePreference("Snapshots", "Put my snapshots here", getter, setter);
+        auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
     }
 
@@ -85,7 +89,7 @@ void setupPreferences() {
     }));
 
     {
-        auto getter = []()->bool {return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
+        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
         preferences->addPreference(new CheckPreference("Privacy", "Send data", getter, setter));
     }
@@ -184,7 +188,7 @@ void setupPreferences() {
 
     static const QString AUDIO("Audio");
     {
-        auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDynamicJitterBuffers(); };
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDynamicJitterBuffers(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setDynamicJitterBuffers(value); };
         preferences->addPreference(new CheckPreference(AUDIO, "Enable dynamic jitter buffers", getter, setter));
     }
@@ -207,7 +211,7 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getUseStDevForJitterCalc(); };
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getUseStDevForJitterCalc(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setUseStDevForJitterCalc(value); };
         preferences->addPreference(new CheckPreference(AUDIO, "Use standard deviation for dynamic jitter calc", getter, setter));
     }
@@ -236,7 +240,7 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getRepetitionWithFade(); };
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getRepetitionWithFade(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setRepetitionWithFade(value); };
         preferences->addPreference(new CheckPreference(AUDIO, "Repetition with fade", getter, setter));
     }
@@ -250,7 +254,7 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionEnabled(value); };
         auto preference = new CheckPreference(AUDIO, "Output starve detection (automatic buffer size increase)", getter, setter);
         preferences->addPreference(preference);
