@@ -32,23 +32,21 @@ Decoration {
     frameMarginBottom: frameMargin + (verticalSpacers ? spacerMargin : 0)
     radius: hifi.dimensions.borderRadius / 2
 
-    Connections {
-        target: window
-        onMouseEntered: {
-            if (!HMD.active) {
-                return;
-            }
-            root.frameMargin = 18
-            root.spacerWidth = 16
-            root.spacerRadius = 8
-            root.spacerMargin = 8
+    onInflateDecorations: {
+        if (!HMD.active) {
+            return;
         }
-        onMouseExited: {
-            root.frameMargin = 6
-            root.spacerWidth = 8
-            root.spacerRadius = 4
-            root.spacerMargin = 12
-        }
+        root.frameMargin = 18
+        root.spacerWidth = 16
+        root.spacerRadius = 8
+        root.spacerMargin = 8
+    }
+
+    onDeflateDecorations: {
+        root.frameMargin = 6
+        root.spacerWidth = 8
+        root.spacerRadius = 4
+        root.spacerMargin = 12
     }
 
     Rectangle {

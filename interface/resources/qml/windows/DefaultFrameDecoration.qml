@@ -14,7 +14,6 @@ import QtGraphicalEffects 1.0
 import "."
 import "../styles-uit"
 
-
 Decoration {
     HifiConstants { id: hifi }
 
@@ -28,22 +27,21 @@ Decoration {
     frameMarginTop: 2 * frameMargin + iconSize
     frameMarginBottom: iconSize + 11
 
-    Connections {
-        target: window
-        onMouseEntered: {
-            if (!HMD.active) {
-                return;
-            }
-            root.frameMargin = 18
-            titleText.size = hifi.fontSizes.overlayTitle * 2
-            root.iconSize = hifi.dimensions.frameIconSize * 2
+    onInflateDecorations: {
+        if (!HMD.active) {
+            return;
         }
-        onMouseExited: {
-            root.frameMargin = 9
-            titleText.size = hifi.fontSizes.overlayTitle
-            root.iconSize = hifi.dimensions.frameIconSize
-        }
+        root.frameMargin = 18
+        titleText.size = hifi.fontSizes.overlayTitle * 2
+        root.iconSize = hifi.dimensions.frameIconSize * 2
     }
+
+    onDeflateDecorations: {
+        root.frameMargin = 9
+        titleText.size = hifi.fontSizes.overlayTitle
+        root.iconSize = hifi.dimensions.frameIconSize
+    }
+
 
     Row {
         id: controlsRow

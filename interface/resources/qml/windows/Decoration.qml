@@ -17,6 +17,9 @@ import "../styles-uit"
 Rectangle {
     HifiConstants { id: hifi }
 
+    signal inflateDecorations();
+    signal deflateDecorations();
+
     property int frameMargin: 9
     property int frameMarginLeft: frameMargin
     property int frameMarginRight: frameMargin
@@ -42,6 +45,27 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         drag.target: window
+    }
+    Connections {
+        target: window
+        onMouseEntered: {
+            if (desktop.hmdHandMouseActive) {
+                root.inflateDecorations()
+           }
+        }
+        onMouseExited: root.deflateDecorations();
+    }
+    Connections {
+        target: desktop
+        onHmdHandMouseActiveChanged: {
+            if (desktop.hmdHandMouseActive) {
+                if (window.activator.containsMouse) {
+                    root.inflateDecorations();
+                }
+            } else {
+                root.deflateDecorations();
+            }
+        }
     }
 }
 

@@ -25,6 +25,7 @@ FocusScope {
     property rect recommendedRect: Qt.rect(0,0,0,0);
     property var expectedChildren;
     property bool repositionLocked: true
+    property bool hmdHandMouseActive: false
 
     onRepositionLockedChanged: {
         if (!repositionLocked) {

@@ -33,6 +33,11 @@ ApplicationWindow {
             onClicked: HMD.active = !HMD.active
         }
 
+        Button {
+            text: desktop.hmdHandMouseActive ? "Disable HMD HandMouse" : "Enable HMD HandMouse"
+            onClicked: desktop.hmdHandMouseActive = !desktop.hmdHandMouseActive
+        }
+
         // Window visibility
         Button {
             text: "toggle desktop"
