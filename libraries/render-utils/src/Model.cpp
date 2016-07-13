@@ -20,6 +20,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
+#include <GLMHelpers.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"

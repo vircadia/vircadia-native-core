@@ -1085,6 +1085,15 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     shapeInfo.setOffset(uniformScale * _skeletonModel->getBoundingCapsuleOffset());
 }
 
+void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
+    start = getPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    end = getPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    radius = halfExtents.x;
+}
+
 void Avatar::setMotionState(AvatarMotionState* motionState) {
     _motionState = motionState;
 }
