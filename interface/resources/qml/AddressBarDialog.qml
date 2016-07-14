@@ -283,11 +283,11 @@ Window {
             target.placeText = data.name;
             target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
         }
-        getDomains({minUsers: 0, maxUsers: 20}, function (e, d) {
-            var withLobby = !e && d.filter(function (d1) { return d1.lobby; });
-            console.log(e, d.length, withLobby.length);
+        getDomains({minUsers: 0, maxUsers: 20}, function (error, domains) {
+            var here = addressBarDialog.getHost(); // don't show where we are now.
+            var withLobby = !error && domains.filter(function (domain) { return domain.lobby && (domain.name !== here); });
+            console.log(error, domains.length, withLobby.length);
             withLobby.sort(function (a, b) { return b.online_users - a.online_users; });
-            console.log(withLobby.map(function (d) { return d.online_users; }));
             fill1(s0, withLobby[0]);
             fill1(s1, withLobby[1]);
             fill1(s2, withLobby[2]);
