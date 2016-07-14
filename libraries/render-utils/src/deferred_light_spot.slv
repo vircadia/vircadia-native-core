@@ -19,7 +19,6 @@
 <$declareStandardTransform()$>
 
 uniform vec4 coneParam;
-uniform mat4 texcoordFrameTransform;
 
 out vec4 _texCoord0;
 
@@ -51,7 +50,6 @@ void main(void) {
             projected.x = 0.5 * (projected.x + cam_getStereoSide());
         }
         _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
-
     } else {
         const float depth = -1.0; //Draw at near plane
         const vec4 UNIT_QUAD[4] = vec4[4](

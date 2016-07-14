@@ -293,6 +293,17 @@ Format Framebuffer::getDepthStencilBufferFormat() const {
         return _depthStencilBuffer._element;
     }
 }
+glm::vec4 Framebuffer::evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset) {
+    float sMin = destRegionOffset.x / (float)sourceSurface.x;
+    float sWidth = destRegionSize.x / (float)sourceSurface.x;
+    float tMin = destRegionOffset.y / (float)sourceSurface.y;
+    float tHeight = destRegionSize.y / (float)sourceSurface.y;
+    return glm::vec4(sMin, tMin, sWidth, tHeight);
+}
+
+glm::vec4 Framebuffer::evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport) {
+    return evalSubregionTexcoordTransformCoefficients(sourceSurface, glm::ivec2(destViewport.z, destViewport.w), glm::ivec2(destViewport.x, destViewport.y));
+}
 
 Transform Framebuffer::evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset) {
     float sMin = destRegionOffset.x / (float)sourceSurface.x;
@@ -305,5 +316,5 @@ Transform Framebuffer::evalSubregionTexcoordTransform(const glm::ivec2& sourceSu
     return model;
 }
 Transform Framebuffer::evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport) {
-    return evalSubregionTexcoordTransform(sourceSurface, glm::ivec2(destViewport.x, destViewport.y), glm::ivec2(destViewport.z, destViewport.w));
+    return evalSubregionTexcoordTransform(sourceSurface, glm::ivec2(destViewport.z, destViewport.w), glm::ivec2(destViewport.x, destViewport.y));
 }

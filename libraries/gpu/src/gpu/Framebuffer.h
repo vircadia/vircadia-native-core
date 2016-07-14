@@ -141,6 +141,9 @@ public:
     Stamp getDepthStamp() const { return _depthStamp; }
     const std::vector<Stamp>& getColorStamps() const { return _colorStamps; }
 
+    static glm::vec4 evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset = glm::ivec2(0));
+    static glm::vec4 evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport);
+
     static Transform evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset = glm::ivec2(0));
     static Transform evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport);
 

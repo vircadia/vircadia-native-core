@@ -146,7 +146,10 @@ class RenderDeferredLocals {
 public:
     using JobModel = render::Job::ModelI<RenderDeferredLocals, DeferredFrameTransformPointer>;
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, bool points, bool spots);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+        const DeferredFrameTransformPointer& frameTransform,
+        const DeferredFramebufferPointer& deferredFramebuffer,
+        const LightingModelPointer& lightingModel);
 };
 
 
