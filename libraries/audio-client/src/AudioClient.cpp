@@ -888,7 +888,7 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                     float azimuth = azimuthForSource(relativePosition); 
                 
                 
-                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, 0.0f, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {

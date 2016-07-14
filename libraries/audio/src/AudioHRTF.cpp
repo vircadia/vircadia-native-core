@@ -162,40 +162,68 @@ static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, f
     }
 }
 
-// 4 channels (interleaved)
-static void biquad_4x4(float* src, float* dst, float coef[5][4], float state[2][4], int numFrames) {
+// process 2 cascaded biquads on 4 channels (interleaved)
+// biquads computed in parallel, by adding one sample of delay
+static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
 
     // enable flush-to-zero mode to prevent denormals
     unsigned int ftz = _MM_GET_FLUSH_ZERO_MODE();
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 
-    __m128 w1 = _mm_loadu_ps(state[0]);
-    __m128 w2 = _mm_loadu_ps(state[1]);
+    // restore state
+    __m128 y00 = _mm_loadu_ps(&state[0][0]);
+    __m128 w10 = _mm_loadu_ps(&state[1][0]);
+    __m128 w20 = _mm_loadu_ps(&state[2][0]);
 
-    __m128 b0 = _mm_loadu_ps(coef[0]);
-    __m128 b1 = _mm_loadu_ps(coef[1]);
-    __m128 b2 = _mm_loadu_ps(coef[2]);
-    __m128 a1 = _mm_loadu_ps(coef[3]);
-    __m128 a2 = _mm_loadu_ps(coef[4]);
+    __m128 y01;
+    __m128 w11 = _mm_loadu_ps(&state[1][4]);
+    __m128 w21 = _mm_loadu_ps(&state[2][4]);
+
+    // first biquad coefs
+    __m128 b00 = _mm_loadu_ps(&coef[0][0]);
+    __m128 b10 = _mm_loadu_ps(&coef[1][0]);
+    __m128 b20 = _mm_loadu_ps(&coef[2][0]);
+    __m128 a10 = _mm_loadu_ps(&coef[3][0]);
+    __m128 a20 = _mm_loadu_ps(&coef[4][0]);
+
+    // second biquad coefs
+    __m128 b01 = _mm_loadu_ps(&coef[0][4]);
+    __m128 b11 = _mm_loadu_ps(&coef[1][4]);
+    __m128 b21 = _mm_loadu_ps(&coef[2][4]);
+    __m128 a11 = _mm_loadu_ps(&coef[3][4]);
+    __m128 a21 = _mm_loadu_ps(&coef[4][4]);
 
     for (int i = 0; i < numFrames; i++) {
 
+        __m128 x00 = _mm_loadu_ps(&src[4*i]);
+        __m128 x01 = y00;   // first biquad output
+
         // transposed Direct Form II
-        __m128 x0 = _mm_loadu_ps(&src[4*i]);
-        __m128 y0;
+        y00 = _mm_add_ps(w10, _mm_mul_ps(x00, b00));
+        y01 = _mm_add_ps(w11, _mm_mul_ps(x01, b01));
 
-        y0 = _mm_add_ps(w1, _mm_mul_ps(x0, b0));
-        w1 = _mm_add_ps(w2, _mm_mul_ps(x0, b1));
-        w2 = _mm_mul_ps(x0, b2);
-        w1 = _mm_sub_ps(w1, _mm_mul_ps(y0, a1));
-        w2 = _mm_sub_ps(w2, _mm_mul_ps(y0, a2));
+        w10 = _mm_add_ps(w20, _mm_mul_ps(x00, b10));
+        w11 = _mm_add_ps(w21, _mm_mul_ps(x01, b11));
 
-        _mm_storeu_ps(&dst[4*i], y0);
+        w20 = _mm_mul_ps(x00, b20);
+        w21 = _mm_mul_ps(x01, b21);
+
+        w10 = _mm_sub_ps(w10, _mm_mul_ps(y00, a10));
+        w11 = _mm_sub_ps(w11, _mm_mul_ps(y01, a11));
+
+        w20 = _mm_sub_ps(w20, _mm_mul_ps(y00, a20));
+        w21 = _mm_sub_ps(w21, _mm_mul_ps(y01, a21));
+
+        _mm_storeu_ps(&dst[4*i], y01);  // second biquad output
     }
 
     // save state
-    _mm_storeu_ps(state[0], w1);
-    _mm_storeu_ps(state[1], w2);
+    _mm_storeu_ps(&state[0][0], y00);
+    _mm_storeu_ps(&state[1][0], w10);
+    _mm_storeu_ps(&state[2][0], w20);
+
+    _mm_storeu_ps(&state[1][4], w11);
+    _mm_storeu_ps(&state[2][4], w21);
 
     _MM_SET_FLUSH_ZERO_MODE(ftz);
 }
@@ -345,22 +373,49 @@ static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, f
     }
 }
 
-// 4 channels (interleaved)
-static void biquad_4x4(float* src, float* dst, float coef[5][4], float state[2][4], int numFrames) {
+// process 2 cascaded biquads on 4 channels (interleaved)
+// biquads are computed in parallel, by adding one sample of delay
+static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
 
-    // channel 0
-    float w10 = state[0][0];
-    float w20 = state[1][0];
+    // restore state
+    float y00 = state[0][0];
+    float w10 = state[1][0];
+    float w20 = state[2][0];
 
+    float y01 = state[0][1];
+    float w11 = state[1][1];
+    float w21 = state[2][1];
+
+    float y02 = state[0][2];
+    float w12 = state[1][2];
+    float w22 = state[2][2];
+
+    float y03 = state[0][3];
+    float w13 = state[1][3];
+    float w23 = state[2][3];
+
+    float y04;
+    float w14 = state[1][4];
+    float w24 = state[2][4];
+
+    float y05;
+    float w15 = state[1][5];
+    float w25 = state[2][5];
+
+    float y06;
+    float w16 = state[1][6];
+    float w26 = state[2][6];
+
+    float y07;
+    float w17 = state[1][7];
+    float w27 = state[2][7];
+
+    // first biquad coefs
     float b00 = coef[0][0];
     float b10 = coef[1][0];
     float b20 = coef[2][0];
     float a10 = coef[3][0];
     float a20 = coef[4][0];
-
-    // channel 1
-    float w11 = state[0][1];
-    float w21 = state[1][1];
 
     float b01 = coef[0][1];
     float b11 = coef[1][1];
@@ -368,19 +423,11 @@ static void biquad_4x4(float* src, float* dst, float coef[5][4], float state[2][
     float a11 = coef[3][1];
     float a21 = coef[4][1];
 
-    // channel 2
-    float w12 = state[0][2];
-    float w22 = state[1][2];
-
     float b02 = coef[0][2];
     float b12 = coef[1][2];
     float b22 = coef[2][2];
     float a12 = coef[3][2];
     float a22 = coef[4][2];
-
-    // channel 3
-    float w13 = state[0][3];
-    float w23 = state[1][3];
 
     float b03 = coef[0][3];
     float b13 = coef[1][3];
@@ -388,13 +435,43 @@ static void biquad_4x4(float* src, float* dst, float coef[5][4], float state[2][
     float a13 = coef[3][3];
     float a23 = coef[4][3];
 
+    // second biquad coefs
+    float b04 = coef[0][4];
+    float b14 = coef[1][4];
+    float b24 = coef[2][4];
+    float a14 = coef[3][4];
+    float a24 = coef[4][4];
+
+    float b05 = coef[0][5];
+    float b15 = coef[1][5];
+    float b25 = coef[2][5];
+    float a15 = coef[3][5];
+    float a25 = coef[4][5];
+
+    float b06 = coef[0][6];
+    float b16 = coef[1][6];
+    float b26 = coef[2][6];
+    float a16 = coef[3][6];
+    float a26 = coef[4][6];
+
+    float b07 = coef[0][7];
+    float b17 = coef[1][7];
+    float b27 = coef[2][7];
+    float a17 = coef[3][7];
+    float a27 = coef[4][7];
+
     for (int i = 0; i < numFrames; i++) {
 
+        // first biquad input
         float x00 = src[4*i+0] + 1.0e-20f;    // prevent denormals
         float x01 = src[4*i+1] + 1.0e-20f;
         float x02 = src[4*i+2] + 1.0e-20f;
         float x03 = src[4*i+3] + 1.0e-20f;
-        float y00, y01, y02, y03;
+        // second biquad input is previous output
+        float x04 = y00;
+        float x05 = y01;
+        float x06 = y02;
+        float x07 = y03;
 
         // transposed Direct Form II
         y00 = b00 * x00 + w10;
@@ -413,24 +490,57 @@ static void biquad_4x4(float* src, float* dst, float coef[5][4], float state[2][
         w13 = b13 * x03 - a13 * y03 + w23;
         w23 = b23 * x03 - a23 * y03;
 
-        dst[4*i+0] = y00;
-        dst[4*i+1] = y01;
-        dst[4*i+2] = y02;
-        dst[4*i+3] = y03;
+        // transposed Direct Form II
+        y04 = b04 * x04 + w14;
+        w14 = b14 * x04 - a14 * y04 + w24;
+        w24 = b24 * x04 - a24 * y04;
+
+        y05 = b05 * x05 + w15;
+        w15 = b15 * x05 - a15 * y05 + w25;
+        w25 = b25 * x05 - a25 * y05;
+
+        y06 = b06 * x06 + w16;
+        w16 = b16 * x06 - a16 * y06 + w26;
+        w26 = b26 * x06 - a26 * y06;
+
+        y07 = b07 * x07 + w17;
+        w17 = b17 * x07 - a17 * y07 + w27;
+        w27 = b27 * x07 - a27 * y07;
+
+        dst[4*i+0] = y04;   // second biquad output
+        dst[4*i+1] = y05;
+        dst[4*i+2] = y06;
+        dst[4*i+3] = y07;
     }
 
     // save state
-    state[0][0] = w10;
-    state[1][0] = w20;
+    state[0][0] = y00;
+    state[1][0] = w10;
+    state[2][0] = w20;
 
-    state[0][1] = w11;
-    state[1][1] = w21;
+    state[0][1] = y01;
+    state[1][1] = w11;
+    state[2][1] = w21;
 
-    state[0][2] = w12;
-    state[1][2] = w22;
+    state[0][2] = y02;
+    state[1][2] = w12;
+    state[2][2] = w22;
 
-    state[0][3] = w13;
-    state[1][3] = w23;
+    state[0][3] = y03;
+    state[1][3] = w13;
+    state[2][3] = w23;
+
+    state[1][4] = w14;
+    state[2][4] = w24;
+
+    state[1][5] = w15;
+    state[2][5] = w25;
+
+    state[1][6] = w16;
+    state[2][6] = w26;
+
+    state[1][7] = w17;
+    state[2][7] = w27;
 }
 
 // crossfade 4 inputs into 2 outputs with accumulation (interleaved)
@@ -468,9 +578,85 @@ static void ThiranBiquad(float f, float& b0, float& b1, float& b2, float& a1, fl
     b2 = 1.0f;
 }
 
-// compute new filters for a given azimuth and gain
-static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], int delay[4], 
-                              int index, float azimuth, float gain, int channel) {
+// returns the gain of analog (s-plane) lowpass evaluated at w
+static double analogFilter(double w0, double w) {
+    double w0sq, wsq;
+    double num, den;
+
+    w0sq = w0 * w0;
+    wsq = w * w;
+
+    num = w0sq * w0sq;
+    den = wsq * wsq + w0sq * w0sq;
+
+    return sqrt(num / den);
+}
+
+// design a lowpass biquad using analog matching
+static void LowpassBiquad(double coef[5], double w0) {
+    double G1;
+    double wpi, wn, wd;
+    double wna, wda;
+    double gn, gd, gnsq, gdsq;
+    double num, den;
+    double Wnsq, Wdsq, B, A;
+    double b0, b1, b2, a0, a1, a2;
+    double temp, scale;
+    const double PI = 3.14159265358979323846;
+
+    // compute the Nyquist gain
+    wpi = w0 + 2.8 * (1.0 - w0/PI); // minimax-like error
+    wpi = (wpi > PI) ? PI : wpi;
+    G1 = analogFilter(w0, wpi);
+
+    // approximate wn and wd
+    wd = 0.5 * w0;
+    wn = wd * sqrt(1.0/G1); // down G1 at pi, instead of zeros
+
+    Wnsq = wn * wn;
+    Wdsq = wd * wd;
+
+    // analog freqs of wn and wd
+    wna = 2.0 * atan(wn);
+    wda = 2.0 * atan(wd);
+
+    // normalized analog gains at wna and wda
+    temp = 1.0 / G1;
+    gn = temp * analogFilter(w0, wna);
+    gd = temp * analogFilter(w0, wda);
+    gnsq = gn * gn;
+    gdsq = gd * gd;
+
+    // compute B, matching gains at wn and wd
+    temp = 1.0 / (wn * wd);
+    den = fabs(gnsq - gdsq);
+    num = gnsq * (Wnsq - Wdsq) * (Wnsq - Wdsq) * (Wnsq + gdsq * Wdsq);
+    B = temp * sqrt(num / den);
+
+    // compute A, matching gains at wn and wd
+    num = (Wnsq - Wdsq) * (Wnsq - Wdsq) * (Wnsq + gnsq * Wdsq);
+    A = temp * sqrt(num / den);
+
+    // design digital filter via bilinear transform
+    b0 = G1 * (1.0 + B + Wnsq);
+    b1 = G1 * 2.0 * (Wnsq - 1.0);
+    b2 = G1 * (1.0 - B + Wnsq);
+    a0 = 1.0 + A + Wdsq;
+    a1 = 2.0 * (Wdsq -  1.0);
+    a2 = 1.0 - A + Wdsq;
+
+    // normalize
+    scale = 1.0 / a0;
+    coef[0] = b0 * scale;
+    coef[1] = b1 * scale;
+    coef[2] = b2 * scale;
+    coef[3] = a1 * scale;
+    coef[4] = a2 * scale;
+}
+
+// compute new filters for a given azimuth, distance and gain
+static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int delay[4], 
+                       int index, float azimuth, float distance, float gain, int channel) {
 
     // convert from radians to table units
     azimuth *= HRTF_AZIMUTHS / TWOPI;
@@ -551,9 +737,43 @@ static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], i
         bqCoef[4][channel+1] = a2;
         delay[channel+1] = itdi;
     }
+
+    //
+    // Model the frequency-dependent attenuation of sound propogation in air.
+    // Fit using linear regression to a log-log model of lowpass cutoff frequency vs distance,
+    // loosely based on data from Handbook of Acoustics. Only the onset of significant
+    // attenuation is modelled, not the filter slope.
+    //
+    //   1m -> -3dB @ 55kHz
+    //  10m -> -3dB @ 12kHz
+    // 100m -> -3dB @ 2.5kHz
+    //  1km -> -3dB @ 0.6kHz
+    // 10km -> -3dB @ 0.1kHz
+    //
+    distance = (distance < 1.0f) ? 1.0f : distance;
+    double freq = exp2(-0.666 * log2(distance) + 15.75);
+    double coef[5];
+    LowpassBiquad(coef, TWOPI * freq / 24000);
+
+    // TESTING: compute attn at w=pi
+    //double num = coef[0] - coef[1] + coef[2];
+    //double den = 1.0 - coef[3] + coef[4];
+    //double mag = 10 * log10((num * num) / (den * den));
+
+    bqCoef[0][channel+4] = (float)coef[0];
+    bqCoef[1][channel+4] = (float)coef[1];
+    bqCoef[2][channel+4] = (float)coef[2];
+    bqCoef[3][channel+4] = (float)coef[3];
+    bqCoef[4][channel+4] = (float)coef[4];
+
+    bqCoef[0][channel+5] = (float)coef[0];
+    bqCoef[1][channel+5] = (float)coef[1];
+    bqCoef[2][channel+5] = (float)coef[2];
+    bqCoef[3][channel+5] = (float)coef[3];
+    bqCoef[4][channel+5] = (float)coef[4];
 }
 
-void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames) {
+void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames) {
 
     assert(index >= 0);
     assert(index < HRTF_TABLES);
@@ -562,18 +782,19 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     float in[HRTF_TAPS + HRTF_BLOCK];               // mono
     float firCoef[4][HRTF_TAPS];                    // 4-channel
     float firBuffer[4][HRTF_DELAY + HRTF_BLOCK];    // 4-channel
-    float bqCoef[5][4];                             // 4-channel (interleaved)
+    float bqCoef[5][8];                             // 4-channel (interleaved)
     float bqBuffer[4 * HRTF_BLOCK];                 // 4-channel (interleaved)
     int delay[4];                                   // 4-channel (interleaved)
 
     // to avoid polluting the cache, old filters are recomputed instead of stored
-    setAzimuthAndGain(firCoef, bqCoef, delay, index, _azimuthState, _gainState, L0);
+    setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, L0);
 
     // compute new filters
-    setAzimuthAndGain(firCoef, bqCoef, delay, index, azimuth, gain, L1);
+    setFilters(firCoef, bqCoef, delay, index, azimuth, distance, gain, L1);
 
     // new parameters become old
     _azimuthState = azimuth;
+    _distanceState = distance;
     _gainState = gain;
 
     // convert mono input to float
@@ -611,14 +832,25 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
                    &firBuffer[R1][HRTF_DELAY] - delay[R1],
                    bqBuffer, HRTF_BLOCK);
 
-    // process old/new fractional delay
-    biquad_4x4(bqBuffer, bqBuffer, bqCoef, _bqState, HRTF_BLOCK);
+    // process old/new biquads
+    biquad2_4x4(bqBuffer, bqBuffer, bqCoef, _bqState, HRTF_BLOCK);
 
     // new state becomes old
     _bqState[0][L0] = _bqState[0][L1];
     _bqState[1][L0] = _bqState[1][L1];
+    _bqState[2][L0] = _bqState[2][L1];
+
     _bqState[0][R0] = _bqState[0][R1];
     _bqState[1][R0] = _bqState[1][R1];
+    _bqState[2][R0] = _bqState[2][R1];
+
+    _bqState[0][L2] = _bqState[0][L3];
+    _bqState[1][L2] = _bqState[1][L3];
+    _bqState[2][L2] = _bqState[2][L3];
+
+    _bqState[0][R2] = _bqState[0][R3];
+    _bqState[1][R2] = _bqState[1][R3];
+    _bqState[2][R2] = _bqState[2][R3];
 
     // crossfade old/new output and accumulate
     crossfade_4x2(bqBuffer, output, crossfadeTable, HRTF_BLOCK);
@@ -626,15 +858,16 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     _silentState = false;
 }
 
-void AudioHRTF::renderSilent(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames) {
+void AudioHRTF::renderSilent(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames) {
 
     // process the first silent block, to flush internal state
     if (!_silentState) {
-        render(input, output, index, azimuth, gain, numFrames);
+        render(input, output, index, azimuth, distance, gain, numFrames);
     } 
 
     // new parameters become old
     _azimuthState = azimuth;
+    _distanceState = distance;
     _gainState = gain;
 
     _silentState = true;

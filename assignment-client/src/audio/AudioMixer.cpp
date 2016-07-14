@@ -240,7 +240,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++_hrtfSilentRenders;;
@@ -287,7 +287,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfSilentRenders;
@@ -300,7 +300,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfStruggleRenders;
@@ -311,7 +311,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
