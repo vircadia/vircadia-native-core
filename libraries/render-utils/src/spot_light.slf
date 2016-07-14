@@ -36,8 +36,8 @@ void main(void) {
 
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
-    texCoord += texcoordFrameTransform.xy;
     texCoord *= texcoordFrameTransform.zw;
+    texCoord += texcoordFrameTransform.xy;
 
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
 

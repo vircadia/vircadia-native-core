@@ -23,6 +23,7 @@ const float gaussianDistributionOffset[NUM_TAPS] = float[](
 
 struct BlurParameters {
     vec4 resolutionInfo;
+    vec4 texcoordTransform;
     vec4 filterInfo;
     vec4 depthInfo;
     vec4 stereoInfo;
@@ -34,6 +35,10 @@ uniform blurParamsBuffer {
 
 vec2 getViewportInvWidthHeight() {
     return parameters.resolutionInfo.zw;
+}
+
+vec2 evalTexcoordTransformed(vec2 texcoord) {
+    return (texcoord * parameters.texcoordTransform.zw + parameters.texcoordTransform.xy);
 }
 
 float getFilterScale() {
@@ -59,7 +64,7 @@ float getDepthPerspective() {
 uniform sampler2D sourceMap;
 
 vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
-
+    texcoord = evalTexcoordTransformed(texcoord);
     vec4 sampleCenter = texture(sourceMap, texcoord);
 
     vec2 finalStep = getFilterScale() * direction * pixelStep;
@@ -86,7 +91,7 @@ uniform sampler2D sourceMap;
 uniform sampler2D depthMap;
 
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
-
+    texcoord = evalTexcoordTransformed(texcoord);
     float sampleDepth = texture(depthMap, texcoord).x;
     vec4 sampleCenter = texture(sourceMap, texcoord);
 

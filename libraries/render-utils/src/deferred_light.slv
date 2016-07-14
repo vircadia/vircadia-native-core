@@ -28,8 +28,8 @@ void main(void) {
 
     _texCoord0 = (pos.xy + 1) * 0.5;
 
-    _texCoord0 += texcoordFrameTransform.xy;
     _texCoord0 *= texcoordFrameTransform.zw;
+    _texCoord0 += texcoordFrameTransform.xy;
 
     gl_Position = pos;
 }

@@ -22,6 +22,8 @@ public:
 
     void setWidthHeight(int width, int height, bool isStereo);
 
+    void setTexcoordTransform(const glm::vec4 texcoordTransformViewport);
+
     void setFilterRadiusScale(float scale);
 
     void setDepthPerspective(float oneOverTan2FOV);
@@ -32,6 +34,9 @@ public:
     public:
         // Resolution info (width, height, inverse of width, inverse of height)
         glm::vec4 resolutionInfo{ 0.0f, 0.0f, 0.0f, 0.0f };
+
+        // Viewport to Texcoord info, if the region of the blur (viewport) is smaller than the full frame
+        glm::vec4 texcoordTransform{ 0.0f, 0.0f, 1.0f, 1.0f };
 
         // Filter info (radius scale
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
