@@ -368,8 +368,6 @@ public:
     TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
-    void init(Task* task) { _task = task; }
-
     // getter for qml integration, prefer the templated getter
     Q_INVOKABLE QObject* getConfig(const QString& name) { return QObject::findChild<JobConfig*>(name); }
     // getter for cpp (strictly typed), prefer this getter
@@ -382,6 +380,7 @@ public slots:
     void refresh();
 
 private:
+    friend class Task;
     Task* _task;
 };
 
@@ -521,9 +520,10 @@ public:
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
-            Concept(std::make_shared<Config>()), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
-            _config = _data._config;
-            std::static_pointer_cast<Config>(_config)->init(&_data);
+            Concept(nullptr), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
+            // Recreate the Config to use the templated type
+            _data.createConfiguration<C>();
+            _config = _data.getConfiguration();
             applyConfiguration();
         }
 
@@ -545,23 +545,19 @@ public:
 
     using Jobs = std::vector<Job>;
 
-    // A task must use its Config for construction
-    Task() : _config{ std::make_shared<Config>() } {}
-    template <class C> Task(std::shared_ptr<C> config) : _config{ config } {}
-
     // Create a new job in the container's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
         _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(input, std::forward<A>(args)...));
         QConfigPointer config = _jobs.back().getConfiguration();
-        config->setParent(_config.get());
+        config->setParent(getConfiguration().get());
         config->setObjectName(name.c_str());
 
         // Connect loaded->refresh
-        QObject::connect(config.get(), SIGNAL(loaded()), _config.get(), SLOT(refresh()));
+        QObject::connect(config.get(), SIGNAL(loaded()), getConfiguration().get(), SLOT(refresh()));
         static const char* DIRTY_SIGNAL = "dirty()";
         if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
             // Connect dirty->refresh if defined
-            QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+            QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
         }
 
         return _jobs.back().getOutput();
@@ -571,11 +567,24 @@ public:
         return addJob<T>(name, input, std::forward<A>(args)...);
     }
 
+    template <class C> void createConfiguration() {
+        auto config = std::make_shared<C>();
+        if (_config) {
+            // Transfer children to the new configuration
+            auto children = _config->children();
+            for (auto& child : children) {
+                child->setParent(config.get());
+            }
+        }
+        _config = config;
+        std::static_pointer_cast<Config>(_config)->_task = this;
+    }
+
     std::shared_ptr<Config> getConfiguration() {
-        auto config = std::static_pointer_cast<Config>(_config);
-        // If we are here, we were not made by a Model, so we must initialize our own config
-        config->init(this);
-        return config;
+        if (!_config) {
+            createConfiguration<Config>();
+        }
+        return std::static_pointer_cast<Config>(_config);
     }
 
     void configure(const QObject& configuration) {
