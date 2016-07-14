@@ -385,6 +385,9 @@ var entityPropertiesCache = new EntityPropertiesCache();
 //   localPosition - position relative to the entity
 //   hotspot - hotspot object
 //   overlays - array of overlay objects created by Overlay.addOverlay()
+//   currentSize - current animated scale value
+//   targetSize - the target of our scale animations
+//   type - "sphere" or "model".
 function EquipHotspotBuddy() {
     // holds map from {string} hotspot.key to {object} overlayInfoSet.
     this.map = {};
@@ -430,6 +433,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
                 scale: hotspot.modelScale,
                 ignoreRayIntersection: true
             }));
+            overlayInfoSet.type = "model";
         } else {
             // default sphere overlay
             overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
@@ -443,6 +447,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
                 ignoreRayIntersection: true,
                 drawInFront: false
             }));
+            overlayInfoSet.type = "sphere";
         }
 
         this.map[hotspot.key] = overlayInfoSet;
@@ -500,13 +505,19 @@ EquipHotspotBuddy.prototype.update = function (deltaTime, timestamp) {
             var props = entityPropertiesCache.getProps(overlayInfoSet.entityID);
             var entityXform = new Xform(props.rotation, props.position);
             var position = entityXform.xformPoint(overlayInfoSet.localPosition);
-            var alpha = overlayInfoSet.currentSize / HIGHLIGHT_SIZE; // AJT: TEMPORARY
+
+            var dimensions;
+            if (overlayInfoSet.type == "sphere") {
+                dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize * EQUIP_SPHERE_SCALE_FACTOR;
+            } else {
+                dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize;
+            }
 
             overlayInfoSet.overlays.forEach(function (overlay) {
                 Overlays.editOverlay(overlay, {
                     position: position,
                     rotation: props.rotation,
-                    alpha: alpha // AJT: TEMPORARY
+                    dimensions: dimensions
                 });
             });
         }
