@@ -10,7 +10,6 @@
 //
 
 #include <glm/gtx/norm.hpp>
-#include <BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
