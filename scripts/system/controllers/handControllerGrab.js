@@ -2354,7 +2354,7 @@ function MyController(hand) {
                         delayedDeactivateTimeout = null;
                         _this.delayedDeactivateEntity(delayedEntityID, delayedCollidesWith);
                         return delayedCollidesWith;
-                    }
+                    };
                     delayedDeactivateTimeout =
                         Script.setTimeout(delayedDeactivateFunc, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY * MSECS_PER_SEC);
                     delayedDeactivateEntityID = entityID;
