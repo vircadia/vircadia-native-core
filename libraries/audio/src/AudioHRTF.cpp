@@ -753,7 +753,7 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     distance = (distance < 1.0f) ? 1.0f : distance;
     double freq = exp2(-0.666 * log2(distance) + 15.75);
     double coef[5];
-    LowpassBiquad(coef, TWOPI * freq / 24000);
+    LowpassBiquad(coef, (double)TWOPI * freq / 24000);
 
     // TESTING: compute attn at w=pi
     //double num = coef[0] - coef[1] + coef[2];
