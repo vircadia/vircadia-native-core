@@ -14,6 +14,7 @@
 #include <QDesktopServices>
 
 #include <NetworkingConstants.h>
+#include <steamworks-wrapper/SteamClient.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -80,6 +81,20 @@ void LoginDialog::login(const QString& username, const QString& password) {
     qDebug() << "Attempting to login " << username;
     setStatusText("Logging in...");
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
+}
+
+void LoginDialog::loginThroughSteam() {
+    qDebug() << "Attempting to login through Steam";
+    setStatusText("Logging in...");
+
+    SteamClient::requestTicket([this](Ticket ticket) {
+        if (ticket.isNull()) {
+            setStatusText("Steam client not logged into an account");
+            return;
+        }
+
+        DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
+    });
 }
 
 void LoginDialog::openUrl(const QString& url) {

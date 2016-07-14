@@ -41,6 +41,7 @@ protected:
     void handleLoginFailed();
 
     Q_INVOKABLE void login(const QString& username, const QString& password);
+    Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void openUrl(const QString& url);
 private:
     QString _statusText;

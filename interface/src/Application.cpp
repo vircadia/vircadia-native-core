@@ -86,15 +86,16 @@
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
 #include <plugins/CodecPlugin.h>
+#include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
-#include <RecordingScriptingInterface.h>
+#include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <ScriptEngines.h>
+#include <steamworks-wrapper/SteamClient.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -2909,6 +2910,8 @@ void Application::idle(float nsecsElapsed) {
     }
 
     PROFILE_RANGE(__FUNCTION__);
+
+    SteamClient::runCallbacks();
 
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 

@@ -13,8 +13,21 @@
 #ifndef hifi_SteamClient_h
 #define hifi_SteamClient_h
 
-class SteamClient {
+#include <functional>
 
+#include <QtCore/QByteArray>
+
+using Ticket = QByteArray;
+using TicketRequestCallback = std::function<void(Ticket)>;
+
+class SteamClient {
+public:
+    static bool init();
+    static void shutdown();
+
+    static void runCallbacks();
+
+    static void requestTicket(TicketRequestCallback callback);
 
 };
 

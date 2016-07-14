@@ -203,24 +203,48 @@ ScrollingWindow {
                 }
             }
 
-            Rectangle {
+            Row {
                 width: loginDialog.inputWidth
                 height: loginDialog.inputHeight
-                radius: height / 2
-                color: "#353535"
 
-                TextInput {
-                    anchors.fill: parent
-                    text: "Login"
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
+                Rectangle {
+                    width: loginDialog.inputWidth / 3
+                    height: loginDialog.inputHeight
+                    radius: height / 2
+                    color: "#353535"
+
+                    TextInput {
+                        anchors.fill: parent
+                        text: "Login"
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            loginDialog.login(username.text, password.text)
+                        }
+                    }
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        loginDialog.login(username.text, password.text)
+                Image {
+                    source: "../images/steam-sign-in.png"
+                    width: loginDialog.inputWidth / 3
+                    height: loginDialog.inputHeight
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        right: parent.right
+                        leftMargin: loginDialog.inputHeight / 4
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            loginDialog.loginThroughSteam()
+                        }
                     }
                 }
             }
