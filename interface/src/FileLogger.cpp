@@ -24,9 +24,14 @@
 static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
+static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
+static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
+static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
 // small so it doesn't go over the 2MB zipped limit for all of the files we send.
 static const qint64 MAX_LOG_SIZE = 512 * 1024;
+// Max log files found in the log directory is 100.
+static const qint64 MAX_LOG_DIR_SIZE = 512 * 1024 * 100;
 // Max log age is 1 hour
 static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
@@ -71,6 +76,23 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
 
             _lastRollTime = now;
         }
+		QStringList nameFilters;
+		nameFilters << FILENAME_WILDCARD;
+
+		QDir logQDir(FileUtils::standardPath(LOGS_DIRECTORY));
+		logQDir.setNameFilters(nameFilters);
+		logQDir.setSorting(QDir::Time);
+		QFileInfoList filesInDir = logQDir.entryInfoList();
+		qint64 totalSizeOfDir = 0;
+		foreach (QFileInfo dirItm, filesInDir){
+			if (totalSizeOfDir < MAX_LOG_DIR_SIZE){
+				totalSizeOfDir += dirItm.size();
+			}
+			else {
+				QFile file(dirItm.filePath());
+				file.remove();
+			}
+		}
     }
 }
 
