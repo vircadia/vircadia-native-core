@@ -45,6 +45,7 @@ FocusScope {
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
         focus: true
+        highlightMoveDuration: 0
 
         highlight: Rectangle {
             anchors {
