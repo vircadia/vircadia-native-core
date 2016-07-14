@@ -197,7 +197,8 @@ CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     name: "hold",
     enterMethod: "nearGrabbingEnter",
-    updateMethod: "nearGrabbing"
+    updateMethod: "nearGrabbing",
+    exitMethod: "holdExit"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
     name: "trigger",
@@ -255,6 +256,48 @@ function propsArePhysical(props) {
     }
     var isPhysical = (props.shapeType && props.shapeType != 'none');
     return isPhysical;
+}
+
+var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
+function getAttachPointSettings() {
+    try {
+        var str = Settings.getValue(ATTACH_POINT_SETTINGS);
+        print("getAttachPointSettings = " + str);
+        if (str === "false") {
+            return {};
+        } else {
+            return JSON.parse(str);
+        }
+    } catch (err) {
+        print("Error parsing attachPointSettings: " + err);
+        return {};
+    }
+}
+function setAttachPointSettings(attachPointSettings) {
+    var str = JSON.stringify(attachPointSettings);
+    print("setAttachPointSettings = " + str);
+    Settings.setValue(ATTACH_POINT_SETTINGS, str);
+}
+function getAttachPointForHotspotFromSettings(hotspot, hand) {
+    var attachPointSettings = getAttachPointSettings();
+    var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
+    var joints = attachPointSettings[hotspot.key];
+    if (joints) {
+        return joints[jointName];
+    } else {
+        return undefined;
+    }
+}
+function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, offsetRotation) {
+    var attachPointSettings = getAttachPointSettings();
+    var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
+    var joints = attachPointSettings[hotspot.key];
+    if (!joints) {
+        joints = {};
+        attachPointSettings[hotspot.key] = joints;
+    }
+    joints[jointName] = [offsetPosition, offsetRotation];
+    setAttachPointSettings(attachPointSettings);
 }
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
@@ -1798,11 +1841,18 @@ function MyController(hand) {
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
 
-            var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-            if (this.grabbedHotspot.joints[handJointName]) {
-                this.offsetPosition = this.grabbedHotspot.joints[handJointName][0];
-                this.offsetRotation = this.grabbedHotspot.joints[handJointName][1];
+            var offsets = getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
+            if (offsets) {
+                this.offsetPosition = offsets[0];
+                this.offsetRotation = offsets[1];
                 hasPresetPosition = true;
+            } else {
+                var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+                if (this.grabbedHotspot.joints[handJointName]) {
+                    this.offsetPosition = this.grabbedHotspot.joints[handJointName][0];
+                    this.offsetRotation = this.grabbedHotspot.joints[handJointName][1];
+                    hasPresetPosition = true;
+                }
             }
         } else {
             this.ignoreIK = false;
@@ -1993,6 +2043,22 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 this.setupHoldAction();
             }
+        }
+    };
+
+    this.holdExit = function () {
+        // store the offset attach points into preferences.
+        if (this.grabbedHotspot) {
+            entityPropertiesCache.addEntity(this.grabbedEntity);
+            var props = entityPropertiesCache.getProps(this.grabbedEntity);
+            var entityXform = new Xform(props.rotation, props.position);
+            var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
+            var handRot = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
+            var avatarHandPos = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
+            var palmXform = new Xform(handRot, avatarXform.xformPoint(avatarHandPos));
+            var offsetXform = Xform.mul(palmXform.inv(), entityXform);
+
+            storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, offsetXform.pos, offsetXform.rot);
         }
     };
 
