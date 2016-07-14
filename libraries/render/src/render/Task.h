@@ -520,7 +520,7 @@ public:
         Model(const Varying& input, A&&... args) :
             Concept(nullptr), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
             // Recreate the Config to use the templated type
-            _data.createConfiguration<C>();
+            _data.template createConfiguration<C>();
             _config = _data.getConfiguration();
             applyConfiguration();
         }
