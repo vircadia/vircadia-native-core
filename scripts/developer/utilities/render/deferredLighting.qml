@@ -28,7 +28,7 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])
+                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
                     onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
@@ -46,7 +46,7 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])
+                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
                     onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
@@ -63,7 +63,7 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])
+                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
                     onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
@@ -76,7 +76,7 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])
+                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
                     onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
@@ -104,6 +104,7 @@ Column {
             }
 
             ComboBox {
+                anchors.right: root.right           
                 currentIndex: 1
                 model: ListModel {
                     id: cbItems
@@ -133,6 +134,7 @@ Column {
         }
 
         ComboBox {
+            anchors.right: root.right           
             currentIndex: 0
             model: ListModel {
                 id: cbItemsFramebuffer

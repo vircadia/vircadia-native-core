@@ -612,7 +612,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             for (auto lightID : deferredLightingEffect->_spotLights) {
                 auto light = deferredLightingEffect->_allocatedLights[lightID];
                 // IN DEBUG: 
-                light->setShowContour(true);
+                // light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
                 auto eyeLightPos = eyePoint - light->getPosition();
