@@ -40,5 +40,5 @@ void main(void) {
     packDeferredFragmentUnlit(
         normalize(_normal), 
         opacity,
-        albedo);
+        albedo * isUnlitEnabled());
 }

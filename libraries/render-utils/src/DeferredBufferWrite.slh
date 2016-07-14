@@ -70,8 +70,8 @@ void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
     }
     _fragColor0 = vec4(color, packUnlit());
     _fragColor1 = vec4(packNormal(normal), 1.0);
-    _fragColor2 = vec4(vec3(0.0), 1.0);
-    _fragColor3 = vec4(color * isUnlitEnabled(), 1.0);
+   // _fragColor2 = vec4(vec3(0.0), 1.0);
+    _fragColor3 = vec4(color, 1.0);
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness) {
