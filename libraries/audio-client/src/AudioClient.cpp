@@ -954,7 +954,6 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     if (hasReverb) {
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
-        qDebug() << "handling reverb";
         _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
     }
 }
