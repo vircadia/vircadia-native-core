@@ -78,32 +78,6 @@ macro(GENERATE_INSTALLERS)
     install(CODE "execute_process(COMMAND SetFile -a V \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)")
   endif ()
 
-  # this is a bit of a hack, but I couldn't find any other way to get plugins
-  # into the correct place under the console path. On windows this is handled
-  # exclusively in the plugins directories with the SetupHiFiClientServerPlugin
-  # macro
-  if (APPLE)
-    set(CONSOLE_PLUGINS_DIR "${CONSOLE_INSTALL_APP_PATH}/Contents/MacOS/Components.app/Contents/PlugIns")
-    set(SERVER_PLUGINS_DIR "${CMAKE_BINARY_DIR}/assignment-client/${CMAKE_BUILD_TYPE}/plugins")
-
-    message("TARGET_NAME:         ${TARGET_NAME}")
-    message("CONFIGURATION:       ${CONFIGURATION}")
-    message("<CONFIGURATION>:     $<CONFIGURATION>")
-    message("CONSOLE_PLUGINS_DIR: ${CONSOLE_PLUGINS_DIR}")
-    message("SERVER_PLUGINS_DIR:  ${SERVER_PLUGINS_DIR}")
-
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E make_directory 
-        ${CONSOLE_PLUGINS_DIR}
-    )
-
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory 
-        ${SERVER_PLUGINS_DIR}
-        ${CONSOLE_PLUGINS_DIR}
-    )
-  endif ()
-
   # configure a cpack properties file for custom variables in template
   set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
   configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})

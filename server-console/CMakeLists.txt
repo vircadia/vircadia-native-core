@@ -72,29 +72,3 @@ else ()
   set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
   set_target_properties(${TARGET_NAME}-npm-install PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 endif ()
-
-# this is a bit of a hack, but I couldn't find any other way to get plugins
-# into the correct place under the console path. On windows this is handled
-# exclusively in the plugins directories with the SetupHiFiClientServerPlugin
-# macro
-if (APPLE)
-  set(CONSOLE_PLUGINS_DIR "${CONSOLE_INSTALL_APP_PATH}/Contents/MacOS/Components.app/Contents/PlugIns")
-  set(SERVER_PLUGINS_DIR "${CMAKE_BINARY_DIR}/assignment-client/${CMAKE_BUILD_TYPE}/plugins")
-
-  message("TARGET_NAME:         ${TARGET_NAME}")
-  message("CONFIGURATION:       ${CONFIGURATION}")
-  message("<CONFIGURATION>:     $<CONFIGURATION>")
-  message("CONSOLE_PLUGINS_DIR: ${CONSOLE_PLUGINS_DIR}")
-  message("SERVER_PLUGINS_DIR:  ${SERVER_PLUGINS_DIR}")
-
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory 
-    ${CONSOLE_PLUGINS_DIR}
-  )
-
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory 
-    ${SERVER_PLUGINS_DIR}
-    ${CONSOLE_PLUGINS_DIR}
-  )
-endif ()

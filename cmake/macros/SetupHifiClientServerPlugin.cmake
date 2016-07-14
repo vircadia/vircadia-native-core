@@ -13,7 +13,6 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
 
     if (APPLE)
         set(CLIENT_PLUGIN_PATH "${INTERFACE_BUNDLE_NAME}.app/Contents/PlugIns")
-        #set(SERVER_PLUGIN_PATH "Components.app/Contents/PlugIns")
         set(SERVER_PLUGIN_PATH "plugins")
     else()
         set(CLIENT_PLUGIN_PATH "plugins")
