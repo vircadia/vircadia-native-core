@@ -535,14 +535,18 @@ void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> mess
     _selectedCodecName = message->readString();
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
+
+    // release any old codec encoder/decoder first...
+    if (_codec && _encoder) {
+        _codec->releaseEncoder(_encoder);
+        _encoder = nullptr;
+        _codec = nullptr;
+    }
+    _receivedAudioStream.cleanupCodec();
+
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
-            // release any old codec encoder/decoder first...
-            if (_codec && _encoder) {
-                _codec->releaseEncoder(_encoder);
-                _encoder = nullptr;
-            }
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
@@ -822,7 +826,6 @@ void AudioClient::handleAudioInput() {
         audioTransform.setRotation(_orientationGetter());
         // FIXME find a way to properly handle both playback audio and user audio concurrently
 
-        // TODO - codec encode goes here
         QByteArray decocedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         QByteArray encodedBuffer;
         if (_encoder) {
@@ -841,7 +844,6 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     audioTransform.setTranslation(_positionGetter());
     audioTransform.setRotation(_orientationGetter());
 
-    // TODO - codec encode goes here
     QByteArray encodedBuffer;
     if (_encoder) {
         _encoder->encode(audio, encodedBuffer);
