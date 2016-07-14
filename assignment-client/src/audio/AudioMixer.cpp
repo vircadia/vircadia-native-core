@@ -193,8 +193,12 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     // check if this is a server echo of a source back to itself
     bool isEcho = (&streamToAdd == &listeningNodeStream);
 
-    // figure out the gain for this source at the listener
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
+
+    // figure out the distance between source and listener
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+
+    // figure out the gain for this source at the listener
     float gain = gainForSource(streamToAdd, listeningNodeStream, relativePosition, isEcho);
 
     // figure out the azimuth to this source at the listener
@@ -240,7 +244,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++_hrtfSilentRenders;;
@@ -287,7 +291,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfSilentRenders;
@@ -300,7 +304,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, 0.0f,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfStruggleRenders;
@@ -311,7 +315,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f, gain,
+    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 

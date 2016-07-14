@@ -882,13 +882,13 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                     
                 } else {
 
-                    // calculate gain and azimuth for hrtf
+                    // calculate distance, gain and azimuth for hrtf
                     glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                    float distance = glm::max(glm::length(relativePosition), EPSILON);
                     float gain = gainForSource(relativePosition, injector->getVolume()); 
-                    float azimuth = azimuthForSource(relativePosition); 
+                    float azimuth = azimuthForSource(relativePosition);         
                 
-                
-                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, 0.0f, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {
