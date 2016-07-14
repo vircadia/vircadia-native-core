@@ -54,18 +54,14 @@ function Trigger(label) {
     that.rawTriggerValue = 0;
     that.triggerValue = 0;           // rolling average of trigger value
     that.triggerClicked = false;
-    that.triggerClick = function (value) {
-        print("Trigger clicked is now " + value);
-        that.triggerClicked = value;
-    };
-    that.triggerPress = function (value) {
-        that.rawTriggerValue = value;
-    };
+    that.triggerClick = function (value) { that.triggerClicked = value; };
+    that.triggerPress = function (value) { that.rawTriggerValue = value; };
     that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
         var triggerValue = that.rawTriggerValue;
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
+        OffscreenFlags.navigationFocusDisabled = that.triggerValue != 0.0;
     };
     // Current smoothed state, without hysteresis. Answering booleans.
     that.triggerSmoothedClick = function () {
@@ -499,7 +495,10 @@ function checkSettings() {
     updateRecommendedArea();
 }
 checkSettings();
+
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    OffscreenFlags.navigationFocusDisabled = false;
 });
+
