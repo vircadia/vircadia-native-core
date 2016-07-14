@@ -572,6 +572,12 @@ public:
             auto children = _config->children();
             for (auto& child : children) {
                 child->setParent(config.get());
+                QObject::connect(child, SIGNAL(loaded()), config.get(), SLOT(refresh()));
+                static const char* DIRTY_SIGNAL = "dirty()";
+                if (child->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+                    // Connect dirty->refresh if defined
+                    QObject::connect(child, SIGNAL(dirty()), config.get(), SLOT(refresh()));
+                }
             }
         }
         _config = config;
@@ -588,6 +594,7 @@ public:
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();
+            
         }
     }
 
