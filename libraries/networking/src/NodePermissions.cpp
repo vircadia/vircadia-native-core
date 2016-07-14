@@ -146,7 +146,7 @@ QDataStream& operator>>(QDataStream& in, NodePermissions& perms) {
 }
 
 QDebug operator<<(QDebug debug, const NodePermissions& perms) {
-    debug.nospace() << "[permissions: " << perms.getID() << "/" << perms.getUserName() << " -- ";
+    debug.nospace() << "[permissions: " << perms.getID() << "/" << perms.getVerifiedUserName() << " -- ";
     debug.nospace() << "rank=" << perms.getRank()
                     << ", groupID=" << perms.getGroupID() << "/" << (perms.isGroup() ? "y" : "n");
     if (perms.can(NodePermissions::Permission::canConnectToDomain)) {

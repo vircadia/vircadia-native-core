@@ -133,7 +133,7 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
         qDebug() << "user-permissions: unverified or no username, so:" << userPerms;
     } else {
-        userPerms.setUserName(verifiedUsername);
+        userPerms.setVerifiedUserName(verifiedUsername);
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
             qDebug() << "user-permissions: specific user matches, so:" << userPerms;
@@ -185,7 +185,7 @@ void DomainGatekeeper::updateNodePermissions() {
     limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and username is only set once they user's key has been confirmed.
-        QString username = node->getPermissions().getUserName();
+        QString username = node->getPermissions().getVerifiedUserName();
         NodePermissions userPerms(NodePermissionsKey(username, 0));
 
         if (node->getPermissions().isAssignment) {
@@ -297,7 +297,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QString verifiedUsername;
     if (!username.isEmpty() && verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they sent us a username and the signature verifies it
-        userPerms.setUserName(username);
+        userPerms.setVerifiedUserName(username);
         verifiedUsername = username;
         getGroupMemberships(username);
         getDomainOwnerFriendsList();
@@ -801,7 +801,10 @@ void DomainGatekeeper::refreshGroupsCache() {
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
-            getGroupMemberships(node->getPermissions().getUserName());
+            QString verifiedUserName = node->getPermissions().getVerifiedUserName();
+            if (verifiedUserName != "") {
+                getGroupMemberships(verifiedUserName);
+            }
             agentCount++;
         }
     });

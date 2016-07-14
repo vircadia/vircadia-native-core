@@ -35,8 +35,8 @@ public:
     NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rank); }
 
     // the _id member isn't authenticated/verified and _username is.
-    void setUserName(QString userName) { _userName = userName.toLower(); }
-    QString getUserName() const { return _userName; }
+    void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
+    QString getVerifiedUserName() const { return _verifiedUserName; }
 
     void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
     QUuid getGroupID() const { return _groupID; }
@@ -82,7 +82,7 @@ public:
 protected:
     QString _id;
     int _rank { 0 }; // 0 unless this is for a group
-    QString _userName;
+    QString _verifiedUserName;
 
     bool _groupIDSet { false };
     QUuid _groupID;
