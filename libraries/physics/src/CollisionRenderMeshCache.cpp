@@ -119,7 +119,7 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
     CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
     if (itr != _geometryMap.end()) {
         assert((*itr).second.use_count() != 1);
-        if ((*itr).second.use_count() == 2) {
+        if ((*itr).second.use_count() == 1) {
             // we hold all of the references inside the cache so we'll try to delete later
             _pendingGarbage.push_back(key);
         }
