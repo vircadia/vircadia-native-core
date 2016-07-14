@@ -497,8 +497,6 @@ public:
 
 // A task is a specialized job to run a collection of other jobs
 // It is defined with JobModel = Task::Model<T>
-//
-// A task with a custom config *must* use the templated constructor
 class Task {
 public:
     using Config = TaskConfig;
