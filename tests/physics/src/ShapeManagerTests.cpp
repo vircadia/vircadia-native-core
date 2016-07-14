@@ -12,6 +12,7 @@
 #include <iostream>
 #include <ShapeManager.h>
 #include <StreamUtils.h>
+#include <Extents.h>
 
 #include "ShapeManagerTests.h"
 
@@ -197,6 +198,7 @@ void ShapeManagerTests::addCompoundShape() {
     ShapeInfo::PointCollection pointCollection;
     int numHulls = 5;
     glm::vec3 offsetNormal(1.0f, 0.0f, 0.0f);
+    Extents extents;
     for (int i = 0; i < numHulls; ++i) {
         glm::vec3 offset = (float)(i - numHulls/2) * offsetNormal;
         ShapeInfo::PointList pointList;
@@ -204,13 +206,16 @@ void ShapeManagerTests::addCompoundShape() {
         for (int j = 0; j < numHullPoints; ++j) {
             glm::vec3 point = radius * tetrahedron[j] + offset;
             pointList.push_back(point);
+            extents.addPoint(point);
         }
         pointCollection.push_back(pointList);
     }
 
     // create the ShapeInfo
     ShapeInfo info;
-    info.setPointCollection(hulls);
+    glm::vec3 halfExtents = 0.5f * (extents.maximum - extents.minimum);
+    info.setParams(SHAPE_TYPE_COMPOUND, halfExtents);
+    info.setPointCollection(pointCollection);
 
     // create the shape
     ShapeManager shapeManager;
