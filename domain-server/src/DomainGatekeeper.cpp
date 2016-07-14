@@ -296,7 +296,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     QString verifiedUsername;
     if (!username.isEmpty() && verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
-        // they are sent us a username and the signature verifies it
+        // they sent us a username and the signature verifies it
         userPerms.setUserName(username);
         verifiedUsername = username;
         getGroupMemberships(username);
@@ -699,6 +699,7 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
     QList<QUuid> groupIDs = _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs();
+    // TODO -- use alternative that allows checking entire group list in one call
     foreach (QUuid groupID, groupIDs) {
         if (groupID.isNull()) {
             continue;
@@ -788,4 +789,24 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requ
 
 void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply.error();
+}
+
+void DomainGatekeeper::refreshGroupsCache() {
+    // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
+
+    getDomainOwnerFriendsList();
+
+    int agentCount = 0;
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        if (!node->getPermissions().isAssignment) {
+            // this node is an agent
+            getGroupMemberships(node->getPermissions().getUserName());
+            agentCount++;
+        }
+    });
+
+    if (agentCount > 0) {
+        _server->_settingsManager.apiRefreshGroupInformation();
+    }
 }

@@ -59,6 +59,8 @@ public slots:
     void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
     void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
 
+    void refreshGroupsCache();
+
 signals:
     void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);

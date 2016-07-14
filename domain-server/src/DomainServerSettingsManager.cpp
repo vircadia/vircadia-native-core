@@ -515,10 +515,6 @@ void DomainServerSettingsManager::unpackPermissions() {
         packPermissions();
     }
 
-    // attempt to retrieve any missing group-IDs, etc
-    apiRefreshGroupInformation();
-
-
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
@@ -1136,8 +1132,6 @@ bool DomainServerSettingsManager::setGroupID(const QString& groupName, const QUu
 }
 
 void DomainServerSettingsManager::apiRefreshGroupInformation() {
-    const int STALE_DATA_AGE = 600; // seconds
-
     if (!DependencyManager::get<AccountManager>()->hasAuthEndpoint()) {
         // can't yet.
         return;
@@ -1152,11 +1146,8 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
         apiGetGroupID(groupName);
     }
 
-    quint64 now = usecTimestampNow();
     foreach (QUuid groupID, _groupNames.keys()) {
-        if (now - _groupRanksLastFetched[groupID] > STALE_DATA_AGE * USECS_PER_SECOND) {
-            apiGetGroupRanks(groupID);
-        }
+        apiGetGroupRanks(groupID);
     }
 }
 

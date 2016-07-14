@@ -80,6 +80,10 @@ public:
     void recordGroupMembership(const QString& name, const QUuid groupID, int rank);
     int isGroupMember(const QString& name, const QUuid& groupID); // returns rank or -1 if not a member
 
+    // calls http api to refresh group information
+    void apiRefreshGroupInformation();
+
+
 signals:
     void updateNodePermissions();
 
@@ -113,7 +117,6 @@ private:
     void validateDescriptorsMap();
 
     // these cause calls to metaverse's group api
-    void apiRefreshGroupInformation();
     void apiGetGroupID(const QString& groupName);
     void apiGetGroupRanks(const QUuid& groupID);
 

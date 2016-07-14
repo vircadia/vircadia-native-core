@@ -38,6 +38,7 @@
 #include <UUID.h>
 #include <LogHandler.h>
 #include <ServerPathUtils.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
@@ -107,6 +108,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+
+    setupGroupCacheRefresh();
 
     // if we were given a certificate/private key or oauth credentials they must succeed
     if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
@@ -2327,4 +2330,15 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
 
     // immediately send an update to the metaverse API when our ice-server changes
     sendICEServerAddressToMetaverseAPI();
+}
+
+void DomainServer::setupGroupCacheRefresh() {
+    const int REFRESH_GROUPS_INTERVAL_MSECS = 15 * MSECS_PER_SECOND;
+
+    if (!_metaverseGroupCacheTimer) {
+        // setup a timer to refresh this server's cached group details
+        _metaverseGroupCacheTimer = new QTimer { this };
+        connect(_metaverseGroupCacheTimer, &QTimer::timeout, &_gatekeeper, &DomainGatekeeper::refreshGroupsCache);
+        _metaverseGroupCacheTimer->start(REFRESH_GROUPS_INTERVAL_MSECS);
+    }
 }
