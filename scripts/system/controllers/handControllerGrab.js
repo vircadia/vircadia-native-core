@@ -78,8 +78,6 @@ var LINE_ENTITY_DIMENSIONS = {
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
-var EQUIP_RADIUS_EMBIGGEN_FACTOR = 1.1;
-
 //
 // near grabbing
 //
@@ -404,7 +402,7 @@ EquipHotspotBuddy.prototype.clear = function () {
     this.highlightedHotspots = [];
 };
 EquipHotspotBuddy.prototype.highlightHotspot = function (hotspot) {
-    this.highlightedHotspots.push(hotspot);
+    this.highlightedHotspots.push(hotspot.key);
 };
 EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
     var overlayInfoSet = this.map[hotspot.key];
@@ -415,6 +413,8 @@ EquipHotspotBuddy.prototype.updateHotspot = function (hotspot, timestamp) {
             entityID: hotspot.entityID,
             localPosition: hotspot.localPosition,
             hotspot: hotspot,
+            currentSize: 0,
+            targetSize: 1,
             overlays: []
         };
 
@@ -458,14 +458,38 @@ EquipHotspotBuddy.prototype.updateHotspots = function (hotspots, timestamp) {
     this.highlightedHotspots = [];
 };
 EquipHotspotBuddy.prototype.update = function (deltaTime, timestamp) {
+
+    var HIGHLIGHT_SIZE = 1.1;
+    var NORMAL_SIZE = 1.0;
+
     var keys = Object.keys(this.map);
     for (var i = 0; i < keys.length; i++) {
         var overlayInfoSet = this.map[keys[i]];
 
-        // TODO: figure out how to do animation.... fade in, fade out, highlight, un-highlight
+        // this overlayInfo is highlighted.
+        if (this.highlightedHotspots.indexOf(keys[i]) != -1) {
+            overlayInfoSet.targetSize = HIGHLIGHT_SIZE;
+        } else {
+            overlayInfoSet.targetSize = NORMAL_SIZE;
+        }
 
+        // start to fade out this hotspot.
         if (overlayInfoSet.timestamp != timestamp) {
-            // this is an old stale overlay, delete it!
+            // because this item timestamp has expired, it might not be in the cache anymore....
+            entityPropertiesCache.addEntity(overlayInfoSet.entityID);
+            overlayInfoSet.targetSize = 0;
+        }
+
+        // animate the size.
+        var SIZE_TIMESCALE = 0.1;
+        var tau = deltaTime / SIZE_TIMESCALE;
+        if (tau > 1.0) {
+            tau = 1.0;
+        }
+        overlayInfoSet.currentSize += (overlayInfoSet.targetSize - overlayInfoSet.currentSize) * tau;
+
+        if (overlayInfoSet.timestamp != timestamp && overlayInfoSet.currentSize <= 0.05) {
+            // this is an old overlay, that has finished fading out, delete it!
             overlayInfoSet.overlays.forEach(function (overlay) {
                 Overlays.deleteOverlay(overlay);
             });
@@ -476,11 +500,13 @@ EquipHotspotBuddy.prototype.update = function (deltaTime, timestamp) {
             var props = entityPropertiesCache.getProps(overlayInfoSet.entityID);
             var entityXform = new Xform(props.rotation, props.position);
             var position = entityXform.xformPoint(overlayInfoSet.localPosition);
+            var alpha = overlayInfoSet.currentSize / HIGHLIGHT_SIZE; // AJT: TEMPORARY
 
             overlayInfoSet.overlays.forEach(function (overlay) {
                 Overlays.editOverlay(overlay, {
                     position: position,
-                    rotation: props.rotation
+                    rotation: props.rotation,
+                    alpha: alpha // AJT: TEMPORARY
                 });
             });
         }
@@ -1042,7 +1068,9 @@ function MyController(hand) {
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
         equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
-        equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+        if (potentialEquipHotspot) {
+            equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+        }
     };
 
     this.clearEquipHaptics = function () {
@@ -1438,7 +1466,9 @@ function MyController(hand) {
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
         equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
-        equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+        if (potentialEquipHotspot) {
+            equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+        }
 
         // search line visualizations
         if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
