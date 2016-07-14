@@ -425,12 +425,8 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QMutexLocker locker(&sendingNode->getMutex());
 
-    NodeData* linkedData = sendingNode->getLinkedData();
-    if (!linkedData && linkedDataCreateCallback) {
-        linkedDataCreateCallback(sendingNode.data());
-    }
+    NodeData* linkedData = getOrCreateLinkedData(sendingNode);
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
@@ -438,6 +434,17 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage
     }
 
     return 0;
+}
+
+NodeData* LimitedNodeList::getOrCreateLinkedData(SharedNodePointer node) {
+    QMutexLocker locker(&node->getMutex());
+
+    NodeData* linkedData = node->getLinkedData();
+    if (!linkedData && linkedDataCreateCallback) {
+        linkedDataCreateCallback(node.data());
+    }
+
+    return node->getLinkedData();
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {

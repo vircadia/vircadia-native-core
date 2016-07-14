@@ -29,6 +29,7 @@
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
+#include <UsersScriptingInterface.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -69,10 +70,15 @@ AvatarManager::AvatarManager(QObject* parent) :
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+
+    // when we hear that the user has ignored an avatar by session UUID
+    // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
+    connect(nodeList.data(), &NodeList::ignoredNode, this, &AvatarManager::removeAvatar);
 }
 
 AvatarManager::~AvatarManager() {
@@ -85,7 +91,8 @@ void AvatarManager::init() {
         _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
     }
 
-    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged,
+            this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;

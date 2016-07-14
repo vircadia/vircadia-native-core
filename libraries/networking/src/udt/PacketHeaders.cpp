@@ -40,8 +40,6 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode;
 
-const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
-
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
@@ -62,6 +60,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
             return 18;
+        case PacketType::NodeIgnoreRequest:
+            return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
