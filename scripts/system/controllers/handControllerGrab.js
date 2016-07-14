@@ -1882,6 +1882,14 @@ function MyController(hand) {
         }
 
         if (this.state == STATE_HOLD) {
+
+            // highlight the grabbed hotspot when the dropGesture is detected.
+            if (dropDetected) {
+                entityPropertiesCache.addEntity(this.grabbedHotspot.entityID);
+                equipHotspotBuddy.updateHotspot(this.grabbedHotspot, timestamp);
+                equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
+            }
+
             if (dropDetected && this.triggerSmoothedGrab()) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
                 this.setState(STATE_OFF, "drop gesture detected");
