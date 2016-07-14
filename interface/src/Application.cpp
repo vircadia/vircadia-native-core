@@ -98,6 +98,7 @@
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
+#include <UsersScriptingInterface.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
@@ -440,6 +441,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ModelBlender>();
+    DependencyManager::set<UsersScriptingInterface>();
     DependencyManager::set<AvatarManager>();
     DependencyManager::set<LODManager>();
     DependencyManager::set<StandAloneJSConsole>();
@@ -4755,6 +4757,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {

@@ -93,6 +93,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                             this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -324,7 +325,8 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
 
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getLinkedData()) {
+        // make sure that we have audio data for this other node and that it isn't being ignored by our listening node
+        if (otherNode->getLinkedData() && !node->isIgnoringNodeWithID(otherNode->getUUID())) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
@@ -552,6 +554,10 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
             clientData->removeHRTFsForNode(node->getUUID());
         }
     });
+}
+
+void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseIgnoreRequestMessage(packet);
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {

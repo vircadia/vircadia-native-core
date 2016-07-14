@@ -14,7 +14,7 @@ class QmlWrapper : public QObject {
     Q_OBJECT
 public:
     QmlWrapper(QObject* qmlObject, QObject* parent = nullptr)
-        : QObject(parent), _qmlObject(qmlObject) { 
+        : QObject(parent), _qmlObject(qmlObject) {
     }
 
     Q_INVOKABLE void writeProperty(QString propertyName, QVariant propertyValue) {
@@ -90,6 +90,10 @@ public:
         }
 
         return new ToolbarButtonProxy(rawButton, this);
+    }
+
+    Q_INVOKABLE void removeButton(const QVariant& name) {
+        QMetaObject::invokeMethod(_qmlObject, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, name));
     }
 };
 

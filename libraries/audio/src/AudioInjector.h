@@ -26,6 +26,7 @@
 
 #include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
+#include "AudioHRTF.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
@@ -54,8 +55,12 @@ public:
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
     
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
+    AudioHRTF& getLocalHRTF() { return _localHRTF; }
+
     bool isLocalOnly() const { return _options.localOnly; }
-    
+    float getVolume() const { return _options.volume; }
+    glm::vec3 getPosition() const { return _options.position; }
+    bool isStereo() const { return _options.stereo; }
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 
     static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
@@ -70,17 +75,15 @@ public slots:
     void stopAndDeleteLater();
     
     const AudioInjectorOptions& getOptions() const { return _options; }
-    void setOptions(const AudioInjectorOptions& options) { _options = options;  }
+    void setOptions(const AudioInjectorOptions& options);
     
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return _state == State::NotFinished || _state == State::NotFinishedWithPendingDelete; }
+    void finish();
     
 signals:
     void finished();
     void restarting();
-    
-private slots:
-    void finish();
     
 private:
     void setupInjection();
@@ -103,8 +106,9 @@ private:
     std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
     quint16 _outgoingSequenceNumber { 0 };
     
+    // when the injector is local, we need this
+    AudioHRTF _localHRTF;
     friend class AudioInjectorManager;
 };
-
 
 #endif // hifi_AudioInjector_h
