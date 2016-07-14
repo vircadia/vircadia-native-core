@@ -41,10 +41,6 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 
 var PICK_WITH_HAND_RAY = true;
 
-var DRAW_GRAB_BOXES = false;
-var DRAW_HAND_SPHERES = false;
-var DROP_WITHOUT_SHAKE = false;
-
 var EQUIP_SPHERE_COLOR = { red: 179, green: 120, blue: 211 };
 var EQUIP_SPHERE_ALPHA = 0.15;
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
@@ -1743,21 +1739,7 @@ function MyController(hand) {
     this.dropGestureProcess = function (deltaTime) {
         var standardControllerValue = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var pose = Controller.getPoseValue(standardControllerValue);
-        var worldHandVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, pose.velocity);
         var worldHandRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);
-
-        if (this.fastHandMoveDetected) {
-            this.fastHandMoveTimer -= deltaTime;
-        }
-        if (this.fastHandMoveTimer < 0) {
-            this.fastHandMoveDetected = false;
-        }
-        var FAST_HAND_SPEED_REST_TIME = 1;  // sec
-        var FAST_HAND_SPEED_THRESHOLD = 0.4; // m/sec
-        if (Vec3.length(worldHandVelocity) > FAST_HAND_SPEED_THRESHOLD) {
-            this.fastHandMoveDetected = true;
-            this.fastHandMoveTimer = FAST_HAND_SPEED_REST_TIME;
-        }
 
         var localHandUpAxis = this.hand === RIGHT_HAND ? {x: 1, y: 0, z: 0} : {x: -1, y: 0, z: 0};
         var worldHandUpAxis = Vec3.multiplyQbyV(worldHandRotation, localHandUpAxis);
@@ -1776,7 +1758,7 @@ function MyController(hand) {
             print("handMove = " + this.fastHandMoveDetected + ", handIsUpsideDown = " + handIsUpsideDown);
         }
 
-        return (DROP_WITHOUT_SHAKE || this.fastHandMoveDetected) && handIsUpsideDown;
+        return handIsUpsideDown;
     };
 
     this.nearGrabbingEnter = function () {
@@ -2407,38 +2389,7 @@ function cleanup() {
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
     Reticle.setVisible(true);
-    Menu.removeMenuItem("Developer > Hands", "Drop Without Shake");
 }
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
-
-if (!Menu.menuExists("Developer > Grab Script")) {
-    Menu.addMenu("Developer > Grab Script");
-}
-
-Menu.addMenuItem({
-    menuName: "Developer > Grab Script",
-    menuItemName: "Drop Without Shake",
-    isCheckable: true,
-    isChecked: DROP_WITHOUT_SHAKE
-});
-
-Menu.addMenuItem({
-    menuName: "Developer > Grab Script",
-    menuItemName: "Draw Grab Boxes",
-    isCheckable: true,
-    isChecked: DRAW_GRAB_BOXES
-});
-
-function handleMenuItemEvent(menuItem) {
-    if (menuItem === "Drop Without Shake") {
-        DROP_WITHOUT_SHAKE = Menu.isOptionChecked("Drop Without Shake");
-    }
-    if (menuItem === "Draw Grab Boxes") {
-        DRAW_GRAB_BOXES = Menu.isOptionChecked("Draw Grab Boxes");
-        DRAW_HAND_SPHERES = DRAW_GRAB_BOXES;
-    }
-}
-
-Menu.menuItemEvent.connect(handleMenuItemEvent);
