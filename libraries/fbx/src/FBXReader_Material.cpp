@@ -258,6 +258,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
                 }
             }
         }
+        qDebug() << " fbx material Name:" << material.name;
 
         if (materialMap.contains(material.name)) {
             QJsonObject materialOptions = materialMap.value(material.name).toObject();
