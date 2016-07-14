@@ -1732,8 +1732,7 @@ function MyController(hand) {
     };
 
     this.dropGestureReset = function () {
-        this.fastHandMoveDetected = false;
-        this.fastHandMoveTimer = 0;
+        this.prevHandIsUpsideDown = false;
     };
 
     this.dropGestureProcess = function (deltaTime) {
@@ -1744,18 +1743,21 @@ function MyController(hand) {
         var localHandUpAxis = this.hand === RIGHT_HAND ? {x: 1, y: 0, z: 0} : {x: -1, y: 0, z: 0};
         var worldHandUpAxis = Vec3.multiplyQbyV(worldHandRotation, localHandUpAxis);
         var DOWN = {x: 0, y: -1, z: 0};
-        var ROTATION_THRESHOLD = Math.cos(Math.PI / 8);
+
+        var DROP_ANGLE = Math.PI / 7;
+        var HYSTERESIS_FACTOR = 1.1;
+        var ROTATION_ENTER_THRESHOLD = Math.cos(DROP_ANGLE);
+        var ROTATION_EXIT_THRESHOLD = Math.cos(DROP_ANGLE * HYSTERESIS_FACTOR);
+        var rotationThreshold = this.prevHandIsUpsideDown ? ROTATION_EXIT_THRESHOLD : ROTATION_ENTER_THRESHOLD;
 
         var handIsUpsideDown = false;
-        if (Vec3.dot(worldHandUpAxis, DOWN) > ROTATION_THRESHOLD) {
+        if (Vec3.dot(worldHandUpAxis, DOWN) > rotationThreshold) {
             handIsUpsideDown = true;
         }
 
-        var WANT_DEBUG = false;
-        if (WANT_DEBUG) {
-            print("zAxis = " + worldHandUpAxis.x + ", " + worldHandUpAxis.y + ", " + worldHandUpAxis.z);
-            print("dot = " + Vec3.dot(worldHandUpAxis, DOWN) + ", ROTATION_THRESHOLD = " + ROTATION_THRESHOLD);
-            print("handMove = " + this.fastHandMoveDetected + ", handIsUpsideDown = " + handIsUpsideDown);
+        if (handIsUpsideDown != this.prevHandIsUpsideDown) {
+            this.prevHandIsUpsideDown = handIsUpsideDown;
+            Controller.triggerShortHapticPulse(0.5, this.hand);
         }
 
         return handIsUpsideDown;
