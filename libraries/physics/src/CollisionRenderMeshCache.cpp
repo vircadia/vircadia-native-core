@@ -12,28 +12,77 @@
 #include "CollisionRenderMeshCache.h"
 
 #include <cassert>
-//#include <glm/gtx/norm.hpp>
 
-//#include "ShapeFactory.h"
 #include <btBulletDynamicsCommon.h>
+#include <BulletCollision/CollisionShapes/btShapeHull.h>
 
+#include <ShapeInfo.h> // for MAX_HULL_POINTS
+
+float verts[3 * MAX_HULL_POINTS];
+
+void copyHullToMesh(const btShapeHull& hull, model::MeshPointer mesh) {
+    if ((bool)mesh) {
+        const uint32_t* hullIndices = hull.getIndexPointer();
+        int32_t numIndices = hull.numIndices();
+        assert(numIndices <= 6 * MAX_HULL_POINTS);
+
+        { // new part
+            model::Mesh::Part part;
+            part._startIndex = mesh->getIndexBuffer().getNumElements();
+            part._numIndices = (model::Index)numIndices;
+            part._baseVertex = mesh->getVertexBuffer().getNumElements();
+
+            gpu::BufferView::Size numBytes = sizeof(model::Mesh::Part);
+            const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(&part);
+            mesh->getPartBuffer()._buffer->append(numBytes, data);
+        }
+
+        { // new vertices
+            const btVector3* hullVertices = hull.getVertexPointer();
+            int32_t numVertices = hull.numVertices();
+            assert(numVertices <= MAX_HULL_POINTS);
+            for (int32_t i = 0; i < numVertices; ++i) {
+                float* data = verts + 3 * i;
+                data[0] = hullVertices[i].getX();
+                data[1] = hullVertices[i].getY();
+                data[2] = hullVertices[i].getZ();
+            }
+
+            gpu::BufferView::Size numBytes = sizeof(float) * (3 * numVertices);
+            const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(verts);
+            mesh->getVertexBuffer()._buffer->append(numBytes, data);
+        }
+
+        { // new indices
+            gpu::BufferView::Size numBytes = (gpu::BufferView::Size)(sizeof(uint32_t) * hull.numIndices());
+            const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(hullIndices);
+            mesh->getIndexBuffer()._buffer->append(numBytes, data);
+        }
+    }
+}
 
 model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
     if (!shape) {
         return std::make_shared<model::Mesh>();
     }
+    model::MeshPointer mesh = std::make_shared<model::Mesh>();
     int32_t shapeType = shape->getShapeType();
     if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
+        const btScalar MARGIN = 0.0f;
         const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
         int32_t numSubShapes = compoundShape->getNumChildShapes();
         for (int i = 0; i < numSubShapes; ++i) {
             const btCollisionShape* childShape = compoundShape->getChildShape(i);
-            std::cout << "adebug " << i << "  " << (void*)(childShape) << std::endl;  // adebug
+            if (childShape->isConvex()) {
+                const btConvexShape* convexShape = static_cast<const btConvexShape*>(childShape);
+                btShapeHull shapeHull(convexShape);
+                shapeHull.buildHull(MARGIN);
+                copyHullToMesh(shapeHull, mesh);
+            }
         }
     } else if (shape->isConvex()) {
-        std::cout << "adebug " << (void*)(shape)<< std::endl;  // adebug
     }
-    return std::make_shared<model::Mesh>();
+    return mesh;
 }
 
 CollisionRenderMeshCache::CollisionRenderMeshCache() {

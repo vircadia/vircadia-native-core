@@ -31,7 +31,7 @@ namespace std {
 
 class CollisionRenderMeshCache {
 public:
-	using Key = btCollisionShape const *;
+	using Key = const btCollisionShape*;
 
     CollisionRenderMeshCache();
     ~CollisionRenderMeshCache();
