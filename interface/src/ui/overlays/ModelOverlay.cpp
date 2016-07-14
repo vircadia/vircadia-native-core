@@ -106,9 +106,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     } else if (scale.isValid()) {
         // if "scale" property is set but "dimentions" is not.
         // do NOT scale to fit.
-        if (scale.isValid()) {
-            _scaleToFit = false;
-        }
+        _scaleToFit = false;
     }
 
     if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getScale()) {
