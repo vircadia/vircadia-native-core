@@ -62,20 +62,20 @@ FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger)
 }
 
 void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
-    uint64_t now = usecTimestampNow();
-    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
-        QString newFileName = getLogRollerFilename();
-        if (file.copy(newFileName)) {
-            file.open(QIODevice::WriteOnly | QIODevice::Truncate);
-            file.close();
-            qDebug() << "Rolled log file:" << newFileName;
+	uint64_t now = usecTimestampNow();
+	if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
+		QString newFileName = getLogRollerFilename();
+		if (file.copy(newFileName)) {
+			file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+			file.close();
+			qDebug() << "Rolled log file:" << newFileName;
 
-            if (notifyListenersIfRolled) {
-                emit rollingLogFile(newFileName);
-            }
+			if (notifyListenersIfRolled) {
+				emit rollingLogFile(newFileName);
+			}
 
-            _lastRollTime = now;
-        }
+			_lastRollTime = now;
+		}
 		QStringList nameFilters;
 		nameFilters << FILENAME_WILDCARD;
 
@@ -84,18 +84,16 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
 		logQDir.setSorting(QDir::Time);
 		QFileInfoList filesInDir = logQDir.entryInfoList();
 		qint64 totalSizeOfDir = 0;
-		foreach (QFileInfo dirItm, filesInDir){
+		foreach(QFileInfo dirItm, filesInDir){
 			if (totalSizeOfDir < MAX_LOG_DIR_SIZE){
 				totalSizeOfDir += dirItm.size();
-			}
-			else {
+			} else {
 				QFile file(dirItm.filePath());
 				file.remove();
 			}
 		}
-    }
+	}
 }
-
 bool FilePersistThread::processQueueItems(const Queue& messages) {
     QFile file(_logger._fileName);
     rollFileIfNecessary(file);
