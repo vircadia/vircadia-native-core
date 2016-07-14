@@ -199,19 +199,11 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
     _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
     _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];
-    // FIXME add hysteresis?  Move to JSON config?
-    if (inputState.IndexTrigger[ovrHand_Left] > 0.9) {
-        _buttonPressedMap.insert(LT_CLICK);
-    }
     _axisStateMap[LEFT_GRIP] = inputState.HandTrigger[ovrHand_Left];
 
     _axisStateMap[RX] = inputState.Thumbstick[ovrHand_Right].x;
     _axisStateMap[RY] = inputState.Thumbstick[ovrHand_Right].y;
     _axisStateMap[RT] = inputState.IndexTrigger[ovrHand_Right];
-    // FIXME add hysteresis?  Move to JSON config?
-    if (inputState.IndexTrigger[ovrHand_Right] > 0.9) {
-        _buttonPressedMap.insert(RT_CLICK);
-    }
     _axisStateMap[RIGHT_GRIP] = inputState.HandTrigger[ovrHand_Right];
 
     // Buttons
