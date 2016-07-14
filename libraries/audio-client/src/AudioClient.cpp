@@ -14,6 +14,8 @@
 #include <sys/stat.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 #ifdef __APPLE__
 #include <CoreAudio/AudioHardware.h>
@@ -43,8 +45,6 @@
 #include <UUID.h>
 #include <Transform.h>
 
-#include "AudioInjector.h"
-#include "AudioConstants.h"
 #include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
 
@@ -104,6 +104,7 @@ AudioClient::AudioClient() :
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
+    _audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
@@ -852,6 +853,74 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
+void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
+
+    memset(_hrtfBuffer, 0, sizeof(_hrtfBuffer));
+    QVector<AudioInjector*> injectorsToRemove;
+    static const float INT16_TO_FLOAT_SCALE_FACTOR = 1/32768.0f;
+
+    bool injectorsHaveData = false;
+
+    for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
+        if (injector->getLocalBuffer()) {
+
+            qint64 samplesToRead = injector->isStereo() ? 
+                AudioConstants::NETWORK_FRAME_BYTES_STEREO :
+                AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+
+            // get one frame from the injector (mono or stereo)
+            if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, samplesToRead)) {
+                
+                injectorsHaveData = true;
+
+                if (injector->isStereo() ) {
+                    for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+                        _hrtfBuffer[i] += (float)(_scratchBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
+                    }
+                    
+                } else {
+
+                    // calculate gain and azimuth for hrtf
+                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                    float gain = gainForSource(relativePosition, injector->getVolume()); 
+                    float azimuth = azimuthForSource(relativePosition); 
+                
+                
+                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                }
+            
+            } else {
+                
+                qDebug() << "injector has no more data, marking finished for removal";
+                injector->finish();
+                injectorsToRemove.append(injector);
+            }
+
+        } else {
+            
+            qDebug() << "injector has no local buffer, marking as finished for removal";
+            injector->finish();
+            injectorsToRemove.append(injector);
+        }
+    }
+    
+    if(injectorsHaveData) {
+        
+        // mix network into the hrtfBuffer
+        for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+            _hrtfBuffer[i] += (float)(inputBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
+        }
+        
+        // now, use limiter to write back to the inputBuffer
+        _audioLimiter.render(_hrtfBuffer, inputBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    }
+
+    for(AudioInjector* injector : injectorsToRemove) {
+        qDebug() << "removing injector";
+        getActiveLocalAudioInjectors().removeOne(injector);
+    }
+}
+
 void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteArray& outputBuffer) {
     const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
     const int numDeviceOutputSamples = _outputFrameSize;
@@ -861,8 +930,17 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
 
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
-    const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
+    const int16_t* decodedSamples;
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
+    QByteArray decodedBufferCopy = decodedBuffer;
+    assert(decodedBuffer.size() == AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+    
+    if(getActiveLocalAudioInjectors().size() > 0) {
+        mixLocalAudioInjectors((int16_t*)decodedBufferCopy.data());
+        decodedSamples = reinterpret_cast<const int16_t*>(decodedBufferCopy.data());
+    } else {
+        decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
+    }
 
     // copy the packet from the RB to the output
     possibleResampling(_networkToOutputResampler, decodedSamples, outputSamples,
@@ -874,6 +952,7 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     if (hasReverb) {
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
+        qDebug() << "handling reverb";
         _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
     }
 }
@@ -923,36 +1002,25 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
-    if (injector->getLocalBuffer()) {
-        QAudioFormat localFormat = _desiredOutputFormat;
-        localFormat.setChannelCount(isStereo ? 2 : 1);
+    if (injector->getLocalBuffer() && _audioInput ) {
+        // just add it to the vector of active local injectors, if 
+        // not already there.
+        // Since this is invoked with invokeMethod, there _should_ be
+        // no reason to lock access to the vector of injectors.
+        if (!_activeLocalAudioInjectors.contains(injector)) {
+            qDebug() << "adding new injector";
+            
+            _activeLocalAudioInjectors.append(injector);
+        } else {
+            qDebug() << "injector exists in active list already";
+        }
+        
+        return true;
 
-        QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                                                     localFormat,
-                                                     injector->getLocalBuffer());
-
-        // move the localOutput to the same thread as the local injector buffer
-        localOutput->moveToThread(injector->getLocalBuffer()->thread());
-
-        // have it be stopped when that local buffer is about to close
-        // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
-        // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
-        connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
-            if (state == QAudio::IdleState) {
-                localOutput->stop();
-                injector->stop();
-            }
-        });
-
-        connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
-
-        qCDebug(audioclient) << "Starting QAudioOutput for local injector" << localOutput;
-
-        localOutput->start(injector->getLocalBuffer());
-        return localOutput->state() == QAudio::ActiveState;
+    } else {
+        // no local buffer or audio
+        return false;
     }
-
-    return false;
 }
 
 void AudioClient::outputFormatChanged() {
@@ -1205,18 +1273,79 @@ float AudioClient::getAudioOutputMsecsUnplayed() const {
     return msecsAudioOutputUnplayed;
 }
 
+
+float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
+    // copied from AudioMixer, more or less
+    glm::quat inverseOrientation = glm::inverse(_orientationGetter());
+    
+    // compute sample delay for the 2 ears to create phase panning
+    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+    
+    // project the rotated source position vector onto x-y plane
+    rotatedSourcePosition.y = 0.0f;
+
+    static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
+
+    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
+        
+        // produce an oriented angle about the y-axis
+        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
+    } else {
+        
+        // no azimuth if they are in same spot
+        return 0.0f; 
+    }
+}
+
+float AudioClient::gainForSource(const glm::vec3& relativePosition, float volume) {
+    // TODO: put these in a place where we can share with AudioMixer!
+    const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+
+
+    //qDebug() << "initial gain is " << volume;
+    
+    // I'm assuming that the AudioMixer's getting of the stream's attenuation
+    // factor is basically same as getting volume
+    float gain = volume;
+    float distanceBetween = glm::length(relativePosition);
+    if (distanceBetween < EPSILON ) {
+        distanceBetween = EPSILON;
+    }
+
+    // audio mixer has notion of zones.  Unsure how to map that across here...
+
+    // attenuate based on distance now
+    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+        float distanceCoefficient = 1.0f - (logf(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                * DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE);
+        if (distanceCoefficient < 0.0f) {
+            distanceCoefficient = 0.0f;
+        }
+
+        gain *= distanceCoefficient;
+    }
+    
+    //qDebug() << "calculated gain as " << gain;
+
+    return gain;
+}
+
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     auto samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
-
+    
     if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
         bytesWritten = samplesPopped * sizeof(int16_t);
     } else {
+        // nothing on network, don't grab anything from injectors, and just 
+        // return 0s
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
+        
     }
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
