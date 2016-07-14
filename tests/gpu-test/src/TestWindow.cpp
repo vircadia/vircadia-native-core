@@ -80,7 +80,6 @@ void TestWindow::initGl() {
     deferredLightingEffect->init();
     deferredLightingEffect->setGlobalLight(_light);
     initDeferredPipelines(*_shapePlumber);
-    initStencilPipeline(_opaquePipeline);
 #endif
 }
 

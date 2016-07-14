@@ -13,7 +13,6 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include "FramebufferCache.h"
 
 const int SurfaceGeometryPass_FrameTransformSlot = 0;
 const int SurfaceGeometryPass_ParamsSlot = 1;
@@ -135,7 +134,6 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     }
     _surfaceGeometryFramebuffer->updatePrimaryDepth(deferredFramebuffer->getPrimaryDepthTexture());
 
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
 
@@ -148,14 +146,6 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     curvatureAndDepth.edit1() = curvatureFBO;
     curvatureAndDepth.edit2() = linearDepthTexture;
 
-
-    QSize framebufferSize = framebufferCache->getFrameBufferSize();
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
-
-
     auto linearDepthPipeline = getLinearDepthPipeline();
     auto curvaturePipeline = getCurvaturePipeline();
 
@@ -165,11 +155,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.setViewTransform(Transform());
-
-        Transform model;
-        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
-        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
-        batch.setModelTransform(model);
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getFrameSize(), args->_viewport));
 
         batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);

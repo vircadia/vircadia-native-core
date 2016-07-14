@@ -98,10 +98,11 @@ public:
     using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
-    static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    gpu::PipelinePointer _opaquePipeline;
+
+    gpu::PipelinePointer getOpaquePipeline();
 };
 
 class DrawBackgroundDeferredConfig : public render::Job::Config {

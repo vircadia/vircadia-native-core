@@ -39,9 +39,12 @@
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 
-using namespace render;
+#include <gpu/StandardShaderLib.h>
 
-extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
+#include "drawOpaqueStencil_frag.h"
+
+
+using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
@@ -334,10 +337,21 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     }
 }
 
-gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
-const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
+
+gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
-        initStencilPipeline(_opaquePipeline);
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
+        state->setColorWriteMask(0);
+
+        _opaquePipeline = gpu::Pipeline::create(program, state);
     }
     return _opaquePipeline;
 }
@@ -374,13 +388,15 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     assert(renderContext->args->hasViewFrustum());
 
     const auto& inItems = inputs.get0();
-    // Not used yet
-    // const auto& lightingModel = inputs.get1();
+    const auto& lightingModel = inputs.get1();
+    if (!lightingModel->isBackgroundEnabled()) {
+        return;
+    }
 
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        _gpuTimer.begin(batch);
+    //    _gpuTimer.begin(batch);
 
         batch.enableSkybox(true);
         
@@ -396,7 +412,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setViewTransform(viewMat);
 
         renderItems(sceneContext, renderContext, inItems);
-        _gpuTimer.end(batch);
+     //   _gpuTimer.end(batch);
     });
     args->_batch = nullptr;
 

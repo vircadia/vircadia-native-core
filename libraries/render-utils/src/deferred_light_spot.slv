@@ -19,6 +19,7 @@
 <$declareStandardTransform()$>
 
 uniform vec4 coneParam;
+uniform mat4 texcoordFrameTransform;
 
 out vec4 _texCoord0;
 

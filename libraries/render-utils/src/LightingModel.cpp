@@ -24,15 +24,6 @@ bool LightingModel::isUnlitEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableUnlit;
 }
 
-void LightingModel::setShaded(bool enable) {
-    if (enable != isShadedEnabled()) {
-        _parametersBuffer.edit<Parameters>().enableShaded = (float)enable;
-    }
-}
-bool LightingModel::isShadedEnabled() const {
-    return (bool)_parametersBuffer.get<Parameters>().enableShaded;
-}
-
 void LightingModel::setEmissive(bool enable) {
     if (enable != isEmissiveEnabled()) {
         _parametersBuffer.edit<Parameters>().enableEmissive = (float)enable;
@@ -49,6 +40,16 @@ void LightingModel::setLightmap(bool enable) {
 bool LightingModel::isLightmapEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableLightmap;
 }
+
+void LightingModel::setBackground(bool enable) {
+    if (enable != isBackgroundEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableBackground = (float)enable;
+    }
+}
+bool LightingModel::isBackgroundEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableBackground;
+}
+
 
 void LightingModel::setScattering(bool enable) {
     if (enable != isScatteringEnabled()) {
@@ -122,7 +123,7 @@ void LightingModel::setShowLightContour(bool enable) {
     }
 }
 bool LightingModel::isShowLightContourEnabled() const {
-    return (bool)(_parametersBuffer.get<Parameters>().showLightContour > 0.0f);
+    return (bool)_parametersBuffer.get<Parameters>().showLightContour;
 }
 
 MakeLightingModel::MakeLightingModel() {
@@ -131,17 +132,20 @@ MakeLightingModel::MakeLightingModel() {
 
 void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setUnlit(config.enableUnlit);
-    _lightingModel->setShaded(config.enableShaded);
     _lightingModel->setEmissive(config.enableEmissive);
     _lightingModel->setLightmap(config.enableLightmap);
+    _lightingModel->setBackground(config.enableBackground);
+
     _lightingModel->setScattering(config.enableScattering);
     _lightingModel->setDiffuse(config.enableDiffuse);
     _lightingModel->setSpecular(config.enableSpecular);
     _lightingModel->setAlbedo(config.enableAlbedo);
+
     _lightingModel->setAmbientLight(config.enableAmbientLight);
     _lightingModel->setDirectionalLight(config.enableDirectionalLight);
     _lightingModel->setPointLight(config.enablePointLight);
     _lightingModel->setSpotLight(config.enableSpotLight);
+
     _lightingModel->setShowLightContour(config.showLightContour);
 }
 

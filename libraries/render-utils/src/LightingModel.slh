@@ -14,7 +14,7 @@
 <@func declareLightingModel()@>
 
 struct LightingModel {
-    vec4 _UnlitShadedEmissiveLightmap;
+    vec4 _UnlitEmissiveLightmapBackground;
     vec4 _ScatteringDiffuseSpecularAlbedo;
     vec4 _AmbientDirectionalPointSpot;
     vec4 _ShowContour;
@@ -25,16 +25,16 @@ uniform lightingModelBuffer {
 };
 
 float isUnlitEnabled() {
-    return lightingModel._UnlitShadedEmissiveLightmap.x;
-}
-float isShadedEnabled() {
-    return lightingModel._UnlitShadedEmissiveLightmap.y;
+    return lightingModel._UnlitEmissiveLightmapBackground.x;
 }
 float isEmissiveEnabled() {
-    return lightingModel._UnlitShadedEmissiveLightmap.z;
+    return lightingModel._UnlitEmissiveLightmapBackground.y;
 }
 float isLightmapEnabled() {
-    return lightingModel._UnlitShadedEmissiveLightmap.w;
+    return lightingModel._UnlitEmissiveLightmapBackground.z;
+}
+float isBackgroundEnabled() {
+    return lightingModel._UnlitEmissiveLightmapBackground.w;
 }
 
 float isScatteringEnabled() {
