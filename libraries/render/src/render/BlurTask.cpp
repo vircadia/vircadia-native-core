@@ -49,6 +49,13 @@ void BlurParams::setWidthHeight(int width, int height, bool isStereo) {
     }
 }
 
+void BlurParams::setTexcoordTransform(const glm::vec4 texcoordTransformViewport) {
+    auto texcoordTransform = _parametersBuffer.get<Params>().texcoordTransform;
+    if (texcoordTransformViewport != texcoordTransform) {
+        _parametersBuffer.edit<Params>().texcoordTransform = texcoordTransform;
+    }
+}
+
 void BlurParams::setFilterRadiusScale(float scale) {
     auto filterInfo = _parametersBuffer.get<Params>().filterInfo;
     if (scale != filterInfo.x) {
@@ -211,6 +218,8 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
     auto blurHPipeline = getBlurHPipeline();
 
     _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
+    glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
+    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -320,6 +329,8 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
     auto blurHPipeline = getBlurHPipeline();
 
     _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
+    glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
+    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {

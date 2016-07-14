@@ -92,6 +92,7 @@ float getEyeDepthDiff(vec2 texcoord, vec2 delta) {
 
 
 
+in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main(void) {
@@ -101,7 +102,10 @@ void main(void) {
     ivec4 stereoSide;
     ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
     vec2 stereoSideClip = vec2(stereoSide.x, (isStereo() ? 0.5 : 1.0));
-    vec2 frameTexcoordPos = sideToFrameTexcoord(stereoSideClip, texcoordPos);
+
+    // Texcoord to fetch in the deferred texture are the exact UVs comming from vertex shader
+    // sideToFrameTexcoord(stereoSideClip, texcoordPos);
+    vec2 frameTexcoordPos = varTexCoord0;
 
     // Fetch the z under the pixel (stereo or not)
     float Zeye = getZEye(framePixelPos);

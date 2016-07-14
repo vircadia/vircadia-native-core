@@ -578,8 +578,6 @@ void OpenGLDisplayPlugin::present() {
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     updateTextures();
     if (_currentSceneTexture) {
         // Write all layers to a local framebuffer

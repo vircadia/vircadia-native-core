@@ -454,7 +454,6 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        //  auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_drawScattering_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 

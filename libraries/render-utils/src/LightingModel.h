@@ -27,13 +27,14 @@ public:
 
     void setUnlit(bool enable);
     bool isUnlitEnabled() const;
-    void setShaded(bool enable);
-    bool isShadedEnabled() const;
 
     void setEmissive(bool enable);
     bool isEmissiveEnabled() const;
     void setLightmap(bool enable);
     bool isLightmapEnabled() const;
+
+    void setBackground(bool enable);
+    bool isBackgroundEnabled() const;
 
     void setScattering(bool enable);
     bool isScatteringEnabled() const;
@@ -67,9 +68,9 @@ protected:
     class Parameters {
     public:
         float enableUnlit{ 1.0f };
-        float enableShaded{ 1.0f };
         float enableEmissive{ 1.0f };
         float enableLightmap{ 1.0f };
+        float enableBackground{ 1.0f };
 
         float enableScattering{ 1.0f };
         float enableDiffuse{ 1.0f };
@@ -98,9 +99,9 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_OBJECT
 
     Q_PROPERTY(bool enableUnlit MEMBER enableUnlit NOTIFY dirty)
-    Q_PROPERTY(bool enableShaded MEMBER enableShaded NOTIFY dirty)
     Q_PROPERTY(bool enableEmissive MEMBER enableEmissive NOTIFY dirty)
     Q_PROPERTY(bool enableLightmap MEMBER enableLightmap NOTIFY dirty)
+    Q_PROPERTY(bool enableBackground MEMBER enableBackground NOTIFY dirty)
 
     Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
     Q_PROPERTY(bool enableDiffuse MEMBER enableDiffuse NOTIFY dirty)
@@ -118,9 +119,10 @@ public:
     MakeLightingModelConfig() : render::Job::Config() {} // Make Lighting Model is always on
 
     bool enableUnlit{ true };
-    bool enableShaded{ true };
     bool enableEmissive{ true };
     bool enableLightmap{ true };
+    bool enableBackground{ true };
+
 
     bool enableScattering{ true };
     bool enableDiffuse{ true };

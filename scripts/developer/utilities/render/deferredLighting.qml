@@ -24,6 +24,7 @@ Column {
                      "Unlit:LightingModel:enableUnlit", 
                      "Emissive:LightingModel:enableEmissive", 
                      "Lightmap:LightingModel:enableLightmap",
+                     "Background:LightingModel:enableBackground",                      
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -96,17 +97,70 @@ Column {
             }
         }
 
+        Row {
+            Label {
+                text: "Debug Framebuffer"
+                anchors.left: root.left           
+            }
+
+            ComboBox {
+                currentIndex: 1
+                model: ListModel {
+                    id: cbItems
+                    ListElement { text: "RGB"; color: "Yellow" }
+                    ListElement { text: "SRGB"; color: "Green" }
+                    ListElement { text: "Reinhard"; color: "Yellow" }
+                    ListElement { text: "Filmic"; color: "White" }
+                }
+                width: 200
+                onCurrentIndexChanged: { Render.getConfig("ToneMapping")["curve"] = currentIndex }
+            }
+        }
+    }
+    Row {
+        id: framebuffer
+
+        Label {
+            text: "Debug Framebuffer"
+            anchors.left: root.left           
+        }
+        
+        property var config: Render.getConfig("DebugDeferredBuffer")
+
+        function setDebugMode(mode) {
+            framebuffer.config.enabled = (mode != -1);
+            framebuffer.config.mode = mode;
+        }
+
         ComboBox {
-            currentIndex: 1
+            currentIndex: 0
             model: ListModel {
-                id: cbItems
-                ListElement { text: "RGB"; color: "Yellow" }
-                ListElement { text: "SRGB"; color: "Green" }
-                ListElement { text: "Reinhard"; color: "Yellow" }
-                ListElement { text: "Filmic"; color: "White" }
+                id: cbItemsFramebuffer
+                ListElement { text: "Off"; color: "Yellow" }
+                ListElement { text: "Depth"; color: "Green" }
+                ListElement { text: "Albedo"; color: "Yellow" }
+                ListElement { text: "Normal"; color: "White" }
+                ListElement { text: "Roughness"; color: "White" }
+                ListElement { text: "Metallic"; color: "White" }
+                ListElement { text: "Emissive"; color: "White" }
+                ListElement { text: "Unlit"; color: "White" }
+                ListElement { text: "Occlusion"; color: "White" }
+                ListElement { text: "Lightmap"; color: "White" }
+                ListElement { text: "Scattering"; color: "White" }
+                ListElement { text: "Lighting"; color: "White" }
+                ListElement { text: "Shadow"; color: "White" }
+                ListElement { text: "Linear Depth"; color: "White" }
+                ListElement { text: "Mid Curvature"; color: "White" }
+                ListElement { text: "Mid Normal"; color: "White" }
+                ListElement { text: "Low Curvature"; color: "White" }
+                ListElement { text: "Low Normal"; color: "White" }
+                ListElement { text: "Debug Scattering"; color: "White" }
+                ListElement { text: "Ambient Occlusion"; color: "White" }
+                ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
+                ListElement { text: "Custom"; color: "White" }
             }
             width: 200
-            onCurrentIndexChanged: { Render.getConfig("ToneMapping")["curve"] = currentIndex }
+            onCurrentIndexChanged: { framebuffer.setDebugMode(currentIndex - 1) }
         }
     }
 }

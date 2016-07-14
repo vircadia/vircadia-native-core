@@ -75,7 +75,7 @@ bool StereoDisplayPlugin::internalActivate() {
     _container->removeMenu(FRAMERATE);
 
     _screen = qApp->primaryScreen();
-   // _container->setFullscreen(_screen);
+    _container->setFullscreen(_screen);
 
     return Parent::internalActivate();
 }

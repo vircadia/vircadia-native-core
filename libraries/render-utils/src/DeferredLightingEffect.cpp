@@ -44,6 +44,7 @@ struct LightLocations {
     int radius{ -1 };
     int ambientSphere{ -1 };
     int lightBufferUnit{ -1 };
+    int texcoordFrameTransform{ -1 };
     int sphereParam{ -1 };
     int coneParam{ -1 };
     int deferredFrameTransformBuffer{ -1 };
@@ -190,6 +191,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->radius = program->getUniforms().findLocation("radius");
     locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
 
+    locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
     locations->sphereParam = program->getUniforms().findLocation("sphereParam");
     locations->coneParam = program->getUniforms().findLocation("coneParam");
 
@@ -331,7 +333,11 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
     auto args = renderContext->args;
 
-    glm::ivec2 frameSize(args->_viewport.z, args->_viewport.w);
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    auto framebufferSize = framebufferCache->getFrameBufferSize();
+
+   // glm::ivec2 frameSize(args->_viewport.z, args->_viewport.w);
+    glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
 
     if (!_primaryFramebuffer) {
         _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
@@ -491,6 +497,10 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             batch.setPipeline(program);
         }
 
+        // Adjust the texcoordTransform in the case we are rendeirng a sub region(mini mirror)
+        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
+        batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
+
         { // Setup the global lighting
             deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
         }
@@ -505,7 +515,14 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     
 }
 
-void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, bool points, bool spots) {
+void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    const DeferredFrameTransformPointer& frameTransform,
+    const DeferredFramebufferPointer& deferredFramebuffer,
+    const LightingModelPointer& lightingModel) {
+
+    bool points = lightingModel->isPointLightEnabled();
+    bool spots = lightingModel->isSpotLightEnabled();
+
     if (!points && !spots) {
         return;
     }
@@ -544,6 +561,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         // enlarge the scales slightly to account for tesselation
         const float SCALE_EXPANSION = 0.05f;
 
+        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
 
         batch.setProjectionTransform(monoProjMat);
         batch.setViewTransform(monoViewTransform);
@@ -552,6 +570,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         if (points && !deferredLightingEffect->_pointLights.empty()) {
             // POint light pipeline
             batch.setPipeline(deferredLightingEffect->_pointLight);
+            batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
             for (auto lightID : deferredLightingEffect->_pointLights) {
                 auto& light = deferredLightingEffect->_allocatedLights[lightID];
@@ -584,6 +603,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         if (spots && !deferredLightingEffect->_spotLights.empty()) {
             // Spot light pipeline
             batch.setPipeline(deferredLightingEffect->_spotLight);
+            batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
             // Spot mesh
             auto mesh = deferredLightingEffect->getSpotLightMesh();
@@ -682,7 +702,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
+    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
 
     cleanupJob.run(sceneContext, renderContext);
 }

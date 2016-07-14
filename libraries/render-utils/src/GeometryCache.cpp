@@ -432,7 +432,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
 
-void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
+void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const QVector<glm::vec4>& colors) {
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -469,11 +469,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
 
-    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-        ((int(color.y * 255.0f) & 0xFF) << 8) |
-        ((int(color.z * 255.0f) & 0xFF) << 16) |
-        ((int(color.w * 255.0f) & 0xFF) << 24);
-
     float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
     float* vertex = vertexData;
 
@@ -481,16 +476,25 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorDataAt = colorData;
 
     const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
-    foreach(const glm::vec2& point, points) {
+    auto pointCount = points.size();
+    auto colorCount = colors.size();
+    int compactColor = 0;
+    for (auto i = 0; i < pointCount; ++i) {
+        const auto& point = points[i];
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = NORMAL.x;
         *(vertex++) = NORMAL.y;
         *(vertex++) = NORMAL.z;
-
+        if (i < colorCount) {
+            const auto& color = colors[i];
+            compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                ((int(color.y * 255.0f) & 0xFF) << 8) |
+                ((int(color.z * 255.0f) & 0xFF) << 16) |
+                ((int(color.w * 255.0f) & 0xFF) << 24);
+        }
         *(colorDataAt++) = compactColor;
     }
-
     details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
@@ -501,7 +505,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 #endif
 }
 
-void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
+void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
+    updateVertices(id, points, QVector<glm::vec4>({ color }));
+}
+
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec4>& colors) {
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
         details.clear();
@@ -537,11 +545,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
 
-    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-        ((int(color.y * 255.0f) & 0xFF) << 8) |
-        ((int(color.z * 255.0f) & 0xFF) << 16) |
-        ((int(color.w * 255.0f) & 0xFF) << 24);
-
+    // Default to white
+    int compactColor = 0xFFFFFFFF;
     float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
     float* vertex = vertexData;
 
@@ -549,14 +554,23 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorDataAt = colorData;
 
     const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
-    foreach(const glm::vec3& point, points) {
+    auto pointCount = points.size();
+    auto colorCount = colors.size();
+    for (auto i = 0; i < pointCount; ++i) {
+        const glm::vec3& point = points[i];
+        if (i < colorCount) {
+            const glm::vec4& color = colors[i];
+            compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                ((int(color.y * 255.0f) & 0xFF) << 8) |
+                ((int(color.z * 255.0f) & 0xFF) << 16) |
+                ((int(color.w * 255.0f) & 0xFF) << 24);
+        }
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = point.z;
         *(vertex++) = NORMAL.x;
         *(vertex++) = NORMAL.y;
         *(vertex++) = NORMAL.z;
-
         *(colorDataAt++) = compactColor;
     }
 
@@ -568,6 +582,10 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 #ifdef WANT_DEBUG
     qCDebug(renderutils) << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
 #endif
+}
+
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
+    updateVertices(id, points, QVector<glm::vec4>({ color }));
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color) {

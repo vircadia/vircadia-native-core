@@ -98,10 +98,11 @@ public:
     using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
-    static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    gpu::PipelinePointer _opaquePipeline;
+
+    gpu::PipelinePointer getOpaquePipeline();
 };
 
 class DrawBackgroundDeferredConfig : public render::Job::Config {
@@ -172,13 +173,29 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class RenderDeferredTaskConfig : public render::Task::Config {
+    Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    double getGpuTime() { return gpuTime; }
+
+protected:
+    friend class RenderDeferredTask;
+    double gpuTime;
+};
+
 class RenderDeferredTask : public render::Task {
 public:
+    using Config = RenderDeferredTaskConfig;
     RenderDeferredTask(render::CullFunctor cullFunctor);
 
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    using JobModel = Model<RenderDeferredTask>;
+    using JobModel = Model<RenderDeferredTask, Config>;
+
+protected:
+    gpu::RangeTimer _gpuTimer;
 };
 
 #endif // hifi_RenderDeferredTask_h
