@@ -38,6 +38,7 @@
 #include <plugins/PluginManager.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/KeyboardMouseDevice.h>
+#include <input-plugins/TouchscreenDevice.h>
 #include <controllers/ScriptingInterface.h>
 
 #include <DependencyManager.h>
@@ -91,7 +92,7 @@ public:
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual ui::Menu* getPrimaryMenu() override { return nullptr; }
     virtual bool isForeground() const override { return true; }
-    virtual DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer(); }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {
@@ -143,6 +144,9 @@ int main(int argc, char** argv) {
             auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             if (name == KeyboardMouseDevice::NAME) {
                 userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
+            }
+            if (name == TouchscreenDevice::NAME) {
+                userInputMapper->registerDevice(std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin)->getInputDevice());
             }
             inputPlugin->pluginUpdate(0, calibrationData);
         }

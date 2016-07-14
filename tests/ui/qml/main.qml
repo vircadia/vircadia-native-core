@@ -28,6 +28,16 @@ ApplicationWindow {
         property var toolbar;
         property var lastButton;
 
+        Button {
+            text: HMD.active ? "Disable HMD" : "Enable HMD"
+            onClicked: HMD.active = !HMD.active
+        }
+
+        Button {
+            text: desktop.hmdHandMouseActive ? "Disable HMD HandMouse" : "Enable HMD HandMouse"
+            onClicked: desktop.hmdHandMouseActive = !desktop.hmdHandMouseActive
+        }
+
         // Window visibility
         Button {
             text: "toggle desktop"
@@ -340,13 +350,13 @@ ApplicationWindow {
         }
         */
 
-        /*
         Window {
             id: blue
             closable: true
             visible: true
             resizable: true
             destroyOnHidden: false
+            title: "Blue"
 
             width: 100; height: 100
             x: 1280 / 2; y: 720 / 2
@@ -366,7 +376,33 @@ ApplicationWindow {
             }
         }
 
+        Window {
+            id: green
+            closable: true
+            visible: true
+            resizable: true
+            title: "Green"
+            destroyOnHidden: false
 
+            width: 100; height: 100
+            x: 1280 / 2; y: 720 / 2
+            Settings {
+                category: "TestWindow.Green"
+                property alias x: green.x
+                property alias y: green.y
+                property alias width: green.width
+                property alias height: green.height
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                visible: true
+                color: "green"
+                Component.onDestruction: console.log("Green destroyed")
+            }
+        }
+
+/*
         Rectangle { width: 100; height: 100; x: 100; y: 100; color: "#00f" }
 
         Window {

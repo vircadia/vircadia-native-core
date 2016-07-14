@@ -84,6 +84,8 @@ public:
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+
+    static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
     
     static const QString NAME;
 
@@ -122,6 +124,8 @@ protected:
     bool _isTouching = false;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
+
+    static bool _enableTouch;
 };
 
 #endif // hifi_KeyboardMouseDevice_h
