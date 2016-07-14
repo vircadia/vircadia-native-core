@@ -201,10 +201,22 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
         return;
     }
+    RenderArgs* args = renderContext->args;
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+         _gpuTimer.begin(batch);
+    });
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+         _gpuTimer.end(batch);
+    });
+
+    config->gpuTime = _gpuTimer.getAverage();
 }
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -416,7 +428,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     });
     args->_batch = nullptr;
 
-    std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
+   // std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
 
 void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {

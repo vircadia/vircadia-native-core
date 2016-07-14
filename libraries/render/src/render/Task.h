@@ -521,7 +521,7 @@ public:
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
-            Concept(nullptr), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
+            Concept(std::make_shared<C>()), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
             _config = _data._config;
             std::static_pointer_cast<Config>(_config)->init(&_data);
             applyConfiguration();
