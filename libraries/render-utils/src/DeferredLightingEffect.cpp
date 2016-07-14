@@ -331,13 +331,10 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 }
 
 void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
-    auto args = renderContext->args;
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
-
-   // glm::ivec2 frameSize(args->_viewport.z, args->_viewport.w);
-    glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
+        glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
 
     if (!_primaryFramebuffer) {
         _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
