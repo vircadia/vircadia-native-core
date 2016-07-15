@@ -46,6 +46,7 @@ namespace controller {
         LS_CENTER,
         LS_X,
         LS_Y,
+        LT_CLICK,
 
         RIGHT_PRIMARY_THUMB,
         RIGHT_SECONDARY_THUMB,
@@ -56,6 +57,7 @@ namespace controller {
         RS_CENTER,
         RS_X,
         RS_Y,
+        RT_CLICK,
 
         LEFT_PRIMARY_INDEX,
         LEFT_SECONDARY_INDEX,
