@@ -50,7 +50,8 @@ Window {
         addressLine.text = card.userStory.name;
         toggleOrGo();
     }
-    property var suggestionChoices: null;
+    property var allDomains: [];
+    property var suggestionChoices: [];
 
     AddressBarDialog {
         id: addressBarDialog
@@ -223,12 +224,14 @@ Window {
     }
 
     function addPictureToDomain(domainInfo, cb) { // asynchronously add thumbnail and lobby to domainInfo, if available, and cb(error)
+        // This requests data for all the names at once, and just uses the first one to come back.
+        // We might change this to check one at a time, which would be less requests and more latency.
         asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(function (x) { return x; }), function (name, icb) {
             var url = "https://metaverse.highfidelity.com/api/v1/places/" + name;
             getRequest(url, function (error, json) {
                 var previews = !error && json.data.place.previews;
                 if (previews) {
-                    if (!domainInfo.thumbnail) { // just grab tghe first one
+                    if (!domainInfo.thumbnail) { // just grab the first one
                         domainInfo.thumbnail = previews.thumbnail;
                     }
                     if (!domainInfo.lobby) {
@@ -255,15 +258,13 @@ Window {
                 return cb(error);
             }
             var domains = json.data.domains;
-            asyncEach(domains, addPictureToDomain, function (error) {
-                if (json.current_page < json.total_pages) {
-                    options.page++;
-                    return getDomains(options, function (error, others) {
-                        cb(error, domains.concat(others));
-                    });
-                }
-                cb(null, domains);
-            });
+            if (json.current_page < json.total_pages) {
+                options.page++;
+                return getDomains(options, function (error, others) {
+                    cb(error, domains.concat(others));
+                });
+            }
+            cb(null, domains);
         });
     }
 
@@ -275,16 +276,13 @@ Window {
             }
             console.log('suggestion:', JSON.stringify(data));
             target.userStory = data;
-            target.image.source = data.lobby || ''; // should fail to load and thus use default
+            target.image.source = data.lobby || target.defaultPicture;
             target.placeText = data.name;
             target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
             target.visible = true;
         }
-        if (!suggestionChoices) {
-            return;
-        }
         var words = addressLine.text.toUpperCase().split(/\s+/);
-        var filtered = !words.length ? suggestionChoices : suggestionChoices.filter(function (domain) {
+        var filtered = !words.length ? suggestionChoices : allDomains.filter(function (domain) {
             var text = domain.names.concat(domain.tags).join(' ');
             if (domain.description) {
                 text += domain.description;
@@ -301,13 +299,25 @@ Window {
     }
 
     function fillDestinations() {
-        suggestionChoices = null;
+        allDomains = suggestionChoices = [];
         getDomains({minUsers: 0, maxUsers: 20}, function (error, domains) {
+            if (error) {
+                console.log('domain query failed:', error);
+                return filterChoicesByText();
+            }
             var here = addressBarDialog.getHost(); // don't show where we are now.
-            var withLobby = !error && domains.filter(function (domain) { return domain.lobby && (domain.name !== here); });
-            withLobby.sort(function (a, b) { return b.online_users - a.online_users; });
-            suggestionChoices = withLobby;
-            filterChoicesByText();
+            allDomains = domains.filter(function (domain) { return domain.name !== here; });
+            allDomains.sort(function (a, b) { return b.online_users - a.online_users; });
+            // Whittle down suggestions to those that have at least one user, and try to get pictures.
+            suggestionChoices = allDomains.filter(function (domain) { return domain.online_users; });
+            asyncEach(domains, addPictureToDomain, function (error) {
+                if (error) {
+                    console.log('place picture query failed:', error);
+                }
+                // Whittle down more by requiring a picture.
+                suggestionChoices = suggestionChoices.filter(function (domain) { return domain.lobby; });
+                filterChoicesByText();
+            });
         });
     }
 
