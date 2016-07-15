@@ -12,7 +12,10 @@
 //
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
+var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
+var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";  
+var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
+    
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -92,8 +95,6 @@ var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary p
 var mode = 0;
 var isActive = false;
 
-var placingEntityID = null;
-
 IMPORTING_SVO_OVERLAY_WIDTH = 144;
 IMPORTING_SVO_OVERLAY_HEIGHT = 30;
 IMPORTING_SVO_OVERLAY_MARGIN = 5;
@@ -170,12 +171,8 @@ var toolBar = (function() {
         systemToolbar,
         activeButton;
         
-    function createNewEntity(properties, dragOnCreate) {
+    function createNewEntity(properties) {
         Settings.setValue(EDIT_SETTING, false);
-
-        // Default to true if not passed in
-        // dragOnCreate = dragOnCreate == undefined ? true : dragOnCreate;
-        dragOnCreate = false;
 
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
@@ -183,11 +180,7 @@ var toolBar = (function() {
         if (position != null) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
                 properties.position = position;
-
             entityID = Entities.addEntity(properties);
-            if (dragOnCreate) {
-                placingEntityID = entityID;
-            }
         } else {
             Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
@@ -201,7 +194,7 @@ var toolBar = (function() {
 
     function cleanup() {
         that.setActive(false);
-        systemToolbar.removeButton("com.highfidelity.interface.system.editButton");
+        systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
     }
     
     function addButton(name, image, handler) {
@@ -214,7 +207,7 @@ var toolBar = (function() {
             visible: true,
         });
         if (handler) {
-            button.clicked.connect(function(){
+            button.clicked.connect(function() {
                 Script.setTimeout(handler, 100);
             });
         }
@@ -236,32 +229,32 @@ var toolBar = (function() {
             }
         });
 
-        systemToolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+        systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
         activeButton = systemToolbar.addButton({
-            objectName: "com.highfidelity.interface.system.editButton",
+            objectName: EDIT_TOGGLE_BUTTON,
             imageURL: TOOL_ICON_URL + "edit.svg",
             visible: true,
             buttonState: 1,
         });
-        activeButton.clicked.connect(function(){
+        activeButton.clicked.connect(function() {
             that.setActive(!isActive);
             activeButton.writeProperty("buttonState", isActive ? 0 : 1);
         });
 
-        toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.edit");
+        toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
         toolBar.writeProperty("shown", false);
 
-        addButton("newModelButton", "model-01.svg", function(){
+        addButton("newModelButton", "model-01.svg", function() {
             var url = Window.prompt("Model URL");
             if (url !== null && url !== "") {
                 createNewEntity({
                     type: "Model",
                     modelURL: url
-                }, false);
+                });
             }
         });
 
-        addButton("newCubeButton", "cube-01.svg", function(){
+        addButton("newCubeButton", "cube-01.svg", function() {
             createNewEntity({
                 type: "Box",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -273,7 +266,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newSphereButton", "sphere-01.svg", function(){
+        addButton("newSphereButton", "sphere-01.svg", function() {
             createNewEntity({
                 type: "Sphere",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -285,7 +278,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newLightButton", "light-01.svg", function(){
+        addButton("newLightButton", "light-01.svg", function() {
             createNewEntity({
                 type: "Light",
                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
@@ -304,7 +297,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newTextButton", "text-01.svg", function(){
+        addButton("newTextButton", "text-01.svg", function() {
             createNewEntity({
                 type: "Text",
                 dimensions: {
@@ -327,7 +320,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newWebButton", "web-01.svg", function(){
+        addButton("newWebButton", "web-01.svg", function() {
             createNewEntity({
                 type: "Web",
                 dimensions: {
@@ -339,7 +332,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newZoneButton", "zone-01.svg", function(){
+        addButton("newZoneButton", "zone-01.svg", function() {
             createNewEntity({
                 type: "Zone",
                 dimensions: {
@@ -350,7 +343,7 @@ var toolBar = (function() {
             });
         });
 
-        addButton("newParticleButton", "particle-01.svg", function(){
+        addButton("newParticleButton", "particle-01.svg", function() {
             createNewEntity({
                 type: "ParticleEffect",
                 isEmitting: true,
@@ -409,8 +402,8 @@ var toolBar = (function() {
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
-            // Not sure what the following was meant to accomplish, but it currently causes
             selectionDisplay.triggerMapping.enable();
+            // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
@@ -580,16 +573,6 @@ function mouseMove(event) {
         mouseHasMovedSincePress = true;
     }
 
-    if (placingEntityID) {
-        var pickRay = Camera.computePickRay(event.x, event.y);
-        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-        var offset = Vec3.multiply(distance, pickRay.direction);
-        var position = Vec3.sum(Camera.position, offset);
-        Entities.editEntity(placingEntityID, {
-            position: position,
-        });
-        return;
-    }
     if (!isActive) {
         return;
     }
@@ -624,16 +607,7 @@ function mouseReleaseEvent(event) {
     if (propertyMenu.mouseReleaseEvent(event)) {
         return true;
     }
-    if (placingEntityID) {
-
-        if (isActive) {
-
-            selectionManager.setSelections([placingEntityID]);
-        }
-        placingEntityID = null;
-    }
     if (isActive && selectionManager.hasSelection()) {
-
         tooltip.show(false);
     }
     if (mouseCapturedByTool) {
