@@ -19,12 +19,12 @@ class GL45Query : public gpu::gl::GLQuery {
 public:
     static GLuint allocateQuery() {
         GLuint result;
-        glCreateQueries(GL_TIME_ELAPSED, 1, &result);
+        glCreateQueries(GL_TIMESTAMP, 1, &result);
         return result;
     }
 
     GL45Query(const Query& query)
-        : Parent(query, allocateQuery()) { }
+        : Parent(query, allocateQuery(), allocateQuery()){}
 };
 
 gl::GLQuery* GL45Backend::syncGPUObject(const Query& query) {

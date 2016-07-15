@@ -241,7 +241,23 @@ Item {
                    color: "#E2334D"
                }
            ]
-        }           
+        }
+        PlotPerf {
+           title: "Timing"
+           height: parent.evalEvenHeight()
+           object: parent.drawOpaqueConfig
+           valueUnit: "ms"
+           valueScale: 1
+           valueNumDigits: "4"
+           plots: [ 
+               {
+                   object: Render.getConfig("RenderDeferredTask"),
+                   prop: "gpuTime",
+                   label: "RenderFrameGPU",
+                   color: "#00FFFF"
+               }
+           ]
+        }
     }
 
 }
