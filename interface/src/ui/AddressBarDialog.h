@@ -34,7 +34,6 @@ protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
 
-    Q_INVOKABLE QString getHost() const;
     Q_INVOKABLE void loadAddress(const QString& address);
     Q_INVOKABLE void loadHome();
     Q_INVOKABLE void loadBack();

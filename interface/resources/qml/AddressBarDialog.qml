@@ -305,7 +305,7 @@ Window {
                 console.log('domain query failed:', error);
                 return filterChoicesByText();
             }
-            var here = addressBarDialog.getHost(); // don't show where we are now.
+            var here = AddressManager.hostname; // don't show where we are now.
             allDomains = domains.filter(function (domain) { return domain.name !== here; });
             allDomains.sort(function (a, b) { return b.online_users - a.online_users; });
             // Whittle down suggestions to those that have at least one user, and try to get pictures.

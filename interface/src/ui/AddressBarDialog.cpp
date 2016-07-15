@@ -40,10 +40,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
 }
 
-QString AddressBarDialog::getHost() const {
-    return DependencyManager::get<AddressManager>()->getHost();
-}
-
 void AddressBarDialog::loadAddress(const QString& address) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
