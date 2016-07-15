@@ -66,6 +66,7 @@ Window {
                 bottomMargin: 2 * hifi.layout.spacing;
             }
             Text {
+                id: suggestionsLabel;
                 text: "Suggestions"
             }
             Row {
@@ -298,6 +299,7 @@ Window {
         fill1(s0, filtered[0]);
         fill1(s1, filtered[1]);
         fill1(s2, filtered[2]);
+        suggestionsLabel.visible = filtered.length;
     }
 
     function fillDestinations() {
