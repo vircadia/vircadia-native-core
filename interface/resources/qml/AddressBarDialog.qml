@@ -11,7 +11,6 @@
 import Hifi 1.0
 import QtQuick 2.4
 import "controls"
-import "controls-uit" as HifiControls
 import "styles"
 import "windows"
 import "hifi"
@@ -71,20 +70,19 @@ Window {
                 text: "Suggestions"
             }
             Row {
+                spacing: hifi.layout.spacing;
                 Card {
                     id: s0;
                     width: 200;
                     height: 200;
                     goFunction: goCard
                 }
-                HifiControls.HorizontalSpacer { }
                 Card {
                     id: s1;
                     width: 200;
                     height: 200;
                     goFunction: goCard
                 }
-                HifiControls.HorizontalSpacer { }
                 Card {
                     id: s2;
                     width: 200;
