@@ -18,7 +18,9 @@ class CollisionRenderMeshCacheTests : public QObject {
     Q_OBJECT
 
 private slots:
-    void test001();
+    void testShapeHullManifold();
+    void testCompoundShape();
+    void testMultipleShapes();
 };
 
 #endif // hifi_CollisionRenderMeshCacheTests_h

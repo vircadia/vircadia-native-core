@@ -23,8 +23,8 @@ class btCollisionShape;
 namespace std {
     template <>
     struct hash<btCollisionShape*> {
-        std::size_t operator()(btCollisionShape* key) const {
-            return (hash<void*>()((void*)key));
+        std::size_t operator()(btCollisionShape* shape) const {
+            return (hash<void*>()((void*)shape));
         }
     };
 }
@@ -46,12 +46,12 @@ public:
     void collectGarbage();
 
     // validation methods
-    uint32_t getNumGeometries() const { return (uint32_t)_geometryMap.size(); }
-    bool hasMesh(Key key) const { return _geometryMap.find(key) == _geometryMap.end(); }
+    uint32_t getNumMeshes() const { return (uint32_t)_meshMap.size(); }
+    bool hasMesh(Key key) const { return _meshMap.find(key) == _meshMap.end(); }
 
 private:
     using CollisionMeshMap = std::unordered_map<Key, model::MeshPointer>;
-    CollisionMeshMap _geometryMap;
+    CollisionMeshMap _meshMap;
     std::vector<Key> _pendingGarbage;
 };
 

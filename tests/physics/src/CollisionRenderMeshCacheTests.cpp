@@ -25,48 +25,53 @@
 
 QTEST_MAIN(CollisionRenderMeshCacheTests)
 
-btVector3 directions[] = {
-    btVector3(1.0f, 1.0f, 1.0f),
-    btVector3(1.0f, 1.0f, -1.0f),
-    btVector3(1.0f, -1.0f, 1.0f),
-    btVector3(1.0f, -1.0f, -1.0f),
-    btVector3(-1.0f, 1.0f, 1.0f),
-    btVector3(-1.0f, 1.0f, -1.0f),
-    btVector3(-1.0f, -1.0f, 1.0f),
-    btVector3(-1.0f, -1.0f, -1.0f)
+const float INV_SQRT_THREE = 0.577350269f;
+
+const uint32_t numSphereDirections = 6 + 8;
+btVector3 sphereDirections[] = {
+    btVector3(1.0f, 0.0f, 0.0f),
+    btVector3(-1.0f, 0.0f, 0.0f),
+    btVector3(0.0f, 1.0f, 0.0f),
+    btVector3(0.0f, -1.0f, 0.0f),
+    btVector3(0.0f, 0.0f, 1.0f),
+    btVector3(0.0f, 0.0f, -1.0f),
+    btVector3(INV_SQRT_THREE, INV_SQRT_THREE, INV_SQRT_THREE),
+    btVector3(INV_SQRT_THREE, INV_SQRT_THREE, -INV_SQRT_THREE),
+    btVector3(INV_SQRT_THREE, -INV_SQRT_THREE, INV_SQRT_THREE),
+    btVector3(INV_SQRT_THREE, -INV_SQRT_THREE, -INV_SQRT_THREE),
+    btVector3(-INV_SQRT_THREE, INV_SQRT_THREE, INV_SQRT_THREE),
+    btVector3(-INV_SQRT_THREE, INV_SQRT_THREE, -INV_SQRT_THREE),
+    btVector3(-INV_SQRT_THREE, -INV_SQRT_THREE, INV_SQRT_THREE),
+    btVector3(-INV_SQRT_THREE, -INV_SQRT_THREE, -INV_SQRT_THREE)
 };
 
-void computeCubePoints(const btVector3& center, btScalar radius, uint32_t numPoints,
-        btAlignedObjectArray<btVector3>& points) {
-    points.reserve(points.size() + 8);
-    for (uint32_t i = 0; i < 8; ++i) {
-        points.push_back(center + radius * directions[i]);
-    }
-}
-
 float randomFloat() {
-    return (float)rand() / (float)RAND_MAX;
+    return 2.0f * ((float)rand() / (float)RAND_MAX) - 1.0f;
 }
 
-btBoxShape* createRandomCubeShape() {
-    //const btScalar MAX_RADIUS = 3.0;
-    //const btScalar MIN_RADIUS = 0.5;
-    //btScalar radius = randomFloat() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS;
-    btScalar radius = 0.5f;
-    btVector3 halfExtents(radius, radius, radius);
-
-    btBoxShape* shape = new btBoxShape(halfExtents);
+btBoxShape* createBoxShape(const btVector3& extent) {
+    btBoxShape* shape = new btBoxShape(0.5f * extent);
     return shape;
 }
 
-void CollisionRenderMeshCacheTests::test001() {
+btConvexHullShape* createConvexHull(float radius) {
+    btConvexHullShape* hull = new btConvexHullShape();
+    for (uint32_t i = 0; i < numSphereDirections; ++i) {
+        btVector3 point = radius * sphereDirections[i];
+        hull->addPoint(point, false);
+    }
+    hull->recalcLocalAabb();
+    return hull;
+}
+
+void CollisionRenderMeshCacheTests::testShapeHullManifold() {
     // make a box shape
-    btBoxShape* box = createRandomCubeShape();
+    btVector3 extent(1.0f, 2.0f, 3.0f);
+    btBoxShape* box = createBoxShape(extent);
 
     // wrap it with a ShapeHull
     btShapeHull hull(box);
-    //const btScalar MARGIN = 0.01f;
-    const btScalar MARGIN = 0.00f;
+    const float MARGIN = 0.0f;
     hull.buildHull(MARGIN);
 
     // verify the vertex count is capped
@@ -75,8 +80,8 @@ void CollisionRenderMeshCacheTests::test001() {
 
     // verify the mesh is inside the radius
     btVector3 halfExtents = box->getHalfExtentsWithMargin();
-    btScalar acceptableRadiusError = 0.01f;
-    btScalar maxRadius = halfExtents.length() + acceptableRadiusError;
+    float ACCEPTABLE_EXTENTS_ERROR = 0.01f;
+    float maxRadius = halfExtents.length() + ACCEPTABLE_EXTENTS_ERROR;
     const btVector3* meshVertices = hull.getVertexPointer();
     for (uint32_t i = 0; i < numVertices; ++i) {
         btVector3 vertex = meshVertices[i];
@@ -107,167 +112,166 @@ void CollisionRenderMeshCacheTests::test001() {
         QVERIFY(face.dot(center) > 0.0f);
     }
 
+    // delete unmanaged memory
     delete box;
 }
 
-#ifdef FOO
-void CollisionRenderMeshCacheTests::test001() {
-    CollisionRenderMeshCache cache;
+void CollisionRenderMeshCacheTests::testCompoundShape() {
+    uint32_t numSubShapes = 3;
 
-    // create a compound shape
-    btScalar radiusA = 1.0f;
-    btScalar radiusB = 1.5f;
-    btScalar radiusC = 2.75f;
+    btVector3 centers[] = {
+        btVector3(1.0f, 0.0f, 0.0f),
+        btVector3(0.0f, -2.0f, 0.0f),
+        btVector3(0.0f, 0.0f, 3.0f),
+    };
 
-    btVector3 centerA(radiusA, 0.0f, 0.0f);
-    btVector3 centerB(0.0f, radiusB, 0.0f);
-    btVector3 centerC(0.0f, 0.0f, radiusC);
+    float radii[] = { 3.0f, 2.0f, 1.0f };
 
-    btCompoundShape compoundShape = new btCompoundShape();
+    btCompoundShape* compoundShape = new btCompoundShape();
     for (uint32_t i = 0; i < numSubShapes; ++i) {
+        btTransform transform;
+        transform.setOrigin(centers[i]);
+        btConvexHullShape* hull = createConvexHull(radii[i]);
+        compoundShape->addChildShape(transform, hull);
     }
 
+    // create the cache
+    CollisionRenderMeshCache cache;
+    QVERIFY(cache.getNumMeshes() == 0);
 
-    // get the mesh
+    // get the mesh once
+    model::MeshPointer mesh = cache.getMesh(compoundShape);
+    QVERIFY((bool)mesh);
+    QVERIFY(cache.getNumMeshes() == 1);
 
     // get the mesh again
+    model::MeshPointer mesh2 = cache.getMesh(compoundShape);
+    QVERIFY(mesh2 == mesh);
+    QVERIFY(cache.getNumMeshes() == 1);
 
     // forget the mesh once
+    cache.releaseMesh(compoundShape);
+    mesh.reset();
+    QVERIFY(cache.getNumMeshes() == 1);
 
-    // collect garbage
+    // collect garbage (should still cache mesh)
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 1);
 
-    // forget the mesh a second time
+    // forget the mesh a second time (should still cache mesh)
+    cache.releaseMesh(compoundShape);
+    mesh2.reset();
+    QVERIFY(cache.getNumMeshes() == 1);
 
-    // collect garbage
+    // collect garbage (should no longer cache mesh)
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 0);
 
+    // delete unmanaged memory
+    for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
+        delete compoundShape->getChildShape(i);
+    }
+    delete compoundShape;
 }
-#endif // FOO
 
-/*
-void CollisionRenderMeshCacheTests::addManyShapes() {
-    ShapeManager shapeManager;
-
-    QVector<btCollisionShape*> shapes;
-
-    int numSizes = 100;
-    float startSize = 1.0f;
-    float endSize = 99.0f;
-    float deltaSize = (endSize - startSize) / (float)numSizes;
-    ShapeInfo info;
-    for (int i = 0; i < numSizes; ++i) {
-        // make a sphere
-        float s = startSize + (float)i * deltaSize;
-        glm::vec3 scale(s, 1.23f + s, s - 0.573f);
-        info.setBox(0.5f * scale);
-        btCollisionShape* shape = shapeManager.getShape(info);
-        shapes.push_back(shape);
-        QCOMPARE(shape != nullptr, true);
-
-        // make a box
-        float radius = 0.5f * s;
-        info.setSphere(radius);
-        shape = shapeManager.getShape(info);
-        shapes.push_back(shape);
-        QCOMPARE(shape != nullptr, true);
+void CollisionRenderMeshCacheTests::testMultipleShapes() {
+    // shapeA is compound of hulls
+    uint32_t numSubShapes = 3;
+    btVector3 centers[] = {
+        btVector3(1.0f, 0.0f, 0.0f),
+        btVector3(0.0f, -2.0f, 0.0f),
+        btVector3(0.0f, 0.0f, 3.0f),
+    };
+    float radii[] = { 3.0f, 2.0f, 1.0f };
+    btCompoundShape* shapeA = new btCompoundShape();
+    for (uint32_t i = 0; i < numSubShapes; ++i) {
+        btTransform transform;
+        transform.setOrigin(centers[i]);
+        btConvexHullShape* hull = createConvexHull(radii[i]);
+        shapeA->addChildShape(transform, hull);
     }
 
-    // verify shape count
-    int numShapes = shapeManager.getNumShapes();
-    QCOMPARE(numShapes, 2 * numSizes);
-
-    // release each shape by pointer
-    for (int i = 0; i < numShapes; ++i) {
-        btCollisionShape* shape = shapes[i];
-        bool success = shapeManager.releaseShape(shape);
-        QCOMPARE(success, true);
+    // shapeB is compound of boxes
+    btVector3 extents[] = {
+        btVector3(1.0f, 2.0f, 3.0f),
+        btVector3(2.0f, 3.0f, 1.0f),
+        btVector3(3.0f, 1.0f, 2.0f),
+    };
+    btCompoundShape* shapeB = new btCompoundShape();
+    for (uint32_t i = 0; i < numSubShapes; ++i) {
+        btTransform transform;
+        transform.setOrigin(centers[i]);
+        btBoxShape* box = createBoxShape(extents[i]);
+        shapeB->addChildShape(transform, box);
     }
 
-    // verify zero references
-    for (int i = 0; i < numShapes; ++i) {
-        btCollisionShape* shape = shapes[i];
-        int numReferences = shapeManager.getNumReferences(shape);
-        QCOMPARE(numReferences, 0);
+    // shapeC is just a box
+    btVector3 extentC(7.0f, 3.0f, 5.0f);
+    btBoxShape* shapeC = createBoxShape(extentC);
+
+    // create the cache
+    CollisionRenderMeshCache cache;
+    QVERIFY(cache.getNumMeshes() == 0);
+
+    // get the meshes
+    model::MeshPointer meshA = cache.getMesh(shapeA);
+    model::MeshPointer meshB = cache.getMesh(shapeB);
+    model::MeshPointer meshC = cache.getMesh(shapeC);
+    QVERIFY((bool)meshA);
+    QVERIFY((bool)meshB);
+    QVERIFY((bool)meshC);
+    QVERIFY(cache.getNumMeshes() == 3);
+
+    // get the meshes again
+    model::MeshPointer meshA2 = cache.getMesh(shapeA);
+    model::MeshPointer meshB2 = cache.getMesh(shapeB);
+    model::MeshPointer meshC2 = cache.getMesh(shapeC);
+    QVERIFY(meshA == meshA2);
+    QVERIFY(meshB == meshB2);
+    QVERIFY(meshC == meshC2);
+    QVERIFY(cache.getNumMeshes() == 3);
+
+    // forget the meshes once
+    cache.releaseMesh(shapeA);
+    cache.releaseMesh(shapeB);
+    cache.releaseMesh(shapeC);
+    meshA2.reset();
+    meshB2.reset();
+    meshC2.reset();
+    QVERIFY(cache.getNumMeshes() == 3);
+
+    // collect garbage (should still cache mesh)
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 3);
+
+    // forget again, one mesh at a time...
+    // shapeA...
+    cache.releaseMesh(shapeA);
+    meshA.reset();
+    QVERIFY(cache.getNumMeshes() == 3);
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 2);
+    // shapeB...
+    cache.releaseMesh(shapeB);
+    meshB.reset();
+    QVERIFY(cache.getNumMeshes() == 2);
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 1);
+    // shapeC...
+    cache.releaseMesh(shapeC);
+    meshC.reset();
+    QVERIFY(cache.getNumMeshes() == 1);
+    cache.collectGarbage();
+    QVERIFY(cache.getNumMeshes() == 0);
+
+    // delete unmanaged memory
+    for (int i = 0; i < shapeA->getNumChildShapes(); ++i) {
+        delete shapeA->getChildShape(i);
     }
-}
-
-void CollisionRenderMeshCacheTests::addBoxShape() {
-    ShapeInfo info;
-    glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
-    info.setBox(halfExtents);
-
-    ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
-
-    ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    QCOMPARE(shape, otherShape);
-}
-
-void CollisionRenderMeshCacheTests::addSphereShape() {
-    ShapeInfo info;
-    float radius = 1.23f;
-    info.setSphere(radius);
-
-    ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
-
-    ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    QCOMPARE(shape, otherShape);
-}
-
-void CollisionRenderMeshCacheTests::addCompoundShape() {
-    // initialize some points for generating tetrahedral convex hulls
-    QVector<glm::vec3> tetrahedron;
-    tetrahedron.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-    tetrahedron.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
-    tetrahedron.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
-    tetrahedron.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
-    int numHullPoints = tetrahedron.size();
-
-    // compute the points of the hulls
-    ShapeInfo::PointCollection pointCollection;
-    int numHulls = 5;
-    glm::vec3 offsetNormal(1.0f, 0.0f, 0.0f);
-    for (int i = 0; i < numHulls; ++i) {
-        glm::vec3 offset = (float)(i - numHulls/2) * offsetNormal;
-        ShapeInfo::PointList pointList;
-        float radius = (float)(i + 1);
-        for (int j = 0; j < numHullPoints; ++j) {
-            glm::vec3 point = radius * tetrahedron[j] + offset;
-            pointList.push_back(point);
-        }
-        pointCollection.push_back(pointList);
+    delete shapeA;
+    for (int i = 0; i < shapeB->getNumChildShapes(); ++i) {
+        delete shapeB->getChildShape(i);
     }
-
-    // create the ShapeInfo
-    ShapeInfo info;
-    info.setPointCollection(hulls);
-
-    // create the shape
-    ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
-    QVERIFY(shape != nullptr);
-
-    // verify the shape is correct type
-    QCOMPARE(shape->getShapeType(), (int)COMPOUND_SHAPE_PROXYTYPE);
-
-    // verify the shape has correct number of children
-    btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
-    QCOMPARE(compoundShape->getNumChildShapes(), numHulls);
-
-    // verify manager has only one shape
-    QCOMPARE(shapeManager.getNumShapes(), 1);
-    QCOMPARE(shapeManager.getNumReferences(info), 1);
-
-    // release the shape
-    shapeManager.releaseShape(shape);
-    QCOMPARE(shapeManager.getNumShapes(), 1);
-    QCOMPARE(shapeManager.getNumReferences(info), 0);
-
-    // collect garbage
-    shapeManager.collectGarbage();
-    QCOMPARE(shapeManager.getNumShapes(), 0);
-    QCOMPARE(shapeManager.getNumReferences(info), 0);
+    delete shapeB;
+    delete shapeC;
 }
-*/

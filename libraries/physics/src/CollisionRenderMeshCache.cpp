@@ -68,9 +68,19 @@ void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape, m
 }
 
 model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
-    model::MeshPointer mesh = std::make_shared<model::Mesh>();
-    if (shape) {
-        int32_t shapeType = shape->getShapeType();
+    model::MeshPointer mesh;
+    if (!shape) {
+        return mesh;
+    }
+
+    int32_t shapeType = shape->getShapeType();
+    if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE || shape->isConvex()) {
+        // create the mesh and allocate buffers for it
+        mesh = std::make_shared<model::Mesh>();
+        mesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getVertexBuffer()._element));
+        mesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getIndexBuffer()._element));
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getPartBuffer()._element));
+
         if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
             const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
             int32_t numSubShapes = compoundShape->getNumChildShapes();
@@ -81,7 +91,8 @@ model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
                     copyShapeToMesh(compoundShape->getChildTransform(i), convexShape, mesh);
                 }
             }
-        } else if (shape->isConvex()) {
+        } else {
+            // shape is convex
             const btConvexShape* convexShape = static_cast<const btConvexShape*>(shape);
             copyShapeToMesh(btTransform(), convexShape, mesh);
         }
@@ -93,20 +104,22 @@ CollisionRenderMeshCache::CollisionRenderMeshCache() {
 }
 
 CollisionRenderMeshCache::~CollisionRenderMeshCache() {
-    _geometryMap.clear();
+    _meshMap.clear();
     _pendingGarbage.clear();
 }
 
 model::MeshPointer CollisionRenderMeshCache::getMesh(CollisionRenderMeshCache::Key key) {
     model::MeshPointer mesh;
     if (key) {
-        CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
-        if (itr != _geometryMap.end()) {
+        CollisionMeshMap::const_iterator itr = _meshMap.find(key);
+        if (itr == _meshMap.end()) {
             // make mesh and add it to map
             mesh = createMeshFromShape(key);
             if (mesh) {
-                _geometryMap.insert(std::make_pair(key, mesh));
+                _meshMap.insert(std::make_pair(key, mesh));
             }
+        } else {
+            mesh = itr->second;
         }
     }
     return mesh;
@@ -116,12 +129,12 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
     if (!key) {
         return false;
     }
-    CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
-    if (itr != _geometryMap.end()) {
+    CollisionMeshMap::const_iterator itr = _meshMap.find(key);
+    if (itr != _meshMap.end()) {
         assert((*itr).second.use_count() != 1);
+        _pendingGarbage.push_back(key);
         if ((*itr).second.use_count() == 1) {
             // we hold all of the references inside the cache so we'll try to delete later
-            _pendingGarbage.push_back(key);
         }
         return true;
     }
@@ -132,11 +145,11 @@ void CollisionRenderMeshCache::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
         CollisionRenderMeshCache::Key key = _pendingGarbage[i];
-        CollisionMeshMap::const_iterator itr = _geometryMap.find(key);
-        if (itr != _geometryMap.end()) {
+        CollisionMeshMap::const_iterator itr = _meshMap.find(key);
+        if (itr != _meshMap.end()) {
             if ((*itr).second.use_count() == 1) {
                 // we hold the only reference
-                _geometryMap.erase(itr);
+                _meshMap.erase(itr);
             }
         }
     }
