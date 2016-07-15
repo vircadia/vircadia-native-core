@@ -275,9 +275,7 @@ Window {
             }
             console.log('suggestion:', JSON.stringify(data));
             target.userStory = data;
-            if (data.lobby) {
-                target.image.source = data.lobby;
-            }
+            target.image.source = data.lobby || ''; // should fail to load and thus use default
             target.placeText = data.name;
             target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
             target.visible = true;

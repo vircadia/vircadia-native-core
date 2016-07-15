@@ -21,11 +21,14 @@ Rectangle {
     property alias image: lobby;
     property alias placeText: place.text;
     property alias usersText: users.text;
+    // FIXME: let's get our own
+    property string defaultPicture: "http://www.davidluke.com/wp-content/themes/david-luke/media/ims/placeholder720.gif";
     HifiConstants { id: hifi }
     Image {
         id: lobby;
         width: parent.width;
         height: parent.height;
+        source: defaultPicture;
         fillMode: Image.PreserveAspectCrop;
         // source gets filled in later
         anchors.verticalCenter: parent.verticalCenter;
@@ -33,8 +36,7 @@ Rectangle {
         onStatusChanged: {
             if (status == Image.Error) {
                 console.log("source: " + source + ": failed to load " + JSON.stringify(userStory));
-                // FIXME: let's get our own
-                source = "http://www.davidluke.com/wp-content/themes/david-luke/media/ims/placeholder720.gif"
+                source = defaultPicture;
             }
         }
     }
