@@ -113,8 +113,6 @@ public:
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
 
-    void releaseShape();
-
     virtual bool isMoving() const = 0;
 
     // These pure virtual methods must be implemented for each MotionState type
@@ -157,6 +155,7 @@ protected:
     void updateCCDConfiguration();
 
     void setRigidBody(btRigidBody* body);
+    virtual void setShape(btCollisionShape* shape);
 
     MotionStateType _type = MOTIONSTATE_TYPE_INVALID; // type of MotionState
     PhysicsMotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC

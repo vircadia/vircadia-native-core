@@ -64,16 +64,17 @@ ShapeManager* ObjectMotionState::getShapeManager() {
 
 ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
-    _shape(shape),
+    _shape(nullptr),
     _body(nullptr),
     _mass(0.0f),
     _lastKinematicStep(worldSimulationStep)
 {
+    setShape(shape);
 }
 
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
-    releaseShape();
+    setShape(nullptr);
     _type = MOTIONSTATE_TYPE_INVALID;
 }
 
@@ -112,13 +113,6 @@ glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
 
 glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
     return bulletToGLM(_body->getAngularVelocity());
-}
-
-void ObjectMotionState::releaseShape() {
-    if (_shape) {
-        shapeManager->releaseShape(_shape);
-        _shape = nullptr;
-    }
 }
 
 void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
@@ -162,6 +156,15 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
             _body->setUserPointer(this);
         }
         updateCCDConfiguration();
+    }
+}
+
+void ObjectMotionState::setShape(btCollisionShape* shape) {
+    if (_shape != shape) {
+        if (_shape) {
+            getShapeManager()->releaseShape(_shape);
+        }
+        _shape = shape;
     }
 }
 
@@ -265,15 +268,15 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
                 return true;
             }
         }
-        getShapeManager()->releaseShape(_shape);
-        if (_shape != newShape) {
-            _shape = newShape;
-            _body->setCollisionShape(_shape);
-
-            updateCCDConfiguration();
-        } else {
-            // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
+        if (_shape == newShape) {
+            // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~Simulation::DIRTY_SHAPE;
+            // and clear the reference we just created
+            getShapeManager()->releaseShape(_shape);
+        } else {
+            _body->setCollisionShape(newShape);
+            setShape(newShape);
+            updateCCDConfiguration();
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
