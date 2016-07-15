@@ -163,8 +163,13 @@ public:
 
 class RenderDeferredConfig : public render::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     RenderDeferredConfig() : render::Job::Config(true) {}
+
+    double getGpuTime() { return gpuTime; }
+    
+    double gpuTime{ 0.0 };
 
 signals:
     void dirty();
@@ -188,6 +193,7 @@ public:
     RenderDeferredCleanup cleanupJob;
 
 protected:
+    gpu::RangeTimer _gpuTimer;
 };
 
 #endif // hifi_DeferredLightingEffect_h

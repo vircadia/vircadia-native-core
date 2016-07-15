@@ -694,12 +694,22 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto surfaceGeometryFramebuffer = inputs.get3();
     auto lowCurvatureNormalFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
+    auto args = renderContext->args;
 
-
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+       _gpuTimer.begin(batch);
+    });
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
 
     cleanupJob.run(sceneContext, renderContext);
+    
+     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+         _gpuTimer.end(batch);
+    });
+    
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    config->gpuTime = _gpuTimer.getAverage();
 }

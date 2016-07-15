@@ -17,6 +17,44 @@
 #include "LightingModel.h"
 
 
+class BeginTimerGPU {
+public:
+    using JobModel = render::Job::ModelO<BeginTimerGPU, gpu::RangeTimerPointer>;
+    
+    BeginTimerGPU() : _gpuTimer(std::make_shared<gpu::RangeTimer>()) {}
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
+    
+protected:
+    gpu::RangeTimerPointer _gpuTimer;
+};
+
+
+class EndTimerGPUConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    double getGpuTime() { return gpuTime; }
+    
+protected:
+    friend class EndTimerGPU;
+    double gpuTime;
+};
+  
+class EndTimerGPU {
+public:
+    using Config = EndTimerGPUConfig;
+    using JobModel = render::Job::ModelI<EndTimerGPU, gpu::RangeTimerPointer, Config>;
+    
+    EndTimerGPU() {}
+    
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
+    
+protected:
+};
+
+
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
@@ -175,13 +213,13 @@ public:
 
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
+    Q_PROPERTY(quint64 gpuTime READ getGpuTime)
 public:
-    double getGpuTime() { return gpuTime; }
+    quint64 getGpuTime() { return gpuTime; }
 
 protected:
     friend class RenderDeferredTask;
-    double gpuTime;
+    quint64 gpuTime;
 };
 
 class RenderDeferredTask : public render::Task {

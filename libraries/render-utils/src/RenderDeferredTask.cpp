@@ -100,6 +100,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
+    
     const auto prepareDeferredInputs = SurfaceGeometryPass::Inputs(primaryFramebuffer, lightingModel).hasVarying();
     const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
@@ -119,6 +120,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
     const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
     const auto linearDepthTexture = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
+
+    const auto rangeTimer = addJob<BeginTimerGPU>("BeginTimerRange");
 
     // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
     const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture).hasVarying();
@@ -185,8 +188,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
+    addJob<EndTimerGPU>("RangeTimer", rangeTimer);
     // Blit!
     addJob<Blit>("Blit", primaryFramebuffer);
+    
+    
 }
 
 void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -204,20 +210,38 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     RenderArgs* args = renderContext->args;
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+   /* gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
          _gpuTimer.begin(batch);
-    });
+    });*/
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    /*gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
          _gpuTimer.end(batch);
-    });
+    });*/
 
-    config->gpuTime = _gpuTimer.getAverage();
+//    config->gpuTime = _gpuTimer.getAverage();
+    
 }
+
+void BeginTimerGPU::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
+    timer = _gpuTimer;
+    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+        _gpuTimer->begin(batch);
+    });
+}
+
+void EndTimerGPU::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
+    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+        timer->end(batch);
+    });
+    
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    config->gpuTime = timer->getAverage();
+}
+
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
