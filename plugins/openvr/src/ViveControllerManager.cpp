@@ -11,9 +11,6 @@
 
 #include "ViveControllerManager.h"
 
-#include <sstream>
-#include <QtCore/QDebug>
-
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -288,9 +285,6 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_system->GetControllerState(deviceIndex, &controllerState)) {
-            //std::stringstream stream;
-            //stream << std::hex << controllerState.ulButtonPressed << " " << std::hex << controllerState.ulButtonTouched;
-            //qDebug() << deviceIndex << " " << stream.str().c_str() << controllerState.rAxis[1].x;
             // process each button
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
