@@ -43,15 +43,19 @@ Rectangle {
     // Enable dragging of the window,
     // detect mouseover of the window (including decoration)
     MouseArea {
+        id: decorationMouseArea
         anchors.fill: parent
         drag.target: window
+        hoverEnabled: true
+        onEntered: window.mouseEntered();
+        onExited: window.mouseExited();
     }
     Connections {
         target: window
         onMouseEntered: {
             if (desktop.hmdHandMouseActive) {
                 root.inflateDecorations()
-           }
+            }
         }
         onMouseExited: root.deflateDecorations();
     }
@@ -59,7 +63,7 @@ Rectangle {
         target: desktop
         onHmdHandMouseActiveChanged: {
             if (desktop.hmdHandMouseActive) {
-                if (window.activator.containsMouse) {
+                if (decorationMouseArea.containsMouse) {
                     root.inflateDecorations();
                 }
             } else {
