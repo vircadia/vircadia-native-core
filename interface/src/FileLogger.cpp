@@ -94,6 +94,7 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
         }
     }
 }
+
 bool FilePersistThread::processQueueItems(const Queue& messages) {
     QFile file(_logger._fileName);
     rollFileIfNecessary(file);
