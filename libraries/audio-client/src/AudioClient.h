@@ -217,7 +217,7 @@ private:
     void outputFormatChanged();
     void mixLocalAudioInjectors(int16_t* inputBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
-    float gainForSource(const glm::vec3& relativePosition, float volume);
+    float gainForSource(float distance, float volume);
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
