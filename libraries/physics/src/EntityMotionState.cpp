@@ -271,6 +271,14 @@ btCollisionShape* EntityMotionState::computeNewShape() {
     return getShapeManager()->getShape(shapeInfo);
 }
 
+void EntityMotionState::setShape(btCollisionShape* shape) {
+    bool shapeChanged = (_shape != shape);
+    ObjectMotionState::setShape(shape);
+    if (shapeChanged) {
+        _entity->setCollisionShape(_shape);
+    }
+}
+
 bool EntityMotionState::isCandidateForOwnership() const {
     assert(_body);
     assert(_entity);

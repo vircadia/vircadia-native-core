@@ -151,7 +151,7 @@ public:
 protected:
     virtual bool isReadyToComputeShape() const = 0;
     virtual btCollisionShape* computeNewShape() = 0;
-    void setMotionType(PhysicsMotionType motionType);
+    virtual void setMotionType(PhysicsMotionType motionType);
     void updateCCDConfiguration();
 
     void setRigidBody(btRigidBody* body);

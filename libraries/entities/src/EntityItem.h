@@ -44,6 +44,7 @@ class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
 class EntityItemProperties;
 class EntityTree;
+class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
@@ -323,6 +324,12 @@ public:
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
+
+    virtual void setCollisionShape(const btCollisionShape* shape) {}
+
+    // these are only needed because the names don't match
+    virtual const glm::quat getRotation() const { return getOrientation(); }
+    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
