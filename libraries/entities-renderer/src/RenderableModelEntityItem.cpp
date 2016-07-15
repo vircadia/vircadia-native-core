@@ -917,6 +917,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 }
 
+void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape) {
+    // TODO: generate collision mesh and update _model
+}
+
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     if (EntityItem::contains(point) && _model && _model->isCollisionLoaded()) {
         return _model->getCollisionFBXGeometry().convexHullContains(worldToEntity(point));

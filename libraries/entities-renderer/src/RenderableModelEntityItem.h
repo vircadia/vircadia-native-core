@@ -61,7 +61,7 @@ public:
     virtual bool isReadyToComputeShape() override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
 
-    void setCollisionShape(const btCollisionShape* shape) override {}
+    void setCollisionShape(const btCollisionShape* shape) override;
 
     virtual bool contains(const glm::vec3& point) const override;
 
