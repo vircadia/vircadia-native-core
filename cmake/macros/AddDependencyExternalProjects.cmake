@@ -17,12 +17,10 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
     
     # has the user told us they specific don't want this as an external project?
     if (NOT USE_LOCAL_${_PROJ_NAME_UPPER})
-      message(STATUS "LEODEBUG: Looking for dependency ${_PROJ_NAME}")
       # have we already detected we can't have this as external project on this OS?
       if (NOT DEFINED ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT OR ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT)
         # have we already setup the target?
         if (NOT TARGET ${_PROJ_NAME})
-          message(STATUS "LEODEBUG: We dont have a target with that name ${_PROJ_NAME} adding directory ${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME}")
           add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${EXTERNALS_BINARY_DIR}/${_PROJ_NAME})
           
           # did we end up adding an external project target?
@@ -37,7 +35,6 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
         endif ()
       
         if (TARGET ${_PROJ_NAME})
-          message(STATUS "LEODEBUG: We no have the target ${_PROJ_NAME}")
           add_dependencies(${TARGET_NAME} ${_PROJ_NAME})
         endif ()
         
