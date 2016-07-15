@@ -264,6 +264,9 @@ function propsArePhysical(props) {
     return isPhysical;
 }
 
+// currently disabled.
+var USE_ATTACH_POINT_SETTINGS = false;
+
 var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 function getAttachPointSettings() {
     try {
@@ -1858,7 +1861,7 @@ function MyController(hand) {
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
 
-            var offsets = getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
+            var offsets = USE_ATTACH_POINT_SETTINGS && getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
             if (offsets) {
                 this.offsetPosition = offsets[0];
                 this.offsetRotation = offsets[1];
@@ -2065,7 +2068,7 @@ function MyController(hand) {
 
     this.holdExit = function () {
         // store the offset attach points into preferences.
-        if (this.grabbedHotspot) {
+        if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
             entityPropertiesCache.addEntity(this.grabbedEntity);
             var props = entityPropertiesCache.getProps(this.grabbedEntity);
             var entityXform = new Xform(props.rotation, props.position);
