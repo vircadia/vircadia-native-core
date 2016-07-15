@@ -35,14 +35,10 @@ ModalWindow {
     property var comboBox;
     property var checkBox;
 
+    property var warning: "";
     property var result;
-    property alias current: textField.text;
 
-    // For text boxes
-    property alias placeholderText: textField.placeholderText;
-
-    // For combo boxes
-    property bool editable: true;
+    property var implicitCheckState: null;
 
     property int titleWidth: 0;
     onTitleWidthChanged: d.resize();
@@ -52,6 +48,34 @@ ModalWindow {
             return;
         }
         iconText = hifi.glyphForIcon(root.icon);
+    }
+
+    function updateCheckbox() {
+        if (checkBox.disableForItems) {
+            var currentTextInDisableList = false;
+            for (var i in checkBox.disableForItems) {
+                if (comboBoxField.currentText === checkBox.disableForItems[i]) {
+                    currentTextInDisableList = true;
+                    break;
+                }
+            }
+
+            if (currentTextInDisableList) {
+                checkBoxField.enabled = false;
+                if (checkBox.checkStateOnDisable !== null && checkBox.checkStateOnDisable !== undefined) {
+                    root.implicitCheckState = checkBoxField.checked;
+                    checkBoxField.checked = checkBox.checkStateOnDisable;
+                }
+                root.warning = checkBox.warningOnDisable;
+            } else {
+                checkBoxField.enabled = true;
+                if (root.implicitCheckState !== null) {
+                    checkBoxField.checked = root.implicitCheckState;
+                    root.implicitCheckState = null;
+                }
+                root.warning = "";
+            }
+        }
     }
 
     Item {
@@ -70,18 +94,11 @@ ModalWindow {
             function resize() {
                 var targetWidth = Math.max(titleWidth, pane.width);
                 var targetHeight = (textInput ? textField.controlHeight : 0) + extraInputs.height +
-                                   (6 * hifi.dimensions.contentSpacing.y) + buttons.height;
-                // var targetHeight = 720;
-                print("CQD extraInputs.height = " + extraInputs.height);
-                print("CQD textField.controlHeight = " + textField.controlHeight);
-                print("CQD buttons.height = " + buttons.height);
-                print("CQD targetHeight = " + targetHeight);
+                                   (5 * hifi.dimensions.contentSpacing.y) + buttons.height;
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ?
                               d.maxHeight : targetHeight);
-                print("CQD comboBoxField.visible = " + comboBoxField.visible);
                 if (comboBoxField.visible) {
-                    print("CQD parent = " + parent);
                     comboBoxField.width = extraInputs.width / 2;
                 }
             }
@@ -94,7 +111,7 @@ ModalWindow {
                 left: parent.left;
                 right: parent.right;
                 margins: 0;
-                bottomMargin: 2 * hifi.dimensions.contentSpacing.y;
+                bottomMargin: hifi.dimensions.contentSpacing.y;
             }
 
             // FIXME make a text field type that can be bound to a history for autocompletion
@@ -132,6 +149,7 @@ ModalWindow {
                 anchors {
                     left: parent.left;
                     bottom: parent.bottom;
+                    leftMargin: 6;  // Magic number to align with warning icon
                 }
             }
 
@@ -145,6 +163,7 @@ ModalWindow {
                     bottom: parent.bottom;
                 }
                 model: root.comboBox ? root.comboBox.items : [];
+                onCurrentTextChanged: updateCheckbox();
             }
         }
 
@@ -152,13 +171,35 @@ ModalWindow {
             id: buttons;
             focus: true;
             spacing: hifi.dimensions.contentSpacing.x;
+            layoutDirection: Qt.RightToLeft;
             onHeightChanged: d.resize();
-            onWidthChanged: d.resize();
+            onWidthChanged: {
+                d.resize();
+                resizeWarningText();
+            }
+
             anchors {
                 bottom: parent.bottom;
                 left: parent.left;
                 right: parent.right;
                 bottomMargin: hifi.dimensions.contentSpacing.y;
+            }
+
+            function resizeWarningText() {
+                var rowWidth = buttons.width;
+                var buttonsWidth = acceptButton.width + cancelButton.width + hifi.dimensions.contentSpacing.x * 2;
+                var warningIconWidth = warningIcon.width + hifi.dimensions.contentSpacing.x;
+                warningText.width = rowWidth - buttonsWidth - warningIconWidth;
+            }
+
+            Button {
+                id: cancelButton;
+                action: cancelAction;
+                // anchors {
+                //     bottom: parent.bottom;
+                //     right: parent.right;
+                //     leftMargin: hifi.dimensions.contentSpacing.x;
+                // }
             }
 
             Button {
@@ -171,14 +212,20 @@ ModalWindow {
                 // }
             }
 
-            Button {
-                id: cancelButton;
-                action: cancelAction;
-                // anchors {
-                //     bottom: parent.bottom;
-                //     right: parent.right;
-                //     leftMargin: hifi.dimensions.contentSpacing.x;
-                // }
+            Text {
+                id: warningText;
+                visible: Boolean(root.warning);
+                text: root.warning;
+                wrapMode: Text.WordWrap;
+                font.italic: true;
+                maximumLineCount: 2;
+            }
+
+            HiFiGlyphs {
+                id: warningIcon;
+                visible: Boolean(root.warning);
+                text: hifi.glyphs.alert;
+                size: hifi.dimensions.controlLineHeight;
             }
         }
 
@@ -198,11 +245,18 @@ ModalWindow {
             text: qsTr("Add");
             shortcut: Qt.Key_Return;
             onTriggered: {
-                root.result = {
-                    textInput: textField.text,
-                    comboBox: comboBoxField.currentText,
-                    checkBox: checkBoxField.checked
-                };
+                var result = {};
+                if (textInput) {
+                    result.textInput = textField.text;
+                }
+                if (comboBox) {
+                    result.comboBox = comboBoxField.currentText;
+                    result.comboBoxIndex = comboBoxField.currentIndex;
+                }
+                if (checkBox) {
+                    result.checkBox = checkBoxField.enabled ? checkBoxField.checked : null;
+                }
+                root.result = result;
                 root.selected(root.result);
                 root.destroy();
             }

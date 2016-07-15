@@ -354,8 +354,10 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
     }
 
     // Casts from QJSValue to QVariantMap (not sure how, just copied from http://lists.qt-project.org/pipermail/development/2014-September/018513.html)
-    Q_ASSERT(result.userType() == qMetaTypeId<QJSValue>());
-    result = qvariant_cast<QJSValue>(result).toVariant();
+    Q_ASSERT(!result.isValid() || result.userType() == qMetaTypeId<QJSValue>());
+    if (result.userType() == qMetaTypeId<QJSValue>()) {
+        result = qvariant_cast<QJSValue>(result).toVariant();
+    }
 
     return result;
 }
