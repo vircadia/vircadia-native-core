@@ -229,6 +229,14 @@ function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
 
+function colorPow(color, power) {
+    return {
+        red: Math.pow(color.red / 255.0, power) * 255,
+        green: Math.pow(color.green / 255.0, power) * 255,
+        blue: Math.pow(color.blue / 255.0, power) * 255,
+    };
+}
+
 function entityHasActions(entityID) {
     return Entities.getActionIDs(entityID).length > 0;
 }
@@ -547,23 +555,34 @@ function MyController(hand) {
 
     var SEARCH_SPHERE_ALPHA = 0.5;
     this.searchSphereOn = function (location, size, color) {
+        
+        var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
+        var brightColor = colorPow(color, 0.1);
+        print("bright color " + brightColor.red + " " + brightColor.green + " " + brightColor.blue);
         if (this.searchSphere === null) {
             var sphereProperties = {
                 position: location,
-                size: size,
-                color: color,
-                alpha: SEARCH_SPHERE_ALPHA,
+                rotation: rotation,
+                outerRadius: size * 3.0,
+                innerColor: brightColor,
+                outerColor: color,
+                innerAlpha: 0.9,
+                outerAlpha: 0.0,
                 solid: true,
                 ignoreRayIntersection: true,
                 drawInFront: true, // Even when burried inside of something, show it.
                 visible: true
             };
-            this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
+            this.searchSphere = Overlays.addOverlay("circle3d", sphereProperties);
         } else {
             Overlays.editOverlay(this.searchSphere, {
                 position: location,
-                size: size,
-                color: color,
+                rotation: rotation,
+                innerColor: brightColor,
+                outerColor: color,  
+                innerAlpha: 1.0,
+                outerAlpha: 0.0,
+                outerRadius: size * 3.0,
                 visible: true
             });
         }
