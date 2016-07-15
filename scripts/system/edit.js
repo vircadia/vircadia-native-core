@@ -201,6 +201,7 @@ var toolBar = (function() {
 
     function cleanup() {
         that.setActive(false);
+        systemToolbar.removeButton("com.highfidelity.interface.system.editButton");
     }
     
     function addButton(name, image, handler) {
@@ -237,11 +238,10 @@ var toolBar = (function() {
 
         systemToolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
         activeButton = systemToolbar.addButton({
-            objectName: "activeButton",
+            objectName: "com.highfidelity.interface.system.editButton",
             imageURL: TOOL_ICON_URL + "edit.svg",
             visible: true,
             buttonState: 1,
-            alpha: 0.9,
         });
         activeButton.clicked.connect(function(){
             that.setActive(!isActive);
@@ -418,9 +418,7 @@ var toolBar = (function() {
         toolBar.writeProperty("shown", active);
         var visible = toolBar.readProperty("visible");
         if (active && !visible) { 
-            toolBar.writeProperty("visible", false);
             toolBar.writeProperty("shown", false);
-            toolBar.writeProperty("visible", true);
             toolBar.writeProperty("shown", true);
         }
         //toolBar.selectTool(activeButton, isActive);
