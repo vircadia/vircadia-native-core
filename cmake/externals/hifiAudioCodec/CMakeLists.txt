@@ -1,13 +1,13 @@
 include(ExternalProject)
 include(SelectLibraryConfigurations)
 
-set(EXTERNAL_NAME HiFiAudioCodec)
+set(EXTERNAL_NAME hifiAudioCodec)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://s3.amazonaws.com/hifi-public/dependencies/codecSDK-1.zip
+  URL http://s3.amazonaws.com/hifi-public/dependencies/codecSDK-1.zip
   URL_MD5 23ec3fe51eaa155ea159a4971856fc13
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
@@ -27,7 +27,5 @@ if (WIN32)
 elseif(APPLE)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/Release/libaudio.a CACHE TYPE INTERNAL)
 elseif(NOT ANDROID)
-  # FIXME need to account for different architectures 
-  #set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux64/audio.so CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux64/audio.so CACHE TYPE INTERNAL)
 endif()
-
