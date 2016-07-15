@@ -51,6 +51,8 @@ Window {
     }
     property var allDomains: [];
     property var suggestionChoices: [];
+    property int cardWidth: 200;
+    property int cardHeight: 152;
 
     AddressBarDialog {
         id: addressBarDialog
@@ -60,33 +62,29 @@ Window {
         Column {
             width: backgroundImage.width;
             anchors {
-                left: backgroundImage.left;
                 bottom: backgroundImage.top;
-                leftMargin: parent.height + 2 * hifi.layout.spacing;
                 bottomMargin: 2 * hifi.layout.spacing;
-            }
-            Text {
-                id: suggestionsLabel;
-                text: "Suggestions"
+                right: backgroundImage.right;
+                rightMargin: -104; // FIXME
             }
             Row {
                 spacing: hifi.layout.spacing;
                 Card {
                     id: s0;
-                    width: 200;
-                    height: 200;
+                    width: cardWidth;
+                    height: cardHeight;
                     goFunction: goCard
                 }
                 Card {
                     id: s1;
-                    width: 200;
-                    height: 200;
+                    width: cardWidth;
+                    height: cardHeight;
                     goFunction: goCard
                 }
                 Card {
                     id: s2;
-                    width: 200;
-                    height: 200;
+                    width: cardWidth;
+                    height: cardHeight;
                     goFunction: goCard
                 }
             }
@@ -221,10 +219,14 @@ Window {
         });
     }
 
+    function identity(x) {
+        return x;
+    }
+
     function addPictureToDomain(domainInfo, cb) { // asynchronously add thumbnail and lobby to domainInfo, if available, and cb(error)
         // This requests data for all the names at once, and just uses the first one to come back.
         // We might change this to check one at a time, which would be less requests and more latency.
-        asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(function (x) { return x; }), function (name, icb) {
+        asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(identity), function (name, icb) {
             var url = "https://metaverse.highfidelity.com/api/v1/places/" + name;
             getRequest(url, function (error, json) {
                 var previews = !error && json.data.place.previews;
@@ -279,7 +281,7 @@ Window {
             target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
             target.visible = true;
         }
-        var words = addressLine.text.toUpperCase().split(/\s+/);
+        var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity);
         var filtered = !words.length ? suggestionChoices : allDomains.filter(function (domain) {
             var text = domain.names.concat(domain.tags).join(' ');
             if (domain.description) {
@@ -293,7 +295,6 @@ Window {
         fill1(s0, filtered[0]);
         fill1(s1, filtered[1]);
         fill1(s2, filtered[2]);
-        suggestionsLabel.visible = filtered.length;
     }
 
     function fillDestinations() {

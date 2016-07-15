@@ -13,6 +13,7 @@
 
 import Hifi 1.0
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import "../styles-uit"
 
 Rectangle {
@@ -21,6 +22,8 @@ Rectangle {
     property alias image: lobby;
     property alias placeText: place.text;
     property alias usersText: users.text;
+    property int textPadding: 20;
+    property int textSize: 24;
     // FIXME: let's get our own
     property string defaultPicture: "http://www.davidluke.com/wp-content/themes/david-luke/media/ims/placeholder720.gif";
     HifiConstants { id: hifi }
@@ -40,22 +43,44 @@ Rectangle {
             }
         }
     }
+    DropShadow {
+        source: place;
+        anchors.fill: place;
+        horizontalOffset: 0;
+        radius: 2;
+        samples: 9;
+        color: hifi.colors.black;
+        verticalOffset: 1;
+        spread: 0;
+    }
+    DropShadow {
+        source: users;
+        anchors.fill: users;
+        horizontalOffset: 0;
+        radius: 2;
+        samples: 9;
+        color: hifi.colors.black;
+        verticalOffset: 1;
+        spread: 0;
+    }
     RalewaySemiBold {
         id: place;
-        color: hifi.colors.lightGrayText;
+        color: hifi.colors.white;
+        size: textSize;
         anchors {
-            leftMargin: 2 * hifi.layout.spacing;
-            topMargin: 2 * hifi.layout.spacing;
+            top: parent.top;
+            left: parent.left;
+            margins: textPadding;
         }
     }
     RalewayRegular {
         id: users;
-        color: hifi.colors.lightGrayText;
+        size: textSize;
+        color: hifi.colors.white;
         anchors {
             bottom: parent.bottom;
             right: parent.right;
-            bottomMargin: 2 * hifi.layout.spacing;
-            rightMargin: 2 * hifi.layout.spacing;
+            margins: textPadding;
         }
     }
     MouseArea {
