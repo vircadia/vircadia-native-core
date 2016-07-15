@@ -29,7 +29,7 @@
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
-    return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+    return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 };
 
 AudioInjectorState& operator&= (AudioInjectorState& lhs, AudioInjectorState rhs) {
