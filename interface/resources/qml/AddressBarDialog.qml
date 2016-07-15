@@ -16,9 +16,6 @@ import "styles"
 import "windows"
 import "hifi"
 
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-
 Window {
     id: root
     HifiConstants { id: hifi }
@@ -48,12 +45,13 @@ Window {
         // Explicitly center in order to avoid warnings at shutdown
         anchors.centerIn = parent;
     }
-    
+
     function goCard(card) {
         addressLine.text = card.userStory.name;
         toggleOrGo();
     }
-    
+    property var suggestionChoices: null;
+
     AddressBarDialog {
         id: addressBarDialog
         implicitWidth: backgroundImage.width
@@ -63,8 +61,8 @@ Window {
             width: backgroundImage.width;
             anchors {
                 left: backgroundImage.left;
-                leftMargin: backgroundImage.height + 2 * hifi.layout.spacing
                 bottom: backgroundImage.top;
+                leftMargin: parent.height + 2 * hifi.layout.spacing;
                 bottomMargin: 2 * hifi.layout.spacing;
             }
             Text {
@@ -175,6 +173,7 @@ Window {
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
                 helperText: "Go to: place, @user, /path, network address"
+                onTextChanged: filterChoicesByText()
             }
 
         }
@@ -184,7 +183,7 @@ Window {
         // TODO: make available to other .qml.
         var request = new XMLHttpRequest();
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
-        request.onreadystatechange = function () { 
+        request.onreadystatechange = function () {
             var READY_STATE_DONE = 4;
             var HTTP_OK = 200;
             if (request.readyState >= READY_STATE_DONE) {
@@ -221,7 +220,7 @@ Window {
             iterator(element, icb);
         });
     }
-       
+
     function addPictureToDomain(domainInfo, cb) { // asynchronously add thumbnail and lobby to domainInfo, if available, and cb(error)
         asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(function (x) { return x; }), function (name, icb) {
             var url = "https://metaverse.highfidelity.com/api/v1/places/" + name;
@@ -266,34 +265,52 @@ Window {
             });
         });
     }
-        
-    function fillDestinations () {
+
+    function filterChoicesByText() {
         function fill1(target, data) {
             if (!data) {
+                target.visible = false;
                 return;
             }
             console.log('suggestion:', JSON.stringify(data));
             target.userStory = data;
             if (data.lobby) {
-                console.log('target', target);
-                console.log('target.image', target.image);
-                console.log('url', data.lobby);
                 target.image.source = data.lobby;
             }
             target.placeText = data.name;
             target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
+            target.visible = true;
         }
+        if (!suggestionChoices) {
+            return;
+        }
+        var words = addressLine.text.toUpperCase().split(/\s+/);
+        var filtered = !words.length ? suggestionChoices : suggestionChoices.filter(function (domain) {
+            var text = domain.names.concat(domain.tags).join(' ');
+            if (domain.description) {
+                text += domain.description;
+            }
+            text = text.toUpperCase();
+            return words.every(function (word) {
+                return text.indexOf(word) >= 0;
+            });
+        });
+        fill1(s0, filtered[0]);
+        fill1(s1, filtered[1]);
+        fill1(s2, filtered[2]);
+    }
+
+    function fillDestinations() {
+        suggestionChoices = null;
         getDomains({minUsers: 0, maxUsers: 20}, function (error, domains) {
             var here = addressBarDialog.getHost(); // don't show where we are now.
             var withLobby = !error && domains.filter(function (domain) { return domain.lobby && (domain.name !== here); });
-            console.log(error, domains.length, withLobby.length);
             withLobby.sort(function (a, b) { return b.online_users - a.online_users; });
-            fill1(s0, withLobby[0]);
-            fill1(s1, withLobby[1]);
-            fill1(s2, withLobby[2]);
+            suggestionChoices = withLobby;
+            filterChoicesByText();
         });
     }
-    
+
     onVisibleChanged: {
         if (visible) {
             addressLine.forceActiveFocus()
