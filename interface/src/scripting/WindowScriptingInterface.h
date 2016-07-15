@@ -18,6 +18,18 @@
 
 class WebWindowClass;
 
+
+class CustomPromptResult {
+public:
+    QVariant value;
+};
+
+Q_DECLARE_METATYPE(CustomPromptResult);
+
+QScriptValue CustomPromptResultToScriptValue(QScriptEngine* engine, const CustomPromptResult& result);
+void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptResult& result);
+
+
 class WindowScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
@@ -38,6 +50,7 @@ public slots:
     void alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
+    CustomPromptResult customPrompt(const QVariant& config);
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     void copyToClipboard(const QString& text);
