@@ -46,11 +46,6 @@ var offButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/close.png",
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  },
   alpha: 1
 });
 
@@ -60,11 +55,6 @@ var deleteButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/delete.png",
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  },
   alpha: 1
 });
 
@@ -75,11 +65,6 @@ var diceButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: diceIconURL,
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  },
   alpha: 1
 });
 
