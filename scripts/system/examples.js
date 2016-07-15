@@ -69,6 +69,7 @@ browseExamplesButton.clicked.connect(onClick);
 examplesWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
+    toolBar.removeButton("examples");
     browseExamplesButton.clicked.disconnect(onClick);
     examplesWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
 });

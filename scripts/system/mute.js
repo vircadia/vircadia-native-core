@@ -34,6 +34,7 @@ button.clicked.connect(onClicked);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
+    toolBar.removeButton("mute");
     button.clicked.disconnect(onClicked);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
 });
