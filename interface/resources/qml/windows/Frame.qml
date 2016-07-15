@@ -22,10 +22,10 @@ Item {
 
     property bool gradientsSupported: desktop.gradientsSupported
 
-    readonly property int frameMarginLeft: frameContent.frameMarginLeft
-    readonly property int frameMarginRight: frameContent.frameMarginRight
-    readonly property int frameMarginTop: frameContent.frameMarginTop
-    readonly property int frameMarginBottom: frameContent.frameMarginBottom
+    readonly property int frameMarginLeft: frame.decoration ? frame.decoration.frameMarginLeft : 0
+    readonly property int frameMarginRight: frame.decoration ? frame.decoration.frameMarginRight : 0
+    readonly property int frameMarginTop: frame.decoration ? frame.decoration.frameMarginTop : 0
+    readonly property int frameMarginBottom: frame.decoration ? frame.decoration.frameMarginBottom : 0
 
     // Frames always fill their parents, but their decorations may extend
     // beyond the window via negative margin sizes
@@ -103,16 +103,14 @@ Item {
         }
         onReleased: {
             if (hid) {
-                pane.visible = true
-                frameContent.visible = true
+                window.content.visible = true
                 hid = false;
             }
         }
         onPositionChanged: {
             if (pressed) {
-                if (pane.visible) {
-                    pane.visible = false;
-                    frameContent.visible = false
+                if (window.content.visible) {
+                    window.content.visible = false;
                     hid = true;
                 }
                 var delta = Qt.vector2d(mouseX, mouseY).minus(pressOrigin);

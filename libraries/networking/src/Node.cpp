@@ -12,14 +12,16 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <UUID.h>
-
-#include "Node.h"
-#include "SharedUtil.h"
-#include "NodePermissions.h"
-
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
+
+#include <UUID.h>
+
+#include "NetworkLogging.h"
+#include "NodePermissions.h"
+#include "SharedUtil.h"
+
+#include "Node.h"
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
 
@@ -76,6 +78,27 @@ void Node::setType(char type) {
 void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
+}
+
+void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {    
+    while (message->getBytesLeftToRead()) {
+        // parse out the UUID being ignored from the packet
+        QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        addIgnoredNode(ignoredUUID);
+    }
+}
+
+void Node::addIgnoredNode(const QUuid& otherNodeID) {
+    if (!otherNodeID.isNull() && otherNodeID != _uuid) {
+        qCDebug(networking) << "Adding" << uuidStringWithoutCurlyBraces(otherNodeID) << "to ignore set for"
+        << uuidStringWithoutCurlyBraces(_uuid);
+
+        // add the session UUID to the set of ignored ones for this listening node
+        _ignoredNodeIDSet.insert(otherNodeID);
+    } else {
+        qCWarning(networking) << "Node::addIgnoredNode called with null ID or ID of ignoring node.";
+    }
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

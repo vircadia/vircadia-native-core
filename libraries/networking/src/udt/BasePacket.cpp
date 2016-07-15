@@ -152,8 +152,11 @@ QByteArray BasePacket::readWithoutCopy(qint64 maxSize) {
 
 qint64 BasePacket::writeString(const QString& string) {
     QByteArray data = string.toUtf8();
-    writePrimitive(static_cast<uint32_t>(data.length()));
-    return writeData(data.constData(), data.length());
+    uint32_t length = data.length();
+    writePrimitive(length);
+    writeData(data.constData(), data.length());
+    seek(pos() + length);
+    return length + sizeof(uint32_t);
 }
 
 QString BasePacket::readString() {

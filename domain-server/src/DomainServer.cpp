@@ -389,6 +389,8 @@ void DomainServer::setupNodeListAndAssignments() {
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
         nodeList->setSessionUUID(idValueVariant->toString());
+    } else {
+        nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
     }
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);

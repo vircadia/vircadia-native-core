@@ -13,7 +13,7 @@
 /* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform */
 
 Script.include("/~/system/libraries/utils.js");
-Script.include("../libraries/Xform.js");
+Script.include("/~/system/libraries/Xform.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -32,6 +32,8 @@ var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smo
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
 var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
+
+var COLLIDE_WITH_AV_AFTER_RELEASE_DELAY = 0.25; // seconds
 
 var BUMPER_ON_VALUE = 0.5;
 
@@ -179,6 +181,10 @@ var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
 var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
 
+var delayedDeactivateFunc;
+var delayedDeactivateTimeout;
+var delayedDeactivateEntityID;
+
 var CONTROLLER_STATE_MACHINE = {};
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
@@ -261,6 +267,17 @@ function propsArePhysical(props) {
     }
     var isPhysical = (props.shapeType && props.shapeType != 'none');
     return isPhysical;
+}
+
+function removeMyAvatarFromCollidesWith(origCollidesWith) {
+    var collidesWithSplit = origCollidesWith.split(",");
+    // remove myAvatar from the array
+    for (var i = collidesWithSplit.length - 1; i >= 0; i--) {
+        if (collidesWithSplit[i] === "myAvatar") {
+            collidesWithSplit.splice(i, 1);
+        }
+    }
+    return collidesWithSplit.join();
 }
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
@@ -1984,10 +2001,24 @@ function MyController(hand) {
 
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
+
+            // If this looks like the release after adjusting something still held in the other hand, print the position
+            // and rotation of the held thing to help content creators set the userData.
+            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
+            if (grabData.refCount > 1) {
+                grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                if (grabbedProperties && grabbedProperties.localPosition && grabbedProperties.localRotation) {
+                    print((this.hand === RIGHT_HAND ? '"LeftHand"' : '"RightHand"') + ":" +
+                          '[{"x":' + grabbedProperties.localPosition.x + ', "y":' + grabbedProperties.localPosition.y +
+                          ', "z":' + grabbedProperties.localPosition.z + '}, {"x":' + grabbedProperties.localRotation.x +
+                          ', "y":' + grabbedProperties.localRotation.y + ', "z":' + grabbedProperties.localRotation.z +
+                          ', "w":' + grabbedProperties.localRotation.w + '}]');
+                }
+            }
+
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 // sometimes we want things to stay right where they are when we let go.
-                var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
                 if (releaseVelocityData.disableReleaseVelocity === true ||
                     // this next line allowed both:
@@ -2046,6 +2077,17 @@ function MyController(hand) {
             return;
         }
         this.entityActivated = true;
+
+        if (delayedDeactivateTimeout && delayedDeactivateEntityID == entityID) {
+            // we have a timeout waiting to set collisions with myAvatar back on (so that when something
+            // is thrown it doesn't collide with the avatar's capsule the moment it's released).  We've
+            // regrabbed the entity before the timeout fired, so cancel the timeout, run the function now
+            // and adjust the grabbedProperties.  This will make the saved set of properties (the ones that
+            // get re-instated after all the grabs have been released) be correct.
+            Script.clearTimeout(delayedDeactivateTimeout);
+            delayedDeactivateTimeout = null;
+            grabbedProperties["collidesWith"] = delayedDeactivateFunc();
+        }
 
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         var now = Date.now();
@@ -2114,7 +2156,27 @@ function MyController(hand) {
         });
     };
 
-    this.deactivateEntity = function (entityID, noVelocity) {
+    this.delayedDeactivateEntity = function (entityID, collidesWith) {
+        // If, before the grab started, the held entity collided with myAvatar, we do the deactivation in
+        // two parts.  Most of it is done in deactivateEntity(), but the final collidesWith and refcount
+        // are delayed a bit.  This keeps thrown things from colliding with the avatar's capsule so often.
+        // The refcount is handled in this delayed fashion so things don't get confused if someone else
+        // grabs the entity before the timeout fires.
+        Entities.editEntity(entityID, { collidesWith: collidesWith });
+        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+        if (data && data["refCount"]) {
+            data["refCount"] = data["refCount"] - 1;
+            if (data["refCount"] < 1) {
+                data = null;
+            }
+        } else {
+            data = null;
+        }
+
+        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+    };
+
+    this.deactivateEntity = function (entityID, noVelocity, delayed) {
         var deactiveProps;
 
         if (!this.entityActivated) {
@@ -2123,17 +2185,36 @@ function MyController(hand) {
         this.entityActivated = false;
 
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+        var doDelayedDeactivate = false;
         if (data && data["refCount"]) {
             data["refCount"] = data["refCount"] - 1;
             if (data["refCount"] < 1) {
                 deactiveProps = {
                     gravity: data["gravity"],
-                    collidesWith: data["collidesWith"],
+                    // don't set collidesWith myAvatar back right away, because thrown things tend to bounce off the
+                    // avatar's capsule.
+                    collidesWith: removeMyAvatarFromCollidesWith(data["collidesWith"]),
                     collisionless: data["collisionless"],
                     dynamic: data["dynamic"],
                     parentID: data["parentID"],
                     parentJointIndex: data["parentJointIndex"]
                 };
+
+                doDelayedDeactivate = (data["collidesWith"].indexOf("myAvatar") >= 0);
+
+                if (doDelayedDeactivate) {
+                    var delayedCollidesWith = data["collidesWith"];
+                    var delayedEntityID = entityID;
+                    delayedDeactivateFunc = function () {
+                        // set collidesWith back to original value a bit later than the rest
+                        delayedDeactivateTimeout = null;
+                        _this.delayedDeactivateEntity(delayedEntityID, delayedCollidesWith);
+                        return delayedCollidesWith;
+                    }
+                    delayedDeactivateTimeout =
+                        Script.setTimeout(delayedDeactivateFunc, COLLIDE_WITH_AV_AFTER_RELEASE_DELAY * MSECS_PER_SEC);
+                    delayedDeactivateEntityID = entityID;
+                }
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
@@ -2177,7 +2258,6 @@ function MyController(hand) {
                         // angularVelocity: this.currentAngularVelocity
                     });
                 }
-
                 data = null;
             } else if (this.shouldResetParentOnRelease) {
                 // we parent-grabbed this from another parent grab.  try to put it back where we found it.
@@ -2196,7 +2276,9 @@ function MyController(hand) {
         } else {
             data = null;
         }
-        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+        if (!doDelayedDeactivate) {
+            setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+        }
     };
 
     this.getOtherHandController = function () {
@@ -2247,11 +2329,18 @@ var handleHandMessages = function (channel, message, sender) {
         if (channel === 'Hifi-Hand-Disabler') {
             if (message === 'left') {
                 handToDisable = LEFT_HAND;
+                leftController.turnOffVisualizations();
             }
             if (message === 'right') {
                 handToDisable = RIGHT_HAND;
+                rightController.turnOffVisualizations();
             }
             if (message === 'both' || message === 'none') {
+                if (message === 'both') {
+                    rightController.turnOffVisualizations();
+                    leftController.turnOffVisualizations();
+
+                }
                 handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
@@ -2331,4 +2420,3 @@ function handleMenuItemEvent(menuItem) {
 }
 
 Menu.menuItemEvent.connect(handleMenuItemEvent);
-

@@ -131,7 +131,7 @@ public:
 
     std::function<void(Node*)> linkedDataCreateCallback;
 
-    size_t size() const { return _nodeHash.size(); }
+    size_t size() const { QReadLocker readLock(&_nodeMutex); return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
 
@@ -149,6 +149,7 @@ public:
     void processKillNode(ReceivedMessage& message);
 
     int updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer matchingNode);
+    NodeData* getOrCreateLinkedData(SharedNodePointer node);
 
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);
@@ -287,7 +288,7 @@ protected:
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
-    QReadWriteLock _nodeMutex;
+    mutable QReadWriteLock _nodeMutex;
     udt::Socket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;

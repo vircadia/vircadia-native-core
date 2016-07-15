@@ -564,10 +564,10 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/')
                 && orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
 
-                glm::quat newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
-                                                                    orientationRegex.cap(1).toFloat(),
-                                                                    orientationRegex.cap(2).toFloat(),
-                                                                    orientationRegex.cap(3).toFloat()));
+                newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
+                                                          orientationRegex.cap(1).toFloat(),
+                                                          orientationRegex.cap(2).toFloat(),
+                                                          orientationRegex.cap(3).toFloat()));
 
                 if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
                     && !isNaN(newOrientation.w)) {

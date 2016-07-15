@@ -15,6 +15,7 @@
 
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
+#include <OffscreenUi.h>
 #include <avatar/AvatarManager.h>
 #include "Application.h"
 
@@ -110,13 +111,17 @@ QString HMDScriptingInterface::preferredAudioOutput() const {
 }
 
 bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
     return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
         enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
         color, direction);
 }
 
 void HMDScriptingInterface::disableHandLasers(int hands) const {
-    qApp->getActiveDisplayPlugin()->setHandLaser(hands, DisplayPlugin::HandLaserMode::None);
+    setHandLasers(hands, false, vec4(0), vec3(0));
 }
 
 bool HMDScriptingInterface::suppressKeyboard() {

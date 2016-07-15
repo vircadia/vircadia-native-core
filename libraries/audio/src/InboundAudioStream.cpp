@@ -131,7 +131,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             if (message.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()));
             }
             break;
         }
@@ -172,16 +172,27 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
         return sizeof(quint16);
     } else {
         // mixed audio packets do not have any info between the seq num and the audio data.
-        numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+        numAudioSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
         return 0;
     }
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
+    QByteArray decodedBuffer;
+    if (_decoder) {
+        _decoder->decode(packetAfterStreamProperties, decodedBuffer);
+    } else {
+        decodedBuffer = packetAfterStreamProperties;
+    }
+    auto actualSize = decodedBuffer.size();
+    return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+    if (_decoder) {
+        _decoder->trackLostFrames(silentSamples);
+    }
+
     // calculate how many silent frames we should drop.
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
@@ -497,3 +508,21 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     return 0.0f;
 }
 
+void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels) {
+    cleanupCodec(); // cleanup any previously allocated coders first
+    _codec = codec;
+    _selectedCodecName = codecName;
+    if (_codec) {
+        _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, numChannels);
+    }
+}
+
+void InboundAudioStream::cleanupCodec() {
+    // release any old codec encoder/decoder first...
+    if (_codec) {
+        if (_decoder) {
+            _codec->releaseDecoder(_decoder);
+            _decoder = nullptr;
+        }
+    }
+}

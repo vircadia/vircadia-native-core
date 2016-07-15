@@ -50,9 +50,11 @@ void KeyboardMouseDevice::InputDevice::focusOutEvent() {
 
 void KeyboardMouseDevice::keyPressEvent(QKeyEvent* event) {
     auto input = _inputDevice->makeInput((Qt::Key) event->key());
-    auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
-    if (!result.second) {
-        // key pressed again ? without catching the release event ?
+    if (!(event->modifiers() & Qt::KeyboardModifier::ControlModifier)) {
+        auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
+        if (result.second) {
+            // key pressed again ? without catching the release event ?
+        }
     }
 }
 

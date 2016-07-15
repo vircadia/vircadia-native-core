@@ -47,6 +47,8 @@
 #include <NodeList.h>
 #include <Node.h>
 #include <OctreeConstants.h>
+#include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
@@ -90,6 +92,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -189,8 +193,12 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     // check if this is a server echo of a source back to itself
     bool isEcho = (&streamToAdd == &listeningNodeStream);
 
-    // figure out the gain for this source at the listener
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
+
+    // figure out the distance between source and listener
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+
+    // figure out the gain for this source at the listener
     float gain = gainForSource(streamToAdd, listeningNodeStream, relativePosition, isEcho);
 
     // figure out the azimuth to this source at the listener
@@ -236,7 +244,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++_hrtfSilentRenders;;
@@ -283,7 +291,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfSilentRenders;
@@ -296,7 +304,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfStruggleRenders;
@@ -307,7 +315,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
@@ -321,7 +329,8 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
 
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getLinkedData()) {
+        // make sure that we have audio data for this other node and that it isn't being ignored by our listening node
+        if (otherNode->getLinkedData() && !node->isIgnoringNodeWithID(otherNode->getUUID())) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
@@ -446,6 +455,99 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+DisplayPluginList getDisplayPlugins() {
+    DisplayPluginList result;
+    return result;
+}
+
+InputPluginList getInputPlugins() {
+    InputPluginList result;
+    return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+
+
+void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QStringList availableCodecs;
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    if (codecPlugins.size() > 0) {
+        for (auto& plugin : codecPlugins) {
+            auto codecName = plugin->getName();
+            qDebug() << "Codec available:" << codecName;
+            availableCodecs.append(codecName);
+        }
+    } else {
+        qDebug() << "No Codecs available...";
+    }
+
+    CodecPluginPointer selectedCodec;
+    QString selectedCodecName;
+
+    QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
+
+    // read the codecs requested by the client
+    const int MAX_PREFERENCE = 99999;
+    int preferredCodecIndex = MAX_PREFERENCE;
+    QString preferredCodec;
+    quint8 numberOfCodecs = 0;
+    message->readPrimitive(&numberOfCodecs);
+    qDebug() << "numberOfCodecs:" << numberOfCodecs;
+    QStringList codecList;
+    for (quint16 i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message->readString();
+        int preferenceOfThisCodec = codecPreferenceList.indexOf(requestedCodec);
+        bool codecAvailable = availableCodecs.contains(requestedCodec);
+        qDebug() << "requestedCodec:" << requestedCodec << "preference:" << preferenceOfThisCodec << "available:" << codecAvailable;
+        if (codecAvailable) {
+            codecList.append(requestedCodec);
+            if (preferenceOfThisCodec >= 0 && preferenceOfThisCodec < preferredCodecIndex) {
+                qDebug() << "This codec is preferred...";
+                selectedCodecName  = requestedCodec;
+                preferredCodecIndex = preferenceOfThisCodec;
+            }
+        }
+    }
+    qDebug() << "all requested and available codecs:" << codecList;
+
+    // choose first codec
+    if (!selectedCodecName.isEmpty()) {
+        if (codecPlugins.size() > 0) {
+            for (auto& plugin : codecPlugins) {
+                if (selectedCodecName == plugin->getName()) {
+                    qDebug() << "Selecting codec:" << selectedCodecName;
+                    selectedCodec = plugin;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+
+    // FIXME - why would we not have client data at this point??
+    if (!clientData) {
+        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
+        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    clientData->setupCodec(selectedCodec, selectedCodecName);
+
+    qDebug() << "selectedCodecName:" << selectedCodecName;
+
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+
+    // write them to our packet
+    replyPacket->writeString(selectedCodecName);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *sendingNode);
+}
+
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
@@ -456,6 +558,10 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
             clientData->removeHRTFsForNode(node->getUUID());
         }
     });
+}
+
+void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseIgnoreRequestMessage(packet);
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
@@ -669,9 +775,12 @@ void AudioMixer::broadcastMixes() {
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
 
+                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        QByteArray encodedBuffer;
+                        nodeData->encode(decodedBuffer, encodedBuffer);
+
                         // pack mixed audio samples
-                        mixPacket->write(reinterpret_cast<char*>(_clampedSamples),
-                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
@@ -796,6 +905,12 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
     if (settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
         QJsonObject audioEnvGroupObject = settingsObject[AUDIO_ENV_GROUP_KEY].toObject();
+
+        const QString CODEC_PREFERENCE_ORDER = "codec_preference_order";
+        if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
+            _codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
+        }
 
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
         if (audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {

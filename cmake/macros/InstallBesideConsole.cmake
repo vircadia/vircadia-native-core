@@ -16,6 +16,7 @@ macro(install_beside_console)
       install(
         TARGETS ${TARGET_NAME}
         RUNTIME DESTINATION ${COMPONENT_INSTALL_DIR}
+        LIBRARY DESTINATION ${CONSOLE_PLUGIN_INSTALL_DIR}
         COMPONENT ${SERVER_COMPONENT}
       )
     else ()
