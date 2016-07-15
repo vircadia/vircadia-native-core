@@ -40,6 +40,7 @@ if (headset) {
     HMD.displayModeChanged.connect(onHmdChanged);
     
     Script.scriptEnding.connect(function () {
+        toolBar.removeButton("hmdToggle");
         button.clicked.disconnect(onClicked);
         HMD.displayModeChanged.disconnect(onHmdChanged);
     });

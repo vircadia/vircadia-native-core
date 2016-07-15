@@ -30,6 +30,7 @@ button.clicked.connect(onClicked);
 DialogsManager.addressBarShown.connect(onAddressBarShown);
 
 Script.scriptEnding.connect(function () {
+    toolBar.removeButton("goto");
     button.clicked.disconnect(onClicked);
     DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });

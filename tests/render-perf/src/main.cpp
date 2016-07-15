@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
@@ -26,14 +27,19 @@
 #include <QtWidgets/QApplication>
 
 #include <shared/RateCounter.h>
+#include <AssetClient.h>
 
+#include <gl/OffscreenGLCanvas.h>
+#include <gl/OglplusHelpers.h>
 #include <gl/GLHelpers.h>
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
+#include <gpu/gl/GLTexture.h>
 
+#include <OctreeUtils.h>
 #include <render/Engine.h>
 #include <Model.h>
 #include <model/Stage.h>
@@ -51,7 +57,11 @@
 #include <AddressManager.h>
 #include <SceneScriptingInterface.h>
 
+#include "Camera.hpp"
+#include "TextOverlay.hpp"
+
 static const QString LAST_SCENE_KEY = "lastSceneFile";
+static const QString LAST_LOCATION_KEY = "lastLocation";
 
 class ParentFinder : public SpatialParentFinder {
 public:
@@ -83,133 +93,6 @@ public:
     }
 };
 
-class Camera {
-protected:
-    float fov { 60.0f };
-    float znear { 0.1f }, zfar { 512.0f };
-    float aspect { 1.0f };
-
-    void updateViewMatrix() {
-        matrices.view = glm::inverse(glm::translate(glm::mat4(), position) * glm::mat4_cast(getOrientation()));
-    }
-
-    glm::quat getOrientation() const {
-        return glm::angleAxis(yaw, Vectors::UP);
-    }
-public:
-    float yaw { 0 };
-    glm::vec3 position;
-
-    float rotationSpeed { 1.0f };
-    float movementSpeed { 1.0f };
-
-    struct Matrices {
-        glm::mat4 perspective;
-        glm::mat4 view;
-    } matrices;
-    enum Key {
-        RIGHT,
-        LEFT,
-        UP,
-        DOWN,
-        BACK,
-        FORWARD,
-        KEYS_SIZE,
-        INVALID = -1,
-    };
-
-    std::bitset<KEYS_SIZE> keys;
-
-    Camera() {
-        matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-    }
-
-    bool moving() {
-        return keys.any();
-    }
-
-    void setFieldOfView(float fov) {
-        this->fov = fov;
-        matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-    }
-
-    void setAspectRatio(const glm::vec2& size) {
-        setAspectRatio(size.x / size.y);
-    }
-
-    void setAspectRatio(float aspect) {
-        this->aspect = aspect;
-        matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-    }
-
-    void setPerspective(float fov, const glm::vec2& size, float znear = 0.1f, float zfar = 512.0f) {
-        setPerspective(fov, size.x / size.y, znear, zfar);
-    }
-
-    void setPerspective(float fov, float aspect, float znear = 0.1f, float zfar = 512.0f) {
-        this->aspect = aspect;
-        this->fov = fov;
-        this->znear = znear;
-        this->zfar = zfar;
-        matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-    };
-
-    void rotate(const float delta) {
-        yaw += delta;
-        updateViewMatrix();
-    }
-
-    void setPosition(const glm::vec3& position) {
-        this->position = position;
-        updateViewMatrix();
-    }
-
-    // Translate in the Z axis of the camera
-    void dolly(float delta) {
-        auto direction = glm::vec3(0, 0, delta);
-        translate(direction);
-    }
-
-    // Translate in the XY plane of the camera
-    void translate(const glm::vec2& delta) {
-        auto move = glm::vec3(delta.x, delta.y, 0);
-        translate(move);
-    }
-
-    void translate(const glm::vec3& delta) {
-        position += getOrientation() * delta;
-        updateViewMatrix();
-    }
-
-    void update(float deltaTime) {
-        if (moving()) {
-            glm::vec3 camFront = getOrientation() * Vectors::FRONT;
-            glm::vec3 camRight = getOrientation() * Vectors::RIGHT;
-            glm::vec3 camUp = getOrientation() * Vectors::UP;
-            float moveSpeed = deltaTime * movementSpeed;
-
-            if (keys[FORWARD]) {
-                position += camFront * moveSpeed;
-            }
-            if (keys[BACK]) {
-                position -= camFront * moveSpeed;
-            }
-            if (keys[LEFT]) {
-                position -= camRight * moveSpeed;
-            }
-            if (keys[RIGHT]) {
-                position += camRight * moveSpeed;
-            }
-            if (keys[UP]) {
-                position += camUp * moveSpeed;
-            }
-            if (keys[DOWN]) {
-                position -= camUp * moveSpeed;
-            }
-            updateViewMatrix();
-        }
-    }
-};
 
 class QWindowCamera : public Camera {
     Key forKey(int key) {
@@ -260,6 +143,8 @@ public:
     }
 };
 
+
+
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
     Q_OBJECT
@@ -297,7 +182,10 @@ protected:
         return _renderEngine;
     }
 
-    void pushPostUpdateLambda(void* key, std::function<void()> func) override {}
+    std::map<void*, std::function<void()>> _postUpdateLambdas;
+    void pushPostUpdateLambda(void* key, std::function<void()> func) override {
+        _postUpdateLambdas[key] = func;
+    }
 
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
@@ -338,28 +226,39 @@ public:
 
         _context.setFormat(format);
         _context.create();
-
+        resize(QSize(800, 600));
         show();
         makeCurrent();
+        glewExperimental = true;
         glewInit();
         glGetError();
+        setupDebugLogger(this);
 #ifdef Q_OS_WIN
         wglSwapIntervalEXT(0);
 #endif
-        _camera.movementSpeed = 3.0f;
+        {
+            makeCurrent();
+            _quadProgram = loadDefaultShader();
+            _plane = loadPlane(_quadProgram);
+            _textOverlay = new TextOverlay(glm::uvec2(800, 600));
+            glViewport(0, 0, 800, 600);
+        }
 
-        setupDebugLogger(this);
-        qDebug() << (const char*)glGetString(GL_VERSION);
+        _camera.movementSpeed = 50.0f;
+
 
         // GPU library init
         {
+            _offscreenContext = new OffscreenGLCanvas();
+            _offscreenContext->create(_context.getContext());
+            _offscreenContext->makeCurrent();
             gpu::Context::init<gpu::gl::GLBackend>();
             _gpuContext = std::make_shared<gpu::Context>();
         }
 
         // Render engine library init
         {
-            makeCurrent();
+            _offscreenContext->makeCurrent();
             DependencyManager::get<DeferredLightingEffect>()->init();
             _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
             _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", _cullFunctor);
@@ -367,27 +266,23 @@ public:
             _renderEngine->registerScene(_main3DScene);
         }
 
-        QVariant lastScene = _settings.value(LAST_SCENE_KEY);
-        if (lastScene.isValid()) {
-            auto result = QMessageBox::question(nullptr, "Question", "Load last scene " + lastScene.toString());
-            if (result != QMessageBox::No) {
-                importScene(lastScene.toString());
-            }
-        }
+        reloadScene();
+        restorePosition();
 
-        resize(QSize(800, 600));
         _elapsed.start();
-
         QTimer* timer = new QTimer(this);
         timer->setInterval(0);
         connect(timer, &QTimer::timeout, this, [this] {
             draw();
         });
         timer->start();
+        _ready = true;
     }
 
     virtual ~QTestWindow() {
         ResourceManager::cleanup();
+        try { _quadProgram.reset(); } catch (std::runtime_error&) {}
+        try { _plane.reset(); } catch (std::runtime_error&) {}
     }
 
 protected:
@@ -398,8 +293,29 @@ protected:
             return;
 
         case Qt::Key_F2:
+            reloadScene();
+            return;
+
+        case Qt::Key_F5:
             goTo();
             return;
+
+        case Qt::Key_F6:
+            savePosition();
+            return;
+
+        case Qt::Key_F7:
+            restorePosition();
+            return;
+
+        case Qt::Key_F8:
+            resetPosition();
+            return;
+
+        case Qt::Key_F9:
+            toggleCulling();
+            return;
+
 
         default:
             break;
@@ -421,39 +337,22 @@ protected:
 
 private:
 
-    static bool cull(const RenderArgs* renderArgs, const AABox& box) {
-        return true;
-    }
-
-    void update() {
-        auto now = usecTimestampNow();
-        static auto last = now;
-
-        float delta = now - last;
-        // Update the camera
-        _camera.update(delta / USECS_PER_SECOND);
-
-
-        // load the view frustum
-        {
-            _viewFrustum.setProjection(_camera.matrices.perspective);
-            auto view = glm::inverse(_camera.matrices.view);
-            _viewFrustum.setPosition(glm::vec3(view[3]));
-            _viewFrustum.setOrientation(glm::quat_cast(view));
-        }
-        last = now;
+    static bool cull(const RenderArgs* args, const AABox& bounds) {
+        float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+        return (renderAccuracy > 0.0f);
     }
 
     void draw() {
+        if (!_ready) {
+            return;
+        }
         if (!isVisible()) {
             return;
         }
         update();
 
-        makeCurrent();
-#define RENDER_SCENE 1
+        _offscreenContext->makeCurrent();
 
-#if RENDER_SCENE
         RenderArgs renderArgs(_gpuContext, _octree.data(), DEFAULT_OCTREE_SIZE_SCALE,
             0, RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
@@ -473,40 +372,114 @@ private:
         }
 
         render(&renderArgs);
+        GLuint glTex;
+        {
+            auto gpuTex = renderArgs._blitFramebuffer->getRenderBuffer(0);
+            glTex = gpu::Backend::getGPUObject<gpu::gl::GLTexture>(*gpuTex)->_id;
+        }
+
+        makeCurrent();
+        {
+            glBindTexture(GL_TEXTURE_2D, glTex);
+            _quadProgram->Use();
+            _plane->Use();
+            _plane->Draw();
+            glBindVertexArray(0);
+        }
 
         {
-            gpu::gl::GLFramebuffer* framebuffer = gpu::Backend::getGPUObject<gpu::gl::GLFramebuffer>(*renderArgs._blitFramebuffer);
-            auto fbo = framebuffer->_id;
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            const auto& vp = renderArgs._viewport;
-            glBlitFramebuffer(vp.x, vp.y, vp.z, vp.w, vp.x, vp.y, vp.z, vp.w, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            _textOverlay->render();
         }
-#else 
-        glClearColor(0.0f, 0.5f, 0.8f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-#endif
 
         _context.swapBuffers(this);
 
-#if RENDER_SCENE
+        _offscreenContext->makeCurrent();
         framebufferCache->releaseFramebuffer(renderArgs._blitFramebuffer);
         renderArgs._blitFramebuffer.reset();
         gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-#endif
-        fps.increment();
+        _fpsCounter.increment();
         static size_t _frameCount { 0 };
         ++_frameCount;
-        if (_elapsed.elapsed() >= 4000) {
-            qDebug() << "FPS " << fps.rate();
+        if (_elapsed.elapsed() >= 500) {
+            _fps = _fpsCounter.rate();
+            updateText();
             _frameCount = 0;
             _elapsed.restart();
         }
+    }
 
-        if (0 == ++_frameCount % 100) {
+private:
+    class EntityUpdateOperator : public RecurseOctreeOperator {
+    public:
+        EntityUpdateOperator(const qint64& now) : now(now) {}
+        bool preRecursion(OctreeElementPointer element) override { return true; }
+        bool postRecursion(OctreeElementPointer element) override {
+            EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+            entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
+                if (!entityItem->isParentIDValid()) {
+                    return;  // we weren't able to resolve a parent from _parentID, so don't save this entity.
+                }
+                entityItem->update(now);
+            });
+            return true;
         }
+
+        const qint64& now;
+    };
+
+    void updateText() {
+        //qDebug() << "FPS " << fps.rate();
+        {
+            _textBlocks.erase(TextBlock::Info);
+            auto& infoTextBlock = _textBlocks[TextBlock::Info];
+            infoTextBlock.push_back({ vec2(98, 10), "FPS: ", TextOverlay::alignRight });
+            infoTextBlock.push_back({ vec2(100, 10), std::to_string((uint32_t)_fps), TextOverlay::alignLeft });
+            infoTextBlock.push_back({ vec2(98, 30), "Culling: ", TextOverlay::alignRight });
+            infoTextBlock.push_back({ vec2(100, 30), _cullingEnabled ? "Enabled" : "Disabled", TextOverlay::alignLeft });
+        }
+
+        _textOverlay->beginTextUpdate();
+        for (const auto& e : _textBlocks) {
+            for (const auto& b : e.second) {
+                _textOverlay->addText(b.text, b.position, b.alignment);
+            }
+        }
+        _textOverlay->endTextUpdate();
+    }
+
+    void update() {
+        auto now = usecTimestampNow();
+        static auto last = now;
+
+        float delta = now - last;
+        // Update the camera
+        _camera.update(delta / USECS_PER_SECOND);
+        {
+            _viewFrustum = ViewFrustum();
+            _viewFrustum.setProjection(_camera.matrices.perspective);
+            auto view = glm::inverse(_camera.matrices.view);
+            _viewFrustum.setPosition(glm::vec3(view[3]));
+            _viewFrustum.setOrientation(glm::quat_cast(view));
+            // Failing to do the calculation of the bound planes causes everything to be considered inside the frustum
+            if (_cullingEnabled) {
+                _viewFrustum.calculate();
+            }
+        }
+
+        getEntities()->setViewFrustum(_viewFrustum);
+        EntityUpdateOperator updateOperator(now);
+        //getEntities()->getTree()->recurseTreeWithOperator(&updateOperator);
+        {
+            PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
+            for (auto& iter : _postUpdateLambdas) {
+                iter.second();
+            }
+            _postUpdateLambdas.clear();
+        }
+
+        last = now;
     }
 
     void render(RenderArgs* renderArgs) {
@@ -531,13 +504,21 @@ private:
         }
     }
 
-    void makeCurrent() {
-        _context.makeCurrent(this);
+    bool makeCurrent() {
+        bool currentResult = _context.makeCurrent(this);
+        Q_ASSERT(currentResult);
+        return currentResult;
     }
 
     void resizeWindow(const QSize& size) {
         _size = size;
         _camera.setAspectRatio((float)_size.width() / (float)_size.height());
+        if (!_ready) {
+            return;
+        }
+        _textOverlay->resize(toGlm(_size));
+        makeCurrent();
+        glViewport(0, 0, size.width(), size.height());
     }
 
     void parsePath(const QString& viewpointString) {
@@ -563,20 +544,24 @@ private:
                 // we may also have an orientation
                 if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/')
                     && orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
-                    //glm::vec4 v = glm::vec4(
-                    //    orientationRegex.cap(1).toFloat(),
-                    //    orientationRegex.cap(2).toFloat(),
-                    //    orientationRegex.cap(3).toFloat(),
-                    //    orientationRegex.cap(4).toFloat());
-                    //if (!glm::any(glm::isnan(v))) {
-                    //    _camera.setRotation(glm::normalize(glm::quat(v.w, v.x, v.y, v.z)));
-                    //}
+
+                    glm::vec4 v = glm::vec4(
+                        orientationRegex.cap(1).toFloat(),
+                        orientationRegex.cap(2).toFloat(),
+                        orientationRegex.cap(3).toFloat(),
+                        orientationRegex.cap(4).toFloat());
+                    if (!glm::any(glm::isnan(v))) {
+                        _camera.setRotation(glm::normalize(glm::quat(v.w, v.x, v.y, v.z)));
+                    }
                 }
             }
         }
     }
 
     void importScene(const QString& fileName) {
+        auto assetClient = DependencyManager::get<AssetClient>();
+        QFileInfo fileInfo(fileName);
+        //assetClient->loadLocalMappings(fileInfo.absolutePath() + "/" + fileInfo.baseName() + ".atp");
         _settings.setValue(LAST_SCENE_KEY, fileName);
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);
@@ -598,15 +583,77 @@ private:
         parsePath(destination);
     }
 
+    void reloadScene() {
+        QVariant lastScene = _settings.value(LAST_SCENE_KEY);
+        if (lastScene.isValid()) {
+            importScene(lastScene.toString());
+        }
+    }
+
+    void savePosition() {
+        // /-17.2049,-8.08629,-19.4153/0,-0.48551,0,0.874231
+        glm::quat q = _camera.getOrientation();
+        glm::vec3 v = _camera.position;
+        QString viewpoint = QString("/%1,%2,%3/%4,%5,%6,%7").
+            arg(v.x).arg(v.y).arg(v.z).
+            arg(q.x).arg(q.y).arg(q.z).arg(q.w);
+        _settings.setValue(LAST_LOCATION_KEY, viewpoint);
+    }
+
+    void restorePosition() {
+        // /-17.2049,-8.08629,-19.4153/0,-0.48551,0,0.874231
+        QVariant viewpoint = _settings.value(LAST_LOCATION_KEY);
+        if (viewpoint.isValid()) {
+            parsePath(viewpoint.toString());
+        }
+    }
+
+    void resetPosition() {
+        _camera.yaw = 0;
+        _camera.setPosition(vec3());
+    }
+
+    void toggleCulling() {
+        _cullingEnabled = !_cullingEnabled;
+    }
+
+    QSharedPointer<EntityTreeRenderer> getEntities() {
+        return _octree;
+    }
+
 private:
-    render::CullFunctor _cullFunctor { cull };
+    render::CullFunctor _cullFunctor { [&](const RenderArgs* args, const AABox& bounds)->bool{
+        if (_cullingEnabled) {
+            return cull(args, bounds);
+        } else {
+            return true;
+        }
+    } };
+
+    struct TextElement {
+        const glm::vec2 position;
+        const std::string text;
+        TextOverlay::TextAlign alignment;
+    };
+
+    enum TextBlock {
+        Help,
+        Info,
+    };
+
+    std::map<TextBlock, std::list<TextElement>> _textBlocks;
+
     gpu::ContextPointer _gpuContext; // initialized during window creation
     render::EnginePointer _renderEngine { new render::Engine() };
     render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
+    OffscreenGLCanvas* _offscreenContext { nullptr };
     QOpenGLContextWrapper _context;
     QSize _size;
-    RateCounter<> fps;
+    RateCounter<200> _fpsCounter;
     QSettings _settings;
+
+    ProgramPtr _quadProgram;
+    ShapeWrapperPtr _plane;
 
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
@@ -614,10 +661,11 @@ private:
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
     QElapsedTimer _elapsed;
+    bool _ready { false };
+    float _fps { 0 };
+    TextOverlay* _textOverlay;
+    bool _cullingEnabled { true };
     QSharedPointer<EntityTreeRenderer> _octree;
-    QSharedPointer<EntityTreeRenderer> getEntities() {
-        return _octree;
-    }
 };
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {

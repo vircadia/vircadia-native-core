@@ -19,26 +19,13 @@ Window {
     shown: true
     width: content.width
     height: content.height
-    visible: true
     // Disable this window from being able to call 'desktop.raise() and desktop.showDesktop'
-    activator: MouseArea {
-        width: frame.decoration ? frame.decoration.width : window.width
-        height: frame.decoration ? frame.decoration.height : window.height
-        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
-        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
-        propagateComposedEvents: true
-        acceptedButtons: Qt.AllButtons
-        enabled: window.visible
-        hoverEnabled: true
-        onPressed: mouse.accepted = false;
-        onEntered: window.mouseEntered();
-        onExited: window.mouseExited();
-    }
+    activator: Item {}
     property bool horizontal: true
     property real buttonSize: 50;
     property var buttons: []
     property var container: horizontal ? row : column
-
+            
     Settings {
         category: "toolbar/" + window.objectName
         property alias x: window.x
