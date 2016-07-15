@@ -43,25 +43,30 @@ Rectangle {
             }
         }
     }
+    property int dropHorizontalOffset: 0;
+    property int dropVerticalOffset: 1;
+    property int dropRadius: 2;
+    property int dropSamples: 9;
+    property int dropSpread: 0;
     DropShadow {
         source: place;
         anchors.fill: place;
-        horizontalOffset: 0;
-        radius: 2;
-        samples: 9;
+        horizontalOffset: dropHorizontalOffset;
+        verticalOffset: dropVerticalOffset;
+        radius: dropRadius;
+        samples: dropSamples;
         color: hifi.colors.black;
-        verticalOffset: 1;
-        spread: 0;
+        spread: dropSpread;
     }
     DropShadow {
         source: users;
         anchors.fill: users;
-        horizontalOffset: 0;
-        radius: 2;
-        samples: 9;
+        horizontalOffset: dropHorizontalOffset;
+        verticalOffset: dropVerticalOffset;
+        radius: dropRadius;
+        samples: dropSamples;
         color: hifi.colors.black;
-        verticalOffset: 1;
-        spread: 0;
+        spread: dropSpread;
     }
     RalewaySemiBold {
         id: place;
@@ -87,5 +92,6 @@ Rectangle {
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction(parent);
+        hoverEnabled: true;
     }
 }
