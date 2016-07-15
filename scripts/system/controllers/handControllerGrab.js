@@ -558,7 +558,6 @@ function MyController(hand) {
         
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
         var brightColor = colorPow(color, 0.1);
-        print("bright color " + brightColor.red + " " + brightColor.green + " " + brightColor.blue);
         if (this.searchSphere === null) {
             var sphereProperties = {
                 position: location,
