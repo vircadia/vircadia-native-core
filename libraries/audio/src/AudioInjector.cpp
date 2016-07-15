@@ -26,6 +26,8 @@
 
 #include "AudioInjector.h"
 
+int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
+
 AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent)
 {
@@ -41,10 +43,19 @@ AudioInjector::AudioInjector(const Sound& sound, const AudioInjectorOptions& inj
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
-    _options(injectorOptions)
+    _options(injectorOptions) 
 {
 
 }
+
+void AudioInjector::setOptions(const AudioInjectorOptions& options) {
+    // since options.stereo is computed from the audio stream, 
+    // we need to copy it from existing options just in case.
+    bool currentlyStereo = _options.stereo;
+    _options = options;
+    _options.stereo = currentlyStereo;
+}
+
 
 void AudioInjector::finish() {
     bool shouldDelete = (_state == State::NotFinishedWithPendingDelete);
@@ -115,11 +126,11 @@ void AudioInjector::restart() {
         _hasSetup = false;
         _shouldStop = false;
         _state = State::NotFinished;
-
+        
         // call inject audio to start injection over again
         setupInjection();
 
-        // if we're a local injector call inject locally to start injecting again
+        // if we're a local injector, just inject again 
         if (_options.localOnly) {
             injectLocally();
         } else {
@@ -145,7 +156,8 @@ bool AudioInjector::injectLocally() {
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendOffset);
 
-            success = _localAudioInterface->outputLocalInjector(_options.stereo, this);
+            // call this function on the AudioClient's thread
+            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(bool, _options.stereo), Q_ARG(AudioInjector*, this));
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
@@ -289,16 +301,23 @@ int64_t AudioInjector::injectNextFrame() {
 
     _currentPacket->seek(audioDataOffset);
 
+    // This code is copying bytes from the _audioData directly into the packet, handling looping appropriately.
+    // Might be a reasonable place to do the encode step here.
+    QByteArray decodedAudio;
     while (totalBytesLeftToCopy > 0) {
         int bytesToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
 
-        _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
+        decodedAudio.append(_audioData.data() + _currentSendOffset, bytesToCopy);
         _currentSendOffset += bytesToCopy;
         totalBytesLeftToCopy -= bytesToCopy;
         if (_options.loop && _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
     }
+    // FIXME -- good place to call codec encode here. We need to figure out how to tell the AudioInjector which 
+    // codec to use... possible through AbstractAudioInterface.
+    QByteArray encodedAudio = decodedAudio;
+    _currentPacket->write(encodedAudio.data(), encodedAudio.size());
 
     // set the correct size used for this packet
     _currentPacket->setPayloadSize(_currentPacket->pos());

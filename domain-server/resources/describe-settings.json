@@ -718,6 +718,14 @@
               "placeholder": "(in percent)"
             }
           ]
+        },
+        {
+          "name": "codec_preference_order",
+          "label": "Audio Codec Preference Order",
+          "help": "List of codec names in order of preferred usage",
+          "placeholder": "hifiAC, zlib, pcm",
+          "default": "hifiAC,zlib,pcm",
+          "advanced": true
         }
       ]
     },

@@ -85,6 +85,7 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
@@ -97,6 +98,7 @@
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
+#include <UsersScriptingInterface.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
@@ -167,6 +169,14 @@ using namespace std;
 static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
+
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+
+// For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
+// 2 logical cores available for time sensitive tasks.
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
+static const int PROCESSING_THREAD_POOL_SIZE = std::max(MIN_PROCESSING_THREAD_POOL_SIZE,
+                                                        QThread::idealThreadCount() - 2);
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -431,6 +441,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ModelBlender>();
+    DependencyManager::set<UsersScriptingInterface>();
     DependencyManager::set<AvatarManager>();
     DependencyManager::set<LODManager>();
     DependencyManager::set<StandAloneJSConsole>();
@@ -515,13 +526,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    // FIXME this may be excessively conservative.  On the other hand
-    // maybe I'm used to having an 8-core machine
-    // Perhaps find the ideal thread count  and subtract 2 or 3
-    // (main thread, present thread, random OS load)
-    // More threads == faster concurrent loads, but also more concurrent
-    // load on the GPU until we can serialize GPU transfers (off the main thread)
-    QThreadPool::globalInstance()->setMaxThreadCount(2);
+    QThreadPool::globalInstance()->setMaxThreadCount(PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
@@ -732,7 +737,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    ResourceCache::setRequestLimit(3);
+    ResourceCache::setRequestLimit(MAX_CONCURRENT_RESOURCE_DOWNLOADS);
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
@@ -1244,6 +1249,11 @@ QString Application::getUserAgent() {
         if (ip->isActive()) {
             userAgent += " " + formatPluginName(ip->getName());
         }
+    }
+    // for codecs, we include all of them, even if not active
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& cp : codecPlugins) {
+        userAgent += " " + formatPluginName(cp->getName());
     }
 
     return userAgent;
@@ -4481,6 +4491,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
+    if (node->getType() == NodeType::AudioMixer) {
+        DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
@@ -4743,6 +4756,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
