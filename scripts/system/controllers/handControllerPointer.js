@@ -32,6 +32,7 @@ function setupHandler(event, handler) {
         event.disconnect(handler);
     });
 }
+
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
     var last = 0;
@@ -42,6 +43,7 @@ function TimeLock(expiration) {
         return ((optionalNow || Date.now()) - last) > expiration;
     };
 }
+
 var handControllerLockOut = new TimeLock(2000);
 
 function Trigger(label) {
@@ -116,6 +118,10 @@ var weMovedReticle = false;
 function ignoreMouseActivity() {
     // If we're paused, or if change in cursor position is from this script, not the hardware mouse.
     if (!Reticle.allowMouseCapture) {
+        return true;
+    }
+    var pos = Reticle.position;
+    if (pos.x == -1 && pos.y == -1) {
         return true;
     }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
@@ -433,11 +439,12 @@ function clearSystemLaser() {
     }
     HMD.disableHandLasers(BOTH_HUD_LASERS);
     systemLaserOn = false;
+    weMovedReticle = true;
+    Reticle.position = { x: -1, y: -1 }; 
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
-
 }
 
 // MAIN OPERATIONS -----------
