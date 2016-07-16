@@ -57,6 +57,10 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 
 }
 
+bool AudioInjector::stateHas(AudioInjectorState state) const {
+    return (_state & state) == state;
+}
+
 void AudioInjector::setOptions(const AudioInjectorOptions& options) {
     // since options.stereo is computed from the audio stream, 
     // we need to copy it from existing options just in case.
@@ -70,20 +74,19 @@ void AudioInjector::finishNetworkInjection() {
     
     // if we are already finished with local
     // injection, then we are finished
-    if((_state & AudioInjectorState::LocalInjectionFinished) == AudioInjectorState::LocalInjectionFinished) {
+    if(stateHas(AudioInjectorState::LocalInjectionFinished)) {
         finish();
     }
 }
 
 void AudioInjector::finishLocalInjection() {
     _state &= AudioInjectorState::LocalInjectionFinished;
-    if(_options.localOnly || ((_state & AudioInjectorState::NetworkInjectionFinished) == AudioInjectorState::NetworkInjectionFinished)) {
+    if(_options.localOnly || stateHas(AudioInjectorState::NetworkInjectionFinished)) {
         finish();
     }
 }
 
 void AudioInjector::finish() {
-    bool shouldDelete = ((_state & AudioInjectorState::PendingDelete) == AudioInjectorState::PendingDelete);
     _state &= AudioInjectorState::Finished;
 
     emit finished();
@@ -94,7 +97,7 @@ void AudioInjector::finish() {
         _localBuffer = NULL;
     }
 
-    if (shouldDelete) {
+    if (stateHas(AudioInjectorState::PendingDelete)) {
         // we've been asked to delete after finishing, trigger a deleteLater here
         deleteLater();
     }
@@ -146,7 +149,7 @@ void AudioInjector::restart() {
     _hasSentFirstFrame = false;
 
     // check our state to decide if we need extra handling for the restart request
-    if ((_state & AudioInjectorState::Finished) == AudioInjectorState::Finished) {
+    if (stateHas(AudioInjectorState::Finished)) {
         // we finished playing, need to reset state so we can get going again
         _hasSetup = false;
         _shouldStop = false;
@@ -216,7 +219,7 @@ static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
 int64_t AudioInjector::injectNextFrame() {
-    if ((_state & AudioInjectorState::NetworkInjectionFinished) == AudioInjectorState::NetworkInjectionFinished) {
+    if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }

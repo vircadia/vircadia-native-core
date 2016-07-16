@@ -60,7 +60,7 @@ public:
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
-    bool isFinished() const { return (_state & AudioInjectorState::Finished) == AudioInjectorState::Finished; }
+    bool isFinished() const { return (stateHas(AudioInjectorState::Finished)); }
     
     int getCurrentSendOffset() const { return _currentSendOffset; }
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
@@ -74,6 +74,7 @@ public:
     bool isStereo() const { return _options.stereo; }
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 
+    bool stateHas(AudioInjectorState state) const ;
     static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
     static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
     static AudioInjector* playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position);
@@ -89,7 +90,7 @@ public slots:
     void setOptions(const AudioInjectorOptions& options);
     
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return (_state & AudioInjectorState::NotFinished) == AudioInjectorState::NotFinished; }
+    bool isPlaying() const { return stateHas(AudioInjectorState::NotFinished); }
     void finish();
     void finishLocalInjection();
     void finishNetworkInjection();
