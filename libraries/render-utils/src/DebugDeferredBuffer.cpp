@@ -32,7 +32,7 @@ void DebugDeferredBufferConfig::setMode(int newMode) {
     if (newMode == mode) {
         return;
     } else if (newMode > DebugDeferredBuffer::CustomMode || newMode < 0) {
-        mode = DebugDeferredBuffer::CustomMode;
+        mode = 0;
     } else {
         mode = newMode;
     }
@@ -347,6 +347,10 @@ void DebugDeferredBuffer::configure(const Config& config) {
 }
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+    if (_mode == Off) {
+        return;
+    }
+
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;

@@ -34,9 +34,14 @@ public:
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
     void updatePrimaryDepth(const gpu::TexturePointer& depthBuffer);
     gpu::TexturePointer getPrimaryDepthTexture();
-    const glm::ivec2& getFrameSize() const { return _frameSize; }
+    const glm::ivec2& getDepthFrameSize() const { return _frameSize; }
+    glm::ivec2 getCurvatureFrameSize() const { return _frameSize >> _resolutionLevel; }
+
+    void setResolutionLevel(int level);
+    int getResolutionLevel() const { return _resolutionLevel; }
 
 protected:
+    void clear();
     void allocate();
 
     gpu::TexturePointer _primaryDepthTexture;
@@ -48,6 +53,7 @@ protected:
     gpu::TexturePointer _curvatureTexture;
 
     glm::ivec2 _frameSize;
+    int _resolutionLevel{ 0 };
 };
 
 using SurfaceGeometryFramebufferPointer = std::shared_ptr<SurfaceGeometryFramebuffer>;
@@ -57,6 +63,7 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty)
     Q_PROPERTY(float basisScale MEMBER basisScale NOTIFY dirty)
     Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
+    Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel NOTIFY dirty)
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
@@ -64,6 +71,7 @@ public:
     float depthThreshold{ 0.02f }; // meters
     float basisScale{ 1.0f };
     float curvatureScale{ 10.0f };
+    int resolutionLevel{ 0 };
 
     double getGpuTime() { return gpuTime; }
 

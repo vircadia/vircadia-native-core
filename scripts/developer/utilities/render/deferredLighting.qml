@@ -13,8 +13,7 @@ import "configSlider"
 
 Column {
     spacing: 8
-
-
+    
     Row {
         spacing: 8
         Column {
@@ -129,7 +128,7 @@ Column {
         property var config: Render.getConfig("DebugDeferredBuffer")
 
         function setDebugMode(mode) {
-            framebuffer.config.enabled = (mode != -1);
+            framebuffer.config.enabled = (mode != 0);
             framebuffer.config.mode = mode;
         }
 
@@ -162,7 +161,7 @@ Column {
                 ListElement { text: "Custom"; color: "White" }
             }
             width: 200
-            onCurrentIndexChanged: { framebuffer.setDebugMode(currentIndex - 1) }
+            onCurrentIndexChanged: { framebuffer.setDebugMode(currentIndex) }
         }
     }
 }

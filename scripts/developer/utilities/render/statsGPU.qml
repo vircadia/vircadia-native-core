@@ -36,12 +36,23 @@ Item {
            valueUnit: "ms"
            valueScale: 1
            valueNumDigits: "4"
-           plots: [ 
+           plots: [
+            {
+                   object: Render.getConfig("OpaqueRangeTimer"),
+                   prop: "gpuTime",
+                   label: "Opaque",
+                   color: "#0000FF"
+               }, 
                {
                    object: Render.getConfig("SurfaceGeometry"),
                    prop: "gpuTime",
-                   label: "SurfaceGeometryGPU",
+                   label: "SurfaceGeometry",
                    color: "#00FFFF"
+               },{
+                   object: Render.getConfig("CurvatureRangeTimer"),
+                   prop: "gpuTime",
+                   label: "Curvature",
+                   color: "#00FF00"
                },
                {
                    object: Render.getConfig("RenderDeferred"),
@@ -51,6 +62,12 @@ Item {
                }
                ,
                {
+                   object: Render.getConfig("ToneAndPostRangeTimer"),
+                   prop: "gpuTime",
+                   label: "tone and post",
+                   color: "#FF0000"
+               }
+               ,{
                    object: Render.getConfig("RangeTimer"),
                    prop: "gpuTime",
                    label: "FrameGPU",

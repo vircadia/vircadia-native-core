@@ -45,12 +45,15 @@ void SurfaceGeometryFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& d
     }
 
     if (reset) {
-        _linearDepthFramebuffer.reset();
-        _linearDepthTexture.reset();
-        _curvatureFramebuffer.reset();
-        _curvatureTexture.reset();
-
+        clear();
     }
+}
+
+void SurfaceGeometryFramebuffer::clear() {
+    _linearDepthFramebuffer.reset();
+    _linearDepthTexture.reset();
+    _curvatureFramebuffer.reset();
+    _curvatureTexture.reset();
 }
 
 void SurfaceGeometryFramebuffer::allocate() {
@@ -62,12 +65,12 @@ void SurfaceGeometryFramebuffer::allocate() {
     _linearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
-    // _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+    _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
 
-    _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width >> getResolutionLevel(), height >> getResolutionLevel(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
-    // _curvatureFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+//    _curvatureFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
 }
 
 gpu::FramebufferPointer SurfaceGeometryFramebuffer::getLinearDepthFramebuffer() {
@@ -98,6 +101,12 @@ gpu::TexturePointer SurfaceGeometryFramebuffer::getCurvatureTexture() {
     return _curvatureTexture;
 }
 
+void SurfaceGeometryFramebuffer::setResolutionLevel(int resolutionLevel) {
+    if (resolutionLevel != getResolutionLevel()) {
+        clear();
+        _resolutionLevel = resolutionLevel;
+    }
+}
 
 
 SurfaceGeometryPass::SurfaceGeometryPass() {
@@ -106,7 +115,7 @@ SurfaceGeometryPass::SurfaceGeometryPass() {
 }
 
 void SurfaceGeometryPass::configure(const Config& config) {
-    
+
     if (config.depthThreshold != getCurvatureDepthThreshold()) {
         _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold;
     }
@@ -118,7 +127,13 @@ void SurfaceGeometryPass::configure(const Config& config) {
     if (config.curvatureScale != getCurvatureScale()) {
         _parametersBuffer.edit<Parameters>().curvatureInfo.w = config.curvatureScale;
     }
+
+    if (!_surfaceGeometryFramebuffer) {
+        _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
+    }
+    _surfaceGeometryFramebuffer->setResolutionLevel(config.resolutionLevel);
 }
+
 
 void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& curvatureAndDepth) {
     assert(renderContext->args);
@@ -153,15 +168,17 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
   //   _gpuTimer.begin(batch);
   //   });
     
-    
+    auto depthViewport = args->_viewport;
+    auto curvatureViewport = depthViewport >> _surfaceGeometryFramebuffer->getResolutionLevel();
+
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         _gpuTimer.begin(batch);
         batch.enableStereo(false);
 
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(depthViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.setViewTransform(Transform());
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getFrameSize(), args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getDepthFrameSize(), depthViewport));
 
         batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
@@ -172,9 +189,10 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setPipeline(linearDepthPipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-        
-        _gpuTimer.end(batch);
-        
+
+        batch.setViewportTransform(curvatureViewport);
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getCurvatureFrameSize(), curvatureViewport));
+
         // Curvature pass
         batch.setFramebuffer(curvatureFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
@@ -185,7 +203,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, nullptr);
 
-    //    _gpuTimer.end(batch);
+        _gpuTimer.end(batch);
     });
     
    // gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {

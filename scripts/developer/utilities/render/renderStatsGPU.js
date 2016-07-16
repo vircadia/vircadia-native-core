@@ -14,8 +14,8 @@ var qml = Script.resolvePath('statsGPU.qml');
 var window = new OverlayWindow({
     title: 'Render Stats GPU',
     source: qml,
-    width: 320, 
+    width: 400, 
     height: 200
 });
-window.setPosition(50, 20);
+window.setPosition(Window.innerWidth - 420, 50 + 250 + 50);
 window.closed.connect(function() { Script.stop(); });

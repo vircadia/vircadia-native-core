@@ -50,7 +50,8 @@ protected:
 
     enum Mode : uint8_t {
         // Use Mode suffix to avoid collisions
-        DepthMode = 0,
+        Off = 0,
+        DepthMode,
         AlbedoMode,
         NormalMode,
         RoughnessMode,
@@ -70,18 +71,20 @@ protected:
         ScatteringDebugMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
-        CustomMode // Needs to stay last
+        CustomMode, // Needs to stay last
+
+        NumModes,
     };
 
 private:
-    Mode _mode;
+    Mode _mode{ Off };
     glm::vec4 _size;
 
     struct CustomPipeline {
         gpu::PipelinePointer pipeline;
         mutable QFileInfo info;
     };
-    using StandardPipelines = std::array<gpu::PipelinePointer, CustomMode>;
+    using StandardPipelines = std::array<gpu::PipelinePointer, NumModes>;
     using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
     
     bool pipelineNeedsUpdate(Mode mode, std::string customFile = std::string()) const;

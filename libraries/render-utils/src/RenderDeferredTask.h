@@ -17,11 +17,11 @@
 #include "LightingModel.h"
 
 
-class BeginTimerGPU {
+class BeginGPURangeTimer {
 public:
-    using JobModel = render::Job::ModelO<BeginTimerGPU, gpu::RangeTimerPointer>;
+    using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
     
-    BeginTimerGPU() : _gpuTimer(std::make_shared<gpu::RangeTimer>()) {}
+    BeginGPURangeTimer() : _gpuTimer(std::make_shared<gpu::RangeTimer>()) {}
     
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
     
@@ -30,23 +30,23 @@ protected:
 };
 
 
-class EndTimerGPUConfig : public render::Job::Config {
+class GPURangeTimerConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     double getGpuTime() { return gpuTime; }
     
 protected:
-    friend class EndTimerGPU;
+    friend class EndGPURangeTimer;
     double gpuTime;
 };
   
-class EndTimerGPU {
+class EndGPURangeTimer {
 public:
-    using Config = EndTimerGPUConfig;
-    using JobModel = render::Job::ModelI<EndTimerGPU, gpu::RangeTimerPointer, Config>;
+    using Config = GPURangeTimerConfig;
+    using JobModel = render::Job::ModelI<EndGPURangeTimer, gpu::RangeTimerPointer, Config>;
     
-    EndTimerGPU() {}
+    EndGPURangeTimer() {}
     
     void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
@@ -213,13 +213,13 @@ public:
 
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
-    Q_PROPERTY(quint64 gpuTime READ getGpuTime)
+    Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
-    quint64 getGpuTime() { return gpuTime; }
+    double getGpuTime() { return gpuTime; }
 
 protected:
     friend class RenderDeferredTask;
-    quint64 gpuTime;
+    double gpuTime;
 };
 
 class RenderDeferredTask : public render::Task {
