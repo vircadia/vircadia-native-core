@@ -246,13 +246,11 @@ var toolBar = (function () {
         toolBar.writeProperty("shown", false);
 
         addButton("newModelButton", "model-01.svg", function () {
-            print("CREATE MODEL 1");
             var SHAPE_TYPE_NONE_TEXT = "No Collision";
             var SHAPE_TYPE_SIMPLE_HULL_TEXT = "Basic - Whole model";
             var SHAPE_TYPE_SIMPLE_COMPOUND_TEXT = "Good - Sub-meshes";
             var SHAPE_TYPE_STATIC_MESH_TEXT = "Exact - All polygons";
             var DYNAMIC_DEFAULT = false;
-            print("CREATE MODEL 2");
             var result = Window.customPrompt({
                 textInput: {
                     label: "Model URL"
@@ -276,8 +274,6 @@ var toolBar = (function () {
                     warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
                 }
             });
-            print("CREATE MODEL 3");
-            print("RESULT = " + result);
 
             if (result) {
                 var url = result.textInput;
