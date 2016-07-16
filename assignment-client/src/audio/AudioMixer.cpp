@@ -62,7 +62,7 @@
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
@@ -141,13 +141,14 @@ float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
     }
 
     if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = 1.0f - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                            * attenuationPerDoublingInDistance);
 
-        if (distanceCoefficient < 0) {
-            distanceCoefficient = 0;
-        }
+        // translate the zone setting to gain per log2(distance)
+        float g = 1.0f - attenuationPerDoublingInDistance;
+        g = (g < EPSILON) ? EPSILON : g;
+        g = (g > 1.0f) ? 1.0f : g;
+
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = exp2f(log2f(g) * log2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;
@@ -193,8 +194,12 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     // check if this is a server echo of a source back to itself
     bool isEcho = (&streamToAdd == &listeningNodeStream);
 
-    // figure out the gain for this source at the listener
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
+
+    // figure out the distance between source and listener
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+
+    // figure out the gain for this source at the listener
     float gain = gainForSource(streamToAdd, listeningNodeStream, relativePosition, isEcho);
 
     // figure out the azimuth to this source at the listener
@@ -240,7 +245,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++_hrtfSilentRenders;;
@@ -287,7 +292,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfSilentRenders;
@@ -300,7 +305,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfStruggleRenders;
@@ -311,7 +316,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 

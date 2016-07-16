@@ -8,6 +8,8 @@
 
 #include "ToolbarScriptingInterface.h"
 
+#include <QtCore/QThread>
+
 #include <OffscreenUi.h>
 
 class QmlWrapper : public QObject {
@@ -79,7 +81,11 @@ public:
 
     Q_INVOKABLE QObject* addButton(const QVariant& properties) {
         QVariant resultVar;
-        bool invokeResult = QMetaObject::invokeMethod(_qmlObject, "addButton", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, properties));
+        Qt::ConnectionType connectionType = Qt::AutoConnection;
+        if (QThread::currentThread() != _qmlObject->thread()) {
+            connectionType = Qt::BlockingQueuedConnection;
+        }
+        bool invokeResult = QMetaObject::invokeMethod(_qmlObject, "addButton", connectionType, Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, properties));
         if (!invokeResult) {
             return nullptr;
         }
@@ -101,8 +107,12 @@ public:
 QObject* ToolbarScriptingInterface::getToolbar(const QString& toolbarId) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto desktop = offscreenUi->getDesktop();
+    Qt::ConnectionType connectionType = Qt::AutoConnection;
+    if (QThread::currentThread() != desktop->thread()) {
+        connectionType = Qt::BlockingQueuedConnection;
+    }
     QVariant resultVar;
-    bool invokeResult = QMetaObject::invokeMethod(desktop, "getToolbar", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, toolbarId));
+    bool invokeResult = QMetaObject::invokeMethod(desktop, "getToolbar", connectionType, Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, toolbarId));
     if (!invokeResult) {
         return nullptr;
     }

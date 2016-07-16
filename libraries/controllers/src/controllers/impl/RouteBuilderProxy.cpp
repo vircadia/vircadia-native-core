@@ -26,6 +26,7 @@
 #include "filters/InvertFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
+#include "conditionals/AndConditional.h"
 
 using namespace controller;
 
@@ -58,12 +59,22 @@ QObject* RouteBuilderProxy::peek(bool enable) {
 }
 
 QObject* RouteBuilderProxy::when(const QScriptValue& expression) {
-    _route->conditional = _parent.conditionalFor(expression);
+    auto newConditional = _parent.conditionalFor(expression);
+    if (_route->conditional) {
+        _route->conditional = ConditionalPointer(new AndConditional(_route->conditional, newConditional));
+    } else {
+        _route->conditional = newConditional;
+    }
     return this;
 }
 
 QObject* RouteBuilderProxy::whenQml(const QJSValue& expression) {
-    _route->conditional = _parent.conditionalFor(expression);
+    auto newConditional = _parent.conditionalFor(expression);
+    if (_route->conditional) {
+        _route->conditional = ConditionalPointer(new AndConditional(_route->conditional, newConditional));
+    } else {
+        _route->conditional = newConditional;
+    }
     return this;
 }
 

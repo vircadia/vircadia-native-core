@@ -65,6 +65,8 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         // Triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
+        makePair(LT_CLICK, "LTClick"),
+        makePair(RT_CLICK, "RTClick"),
 
         // Finger abstractions
         makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),

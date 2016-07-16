@@ -71,28 +71,24 @@ void main() {
     lineOrthogonal *= 0.02;
 
     gl_Position = gl_PositionIn[0];
-    gl_Position.xy -= lineNormal;
     gl_Position.xy -= lineOrthogonal;
     outColor = inColor[0];
     outLineDistance = vec3(-1.02, -1, gl_Position.z);
     EmitVertex();
 
     gl_Position = gl_PositionIn[0];
-    gl_Position.xy -= lineNormal;
     gl_Position.xy += lineOrthogonal;
     outColor = inColor[0];
     outLineDistance = vec3(-1.02, 1, gl_Position.z);
     EmitVertex();
 
     gl_Position = gl_PositionIn[1];
-    gl_Position.xy += lineNormal;
     gl_Position.xy -= lineOrthogonal;
     outColor = inColor[1];
     outLineDistance = vec3(1.02, -1, gl_Position.z);
     EmitVertex();
 
     gl_Position = gl_PositionIn[1];
-    gl_Position.xy += lineNormal;
     gl_Position.xy += lineOrthogonal;
     outColor = inColor[1];
     outLineDistance = vec3(1.02, 1, gl_Position.z);

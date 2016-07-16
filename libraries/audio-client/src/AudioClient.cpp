@@ -882,13 +882,13 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                     
                 } else {
 
-                    // calculate gain and azimuth for hrtf
+                    // calculate distance, gain and azimuth for hrtf
                     glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
-                    float gain = gainForSource(relativePosition, injector->getVolume()); 
-                    float azimuth = azimuthForSource(relativePosition); 
+                    float distance = glm::max(glm::length(relativePosition), EPSILON);
+                    float gain = gainForSource(distance, injector->getVolume()); 
+                    float azimuth = azimuthForSource(relativePosition);         
                 
-                
-                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {
@@ -954,7 +954,6 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     if (hasReverb) {
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
-        qDebug() << "handling reverb";
         _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
     }
 }
@@ -1299,36 +1298,18 @@ float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
     }
 }
 
-float AudioClient::gainForSource(const glm::vec3& relativePosition, float volume) {
-    // TODO: put these in a place where we can share with AudioMixer!
-    const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+float AudioClient::gainForSource(float distance, float volume) {
+
     const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 
-
-    //qDebug() << "initial gain is " << volume;
-    
     // I'm assuming that the AudioMixer's getting of the stream's attenuation
     // factor is basically same as getting volume
     float gain = volume;
-    float distanceBetween = glm::length(relativePosition);
-    if (distanceBetween < EPSILON ) {
-        distanceBetween = EPSILON;
+
+    // attenuate based on distance
+    if (distance >= ATTENUATION_BEGINS_AT_DISTANCE) {
+        gain /= (distance/ATTENUATION_BEGINS_AT_DISTANCE);  // attenuation = -6dB * log2(distance)
     }
-
-    // audio mixer has notion of zones.  Unsure how to map that across here...
-
-    // attenuate based on distance now
-    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        float distanceCoefficient = 1.0f - (logf(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                * DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE);
-        if (distanceCoefficient < 0.0f) {
-            distanceCoefficient = 0.0f;
-        }
-
-        gain *= distanceCoefficient;
-    }
-    
-    //qDebug() << "calculated gain as " << gain;
 
     return gain;
 }
