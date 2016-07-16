@@ -589,8 +589,8 @@
           "name": "attenuation_per_doubling_in_distance",
           "label": "Default Domain Attenuation",
           "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
-          "placeholder": "0.18",
-          "default": "0.18",
+          "placeholder": "0.5",
+          "default": "0.5",
           "advanced": false
         },
         {
@@ -686,7 +686,7 @@
               "name": "coefficient",
               "label": "Attenuation coefficient",
               "can_set": true,
-              "placeholder": "0.18"
+              "placeholder": "0.5"
             }
           ]
         },
