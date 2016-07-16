@@ -32,8 +32,8 @@ AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
     return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 };
 
-AudioInjectorState& operator&= (AudioInjectorState& lhs, AudioInjectorState rhs) {
-    lhs = static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs) {
+    lhs = static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
     return lhs;
 };
 
@@ -70,7 +70,7 @@ void AudioInjector::setOptions(const AudioInjectorOptions& options) {
 }
 
 void AudioInjector::finishNetworkInjection() {
-    _state &= AudioInjectorState::NetworkInjectionFinished;
+    _state |= AudioInjectorState::NetworkInjectionFinished;
     
     // if we are already finished with local
     // injection, then we are finished
@@ -80,14 +80,14 @@ void AudioInjector::finishNetworkInjection() {
 }
 
 void AudioInjector::finishLocalInjection() {
-    _state &= AudioInjectorState::LocalInjectionFinished;
+    _state |= AudioInjectorState::LocalInjectionFinished;
     if(_options.localOnly || stateHas(AudioInjectorState::NetworkInjectionFinished)) {
         finish();
     }
 }
 
 void AudioInjector::finish() {
-    _state &= AudioInjectorState::Finished;
+    _state |= AudioInjectorState::Finished;
 
     emit finished();
 
@@ -413,7 +413,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
     if (_state == AudioInjectorState::Finished) {
         stopAndDeleteLater();
     } else {
-        _state &= AudioInjectorState::PendingDelete;
+        _state |= AudioInjectorState::PendingDelete;
     }
 }
 
@@ -459,7 +459,7 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
     AudioInjector* sound = playSound(buffer, options, localInterface);
 
     if (sound) {
-        sound->_state &= AudioInjectorState::PendingDelete;
+        sound->_state |= AudioInjectorState::PendingDelete;
     }
 
     return sound;

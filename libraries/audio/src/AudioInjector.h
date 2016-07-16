@@ -42,7 +42,7 @@ enum class AudioInjectorState : uint8_t {
 };
 
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs);
-AudioInjectorState& operator&= (AudioInjectorState& lhs, AudioInjectorState rhs);
+AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs);
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies. 
