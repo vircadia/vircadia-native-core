@@ -47,7 +47,7 @@ Window {
 
     function goCard(card) {
         addressLine.text = card.userStory.name;
-        toggleOrGo();
+        toggleOrGo(true);
     }
     property var allDomains: [];
     property var suggestionChoices: [];
@@ -327,9 +327,9 @@ Window {
         }
     }
 
-    function toggleOrGo() {
+    function toggleOrGo(fromSuggestions) {
         if (addressLine.text !== "") {
-            addressBarDialog.loadAddress(addressLine.text)
+            addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
         root.shown = false;
     }

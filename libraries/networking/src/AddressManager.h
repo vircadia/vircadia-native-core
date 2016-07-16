@@ -49,7 +49,8 @@ public:
         StartupFromSettings,
         DomainPathResponse,
         Internal,
-        AttemptedRefresh
+        AttemptedRefresh,
+        Suggestions
     };
 
     bool isConnected();
@@ -77,7 +78,7 @@ public:
                                    std::function<void()> localSandboxNotRunningDoThat);
 
 public slots:
-    void handleLookupString(const QString& lookupString);
+    void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)

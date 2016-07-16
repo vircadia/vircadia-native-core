@@ -221,7 +221,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     return false;
 }
 
-void AddressManager::handleLookupString(const QString& lookupString) {
+void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString.trimmed();
@@ -236,7 +236,7 @@ void AddressManager::handleLookupString(const QString& lookupString) {
             lookupURL = QUrl(lookupString);
         }
 
-        handleUrl(lookupURL);
+        handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
     }
 }
 
