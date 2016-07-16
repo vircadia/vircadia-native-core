@@ -228,7 +228,7 @@ function colorPow(color, power) {
     return {
         red: Math.pow(color.red / 255.0, power) * 255,
         green: Math.pow(color.green / 255.0, power) * 255,
-        blue: Math.pow(color.blue / 255.0, power) * 255,
+        blue: Math.pow(color.blue / 255.0, power) * 255
     };
 }
 
@@ -764,9 +764,8 @@ function MyController(hand) {
         }
     };
 
-    var SEARCH_SPHERE_ALPHA = 0.5;
     this.searchSphereOn = function (location, size, color) {
-        
+
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
         var brightColor = colorPow(color, 0.06);
         if (this.searchSphere === null) {
@@ -789,7 +788,7 @@ function MyController(hand) {
                 position: location,
                 rotation: rotation,
                 innerColor: brightColor,
-                outerColor: color,  
+                outerColor: color,
                 innerAlpha: 1.0,
                 outerAlpha: 0.0,
                 outerRadius: size * 1.2,
@@ -1960,11 +1959,11 @@ function MyController(hand) {
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentVelocity = ZERO_VEC;
         this.currentAngularVelocity = ZERO_VEC;
+
+        this.prevDropDetected = false;
     };
 
     this.nearGrabbing = function (deltaTime, timestamp) {
-
-        var dropDetected = this.dropGestureProcess(deltaTime);
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1974,6 +1973,16 @@ function MyController(hand) {
 
         if (this.state == STATE_HOLD) {
 
+            var dropDetected = this.dropGestureProcess(deltaTime);
+
+            if (this.triggerSmoothedReleased()) {
+                this.waitForTriggerRelease = false;
+            }
+
+            if (dropDetected && this.prevDropDetected != dropDetected) {
+                this.waitForTriggerRelease = true;
+            }
+
             // highlight the grabbed hotspot when the dropGesture is detected.
             if (dropDetected) {
                 entityPropertiesCache.addEntity(this.grabbedHotspot.entityID);
@@ -1981,17 +1990,15 @@ function MyController(hand) {
                 equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
             }
 
-            if (dropDetected && this.triggerSmoothedGrab()) {
+            if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop gesture detected");
+                var grabbedEntity = this.grabbedEntity;
+                this.release();
+                this.grabbedEntity = grabbedEntity;
+                this.setState(STATE_NEAR_GRABBING, "drop gesture detected");
                 return;
             }
-
-            if (this.thumbPressed()) {
-                this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop via thumb press");
-                return;
-            }
+            this.prevDropDetected = dropDetected;
         }
 
         this.heartBeat(this.grabbedEntity);
