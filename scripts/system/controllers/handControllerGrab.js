@@ -271,8 +271,7 @@ function propsArePhysical(props) {
     return isPhysical;
 }
 
-// currently disabled.
-var USE_ATTACH_POINT_SETTINGS = false;
+var USE_ATTACH_POINT_SETTINGS = true;
 
 var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 function getAttachPointSettings() {
@@ -2091,16 +2090,10 @@ function MyController(hand) {
     this.holdExit = function () {
         // store the offset attach points into preferences.
         if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
-            entityPropertiesCache.addEntity(this.grabbedEntity);
-            var props = entityPropertiesCache.getProps(this.grabbedEntity);
-            var entityXform = new Xform(props.rotation, props.position);
-            var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
-            var handRot = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
-            var avatarHandPos = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
-            var palmXform = new Xform(handRot, avatarXform.xformPoint(avatarHandPos));
-            var offsetXform = Xform.mul(palmXform.inv(), entityXform);
-
-            storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, offsetXform.pos, offsetXform.rot);
+            var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+            if (props && props.localPosition && props.localRotation) {
+                storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, props.localPosition, props.localRotation);
+            }
         }
     };
 
