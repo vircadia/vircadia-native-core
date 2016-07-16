@@ -1309,7 +1309,7 @@ float AudioClient::gainForSource(float distance, float volume) {
 
     // attenuate based on distance
     if (distance >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        gain /= distance;   // attenuation = -6dB * log2(distance)
+        gain /= (distance/ATTENUATION_BEGINS_AT_DISTANCE);  // attenuation = -6dB * log2(distance)
     }
 
     return gain;
