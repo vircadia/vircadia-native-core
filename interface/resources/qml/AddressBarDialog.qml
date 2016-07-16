@@ -59,7 +59,7 @@ Window {
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
 
-        Column {
+        Row {
             width: backgroundImage.width;
             anchors {
                 bottom: backgroundImage.top;
@@ -67,26 +67,24 @@ Window {
                 right: backgroundImage.right;
                 rightMargin: -104; // FIXME
             }
-            Row {
-                spacing: hifi.layout.spacing;
-                Card {
-                    id: s0;
-                    width: cardWidth;
-                    height: cardHeight;
-                    goFunction: goCard
-                }
-                Card {
-                    id: s1;
-                    width: cardWidth;
-                    height: cardHeight;
-                    goFunction: goCard
-                }
-                Card {
-                    id: s2;
-                    width: cardWidth;
-                    height: cardHeight;
-                    goFunction: goCard
-                }
+            spacing: hifi.layout.spacing;
+            Card {
+                id: s0;
+                width: cardWidth;
+                height: cardHeight;
+                goFunction: goCard
+            }
+            Card {
+                id: s1;
+                width: cardWidth;
+                height: cardHeight;
+                goFunction: goCard
+            }
+            Card {
+                id: s2;
+                width: cardWidth;
+                height: cardHeight;
+                goFunction: goCard
             }
         }
 

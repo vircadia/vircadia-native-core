@@ -24,8 +24,7 @@ Rectangle {
     property alias usersText: users.text;
     property int textPadding: 20;
     property int textSize: 24;
-    // FIXME: let's get our own
-    property string defaultPicture: "http://www.davidluke.com/wp-content/themes/david-luke/media/ims/placeholder720.gif";
+    property string defaultPicture: "../../images/default-domain.gif";
     HifiConstants { id: hifi }
     Image {
         id: lobby;
