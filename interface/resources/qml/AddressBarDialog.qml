@@ -246,7 +246,7 @@ Window {
             options.page = 1;
         }
         // FIXME: really want places I'm allowed in, not just open ones
-        var url = "https://metaverse.highfidelity.com/api/v1/domains/all?open&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
+        var url = "https://metaverse.highfidelity.com/api/v1/domains/all?open&active&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
         getRequest(url, function (error, json) {
             if (!error && (json.status !== 'success')) {
                 error = new Error("Bad response: " + JSON.stringify(json));
