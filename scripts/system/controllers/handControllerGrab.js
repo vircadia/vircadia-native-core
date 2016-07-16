@@ -557,12 +557,12 @@ function MyController(hand) {
     this.searchSphereOn = function (location, size, color) {
         
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
-        var brightColor = colorPow(color, 0.1);
+        var brightColor = colorPow(color, 0.06);
         if (this.searchSphere === null) {
             var sphereProperties = {
                 position: location,
                 rotation: rotation,
-                outerRadius: size * 3.0,
+                outerRadius: size * 1.2,
                 innerColor: brightColor,
                 outerColor: color,
                 innerAlpha: 0.9,
@@ -581,7 +581,7 @@ function MyController(hand) {
                 outerColor: color,  
                 innerAlpha: 1.0,
                 outerAlpha: 0.0,
-                outerRadius: size * 3.0,
+                outerRadius: size * 1.2,
                 visible: true
             });
         }
