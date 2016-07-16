@@ -234,11 +234,16 @@ var toolBar = (function() {
             objectName: EDIT_TOGGLE_BUTTON,
             imageURL: TOOL_ICON_URL + "edit.svg",
             visible: true,
+            alpha: 0.9,
             buttonState: 1,
+            hoverState: 3,
+            defaultState: 1,
         });
         activeButton.clicked.connect(function() {
             that.setActive(!isActive);
             activeButton.writeProperty("buttonState", isActive ? 0 : 1);
+            activeButton.writeProperty("defaultState", isActive ? 0 : 1);
+            activeButton.writeProperty("hoverState", isActive ? 2 : 3);
         });
 
         toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
