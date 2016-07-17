@@ -62,7 +62,7 @@
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
@@ -141,13 +141,14 @@ float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
     }
 
     if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = 1.0f - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                            * attenuationPerDoublingInDistance);
 
-        if (distanceCoefficient < 0) {
-            distanceCoefficient = 0;
-        }
+        // translate the zone setting to gain per log2(distance)
+        float g = 1.0f - attenuationPerDoublingInDistance;
+        g = (g < EPSILON) ? EPSILON : g;
+        g = (g > 1.0f) ? 1.0f : g;
+
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = exp2f(log2f(g) * log2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;
