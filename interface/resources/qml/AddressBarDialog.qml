@@ -245,8 +245,10 @@ Window {
         if (!options.page) {
             options.page = 1;
         }
-        // FIXME: really want places I'm allowed in, not just open ones
-        var url = "https://metaverse.highfidelity.com/api/v1/domains/all?open&active&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
+        // FIXME: really want places I'm allowed in, not just open ones.
+        // FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
+        // FIXME: add maturity
+        var url = "https://metaverse.highfidelity.com/api/v1/domains/all?open&active&restriction=open&sort_by=users&sort_order=desc&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
         getRequest(url, function (error, json) {
             if (!error && (json.status !== 'success')) {
                 error = new Error("Bad response: " + JSON.stringify(json));
@@ -304,7 +306,6 @@ Window {
             }
             var here = AddressManager.hostname; // don't show where we are now.
             allDomains = domains.filter(function (domain) { return domain.name !== here; });
-            allDomains.sort(function (a, b) { return b.online_users - a.online_users; });
             // Whittle down suggestions to those that have at least one user, and try to get pictures.
             suggestionChoices = allDomains.filter(function (domain) { return domain.online_users; });
             asyncEach(domains, addPictureToDomain, function (error) {
