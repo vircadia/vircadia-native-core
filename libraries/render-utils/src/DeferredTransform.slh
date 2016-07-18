@@ -61,6 +61,11 @@ float getProjectionNear() {
     return planeD / planeC;
 }
 
+// positive far distance of the projection
+float getPosLinearDepthFar() {
+    return -frameTransform._depthInfo.z;
+}
+
 mat4 getViewInverse() {
     return frameTransform._viewInverse;
 }

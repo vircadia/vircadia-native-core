@@ -45,6 +45,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+    packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
@@ -227,14 +228,15 @@ void AvatarMixer::broadcastAvatarData() {
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
                 [&](const SharedNodePointer& otherNode)->bool {
-                    if (!otherNode->getLinkedData()) {
+                    // make sure we have data for this avatar, that it isn't the same node,
+                    // and isn't an avatar that the viewing node has ignored
+                    if (!otherNode->getLinkedData()
+                        || otherNode->getUUID() == node->getUUID()
+                        || node->isIgnoringNodeWithID(otherNode->getUUID())) {
                         return false;
+                    } else {
+                        return true;
                     }
-                    if (otherNode->getUUID() == node->getUUID()) {
-                        return false;
-                    }
-
-                    return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
                     ++numOtherAvatars;
@@ -429,6 +431,10 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     DependencyManager::get<NodeList>()->processKillNode(*message);
+}
+
+void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    senderNode->parseIgnoreRequestMessage(message);
 }
 
 void AvatarMixer::sendStatsPacket() {

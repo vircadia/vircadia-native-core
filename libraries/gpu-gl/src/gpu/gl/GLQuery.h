@@ -41,15 +41,21 @@ public:
             return 0;
         } 
 
-        return object->_qo;
+        return object->_endqo;
     }
 
-    const GLuint& _qo { _id };
+    const GLuint& _endqo = { _id };
+    const GLuint _beginqo = { 0 };
     GLuint64 _result { (GLuint64)-1 };
 
 protected:
-    GLQuery(const Query& query, GLuint id) : Parent(query, id) {}
-    ~GLQuery() { if (_id) { glDeleteQueries(1, &_id); } }
+    GLQuery(const Query& query, GLuint endId, GLuint beginId) : Parent(query, endId), _beginqo(beginId){}
+    ~GLQuery() {
+        if (_id) {
+            GLuint ids[2] = { _endqo, _beginqo };
+            glDeleteQueries(2, ids);
+        }
+    }
 };
 
 } }

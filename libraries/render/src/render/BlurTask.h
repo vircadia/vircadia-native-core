@@ -29,6 +29,8 @@ public:
     void setDepthPerspective(float oneOverTan2FOV);
     void setDepthThreshold(float threshold);
 
+    void setLinearDepthPosFar(float farPosDepth);
+
     // Class describing the uniform buffer with all the parameters common to the blur shaders
     class Params {
     public:
@@ -46,6 +48,9 @@ public:
 
         // stereo info if blurring a stereo render
         glm::vec4 stereoInfo{ 0.0f };
+
+        // LinearDepth info is { f }
+        glm::vec4 linearDepthInfo{ 0.0f };
 
         Params() {}
     };

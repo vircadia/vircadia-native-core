@@ -27,6 +27,7 @@ struct BlurParameters {
     vec4 filterInfo;
     vec4 depthInfo;
     vec4 stereoInfo;
+    vec4 linearDepthInfo;
 };
 
 uniform blurParamsBuffer {
@@ -52,6 +53,10 @@ float getDepthThreshold() {
 
 float getDepthPerspective() {
     return parameters.depthInfo.w;
+}
+
+float getPosLinearDepthFar() {
+    return parameters.linearDepthInfo.x;
 }
 
 <@endfunc@>
@@ -90,9 +95,21 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
 uniform sampler2D sourceMap;
 uniform sampler2D depthMap;
 
+#define NUM_HALF_TAPS 4
+
+const float gaussianDistributionCurveHalf[NUM_HALF_TAPS] = float[](
+    0.383f, 0.242f, 0.061f, 0.006f
+);
+const float gaussianDistributionOffsetHalf[NUM_HALF_TAPS] = float[](
+    0.0f,  1.0f,   2.0f,   3.0f
+);
+
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
     float sampleDepth = texture(depthMap, texcoord).x;
+    if (sampleDepth >= getPosLinearDepthFar()) {
+        discard;
+    }
     vec4 sampleCenter = texture(sourceMap, texcoord);
 
     // Calculate the width scale.
@@ -108,21 +125,40 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
 
     // Accumulate the center sample
     vec4 srcBlurred = gaussianDistributionCurve[0] * sampleCenter;
-    
-    for(int i = 1; i < NUM_TAPS; i++) {
+
+/*     for(int i = 1; i < NUM_TAPS; i++) {
         // Fetch color and depth for current sample.
         vec2 sampleCoord = texcoord + (gaussianDistributionOffset[i] * finalStep);
         float srcDepth = texture(depthMap, sampleCoord).x;
         vec4 srcSample = texture(sourceMap, sampleCoord);
-
-        
+       
         // If the difference in depth is huge, we lerp color back.
         float s = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
-       // float s = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
         srcSample = mix(srcSample, sampleCenter, s);
 
         // Accumulate.
         srcBlurred += gaussianDistributionCurve[i] * srcSample;
+    }   
+*/
+
+    for(int i = 1; i < NUM_HALF_TAPS; i++) {
+        // Fetch color and depth for current sample.
+        vec2 texcoordOffset = (gaussianDistributionOffsetHalf[i] * finalStep);
+        
+        float srcDepthN = texture(depthMap, texcoord - texcoordOffset).x;
+        float srcDepthP = texture(depthMap, texcoord + texcoordOffset).x;
+        vec4 srcSampleN = texture(sourceMap, texcoord - texcoordOffset);
+        vec4 srcSampleP = texture(sourceMap, texcoord + texcoordOffset);
+       
+        // If the difference in depth is huge, we lerp color back.
+        float sN = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepthN - sampleDepth), 0.0, 1.0);
+        float sP = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepthP - sampleDepth), 0.0, 1.0);
+
+        srcSampleN = mix(srcSampleN, sampleCenter, sN);
+        srcSampleP = mix(srcSampleP, sampleCenter, sP);
+
+        // Accumulate.
+        srcBlurred += gaussianDistributionCurveHalf[i] * (srcSampleP + srcSampleN);
     }
     
     return srcBlurred;

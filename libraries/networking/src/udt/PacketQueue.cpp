@@ -65,7 +65,9 @@ void PacketQueue::queuePacket(PacketPointer packet) {
 }
 
 void PacketQueue::queuePacketList(PacketListPointer packetList) {
-    packetList->preparePackets(getNextMessageNumber());
+    if (packetList->isOrdered()) {
+        packetList->preparePackets(getNextMessageNumber());
+    }
     
     LockGuard locker(_packetsLock);
     _channels.push_back(std::move(packetList->_packets));

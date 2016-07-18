@@ -61,7 +61,7 @@ public:
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
-        TYPE_UNUSED_1,
+        NodeIgnoreRequest,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
@@ -95,7 +95,10 @@ public:
         AssetMappingOperation,
         AssetMappingOperationReply,
         ICEServerHeartbeatACK,
-        LAST_PACKET_TYPE = ICEServerHeartbeatACK
+        NegotiateAudioFormat,
+        SelectedAudioFormat,
+        MoreEntityShapes,
+        LAST_PACKET_TYPE = MoreEntityShapes
     };
 };
 
@@ -107,7 +110,6 @@ typedef char PacketVersion;
 
 extern const QSet<PacketType> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType> NON_SOURCED_PACKETS;
-extern const QSet<PacketType> RELIABLE_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
 QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols

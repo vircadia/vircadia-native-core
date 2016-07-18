@@ -19,10 +19,15 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Depth Threshold:depthThreshold:0.1", "Basis Scale:basisScale:2.0", "Curvature Scale:curvatureScale:100.0" ]
+                model: [
+                    "Depth Threshold:depthThreshold:0.1:false",
+                    "Basis Scale:basisScale:2.0:false",
+                    "Curvature Scale:curvatureScale:100.0:false",
+                    "Downscale:resolutionLevel:4:true"
+                ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
-                    integral: false
+                    integral: (modelData.split(":")[3] == 'true')
                     config: Render.getConfig("SurfaceGeometry")
                     property: modelData.split(":")[1]
                     max: modelData.split(":")[2]

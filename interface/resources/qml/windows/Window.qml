@@ -115,14 +115,10 @@ Fadable {
         propagateComposedEvents: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
-        hoverEnabled: true
         onPressed: {
-            //console.log("Pressed on activator area");
             window.raise();
             mouse.accepted = false;
         }
-        onEntered:  window.mouseEntered();
-        onExited: window.mouseExited();
     }
 
     // This mouse area serves to swallow mouse events while the mouse is over the window

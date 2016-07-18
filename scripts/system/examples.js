@@ -56,11 +56,15 @@ var browseExamplesButton = toolBar.addButton({
     imageURL: toolIconUrl + "market.svg",
     objectName: "examples",
     buttonState: 1,
+    defaultState: 1,
+    hoverState: 3,
     alpha: 0.9
 });
 
 function onExamplesWindowVisibilityChanged() {
     browseExamplesButton.writeProperty('buttonState', examplesWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('defaultState', examplesWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('hoverState', examplesWindow.visible ? 2 : 3);
 }
 function onClick() {
     toggleExamples();
@@ -69,6 +73,7 @@ browseExamplesButton.clicked.connect(onClick);
 examplesWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
+    toolBar.removeButton("examples");
     browseExamplesButton.clicked.disconnect(onClick);
     examplesWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
 });

@@ -17,6 +17,44 @@
 #include "LightingModel.h"
 
 
+class BeginGPURangeTimer {
+public:
+    using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
+    
+    BeginGPURangeTimer() : _gpuTimer(std::make_shared<gpu::RangeTimer>()) {}
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
+    
+protected:
+    gpu::RangeTimerPointer _gpuTimer;
+};
+
+
+class GPURangeTimerConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    double getGpuTime() { return gpuTime; }
+    
+protected:
+    friend class EndGPURangeTimer;
+    double gpuTime;
+};
+  
+class EndGPURangeTimer {
+public:
+    using Config = GPURangeTimerConfig;
+    using JobModel = render::Job::ModelI<EndGPURangeTimer, gpu::RangeTimerPointer, Config>;
+    
+    EndGPURangeTimer() {}
+    
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
+    
+protected:
+};
+
+
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)

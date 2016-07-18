@@ -66,6 +66,9 @@ namespace gpu {
         
         int rangeIndex(int index) const { return (index % QUERY_QUEUE_SIZE); }
     };
+    
+    using RangeTimerPointer = std::shared_ptr<RangeTimer>;
+    
 };
 
 #endif

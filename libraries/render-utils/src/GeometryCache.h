@@ -132,6 +132,8 @@ public:
         Line,
         Triangle,
         Quad,
+        Hexagon,
+        Octagon,
         Circle,
         Cube,
         Sphere,
@@ -139,10 +141,9 @@ public:
         Octahedron,
         Dodecahedron,
         Icosahedron,
-        Torus,
-        Cone,
-        Cylinder,
-
+        Torus, // not yet implemented
+        Cone, // not yet implemented
+        Cylinder, // not yet implemented
         NUM_SHAPES,
     };
 
@@ -168,6 +169,13 @@ public:
     void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline) {
         renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+    }
+
+    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+        const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+        const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderWireShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
 
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
@@ -402,8 +410,6 @@ private:
     QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
-    QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
-    
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _unlitShader;
     static render::ShapePipelinePointer _simplePipeline;
