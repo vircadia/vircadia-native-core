@@ -110,9 +110,8 @@ void main(void) {
     // Fetch the z under the pixel (stereo or not)
     float Zeye = getZEye(framePixelPos);
     if (Zeye <= -getPosLinearDepthFar()) {
-       // outFragColor = vec4(0.0);
-       // return;
-        discard;
+       outFragColor = vec4(0.0);
+       return;
     }
 
     float nearPlaneScale = 0.5 * getProjectionNear();
@@ -121,13 +120,13 @@ void main(void) {
 
     // The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
-    vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
+  //  vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
 
-    if (texcoordPos.y > 0.5) {
+  /*  if (texcoordPos.y > 0.5) {
         outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
     } else {
         outFragColor = vec4(fract(10.0 * eyePos.xyz), 1.0);
-    }
+    }*/
    // return;
 
     // Calculate the perspective scale.
@@ -160,11 +159,11 @@ void main(void) {
     vec4 pz =  vec4(eyePos + az, 0.0);
 
 
-    if (texcoordPos.y > 0.5) {
+  /*  if (texcoordPos.y > 0.5) {
         outFragColor = vec4(fract(px.xyz), 1.0);
     } else {
         outFragColor = vec4(fract(eyePos.xyz), 1.0);
-    }
+    }*/
  //   return;
 
 
@@ -201,14 +200,14 @@ void main(void) {
     vec4 clipPos = getProjectionMono() * vec4(eyePos, 1.0);
     nclipPos = clipPos.xy / clipPos.w;
 
-    if (texcoordPos.y > 0.5) {
+  /*  if (texcoordPos.y > 0.5) {
      //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
         outFragColor = vec4(fract(10.0 * (nclipPos)), 0.0, 1.0);
 
     } else {
         outFragColor = vec4(fract(10.0 * (clipPos.xy / clipPos.w)), 0.0, 1.0);
       //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
-    }
+    }*/
     //return;
 
 
@@ -217,14 +216,14 @@ void main(void) {
     py.xy = (py.xy - nclipPos) * pixPerspectiveScaleInv;
     pz.xy = (pz.xy - nclipPos) * pixPerspectiveScaleInv;
     
-    if (texcoordPos.y > 0.5) {
+  /*  if (texcoordPos.y > 0.5) {
         //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
         outFragColor = vec4(fract(10.0 * (px.xy)), 0.0, 1.0);
 
     } else {
         outFragColor = vec4(fract(10.0 * (py.xy)), 0.0, 1.0);
         //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
-    }
+    }*/
   //  return;
 
     // Calculate dF/dx, dF/dy and dF/dz using chain rule
@@ -234,10 +233,10 @@ void main(void) {
 
     vec3 trace = vec3(dFdx.x, dFdy.y, dFdz.z);
 
-    if (dot(trace, trace) > params.curvatureInfo.w) {
+    /*if (dot(trace, trace) > params.curvatureInfo.w) {
         outFragColor = vec4(dFdx.x, dFdy.y, dFdz.z, 1.0);
         return;
-    }
+    }*/
 
     // Calculate the mean curvature
     float meanCurvature = ((trace.x + trace.y + trace.z) * 0.33333333333333333) * params.curvatureInfo.w;

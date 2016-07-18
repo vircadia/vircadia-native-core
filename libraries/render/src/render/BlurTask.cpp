@@ -228,7 +228,6 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
     _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
-    _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -341,6 +340,7 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
+    _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);

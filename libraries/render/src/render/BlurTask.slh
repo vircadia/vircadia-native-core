@@ -97,9 +97,9 @@ uniform sampler2D depthMap;
 
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
-    float sampleDepth = -texture(depthMap, texcoord).x;
+    float sampleDepth = texture(depthMap, texcoord).x;
     vec4 sampleCenter = texture(sourceMap, texcoord);
-    if (sampleDepth <= getPosLinearDepthFar()) {
+    if (sampleDepth >= getPosLinearDepthFar()) {
         discard;
         //return sampleCenter;
     }

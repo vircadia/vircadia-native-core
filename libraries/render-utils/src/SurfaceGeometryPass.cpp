@@ -143,7 +143,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
       //  batch.setResourceTexture(DepthLinearPass_DepthMapSlot, nullptr);
-        batch.generateTextureMips(linearDepthFBO->getRenderBuffer(0));
+     //   batch.generateTextureMips(linearDepthFBO->getRenderBuffer(0));
 
         _gpuTimer.end(batch);
     });
@@ -293,7 +293,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     if (curvatureFBO->getDepthStencilBuffer() != deferredFramebuffer->getPrimaryDepthTexture()) {
         curvatureFBO->setDepthStencilBuffer(deferredFramebuffer->getPrimaryDepthTexture(), deferredFramebuffer->getPrimaryDepthTexture()->getTexelFormat());
     }
-        auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
+    auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
 
     outputs.edit0() = _surfaceGeometryFramebuffer;
     outputs.edit1() = curvatureFBO;
@@ -318,7 +318,9 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
 
         // Curvature pass
         batch.setFramebuffer(curvatureFBO);
-       //    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+        
+        // We can avoid the clear by drawing the same clear vallue from the makeCUrvature shader. slightly better than adding the clear
+        // batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
 
         batch.setPipeline(curvaturePipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
