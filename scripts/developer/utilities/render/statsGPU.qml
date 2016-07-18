@@ -72,12 +72,6 @@ Item {
                    label: "tone and post",
                    color: "#FF0000"
                }
-               ,{
-                   object: Render.getConfig("RangeTimer"),
-                   prop: "gpuTime",
-                   label: "FrameGPU",
-                   color: "#FFFF00"
-               }
            ]
         }
     }

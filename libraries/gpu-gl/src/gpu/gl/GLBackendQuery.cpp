@@ -15,7 +15,11 @@ using namespace gpu;
 using namespace gpu::gl;
 
 // Eventually, we want to test with TIME_ELAPSED instead of TIMESTAMP
+#ifdef Q_OS_MAC
+static bool timeElapsed = true;
+#else
 static bool timeElapsed = false;
+#endif
 
 void GLBackend::do_beginQuery(Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);

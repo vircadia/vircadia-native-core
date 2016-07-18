@@ -100,7 +100,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
-    const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
+   // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
     const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
@@ -209,7 +209,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Blit!
     addJob<Blit>("Blit", primaryFramebuffer);
 
-    addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
+ //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
 
 }
 
