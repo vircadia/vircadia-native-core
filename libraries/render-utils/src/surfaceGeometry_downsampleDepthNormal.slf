@@ -45,23 +45,46 @@ out vec4 outLinearDepth;
 out vec4 outNormal;
 
 void main(void) {
-    float Zeye = texture(linearDepthMap, varTexCoord0).x;
+#if __VERSION__ == 450
+    // Gather 2 by 2 quads from texture
+    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
 
+    vec4 rawNormalsX = textureGather(normalMap, varTexCoord0, 0);
+    vec4 rawNormalsY = textureGather(normalMap, varTexCoord0, 1);
+    vec4 rawNormalsZ = textureGather(normalMap, varTexCoord0, 2);
+
+    float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
+
+    vec3 normal = vec3(0.0);
+    normal += unpackNormal(vec3(rawNormalsX[0], rawNormalsY[0], rawNormalsZ[0]));
+    normal += unpackNormal(vec3(rawNormalsX[1], rawNormalsY[1], rawNormalsZ[1]));
+    normal += unpackNormal(vec3(rawNormalsX[2], rawNormalsY[2], rawNormalsZ[2]));
+    normal += unpackNormal(vec3(rawNormalsX[3], rawNormalsY[3], rawNormalsZ[3]));
+#else
     ivec2 texpos = ivec2(gl_FragCoord.xy) * 2;
-    
+
+    vec4 Zeyes;
+    Zeyes[0] = texelFetch(linearDepthMap, texpos, 0).x;
+    Zeyes[1] = texelFetch(linearDepthMap, texpos + ivec2(0, 1), 0).x;
+    Zeyes[2] = texelFetch(linearDepthMap, texpos + ivec2(1, 0), 0).x;
+    Zeyes[3] = texelFetch(linearDepthMap, texpos + ivec2(1, 1), 0).x;
+
     vec3 rawNormals[4];
     rawNormals[0] = texelFetch(normalMap, texpos, 0).xyz;
     rawNormals[1] = texelFetch(normalMap, texpos + ivec2(0, 1), 0).xyz;
     rawNormals[2] = texelFetch(normalMap, texpos + ivec2(1, 0), 0).xyz;
     rawNormals[3] = texelFetch(normalMap, texpos + ivec2(1, 1), 0).xyz;
 
+    float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
+
     vec3 normal = vec3(0.0);
 
-    normal += unpackNormal( rawNormals[0] );
-    normal += unpackNormal( rawNormals[1] );
-    normal += unpackNormal( rawNormals[2] );
-    normal += unpackNormal( rawNormals[3] );
-  
+    normal += unpackNormal(rawNormals[0]);
+    normal += unpackNormal(rawNormals[1]);
+    normal += unpackNormal(rawNormals[2]);
+    normal += unpackNormal(rawNormals[3]);
+#endif
+
     normal = normalize(normal);
 
     outLinearDepth = vec4(Zeye, 0.0, 0.0, 0.0);
