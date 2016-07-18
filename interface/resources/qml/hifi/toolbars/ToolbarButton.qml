@@ -50,12 +50,12 @@ Item {
         anchors.fill: parent
         onClicked: asyncClickSender.start();
         onEntered: {
-            if (hoverState > 0) {
+            if (hoverState >= 0) {
                 buttonState = hoverState;
             }
         }
         onExited: {
-            if (defaultState > 0) {
+            if (defaultState >= 0) {
                 buttonState = defaultState;
             }
         }

@@ -174,7 +174,7 @@ private:
 // Scripting interface available to control the Reticle
 class ReticleInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(QVariant position READ getPosition WRITE setPosition)
     Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
@@ -198,8 +198,8 @@ public:
     Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
     Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
 
-    Q_INVOKABLE glm::vec2 getPosition() { return _compositor->getReticlePosition(); }
-    Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
+    Q_INVOKABLE QVariant getPosition() const;
+    Q_INVOKABLE void setPosition(QVariant position);
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
 

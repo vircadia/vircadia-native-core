@@ -22,6 +22,7 @@
 #include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
+#include "Shape3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
@@ -157,6 +158,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QVariant& propertie
         thisOverlay = std::make_shared<TextOverlay>();
     } else if (type == Text3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Text3DOverlay>();
+    } else if (type == Shape3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Shape3DOverlay>();
     } else if (type == Cube3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Cube3DOverlay>();
     } else if (type == Sphere3DOverlay::TYPE) {
