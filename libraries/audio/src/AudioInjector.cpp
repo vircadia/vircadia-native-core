@@ -28,6 +28,15 @@
 
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
+AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
+    return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+};
+
+AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs) {
+    lhs = static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+    return lhs;
+};
+
 AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent)
 {
@@ -48,6 +57,10 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 
 }
 
+bool AudioInjector::stateHas(AudioInjectorState state) const {
+    return (_state & state) == state;
+}
+
 void AudioInjector::setOptions(const AudioInjectorOptions& options) {
     // since options.stereo is computed from the audio stream, 
     // we need to copy it from existing options just in case.
@@ -56,10 +69,25 @@ void AudioInjector::setOptions(const AudioInjectorOptions& options) {
     _options.stereo = currentlyStereo;
 }
 
+void AudioInjector::finishNetworkInjection() {
+    _state |= AudioInjectorState::NetworkInjectionFinished;
+    
+    // if we are already finished with local
+    // injection, then we are finished
+    if(stateHas(AudioInjectorState::LocalInjectionFinished)) {
+        finish();
+    }
+}
+
+void AudioInjector::finishLocalInjection() {
+    _state |= AudioInjectorState::LocalInjectionFinished;
+    if(_options.localOnly || stateHas(AudioInjectorState::NetworkInjectionFinished)) {
+        finish();
+    }
+}
 
 void AudioInjector::finish() {
-    bool shouldDelete = (_state == State::NotFinishedWithPendingDelete);
-    _state = State::Finished;
+    _state |= AudioInjectorState::Finished;
 
     emit finished();
 
@@ -69,7 +97,7 @@ void AudioInjector::finish() {
         _localBuffer = NULL;
     }
 
-    if (shouldDelete) {
+    if (stateHas(AudioInjectorState::PendingDelete)) {
         // we've been asked to delete after finishing, trigger a deleteLater here
         deleteLater();
     }
@@ -121,23 +149,31 @@ void AudioInjector::restart() {
     _hasSentFirstFrame = false;
 
     // check our state to decide if we need extra handling for the restart request
-    if (_state == State::Finished) {
+    if (stateHas(AudioInjectorState::Finished)) {
         // we finished playing, need to reset state so we can get going again
         _hasSetup = false;
         _shouldStop = false;
-        _state = State::NotFinished;
+        _state = AudioInjectorState::NotFinished;
         
         // call inject audio to start injection over again
         setupInjection();
 
-        // if we're a local injector, just inject again 
-        if (_options.localOnly) {
-            injectLocally();
-        } else {
-            // wake the AudioInjectorManager back up if it's stuck waiting
-            if (!injectorManager->restartFinishedInjector(this)) {
-                _state = State::Finished; // we're not playing, so reset the state used by isPlaying.
+        // inject locally
+        if(injectLocally()) {
+        
+            // if not localOnly, wake the AudioInjectorManager back up if it is stuck waiting
+            if (!_options.localOnly) {
+
+                if (!injectorManager->restartFinishedInjector(this)) {
+                    // TODO: this logic seems to remove the pending delete,
+                    // which makes me wonder about the deleteLater calls
+                    _state = AudioInjectorState::Finished; // we're not playing, so reset the state used by isPlaying.
+                }
             }
+        } else {
+            // TODO: this logic seems to remove the pending delete,
+            // which makes me wonder about the deleteLater calls
+            _state = AudioInjectorState::Finished; // we failed to play, so we are finished again
         }
     }
 }
@@ -183,7 +219,7 @@ static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
 int64_t AudioInjector::injectNextFrame() {
-    if (_state == AudioInjector::State::Finished) {
+    if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
@@ -234,8 +270,10 @@ int64_t AudioInjector::injectNextFrame() {
             // pack the stereo/mono type of the stream
             audioPacketStream << _options.stereo;
 
-            // pack the flag for loopback
-            uchar loopbackFlag = (uchar)true;
+            // pack the flag for loopback.  Now, we don't loopback
+            // and _always_ play locally, so loopbackFlag should be 
+            // false always.
+            uchar loopbackFlag = (uchar)false;
             audioPacketStream << loopbackFlag;
 
             // pack the position for injected audio
@@ -333,7 +371,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     if (_currentSendOffset >= _audioData.size() && !_options.loop) {
-        finish();
+        finishNetworkInjection();
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 
@@ -372,10 +410,10 @@ void AudioInjector::triggerDeleteAfterFinish() {
         return;
     }
 
-    if (_state == State::Finished) {
+    if (_state == AudioInjectorState::Finished) {
         stopAndDeleteLater();
     } else {
-        _state = State::NotFinishedWithPendingDelete;
+        _state |= AudioInjectorState::PendingDelete;
     }
 }
 
@@ -421,7 +459,7 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
     AudioInjector* sound = playSound(buffer, options, localInterface);
 
     if (sound) {
-        sound->_state = AudioInjector::State::NotFinishedWithPendingDelete;
+        sound->_state |= AudioInjectorState::PendingDelete;
     }
 
     return sound;
@@ -438,21 +476,23 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
     // setup parameters required for injection
     injector->setupInjection();
 
-    if (options.localOnly) {
-        if (injector->injectLocally()) {
-            // local injection succeeded, return the pointer to injector
-            return injector;
-        } else {
-            // unable to inject locally, return a nullptr
-            return nullptr;
-        }
-    } else {
-        // attempt to thread the new injector
-        if (injectorManager->threadInjector(injector)) {
-            return injector;
-        } else {
-            // we failed to thread the new injector (we are at the max number of injector threads)
-            return nullptr;
-        }
+    // we always inject locally
+    //
+    if (!injector->injectLocally()) {
+        // failed, so don't bother sending to server
+        qDebug() << "AudioInjector::playSound failed to inject locally";
+        return nullptr;
     }
+    // if localOnly, we are done, just return injector.
+    if (options.localOnly) {
+        return injector;
+    }
+
+    // send off to server for everyone else
+    if (!injectorManager->threadInjector(injector)) {
+        // we failed to thread the new injector (we are at the max number of injector threads)
+        qDebug() << "AudioInjector::playSound failed to thread injector";
+    }
+    return injector;
+
 }
