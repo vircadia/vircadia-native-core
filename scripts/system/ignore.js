@@ -18,6 +18,8 @@ var button = toolbar.addButton({
     imageURL: Script.resolvePath("assets/images/tools/ignore.svg"),
     visible: true,
     buttonState: 1,
+    defaultState: 2,
+    hoverState: 3,
     alpha: 0.9
 });
 
@@ -46,6 +48,8 @@ function buttonClicked(){
     }
 
     button.writeProperty('buttonState', isShowingOverlays ? 0 : 1);
+    button.writeProperty('defaultState', isShowingOverlays ? 0 : 1);
+    button.writeProperty('hoverState', isShowingOverlays ? 2 : 3);
 }
 
 button.clicked.connect(buttonClicked);

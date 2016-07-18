@@ -29,6 +29,9 @@ class OffscreenFlags : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
 
+    // Allow scripts that are doing their own navigation support to disable navigation focus (i.e. handControllerPointer.js)
+    Q_PROPERTY(bool navigationFocusDisabled READ isNavigationFocusDisabled WRITE setNavigationFocusDisabled NOTIFY navigationFocusDisabledChanged)
+
 public:
 
     OffscreenFlags(QObject* parent = nullptr) : QObject(parent) {}
@@ -40,11 +43,21 @@ public:
         }
     }
 
+    bool isNavigationFocusDisabled() const { return _navigationFocusDisabled; }
+    void setNavigationFocusDisabled(bool disabled) {
+        if (_navigationFocusDisabled != disabled) {
+            _navigationFocusDisabled = disabled;
+            emit navigationFocusDisabledChanged();
+        }
+    }
+    
 signals:
     void navigationFocusedChanged();
+    void navigationFocusDisabledChanged();
 
 private:
     bool _navigationFocused { false };
+    bool _navigationFocusDisabled{ false };
 };
 
 QString fixupHifiUrl(const QString& urlString) {
@@ -101,6 +114,10 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
 }
 
 OffscreenUi::OffscreenUi() {
+}
+
+QObject* OffscreenUi::getFlags() {
+    return offscreenFlags;
 }
 
 void OffscreenUi::create(QOpenGLContext* context) {
@@ -392,7 +409,7 @@ QVariant OffscreenUi::waitForInputDialogResult(QQuickItem* inputDialog) {
 }
 
 bool OffscreenUi::navigationFocused() {
-    return offscreenFlags->isNavigationFocused();
+    return !offscreenFlags->isNavigationFocusDisabled() && offscreenFlags->isNavigationFocused();
 }
 
 void OffscreenUi::setNavigationFocused(bool focused) {

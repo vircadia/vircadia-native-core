@@ -709,9 +709,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
-        int32_t numMeshes = (int32_t)fbxGeometry.meshes.size();
-        int32_t totalNumVertices = 0;
-        for (int32_t i = 0; i < numMeshes; i++) {
+        int numFbxMeshes = fbxGeometry.meshes.size();
+        int totalNumVertices = 0;
+        for (int i = 0; i < numFbxMeshes; i++) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
@@ -730,10 +730,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             return;
         }
 
-        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
-
-        // the render geometry's mesh count should match that of the FBXGeometry
-        assert(numMeshes == (int32_t)(meshes.size()));
+        auto& meshes = _model->getGeometry()->getMeshes();
+        int32_t numMeshes = (int32_t)(meshes.size());
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
         pointCollection.clear();

@@ -442,3 +442,12 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
     }
     return result;
 }
+
+
+QVariant ReticleInterface::getPosition() const {
+    return vec2toVariant(_compositor->getReticlePosition());
+}
+
+void ReticleInterface::setPosition(QVariant position) {
+    _compositor->setReticlePosition(vec2FromVariant(position));
+}
