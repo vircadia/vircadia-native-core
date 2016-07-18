@@ -93,13 +93,17 @@ ModalWindow {
 
             function resize() {
                 var targetWidth = Math.max(titleWidth, pane.width);
-                var targetHeight = (textInput ? textField.controlHeight : 0) + extraInputs.height +
-                                   (5 * hifi.dimensions.contentSpacing.y) + buttons.height;
+                var targetHeight = (textField.visible ? textField.controlHeight + hifi.dimensions.contentSpacing.y : 0) +
+                                   (extraInputs.visible ? extraInputs.height + hifi.dimensions.contentSpacing.y : 0) +
+                                   (buttons.height + 3 * hifi.dimensions.contentSpacing.y);
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
-                root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ?
-                              d.maxHeight : targetHeight);
-                if (comboBoxField.visible) {
+                root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
+                                                                            d.maxHeight : targetHeight);
+                if (checkBoxField.visible && comboBoxField.visible) {
+                    checkBoxField.width = extraInputs.width / 2;
                     comboBoxField.width = extraInputs.width / 2;
+                } else if (!checkBoxField.visible && comboBoxField.visible) {
+                    comboBoxField.width = extraInputs.width;
                 }
             }
         }
@@ -107,7 +111,7 @@ ModalWindow {
         Item {
             anchors {
                 top: parent.top;
-                bottom: extraInputs.top;
+                bottom: extraInputs.visible ? extraInputs.top : buttons.top;
                 left: parent.left;
                 right: parent.right;
                 margins: 0;
@@ -130,6 +134,7 @@ ModalWindow {
 
         Row {
             id: extraInputs;
+            visible: Boolean(root.checkBox || root.comboBox);
             spacing: hifi.dimensions.contentSpacing.x;
             anchors {
                 left: parent.left;
@@ -144,8 +149,8 @@ ModalWindow {
             CheckBox {
                 id: checkBoxField;
                 text: root.checkBox.label;
-                focus: root.checkBox ? true : false;
-                visible: root.checkBox ? true : false;
+                focus: Boolean(root.checkBox);
+                visible: Boolean(root.checkBox);
                 anchors {
                     left: parent.left;
                     bottom: parent.bottom;
@@ -156,8 +161,8 @@ ModalWindow {
             ComboBox {
                 id: comboBoxField;
                 label: root.comboBox.label;
-                focus: root.comboBox ? true : false;
-                visible: root.comboBox ? true : false;
+                focus: Boolean(root.comboBox);
+                visible: Boolean(root.comboBox);
                 anchors {
                     right: parent.right;
                     bottom: parent.bottom;
@@ -195,21 +200,11 @@ ModalWindow {
             Button {
                 id: cancelButton;
                 action: cancelAction;
-                // anchors {
-                //     bottom: parent.bottom;
-                //     right: parent.right;
-                //     leftMargin: hifi.dimensions.contentSpacing.x;
-                // }
             }
 
             Button {
                 id: acceptButton;
                 action: acceptAction;
-                // anchors {
-                //     bottom: parent.bottom;
-                //     right: cancelButton.left;
-                //     leftMargin: hifi.dimensions.contentSpacing.x;
-                // }
             }
 
             Text {
