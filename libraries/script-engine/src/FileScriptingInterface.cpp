@@ -31,9 +31,9 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 	// nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QString importURL) {
-	downloadZip(path, importURL);
-
+void FileScriptingInterface::runUnzip(QString path) {
+	//downloadZip(path, importURL);
+	qDebug() << "Path where download is saved: " + path;
 }
 
 QString FileScriptingInterface::getTempDir() {

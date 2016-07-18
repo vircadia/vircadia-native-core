@@ -1205,7 +1205,7 @@ function importSVO(importURL) {
 }
 Window.svoImportRequested.connect(importSVO);
 
-// attempt to start ZIP download project
+// attempt to start ZIP download project, GET RID OF THIS
 function importZIP(importURL) {
     print("Import ZIP requested: " + importURL);
     /*if (!Entities.canAdjustLocks()) {

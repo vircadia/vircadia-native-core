@@ -62,8 +62,7 @@ WebEngineView {
 
     onNewViewRequested: {
         console.log("new view requested url");
-		console.log(request.url.toString());
-		//if (toString(request.url) )
+		//console.log("new view requested url" + request.url.toString());
 		var component = Qt.createComponent("../Browser.qml");
         var newWindow = component.createObject(desktop);
         request.openIn(newWindow.webView);

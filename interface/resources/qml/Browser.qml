@@ -218,12 +218,27 @@ ScrollingWindow {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
-            onNewViewRequested:{
-                var component = Qt.createComponent("Browser.qml");
-                var newWindow = component.createObject(desktop);
-                request.openIn(newWindow.webView)
-            }      
 
+			Component.onCompleted: {
+				webview.profile.downloadRequested.connect(function(download){
+					console.log("Download start: " + download.state)
+					download.accept()
+					console.log("Download accept: " + download.state)
+					if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
+						console.log("Download? " + download.state)
+						console.log("download failed to complete")
+					}
+				})
+				
+				webview.profile.downloadFinished.connect(function(download){
+					console.log("Download Finished: " + download.state)
+					if (download.state === WebEngineDownloadItem.DownloadCompleted) {console.log("getting download completed state")}
+					console.log("download success")
+					File.runUnzip(download.path)
+				})
+			}
+			
+            
             //profile: desktop.browserProfile
         }
 

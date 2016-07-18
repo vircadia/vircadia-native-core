@@ -21,17 +21,18 @@ class FileScriptingInterface : public QObject {
 
 public:
     FileScriptingInterface(QObject* parent);
-	void runUnzip(QString path, QString importURL);
+	//void runUnzip(QString path, QString importURL);
 	QString getTempDir();
 
 public slots:
-	void unzipFile(QString path);
+	//void unzipFile(QString path);
+	void runUnzip(QString path);
 
 signals:
 
 private:
 	//void downloadZip();
-	//void unzipFile();
+	void unzipFile(QString path);
 	void recursiveFileScan(QFileInfo file, QString* dirName);
 	void downloadZip(QString path, const QString link);
 
