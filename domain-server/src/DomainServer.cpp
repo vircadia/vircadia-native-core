@@ -1121,7 +1121,12 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
     static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
+    QString path = DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID()));
+#if DEV_BUILD || PR_BUILD
+    qDebug() << "Domain metadata sent to" << path;
+    qDebug() << "Domain metadata update:" << domainUpdateJSON;
+#endif
+    DependencyManager::get<AccountManager>()->sendRequest(path,
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
                                               JSONCallbackParameters(nullptr, QString(), this, "handleMetaverseHeartbeatError"),
