@@ -35,17 +35,17 @@ ModalWindow {
     property var comboBox;
     property var checkBox;
     onTextInputChanged: {
-        if (textInput) {
+        if (textInput && textInput.text !== undefined) {
             textField.text = textInput.text;
         }
     }
     onComboBoxChanged: {
-        if (comboBox) {
+        if (comboBox && comboBox.index !== undefined) {
             comboBoxField.currentIndex = comboBox.index;
         }
     }
     onCheckBoxChanged: {
-        if (checkBox) {
+        if (checkBox && checkBox.checked !== undefined) {
             checkBoxField.checked = checkBox.checked;
         }
     }
@@ -147,10 +147,9 @@ ModalWindow {
             }
         }
 
-        Row {
+        Item {
             id: extraInputs;
             visible: Boolean(root.checkBox || root.comboBox);
-            spacing: hifi.dimensions.contentSpacing.x;
             anchors {
                 left: parent.left;
                 right: parent.right;
