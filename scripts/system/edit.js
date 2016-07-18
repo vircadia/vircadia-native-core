@@ -305,7 +305,8 @@ var toolBar = (function () {
                         type: "Model",
                         modelURL: url,
                         shapeType: shapeType,
-                        dynamic: dynamic
+                        dynamic: dynamic,
+                        gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                     });
                 }
             }
