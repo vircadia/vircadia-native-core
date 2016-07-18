@@ -246,10 +246,18 @@ var toolBar = (function () {
         toolBar.writeProperty("shown", false);
 
         addButton("newModelButton", "model-01.svg", function () {
-            var SHAPE_TYPE_NONE_TEXT = "No Collision";
-            var SHAPE_TYPE_SIMPLE_HULL_TEXT = "Basic - Whole model";
-            var SHAPE_TYPE_SIMPLE_COMPOUND_TEXT = "Good - Sub-meshes";
-            var SHAPE_TYPE_STATIC_MESH_TEXT = "Exact - All polygons";
+            var SHAPE_TYPE_NONE = 0;
+            var SHAPE_TYPE_SIMPLE_HULL = 1;
+            var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
+            var SHAPE_TYPE_STATIC_MESH = 3;
+
+            var SHAPE_TYPES = [];
+            SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
+            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
+            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
+            SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
+
+            var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
             var DYNAMIC_DEFAULT = false;
             var result = Window.customPrompt({
                 textInput: {
@@ -257,18 +265,14 @@ var toolBar = (function () {
                 },
                 comboBox: {
                     label: "Automatic Collisions",
-                    items: [
-                        SHAPE_TYPE_NONE_TEXT,
-                        SHAPE_TYPE_SIMPLE_HULL_TEXT,
-                        SHAPE_TYPE_SIMPLE_COMPOUND_TEXT,
-                        SHAPE_TYPE_STATIC_MESH_TEXT
-                    ]
+                    index: SHAPE_TYPE_DEFAULT,
+                    items: SHAPE_TYPES
                 },
                 checkBox: {
                     label: "Dynamic",
                     checked: DYNAMIC_DEFAULT,
                     disableForItems: [
-                        SHAPE_TYPE_STATIC_MESH_TEXT
+                        SHAPE_TYPE_STATIC_MESH
                     ],
                     checkStateOnDisable: false,
                     warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
@@ -279,13 +283,13 @@ var toolBar = (function () {
                 var url = result.textInput;
                 var shapeType;
                 switch (result.comboBox) {
-                    case SHAPE_TYPE_SIMPLE_HULL_TEXT:
+                    case SHAPE_TYPE_SIMPLE_HULL:
                         shapeType = "simple-hull";
                         break;
-                    case SHAPE_TYPE_SIMPLE_COMPOUND_TEXT:
+                    case SHAPE_TYPE_SIMPLE_COMPOUND:
                         shapeType = "simple-compound";
                         break;
-                    case SHAPE_TYPE_STATIC_MESH_TEXT:
+                    case SHAPE_TYPE_STATIC_MESH:
                         shapeType = "static-mesh";
                         break;
                     default:

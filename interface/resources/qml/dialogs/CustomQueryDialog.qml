@@ -34,6 +34,21 @@ ModalWindow {
     property var textInput;
     property var comboBox;
     property var checkBox;
+    onTextInputChanged: {
+        if (textInput) {
+            textField.text = textInput.text;
+        }
+    }
+    onComboBoxChanged: {
+        if (comboBox) {
+            comboBoxField.currentIndex = comboBox.index;
+        }
+    }
+    onCheckBoxChanged: {
+        if (checkBox) {
+            checkBoxField.checked = checkBox.checked;
+        }
+    }
 
     property var warning: "";
     property var result;
@@ -52,15 +67,15 @@ ModalWindow {
 
     function updateCheckbox() {
         if (checkBox.disableForItems) {
-            var currentTextInDisableList = false;
+            var currentItemInDisableList = false;
             for (var i in checkBox.disableForItems) {
-                if (comboBoxField.currentText === checkBox.disableForItems[i]) {
-                    currentTextInDisableList = true;
+                if (comboBoxField.currentIndex === checkBox.disableForItems[i]) {
+                    currentItemInDisableList = true;
                     break;
                 }
             }
 
-            if (currentTextInDisableList) {
+            if (currentItemInDisableList) {
                 checkBoxField.enabled = false;
                 if (checkBox.checkStateOnDisable !== null && checkBox.checkStateOnDisable !== undefined) {
                     root.implicitCheckState = checkBoxField.checked;
@@ -245,8 +260,8 @@ ModalWindow {
                     result.textInput = textField.text;
                 }
                 if (comboBox) {
-                    result.comboBox = comboBoxField.currentText;
-                    result.comboBoxIndex = comboBoxField.currentIndex;
+                    result.comboBox = comboBoxField.currentIndex;
+                    result.comboBoxText = comboBoxField.currentText;
                 }
                 if (checkBox) {
                     result.checkBox = checkBoxField.enabled ? checkBoxField.checked : null;
