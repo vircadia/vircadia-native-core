@@ -165,14 +165,10 @@ void AudioInjector::restart() {
             if (!_options.localOnly) {
 
                 if (!injectorManager->restartFinishedInjector(this)) {
-                    // TODO: this logic seems to remove the pending delete,
-                    // which makes me wonder about the deleteLater calls
                     _state = AudioInjectorState::Finished; // we're not playing, so reset the state used by isPlaying.
                 }
             }
         } else {
-            // TODO: this logic seems to remove the pending delete,
-            // which makes me wonder about the deleteLater calls
             _state = AudioInjectorState::Finished; // we failed to play, so we are finished again
         }
     }
