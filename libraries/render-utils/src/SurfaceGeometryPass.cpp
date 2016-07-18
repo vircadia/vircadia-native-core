@@ -18,6 +18,7 @@
 
 const int DepthLinearPass_FrameTransformSlot = 0;
 const int DepthLinearPass_DepthMapSlot = 0;
+const int DepthLinearPass_NormalMapSlot = 1;
 
 const int SurfaceGeometryPass_FrameTransformSlot = 0;
 const int SurfaceGeometryPass_ParamsSlot = 1;
@@ -25,6 +26,7 @@ const int SurfaceGeometryPass_DepthMapSlot = 0;
 const int SurfaceGeometryPass_NormalMapSlot = 1;
 
 #include "surfaceGeometry_makeLinearDepth_frag.h"
+#include "surfaceGeometry_downsampleDepthNormal_frag.h"
 
 #include "surfaceGeometry_makeCurvature_frag.h"
 
@@ -45,6 +47,8 @@ void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depth
         auto newFrameSize = glm::ivec2(_primaryDepthTexture->getDimensions());
         if (_frameSize != newFrameSize) {
             _frameSize = newFrameSize;
+            _halfFrameSize = newFrameSize >> 1;
+
             reset = true;
         }
     }
@@ -67,10 +71,21 @@ void LinearDepthFramebuffer::allocate() {
     // For Linear Depth:
     _linearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
-    _linearDepthTexture->autoGenerateMips(1);
+   // _linearDepthTexture->autoGenerateMips(1);
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
     _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
+
+    // For Downsampling:
+    _halfLinearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
+        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+
+    _halfNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
+        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+
+    _downsampleFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _downsampleFramebuffer->setRenderBuffer(0, _halfLinearDepthTexture);
+    _downsampleFramebuffer->setRenderBuffer(1, _halfNormalTexture);
 }
 
 gpu::FramebufferPointer LinearDepthFramebuffer::getLinearDepthFramebuffer() {
@@ -85,6 +100,27 @@ gpu::TexturePointer LinearDepthFramebuffer::getLinearDepthTexture() {
         allocate();
     }
     return _linearDepthTexture;
+}
+
+gpu::FramebufferPointer LinearDepthFramebuffer::getDownsampleFramebuffer() {
+    if (!_downsampleFramebuffer) {
+        allocate();
+    }
+    return _downsampleFramebuffer;
+}
+
+gpu::TexturePointer LinearDepthFramebuffer::getHalfLinearDepthTexture() {
+    if (!_halfLinearDepthTexture) {
+        allocate();
+    }
+    return _halfLinearDepthTexture;
+}
+
+gpu::TexturePointer LinearDepthFramebuffer::getHalfNormalTexture() {
+    if (!_halfNormalTexture) {
+        allocate();
+    }
+    return _halfNormalTexture;
 }
 
 
@@ -114,13 +150,21 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
     auto linearDepthFBO = _linearDepthFramebuffer->getLinearDepthFramebuffer();
     auto linearDepthTexture = _linearDepthFramebuffer->getLinearDepthTexture();
 
+    auto downsampleFBO = _linearDepthFramebuffer->getDownsampleFramebuffer();
+    auto halfLinearDepthTexture = _linearDepthFramebuffer->getHalfLinearDepthTexture();
+    auto halfNormalTexture = _linearDepthFramebuffer->getHalfNormalTexture();
+
     outputs.edit0() = _linearDepthFramebuffer;
     outputs.edit1() = linearDepthFBO;
     outputs.edit2() = linearDepthTexture;
-
+    outputs.edit3() = halfLinearDepthTexture;
+    outputs.edit4() = halfNormalTexture;
+   
     auto linearDepthPipeline = getLinearDepthPipeline();
+    auto downsamplePipeline = getDownsamplePipeline();
 
     auto depthViewport = args->_viewport;
+    auto halfViewport = depthViewport >> 1;
     auto furtherDepth = std::numeric_limits<float>::infinity();
     furtherDepth = args->getViewFrustum().getFarClip() + 10.0;
 
@@ -135,15 +179,21 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
 
         batch.setUniformBuffer(DepthLinearPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
 
-        // Pyramid pass
+        // LinearDepth
         batch.setFramebuffer(linearDepthFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(furtherDepth, 0.0f, 0.0f, 0.0f));
         batch.setPipeline(linearDepthPipeline);
         batch.setResourceTexture(DepthLinearPass_DepthMapSlot, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-      //  batch.setResourceTexture(DepthLinearPass_DepthMapSlot, nullptr);
-     //   batch.generateTextureMips(linearDepthFBO->getRenderBuffer(0));
+        // Downsample
+        batch.setViewportTransform(halfViewport);
+       
+        batch.setFramebuffer(downsampleFBO);
+        batch.setResourceTexture(DepthLinearPass_DepthMapSlot, linearDepthTexture);
+        batch.setResourceTexture(DepthLinearPass_NormalMapSlot, normalTexture);
+        batch.setPipeline(downsamplePipeline);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         _gpuTimer.end(batch);
     });
@@ -180,6 +230,32 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
 }
 
 
+const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
+    if (!_downsamplePipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_downsampleDepthNormal_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), DepthLinearPass_DepthMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DepthLinearPass_NormalMapSlot));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setColorWriteMask(true, true, true, false);
+
+        // Good to go add the brand new pipeline
+        _downsamplePipeline = gpu::Pipeline::create(program, state);
+    }
+
+    return _downsamplePipeline;
+}
+
+
+//#define USE_STENCIL_TEST
 
 SurfaceGeometryFramebuffer::SurfaceGeometryFramebuffer() {
 }
@@ -280,19 +356,22 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     const auto deferredFramebuffer = inputs.get1();
     const auto linearDepthFramebuffer = inputs.get2();
 
-    auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
 
     if (!_surfaceGeometryFramebuffer) {
         _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
     }
     _surfaceGeometryFramebuffer->updateLinearDepth(linearDepthTexture);
 
-    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
+  //  auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
+    auto normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
 
     auto curvatureFBO = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+#ifdef USE_STENCIL_TEST
     if (curvatureFBO->getDepthStencilBuffer() != deferredFramebuffer->getPrimaryDepthTexture()) {
         curvatureFBO->setDepthStencilBuffer(deferredFramebuffer->getPrimaryDepthTexture(), deferredFramebuffer->getPrimaryDepthTexture()->getTexelFormat());
     }
+#endif
     auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
 
     outputs.edit0() = _surfaceGeometryFramebuffer;
@@ -301,7 +380,8 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     auto curvaturePipeline = getCurvaturePipeline();
 
     auto depthViewport = args->_viewport;
-    auto curvatureViewport = depthViewport >> _surfaceGeometryFramebuffer->getResolutionLevel();
+    auto curvatureViewport = depthViewport >> 1;
+  //  >> _surfaceGeometryFramebuffer->getResolutionLevel();
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         _gpuTimer.begin(batch);
@@ -318,9 +398,13 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
 
         // Curvature pass
         batch.setFramebuffer(curvatureFBO);
-        
-        // We can avoid the clear by drawing the same clear vallue from the makeCUrvature shader. slightly better than adding the clear
-        // batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+ 
+        // We can avoid the clear by drawing the same clear vallue from the makeCurvature shader. same performances or no worse
+      
+#ifdef USE_STENCIL_TEST
+        // Except if stenciling out
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+#endif
 
         batch.setPipeline(curvaturePipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
@@ -354,9 +438,10 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
+#ifdef USE_STENCIL_TEST
         // Stencil test the curvature pass for objects pixels only, not the background
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
+#endif
         // Good to go add the brand new pipeline
         _curvaturePipeline = gpu::Pipeline::create(program, state);
     }

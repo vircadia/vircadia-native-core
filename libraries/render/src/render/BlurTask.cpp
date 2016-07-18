@@ -101,9 +101,9 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         _blurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
         // attach depthStencil if present in source
-        if (sourceFramebuffer->hasDepthStencil()) {
-            _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
-        }
+        //if (sourceFramebuffer->hasDepthStencil()) {
+        //    _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+        //}
         auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
         auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
         _blurredFramebuffer->setRenderBuffer(0, blurringTarget);
@@ -111,9 +111,9 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         // it would be easier to just call resize on the bluredFramebuffer and let it work if needed but the source might loose it's depth buffer when doing so
         if ((_blurredFramebuffer->getWidth() != sourceFramebuffer->getWidth()) || (_blurredFramebuffer->getHeight() != sourceFramebuffer->getHeight())) {
             _blurredFramebuffer->resize(sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), sourceFramebuffer->getNumSamples());
-            if (sourceFramebuffer->hasDepthStencil()) {
-                _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
-            }
+            //if (sourceFramebuffer->hasDepthStencil()) {
+             //   _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+            //}
         }
     }
 
@@ -128,18 +128,18 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
             _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
             // attach depthStencil if present in source
-            if (sourceFramebuffer->hasDepthStencil()) {
+         /*   if (sourceFramebuffer->hasDepthStencil()) {
                 _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
-            }
+            }*/
             auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
             auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
             _outputFramebuffer->setRenderBuffer(0, blurringTarget);
         } else {
             if ((_outputFramebuffer->getWidth() != sourceFramebuffer->getWidth()) || (_outputFramebuffer->getHeight() != sourceFramebuffer->getHeight())) {
                 _outputFramebuffer->resize(sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), sourceFramebuffer->getNumSamples());
-                if (sourceFramebuffer->hasDepthStencil()) {
+             /*   if (sourceFramebuffer->hasDepthStencil()) {
                     _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
-                }
+                }*/
             }
         }
 
@@ -173,7 +173,7 @@ gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+      //  state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         _blurVPipeline = gpu::Pipeline::create(program, state);
     }
@@ -195,7 +195,7 @@ gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+       // state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         _blurHPipeline = gpu::Pipeline::create(program, state);
     }
@@ -336,22 +336,25 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
     auto blurVPipeline = getBlurVPipeline();
     auto blurHPipeline = getBlurHPipeline();
 
-    _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
+    auto sourceViewport = args->_viewport;
+    auto blurViewport = sourceViewport >> 1;
+
+    _parameters->setWidthHeight(blurViewport.z, blurViewport.w, args->_context->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
-    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
+    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, blurViewport));
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
     _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(blurViewport);
 
         batch.setUniformBuffer(BlurTask_ParamsSlot, _parameters->_parametersBuffer);
 
         batch.setResourceTexture(BlurTask_DepthSlot, depthTexture);
 
         batch.setFramebuffer(blurringResources.blurringFramebuffer);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+      //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
 
         batch.setPipeline(blurVPipeline);
         batch.setResourceTexture(BlurTask_SourceSlot, blurringResources.sourceTexture);
@@ -359,7 +362,7 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
 
         batch.setFramebuffer(blurringResources.finalFramebuffer);
         if (_inOutResources._generateOutputFramebuffer) {
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+     //       batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
         }
 
         batch.setPipeline(blurHPipeline);

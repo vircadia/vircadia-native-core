@@ -125,6 +125,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
     const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
     const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
+    const auto halfLinearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(3);
+    const auto halfNormalTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(4);
 
     
     // Curvature pass
@@ -136,7 +138,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto curvatureRangeTimer = addJob<BeginGPURangeTimer>("BeginCurvatureRangeTimer");
 
     // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
-    const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture).hasVarying();
+    const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, halfLinearDepthTexture).hasVarying();
     const auto midCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureMid", diffuseCurvaturePassInputs);
     const auto lowCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureLow", diffuseCurvaturePassInputs, true); // THis blur pass generates it s render resource
 
@@ -182,7 +184,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job

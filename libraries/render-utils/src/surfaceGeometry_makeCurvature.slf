@@ -78,8 +78,10 @@ vec3 getRawNormal(vec2 texcoord) {
 }
 
 vec3 getWorldNormal(vec2 texcoord) {
+  //  vec3 rawNormal = getRawNormal(texcoord);
+   // return unpackNormal(rawNormal);
     vec3 rawNormal = getRawNormal(texcoord);
-    return unpackNormal(rawNormal);
+    return normalize((rawNormal - vec3(0.5)) * 2.0);
 }
 
 vec3 getWorldNormalDiff(vec2 texcoord, vec2 delta) {

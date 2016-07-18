@@ -28,6 +28,10 @@ public:
     gpu::FramebufferPointer getLinearDepthFramebuffer();
     gpu::TexturePointer getLinearDepthTexture();
 
+    gpu::FramebufferPointer getDownsampleFramebuffer();
+    gpu::TexturePointer getHalfLinearDepthTexture();
+    gpu::TexturePointer getHalfNormalTexture();
+
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
     void updatePrimaryDepth(const gpu::TexturePointer& depthBuffer);
     gpu::TexturePointer getPrimaryDepthTexture();
@@ -44,8 +48,14 @@ protected:
 
     gpu::FramebufferPointer _linearDepthFramebuffer;
     gpu::TexturePointer _linearDepthTexture;
+
+    gpu::FramebufferPointer _downsampleFramebuffer;
+    gpu::TexturePointer _halfLinearDepthTexture;
+    gpu::TexturePointer _halfNormalTexture;
+
     
     glm::ivec2 _frameSize;
+    glm::ivec2 _halfFrameSize;
     int _resolutionLevel{ 0 };
 };
 
@@ -69,7 +79,7 @@ signals:
 class LinearDepthPass {
 public:
     using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, DeferredFramebufferPointer>;
-    using Outputs = render::VaryingSet3<LinearDepthFramebufferPointer, gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Outputs = render::VaryingSet5<LinearDepthFramebufferPointer, gpu::FramebufferPointer, gpu::TexturePointer, gpu::TexturePointer, gpu::TexturePointer>;
     using Config = LinearDepthPassConfig;
     using JobModel = render::Job::ModelIO<LinearDepthPass, Inputs, Outputs, Config>;
 
@@ -84,8 +94,10 @@ private:
     LinearDepthFramebufferPointer _linearDepthFramebuffer;
 
     const gpu::PipelinePointer& getLinearDepthPipeline();
-
     gpu::PipelinePointer _linearDepthPipeline;
+
+    const gpu::PipelinePointer& getDownsamplePipeline();
+    gpu::PipelinePointer _downsamplePipeline;
 
     gpu::RangeTimer _gpuTimer;
 };

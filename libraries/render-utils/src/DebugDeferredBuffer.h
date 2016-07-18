@@ -36,7 +36,7 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet3<DeferredFramebufferPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     
@@ -64,7 +64,8 @@ protected:
         LightingMode,
         ShadowMode,
         LinearDepthMode,
-        LinearDepth2Mode,
+        HalfLinearDepthMode,
+        HalfNormalMode,
         CurvatureMode,
         NormalCurvatureMode,
         DiffusedCurvatureMode,
