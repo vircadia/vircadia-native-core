@@ -277,7 +277,6 @@ var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 function getAttachPointSettings() {
     try {
         var str = Settings.getValue(ATTACH_POINT_SETTINGS);
-        print("getAttachPointSettings = " + str);
         if (str === "false") {
             return {};
         } else {
@@ -290,7 +289,6 @@ function getAttachPointSettings() {
 }
 function setAttachPointSettings(attachPointSettings) {
     var str = JSON.stringify(attachPointSettings);
-    print("setAttachPointSettings = " + str);
     Settings.setValue(ATTACH_POINT_SETTINGS, str);
 }
 function getAttachPointForHotspotFromSettings(hotspot, hand) {
