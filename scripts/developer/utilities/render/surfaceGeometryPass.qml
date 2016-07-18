@@ -20,7 +20,7 @@ Column {
         Column{
             Repeater {
                 model: [
-                    "Depth Threshold:depthThreshold:0.1:false",
+                    "Depth Threshold:depthThreshold:0.05:false",
                     "Basis Scale:basisScale:2.0:false",
                     "Curvature Scale:curvatureScale:100.0:false",
                     "Downscale:resolutionLevel:4:true"

@@ -146,7 +146,7 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
 
-    float depthThreshold{ 0.02f }; // meters
+    float depthThreshold{ 0.005f }; // meters
     float basisScale{ 1.0f };
     float curvatureScale{ 10.0f };
     int resolutionLevel{ 0 };

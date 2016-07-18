@@ -58,19 +58,7 @@ Column {
                      "Ambient:LightingModel:enableAmbientLight",
                      "Directional:LightingModel:enableDirectionalLight",
                      "Point:LightingModel:enablePointLight",
-                     "Spot:LightingModel:enableSpotLight" 
-                ]
-                CheckBox {
-                    text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
-                }
-            }
-        }
-        Column {
-            spacing: 10
-            Repeater {
-                model: [
+                     "Spot:LightingModel:enableSpotLight",
                      "Light Contour:LightingModel:showLightContour"
                 ]
                 CheckBox {
