@@ -97,7 +97,8 @@ public:
         ICEServerHeartbeatACK,
         NegotiateAudioFormat,
         SelectedAudioFormat,
-        LAST_PACKET_TYPE = SelectedAudioFormat
+        MoreEntityShapes,
+        LAST_PACKET_TYPE = MoreEntityShapes
     };
 };
 

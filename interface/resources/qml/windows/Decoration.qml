@@ -48,7 +48,23 @@ Rectangle {
         drag.target: window
         hoverEnabled: true
         onEntered: window.mouseEntered();
-        onExited: window.mouseExited();
+        onExited: {
+            if (!containsMouseGlobal()) {
+                window.mouseExited();
+            }
+        }
+        
+        function containsMouseGlobal() {
+            var reticlePos = Reticle.position;
+            var globalPosition = decorationMouseArea.mapToItem(desktop, 0, 0);
+            var localPosition = {
+                x: reticlePos.x - globalPosition.x,
+                y: reticlePos.y - globalPosition.y,
+            };
+            return localPosition.x >= 0 && localPosition.x <= width &&
+                   localPosition.y >= 0 && localPosition.y <= height;
+        }
+        
     }
     Connections {
         target: window
@@ -57,7 +73,9 @@ Rectangle {
                 root.inflateDecorations()
             }
         }
-        onMouseExited: root.deflateDecorations();
+        onMouseExited: {
+            root.deflateDecorations();
+        }
     }
     Connections {
         target: desktop
