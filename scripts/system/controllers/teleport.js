@@ -88,6 +88,7 @@ function Teleporter() {
 
     this.createTargetOverlay = function() {
 
+        _this.deleteTargetOverlay();
         var targetOverlayProps = {
             url: TARGET_MODEL_URL,
             dimensions: TARGET_MODEL_DIMENSIONS,
@@ -191,6 +192,9 @@ function Teleporter() {
     };
 
     this.deleteTargetOverlay = function() {
+        if (this.targetOverlay === null) {
+            return;
+        }
         Overlays.deleteOverlay(this.targetOverlay);
         this.intersection = null;
         this.targetOverlay = null;
