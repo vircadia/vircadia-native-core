@@ -202,8 +202,7 @@ CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     name: "hold",
     enterMethod: "nearGrabbingEnter",
-    updateMethod: "nearGrabbing",
-    exitMethod: "holdExit"
+    updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
     name: "trigger",
@@ -1990,6 +1989,15 @@ function MyController(hand) {
 
             if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
+
+                // store the offset attach points into preferences.
+                if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
+                    var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                    if (props && props.localPosition && props.localRotation) {
+                        storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, props.localPosition, props.localRotation);
+                    }
+                }
+
                 var grabbedEntity = this.grabbedEntity;
                 this.release();
                 this.grabbedEntity = grabbedEntity;
@@ -2088,16 +2096,6 @@ function MyController(hand) {
                 print("continueNearGrabbing -- updateAction failed");
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 this.setupHoldAction();
-            }
-        }
-    };
-
-    this.holdExit = function () {
-        // store the offset attach points into preferences.
-        if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
-            var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
-            if (props && props.localPosition && props.localRotation) {
-                storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, props.localPosition, props.localRotation);
             }
         }
     };
