@@ -109,6 +109,11 @@ void main(void) {
 
     // Fetch the z under the pixel (stereo or not)
     float Zeye = getZEye(framePixelPos);
+    if (Zeye <= -getPosLinearDepthFar()) {
+       // outFragColor = vec4(0.0);
+       // return;
+        discard;
+    }
 
     float nearPlaneScale = 0.5 * getProjectionNear();
 

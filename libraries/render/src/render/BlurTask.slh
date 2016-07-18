@@ -27,6 +27,7 @@ struct BlurParameters {
     vec4 filterInfo;
     vec4 depthInfo;
     vec4 stereoInfo;
+    vec4 linearDepthInfo;
 };
 
 uniform blurParamsBuffer {
@@ -52,6 +53,10 @@ float getDepthThreshold() {
 
 float getDepthPerspective() {
     return parameters.depthInfo.w;
+}
+
+float getPosLinearDepthFar() {
+    return parameters.linearDepthInfo.x;
 }
 
 <@endfunc@>
@@ -92,8 +97,12 @@ uniform sampler2D depthMap;
 
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
-    float sampleDepth = texture(depthMap, texcoord).x;
+    float sampleDepth = -texture(depthMap, texcoord).x;
     vec4 sampleCenter = texture(sourceMap, texcoord);
+    if (sampleDepth <= getPosLinearDepthFar()) {
+        discard;
+        //return sampleCenter;
+    }
 
     // Calculate the width scale.
     float distanceToProjectionWindow = getDepthPerspective();

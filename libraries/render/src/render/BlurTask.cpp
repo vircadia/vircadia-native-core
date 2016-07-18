@@ -78,6 +78,14 @@ void BlurParams::setDepthThreshold(float threshold) {
     }
 }
 
+void BlurParams::setLinearDepthPosFar(float farPosDepth) {
+    auto linearDepthInfo = _parametersBuffer.get<Params>().linearDepthInfo;
+    if (farPosDepth != linearDepthInfo.x) {
+        _parametersBuffer.edit<Params>().linearDepthInfo.x = farPosDepth;
+    }
+}
+
+
 BlurInOutResource::BlurInOutResource(bool generateOutputFramebuffer) :
 _generateOutputFramebuffer(generateOutputFramebuffer)
 {
@@ -220,6 +228,7 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
     _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
+    _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);

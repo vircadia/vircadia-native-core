@@ -144,7 +144,13 @@ static const std::string DEFAULT_SHADOW_SHADER {
 static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
-    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_LINEAR_DEPTH_2_SHADER{
+    "vec4 getFragmentColor() {"
+    //  "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
+    "    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 1).x * 0.01), 1.0);"
     " }"
 };
 
@@ -252,8 +258,10 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_LIGHTING_SHADER;
         case ShadowMode:
             return DEFAULT_SHADOW_SHADER;
-        case PyramidDepthMode:
+        case LinearDepthMode:
             return DEFAULT_PYRAMID_DEPTH_SHADER;
+        case LinearDepth2Mode:
+            return DEFAULT_LINEAR_DEPTH_2_SHADER;
         case CurvatureMode:
             return DEFAULT_CURVATURE_SHADER;
         case NormalCurvatureMode:

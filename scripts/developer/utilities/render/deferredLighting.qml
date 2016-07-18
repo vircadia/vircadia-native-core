@@ -151,6 +151,7 @@ Column {
                 ListElement { text: "Lighting"; color: "White" }
                 ListElement { text: "Shadow"; color: "White" }
                 ListElement { text: "Linear Depth"; color: "White" }
+                ListElement { text: "Linear Depth LOD2"; color: "White" }
                 ListElement { text: "Mid Curvature"; color: "White" }
                 ListElement { text: "Mid Normal"; color: "White" }
                 ListElement { text: "Low Curvature"; color: "White" }

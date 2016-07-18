@@ -103,7 +103,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
     const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer");
 
-    const auto prepareDeferredInputs = SurfaceGeometryPass::Inputs(primaryFramebuffer, lightingModel).hasVarying();
+    const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
     const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
@@ -117,15 +117,23 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
-    const auto curvatureRangeTimer = addJob<BeginGPURangeTimer>("BeginCurvatureRangeTimer");
 
-    // Opaque all rendered, generate surface geometry buffers
-    const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
+    // Opaque all rendered
+
+    // Linear Depth Pass
+    const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
+    const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
+    const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
+    const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
+
+    
+    // Curvature pass
+    const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
     const auto surfaceGeometryPassOutputs = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
     const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
     const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
-    const auto linearDepthTexture = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
 
+    const auto curvatureRangeTimer = addJob<BeginGPURangeTimer>("BeginCurvatureRangeTimer");
 
     // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
     const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture).hasVarying();

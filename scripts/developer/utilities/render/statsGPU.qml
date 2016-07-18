@@ -41,9 +41,14 @@ Item {
                    object: Render.getConfig("OpaqueRangeTimer"),
                    prop: "gpuTime",
                    label: "Opaque",
-                   color: "#0000FF"
+                   color: "#FFFFFF"
                }, 
                {
+                   object: Render.getConfig("LinearDepth"),
+                   prop: "gpuTime",
+                   label: "LinearDepth",
+                   color: "#00FF00"
+               },{
                    object: Render.getConfig("SurfaceGeometry"),
                    prop: "gpuTime",
                    label: "SurfaceGeometry",
