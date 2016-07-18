@@ -227,7 +227,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
         return;
     }
-    RenderArgs* args = renderContext->args;
+
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     for (auto job : _jobs) {

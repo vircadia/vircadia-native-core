@@ -165,8 +165,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
 
     auto depthViewport = args->_viewport;
     auto halfViewport = depthViewport >> 1;
-    auto furtherDepth = std::numeric_limits<float>::infinity();
-    furtherDepth = args->getViewFrustum().getFarClip() + 10.0;
+    float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         _gpuTimer.begin(batch);
@@ -181,7 +180,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
 
         // LinearDepth
         batch.setFramebuffer(linearDepthFBO);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(furtherDepth, 0.0f, 0.0f, 0.0f));
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(clearLinearDepth, 0.0f, 0.0f, 0.0f));
         batch.setPipeline(linearDepthPipeline);
         batch.setResourceTexture(DepthLinearPass_DepthMapSlot, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);

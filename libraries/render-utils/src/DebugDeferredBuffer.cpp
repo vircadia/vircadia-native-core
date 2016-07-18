@@ -287,6 +287,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
+        default:
+            return DEFAULT_ALBEDO_SHADER;
     }
     Q_UNREACHABLE();
     return std::string();
