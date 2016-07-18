@@ -45,7 +45,6 @@ out vec4 outLinearDepth;
 out vec4 outNormal;
 
 void main(void) {
-#if __VERSION__ == 450
     // Gather 2 by 2 quads from texture
     vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
 
@@ -60,7 +59,7 @@ void main(void) {
     normal += unpackNormal(vec3(rawNormalsX[1], rawNormalsY[1], rawNormalsZ[1]));
     normal += unpackNormal(vec3(rawNormalsX[2], rawNormalsY[2], rawNormalsZ[2]));
     normal += unpackNormal(vec3(rawNormalsX[3], rawNormalsY[3], rawNormalsZ[3]));
-#else
+    /*
     ivec2 texpos = ivec2(gl_FragCoord.xy) * 2;
 
     vec4 Zeyes;
@@ -83,7 +82,7 @@ void main(void) {
     normal += unpackNormal(rawNormals[1]);
     normal += unpackNormal(rawNormals[2]);
     normal += unpackNormal(rawNormals[3]);
-#endif
+*/
 
     normal = normalize(normal);
 
