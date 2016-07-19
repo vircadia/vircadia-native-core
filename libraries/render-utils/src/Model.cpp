@@ -575,7 +575,7 @@ void Model::renderSetup(RenderArgs* args) {
     }
 
     if (!_meshGroupsKnown && isLoaded()) {
-        segregateMeshGroups();
+        createRenderItems();
     }
 }
 
@@ -600,7 +600,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        bool showCollisionHull) {
     if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
         _showCollisionHull = showCollisionHull;
-        segregateMeshGroups();
+        createRenderItems();
     }
 
     bool somethingAdded = false;
@@ -1236,7 +1236,7 @@ AABox Model::getRenderableMeshBound() const {
     }
 }
 
-void Model::segregateMeshGroups() {
+void Model::createRenderItems() {
     Geometry::Pointer geometry;
     bool showingCollisionHull = false;
     if (_showCollisionHull && _collisionGeometry) {
@@ -1303,7 +1303,7 @@ void Model::segregateMeshGroups() {
 
 bool Model::initWhenReady(render::ScenePointer scene) {
     if (isActive() && isRenderable() && !_meshGroupsKnown && isLoaded()) {
-        segregateMeshGroups();
+        createRenderItems();
 
         render::PendingChanges pendingChanges;
 
