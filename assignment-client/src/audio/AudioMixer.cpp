@@ -760,10 +760,9 @@ void AudioMixer::broadcastMixes() {
 
                     std::unique_ptr<NLPacket> mixPacket;
 
-                    const int MAX_CODEC_NAME = 30; // way over estimate
-
                     if (mixHasAudio) {
-                        int mixPacketBytes = sizeof(quint16) + MAX_CODEC_NAME+ AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
+                                                             + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
@@ -780,9 +779,8 @@ void AudioMixer::broadcastMixes() {
 
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
-                    }
-                    else {
-                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + MAX_CODEC_NAME;
+                    } else {
+                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number

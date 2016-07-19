@@ -59,7 +59,7 @@ void InboundAudioStream::reset() {
     _isStarved = true;
     _hasStarted = false;
     resetStats();
-    //cleanupCodec(); // FIXME???
+    cleanupCodec();
 }
 
 void InboundAudioStream::resetStats() {
@@ -108,10 +108,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     message.readPrimitive(&sequence);
     SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
                                                                                                        message.getSourceID());
-    QString codecInPacket("");
-    if (packetType != PacketType::InjectAudio) {
-        codecInPacket = message.readString();
-    }
+    QString codecInPacket = message.readString();
 
     packetReceivedUpdateTimingStats();
 

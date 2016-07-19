@@ -80,7 +80,6 @@ public:
 
     QString getCodecName() { return _selectedCodecName; }
 
-
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 

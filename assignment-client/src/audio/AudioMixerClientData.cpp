@@ -168,7 +168,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
         // check the overflow count before we parse data
         auto overflowBefore = matchingStream->getOverflowCount();
-
         auto parseResult = matchingStream->parseData(message);
 
         if (matchingStream->getOverflowCount() > overflowBefore) {
@@ -348,8 +347,6 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 
 void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName) {
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
-
-    // write them to our packet
     replyPacket->writeString(selectedCodecName);
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *node);

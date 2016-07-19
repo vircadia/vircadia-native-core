@@ -272,9 +272,9 @@ int64_t AudioInjector::injectNextFrame() {
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
 
-            // pack some placeholder sequence number for now
-            //QString noCodecForInjectors("");
-            //writeStringToStream(noCodecForInjectors, audioPacketStream);
+            // current injectors don't use codecs, so pack in the unknown codec name
+            QString noCodecForInjectors("");
+            writeStringToStream(noCodecForInjectors, audioPacketStream);
 
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();
