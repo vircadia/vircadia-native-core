@@ -2746,7 +2746,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchUpdateEvent(event);
     }
 }
@@ -2767,7 +2767,7 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchBeginEvent(event);
     }
 
@@ -2787,7 +2787,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchEndEvent(event);
     }
 
@@ -2795,7 +2795,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::touchGestureEvent(QGestureEvent* event) {
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchGestureEvent(event);
     }
 }
