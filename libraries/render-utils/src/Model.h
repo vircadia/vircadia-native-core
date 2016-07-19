@@ -249,6 +249,7 @@ public slots:
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
+    void setCollisionMesh(model::MeshPointer mesh);
 
 protected:
 
@@ -282,7 +283,7 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     Geometry::Pointer _renderGeometry; // only ever set by its watcher
-    Geometry::Pointer _collisionGeometry; // only ever set by its watcher
+    Geometry::Pointer _collisionGeometry;
 
     GeometryResourceWatcher _renderWatcher;
     GeometryResourceWatcher _collisionWatcher;

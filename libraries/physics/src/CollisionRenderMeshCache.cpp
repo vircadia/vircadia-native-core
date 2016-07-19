@@ -67,11 +67,15 @@ void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape, m
     }
 }
 
-model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
+model::MeshPointer createMeshFromShape(const void* pointer) {
     model::MeshPointer mesh;
-    if (!shape) {
+    if (!pointer) {
         return mesh;
     }
+
+    // pointer must actually be a const btCollisionShape*, but it only
+    // needs to be valid here when its render mesh is created.
+    const btCollisionShape* shape = static_cast<const btCollisionShape*>(pointer);
 
     int32_t shapeType = shape->getShapeType();
     if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE || shape->isConvex()) {
@@ -84,7 +88,7 @@ model::MeshPointer createMeshFromShape(const btCollisionShape* shape) {
         if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
             const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
             int32_t numSubShapes = compoundShape->getNumChildShapes();
-            for (int i = 0; i < numSubShapes; ++i) {
+            for (int32_t i = 0; i < numSubShapes; ++i) {
                 const btCollisionShape* childShape = compoundShape->getChildShape(i);
                 if (childShape->isConvex()) {
                     const btConvexShape* convexShape = static_cast<const btConvexShape*>(childShape);
@@ -122,6 +126,10 @@ model::MeshPointer CollisionRenderMeshCache::getMesh(CollisionRenderMeshCache::K
             mesh = itr->second;
         }
     }
+    const uint32_t MAX_NUM_PENDING_GARBAGE = 20;
+    if (_pendingGarbage.size() > MAX_NUM_PENDING_GARBAGE) {
+        collectGarbage();
+    }
     return mesh;
 }
 
@@ -131,19 +139,19 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
     }
     CollisionMeshMap::const_iterator itr = _meshMap.find(key);
     if (itr != _meshMap.end()) {
+        // we hold at least one reference, and the outer scope also holds at least one
+        // so we assert that the reference count is not 1
         assert((*itr).second.use_count() != 1);
+
         _pendingGarbage.push_back(key);
-        if ((*itr).second.use_count() == 1) {
-            // we hold all of the references inside the cache so we'll try to delete later
-        }
         return true;
     }
     return false;
 }
 
 void CollisionRenderMeshCache::collectGarbage() {
-    int numShapes = _pendingGarbage.size();
-    for (int i = 0; i < numShapes; ++i) {
+    uint32_t numShapes = _pendingGarbage.size();
+    for (int32_t i = 0; i < numShapes; ++i) {
         CollisionRenderMeshCache::Key key = _pendingGarbage[i];
         CollisionMeshMap::const_iterator itr = _meshMap.find(key);
         if (itr != _meshMap.end()) {

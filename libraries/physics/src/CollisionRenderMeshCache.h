@@ -18,6 +18,7 @@
 
 #include <model/Geometry.h>
 
+/*
 class btCollisionShape;
 
 namespace std {
@@ -28,10 +29,11 @@ namespace std {
         }
     };
 }
+*/
 
 class CollisionRenderMeshCache {
 public:
-	using Key = const btCollisionShape*;
+	using Key = const void*; // must actually be a const btCollisionShape*
 
     CollisionRenderMeshCache();
     ~CollisionRenderMeshCache();

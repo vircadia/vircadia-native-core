@@ -111,12 +111,11 @@ public:
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
 
-signals:
-    void finished(bool success);
-
-private:
     void startWatching();
     void stopWatching();
+
+signals:
+    void finished(bool success);
 
 private slots:
     void resourceFinished(bool success);

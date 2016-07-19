@@ -119,6 +119,7 @@ private:
     bool getAnimationFrame();
 
     bool _needsJointSimulation { false };
+    const void* _collisionMeshKey { nullptr };
 };
 
 #endif // hifi_RenderableModelEntityItem_h

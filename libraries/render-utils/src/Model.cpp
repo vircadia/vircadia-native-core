@@ -1336,6 +1336,28 @@ bool Model::initWhenReady(render::ScenePointer scene) {
     return false;
 }
 
+class CollisionRenderGeometry : public Geometry {
+public:
+    CollisionRenderGeometry(model::MeshPointer mesh) {
+        _fbxGeometry = std::make_shared<FBXGeometry>();
+        std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
+        meshes->push_back(mesh);
+        _meshes = meshes;
+        _meshParts = std::shared_ptr<const GeometryMeshParts>();
+    }
+};
+
+void Model::setCollisionMesh(model::MeshPointer mesh) {
+    _collisionWatcher.stopWatching();
+    _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
+
+    if (_showCollisionHull) {
+        // TODO: need to trigger:
+        // (a) reconstruction of RenderItems
+        // (b) and reinsertion into scene if we are showing collision geometry
+    }
+}
+
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {
 }

@@ -17,6 +17,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
+#include <CollisionRenderMeshCache.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -917,8 +918,22 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 }
 
+static CollisionRenderMeshCache collisionMeshCache;
+
 void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape) {
-    // TODO: generate collision mesh and update _model
+    const void* key = static_cast<const void*>(shape);
+    if (_collisionMeshKey != key) {
+        if (_collisionMeshKey) {
+            // releasing the shape is not strictly necessary, but
+            // we do it as hint to the cache's garbage collection system
+            collisionMeshCache.releaseMesh(_collisionMeshKey);
+        }
+        _collisionMeshKey = key;
+        model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
+        if (_model) {
+            _model->setCollisionMesh(mesh);
+        }
+    }
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
