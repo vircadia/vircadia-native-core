@@ -34,11 +34,11 @@ class AudioInjectorManager;
 
 
 enum class AudioInjectorState : uint8_t {
-    NotFinished = 1,
-    Finished = 2,
-    PendingDelete = 4,
-    LocalInjectionFinished = 8,
-    NetworkInjectionFinished = 16
+    NotFinished = 0,
+    Finished = 1,
+    PendingDelete = 2,
+    LocalInjectionFinished = 4,
+    NetworkInjectionFinished = 8
 };
 
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs);
@@ -50,12 +50,6 @@ class AudioInjector : public QObject {
     Q_OBJECT
     
 public:
-    static const uint8_t NotFinished = 1;
-    static const uint8_t Finished = 2;
-    static const uint8_t PendingDelete = 4;
-    static const uint8_t LocalInjectionFinished = 8;
-    static const uint8_t NetworkInjectionFinished = 16;
-
     AudioInjector(QObject* parent);
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
@@ -90,7 +84,7 @@ public slots:
     void setOptions(const AudioInjectorOptions& options);
     
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return stateHas(AudioInjectorState::NotFinished); }
+    bool isPlaying() const { return !stateHas(AudioInjectorState::Finished); }
     void finish();
     void finishLocalInjection();
     void finishNetworkInjection();
