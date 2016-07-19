@@ -32,24 +32,29 @@
 class AbstractAudioInterface;
 class AudioInjectorManager;
 
+
+enum class AudioInjectorState : uint8_t {
+    NotFinished = 0,
+    Finished = 1,
+    PendingDelete = 2,
+    LocalInjectionFinished = 4,
+    NetworkInjectionFinished = 8
+};
+
+AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs);
+AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs);
+
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies. 
-
 class AudioInjector : public QObject {
     Q_OBJECT
     
 public:
-    enum class State : uint8_t {
-        NotFinished,
-        NotFinishedWithPendingDelete,
-        Finished
-    };
-    
     AudioInjector(QObject* parent);
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
-    bool isFinished() const { return _state == State::Finished; }
+    bool isFinished() const { return (stateHas(AudioInjectorState::Finished)); }
     
     int getCurrentSendOffset() const { return _currentSendOffset; }
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
@@ -63,6 +68,7 @@ public:
     bool isStereo() const { return _options.stereo; }
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 
+    bool stateHas(AudioInjectorState state) const ;
     static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
     static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
     static AudioInjector* playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position);
@@ -78,8 +84,10 @@ public slots:
     void setOptions(const AudioInjectorOptions& options);
     
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return _state == State::NotFinished || _state == State::NotFinishedWithPendingDelete; }
+    bool isPlaying() const { return !stateHas(AudioInjectorState::Finished); }
     void finish();
+    void finishLocalInjection();
+    void finishNetworkInjection();
     
 signals:
     void finished();
@@ -92,7 +100,7 @@ private:
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
-    State _state { State::NotFinished };
+    AudioInjectorState _state { AudioInjectorState::NotFinished };
     bool _hasSentFirstFrame { false };
     bool _hasSetup { false };
     bool _shouldStop { false };
@@ -111,4 +119,5 @@ private:
     friend class AudioInjectorManager;
 };
 
+    
 #endif // hifi_AudioInjector_h

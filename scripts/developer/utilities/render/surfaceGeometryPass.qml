@@ -30,7 +30,6 @@ Column {
                 model: [
                     "Basis Scale:basisScale:2.0:false",
                     "Curvature Scale:curvatureScale:100.0:false",
-                    "Downscale:resolutionLevel:4:true"
                 ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
@@ -41,16 +40,16 @@ Column {
                     min: 0.0
                 }
             }
-        }
-
-        Column{
             CheckBox {
-                text: "Diffuse Curvature Mid"
-                checked: true
-                onCheckedChanged: { Render.getConfig("DiffuseCurvatureMid").enabled = checked }
-            }        
+                    text: "Half Resolution"
+                    checked: Render.getConfig("SurfaceGeometry")["resolutionLevel"]
+                    onCheckedChanged: { Render.getConfig("SurfaceGeometry")["resolutionLevel"] = checked }
+            }
+    
             Repeater {
-                model: [ "Blur Scale:DiffuseCurvatureMid:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvatureMid:depthThreshold:1.0", "Blur Scale2:DiffuseCurvatureLow:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvatureLow:depthThreshold:1.0"]
+                model: [ "Diffusion Scale:SurfaceGeometry:diffuseFilterScale:2.0",
+                         "Diffusion Depth Threshold:SurfaceGeometry:diffuseDepthThreshold:1.0"
+                ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
@@ -59,12 +58,6 @@ Column {
                     max: modelData.split(":")[3]
                     min: 0.0
                 }
-            }
-
-            CheckBox {
-                text: "Diffuse Curvature Low"
-                checked: true
-                onCheckedChanged: { Render.getConfig("DiffuseCurvatureLow").enabled = checked }
             }
         }
     }

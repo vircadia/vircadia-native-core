@@ -202,8 +202,7 @@ CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     name: "hold",
     enterMethod: "nearGrabbingEnter",
-    updateMethod: "nearGrabbing",
-    exitMethod: "holdExit"
+    updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
     name: "trigger",
@@ -228,7 +227,7 @@ function colorPow(color, power) {
     return {
         red: Math.pow(color.red / 255.0, power) * 255,
         green: Math.pow(color.green / 255.0, power) * 255,
-        blue: Math.pow(color.blue / 255.0, power) * 255,
+        blue: Math.pow(color.blue / 255.0, power) * 255
     };
 }
 
@@ -271,14 +270,12 @@ function propsArePhysical(props) {
     return isPhysical;
 }
 
-// currently disabled.
-var USE_ATTACH_POINT_SETTINGS = false;
+var USE_ATTACH_POINT_SETTINGS = true;
 
 var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 function getAttachPointSettings() {
     try {
         var str = Settings.getValue(ATTACH_POINT_SETTINGS);
-        print("getAttachPointSettings = " + str);
         if (str === "false") {
             return {};
         } else {
@@ -291,7 +288,6 @@ function getAttachPointSettings() {
 }
 function setAttachPointSettings(attachPointSettings) {
     var str = JSON.stringify(attachPointSettings);
-    print("setAttachPointSettings = " + str);
     Settings.setValue(ATTACH_POINT_SETTINGS, str);
 }
 function getAttachPointForHotspotFromSettings(hotspot, hand) {
@@ -765,9 +761,8 @@ function MyController(hand) {
         }
     };
 
-    var SEARCH_SPHERE_ALPHA = 0.5;
     this.searchSphereOn = function (location, size, color) {
-        
+
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
         var brightColor = colorPow(color, 0.06);
         if (this.searchSphere === null) {
@@ -790,7 +785,7 @@ function MyController(hand) {
                 position: location,
                 rotation: rotation,
                 innerColor: brightColor,
-                outerColor: color,  
+                outerColor: color,
                 innerAlpha: 1.0,
                 outerAlpha: 0.0,
                 outerRadius: size * 1.2,
@@ -1961,11 +1956,11 @@ function MyController(hand) {
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentVelocity = ZERO_VEC;
         this.currentAngularVelocity = ZERO_VEC;
+
+        this.prevDropDetected = false;
     };
 
     this.nearGrabbing = function (deltaTime, timestamp) {
-
-        var dropDetected = this.dropGestureProcess(deltaTime);
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1975,6 +1970,16 @@ function MyController(hand) {
 
         if (this.state == STATE_HOLD) {
 
+            var dropDetected = this.dropGestureProcess(deltaTime);
+
+            if (this.triggerSmoothedReleased()) {
+                this.waitForTriggerRelease = false;
+            }
+
+            if (dropDetected && this.prevDropDetected != dropDetected) {
+                this.waitForTriggerRelease = true;
+            }
+
             // highlight the grabbed hotspot when the dropGesture is detected.
             if (dropDetected) {
                 entityPropertiesCache.addEntity(this.grabbedHotspot.entityID);
@@ -1982,17 +1987,24 @@ function MyController(hand) {
                 equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
             }
 
-            if (dropDetected && this.triggerSmoothedGrab()) {
+            if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop gesture detected");
-                return;
-            }
 
-            if (this.thumbPressed()) {
-                this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop via thumb press");
+                // store the offset attach points into preferences.
+                if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
+                    var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                    if (props && props.localPosition && props.localRotation) {
+                        storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, props.localPosition, props.localRotation);
+                    }
+                }
+
+                var grabbedEntity = this.grabbedEntity;
+                this.release();
+                this.grabbedEntity = grabbedEntity;
+                this.setState(STATE_NEAR_GRABBING, "drop gesture detected");
                 return;
             }
+            this.prevDropDetected = dropDetected;
         }
 
         this.heartBeat(this.grabbedEntity);
@@ -2085,22 +2097,6 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 this.setupHoldAction();
             }
-        }
-    };
-
-    this.holdExit = function () {
-        // store the offset attach points into preferences.
-        if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
-            entityPropertiesCache.addEntity(this.grabbedEntity);
-            var props = entityPropertiesCache.getProps(this.grabbedEntity);
-            var entityXform = new Xform(props.rotation, props.position);
-            var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
-            var handRot = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
-            var avatarHandPos = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
-            var palmXform = new Xform(handRot, avatarXform.xformPoint(avatarHandPos));
-            var offsetXform = Xform.mul(palmXform.inv(), entityXform);
-
-            storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, offsetXform.pos, offsetXform.rot);
         }
     };
 

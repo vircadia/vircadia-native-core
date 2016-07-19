@@ -34,6 +34,7 @@ var OVERLAY_DATA_HMD = {
     color: {red: 255, green: 255, blue: 255},
     alpha: 1,
     scale: 2,
+    emissive: true,
     isFacingAvatar: true,
     drawInFront: true
 };

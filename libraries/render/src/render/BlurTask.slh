@@ -126,7 +126,7 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
     // Accumulate the center sample
     vec4 srcBlurred = gaussianDistributionCurve[0] * sampleCenter;
 
-/*     for(int i = 1; i < NUM_TAPS; i++) {
+     for(int i = 1; i < NUM_TAPS; i++) {
         // Fetch color and depth for current sample.
         vec2 sampleCoord = texcoord + (gaussianDistributionOffset[i] * finalStep);
         float srcDepth = texture(depthMap, sampleCoord).x;
@@ -139,8 +139,8 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
         // Accumulate.
         srcBlurred += gaussianDistributionCurve[i] * srcSample;
     }   
-*/
 
+     /*
     for(int i = 1; i < NUM_HALF_TAPS; i++) {
         // Fetch color and depth for current sample.
         vec2 texcoordOffset = (gaussianDistributionOffsetHalf[i] * finalStep);
@@ -159,7 +159,7 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
 
         // Accumulate.
         srcBlurred += gaussianDistributionCurveHalf[i] * (srcSampleP + srcSampleN);
-    }
+    }*/
     
     return srcBlurred;
 }

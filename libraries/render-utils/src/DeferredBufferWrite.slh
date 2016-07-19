@@ -12,7 +12,6 @@
 <@def DEFERRED_BUFFER_WRITE_SLH@>
 
 <@include DeferredBuffer.slh@>
-<@include LightingModel.slh@>
 
 
 layout(location = 0) out vec4 _fragColor0;
@@ -40,14 +39,12 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness
     if (alpha != 1.0) {
         discard;
     }
-    emissive *= isEmissiveEnabled();
     _fragColor0 = vec4(albedo, ((scattering > 0.0) ? packScatteringMetallic(metallic) : packShadedMetallic(metallic)));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(((scattering > 0.0) ? vec3(scattering) : emissive), occlusion);
     
     _fragColor3 = vec4(emissive, 1.0);
 }
-
 
 void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 fresnel, vec3 lightmap) {
     if (alpha != 1.0) {
@@ -57,11 +54,8 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float r
     _fragColor0 = vec4(albedo, packLightmappedMetallic(metallic));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(lightmap, 1.0);
-    
-    _fragColor3 = vec4(lightmap * isLightmapEnabled(), 1.0);
-    if (isAlbedoEnabled() > 0.0) {
-        _fragColor3.rgb *= albedo;
-    }
+
+    _fragColor3 = vec4(lightmap * albedo, 1.0);
 }
 
 void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {

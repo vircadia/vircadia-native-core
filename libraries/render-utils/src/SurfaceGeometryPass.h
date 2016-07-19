@@ -15,6 +15,7 @@
 #include <DependencyManager.h>
 
 #include "render/DrawTask.h"
+#include "render/BlurTask.h"
 #include "DeferredFrameTransform.h"
 #include "DeferredFramebuffer.h"
 
@@ -111,12 +112,17 @@ public:
 
     gpu::FramebufferPointer getCurvatureFramebuffer();
     gpu::TexturePointer getCurvatureTexture();
+  
+    gpu::FramebufferPointer getLowCurvatureFramebuffer();
+    gpu::TexturePointer getLowCurvatureTexture();
+
+    gpu::FramebufferPointer getBlurringFramebuffer();
+    gpu::TexturePointer getBlurringTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     void updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
-    glm::ivec2 getCurvatureFrameSize() const { return _frameSize >> _resolutionLevel; }
 
     void setResolutionLevel(int level);
     int getResolutionLevel() const { return _resolutionLevel; }
@@ -130,6 +136,12 @@ protected:
     gpu::FramebufferPointer _curvatureFramebuffer;
     gpu::TexturePointer _curvatureTexture;
 
+    gpu::FramebufferPointer _blurringFramebuffer;
+    gpu::TexturePointer _blurringTexture;
+
+    gpu::FramebufferPointer _lowCurvatureFramebuffer;
+    gpu::TexturePointer _lowCurvatureTexture;
+
     glm::ivec2 _frameSize;
     int _resolutionLevel{ 0 };
 };
@@ -142,6 +154,10 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_PROPERTY(float basisScale MEMBER basisScale NOTIFY dirty)
     Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
     Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel NOTIFY dirty)
+
+    Q_PROPERTY(float diffuseFilterScale MEMBER diffuseFilterScale NOTIFY dirty)
+    Q_PROPERTY(float diffuseDepthThreshold MEMBER diffuseDepthThreshold NOTIFY dirty)
+
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
@@ -149,7 +165,9 @@ public:
     float depthThreshold{ 5.0f }; // centimeters
     float basisScale{ 1.0f };
     float curvatureScale{ 10.0f };
-    int resolutionLevel{ 0 };
+    int resolutionLevel{ 1 };
+    float diffuseFilterScale{ 0.2f };
+    float diffuseDepthThreshold{ 1.0f };
 
     double getGpuTime() { return gpuTime; }
 
@@ -162,7 +180,7 @@ signals:
 class SurfaceGeometryPass {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
-    using Outputs = render::VaryingSet2<SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
+    using Outputs = render::VaryingSet4<SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = SurfaceGeometryPassConfig;
     using JobModel = render::Job::ModelIO<SurfaceGeometryPass, Inputs, Outputs, Config>;
 
@@ -171,9 +189,11 @@ public:
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
     
+
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
     float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }
     float getCurvatureScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.w; }
+    int getResolutionLevel() const { return (int)_parametersBuffer.get<Parameters>().resolutionInfo.w; }
 
 private:
     typedef gpu::BufferView UniformBufferView;
@@ -182,7 +202,7 @@ private:
     class Parameters {
     public:
         // Resolution info
-        glm::vec4 resolutionInfo { -1.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec4 resolutionInfo { 0.0f, 0.0f, 0.0f, 1.0f }; // Default Curvature & Diffusion is running half res
         // Curvature algorithm
         glm::vec4 curvatureInfo{ 0.0f };
 
@@ -190,11 +210,14 @@ private:
     };
     gpu::BufferView _parametersBuffer;
 
+
     SurfaceGeometryFramebufferPointer _surfaceGeometryFramebuffer;
 
     const gpu::PipelinePointer& getCurvaturePipeline();
 
     gpu::PipelinePointer _curvaturePipeline;
+    
+    render::BlurGaussianDepthAware _diffusePass;
 
 
     gpu::RangeTimer _gpuTimer;

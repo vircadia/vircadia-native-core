@@ -41,7 +41,7 @@ void main(void) {
 #ifdef PROCEDURAL_V1
     specular = getProceduralColor().rgb;
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
-    specular = pow(specular, vec3(2.2));
+    //specular = pow(specular, vec3(2.2));
     emissiveAmount = 1.0;
 #else 
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);

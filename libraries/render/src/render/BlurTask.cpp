@@ -258,10 +258,10 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
 
 
 
-BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer) :
-    _inOutResources(generateOutputFramebuffer)
+BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, const BlurParamsPointer& params) :
+    _inOutResources(generateOutputFramebuffer),
+    _parameters((params ? params : std::make_shared<BlurParams>()))
 {
-    _parameters = std::make_shared<BlurParams>();
 }
 
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
@@ -337,24 +337,23 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
     auto blurHPipeline = getBlurHPipeline();
 
     auto sourceViewport = args->_viewport;
-    auto blurViewport = sourceViewport >> 1;
 
-    _parameters->setWidthHeight(blurViewport.z, blurViewport.w, args->_context->isStereo());
+    _parameters->setWidthHeight(sourceViewport.z, sourceViewport.w, args->_context->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
-    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, blurViewport));
+    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, sourceViewport));
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
     _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.setViewportTransform(blurViewport);
+        batch.setViewportTransform(sourceViewport);
 
         batch.setUniformBuffer(BlurTask_ParamsSlot, _parameters->_parametersBuffer);
 
         batch.setResourceTexture(BlurTask_DepthSlot, depthTexture);
 
         batch.setFramebuffer(blurringResources.blurringFramebuffer);
-      //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+        // batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
 
         batch.setPipeline(blurVPipeline);
         batch.setResourceTexture(BlurTask_SourceSlot, blurringResources.sourceTexture);
@@ -362,7 +361,7 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
 
         batch.setFramebuffer(blurringResources.finalFramebuffer);
         if (_inOutResources._generateOutputFramebuffer) {
-     //       batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+            // batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
         }
 
         batch.setPipeline(blurHPipeline);

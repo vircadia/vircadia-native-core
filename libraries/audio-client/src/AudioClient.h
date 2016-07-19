@@ -15,6 +15,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <mutex>
 
 #include <QtCore/qsystemdetection.h>
 #include <QtCore/QByteArray>
@@ -83,6 +84,9 @@ public:
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+    
     class AudioOutputIODevice : public QIODevice {
     public:
         AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
@@ -219,6 +223,7 @@ private:
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
+    Mutex _injectorsMutex;
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;

@@ -379,7 +379,6 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     auto& deferredFramebuffer = inputs.get0();
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
-    auto& diffusedCurvatureFramebuffer = inputs.get3();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -414,7 +413,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(HalfNormal, linearDepthTarget->getHalfNormalTexture());
 
         batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
-        batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(DiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         } else {

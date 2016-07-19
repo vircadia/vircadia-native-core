@@ -20,7 +20,7 @@ struct LightingModel {
     vec4 _ShowContourObscuranceSpare2;
 };
 
-uniform lightingModelBuffer {
+uniform lightingModelBuffer{
     LightingModel lightingModel;
 };
 

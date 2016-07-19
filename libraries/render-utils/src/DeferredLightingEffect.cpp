@@ -448,7 +448,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
         }
         if (lowCurvatureNormalFramebuffer) {
-            batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormalFramebuffer->getRenderBuffer(0));
+           // batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormalFramebuffer->getRenderBuffer(0));
+            batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (subsurfaceScatteringResource) {
             batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
