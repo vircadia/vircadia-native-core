@@ -36,10 +36,8 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
         auto sequence = sequenceNumber++;
         audioPacket->writePrimitive(sequence);
 
-        // write the codec - don't include this for injected audio
-        if (packetType != PacketType::InjectAudio) {
-            auto stringSize = audioPacket->writeString(codecName);
-        }
+        // write the codec
+        audioPacket->writeString(codecName);
 
         if (packetType == PacketType::SilentAudioFrame) {
             // pack num silent samples

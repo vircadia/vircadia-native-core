@@ -101,8 +101,6 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 }
 
 int InboundAudioStream::parseData(ReceivedMessage& message) {
-    PacketType packetType = message.getType();
-
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
