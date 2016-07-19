@@ -13,6 +13,7 @@
 
 #include <NLPacket.h>
 #include <Node.h>
+#include <NodeList.h>
 
 #include "InboundAudioStream.h"
 
@@ -147,7 +148,12 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     parseAudioData(message.getType(), afterProperties);
                 } else {
                     qDebug() << __FUNCTION__ << "codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
+
                     writeDroppableSilentSamples(networkSamples);
+
+                    // inform others of the mismatch
+                    auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                    emit mismatchedAudioCodec(sendingNode, _selectedCodecName);
                 }
             }
             break;

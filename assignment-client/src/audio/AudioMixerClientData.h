@@ -84,6 +84,9 @@ public:
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
+public slots:
+    void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
+
 private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID

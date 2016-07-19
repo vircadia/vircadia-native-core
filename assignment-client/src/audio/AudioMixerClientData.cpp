@@ -113,6 +113,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::sendSelectAudioFormat);
+
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
                     std::unique_ptr<PositionalAudioStream> { avatarAudioStream }
@@ -343,6 +345,16 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 
     return result;
 }
+
+void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName) {
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+
+    // write them to our packet
+    replyPacket->writeString(selectedCodecName);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *node);
+}
+
 
 void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
     cleanupCodec(); // cleanup any previously allocated coders first

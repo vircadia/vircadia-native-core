@@ -525,7 +525,6 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
 
     // FIXME - why would we not have client data at this point??
@@ -539,14 +538,7 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
     clientData->setupCodec(selectedCodec, selectedCodecName);
 
     qDebug() << "selectedCodecName:" << selectedCodecName;
-
-    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
-
-    // write them to our packet
-    replyPacket->writeString(selectedCodecName);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *sendingNode);
+    clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
