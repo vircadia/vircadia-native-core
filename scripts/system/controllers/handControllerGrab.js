@@ -1685,8 +1685,9 @@ function MyController(hand) {
             radius = 1.0;
         }
 
-        var handDelta = Vec3.subtract(roomControllerPosition, this.previousRoomControllerPosition);
-        var handMoved = Vec3.multiply(handDelta, radius);
+        var roomHandDelta = Vec3.subtract(roomControllerPosition, this.previousRoomControllerPosition);
+        var worldHandDelta = Mat4.transformVector(MyAvatar.getSensorToWorldMatrix(), roomHandDelta);
+        var handMoved = Vec3.multiply(worldHandDelta, radius);
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
 
         this.callEntityMethodOnGrabbed("continueDistantGrab");
@@ -1698,7 +1699,7 @@ function MyController(hand) {
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
 
         //  Update radialVelocity
-        var lastVelocity = Vec3.multiply(handDelta, 1.0 / deltaObjectTime);
+        var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
         var delta = Vec3.normalize(Vec3.subtract(grabbedProperties.position, worldControllerPosition));
         var newRadialVelocity = Vec3.dot(lastVelocity, delta);
 
