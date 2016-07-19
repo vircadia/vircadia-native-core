@@ -38,6 +38,7 @@ Column {
             spacing: 10
             Repeater {
                 model: [
+                     "Obscurance:LightingModel:enableObscurance",
                      "Scattering:LightingModel:enableScattering",
                      "Diffuse:LightingModel:enableDiffuse",
                      "Specular:LightingModel:enableSpecular",

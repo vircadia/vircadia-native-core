@@ -98,6 +98,10 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, Light light, vec3 
     }
 <@endif@>
 
+    if (!(isObscuranceEnabled() > 0.0)) {
+        obscurance = 1.0;
+    }
+
     float lightEnergy = obscurance * getLightAmbientIntensity(light);
 
     if (isAlbedoEnabled() > 0.0) {

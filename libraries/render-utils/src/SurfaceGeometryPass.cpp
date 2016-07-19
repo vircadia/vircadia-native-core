@@ -326,8 +326,8 @@ SurfaceGeometryPass::SurfaceGeometryPass() {
 
 void SurfaceGeometryPass::configure(const Config& config) {
 
-    if (config.depthThreshold != getCurvatureDepthThreshold()) {
-        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold;
+    if ((config.depthThreshold * 100.0f) != getCurvatureDepthThreshold()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold * 100.0f;
     }
 
     if (config.basisScale != getCurvatureBasisScale()) {

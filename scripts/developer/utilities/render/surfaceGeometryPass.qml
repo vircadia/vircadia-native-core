@@ -18,9 +18,16 @@ Column {
         spacing: 10
 
         Column{
+                ConfigSlider {
+                    label: qsTr("Depth Threshold [cm]")
+                    integral: false
+                    config: Render.getConfig("SurfaceGeometry")
+                    property: "depthThreshold"
+                    max: 5.0
+                    min: 0.0
+                }
             Repeater {
                 model: [
-                    "Depth Threshold:depthThreshold:0.05:false",
                     "Basis Scale:basisScale:2.0:false",
                     "Curvature Scale:curvatureScale:100.0:false",
                     "Downscale:resolutionLevel:4:true"

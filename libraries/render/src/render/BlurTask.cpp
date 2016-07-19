@@ -374,3 +374,5 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
         batch.setUniformBuffer(BlurTask_ParamsSlot, nullptr);
     });
 }
+
+

@@ -17,7 +17,7 @@ struct LightingModel {
     vec4 _UnlitEmissiveLightmapBackground;
     vec4 _ScatteringDiffuseSpecularAlbedo;
     vec4 _AmbientDirectionalPointSpot;
-    vec4 _ShowContour;
+    vec4 _ShowContourObscuranceSpare2;
 };
 
 uniform lightingModelBuffer {
@@ -35,6 +35,9 @@ float isLightmapEnabled() {
 }
 float isBackgroundEnabled() {
     return lightingModel._UnlitEmissiveLightmapBackground.w;
+}
+float isObscuranceEnabled() {
+    return lightingModel._ShowContourObscuranceSpare2.y;
 }
 
 float isScatteringEnabled() {
@@ -64,8 +67,9 @@ float isSpotEnabled() {
 }
 
 float isShowLightContour() {
-    return lightingModel._ShowContour.x;
+    return lightingModel._ShowContourObscuranceSpare2.x;
 }
+
 
 <@endfunc@>
 <$declareLightingModel()$>

@@ -49,7 +49,14 @@ void LightingModel::setBackground(bool enable) {
 bool LightingModel::isBackgroundEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableBackground;
 }
-
+void LightingModel::setObscurance(bool enable) {
+    if (enable != isObscuranceEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableObscurance = (float)enable;
+    }
+}
+bool LightingModel::isObscuranceEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableObscurance;
+}
 
 void LightingModel::setScattering(bool enable) {
     if (enable != isScatteringEnabled()) {
@@ -135,6 +142,8 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setEmissive(config.enableEmissive);
     _lightingModel->setLightmap(config.enableLightmap);
     _lightingModel->setBackground(config.enableBackground);
+
+    _lightingModel->setObscurance(config.enableObscurance);
 
     _lightingModel->setScattering(config.enableScattering);
     _lightingModel->setDiffuse(config.enableDiffuse);
