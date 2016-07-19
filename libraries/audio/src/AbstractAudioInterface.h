@@ -28,7 +28,8 @@ class AbstractAudioInterface : public QObject {
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
-    static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, const Transform& transform, PacketType packetType);
+    static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, const Transform& transform, 
+                                PacketType packetType, QString codecName = QString(""));
 
 public slots:
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
