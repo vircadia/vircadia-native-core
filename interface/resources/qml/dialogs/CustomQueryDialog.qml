@@ -265,7 +265,7 @@ ModalWindow {
                 if (checkBox) {
                     result.checkBox = checkBoxField.enabled ? checkBoxField.checked : null;
                 }
-                root.result = result;
+                root.result = JSON.stringify(result);
                 root.selected(root.result);
                 root.destroy();
             }

@@ -349,14 +349,12 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
     }
 
     QVariant result = DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
-    if (ok && result.isValid()) {
-        *ok = true;
-    }
-
-    // Casts from QJSValue to QVariantMap (not sure how, just copied from http://lists.qt-project.org/pipermail/development/2014-September/018513.html)
-    Q_ASSERT(!result.isValid() || result.userType() == qMetaTypeId<QJSValue>());
-    if (result.userType() == qMetaTypeId<QJSValue>()) {
-        result = qvariant_cast<QJSValue>(result).toVariant();
+    if (result.isValid()) {
+        // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
+        result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
+        if (ok) {
+            *ok = true;
+        }
     }
 
     return result;
