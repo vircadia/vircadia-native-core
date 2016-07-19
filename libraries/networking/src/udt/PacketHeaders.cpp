@@ -106,8 +106,9 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion) {
 }
 #endif
 
-QByteArray protocolVersionsSignature() {
-    static QByteArray protocolVersionSignature;
+static QByteArray protocolVersionSignature;
+static QString protocolVersionSignatureBase64;
+static void ensureProtocolVersionsSignature() {
     static std::once_flag once;
     std::call_once(once, [&] {
         QByteArray buffer;
@@ -121,8 +122,11 @@ QByteArray protocolVersionsSignature() {
         QCryptographicHash hash(QCryptographicHash::Md5);
         hash.addData(buffer);
         protocolVersionSignature = hash.result();
+        protocolVersionSignatureBase64 = protocolVersionSignature.toBase64();
     });
-
+}
+QByteArray protocolVersionsSignature() {
+    ensureProtocolVersionsSignature();
     #if (PR_BUILD || DEV_BUILD)
     if (sendWrongProtocolVersion) {
         return QByteArray("INCORRECTVERSION"); // only for debugging version checking
@@ -130,4 +134,8 @@ QByteArray protocolVersionsSignature() {
     #endif
 
     return protocolVersionSignature;
+}
+QString protocolVersionsSignatureBase64() {
+    ensureProtocolVersionsSignature();
+    return protocolVersionSignatureBase64;
 }
