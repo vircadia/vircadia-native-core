@@ -282,6 +282,10 @@ void SurfaceGeometryFramebuffer::updateLinearDepth(const gpu::TexturePointer& li
 void SurfaceGeometryFramebuffer::clear() {
     _curvatureFramebuffer.reset();
     _curvatureTexture.reset();
+    _lowCurvatureFramebuffer.reset();
+    _lowCurvatureTexture.reset();
+    _blurringFramebuffer.reset();
+    _blurringTexture.reset();
 }
 
 gpu::TexturePointer SurfaceGeometryFramebuffer::getLinearDepthTexture() {
@@ -293,9 +297,17 @@ void SurfaceGeometryFramebuffer::allocate() {
     auto width = _frameSize.x;
     auto height = _frameSize.y;
 
-    _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width >> getResolutionLevel(), height >> getResolutionLevel(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
+
+    _lowCurvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _lowCurvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _lowCurvatureFramebuffer->setRenderBuffer(0, _lowCurvatureTexture);
+
+    _blurringTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _blurringFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _blurringFramebuffer->setRenderBuffer(0, _blurringTexture);
 }
 
 gpu::FramebufferPointer SurfaceGeometryFramebuffer::getCurvatureFramebuffer() {
@@ -312,6 +324,34 @@ gpu::TexturePointer SurfaceGeometryFramebuffer::getCurvatureTexture() {
     return _curvatureTexture;
 }
 
+gpu::FramebufferPointer SurfaceGeometryFramebuffer::getLowCurvatureFramebuffer() {
+    if (!_lowCurvatureFramebuffer) {
+        allocate();
+    }
+    return _lowCurvatureFramebuffer;
+}
+
+gpu::TexturePointer SurfaceGeometryFramebuffer::getLowCurvatureTexture() {
+    if (!_lowCurvatureTexture) {
+        allocate();
+    }
+    return _lowCurvatureTexture;
+}
+
+gpu::FramebufferPointer SurfaceGeometryFramebuffer::getBlurringFramebuffer() {
+    if (!_blurringFramebuffer) {
+        allocate();
+    }
+    return _blurringFramebuffer;
+}
+
+gpu::TexturePointer SurfaceGeometryFramebuffer::getBlurringTexture() {
+    if (!_blurringTexture) {
+        allocate();
+    }
+    return _blurringTexture;
+}
+
 void SurfaceGeometryFramebuffer::setResolutionLevel(int resolutionLevel) {
     if (resolutionLevel != getResolutionLevel()) {
         clear();
@@ -320,8 +360,7 @@ void SurfaceGeometryFramebuffer::setResolutionLevel(int resolutionLevel) {
 }
 
 SurfaceGeometryPass::SurfaceGeometryPass() :
-    _firstBlurPass(false),
-    _secondBlurPass(true, _firstBlurPass.getParameters())
+    _diffusePass(false)
 {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
@@ -345,6 +384,10 @@ void SurfaceGeometryPass::configure(const Config& config) {
         _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
     }
     _surfaceGeometryFramebuffer->setResolutionLevel(config.resolutionLevel);
+
+    _diffusePass.getParameters()->setFilterRadiusScale(config.diffuseFilterScale);
+    _diffusePass.getParameters()->setDepthThreshold(config.diffuseDepthThreshold);
+    
 }
 
 
@@ -358,33 +401,52 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     const auto deferredFramebuffer = inputs.get1();
     const auto linearDepthFramebuffer = inputs.get2();
 
-    auto linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+
+    auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
+    auto sourceViewport = args->_viewport;
+    auto curvatureViewport = sourceViewport;
+
+    if (_surfaceGeometryFramebuffer->getResolutionLevel() > 0) {
+        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+        normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
+        curvatureViewport = curvatureViewport >> _surfaceGeometryFramebuffer->getResolutionLevel();
+    }
 
     if (!_surfaceGeometryFramebuffer) {
         _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
     }
     _surfaceGeometryFramebuffer->updateLinearDepth(linearDepthTexture);
 
-  //  auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
-    auto normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
-
     auto curvatureFramebuffer = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+    auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
 #ifdef USE_STENCIL_TEST
-    if (curvatureFBO->getDepthStencilBuffer() != deferredFramebuffer->getPrimaryDepthTexture()) {
-        curvatureFBO->setDepthStencilBuffer(deferredFramebuffer->getPrimaryDepthTexture(), deferredFramebuffer->getPrimaryDepthTexture()->getTexelFormat());
+    if (curvatureFramebuffer->getDepthStencilBuffer() != deferredFramebuffer->getPrimaryDepthTexture()) {
+        curvatureFramebuffer->setDepthStencilBuffer(deferredFramebuffer->getPrimaryDepthTexture(), deferredFramebuffer->getPrimaryDepthTexture()->getTexelFormat());
     }
 #endif
-    auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
+
+    auto lowCurvatureFramebuffer = _surfaceGeometryFramebuffer->getLowCurvatureFramebuffer();
+    auto lowCurvatureTexture = _surfaceGeometryFramebuffer->getLowCurvatureTexture();
+ 
+    auto blurringFramebuffer = _surfaceGeometryFramebuffer->getBlurringFramebuffer();
+    auto blurringTexture = _surfaceGeometryFramebuffer->getBlurringTexture();
 
     outputs.edit0() = _surfaceGeometryFramebuffer;
     outputs.edit1() = curvatureFramebuffer;
+    outputs.edit2() = curvatureFramebuffer;
+    outputs.edit3() = lowCurvatureFramebuffer;
 
     auto curvaturePipeline = getCurvaturePipeline();
+    auto diffuseVPipeline = _diffusePass.getBlurVPipeline();
+    auto diffuseHPipeline = _diffusePass.getBlurHPipeline();
 
-    auto depthViewport = args->_viewport;
-    auto curvatureViewport = depthViewport >> 1;
-  //  >> _surfaceGeometryFramebuffer->getResolutionLevel();
+    glm::ivec2 textureSize(curvatureTexture->getDimensions());
+    _diffusePass.getParameters()->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, curvatureViewport));
+    _diffusePass.getParameters()->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
+    _diffusePass.getParameters()->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
+ 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         _gpuTimer.begin(batch);
         batch.enableStereo(false);
@@ -393,43 +455,58 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setViewTransform(Transform());
 
         batch.setViewportTransform(curvatureViewport);
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getCurvatureFrameSize(), curvatureViewport));
-
-        batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getSourceFrameSize(), curvatureViewport));
 
         // Curvature pass
+        batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
         batch.setFramebuffer(curvatureFramebuffer);
- 
-        // We can avoid the clear by drawing the same clear vallue from the makeCurvature shader. same performances or no worse
-      
+        // We can avoid the clear by drawing the same clear vallue from the makeCurvature shader. same performances or no worse     
 #ifdef USE_STENCIL_TEST
         // Except if stenciling out
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
 #endif
-
         batch.setPipeline(curvaturePipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, normalTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
-        batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, nullptr);
+        // Diffusion pass
+        const int BlurTask_ParamsSlot = 0;
+        const int BlurTask_SourceSlot = 0;
+        const int BlurTask_DepthSlot = 1;
+        batch.setUniformBuffer(BlurTask_ParamsSlot, _diffusePass.getParameters()->_parametersBuffer);
+
+        batch.setResourceTexture(BlurTask_DepthSlot, linearDepthTexture);
+
+        batch.setFramebuffer(blurringFramebuffer);     
+        batch.setPipeline(diffuseVPipeline);
+        batch.setResourceTexture(BlurTask_SourceSlot, curvatureTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        batch.setFramebuffer(curvatureFramebuffer);
+        batch.setPipeline(diffuseHPipeline);
+        batch.setResourceTexture(BlurTask_SourceSlot, blurringTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        batch.setFramebuffer(blurringFramebuffer);     
+        batch.setPipeline(diffuseVPipeline);
+        batch.setResourceTexture(BlurTask_SourceSlot, curvatureTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        batch.setFramebuffer(lowCurvatureFramebuffer);
+        batch.setPipeline(diffuseHPipeline);
+        batch.setResourceTexture(BlurTask_SourceSlot, blurringTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        batch.setResourceTexture(BlurTask_SourceSlot, nullptr);
+        batch.setResourceTexture(BlurTask_DepthSlot, nullptr);
+        batch.setUniformBuffer(BlurTask_ParamsSlot, nullptr);
 
         _gpuTimer.end(batch);
     });
-
-    const auto diffuseCurvaturePassInputs = render::BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture);
-    gpu::FramebufferPointer midBlurredFramebuffer;
-    _firstBlurPass.run(sceneContext, renderContext, diffuseCurvaturePassInputs, midBlurredFramebuffer);
-
-    gpu::FramebufferPointer lowBlurredFramebuffer;
-    _secondBlurPass.run(sceneContext, renderContext, diffuseCurvaturePassInputs, lowBlurredFramebuffer);
-    
+       
  
-    outputs.edit2() = midBlurredFramebuffer;
-    outputs.edit3() = lowBlurredFramebuffer;
-
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->gpuTime = _gpuTimer.getAverage();
 }

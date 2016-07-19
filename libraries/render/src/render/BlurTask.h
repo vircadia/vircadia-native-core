@@ -144,6 +144,9 @@ public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer);
 
     const BlurParamsPointer& getParameters() const { return _parameters; }
+ 
+    gpu::PipelinePointer getBlurVPipeline();
+    gpu::PipelinePointer getBlurHPipeline();
 
 protected:
 
@@ -151,9 +154,6 @@ protected:
 
     gpu::PipelinePointer _blurVPipeline;
     gpu::PipelinePointer _blurHPipeline;
-
-    gpu::PipelinePointer getBlurVPipeline();
-    gpu::PipelinePointer getBlurHPipeline();
 
     BlurInOutResource _inOutResources;
 };

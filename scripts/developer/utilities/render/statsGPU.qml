@@ -53,11 +53,6 @@ Item {
                    prop: "gpuTime",
                    label: "SurfaceGeometry",
                    color: "#00FFFF"
-               },{
-                   object: Render.getConfig("CurvatureRangeTimer"),
-                   prop: "gpuTime",
-                   label: "Curvature",
-                   color: "#00FF00"
                },
                {
                    object: Render.getConfig("RenderDeferred"),

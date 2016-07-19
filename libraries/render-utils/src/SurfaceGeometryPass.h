@@ -112,12 +112,17 @@ public:
 
     gpu::FramebufferPointer getCurvatureFramebuffer();
     gpu::TexturePointer getCurvatureTexture();
+  
+    gpu::FramebufferPointer getLowCurvatureFramebuffer();
+    gpu::TexturePointer getLowCurvatureTexture();
+
+    gpu::FramebufferPointer getBlurringFramebuffer();
+    gpu::TexturePointer getBlurringTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     void updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
-    glm::ivec2 getCurvatureFrameSize() const { return _frameSize >> _resolutionLevel; }
 
     void setResolutionLevel(int level);
     int getResolutionLevel() const { return _resolutionLevel; }
@@ -131,6 +136,12 @@ protected:
     gpu::FramebufferPointer _curvatureFramebuffer;
     gpu::TexturePointer _curvatureTexture;
 
+    gpu::FramebufferPointer _blurringFramebuffer;
+    gpu::TexturePointer _blurringTexture;
+
+    gpu::FramebufferPointer _lowCurvatureFramebuffer;
+    gpu::TexturePointer _lowCurvatureTexture;
+
     glm::ivec2 _frameSize;
     int _resolutionLevel{ 0 };
 };
@@ -143,6 +154,10 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_PROPERTY(float basisScale MEMBER basisScale NOTIFY dirty)
     Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
     Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel NOTIFY dirty)
+
+    Q_PROPERTY(float diffuseFilterScale MEMBER diffuseFilterScale NOTIFY dirty)
+    Q_PROPERTY(float diffuseDepthThreshold MEMBER diffuseDepthThreshold NOTIFY dirty)
+
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
@@ -151,6 +166,8 @@ public:
     float basisScale{ 1.0f };
     float curvatureScale{ 10.0f };
     int resolutionLevel{ 0 };
+    float diffuseFilterScale{ 0.2f };
+    float diffuseDepthThreshold{ 1.0f };
 
     double getGpuTime() { return gpuTime; }
 
@@ -191,14 +208,15 @@ private:
     };
     gpu::BufferView _parametersBuffer;
 
+
     SurfaceGeometryFramebufferPointer _surfaceGeometryFramebuffer;
 
     const gpu::PipelinePointer& getCurvaturePipeline();
 
     gpu::PipelinePointer _curvaturePipeline;
+    
+    render::BlurGaussianDepthAware _diffusePass;
 
-    render::BlurGaussianDepthAware _firstBlurPass;
-    render::BlurGaussianDepthAware _secondBlurPass;
 
     gpu::RangeTimer _gpuTimer;
 };
