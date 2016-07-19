@@ -128,7 +128,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             isMicStream = true;
         } else if (packetType == PacketType::InjectAudio) {
             // this is injected audio
-
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));
             QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -167,6 +166,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
         // check the overflow count before we parse data
         auto overflowBefore = matchingStream->getOverflowCount();
+
         auto parseResult = matchingStream->parseData(message);
 
         if (matchingStream->getOverflowCount() > overflowBefore) {

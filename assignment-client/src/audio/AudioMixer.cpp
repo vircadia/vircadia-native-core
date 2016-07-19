@@ -768,13 +768,19 @@ void AudioMixer::broadcastMixes() {
 
                     std::unique_ptr<NLPacket> mixPacket;
 
+                    const int MAX_CODEC_NAME = 30; // way over estimate
+
                     if (mixHasAudio) {
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+                        int mixPacketBytes = sizeof(quint16) + MAX_CODEC_NAME+ AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
+
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
 
                         QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
@@ -782,13 +788,18 @@ void AudioMixer::broadcastMixes() {
 
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
-                    } else {
-                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
+                    }
+                    else {
+                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + MAX_CODEC_NAME;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
+
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
 
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;

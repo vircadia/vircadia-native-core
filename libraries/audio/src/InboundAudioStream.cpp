@@ -58,6 +58,7 @@ void InboundAudioStream::reset() {
     _isStarved = true;
     _hasStarted = false;
     resetStats();
+    //cleanupCodec(); // FIXME???
 }
 
 void InboundAudioStream::resetStats() {
@@ -99,12 +100,17 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 }
 
 int InboundAudioStream::parseData(ReceivedMessage& message) {
-    
+    PacketType packetType = message.getType();
+
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
     SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
                                                                                                        message.getSourceID());
+    QString codecInPacket("");
+    if (packetType != PacketType::InjectAudio) {
+        codecInPacket = message.readString();
+    }
 
     packetReceivedUpdateTimingStats();
 
@@ -112,9 +118,10 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = message.getPosition();
-    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+    auto afterHeader = message.readWithoutCopy(message.getBytesLeftToRead());
+    int propertyBytes = parseStreamProperties(message.getType(), afterHeader, networkSamples);
     message.seek(prePropertyPosition + propertyBytes);
-    
+
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Early: {
@@ -129,9 +136,19 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
+                // FIXME - do some codecs need to know about these silen frames?
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()));
+                // note: PCM and no codec are identical
+                bool selectedPCM = _selectedCodecName == "pcm" || _selectedCodecName == "";
+                bool packetPCM = codecInPacket == "pcm" || codecInPacket == "";
+                if (codecInPacket == _selectedCodecName || (packetPCM && selectedPCM)) {
+                    auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
+                    parseAudioData(message.getType(), afterProperties);
+                } else {
+                    qDebug() << __FUNCTION__ << "codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
+                    writeDroppableSilentSamples(networkSamples);
+                }
             }
             break;
         }

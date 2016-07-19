@@ -19,7 +19,8 @@
 
 #include "AudioConstants.h"
 
-void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, const Transform& transform, PacketType packetType) {
+void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, 
+                                const Transform& transform, PacketType packetType, QString codecName) {
     static std::mutex _mutex;
     using Locker = std::unique_lock<std::mutex>;
     auto nodeList = DependencyManager::get<NodeList>();
@@ -27,10 +28,19 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
     if (audioMixer && audioMixer->getActiveSocket()) {
         Locker lock(_mutex);
         auto audioPacket = NLPacket::create(packetType);
+
+        // FIXME - this is not a good way to determine stereoness with codecs.... 
         quint8 isStereo = bytes == AudioConstants::NETWORK_FRAME_BYTES_STEREO ? 1 : 0;
 
         // write sequence number
-        audioPacket->writePrimitive(sequenceNumber++);
+        auto sequence = sequenceNumber++;
+        audioPacket->writePrimitive(sequence);
+
+        // write the codec - don't include this for injected audio
+        if (packetType != PacketType::InjectAudio) {
+            auto stringSize = audioPacket->writeString(codecName);
+        }
+
         if (packetType == PacketType::SilentAudioFrame) {
             // pack num silent samples
             quint16 numSilentSamples = isStereo ?
@@ -49,8 +59,8 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
 
         if (audioPacket->getType() != PacketType::SilentAudioFrame) {
             // audio samples have already been packed (written to networkAudioSamples)
-            audioPacket->setPayloadSize(audioPacket->getPayloadSize() + bytes);
-            static const int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+            int leadingBytes = audioPacket->getPayloadSize();
+            audioPacket->setPayloadSize(leadingBytes + bytes);
             memcpy(audioPacket->getPayload() + leadingBytes, audioData, bytes);
         }
         nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
