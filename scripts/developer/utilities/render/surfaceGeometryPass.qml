@@ -30,7 +30,6 @@ Column {
                 model: [
                     "Basis Scale:basisScale:2.0:false",
                     "Curvature Scale:curvatureScale:100.0:false",
-                    "Downscale:resolutionLevel:4:true"
                 ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
@@ -40,6 +39,11 @@ Column {
                     max: modelData.split(":")[2]
                     min: 0.0
                 }
+            }
+            CheckBox {
+                    text: "Half Resolution"
+                    checked: Render.getConfig("SurfaceGeometry")["resolutionLevel"]
+                    onCheckedChanged: { Render.getConfig("SurfaceGeometry")["resolutionLevel"] = checked }
             }
     
             Repeater {

@@ -383,7 +383,11 @@ void SurfaceGeometryPass::configure(const Config& config) {
     if (!_surfaceGeometryFramebuffer) {
         _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
     }
+
     _surfaceGeometryFramebuffer->setResolutionLevel(config.resolutionLevel);
+    if (config.resolutionLevel != getResolutionLevel()) {
+        _parametersBuffer.edit<Parameters>().resolutionInfo.w = config.resolutionLevel;
+    }
 
     _diffusePass.getParameters()->setFilterRadiusScale(config.diffuseFilterScale);
     _diffusePass.getParameters()->setDepthThreshold(config.diffuseDepthThreshold);

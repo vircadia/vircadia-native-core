@@ -165,7 +165,7 @@ public:
     float depthThreshold{ 5.0f }; // centimeters
     float basisScale{ 1.0f };
     float curvatureScale{ 10.0f };
-    int resolutionLevel{ 0 };
+    int resolutionLevel{ 1 };
     float diffuseFilterScale{ 0.2f };
     float diffuseDepthThreshold{ 1.0f };
 
@@ -189,9 +189,11 @@ public:
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
     
+
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
     float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }
     float getCurvatureScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.w; }
+    int getResolutionLevel() const { return (int)_parametersBuffer.get<Parameters>().resolutionInfo.w; }
 
 private:
     typedef gpu::BufferView UniformBufferView;
@@ -200,7 +202,7 @@ private:
     class Parameters {
     public:
         // Resolution info
-        glm::vec4 resolutionInfo { -1.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec4 resolutionInfo { 0.0f, 0.0f, 0.0f, 1.0f }; // Default Curvature & Diffusion is running half res
         // Curvature algorithm
         glm::vec4 curvatureInfo{ 0.0f };
 
