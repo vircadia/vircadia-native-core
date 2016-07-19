@@ -1587,13 +1587,16 @@ function MyController(hand) {
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
-        var avatarControllerPose =
-            Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var device = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var avatarControllerPose = Controller.getPoseValue(device);
 
         // transform it into world frame
-        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
-        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
-        var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+        var worldControllerPosition = Vec3.sum(MyAvatar.position,
+                                               Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+
+        // also transform the position into room space
+        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var now = Date.now();
@@ -1604,7 +1607,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
-        this.grabRadius = Vec3.distance(this.currentObjectPosition, controllerPosition);
+        this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
         this.grabRadialVelocity = 0.0;
 
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
@@ -1639,8 +1642,7 @@ function MyController(hand) {
 
         this.turnOffVisualizations();
 
-        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
-        this.previousControllerRotation = controllerRotation;
+        this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.distanceHolding = function (deltaTime, timestamp) {
@@ -1653,13 +1655,17 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
         // controller pose is in avatar frame
-        var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
-                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var device = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var avatarControllerPose = Controller.getPoseValue(device);
 
         // transform it into world frame
-        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
-        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
-        var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+        var worldControllerPosition = Vec3.sum(MyAvatar.position,
+                                               Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+        var worldControllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+
+        // also transform the position into room space
+        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
 
@@ -1668,26 +1674,16 @@ function MyController(hand) {
         this.currentObjectTime = now;
 
         // the action was set up when this.distanceHolding was called.  update the targets.
-        var radius = Vec3.distance(this.currentObjectPosition, controllerPosition) *
+        var radius = Vec3.distance(this.currentObjectPosition, worldControllerPosition) *
             this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
         if (radius < 1.0) {
             radius = 1.0;
         }
 
-        // scale delta controller hand movement by radius.
-        var handMoved = Vec3.multiply(Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar),
-                                      radius);
-
-        /// double delta controller rotation
-        // var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-        // var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
-        //                                           controllerRotation,
-        //                                           DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-        //                                Quat.inverse(this.previousControllerRotation));
-
-        // update the currentObject position and rotation.
+        var roomHandDelta = Vec3.subtract(roomControllerPosition, this.previousRoomControllerPosition);
+        var worldHandDelta = Mat4.transformVector(MyAvatar.getSensorToWorldMatrix(), roomHandDelta);
+        var handMoved = Vec3.multiply(worldHandDelta, radius);
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
-        // this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         this.callEntityMethodOnGrabbed("continueDistantGrab");
 
@@ -1698,10 +1694,9 @@ function MyController(hand) {
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
 
         //  Update radialVelocity
-        var lastVelocity = Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar);
-        lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaObjectTime);
-        var newRadialVelocity = Vec3.dot(lastVelocity,
-                                         Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
+        var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
+        var delta = Vec3.normalize(Vec3.subtract(grabbedProperties.position, worldControllerPosition));
+        var newRadialVelocity = Vec3.dot(lastVelocity, delta);
 
         var VELOCITY_AVERAGING_TIME = 0.016;
         this.grabRadialVelocity = (deltaObjectTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
@@ -1713,9 +1708,8 @@ function MyController(hand) {
                                                  this.grabRadius * RADIAL_GRAB_AMPLIFIER);
         }
 
-        var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(controllerRotation));
-        newTargetPosition = Vec3.sum(newTargetPosition, controllerPosition);
-
+        var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+        newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -1771,8 +1765,7 @@ function MyController(hand) {
             print("continueDistanceHolding -- updateAction failed");
         }
 
-        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
-        this.previousControllerRotation = controllerRotation;
+        this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.setupHoldAction = function () {
