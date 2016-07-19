@@ -23,6 +23,7 @@ class QOpenGLContextWrapper {
 public:
     QOpenGLContextWrapper();
     QOpenGLContextWrapper(QOpenGLContext* context);
+    virtual ~QOpenGLContextWrapper();
     void setFormat(const QSurfaceFormat& format);
     bool create();
     void swapBuffers(QSurface* surface);
@@ -40,6 +41,7 @@ public:
 
     
 private:
+    bool _ownContext { false };
     QOpenGLContext* _context { nullptr };
 };
 
