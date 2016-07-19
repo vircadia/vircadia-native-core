@@ -1922,7 +1922,9 @@ function MyController(hand) {
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             var reparentProps = {
                 parentID: MyAvatar.sessionUUID,
-                parentJointIndex: handJointIndex
+                parentJointIndex: handJointIndex,
+                velocity: {x: 0, y: 0, z: 0},
+                angularVelocity: {x: 0, y: 0, z: 0}
             };
             if (hasPresetPosition) {
                 reparentProps["localPosition"] = this.offsetPosition;
