@@ -156,7 +156,6 @@ protected:
     BlurInOutResource _inOutResources;
 };
 
-
 }
 
 #endif // hifi_render_BlurTask_h

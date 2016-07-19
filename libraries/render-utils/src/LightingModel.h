@@ -36,6 +36,9 @@ public:
     void setBackground(bool enable);
     bool isBackgroundEnabled() const;
 
+    void setObscurance(bool enable);
+    bool isObscuranceEnabled() const;
+
     void setScattering(bool enable);
     bool isScatteringEnabled() const;
     void setDiffuse(bool enable);
@@ -45,6 +48,7 @@ public:
 
     void setAlbedo(bool enable);
     bool isAlbedoEnabled() const;
+
 
     void setAmbientLight(bool enable);
     bool isAmbientLightEnabled() const;
@@ -77,13 +81,16 @@ protected:
         float enableSpecular{ 1.0f };
         float enableAlbedo{ 1.0f };
 
+
         float enableAmbientLight{ 1.0f };
         float enableDirectionalLight{ 1.0f };
         float enablePointLight{ 1.0f };
         float enableSpotLight{ 1.0f };
 
         float showLightContour{ 0.0f }; // false by default
-        glm::vec3 spares{ 0.0f };
+        float enableObscurance{ 1.0f };
+
+        glm::vec2 spares{ 0.0f };
 
         Parameters() {}
     };
@@ -102,6 +109,8 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableEmissive MEMBER enableEmissive NOTIFY dirty)
     Q_PROPERTY(bool enableLightmap MEMBER enableLightmap NOTIFY dirty)
     Q_PROPERTY(bool enableBackground MEMBER enableBackground NOTIFY dirty)
+
+    Q_PROPERTY(bool enableObscurance MEMBER enableObscurance NOTIFY dirty)
 
     Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
     Q_PROPERTY(bool enableDiffuse MEMBER enableDiffuse NOTIFY dirty)
@@ -122,7 +131,7 @@ public:
     bool enableEmissive{ true };
     bool enableLightmap{ true };
     bool enableBackground{ true };
-
+    bool enableObscurance{ true };
 
     bool enableScattering{ true };
     bool enableDiffuse{ true };
