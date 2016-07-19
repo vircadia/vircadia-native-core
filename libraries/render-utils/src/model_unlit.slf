@@ -13,6 +13,7 @@
 //
 
 <@include DeferredBufferWrite.slh@>
+<@include LightingModel.slh@>
 <@include model/Material.slh@>
 
 <@include MaterialTextures.slh@>
