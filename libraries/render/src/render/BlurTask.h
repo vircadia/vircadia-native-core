@@ -149,13 +149,11 @@ public:
     gpu::PipelinePointer getBlurHPipeline();
 
 protected:
-
-    BlurParamsPointer _parameters;
-
     gpu::PipelinePointer _blurVPipeline;
     gpu::PipelinePointer _blurHPipeline;
 
     BlurInOutResource _inOutResources;
+    BlurParamsPointer _parameters;
 };
 
 }

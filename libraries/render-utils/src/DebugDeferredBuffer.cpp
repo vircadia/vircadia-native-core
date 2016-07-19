@@ -379,7 +379,6 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     auto& deferredFramebuffer = inputs.get0();
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
-    auto& diffusedCurvatureFramebuffer = inputs.get3();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
