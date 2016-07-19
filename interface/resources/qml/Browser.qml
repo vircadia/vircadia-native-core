@@ -221,20 +221,25 @@ ScrollingWindow {
 
 			Component.onCompleted: {
 				webview.profile.downloadRequested.connect(function(download){
-					console.log("Download start: " + download.state)
-					download.accept()
-					console.log("Download accept: " + download.state)
-					if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-						console.log("Download? " + download.state)
-						console.log("download failed to complete")
+					if (download.state === WebEngineDownloadItem.DownloadRequested) {
+						console.log("Download start: " + download.state)
+						download.accept()
+						console.log("Download accept: " + download.state)
+						if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
+							console.log("Download? " + download.state)
+							console.log("download failed to complete")
+						}
 					}
 				})
 				
 				webview.profile.downloadFinished.connect(function(download){
-					console.log("Download Finished: " + download.state)
-					if (download.state === WebEngineDownloadItem.DownloadCompleted) {console.log("getting download completed state")}
-					console.log("download success")
-					File.runUnzip(download.path)
+					if (download.state === WebEngineDownloadItem.DownloadCompleted) {
+						console.log("Download Finished: " + download.state)
+						console.log("File object is: " + File)
+						File.runUnzip(download.path)
+					} else {
+						console.log("The download was corrupted")
+					}
 				})
 			}
 			
