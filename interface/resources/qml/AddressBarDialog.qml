@@ -253,7 +253,7 @@ Window {
                 // FIXME: really want places I'm allowed in, not just open ones.
                 'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
                 // FIXME add maturity
-                'protocol=' + AddressManager.protocolVersion(),
+                'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
                 'sort_by=users',
                 'sort_order=desc',
             ];
