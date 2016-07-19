@@ -10,34 +10,10 @@
 //
 
 
-
+<@include gpu/PackedNormal.slh@>
 
 uniform sampler2D linearDepthMap;
 uniform sampler2D normalMap;
-
-
-vec2 signNotZero(vec2 v) {
-    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
-}
-
-vec3 oct_to_float32x3(in vec2 e) {
-    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
-    if (v.z < 0) {
-        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-    }
-    return normalize(v);
-}
-
-vec2 unorm8x3_to_snorm12x2(vec3 u) {
-    u *= 255.0;
-    u.y *= (1.0 / 16.0);
-    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
-    fract(u.y) * (16.0 * 256.0) + u.z);
-    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
-}
-vec3 unpackNormal(in vec3 p) {
-    return oct_to_float32x3(unorm8x3_to_snorm12x2(p));
-}
 
 in vec2 varTexCoord0;
 
@@ -46,43 +22,22 @@ out vec4 outNormal;
 
 void main(void) {
     // Gather 2 by 2 quads from texture
-    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
+
+    // Try different filters for Z
+//    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
+  //  float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
+    float Zeye = texture(linearDepthMap, varTexCoord0).x;
 
     vec4 rawNormalsX = textureGather(normalMap, varTexCoord0, 0);
     vec4 rawNormalsY = textureGather(normalMap, varTexCoord0, 1);
     vec4 rawNormalsZ = textureGather(normalMap, varTexCoord0, 2);
 
-    float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
 
     vec3 normal = vec3(0.0);
     normal += unpackNormal(vec3(rawNormalsX[0], rawNormalsY[0], rawNormalsZ[0]));
     normal += unpackNormal(vec3(rawNormalsX[1], rawNormalsY[1], rawNormalsZ[1]));
     normal += unpackNormal(vec3(rawNormalsX[2], rawNormalsY[2], rawNormalsZ[2]));
     normal += unpackNormal(vec3(rawNormalsX[3], rawNormalsY[3], rawNormalsZ[3]));
-    /*
-    ivec2 texpos = ivec2(gl_FragCoord.xy) * 2;
-
-    vec4 Zeyes;
-    Zeyes[0] = texelFetch(linearDepthMap, texpos, 0).x;
-    Zeyes[1] = texelFetch(linearDepthMap, texpos + ivec2(0, 1), 0).x;
-    Zeyes[2] = texelFetch(linearDepthMap, texpos + ivec2(1, 0), 0).x;
-    Zeyes[3] = texelFetch(linearDepthMap, texpos + ivec2(1, 1), 0).x;
-
-    vec3 rawNormals[4];
-    rawNormals[0] = texelFetch(normalMap, texpos, 0).xyz;
-    rawNormals[1] = texelFetch(normalMap, texpos + ivec2(0, 1), 0).xyz;
-    rawNormals[2] = texelFetch(normalMap, texpos + ivec2(1, 0), 0).xyz;
-    rawNormals[3] = texelFetch(normalMap, texpos + ivec2(1, 1), 0).xyz;
-
-    float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
-
-    vec3 normal = vec3(0.0);
-
-    normal += unpackNormal(rawNormals[0]);
-    normal += unpackNormal(rawNormals[1]);
-    normal += unpackNormal(rawNormals[2]);
-    normal += unpackNormal(rawNormals[3]);
-*/
 
     normal = normalize(normal);
 

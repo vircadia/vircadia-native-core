@@ -414,7 +414,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(HalfNormal, linearDepthTarget->getHalfNormalTexture());
 
         batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
-        batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(DiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         } else {

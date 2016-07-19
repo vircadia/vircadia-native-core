@@ -367,9 +367,10 @@ SurfaceGeometryPass::SurfaceGeometryPass() :
 }
 
 void SurfaceGeometryPass::configure(const Config& config) {
+    const float CM_TO_M = 0.01f;
 
-    if ((config.depthThreshold * 100.0f) != getCurvatureDepthThreshold()) {
-        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold * 100.0f;
+    if ((config.depthThreshold * CM_TO_M) != getCurvatureDepthThreshold()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold * CM_TO_M;
     }
 
     if (config.basisScale != getCurvatureBasisScale()) {
@@ -389,7 +390,8 @@ void SurfaceGeometryPass::configure(const Config& config) {
         _parametersBuffer.edit<Parameters>().resolutionInfo.w = config.resolutionLevel;
     }
 
-    _diffusePass.getParameters()->setFilterRadiusScale(config.diffuseFilterScale);
+    auto filterRadius = (getResolutionLevel() > 0 ? config.diffuseFilterScale / 2.0f : config.diffuseFilterScale);
+    _diffusePass.getParameters()->setFilterRadiusScale(filterRadius);
     _diffusePass.getParameters()->setDepthThreshold(config.diffuseDepthThreshold);
     
 }
@@ -445,6 +447,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     auto diffuseVPipeline = _diffusePass.getBlurVPipeline();
     auto diffuseHPipeline = _diffusePass.getBlurHPipeline();
 
+    _diffusePass.getParameters()->setWidthHeight(curvatureViewport.z, curvatureViewport.w, args->_context->isStereo());
     glm::ivec2 textureSize(curvatureTexture->getDimensions());
     _diffusePass.getParameters()->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, curvatureViewport));
     _diffusePass.getParameters()->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
@@ -474,6 +477,12 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, normalTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+
+        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
+        batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, nullptr);
+        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, nullptr);
+        batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, nullptr);
 
         // Diffusion pass
         const int BlurTask_ParamsSlot = 0;
