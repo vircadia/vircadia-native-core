@@ -135,3 +135,7 @@ void HMDScriptingInterface::unsuppressKeyboard() {
 bool HMDScriptingInterface::isKeyboardVisible() {
     return qApp->getActiveDisplayPlugin()->isKeyboardVisible();
 }
+
+void HMDScriptingInterface::centerUI() {
+    QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
+}

@@ -488,6 +488,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     return _relativePoses;
 }
 
+void AnimInverseKinematics::clearIKJointLimitHistory() {
+    for (auto& pair : _constraints) {
+        pair.second->clearHistory();
+    }
+}
+
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
     RotationConstraint* constraint = nullptr;
     std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.find(index);
