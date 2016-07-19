@@ -138,10 +138,12 @@ public:
     using Config = BlurGaussianDepthAwareConfig;
     using JobModel = Job::ModelIO<BlurGaussianDepthAware, Inputs, gpu::FramebufferPointer, Config>;
 
-    BlurGaussianDepthAware(bool generateNewOutput = false);
+    BlurGaussianDepthAware(bool generateNewOutput = false, const BlurParamsPointer& params = BlurParamsPointer());
 
     void configure(const Config& config);
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer);
+
+    const BlurParamsPointer& getParameters() const { return _parameters; }
 
 protected:
 

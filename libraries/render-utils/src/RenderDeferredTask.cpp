@@ -134,18 +134,21 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto surfaceGeometryPassOutputs = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
     const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
     const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
+    const auto midCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
+    const auto lowCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(3);
 
-    const auto curvatureRangeTimer = addJob<BeginGPURangeTimer>("BeginCurvatureRangeTimer");
+    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
+
+/*    const auto curvatureRangeTimer = addJob<BeginGPURangeTimer>("BeginCurvatureRangeTimer");
 
     // TODO: Push this 2 diffusion stages into surfaceGeometryPass as they are working together
     const auto diffuseCurvaturePassInputs = BlurGaussianDepthAware::Inputs(curvatureFramebuffer, halfLinearDepthTexture).hasVarying();
     const auto midCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureMid", diffuseCurvaturePassInputs);
     const auto lowCurvatureNormalFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvatureLow", diffuseCurvaturePassInputs, true); // THis blur pass generates it s render resource
 
-    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
     addJob<EndGPURangeTimer>("CurvatureRangeTimer", curvatureRangeTimer);
-
+*/
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 

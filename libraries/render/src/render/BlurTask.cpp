@@ -258,10 +258,10 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
 
 
 
-BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer) :
-    _inOutResources(generateOutputFramebuffer)
+BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, const BlurParamsPointer& params) :
+    _inOutResources(generateOutputFramebuffer),
+    _parameters((params ? params : std::make_shared<BlurParams>()))
 {
-    _parameters = std::make_shared<BlurParams>();
 }
 
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {

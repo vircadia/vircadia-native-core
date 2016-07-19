@@ -319,7 +319,10 @@ void SurfaceGeometryFramebuffer::setResolutionLevel(int resolutionLevel) {
     }
 }
 
-SurfaceGeometryPass::SurfaceGeometryPass() {
+SurfaceGeometryPass::SurfaceGeometryPass() :
+    _firstBlurPass(false),
+    _secondBlurPass(true, _firstBlurPass.getParameters())
+{
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
@@ -365,7 +368,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
   //  auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
     auto normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
 
-    auto curvatureFBO = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
+    auto curvatureFramebuffer = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
 #ifdef USE_STENCIL_TEST
     if (curvatureFBO->getDepthStencilBuffer() != deferredFramebuffer->getPrimaryDepthTexture()) {
         curvatureFBO->setDepthStencilBuffer(deferredFramebuffer->getPrimaryDepthTexture(), deferredFramebuffer->getPrimaryDepthTexture()->getTexelFormat());
@@ -374,7 +377,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();
 
     outputs.edit0() = _surfaceGeometryFramebuffer;
-    outputs.edit1() = curvatureFBO;
+    outputs.edit1() = curvatureFramebuffer;
 
     auto curvaturePipeline = getCurvaturePipeline();
 
@@ -396,7 +399,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
 
         // Curvature pass
-        batch.setFramebuffer(curvatureFBO);
+        batch.setFramebuffer(curvatureFramebuffer);
  
         // We can avoid the clear by drawing the same clear vallue from the makeCurvature shader. same performances or no worse
       
@@ -415,6 +418,17 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
 
         _gpuTimer.end(batch);
     });
+
+    const auto diffuseCurvaturePassInputs = render::BlurGaussianDepthAware::Inputs(curvatureFramebuffer, linearDepthTexture);
+    gpu::FramebufferPointer midBlurredFramebuffer;
+    _firstBlurPass.run(sceneContext, renderContext, diffuseCurvaturePassInputs, midBlurredFramebuffer);
+
+    gpu::FramebufferPointer lowBlurredFramebuffer;
+    _secondBlurPass.run(sceneContext, renderContext, diffuseCurvaturePassInputs, lowBlurredFramebuffer);
+    
+ 
+    outputs.edit2() = midBlurredFramebuffer;
+    outputs.edit3() = lowBlurredFramebuffer;
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->gpuTime = _gpuTimer.getAverage();

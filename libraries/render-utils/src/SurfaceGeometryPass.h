@@ -15,6 +15,7 @@
 #include <DependencyManager.h>
 
 #include "render/DrawTask.h"
+#include "render/BlurTask.h"
 #include "DeferredFrameTransform.h"
 #include "DeferredFramebuffer.h"
 
@@ -162,7 +163,7 @@ signals:
 class SurfaceGeometryPass {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
-    using Outputs = render::VaryingSet2<SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer>;
+    using Outputs = render::VaryingSet4<SurfaceGeometryFramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = SurfaceGeometryPassConfig;
     using JobModel = render::Job::ModelIO<SurfaceGeometryPass, Inputs, Outputs, Config>;
 
@@ -196,6 +197,8 @@ private:
 
     gpu::PipelinePointer _curvaturePipeline;
 
+    render::BlurGaussianDepthAware _firstBlurPass;
+    render::BlurGaussianDepthAware _secondBlurPass;
 
     gpu::RangeTimer _gpuTimer;
 };
