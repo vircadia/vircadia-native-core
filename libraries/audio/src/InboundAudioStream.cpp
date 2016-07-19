@@ -116,8 +116,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = message.getPosition();
-    auto afterHeader = message.readWithoutCopy(message.getBytesLeftToRead());
-    int propertyBytes = parseStreamProperties(message.getType(), afterHeader, networkSamples);
+    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
     message.seek(prePropertyPosition + propertyBytes);
 
     // handle this packet based on its arrival status.
@@ -134,7 +133,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
-                // FIXME - do some codecs need to know about these silen frames?
+                // FIXME - Some codecs need to know about these silent frames... and can produce better output
                 writeDroppableSilentSamples(networkSamples);
             } else {
                 // note: PCM and no codec are identical
@@ -144,10 +143,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                     parseAudioData(message.getType(), afterProperties);
                 } else {
-                    qDebug() << __FUNCTION__ << "codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
-
+                    qDebug() << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
                     writeDroppableSilentSamples(networkSamples);
-
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
                     emit mismatchedAudioCodec(sendingNode, _selectedCodecName);
