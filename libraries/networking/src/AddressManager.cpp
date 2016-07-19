@@ -24,6 +24,7 @@
 #include "NodeList.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
+#include "udt/PacketHeaders.h"
 
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -35,6 +36,10 @@ AddressManager::AddressManager() :
     _port(0)
 {
 
+}
+
+QString AddressManager::protocolVersion() {
+    return protocolVersionsSignatureBase64();
 }
 
 bool AddressManager::isConnected() {

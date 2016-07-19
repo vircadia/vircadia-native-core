@@ -51,6 +51,7 @@ Window {
     }
     property var allDomains: [];
     property var suggestionChoices: [];
+    property var domainsBaseUrl: null;
     property int cardWidth: 200;
     property int cardHeight: 152;
 
@@ -245,10 +246,20 @@ Window {
         if (!options.page) {
             options.page = 1;
         }
-        // FIXME: really want places I'm allowed in, not just open ones.
-        // FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
-        // FIXME: add maturity
-        var url = "https://metaverse.highfidelity.com/api/v1/domains/all?open&active&restriction=open&sort_by=users&sort_order=desc&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
+        if (!domainsBaseUrl) {
+            var domainsOptions = [
+                'open', // published hours handle now
+                'active', // has at least one person connected. FIXME: really want any place that is verified accessible.
+                // FIXME: really want places I'm allowed in, not just open ones.
+                'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
+                // FIXME add maturity
+                'protocol=' + AddressManager.protocolVersion(),
+                'sort_by=users',
+                'sort_order=desc',
+            ];
+            domainsBaseUrl = "https://metaverse.highfidelity.com/api/v1/domains/all?" + domainsOptions.join('&');
+        }
+        var url = domainsBaseUrl + "&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
         getRequest(url, function (error, json) {
             if (!error && (json.status !== 'success')) {
                 error = new Error("Bad response: " + JSON.stringify(json));
