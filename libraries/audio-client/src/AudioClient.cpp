@@ -834,7 +834,7 @@ void AudioClient::handleAudioInput() {
             encodedBuffer = decocedBuffer;
         }
 
-        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
+        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
         _stats.sentPacket();
     }
 }
@@ -852,7 +852,7 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     }
 
     // FIXME check a flag to see if we should echo audio?
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
 }
 
 void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
@@ -1015,7 +1015,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         // no reason to lock access to the vector of injectors.
         if (!_activeLocalAudioInjectors.contains(injector)) {
             qDebug() << "adding new injector";
-            
             _activeLocalAudioInjectors.append(injector);
         } else {
             qDebug() << "injector exists in active list already";

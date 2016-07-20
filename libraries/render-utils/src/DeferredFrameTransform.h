@@ -36,12 +36,12 @@ protected:
     // It s changing every frame
     class FrameTransform {
     public:
-        // Pixel info is { viemport width height and stereo on off}
+        // Pixel info is { viewport width height}
         glm::vec4 pixelInfo;
         glm::vec4 invpixelInfo;
         // Depth info is { n.f, f - n, -f}
         glm::vec4 depthInfo;
-        // Stereo info
+        // Stereo info is { isStereoFrame, halfWidth }
         glm::vec4 stereoInfo{ 0.0 };
         // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
         glm::mat4 projection[2];

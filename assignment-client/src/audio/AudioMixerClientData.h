@@ -78,8 +78,13 @@ public:
         }
     }
 
+    QString getCodecName() { return _selectedCodecName; }
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
+
+public slots:
+    void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
     QReadWriteLock _streamsLock;
