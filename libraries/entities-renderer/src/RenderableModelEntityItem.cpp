@@ -347,7 +347,6 @@ void RenderableModelEntityItem::updateModelBounds() {
         return;
     }
 
-        
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     glm::vec3 dimensions = getDimensions();
     bool success;
@@ -701,10 +700,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
         info.setParams(type, dimensions, _compoundShapeURL);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        updateModelBounds();
-
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
+
+        updateModelBounds();
+        _model->updateGeometry();
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
@@ -741,6 +741,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             pointCollection.resize(1);
         }
 
+        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+        triangleIndices.clear();
+
         Extents extents;
         int32_t meshCount = 0;
         int32_t pointListIndex = 0;
@@ -775,8 +778,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
             if (type == SHAPE_TYPE_STATIC_MESH) {
                 // copy into triangleIndices
-                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-                triangleIndices.clear();
                 triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
                 gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
                 while (partItr != parts.cend<const model::Mesh::Part>()) {
@@ -827,8 +828,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 }
             } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
                 // for each mesh copy unique part indices, separated by special bogus (flag) index values
-                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-                triangleIndices.clear();
                 gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
                 while (partItr != parts.cend<const model::Mesh::Part>()) {
                     // collect unique list of indices for this part
