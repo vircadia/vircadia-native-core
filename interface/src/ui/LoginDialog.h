@@ -20,32 +20,19 @@ class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
 
-    Q_PROPERTY(QString statusText READ statusText WRITE setStatusText NOTIFY statusTextChanged)
-    Q_PROPERTY(QString rootUrl READ rootUrl)
-
 public:
     static void toggleAction();
 
     LoginDialog(QQuickItem* parent = nullptr);
 
-    void setStatusText(const QString& statusText);
-    QString statusText() const;
-
-    QString rootUrl() const;
-
 signals:
-    void statusTextChanged();
-
-protected:
-    void handleLoginCompleted(const QUrl& authURL);
+    void handleLoginCompleted();
     void handleLoginFailed();
 
+protected:
     Q_INVOKABLE void login(const QString& username, const QString& password);
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void openUrl(const QString& url);
-private:
-    QString _statusText;
-    const QString _rootUrl;
 };
 
 #endif // hifi_LoginDialog_h

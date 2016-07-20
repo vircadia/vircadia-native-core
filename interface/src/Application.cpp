@@ -2242,11 +2242,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_X:
-                if (isShifted && isMeta) {
+                if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->togglePinned();
-                    //offscreenUi->getRootContext()->engine()->clearComponentCache();
-                    //OffscreenUi::information("Debugging", "Component cache cleared");
+//                    offscreenUi->togglePinned();
+                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    qDebug() << "Component cache cleared";
+//                    OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
                 break;

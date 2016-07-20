@@ -1,7 +1,7 @@
 //
-//  VerticalSpacer.qml
+//  HorizontalSpacer.qml
 //
-//  Created by David Rowe on 16 Feb 2016
+//  Created by Clement on 7/18/16
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,8 +14,8 @@ import "../styles-uit"
 
 Item {
     id: root
-    property alias size: root.height
+    property alias size: root.width
 
-    width: 1  // Must be non-zero
-    height: hifi.dimensions.controlInterlineHeight
+    width: hifi.dimensions.controlInterlineHeight
+    height: 1  // Must be non-zero
 }

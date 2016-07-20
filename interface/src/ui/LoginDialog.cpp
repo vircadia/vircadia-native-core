@@ -22,9 +22,7 @@
 
 HIFI_QML_DEF(LoginDialog)
 
-LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent),
-    _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString())
-{
+LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
@@ -54,42 +52,16 @@ void LoginDialog::toggleAction() {
     }
 }
 
-void LoginDialog::handleLoginCompleted(const QUrl&) {
-    hide();
-}
-
-void LoginDialog::handleLoginFailed() {
-    setStatusText("Invalid username or password");
-}
-
-void LoginDialog::setStatusText(const QString& statusText) {
-    if (statusText != _statusText) {
-        _statusText = statusText;
-        emit statusTextChanged();
-    }
-}
-
-QString LoginDialog::statusText() const {
-    return _statusText;
-}
-
-QString LoginDialog::rootUrl() const {
-    return _rootUrl;
-}
-
 void LoginDialog::login(const QString& username, const QString& password) {
     qDebug() << "Attempting to login " << username;
-    setStatusText("Logging in...");
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
 void LoginDialog::loginThroughSteam() {
     qDebug() << "Attempting to login through Steam";
-    setStatusText("Logging in...");
-
     SteamClient::requestTicket([this](Ticket ticket) {
         if (ticket.isNull()) {
-            setStatusText("Steam client not logged into an account");
+            emit handleLoginFailed();
             return;
         }
 
@@ -98,6 +70,5 @@ void LoginDialog::loginThroughSteam() {
 }
 
 void LoginDialog::openUrl(const QString& url) {
-    qDebug() << url;
     QDesktopServices::openUrl(url);
 }
