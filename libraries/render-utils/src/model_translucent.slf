@@ -50,10 +50,16 @@ void main(void) {
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
+    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
+    if (metallic <= 0.5) {
+        metallic = 0.0;
+    } else {
+        fresnel = albedo;
+        metallic = 1.0;
+    }
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
-
 
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
@@ -67,6 +73,7 @@ void main(void) {
         fragPosition,
         fragNormal,
         albedo,
+        fresnel,
         metallic,
         emissive,
         roughness, opacity),

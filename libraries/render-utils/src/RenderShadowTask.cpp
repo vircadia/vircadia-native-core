@@ -85,8 +85,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-// The shadow task *must* use this base ctor to initialize with its own Config, see Task.h
-RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_shared<Config>()) {
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline

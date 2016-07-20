@@ -45,24 +45,8 @@
 #include "overlay3D_unlit_frag.h"
 #include "overlay3D_translucent_unlit_frag.h"
 
-#include "drawOpaqueStencil_frag.h"
 
 using namespace render;
-
-void initStencilPipeline(gpu::PipelinePointer& pipeline) {
-    const gpu::int8 STENCIL_OPAQUE = 1;
-    auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-    auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
-    auto program = gpu::Shader::createProgram(vs, ps);
-    gpu::Shader::makeProgram((*program));
-
-    auto state = std::make_shared<gpu::State>();
-    state->setDepthTest(true, false, gpu::LESS_EQUAL);
-    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
-    state->setColorWriteMask(0);
-
-    pipeline = gpu::Pipeline::create(program, state);
-}
 
 gpu::BufferView getDefaultMaterialBuffer() {
     model::Material::Schema schema;

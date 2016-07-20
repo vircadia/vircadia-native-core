@@ -36,5 +36,6 @@ void main(void) {
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
         DEFAULT_EMISSIVE,
-        DEFAULT_OCCLUSION);
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
 }

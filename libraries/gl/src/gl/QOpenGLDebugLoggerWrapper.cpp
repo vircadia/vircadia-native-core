@@ -14,11 +14,16 @@
 #include <QObject>
 #include <QOpenGLDebugLogger>
 
+void OpenGLDebug::log(const QOpenGLDebugMessage & debugMessage) {
+    qDebug() << debugMessage;
+}
+
 void setupDebugLogger(QObject* window) {
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(window);
     logger->initialize(); // initializes in the current context, i.e. ctx
     logger->enableMessages();
     QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, window, [&](const QOpenGLDebugMessage & debugMessage) {
-        qDebug() << debugMessage;
+        OpenGLDebug::log(debugMessage);
+        
     });
 }

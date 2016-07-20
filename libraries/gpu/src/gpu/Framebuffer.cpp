@@ -13,6 +13,8 @@
 #include <math.h>
 #include <QDebug>
 
+#include <Transform.h>
+
 using namespace gpu;
 
 Framebuffer::~Framebuffer() {
@@ -290,4 +292,29 @@ Format Framebuffer::getDepthStencilBufferFormat() const {
     } else {
         return _depthStencilBuffer._element;
     }
+}
+glm::vec4 Framebuffer::evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset) {
+    float sMin = destRegionOffset.x / (float)sourceSurface.x;
+    float sWidth = destRegionSize.x / (float)sourceSurface.x;
+    float tMin = destRegionOffset.y / (float)sourceSurface.y;
+    float tHeight = destRegionSize.y / (float)sourceSurface.y;
+    return glm::vec4(sMin, tMin, sWidth, tHeight);
+}
+
+glm::vec4 Framebuffer::evalSubregionTexcoordTransformCoefficients(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport) {
+    return evalSubregionTexcoordTransformCoefficients(sourceSurface, glm::ivec2(destViewport.z, destViewport.w), glm::ivec2(destViewport.x, destViewport.y));
+}
+
+Transform Framebuffer::evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec2& destRegionSize, const glm::ivec2& destRegionOffset) {
+    float sMin = destRegionOffset.x / (float)sourceSurface.x;
+    float sWidth = destRegionSize.x / (float)sourceSurface.x;
+    float tMin = destRegionOffset.y / (float)sourceSurface.y;
+    float tHeight = destRegionSize.y / (float)sourceSurface.y;
+    Transform model;
+    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+    return model;
+}
+Transform Framebuffer::evalSubregionTexcoordTransform(const glm::ivec2& sourceSurface, const glm::ivec4& destViewport) {
+    return evalSubregionTexcoordTransform(sourceSurface, glm::ivec2(destViewport.z, destViewport.w), glm::ivec2(destViewport.x, destViewport.y));
 }
