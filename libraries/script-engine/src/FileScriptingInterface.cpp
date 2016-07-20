@@ -31,9 +31,15 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 	// nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path) {
-	//downloadZip(path, importURL);
+void FileScriptingInterface::runUnzip(QString path, QUrl url) {
+	qDebug() << "Url that was downloaded: " + url.toString();
 	qDebug() << "Path where download is saved: " + path;
+	unzipFile(path);
+}
+
+bool FileScriptingInterface::testUrl(QUrl url) {
+	if (url.toString().contains(".zip")) return true;
+	return false;
 }
 
 QString FileScriptingInterface::getTempDir() {
@@ -41,6 +47,14 @@ QString FileScriptingInterface::getTempDir() {
 	dir.setAutoRemove(false);
 	return dir.path();
 	// remember I must do something to delete this temp dir later
+}
+
+QString FileScriptingInterface::convertUrlToPath(QUrl url) {
+	QString newUrl;
+	QString oldUrl = url.toString();
+	newUrl = oldUrl.section("filename=", 1, 1);
+	qDebug() << "Filename should be: " + newUrl;
+	return newUrl;
 }
 
 void FileScriptingInterface::downloadZip(QString path, const QString link) {
@@ -54,15 +68,15 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
 
 // clement's help :D
 void FileScriptingInterface::unzipFile(QString path) {
-	ResourceRequest* request = qobject_cast<ResourceRequest*>(sender());
-    QUrl url = request->getUrl();
+	//ResourceRequest* request = qobject_cast<ResourceRequest*>(sender());
+    //QUrl url = request->getUrl();
 
-    if (request->getResult() == ResourceRequest::Success) {
+    //if (request->getResult() == ResourceRequest::Success) {
         qDebug() << "Zip file was downloaded";
 	    QDir dir(path);
-        QByteArray compressedFileContent = request->getData(); // <-- Downloaded file is in here
-        QBuffer buffer(&compressedFileContent);
-        buffer.open(QIODevice::ReadOnly);
+        //QByteArray compressedFileContent = request->getData(); // <-- Downloaded file is in here
+        //QBuffer buffer(&compressedFileContent);
+        //buffer.open(QIODevice::ReadOnly);
 
 		//QString zipFileName = QFile::decodeName(compressedFileContent);
         QString dirName = dir.path();
@@ -104,10 +118,10 @@ void FileScriptingInterface::unzipFile(QString path) {
         }*/
 
 
-        buffer.close();
-    } else {
-        qDebug() << "Could not download the zip file";
-    }
+        //buffer.close();
+    //} else {
+       // qDebug() << "Could not download the zip file";
+    //}
 
 }
 

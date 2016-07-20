@@ -21,12 +21,16 @@ class FileScriptingInterface : public QObject {
 
 public:
     FileScriptingInterface(QObject* parent);
+
 	//void runUnzip(QString path, QString importURL);
 	QString getTempDir();
 
+
 public slots:
 	//void unzipFile(QString path);
-	void runUnzip(QString path);
+	bool testUrl(QUrl url);
+	QString convertUrlToPath(QUrl url);
+	void runUnzip(QString path, QUrl url);
 
 signals:
 

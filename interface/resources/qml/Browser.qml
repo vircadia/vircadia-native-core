@@ -140,6 +140,7 @@ ScrollingWindow {
             }
         }
 
+<<<<<<< ab02d16eb7656ea0a37785a398716fad62dff045
         Rectangle {
             id:permissionsContainer
             visible:false
@@ -196,6 +197,8 @@ ScrollingWindow {
                 }
             }
         }
+=======
+>>>>>>> Zip download works
 
         WebEngineView {
             id: webview
@@ -220,35 +223,15 @@ ScrollingWindow {
             }
 
 			Component.onCompleted: {
-				webview.profile.downloadRequested.connect(function(download){
-					if (download.state === WebEngineDownloadItem.DownloadRequested) {
-						console.log("Download start: " + download.state)
-						download.accept()
-						console.log("Download accept: " + download.state)
-						if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-							console.log("Download? " + download.state)
-							console.log("download failed to complete")
-						}
-					}
-				})
-				
-				webview.profile.downloadFinished.connect(function(download){
-					if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-						console.log("Download Finished: " + download.state)
-						console.log("File object is: " + File)
-						File.runUnzip(download.path)
-					} else {
-						console.log("The download was corrupted")
-					}
-				})
+				desktop.initWebviewProfileHandlers(webview.profile)
 			}
-			
             
             //profile: desktop.browserProfile
         }
 
     } // item
-    
+
+
     Keys.onPressed: {
         switch(event.key) {
             case Qt.Key_L:

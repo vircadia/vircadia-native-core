@@ -69,8 +69,13 @@ WebEngineView {
     }
 
 	onLinkHovered: {
-		console.log(hoveredUrl);
+		desktop.currentUrl = hoveredUrl
+		console.log("my url in WebView: " + desktop.currentUrl)
 	}
+
+	//onLinkHovered: {
+	//	console.log(hoveredUrl);
+	//}
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521
