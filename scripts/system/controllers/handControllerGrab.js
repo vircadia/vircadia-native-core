@@ -202,8 +202,7 @@ CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     name: "hold",
     enterMethod: "nearGrabbingEnter",
-    updateMethod: "nearGrabbing",
-    exitMethod: "holdExit"
+    updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
     name: "trigger",
@@ -228,7 +227,7 @@ function colorPow(color, power) {
     return {
         red: Math.pow(color.red / 255.0, power) * 255,
         green: Math.pow(color.green / 255.0, power) * 255,
-        blue: Math.pow(color.blue / 255.0, power) * 255,
+        blue: Math.pow(color.blue / 255.0, power) * 255
     };
 }
 
@@ -271,14 +270,12 @@ function propsArePhysical(props) {
     return isPhysical;
 }
 
-// currently disabled.
-var USE_ATTACH_POINT_SETTINGS = false;
+var USE_ATTACH_POINT_SETTINGS = true;
 
 var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 function getAttachPointSettings() {
     try {
         var str = Settings.getValue(ATTACH_POINT_SETTINGS);
-        print("getAttachPointSettings = " + str);
         if (str === "false") {
             return {};
         } else {
@@ -291,7 +288,6 @@ function getAttachPointSettings() {
 }
 function setAttachPointSettings(attachPointSettings) {
     var str = JSON.stringify(attachPointSettings);
-    print("setAttachPointSettings = " + str);
     Settings.setValue(ATTACH_POINT_SETTINGS, str);
 }
 function getAttachPointForHotspotFromSettings(hotspot, hand) {
@@ -765,9 +761,8 @@ function MyController(hand) {
         }
     };
 
-    var SEARCH_SPHERE_ALPHA = 0.5;
     this.searchSphereOn = function (location, size, color) {
-        
+
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
         var brightColor = colorPow(color, 0.06);
         if (this.searchSphere === null) {
@@ -790,7 +785,7 @@ function MyController(hand) {
                 position: location,
                 rotation: rotation,
                 innerColor: brightColor,
-                outerColor: color,  
+                outerColor: color,
                 innerAlpha: 1.0,
                 outerAlpha: 0.0,
                 outerRadius: size * 1.2,
@@ -1592,13 +1587,16 @@ function MyController(hand) {
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
-        var avatarControllerPose =
-            Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var device = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var avatarControllerPose = Controller.getPoseValue(device);
 
         // transform it into world frame
-        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
-        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
-        var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+        var worldControllerPosition = Vec3.sum(MyAvatar.position,
+                                               Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+
+        // also transform the position into room space
+        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var now = Date.now();
@@ -1609,7 +1607,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
-        this.grabRadius = Vec3.distance(this.currentObjectPosition, controllerPosition);
+        this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
         this.grabRadialVelocity = 0.0;
 
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
@@ -1644,8 +1642,7 @@ function MyController(hand) {
 
         this.turnOffVisualizations();
 
-        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
-        this.previousControllerRotation = controllerRotation;
+        this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.distanceHolding = function (deltaTime, timestamp) {
@@ -1658,13 +1655,17 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
         // controller pose is in avatar frame
-        var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
-                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var device = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var avatarControllerPose = Controller.getPoseValue(device);
 
         // transform it into world frame
-        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
-        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
-        var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+        var worldControllerPosition = Vec3.sum(MyAvatar.position,
+                                               Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+        var worldControllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+
+        // also transform the position into room space
+        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
 
@@ -1673,26 +1674,16 @@ function MyController(hand) {
         this.currentObjectTime = now;
 
         // the action was set up when this.distanceHolding was called.  update the targets.
-        var radius = Vec3.distance(this.currentObjectPosition, controllerPosition) *
+        var radius = Vec3.distance(this.currentObjectPosition, worldControllerPosition) *
             this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
         if (radius < 1.0) {
             radius = 1.0;
         }
 
-        // scale delta controller hand movement by radius.
-        var handMoved = Vec3.multiply(Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar),
-                                      radius);
-
-        /// double delta controller rotation
-        // var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-        // var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
-        //                                           controllerRotation,
-        //                                           DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-        //                                Quat.inverse(this.previousControllerRotation));
-
-        // update the currentObject position and rotation.
+        var roomHandDelta = Vec3.subtract(roomControllerPosition, this.previousRoomControllerPosition);
+        var worldHandDelta = Mat4.transformVector(MyAvatar.getSensorToWorldMatrix(), roomHandDelta);
+        var handMoved = Vec3.multiply(worldHandDelta, radius);
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
-        // this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         this.callEntityMethodOnGrabbed("continueDistantGrab");
 
@@ -1703,10 +1694,9 @@ function MyController(hand) {
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
 
         //  Update radialVelocity
-        var lastVelocity = Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar);
-        lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaObjectTime);
-        var newRadialVelocity = Vec3.dot(lastVelocity,
-                                         Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
+        var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
+        var delta = Vec3.normalize(Vec3.subtract(grabbedProperties.position, worldControllerPosition));
+        var newRadialVelocity = Vec3.dot(lastVelocity, delta);
 
         var VELOCITY_AVERAGING_TIME = 0.016;
         this.grabRadialVelocity = (deltaObjectTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
@@ -1718,9 +1708,8 @@ function MyController(hand) {
                                                  this.grabRadius * RADIAL_GRAB_AMPLIFIER);
         }
 
-        var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(controllerRotation));
-        newTargetPosition = Vec3.sum(newTargetPosition, controllerPosition);
-
+        var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+        newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -1776,8 +1765,7 @@ function MyController(hand) {
             print("continueDistanceHolding -- updateAction failed");
         }
 
-        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
-        this.previousControllerRotation = controllerRotation;
+        this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.setupHoldAction = function () {
@@ -1961,11 +1949,11 @@ function MyController(hand) {
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentVelocity = ZERO_VEC;
         this.currentAngularVelocity = ZERO_VEC;
+
+        this.prevDropDetected = false;
     };
 
     this.nearGrabbing = function (deltaTime, timestamp) {
-
-        var dropDetected = this.dropGestureProcess(deltaTime);
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1975,6 +1963,16 @@ function MyController(hand) {
 
         if (this.state == STATE_HOLD) {
 
+            var dropDetected = this.dropGestureProcess(deltaTime);
+
+            if (this.triggerSmoothedReleased()) {
+                this.waitForTriggerRelease = false;
+            }
+
+            if (dropDetected && this.prevDropDetected != dropDetected) {
+                this.waitForTriggerRelease = true;
+            }
+
             // highlight the grabbed hotspot when the dropGesture is detected.
             if (dropDetected) {
                 entityPropertiesCache.addEntity(this.grabbedHotspot.entityID);
@@ -1982,17 +1980,24 @@ function MyController(hand) {
                 equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
             }
 
-            if (dropDetected && this.triggerSmoothedGrab()) {
+            if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop gesture detected");
-                return;
-            }
 
-            if (this.thumbPressed()) {
-                this.callEntityMethodOnGrabbed("releaseEquip");
-                this.setState(STATE_OFF, "drop via thumb press");
+                // store the offset attach points into preferences.
+                if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
+                    var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                    if (props && props.localPosition && props.localRotation) {
+                        storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, props.localPosition, props.localRotation);
+                    }
+                }
+
+                var grabbedEntity = this.grabbedEntity;
+                this.release();
+                this.grabbedEntity = grabbedEntity;
+                this.setState(STATE_NEAR_GRABBING, "drop gesture detected");
                 return;
             }
+            this.prevDropDetected = dropDetected;
         }
 
         this.heartBeat(this.grabbedEntity);
@@ -2085,22 +2090,6 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 this.setupHoldAction();
             }
-        }
-    };
-
-    this.holdExit = function () {
-        // store the offset attach points into preferences.
-        if (USE_ATTACH_POINT_SETTINGS && this.grabbedHotspot && this.grabbedEntity) {
-            entityPropertiesCache.addEntity(this.grabbedEntity);
-            var props = entityPropertiesCache.getProps(this.grabbedEntity);
-            var entityXform = new Xform(props.rotation, props.position);
-            var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
-            var handRot = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
-            var avatarHandPos = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
-            var palmXform = new Xform(handRot, avatarXform.xformPoint(avatarHandPos));
-            var offsetXform = Xform.mul(palmXform.inv(), entityXform);
-
-            storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand, offsetXform.pos, offsetXform.rot);
         }
     };
 

@@ -207,8 +207,10 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     }
 
     withWriteLock([&]{
-        if (_previousSet) {
+        if (_previousSet &&
+            _positionalTarget != _previousPositionalTarget) { // don't average in a zero velocity if we get the same data
             glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+
             _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
             if (_measuredLinearVelocitiesIndex >= AvatarActionHold::velocitySmoothFrames) {
                 _measuredLinearVelocitiesIndex = 0;
@@ -228,9 +230,9 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             //     3 -- ignore i of 0 1 2
             //     4 -- ignore i of 1 2 3
             //     5 -- ignore i of 2 3 4
-            if ((i + 1) % 6 == _measuredLinearVelocitiesIndex ||
-                (i + 2) % 6 == _measuredLinearVelocitiesIndex ||
-                (i + 3) % 6 == _measuredLinearVelocitiesIndex) {
+            if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
                 continue;
             }
             measuredLinearVelocity += _measuredLinearVelocities[i];

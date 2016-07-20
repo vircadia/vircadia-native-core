@@ -58,6 +58,7 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
+
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
@@ -229,6 +230,13 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
+  # copy script files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/scripts"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts
+  )
+
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
@@ -263,6 +271,7 @@ else (APPLE)
 endif (APPLE)
 
 if (SCRIPTS_INSTALL_DIR)
+
   # setup install of scripts beside interface executable
   install(
     DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"

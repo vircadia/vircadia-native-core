@@ -525,7 +525,6 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
 
     // FIXME - why would we not have client data at this point??
@@ -539,14 +538,7 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
     clientData->setupCodec(selectedCodec, selectedCodecName);
 
     qDebug() << "selectedCodecName:" << selectedCodecName;
-
-    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
-
-    // write them to our packet
-    replyPacket->writeString(selectedCodecName);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *sendingNode);
+    clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
@@ -769,12 +761,17 @@ void AudioMixer::broadcastMixes() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (mixHasAudio) {
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
+                                                             + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
+
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
 
                         QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
@@ -783,12 +780,16 @@ void AudioMixer::broadcastMixes() {
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
                     } else {
-                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
+                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
+
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
 
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;

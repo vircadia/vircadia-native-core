@@ -12,6 +12,7 @@
 #ifndef hifi_InboundAudioStream_h
 #define hifi_InboundAudioStream_h
 
+#include <Node.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
@@ -179,6 +180,9 @@ public:
 
     void setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels);
     void cleanupCodec();
+
+signals:
+    void mismatchedAudioCodec(SharedNodePointer sendingNode, const QString& desiredCodec);
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
