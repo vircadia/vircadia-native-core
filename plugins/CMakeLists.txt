@@ -33,12 +33,3 @@ set(DIR "pcmCodec")
 add_subdirectory(${DIR})
 set(DIR "hifiCodec")
 add_subdirectory(${DIR})
-
-
-# foreach(DIR ${PLUGIN_SUBDIRS})
-#   if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${DIR}")
-#     add_subdirectory(${DIR})
-#     message("XXXXXXXXXXXXXXXXX" ${DIR})
-#   endif()
-# endforeach()
-
