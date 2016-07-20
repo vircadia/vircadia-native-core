@@ -834,7 +834,7 @@ void AudioClient::handleAudioInput() {
             encodedBuffer = decocedBuffer;
         }
 
-        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
+        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
         _stats.sentPacket();
     }
 }
@@ -852,7 +852,7 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     }
 
     // FIXME check a flag to see if we should echo audio?
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
 }
 
 void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
@@ -862,6 +862,9 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
     static const float INT16_TO_FLOAT_SCALE_FACTOR = 1/32768.0f;
 
     bool injectorsHaveData = false;
+    
+    // lock the injector vector
+    Lock lock(_injectorsMutex);
 
     for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
         if (injector->getLocalBuffer()) {
@@ -871,6 +874,7 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                 AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector (mono or stereo)
+            memset(_scratchBuffer, 0, sizeof(_scratchBuffer));
             if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, samplesToRead)) {
                 
                 injectorsHaveData = true;
@@ -894,14 +898,14 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
             } else {
                 
                 qDebug() << "injector has no more data, marking finished for removal";
-                injector->finish();
+                injector->finishLocalInjection();
                 injectorsToRemove.append(injector);
             }
 
         } else {
             
             qDebug() << "injector has no local buffer, marking as finished for removal";
-            injector->finish();
+            injector->finishLocalInjection();
             injectorsToRemove.append(injector);
         }
     }
@@ -1003,6 +1007,7 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
+    Lock lock(_injectorsMutex);
     if (injector->getLocalBuffer() && _audioInput ) {
         // just add it to the vector of active local injectors, if 
         // not already there.
@@ -1010,7 +1015,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         // no reason to lock access to the vector of injectors.
         if (!_activeLocalAudioInjectors.contains(injector)) {
             qDebug() << "adding new injector";
-            
             _activeLocalAudioInjectors.append(injector);
         } else {
             qDebug() << "injector exists in active list already";

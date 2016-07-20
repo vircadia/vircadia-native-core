@@ -36,7 +36,15 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
         delete _logger;
         _logger = nullptr;
     }
+    
     _context->doneCurrent();
+    delete _context;
+    _context = nullptr;
+
+    _offscreenSurface->destroy();
+    delete _offscreenSurface;
+    _offscreenSurface = nullptr;
+
 }
 
 bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {

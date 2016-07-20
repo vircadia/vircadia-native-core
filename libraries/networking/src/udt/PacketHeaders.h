@@ -113,6 +113,7 @@ extern const QSet<PacketType> NON_SOURCED_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
 QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
+QString protocolVersionsSignatureBase64();
 
 #if (PR_BUILD || DEV_BUILD)
 void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debugging version negotiation
@@ -211,6 +212,11 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid
+};
+
+enum class AudioVersion : PacketVersion {
+    HasCompressedAudio = 17,
+    CodecNameInAudioPackets
 };
 
 #endif // hifi_PacketHeaders_h
