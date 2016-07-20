@@ -88,11 +88,13 @@ function Teleporter() {
 
     this.createTargetOverlay = function() {
 
-        _this.deleteTargetOverlay();
+        if (_this.targetOverlay !== null) {
+            return;
+        }
         var targetOverlayProps = {
             url: TARGET_MODEL_URL,
             dimensions: TARGET_MODEL_DIMENSIONS,
-            visible: true,
+            visible: true
         };
 
         _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
