@@ -49,6 +49,19 @@ bool OpenVrDisplayPlugin::isSupported() const {
 void OpenVrDisplayPlugin::init() {
     Plugin::init();
 
+    _lastGoodHMDPose.m[0][0] = 1.0f;
+    _lastGoodHMDPose.m[0][1] = 0.0f;
+    _lastGoodHMDPose.m[0][2] = 0.0f;
+    _lastGoodHMDPose.m[0][3] = 0.0f;
+    _lastGoodHMDPose.m[1][0] = 0.0f;
+    _lastGoodHMDPose.m[1][1] = 1.0f;
+    _lastGoodHMDPose.m[1][2] = 0.0f;
+    _lastGoodHMDPose.m[1][3] = 1.8f;
+    _lastGoodHMDPose.m[2][0] = 0.0f;
+    _lastGoodHMDPose.m[2][1] = 0.0f;
+    _lastGoodHMDPose.m[2][2] = 1.0f;
+    _lastGoodHMDPose.m[2][3] = 0.0f;
+
     emit deviceConnected(getName());
 }
 
@@ -139,6 +152,12 @@ void OpenVrDisplayPlugin::resetSensors() {
     });
 }
 
+static bool isBadPose(vr::HmdMatrix34_t* mat) {
+    if (mat->m[1][3] < -0.2f) {
+        return true;
+    }
+    return false;
+}
 
 bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     handleOpenVrEvents();
@@ -158,6 +177,16 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
     _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, _currentRenderFrameInfo.predictedDisplayTime, _trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 
+    // HACK: when interface is launched and steam vr is NOT running, openvr will return bad HMD poses for a few frames
+    // To workaround this, filter out any hmd poses that are obviously bad, i.e. beneath the floor.
+    if (isBadPose(&_trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking)) {
+        qDebug() << "WARNING: ignoring bad hmd pose from openvr";
+
+        // use the last known good HMD pose
+        _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking = _lastGoodHMDPose;
+    } else {
+        _lastGoodHMDPose = _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
+    }
 
     vr::TrackedDeviceIndex_t handIndices[2] { vr::k_unTrackedDeviceIndexInvalid, vr::k_unTrackedDeviceIndexInvalid };
     {
