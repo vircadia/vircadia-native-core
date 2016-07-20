@@ -113,6 +113,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::sendSelectAudioFormat);
+
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
                     std::unique_ptr<PositionalAudioStream> { avatarAudioStream }
@@ -128,7 +130,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             isMicStream = true;
         } else if (packetType == PacketType::InjectAudio) {
             // this is injected audio
-
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));
             QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -343,6 +344,14 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 
     return result;
 }
+
+void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName) {
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+    replyPacket->writeString(selectedCodecName);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *node);
+}
+
 
 void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
     cleanupCodec(); // cleanup any previously allocated coders first
