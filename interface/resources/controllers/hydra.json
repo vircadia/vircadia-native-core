@@ -3,9 +3,17 @@
     "channels": [
         { "from": "Hydra.LY", "filters": "invert", "to": "Standard.LY" }, 
         { "from": "Hydra.LX", "to": "Standard.LX" },
+        { "from": "Hydra.LT", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
         { "from": "Hydra.LT", "to": "Standard.LT" }, 
         { "from": "Hydra.RY", "filters": "invert", "to": "Standard.RY" }, 
         { "from": "Hydra.RX", "to": "Standard.RX" },
+        { "from": "Hydra.RT", "to": "Standard.RTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
         { "from": "Hydra.RT", "to": "Standard.RT" }, 
 
         { "from": "Hydra.LB", "to": "Standard.LB" }, 

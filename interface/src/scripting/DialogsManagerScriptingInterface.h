@@ -24,6 +24,7 @@ public slots:
 
 signals:
     void addressBarToggled();
+    void addressBarShown(bool visible);
 };
 
 #endif

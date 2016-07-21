@@ -123,6 +123,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
 
             // Forward messages received from QML on to the script
             connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(visibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
         });
     }
     Q_ASSERT(_qmlWindow);

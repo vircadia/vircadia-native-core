@@ -83,12 +83,19 @@ void ShapeInfo::setOffset(const glm::vec3& offset) {
 }
 
 uint32_t ShapeInfo::getNumSubShapes() const {
-    if (_type == SHAPE_TYPE_NONE) {
-        return 0;
-    } else if (_type == SHAPE_TYPE_COMPOUND) {
-        return _pointCollection.size();
+    switch (_type) {
+        case SHAPE_TYPE_NONE:
+            return 0;
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+            return _pointCollection.size();
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_STATIC_MESH:
+            assert(_pointCollection.size() == 1);
+            // yes fall through to default
+        default:
+            return 1;
     }
-    return 1;
 }
 
 int ShapeInfo::getLargestSubshapePointCount() const {

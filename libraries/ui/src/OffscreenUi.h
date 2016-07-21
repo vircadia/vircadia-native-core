@@ -55,7 +55,7 @@ public:
 
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
     void addMenuInitializer(std::function<void(VrMenu*)> f);
-
+    QObject* getFlags();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 

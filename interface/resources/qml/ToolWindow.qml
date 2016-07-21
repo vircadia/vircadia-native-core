@@ -137,12 +137,14 @@ ScrollingWindow {
     }
 
     function updateVisiblity() {
-        for (var i = 0; i < tabView.count; ++i) {
-            if (tabView.getTab(i).enabled) {
-                return;
+        if (visible) {
+            for (var i = 0; i < tabView.count; ++i) {
+                if (tabView.getTab(i).enabled) {
+                    return;
+                }
             }
+            shown = false;
         }
-        shown = false;
     }
 
     function findIndexForUrl(source) {

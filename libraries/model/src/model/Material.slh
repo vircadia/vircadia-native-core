@@ -15,7 +15,7 @@ struct Material {
     vec4 _emissiveOpacity;
     vec4 _albedoRoughness;
     vec4 _fresnelMetallic;
-    vec4 _spareKey;
+    vec4 _scatteringSpare2Key;
 };
 
 uniform materialBuffer {
@@ -37,7 +37,9 @@ float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
 
 float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
-int getMaterialKey(Material m) { return floatBitsToInt(m._spareKey.w); }
+float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
+
+int getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
 
 const int EMISSIVE_VAL_BIT              = 0x00000001;
 const int UNLIT_VAL_BIT                 = 0x00000002;
@@ -47,14 +49,17 @@ const int GLOSSY_VAL_BIT                = 0x00000010;
 const int OPACITY_VAL_BIT               = 0x00000020;
 const int OPACITY_MASK_MAP_BIT          = 0x00000040;
 const int OPACITY_TRANSLUCENT_MAP_BIT   = 0x00000080;
+const int SCATTERING_VAL_BIT            = 0x00000100;
 
-const int EMISSIVE_MAP_BIT              = 0x00000100;
-const int ALBEDO_MAP_BIT                = 0x00000200;
-const int METALLIC_MAP_BIT              = 0x00000400;
-const int ROUGHNESS_MAP_BIT             = 0x00000800;
-const int NORMAL_MAP_BIT                = 0x00001000;
-const int OCCLUSION_MAP_BIT             = 0x00002000;
-const int LIGHTMAP_MAP_BIT              = 0x00004000;
+
+const int EMISSIVE_MAP_BIT              = 0x00000200;
+const int ALBEDO_MAP_BIT                = 0x00000400;
+const int METALLIC_MAP_BIT              = 0x00000800;
+const int ROUGHNESS_MAP_BIT             = 0x00001000;
+const int NORMAL_MAP_BIT                = 0x00002000;
+const int OCCLUSION_MAP_BIT             = 0x00004000;
+const int LIGHTMAP_MAP_BIT              = 0x00008000;
+const int SCATTERING_MAP_BIT            = 0x00010000;
 
 
 <@endif@>

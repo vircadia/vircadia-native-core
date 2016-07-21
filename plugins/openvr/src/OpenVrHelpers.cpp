@@ -268,6 +268,7 @@ void handleOpenVrEvents() {
             case vr::VREvent_KeyboardClosed:
                 _keyboardFocusObject = nullptr;
                 _keyboardShown = false;
+                DependencyManager::get<OffscreenUi>()->unfocusWindows();
                 break;
 
             default:

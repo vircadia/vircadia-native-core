@@ -220,12 +220,8 @@ void AccountManager::sendRequest(const QString& path,
 
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
-    // if we're allowed to send usage data, include whatever the current session ID is with this request
-    auto& activityLogger = UserActivityLogger::getInstance();
-    if (activityLogger.isEnabled()) {
-        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
-                                    uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
-    }
+    networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
+                                uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
     

@@ -425,7 +425,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
             d = glm::normalize(overlaySurfacePoint);
         }
         reticlePosition = headPosition + (d * getReticleDepth());
-        quat reticleOrientation = glm::quat_cast(_currentDisplayPlugin->getHeadPose());
+        quat reticleOrientation = cancelOutRoll(glm::quat_cast(_currentDisplayPlugin->getHeadPose()));
         vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
         return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
@@ -441,4 +441,13 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
+}
+
+
+QVariant ReticleInterface::getPosition() const {
+    return vec2toVariant(_compositor->getReticlePosition());
+}
+
+void ReticleInterface::setPosition(QVariant position) {
+    _compositor->setReticlePosition(vec2FromVariant(position));
 }

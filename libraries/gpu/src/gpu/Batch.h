@@ -26,7 +26,7 @@
 #include "Transform.h"
 
 class QDebug;
-
+#define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
 
 enum ReservedSlot {
@@ -87,6 +87,7 @@ public:
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
     DrawCallInfoBuffer _drawCallInfos;
+    static size_t _drawCallInfosMax;
 
     std::string _currentNamedCall;
 
@@ -96,43 +97,13 @@ public:
     void captureDrawCallInfo();
     void captureNamedDrawCallInfo(std::string name);
 
-    class CacheState {
-    public:
-        size_t commandsSize;
-        size_t offsetsSize;
-        size_t paramsSize;
-        size_t dataSize;
-
-        size_t buffersSize;
-        size_t texturesSize;
-        size_t streamFormatsSize;
-        size_t transformsSize;
-        size_t pipelinesSize;
-        size_t framebuffersSize;
-        size_t queriesSize;
-
-        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
-            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
-
-        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
-            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
-            size_t framebuffersSize, size_t queriesSize) : 
-            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
-            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
-            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
-    };
-
-    Batch() {}
-    Batch(const CacheState& cacheState);
+    Batch();
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
     
     void preExecute();
-
-    CacheState getCacheState();
-
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -401,15 +372,25 @@ public:
         typedef T Data;
         Data _data;
         Cache<T>(const Data& data) : _data(data) {}
+        static size_t _max;
 
         class Vector {
         public:
             std::vector< Cache<T> > _items;
 
+            Vector() {
+                _items.reserve(_max);
+            }
+
+            ~Vector() {
+                _max = std::max(_items.size(), _max);
+            }
+
+
             size_t size() const { return _items.size(); }
             size_t cache(const Data& data) {
                 size_t offset = _items.size();
-                _items.push_back(Cache<T>(data));
+                _items.emplace_back(data);
                 return offset;
             }
 
@@ -449,9 +430,16 @@ public:
     }
 
     Commands _commands;
+    static size_t _commandsMax;
+
     CommandOffsets _commandOffsets;
+    static size_t _commandOffsetsMax;
+
     Params _params;
+    static size_t _paramsMax;
+
     Bytes _data;
+    static size_t _dataMax;
 
     // SSBO class... layout MUST match the layout in Transform.slh
     class TransformObject {
@@ -464,6 +452,7 @@ public:
     bool _invalidModel { true };
     Transform _currentModel;
     TransformObjects _objects;
+    static size_t _objectsMax;
 
     BufferCaches _buffers;
     TextureCaches _textures;
@@ -491,6 +480,9 @@ protected:
     void captureDrawCallInfoImpl();
 };
 
+template <typename T>
+size_t Batch::Cache<T>::_max = BATCH_PREALLOCATE_MIN;
+
 }
 
 #if defined(NSIGHT_FOUND)
@@ -511,7 +503,5 @@ private:
 #define PROFILE_RANGE_BATCH(batch, name) 
 
 #endif
-
-QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
 #endif

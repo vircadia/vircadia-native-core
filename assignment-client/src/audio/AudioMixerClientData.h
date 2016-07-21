@@ -19,6 +19,8 @@
 #include <AudioLimiter.h>
 #include <UUIDHasher.h>
 
+#include <plugins/CodecPlugin.h>
+
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
 
@@ -27,6 +29,7 @@ class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
     AudioMixerClientData(const QUuid& nodeID);
+    ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
@@ -65,8 +68,23 @@ public:
 
     AudioLimiter audioLimiter;
 
+    void setupCodec(CodecPluginPointer codec, const QString& codecName);
+    void cleanupCodec();
+    void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+        if (_encoder) {
+            _encoder->encode(decodedBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = decodedBuffer;
+        }
+    }
+
+    QString getCodecName() { return _selectedCodecName; }
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
+
+public slots:
+    void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
     QReadWriteLock _streamsLock;
@@ -81,6 +99,11 @@ private:
     AudioStreamStats _downstreamAudioStreamStats;
 
     int _frameToSendStats { 0 };
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder{ nullptr }; // for outbound mixed stream
+    Decoder* _decoder{ nullptr }; // for mic stream
 };
 
 #endif // hifi_AudioMixerClientData_h

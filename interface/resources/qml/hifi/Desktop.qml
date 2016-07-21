@@ -56,13 +56,13 @@ OriginalDesktop.Desktop {
         var sysToolbar = desktop.getToolbar("com.highfidelity.interface.toolbar.system");
         var toggleHudButton = sysToolbar.addButton({
             objectName: "hudToggle",
-            imageURL: "../../../icons/hud-01.svg",
+            imageURL: "../../../icons/hud.svg",
             visible: true,
             pinned: true,
         });
 
-        toggleHudButton.yOffset = Qt.binding(function(){
-            return desktop.pinned ? 50 : 0
+        toggleHudButton.buttonState = Qt.binding(function(){
+            return desktop.pinned ? 1 : 0
         });
         toggleHudButton.clicked.connect(function(){
             console.log("Clicked on hud button")

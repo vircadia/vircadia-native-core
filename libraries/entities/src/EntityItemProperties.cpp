@@ -101,6 +101,8 @@ const char* shapeTypeNames[] = {
     "hull",
     "plane",
     "compound",
+    "simple-hull",
+    "simple-compound",
     "static-mesh"
 };
 
@@ -123,6 +125,8 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_HULL);
     addShapeType(SHAPE_TYPE_PLANE);
     addShapeType(SHAPE_TYPE_COMPOUND);
+    addShapeType(SHAPE_TYPE_SIMPLE_HULL);
+    addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 

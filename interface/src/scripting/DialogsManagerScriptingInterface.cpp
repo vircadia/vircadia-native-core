@@ -18,6 +18,8 @@
 DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled,
             this, &DialogsManagerScriptingInterface::addressBarToggled);
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarShown,
+            this, &DialogsManagerScriptingInterface::addressBarShown);
 }
 
 void DialogsManagerScriptingInterface::toggleAddressBar() {

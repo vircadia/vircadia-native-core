@@ -40,6 +40,7 @@ public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
+    void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
 
 public slots:
     void toggleAddressBar();
@@ -60,6 +61,7 @@ public slots:
 
 signals:
     void addressBarToggled();
+    void addressBarShown(bool visible);
 
 private slots:
     void hmdToolsClosed();

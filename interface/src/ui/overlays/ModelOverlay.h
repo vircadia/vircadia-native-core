@@ -43,9 +43,10 @@ private:
 
     ModelPointer _model;
     QVariantMap _modelTextures;
-    
+
     QUrl _url;
-    bool _updateModel;
+    bool _updateModel = { false };
+    bool _scaleToFit = { false };
 };
 
 #endif // hifi_ModelOverlay_h

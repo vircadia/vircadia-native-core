@@ -33,6 +33,14 @@ Xform.prototype.mirrorX = function() {
                      {x: -this.pos.x, y: this.pos.y, z: this.pos.z});
 };
 
+Xform.prototype.xformVector = function (vector) {
+    return Vec3.multiplyQbyV(this.rot, vector);
+}
+
+Xform.prototype.xformPoint = function (point) {
+    return Vec3.sum(Vec3.multiplyQbyV(this.rot, point), this.pos);
+}
+
 Xform.prototype.toString = function() {
     var rot = this.rot;
     var pos = this.pos;

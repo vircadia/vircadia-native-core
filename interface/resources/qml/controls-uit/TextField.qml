@@ -36,14 +36,14 @@ TextField {
 
     style: TextFieldStyle {
         textColor: isLightColorScheme
-                   ? (textField.focus ? hifi.colors.black : hifi.colors.lightGray)
-                   : (textField.focus ? hifi.colors.white : hifi.colors.lightGrayText)
+                   ? (textField.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+                   : (textField.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         background: Rectangle {
             color: isLightColorScheme
-                   ? (textField.focus ? hifi.colors.white : hifi.colors.textFieldLightBackground)
-                   : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
+                   ? (textField.activeFocus ? hifi.colors.white : hifi.colors.textFieldLightBackground)
+                   : (textField.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
-            border.width: textField.focus ? 1 : 0
+            border.width: textField.activeFocus ? 1 : 0
             radius: isSearchField ? textField.height / 2 : 0
 
             HiFiGlyphs {

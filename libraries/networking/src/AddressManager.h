@@ -39,6 +39,7 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
 public:
+    Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;
 
@@ -49,7 +50,8 @@ public:
         StartupFromSettings,
         DomainPathResponse,
         Internal,
-        AttemptedRefresh
+        AttemptedRefresh,
+        Suggestions
     };
 
     bool isConnected();
@@ -77,7 +79,7 @@ public:
                                    std::function<void()> localSandboxNotRunningDoThat);
 
 public slots:
-    void handleLookupString(const QString& lookupString);
+    void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)

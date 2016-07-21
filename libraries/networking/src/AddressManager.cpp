@@ -24,6 +24,7 @@
 #include "NodeList.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
+#include "udt/PacketHeaders.h"
 
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -35,6 +36,10 @@ AddressManager::AddressManager() :
     _port(0)
 {
 
+}
+
+QString AddressManager::protocolVersion() {
+    return protocolVersionsSignatureBase64();
 }
 
 bool AddressManager::isConnected() {
@@ -221,7 +226,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     return false;
 }
 
-void AddressManager::handleLookupString(const QString& lookupString) {
+void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString.trimmed();
@@ -236,7 +241,7 @@ void AddressManager::handleLookupString(const QString& lookupString) {
             lookupURL = QUrl(lookupString);
         }
 
-        handleUrl(lookupURL);
+        handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
     }
 }
 
@@ -564,10 +569,10 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/')
                 && orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
 
-                glm::quat newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
-                                                                    orientationRegex.cap(1).toFloat(),
-                                                                    orientationRegex.cap(2).toFloat(),
-                                                                    orientationRegex.cap(3).toFloat()));
+                newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
+                                                          orientationRegex.cap(1).toFloat(),
+                                                          orientationRegex.cap(2).toFloat(),
+                                                          orientationRegex.cap(3).toFloat()));
 
                 if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
                     && !isNaN(newOrientation.w)) {

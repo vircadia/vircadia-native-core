@@ -54,18 +54,23 @@ void Line3DOverlay::render(RenderArgs* args) {
     if (batch) {
         batch->setModelTransform(_transform);
 
+        auto geometryCache = DependencyManager::get<GeometryCache>();
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
-            DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
+            geometryCache->bindSimpleProgram(*batch, false, false, true, true);
+            geometryCache->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
+        } else if (_glow > 0.0f) {
+            geometryCache->renderGlowLine(*batch, _start, _end, colorv4, _glow, _glowWidth, _geometryCacheID);
         } else {
-            DependencyManager::get<GeometryCache>()->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
+            geometryCache->bindSimpleProgram(*batch, false, false, true, true);
+            geometryCache->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
         }
     }
 }
 
 const render::ShapeKey Line3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
-    if (getAlpha() != 1.0f) {
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
+    if (getAlpha() != 1.0f || _glow > 0.0f) {
         builder.withTranslucent();
     }
     return builder.build();
@@ -90,6 +95,19 @@ void Line3DOverlay::setProperties(const QVariantMap& properties) {
     }
     if (end.isValid()) {
         setEnd(vec3FromVariant(end));
+    }
+
+    auto glow = properties["glow"];
+    if (glow.isValid()) {
+        setGlow(glow.toFloat());
+        if (_glow > 0.0f) {
+            _alpha = 0.5f;
+        }
+    }
+
+    auto glowWidth = properties["glow"];
+    if (glowWidth.isValid()) {
+        setGlow(glowWidth.toFloat());
     }
 }
 

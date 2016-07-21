@@ -12,11 +12,14 @@
 #ifndef hifi_InboundAudioStream_h
 #define hifi_InboundAudioStream_h
 
+#include <Node.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
 #include <ReceivedMessage.h>
 #include <StDev.h>
+
+#include <plugins/CodecPlugin.h>
 
 #include "AudioRingBuffer.h"
 #include "MovingMinMaxAvg.h"
@@ -103,6 +106,7 @@ public:
 
 public:
     InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings);
+    ~InboundAudioStream() { cleanupCodec(); }
 
     void reset();
     virtual void resetStats();
@@ -174,6 +178,12 @@ public:
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
 
+    void setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels);
+    void cleanupCodec();
+
+signals:
+    void mismatchedAudioCodec(SharedNodePointer sendingNode, const QString& desiredCodec);
+
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.
@@ -201,7 +211,7 @@ protected:
 
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties);
 
     /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentSamples(int silentSamples);
@@ -267,6 +277,10 @@ protected:
     bool _hasReverb;
     float _reverbTime;
     float _wetLevel;
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Decoder* _decoder{ nullptr };
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);

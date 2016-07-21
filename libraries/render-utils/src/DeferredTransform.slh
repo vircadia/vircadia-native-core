@@ -1,0 +1,123 @@
+<!
+//  DeferredTransform.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 6/2/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFERRED_TRANSFORM_SLH@>
+<@def DEFERRED_TRANSFORM_SLH@>
+
+<@func declareDeferredFrameTransform()@>
+
+struct DeferredFrameTransform {
+    vec4 _pixelInfo;
+    vec4 _invPixelInfo;
+    vec4 _depthInfo;
+    vec4 _stereoInfo;
+    mat4 _projection[2];
+    mat4 _projectionMono;
+    mat4 _viewInverse;
+    mat4 _view;
+};
+
+uniform deferredFrameTransformBuffer {
+    DeferredFrameTransform frameTransform;
+};
+
+DeferredFrameTransform getDeferredFrameTransform() {
+    return frameTransform;
+}
+
+vec2 getWidthHeight(int resolutionLevel) {
+    return vec2(ivec2(frameTransform._pixelInfo.zw) >> resolutionLevel);
+}
+
+vec2 getInvWidthHeight() {
+    return frameTransform._invPixelInfo.xy;
+}
+
+float getProjScaleEye() {
+    return frameTransform._projection[0][1][1];
+}
+
+float getProjScale(int resolutionLevel) {
+    return getWidthHeight(resolutionLevel).y * frameTransform._projection[0][1][1] * 0.5;
+}
+mat4 getProjection(int side) {
+    return frameTransform._projection[side];
+}
+mat4 getProjectionMono() {
+    return frameTransform._projectionMono;
+}
+
+// positive near distance of the projection
+float getProjectionNear() {
+    float planeC = frameTransform._projection[0][2][3] + frameTransform._projection[0][2][2];
+    float planeD = frameTransform._projection[0][3][2];
+    return planeD / planeC;
+}
+
+// positive far distance of the projection
+float getPosLinearDepthFar() {
+    return -frameTransform._depthInfo.z;
+}
+
+mat4 getViewInverse() {
+    return frameTransform._viewInverse;
+}
+
+mat4 getView() {
+    return frameTransform._view;
+}
+
+bool isStereo() {
+    return frameTransform._stereoInfo.x > 0.0f;
+}
+
+float getStereoSideWidth(int resolutionLevel) {
+    return float(int(frameTransform._stereoInfo.y) >> resolutionLevel);
+}
+
+ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
+    int sideWidth = int(getStereoSideWidth(resolutionLevel));
+    return ivec4(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth, isStereo());
+}
+
+float evalZeyeFromZdb(float depth) {
+    return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
+}
+
+vec3 evalEyeNormal(vec3 C) {
+    //return normalize(cross(dFdy(C), dFdx(C)));
+    return normalize(cross(dFdx(C), dFdy(C)));
+}
+
+vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
+    // compute the view space position using the depth
+    // basically manually pick the proj matrix components to do the inverse
+    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * frameTransform._projection[side][2][0] - frameTransform._projection[side][3][0]) / frameTransform._projection[side][0][0];
+    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * frameTransform._projection[side][2][1] - frameTransform._projection[side][3][1]) / frameTransform._projection[side][1][1];
+    return vec3(Xe, Ye, Zeye);
+}
+
+ivec2 getPixelPosTexcoordPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 texcoordPos, out ivec4 stereoSide) {
+    ivec2 fragPos = ivec2(glFragCoord.xy);
+
+    stereoSide = getStereoSideInfo(fragPos.x, 0);
+
+    pixelPos = fragPos;
+    pixelPos.x -= stereoSide.y;
+
+    texcoordPos = (vec2(pixelPos) + 0.5) * getInvWidthHeight();
+    
+    return fragPos;
+}
+
+<@endfunc@>
+
+
+<@endif@>

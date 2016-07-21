@@ -144,8 +144,7 @@ private:
     QString _pendingPath;
     QTimer _settingsTimer;
 
-    QList<ConnectionRefusedReason> _domainConnectionRefusals;
-    bool _hasSignalledProtocolMismatch { false };
+    QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
 

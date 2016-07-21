@@ -92,7 +92,7 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
-
+    
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)

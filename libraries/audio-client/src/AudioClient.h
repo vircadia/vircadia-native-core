@@ -15,6 +15,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <mutex>
 
 #include <QtCore/qsystemdetection.h>
 #include <QtCore/QByteArray>
@@ -37,11 +38,17 @@
 #include <SettingHandle.h>
 #include <Sound.h>
 #include <StDev.h>
+#include <AudioHRTF.h>
+#include <AudioSRC.h>
+#include <AudioInjector.h>
+#include <AudioReverb.h>
+#include <AudioLimiter.h>
+#include <AudioConstants.h>
+
+#include <plugins/CodecPlugin.h>
 
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
-#include "AudioSRC.h"
-#include "AudioReverb.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -77,6 +84,9 @@ public:
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+    
     class AudioOutputIODevice : public QIODevice {
     public:
         AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
@@ -86,13 +96,14 @@ public:
         void stop() { close(); }
         qint64    readData(char * data, qint64 maxSize);
         qint64    writeData(const char * data, qint64 maxSize) { return 0; }
-
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
     };
+
+    void negotiateAudioFormat();
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
@@ -124,6 +135,8 @@ public:
 
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
+    
+    QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
@@ -139,6 +152,7 @@ public slots:
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message);
+    void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
@@ -205,7 +219,11 @@ protected:
 
 private:
     void outputFormatChanged();
+    void mixLocalAudioInjectors(int16_t* inputBuffer);
+    float azimuthForSource(const glm::vec3& relativePosition);
+    float gainForSource(float distance, float volume);
 
+    Mutex _injectorsMutex;
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
@@ -261,6 +279,11 @@ private:
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
 
+    // for local hrtf-ing
+    float _hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    AudioLimiter _audioLimiter;
+
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
@@ -291,6 +314,12 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
+    
+    QVector<AudioInjector*> _activeLocalAudioInjectors;
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder { nullptr }; // for outbound mic stream
 };
 
 

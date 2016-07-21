@@ -52,6 +52,8 @@ public:
             glm::float32 scale = 1 / MAP_SIZE;
         };
         UniformBufferView _schemaBuffer = nullptr;
+        
+        friend class Light;
     };
     using ShadowPointer = std::shared_ptr<Shadow>;
 

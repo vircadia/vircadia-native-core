@@ -495,4 +495,19 @@ public:
 
 void registerAvatarTypes(QScriptEngine* engine);
 
+class RayToAvatarIntersectionResult {
+public:
+RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
+    bool intersects;
+    QUuid avatarID;
+    float distance;
+    glm::vec3 intersection;
+};
+
+Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
+
+QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
+void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+
 #endif // hifi_AvatarData_h

@@ -110,8 +110,10 @@ public:
 
     static Pointer createVertex(const Source& source);
     static Pointer createPixel(const Source& source);
+    static Pointer createGeometry(const Source& source);
 
     static Pointer createProgram(const Pointer& vertexShader, const Pointer& pixelShader);
+    static Pointer createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
 
 
     ~Shader();
@@ -163,6 +165,7 @@ public:
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, const Pointer& vertex, const Pointer& pixel);
+    Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
 
     Shader(const Shader& shader); // deep copy of the sysmem shader
     Shader& operator=(const Shader& shader); // deep copy of the sysmem texture

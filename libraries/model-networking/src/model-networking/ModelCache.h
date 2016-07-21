@@ -22,52 +22,30 @@
 #include "TextureCache.h"
 
 // Alias instead of derive to avoid copying
-using NetworkMesh = model::Mesh;
 
 class NetworkTexture;
 class NetworkMaterial;
-class NetworkShape;
-class NetworkGeometry;
+class MeshPart;
 
 class GeometryMappingResource;
-
-/// Stores cached model geometries.
-class ModelCache : public ResourceCache, public Dependency {
-    Q_OBJECT
-    SINGLETON_DEPENDENCY
-
-public:
-    /// Loads a model geometry from the specified URL.
-    std::shared_ptr<NetworkGeometry> getGeometry(const QUrl& url,
-        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
-
-protected:
-    friend class GeometryMappingResource;
-
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
-
-private:
-    ModelCache();
-    virtual ~ModelCache() = default;
-};
 
 class Geometry {
 public:
     using Pointer = std::shared_ptr<Geometry>;
+    using WeakPointer = std::weak_ptr<Geometry>;
 
     Geometry() = default;
     Geometry(const Geometry& geometry);
 
     // Immutable over lifetime
-    using NetworkMeshes = std::vector<std::shared_ptr<const NetworkMesh>>;
-    using NetworkShapes = std::vector<std::shared_ptr<const NetworkShape>>;
+    using GeometryMeshes = std::vector<std::shared_ptr<const model::Mesh>>;
+    using GeometryMeshParts = std::vector<std::shared_ptr<const MeshPart>>;
 
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
-    const FBXGeometry& getGeometry() const { return *_geometry; }
-    const NetworkMeshes& getMeshes() const { return *_meshes; }
+    const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
+    const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<const NetworkMaterial> getShapeMaterial(int shapeID) const;
 
     const QVariantMap getTextures() const;
@@ -79,9 +57,9 @@ protected:
     friend class GeometryMappingResource;
 
     // Shared across all geometries, constant throughout lifetime
-    std::shared_ptr<const FBXGeometry> _geometry;
-    std::shared_ptr<const NetworkMeshes> _meshes;
-    std::shared_ptr<const NetworkShapes> _shapes;
+    std::shared_ptr<const FBXGeometry> _fbxGeometry;
+    std::shared_ptr<const GeometryMeshes> _meshes;
+    std::shared_ptr<const GeometryMeshParts> _meshParts;
 
     // Copied to each geometry, mutable throughout lifetime via setTextures
     NetworkMaterials _materials;
@@ -108,7 +86,7 @@ protected:
 
     // Geometries may not hold onto textures while cached - that is for the texture cache
     // Instead, these methods clear and reset textures from the geometry when caching/loading
-    bool shouldSetTextures() const { return _geometry && _materials.empty(); }
+    bool shouldSetTextures() const { return _fbxGeometry && _materials.empty(); }
     void setTextures();
     void resetTextures();
 
@@ -118,22 +96,21 @@ protected:
     bool _isCacheable { true };
 };
 
-class NetworkGeometry : public QObject {
+class GeometryResourceWatcher : public QObject {
     Q_OBJECT
 public:
-    using Pointer = std::shared_ptr<NetworkGeometry>;
+    using Pointer = std::shared_ptr<GeometryResourceWatcher>;
 
-    NetworkGeometry() = delete;
-    NetworkGeometry(const GeometryResource::Pointer& networkGeometry);
+    GeometryResourceWatcher() = delete;
+    GeometryResourceWatcher(Geometry::Pointer& geometryPtr) : _geometryRef(geometryPtr) {}
 
-    const QUrl& getURL() { return _resource->getURL(); }
+    void setResource(GeometryResource::Pointer resource);
 
-    /// Returns the geometry, if it is loaded (must be checked!)
-    const Geometry::Pointer& getGeometry() { return _instance; }
+    QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
 
-signals:
-    /// Emitted when the NetworkGeometry loads (or fails to)
-    void finished(bool success);
+private:
+    void startWatching();
+    void stopWatching();
 
 private slots:
     void resourceFinished(bool success);
@@ -141,7 +118,27 @@ private slots:
 
 private:
     GeometryResource::Pointer _resource;
-    Geometry::Pointer _instance { nullptr };
+    Geometry::Pointer& _geometryRef;
+};
+
+/// Stores cached model geometries.
+class ModelCache : public ResourceCache, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
+
+public:
+    GeometryResource::Pointer getGeometryResource(const QUrl& url,
+        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
+
+protected:
+    friend class GeometryMappingResource;
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra);
+
+private:
+    ModelCache();
+    virtual ~ModelCache() = default;
 };
 
 class NetworkMaterial : public model::Material {
@@ -185,9 +182,9 @@ private:
     bool _isOriginal { true };
 };
 
-class NetworkShape {
+class MeshPart {
 public:
-    NetworkShape(int mesh, int part, int material) : meshID { mesh }, partID { part }, materialID { material } {}
+    MeshPart(int mesh, int part, int material) : meshID { mesh }, partID { part }, materialID { material } {}
     int meshID { -1 };
     int partID { -1 };
     int materialID { -1 };
