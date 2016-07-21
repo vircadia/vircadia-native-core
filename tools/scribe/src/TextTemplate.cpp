@@ -748,6 +748,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             Vars::iterator it = vars.find(val);
                             if (it != vars.end()) {
                                 val = (*it).second;
+                            } else {
+                                val = Tag::NULL_VAR;
                             }
                         }
 
@@ -759,14 +761,19 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             if (val != Tag::NULL_VAR) {
                                 vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
                             }
-                            paramCache.push_back("");
+
+                            paramCache.push_back(Tag::NULL_VAR);
                         }
                     }
 
                     generateTree(dst, funcBlock, vars);
 
                     for (int i = 1; i < nbParams; i++) {
-                        vars[ funcBlock->command.arguments[i] ] = paramCache[i];
+                        if (paramCache[i] == Tag::NULL_VAR) {
+                            vars.erase(funcBlock->command.arguments[i]);
+                        } else {
+                            vars[funcBlock->command.arguments[i]] = paramCache[i];
+                        }
                     }
                 }
             }

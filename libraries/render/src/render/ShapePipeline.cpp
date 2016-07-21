@@ -51,6 +51,7 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter) {
     gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
     slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
@@ -60,6 +61,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::MAP::METALLIC));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::MAP::EMISSIVE_LIGHTMAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
+    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING));
@@ -68,12 +70,17 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
 
     auto locations = std::make_shared<Locations>();
     locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+    if (program->getTextures().findLocation("normalFittingMap") > -1) {
+        locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
+
+    }
     locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
     locations->roughnessTextureUnit = program->getTextures().findLocation("roughnessMap");
     locations->normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations->metallicTextureUnit = program->getTextures().findLocation("metallicMap");
     locations->emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
+    locations->lightingModelBufferUnit = program->getBuffers().findLocation("lightingModelBuffer");
     locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");

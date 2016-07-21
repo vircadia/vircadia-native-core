@@ -49,6 +49,8 @@ void main(void) {
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
+    float scattering = getMaterialScattering(mat);
+
     packDeferredFragment(
         normalize(_normal), 
         opacity,
@@ -56,5 +58,6 @@ void main(void) {
         roughness,
         metallic,
         emissive,
-        occlusionTex);
+        occlusionTex,
+        scattering);
 }

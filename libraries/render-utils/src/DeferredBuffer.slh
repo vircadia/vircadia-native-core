@@ -11,6 +11,8 @@
 <@if not DEFERRED_BUFFER_SLH@>
 <@def DEFERRED_BUFFER_SLH@>
 
+<@include gpu/PackedNormal.slh@>
+
 // Unpack the metallic-mode value
 const float FRAG_PACK_SHADED_NON_METALLIC = 0.0;
 const float FRAG_PACK_SHADED_METALLIC = 0.1;
@@ -20,11 +22,16 @@ const float FRAG_PACK_LIGHTMAPPED_NON_METALLIC = 0.2;
 const float FRAG_PACK_LIGHTMAPPED_METALLIC = 0.3;
 const float FRAG_PACK_LIGHTMAPPED_RANGE_INV = 1.0 / (FRAG_PACK_LIGHTMAPPED_METALLIC - FRAG_PACK_LIGHTMAPPED_NON_METALLIC);
 
-const float FRAG_PACK_UNLIT = 0.5;
+const float FRAG_PACK_SCATTERING_NON_METALLIC = 0.4;
+const float FRAG_PACK_SCATTERING_METALLIC = 0.5;
+const float FRAG_PACK_SCATTERING_RANGE_INV = 1.0 / (FRAG_PACK_SCATTERING_METALLIC - FRAG_PACK_SCATTERING_NON_METALLIC);
+
+const float FRAG_PACK_UNLIT = 0.6;
 
 const int FRAG_MODE_UNLIT = 0;
 const int FRAG_MODE_SHADED = 1;
 const int FRAG_MODE_LIGHTMAPPED = 2;
+const int FRAG_MODE_SCATTERING = 3;
 
 void unpackModeMetallic(float rawValue, out int mode, out float metallic) {
     if (rawValue <= FRAG_PACK_SHADED_METALLIC) {
@@ -32,7 +39,10 @@ void unpackModeMetallic(float rawValue, out int mode, out float metallic) {
         metallic = clamp((rawValue - FRAG_PACK_SHADED_NON_METALLIC) * FRAG_PACK_SHADED_RANGE_INV, 0.0, 1.0);
     } else if (rawValue <= FRAG_PACK_LIGHTMAPPED_METALLIC) {
         mode = FRAG_MODE_LIGHTMAPPED;
-        metallic = clamp((rawValue - FRAG_PACK_LIGHTMAPPED_NON_METALLIC) * FRAG_PACK_SHADED_RANGE_INV, 0.0, 1.0);
+        metallic = clamp((rawValue - FRAG_PACK_LIGHTMAPPED_NON_METALLIC) * FRAG_PACK_LIGHTMAPPED_RANGE_INV, 0.0, 1.0);
+    } else if (rawValue <= FRAG_PACK_SCATTERING_METALLIC) {
+        mode = FRAG_MODE_SCATTERING;
+        metallic = clamp((rawValue - FRAG_PACK_SCATTERING_NON_METALLIC) * FRAG_PACK_SCATTERING_RANGE_INV, 0.0, 1.0);
     } else if (rawValue >= FRAG_PACK_UNLIT) {
         mode = FRAG_MODE_UNLIT;
         metallic = 0.0;
@@ -47,48 +57,15 @@ float packLightmappedMetallic(float metallic) {
     return mix(FRAG_PACK_LIGHTMAPPED_NON_METALLIC, FRAG_PACK_LIGHTMAPPED_METALLIC, metallic);
 }
 
+float packScatteringMetallic(float metallic) {
+    return mix(FRAG_PACK_SCATTERING_NON_METALLIC, FRAG_PACK_SCATTERING_METALLIC, metallic);
+}
+
 float packUnlit() {
     return FRAG_PACK_UNLIT;
 }
 
-
-vec2 signNotZero(vec2 v) {
-    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
-}
-
-vec2 float32x3_to_oct(in vec3 v) {
-    vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
-    return ((v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p);
-}
-
-
-vec3 oct_to_float32x3(in vec2 e) {
-    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
-    if (v.z < 0) {
-        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-    }
-    return normalize(v);
-}
-
-vec3 snorm12x2_to_unorm8x3(vec2 f) {
-    vec2 u = vec2(round(clamp(f, -1.0, 1.0) * 2047.0 + 2047.0));
-    float t = floor(u.y / 256.0);
-
-    return floor(vec3(
-        u.x / 16.0,
-        fract(u.x / 16.0) * 256.0 + t,
-        u.y - t * 256.0
-        )) / 255.0;
-}
-
-vec2 unorm8x3_to_snorm12x2(vec3 u) {
-    u *= 255.0;
-    u.y *= (1.0 / 16.0);
-    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
-                    fract(u.y) * (16.0 * 256.0) + u.z);
-    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
-}
-
+<!
 uniform sampler2D normalFittingMap;
 
 vec3 bestFitNormal(vec3 normal) {
@@ -107,14 +84,6 @@ vec3 bestFitNormal(vec3 normal) {
 
     return (cN * 0.5 + 0.5);
 }
-
-vec3 packNormal(in vec3 n) {
-    return snorm12x2_to_unorm8x3(float32x3_to_oct(n));
-}
-
-vec3 unpackNormal(in vec3 p) {
-    return oct_to_float32x3(unorm8x3_to_snorm12x2(p));
-}
-
+!>
 
 <@endif@>

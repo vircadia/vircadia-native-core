@@ -283,6 +283,7 @@ void AmbientOcclusionEffect::updateGaussianDistribution() {
 }
 
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+#ifdef FIX_THE_FRAMEBUFFER_CACHE
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -406,4 +407,5 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     // Update the timer
     std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
+#endif
 }

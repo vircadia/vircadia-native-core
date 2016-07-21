@@ -59,7 +59,9 @@ void InboundAudioStream::reset() {
     _isStarved = true;
     _hasStarted = false;
     resetStats();
-    cleanupCodec();
+    // FIXME: calling cleanupCodec() seems to be the cause of the buzzsaw -- we get an assert
+    // after this is called in AudioClient.  Ponder and fix...
+    // cleanupCodec();
 }
 
 void InboundAudioStream::resetStats() {
