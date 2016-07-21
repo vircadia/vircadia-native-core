@@ -481,7 +481,7 @@ void DomainServerSettingsManager::unpackPermissions() {
         }
         if (perms->isGroup()) {
             // the group-id was cached.  hook-up the uuid in the uuid->group hash
-            _groupForbiddensByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRank())] = _groupPermissions[idKey];
+            _groupForbiddensByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRank())] = _groupForbiddens[idKey];
             needPack |= setGroupID(perms->getID(), perms->getGroupID());
         }
     }
@@ -714,8 +714,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
         QJsonObject postedObject = postedDocument.object();
 
-        qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
-
         // we recurse one level deep below each group for the appropriate setting
         bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject);
 
@@ -746,6 +744,9 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
         rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
+
+
+        qDebug() << QJsonDocument(rootObject).toJson(QJsonDocument::Indented);
 
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
@@ -1149,6 +1150,8 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
     foreach (QUuid groupID, _groupNames.keys()) {
         apiGetGroupRanks(groupID);
     }
+
+    unpackPermissions();
 }
 
 void DomainServerSettingsManager::apiGetGroupID(const QString& groupName) {
@@ -1234,13 +1237,17 @@ void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
 }
 
 void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& requestReply) {
+
+
     // {
-    //     "current_page":1,
     //     "data":{
     //         "groups":{
-    //             "fd55479a-265d-4990-854e-3d04214ad1b0":{
+    //             "d3500f49-0655-4b1b-9846-ff8dd1b03351":{
+    //                 "members_count":1,
     //                 "ranks":[
     //                     {
+    //                         "id":"7979b774-e7f8-436c-9df1-912f1019f32f",
+    //                         "members_count":1,
     //                         "name":"owner",
     //                         "order":0,
     //                         "permissions":{
@@ -1248,44 +1255,24 @@ void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& re
     //                             "custom_2":false,
     //                             "custom_3":false,
     //                             "custom_4":false,
-    //                             "del_group":true,
-    //                             "invite_member":true,
-    //                             "kick_member":true,
+    //                             "edit_group":true,
+    //                             "edit_member":true,
+    //                             "edit_rank":true,
     //                             "list_members":true,
-    //                             "mv_group":true,
-    //                             "query_members":true,
-    //                             "rank_member":true
-    //                         }
-    //                     },
-    //                     {
-    //                         "name":"admin",
-    //                         "order":1,
-    //                         "permissions":{
-    //                             "custom_1":false,
-    //                             "custom_2":false,
-    //                             "custom_3":false,
-    //                             "custom_4":false,
-    //                             "del_group":false,
-    //                             "invite_member":false,
-    //                             "kick_member":false,
-    //                             "list_members":false,
-    //                             "mv_group":false,
-    //                             "query_members":false,
-    //                             "rank_member":false
+    //                             "list_permissions":true,
+    //                             "list_ranks":true,
+    //                             "query_member":true
     //                         }
     //                     }
     //                 ]
     //             }
     //         }
-    //     },
-    //     "per_page":30,
-    //     "status":"success",
-    //     "total_entries":2,
-    //     "total_pages":1
+    //     },"status":"success"
     // }
 
     bool changed = false;
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
     if (jsonObject["status"].toString() == "success") {
         QJsonObject groups = jsonObject["data"].toObject()["groups"].toObject();
         foreach (auto groupID, groups.keys()) {
@@ -1362,6 +1349,12 @@ void DomainServerSettingsManager::debugDumpGroupsState() {
     qDebug() << "_groupPermissions:";
     foreach (NodePermissionsKey groupKey, _groupPermissions.keys()) {
         NodePermissionsPointer perms = _groupPermissions[groupKey];
+        qDebug() << "|  " << groupKey << perms;
+    }
+
+    qDebug() << "_groupForbiddens:";
+    foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
+        NodePermissionsPointer perms = _groupForbiddens[groupKey];
         qDebug() << "|  " << groupKey << perms;
     }
 

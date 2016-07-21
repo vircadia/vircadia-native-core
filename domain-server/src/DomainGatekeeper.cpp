@@ -153,18 +153,24 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
                 int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
                 if (rank >= 0) {
                     userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rank);
-                    qDebug() << "user-permissions: user is in group:" << groupID << "so:" << userPerms;
+                    qDebug() << "user-permissions: user is in group:" << groupID << " rank:" << rank << "so:" << userPerms;
                 }
             }
 
             // if this user is a known member of a blacklist group, remove the implied permissions
+            qDebug() << "------------------ checking blacklists ----------------------";
+            qDebug() << _server->_settingsManager.getBlacklistGroupIDs();
             foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
                 if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
                     int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                    qDebug() << groupID << verifiedUsername << "is member with rank" << rank;
                     if (rank >= 0) {
                         userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rank);
-                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << "so:" << userPerms;
+                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << " rank:" << rank
+                                 << "so:" << userPerms;
                     }
+                } else {
+                    qDebug() << groupID << verifiedUsername << "is not member.";
                 }
             }
         }
@@ -739,14 +745,23 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     //     "status":"success"
     // }
 
+
+
+
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    qDebug() << "*********  getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+
+
     if (jsonObject["status"].toString() == "success") {
         QJsonObject data = jsonObject["data"].toObject();
         QJsonObject groups = data["groups"].toObject();
         QString username = data["username"].toString();
         _server->_settingsManager.clearGroupMemberships(username);
         foreach (auto groupID, groups.keys()) {
-            _server->_settingsManager.recordGroupMembership(username, groupID, true);
+            QJsonObject group = groups[groupID].toObject();
+            int order = group["order"].toInt();
+            _server->_settingsManager.recordGroupMembership(username, groupID, order);
         }
     } else {
         qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
@@ -812,4 +827,6 @@ void DomainGatekeeper::refreshGroupsCache() {
     if (agentCount > 0) {
         _server->_settingsManager.apiRefreshGroupInformation();
     }
+
+    updateNodePermissions();
 }
