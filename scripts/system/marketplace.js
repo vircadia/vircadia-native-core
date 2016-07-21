@@ -1,6 +1,5 @@
 //
-//  examples.js
-//  examples
+//  marketplace.js
 //
 //  Created by Eric Levin on 8 Jan 2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -11,9 +10,9 @@
 
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
-var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
-var examplesWindow = new OverlayWebWindow({
-    title: 'Examples',
+var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var marketplaceWindow = new OverlayWebWindow({
+    title: "Marketplace",
     source: "about:blank",
     width: 900,
     height: 700,
@@ -26,24 +25,24 @@ var TOOLBAR_MARGIN_Y = 0;
 
 
 function showExamples(marketplaceID) {
-    var url = EXAMPLES_URL;
+    var url = MARKETPLACE_URL;
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    print("setting examples URL to " + url);
-    examplesWindow.setURL(url);
-    examplesWindow.setVisible(true);
+    print("setting marketplace URL to " + url);
+    marketplaceWindow.setURL(url);
+    marketplaceWindow.setVisible(true);
 
     UserActivityLogger.openedMarketplace();
 }
 
 function hideExamples() {
-    examplesWindow.setVisible(false);
-    examplesWindow.setURL("about:blank");
+    marketplaceWindow.setVisible(false);
+    marketplaceWindow.setURL("about:blank");
 }
 
 function toggleExamples() {
-    if (examplesWindow.visible) {
+    if (marketplaceWindow.visible) {
         hideExamples();
     } else {
         showExamples();
@@ -54,7 +53,7 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 var browseExamplesButton = toolBar.addButton({
     imageURL: toolIconUrl + "market.svg",
-    objectName: "examples",
+    objectName: "marketplace",
     buttonState: 1,
     defaultState: 1,
     hoverState: 3,
@@ -62,18 +61,18 @@ var browseExamplesButton = toolBar.addButton({
 });
 
 function onExamplesWindowVisibilityChanged() {
-    browseExamplesButton.writeProperty('buttonState', examplesWindow.visible ? 0 : 1);
-    browseExamplesButton.writeProperty('defaultState', examplesWindow.visible ? 0 : 1);
-    browseExamplesButton.writeProperty('hoverState', examplesWindow.visible ? 2 : 3);
+    browseExamplesButton.writeProperty('buttonState', marketplaceWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('defaultState', marketplaceWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('hoverState', marketplaceWindow.visible ? 2 : 3);
 }
 function onClick() {
     toggleExamples();
 }
 browseExamplesButton.clicked.connect(onClick);
-examplesWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
+marketplaceWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("examples");
+    toolBar.removeButton("marketplace");
     browseExamplesButton.clicked.disconnect(onClick);
-    examplesWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
+    marketplaceWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
 });
