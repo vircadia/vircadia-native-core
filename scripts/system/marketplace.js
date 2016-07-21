@@ -24,7 +24,7 @@ var toolWidth = 50;
 var TOOLBAR_MARGIN_Y = 0;
 
 
-function showExamples(marketplaceID) {
+function showMarketplace(marketplaceID) {
     var url = MARKETPLACE_URL;
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
@@ -36,16 +36,16 @@ function showExamples(marketplaceID) {
     UserActivityLogger.openedMarketplace();
 }
 
-function hideExamples() {
+function hideMarketplace() {
     marketplaceWindow.setVisible(false);
     marketplaceWindow.setURL("about:blank");
 }
 
-function toggleExamples() {
+function toggleMarketplace() {
     if (marketplaceWindow.visible) {
-        hideExamples();
+        hideMarketplace();
     } else {
-        showExamples();
+        showMarketplace();
     }
 }
 
@@ -66,7 +66,7 @@ function onExamplesWindowVisibilityChanged() {
     browseExamplesButton.writeProperty('hoverState', marketplaceWindow.visible ? 2 : 3);
 }
 function onClick() {
-    toggleExamples();
+    toggleMarketplace();
 }
 browseExamplesButton.clicked.connect(onClick);
 marketplaceWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
