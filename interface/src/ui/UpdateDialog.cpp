@@ -48,14 +48,6 @@ const QString& UpdateDialog::releaseNotes() const {
     return _releaseNotes;
 }
 
-void UpdateDialog::closeDialog() {
-    hide();
-}
-
-void UpdateDialog::hide() {
-    ((QQuickItem*)parent())->setVisible(false);
-}
-
 void UpdateDialog::triggerUpgrade() {
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     applicationUpdater.data()->performAutoUpdate(applicationUpdater.data()->getBuildData().lastKey());

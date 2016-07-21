@@ -154,6 +154,7 @@ public:
     virtual void rebuildCollisionShape();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+    void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
 
     AvatarMotionState* getMotionState() { return _motionState; }
 

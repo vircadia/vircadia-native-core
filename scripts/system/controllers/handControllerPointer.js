@@ -32,6 +32,7 @@ function setupHandler(event, handler) {
         event.disconnect(handler);
     });
 }
+
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
     var last = 0;
@@ -42,6 +43,7 @@ function TimeLock(expiration) {
         return ((optionalNow || Date.now()) - last) > expiration;
     };
 }
+
 var handControllerLockOut = new TimeLock(2000);
 
 function Trigger(label) {
@@ -49,23 +51,23 @@ function Trigger(label) {
     var that = this;
     that.label = label;
     that.TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
-    that.TRIGGER_ON_VALUE = 0.4;     //  Squeezed just enough to activate search or near grab
-    that.TRIGGER_GRAB_VALUE = 0.85;  //  Squeezed far enough to complete distant grab
-    that.TRIGGER_OFF_VALUE = 0.15;
+    that.TRIGGER_OFF_VALUE = 0.10;
+    that.TRIGGER_ON_VALUE = that.TRIGGER_OFF_VALUE + 0.05;     //  Squeezed just enough to activate search or near grab
     that.rawTriggerValue = 0;
     that.triggerValue = 0;           // rolling average of trigger value
-    that.triggerPress = function (value) {
-        that.rawTriggerValue = value;
-    };
+    that.triggerClicked = false;
+    that.triggerClick = function (value) { that.triggerClicked = value; };
+    that.triggerPress = function (value) { that.rawTriggerValue = value; };
     that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
         var triggerValue = that.rawTriggerValue;
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
+        OffscreenFlags.navigationFocusDisabled = that.triggerValue != 0.0;
     };
     // Current smoothed state, without hysteresis. Answering booleans.
-    that.triggerSmoothedGrab = function () {
-        return that.triggerValue > that.TRIGGER_GRAB_VALUE;
+    that.triggerSmoothedClick = function () {
+        return that.triggerClicked;
     };
     that.triggerSmoothedSqueezed = function () {
         return that.triggerValue > that.TRIGGER_ON_VALUE;
@@ -81,7 +83,7 @@ function Trigger(label) {
         that.updateSmoothedTrigger();
 
         // The first two are independent of previous state:
-        if (that.triggerSmoothedGrab()) {
+        if (that.triggerSmoothedClick()) {
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
             state = null;
@@ -116,6 +118,10 @@ var weMovedReticle = false;
 function ignoreMouseActivity() {
     // If we're paused, or if change in cursor position is from this script, not the hardware mouse.
     if (!Reticle.allowMouseCapture) {
+        return true;
+    }
+    var pos = Reticle.position;
+    if (pos.x == -1 && pos.y == -1) {
         return true;
     }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
@@ -365,6 +371,8 @@ Script.scriptEnding.connect(clickMapping.disable);
 // Gather the trigger data for smoothing.
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
+clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
+clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
 // Full smoothed trigger is a click.
 function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
@@ -431,11 +439,12 @@ function clearSystemLaser() {
     }
     HMD.disableHandLasers(BOTH_HUD_LASERS);
     systemLaserOn = false;
+    weMovedReticle = true;
+    Reticle.position = { x: -1, y: -1 }; 
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
-
 }
 
 // MAIN OPERATIONS -----------
@@ -493,7 +502,10 @@ function checkSettings() {
     updateRecommendedArea();
 }
 checkSettings();
+
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    OffscreenFlags.navigationFocusDisabled = false;
 });
+

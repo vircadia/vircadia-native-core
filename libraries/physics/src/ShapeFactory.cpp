@@ -69,6 +69,7 @@ static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
 
 // util method
 btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
+    //std::cout << "adebug createConvexHull() points.size() = " << points.size() << std::endl;  // adebug
     assert(points.size() > 0);
 
     btConvexHullShape* hull = new btConvexHullShape();
@@ -204,7 +205,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     if (numIndices < INT16_MAX) {
         int16_t* indices = static_cast<int16_t*>((void*)(mesh.m_triangleIndexBase));
         for (int32_t i = 0; i < numIndices; ++i) {
-            indices[i] = triangleIndices[i];
+            indices[i] = (int16_t)triangleIndices[i];
         }
     } else {
         int32_t* indices = static_cast<int32_t*>((void*)(mesh.m_triangleIndexBase));
@@ -240,6 +241,7 @@ void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
 btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
+    //std::cout << "adebug createShapeFromInfo() type = " << type << std::endl;  // adebug
     switch(type) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
@@ -257,7 +259,8 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             shape = new btCapsuleShape(radius, height);
         }
         break;
-        case SHAPE_TYPE_COMPOUND: {
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL: {
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
@@ -268,9 +271,60 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
                 trans.setIdentity();
                 foreach (const ShapeInfo::PointList& hullPoints, pointCollection) {
                     btConvexHullShape* hull = createConvexHull(hullPoints);
-                    compound->addChildShape (trans, hull);
+                    compound->addChildShape(trans, hull);
                 }
                 shape = compound;
+            }
+        }
+        break;
+        case SHAPE_TYPE_SIMPLE_COMPOUND: {
+            const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+            const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+            uint32_t numIndices = triangleIndices.size();
+            uint32_t numMeshes = info.getNumSubShapes();
+            const uint32_t MIN_NUM_SIMPLE_COMPOUND_INDICES = 2; // END_OF_MESH_PART + END_OF_MESH
+            if (numMeshes > 0 && numIndices > MIN_NUM_SIMPLE_COMPOUND_INDICES) {
+                uint32_t i = 0;
+                std::vector<btConvexHullShape*> hulls;
+                for (auto& points : pointCollection) {
+                    // build a hull around each part
+                    while (i < numIndices) {
+                        ShapeInfo::PointList hullPoints;
+                        hullPoints.reserve(points.size());
+                        while (i < numIndices) {
+                            int32_t j = triangleIndices[i];
+                            ++i;
+                            if (j == END_OF_MESH_PART) {
+                                // end of part
+                                break;
+                            }
+                            hullPoints.push_back(points[j]);
+                        }
+                        if (hullPoints.size() > 0) {
+                            btConvexHullShape* hull = createConvexHull(hullPoints);
+                            hulls.push_back(hull);
+                        }
+
+                        assert(i < numIndices);
+                        if (triangleIndices[i] == END_OF_MESH) {
+                            // end of mesh
+                            ++i;
+                            break;
+                        }
+                    }
+                }
+                uint32_t numHulls = (uint32_t)hulls.size();
+                if (numHulls == 1) {
+                    shape = hulls[0];
+                } else {
+                    auto compound = new btCompoundShape();
+                    btTransform trans;
+                    trans.setIdentity();
+                    for (auto hull : hulls) {
+                        compound->addChildShape(trans, hull);
+                    }
+                    shape = compound;
+                }
             }
         }
         break;

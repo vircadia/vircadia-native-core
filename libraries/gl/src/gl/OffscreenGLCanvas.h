@@ -34,8 +34,8 @@ public:
     
 protected:
     std::once_flag _reportOnce;
-    QOpenGLContext* _context;
-    QOffscreenSurface* _offscreenSurface;
+    QOpenGLContext* _context{ nullptr };
+    QOffscreenSurface* _offscreenSurface{ nullptr };
     QOpenGLDebugLogger* _logger{ nullptr };
 };
 

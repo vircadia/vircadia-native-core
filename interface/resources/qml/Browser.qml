@@ -3,12 +3,14 @@ import QtQuick.Controls 1.2
 import QtWebEngine 1.1
 
 import "controls-uit"
+import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
 
 ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifistyles }
     title: "Browser"
     resizable: true
     destroyOnHidden: true
@@ -46,7 +48,7 @@ ScrollingWindow {
                 id: back;
                 enabled: webview.canGoBack;
                 text: hifi.glyphs.backward
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
             }
@@ -55,7 +57,7 @@ ScrollingWindow {
                 id: forward;
                 enabled: webview.canGoForward;
                 text: hifi.glyphs.forward
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
@@ -64,7 +66,7 @@ ScrollingWindow {
                 id: reload;
                 enabled: webview.canGoForward;
                 text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
-                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
@@ -105,7 +107,7 @@ ScrollingWindow {
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
                 placeholderText: "Enter URL"
-                Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
+                Component.onCompleted: ScriptDiscoveryService.scriptsModelFilter.filterRegExp = new RegExp("^.*$", "i")
                 Keys.onPressed: {
                     switch(event.key) {
                         case Qt.Key_Enter:

@@ -16,6 +16,9 @@
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
 
+#if defined(Q_OS_MAC)
+#include <OpenGL/CGLCurrent.h>
+#endif
 #include <gl/QOpenGLContextWrapper.h>
 #include <gpu/Texture.h>
 #include <gl/GLWidget.h>
@@ -612,8 +615,14 @@ void OpenGLDisplayPlugin::enableVsync(bool enable) {
     if (!_vsyncSupported) {
         return;
     }
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     wglSwapIntervalEXT(enable ? 1 : 0);
+#elif defined(Q_OS_MAC)
+    GLint interval = enable ? 1 : 0;
+    CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+#else
+    // TODO: Fill in for linux
+    return;
 #endif
 }
 
@@ -621,9 +630,14 @@ bool OpenGLDisplayPlugin::isVsyncEnabled() {
     if (!_vsyncSupported) {
         return true;
     }
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     return wglGetSwapIntervalEXT() != 0;
+#elif defined(Q_OS_MAC)
+    GLint interval;
+    CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+    return interval != 0;
 #else
+    // TODO: Fill in for linux
     return true;
 #endif
 }
@@ -647,12 +661,13 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 }
 
 QImage OpenGLDisplayPlugin::getScreenshot() const {
-    QImage result;
+    using namespace oglplus;
+    QImage screenshot(_compositeFramebuffer->size.x, _compositeFramebuffer->size.y, QImage::Format_RGBA8888);
     withMainThreadContext([&] {
-        static auto widget = _container->getPrimaryWidget();
-        result = widget->grabFrameBuffer();
+        Framebuffer::Bind(Framebuffer::Target::Read, _compositeFramebuffer->fbo);
+        Context::ReadPixels(0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y, enums::PixelDataFormat::RGBA, enums::PixelDataType::UnsignedByte, screenshot.bits());
     });
-    return result;
+    return screenshot.mirrored(false, true);
 }
 
 uint32_t OpenGLDisplayPlugin::getSceneTextureId() const {

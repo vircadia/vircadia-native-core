@@ -26,6 +26,10 @@ const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 // trim convex hulls with many points down to only 42 points.
 const int MAX_HULL_POINTS = 42;
 
+
+const int32_t END_OF_MESH_PART = -1; // bogus vertex index at end of mesh part
+const int32_t END_OF_MESH = -2; // bogus vertex index at end of mesh
+
 enum ShapeType {
     SHAPE_TYPE_NONE,
     SHAPE_TYPE_BOX,
@@ -39,6 +43,8 @@ enum ShapeType {
     SHAPE_TYPE_HULL,
     SHAPE_TYPE_PLANE,
     SHAPE_TYPE_COMPOUND,
+    SHAPE_TYPE_SIMPLE_HULL,
+    SHAPE_TYPE_SIMPLE_COMPOUND,
     SHAPE_TYPE_STATIC_MESH
 };
 
@@ -48,7 +54,7 @@ public:
 
     using PointList = QVector<glm::vec3>;
     using PointCollection = QVector<PointList>;
-    using TriangleIndices = QVector<uint32_t>;
+    using TriangleIndices = QVector<int32_t>;
 
     void clear();
 

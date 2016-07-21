@@ -40,8 +40,6 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode;
 
-const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
-
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
@@ -49,7 +47,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH;
+            return VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
@@ -62,6 +60,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
             return 18;
+        case PacketType::NodeIgnoreRequest:
+            return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
@@ -71,6 +71,13 @@ PacketVersion versionForPacketType(PacketType packetType) {
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
+
+        case PacketType::MixedAudio:
+        case PacketType::SilentAudioFrame:
+        case PacketType::InjectAudio:
+        case PacketType::MicrophoneAudioNoEcho:
+        case PacketType::MicrophoneAudioWithEcho:
+            return static_cast<PacketVersion>(AudioVersion::CodecNameInAudioPackets);
 
         default:
             return 17;
@@ -99,8 +106,9 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion) {
 }
 #endif
 
-QByteArray protocolVersionsSignature() {
-    static QByteArray protocolVersionSignature;
+static QByteArray protocolVersionSignature;
+static QString protocolVersionSignatureBase64;
+static void ensureProtocolVersionsSignature() {
     static std::once_flag once;
     std::call_once(once, [&] {
         QByteArray buffer;
@@ -114,8 +122,11 @@ QByteArray protocolVersionsSignature() {
         QCryptographicHash hash(QCryptographicHash::Md5);
         hash.addData(buffer);
         protocolVersionSignature = hash.result();
+        protocolVersionSignatureBase64 = protocolVersionSignature.toBase64();
     });
-
+}
+QByteArray protocolVersionsSignature() {
+    ensureProtocolVersionsSignature();
     #if (PR_BUILD || DEV_BUILD)
     if (sendWrongProtocolVersion) {
         return QByteArray("INCORRECTVERSION"); // only for debugging version checking
@@ -123,4 +134,8 @@ QByteArray protocolVersionsSignature() {
     #endif
 
     return protocolVersionSignature;
+}
+QString protocolVersionsSignatureBase64() {
+    ensureProtocolVersionsSignature();
+    return protocolVersionSignatureBase64;
 }

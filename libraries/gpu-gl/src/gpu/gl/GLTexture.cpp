@@ -187,7 +187,11 @@ GLTexture::~GLTexture() {
         }
     }
 
-    Backend::decrementTextureGPUCount();
+    if (_id) {
+        glDeleteTextures(1, &_id);
+        const_cast<GLuint&>(_id) = 0;
+        Backend::decrementTextureGPUCount();
+    }
     Backend::updateTextureGPUMemoryUsage(_size, 0);
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }

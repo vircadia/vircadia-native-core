@@ -310,7 +310,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
     _shapeID(shapeIndex) {
 
     assert(_model && _model->isLoaded());
-    auto& modelMesh = _model->getGeometry()->getGeometry()->getMeshes().at(_meshIndex);
+    auto& modelMesh = _model->getGeometry()->getMeshes().at(_meshIndex);
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -331,7 +331,7 @@ void ModelMeshPartPayload::initCache() {
         _isBlendShaped = !mesh.blendshapes.isEmpty();
     }
 
-    auto networkMaterial = _model->getGeometry()->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = _model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         _drawMaterial = networkMaterial;
     };
@@ -384,7 +384,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
     assert(_model->isLoaded());
     const FBXGeometry& geometry = _model->getFBXGeometry();
-    const auto& networkMeshes = _model->getGeometry()->getGeometry()->getMeshes();
+    const auto& networkMeshes = _model->getGeometry()->getMeshes();
 
     // guard against partially loaded meshes
     if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size()) {

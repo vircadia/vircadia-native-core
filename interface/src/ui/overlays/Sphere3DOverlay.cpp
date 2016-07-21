@@ -58,7 +58,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Sphere3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withOwnPipeline();
+    auto builder = render::ShapeKey::Builder();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

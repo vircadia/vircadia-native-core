@@ -12,11 +12,13 @@
 //
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
+var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
+var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";  
+var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
+    
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
-    "libraries/toolBars.js",
     "libraries/progressDialog.js",
 
     "libraries/entitySelectionTool.js",
@@ -49,11 +51,6 @@ selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
 });
-
-var toolIconUrl = Script.resolvePath("assets/images/tools/");
-var toolHeight = 50;
-var toolWidth = 50;
-var TOOLBAR_MARGIN_Y = 0;
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
@@ -98,12 +95,11 @@ var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary p
 var mode = 0;
 var isActive = false;
 
-var placingEntityID = null;
-
 IMPORTING_SVO_OVERLAY_WIDTH = 144;
 IMPORTING_SVO_OVERLAY_HEIGHT = 30;
 IMPORTING_SVO_OVERLAY_MARGIN = 5;
 IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
+
 var importingSVOImageOverlay = Overlays.addOverlay("image", {
     imageURL: Script.resolvePath("assets") + "/images/hourglass.svg",
     width: 20,
@@ -168,236 +164,15 @@ function toggleMarketplace() {
 }
 
 var toolBar = (function() {
+    var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
+    var TOOL_ICON_URL = Script.resolvePath("assets/images/tools/");
     var that = {},
         toolBar,
-        activeButton,
-        newModelButton,
-        newCubeButton,
-        newSphereButton,
-        newLightButton,
-        newTextButton,
-        newWebButton,
-        newZoneButton,
-        newParticleButton
-
-    function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
-            return {
-                x: (windowDimensions.x / 2) + (Tool.IMAGE_WIDTH * 2),
-                y: windowDimensions.y
-            };
-        }, {
-            x: toolWidth,
-            y: -TOOLBAR_MARGIN_Y - toolHeight
-        });
-
-        activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "edit.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: true
-        }, true, false);
-
-        newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "model-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newCubeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "cube-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newSphereButton = toolBar.addTool({
-            imageURL: toolIconUrl + "sphere-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newLightButton = toolBar.addTool({
-            imageURL: toolIconUrl + "light-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newTextButton = toolBar.addTool({
-            imageURL: toolIconUrl + "text-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newWebButton = toolBar.addTool({
-            imageURL: toolIconUrl + "web-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zone-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "particle-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            showButtonDown: true,
-            visible: false
-        });
-
-        that.setActive(false);
-    }
-
-    that.clearEntityList = function() {
-        entityListTool.clearEntityList();
-    };
-
-    that.setActive = function(active) {
-        if (active != isActive) {
-            if (active && !Entities.canRez() && !Entities.canRezTmp()) {
-                Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
-            } else {
-                Messages.sendLocalMessage("edit-events", JSON.stringify({
-                    enabled: active
-                }));
-                isActive = active;
-                if (!isActive) {
-                    entityListTool.setVisible(false);
-                    gridTool.setVisible(false);
-                    grid.setEnabled(false);
-                    propertiesTool.setVisible(false);
-                    selectionManager.clearSelections();
-                    cameraManager.disable();
-                } else {
-                    UserActivityLogger.enabledEdit();
-                    hasShownPropertiesTool = false;
-                    entityListTool.setVisible(true);
-                    gridTool.setVisible(true);
-                    grid.setEnabled(true);
-                    propertiesTool.setVisible(true);
-                    // Not sure what the following was meant to accomplish, but it currently causes
-                    // everybody else to think that Interface has lost focus overall. fogbugzid:558
-                    // Window.setFocus();
-                }
-                that.showTools(isActive);
-            }
-        }
-        toolBar.selectTool(activeButton, isActive);
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
-    };
-
-    // Sets visibility of tool buttons, excluding the power button
-    that.showTools = function(doShow) {
-        toolBar.showTool(newModelButton, doShow);
-        toolBar.showTool(newCubeButton, doShow);
-        toolBar.showTool(newSphereButton, doShow);
-        toolBar.showTool(newLightButton, doShow);
-        toolBar.showTool(newTextButton, doShow);
-        toolBar.showTool(newWebButton, doShow);
-        toolBar.showTool(newZoneButton, doShow);
-        toolBar.showTool(newParticleButton, doShow);
-    };
-
-    var RESIZE_INTERVAL = 50;
-    var RESIZE_TIMEOUT = 120000; // 2 minutes
-    var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
-
-    function addModel(url) {
-        var entityID = createNewEntity({
-            type: "Model",
-            modelURL: url
-        }, false);
-
-        if (entityID) {
-            print("Model added: " + url);
-            selectionManager.setSelections([entityID]);
-        }
-    }
-
-    function createNewEntity(properties, dragOnCreate) {
-        // Default to true if not passed in
-        dragOnCreate = dragOnCreate == undefined ? true : dragOnCreate;
+        systemToolbar,
+        activeButton;
+        
+    function createNewEntity(properties) {
+        Settings.setValue(EDIT_SETTING, false);
 
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
@@ -405,11 +180,7 @@ var toolBar = (function() {
         if (position != null) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
                 properties.position = position;
-
             entityID = Entities.addEntity(properties);
-            if (dragOnCreate) {
-                placingEntityID = entityID;
-            }
         } else {
             Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
@@ -421,35 +192,74 @@ var toolBar = (function() {
         return entityID;
     }
 
-    that.mousePressEvent = function(event) {
-        var clickedOverlay,
-            url,
-            file;
-
-        if (!event.isLeftButton) {
-            // if another mouse button than left is pressed ignore it
-            return false;
+    function cleanup() {
+        that.setActive(false);
+        systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
+    }
+    
+    function addButton(name, image, handler) {
+        var imageUrl = TOOL_ICON_URL + image;
+        var button = toolBar.addButton({
+            objectName: name,
+            imageURL: imageUrl, 
+            buttonState: 1,
+            alpha: 0.9,
+            visible: true,
+        });
+        if (handler) {
+            button.clicked.connect(function() {
+                Script.setTimeout(handler, 100);
+            });
         }
+        return button;
+    }
 
-        clickedOverlay = Overlays.getOverlayAtPoint({
-            x: event.x,
-            y: event.y
+    function initialize() {
+        print("QQQ creating edit toolbar");
+        Script.scriptEnding.connect(cleanup);
+        
+        Window.domainChanged.connect(function() {
+            that.setActive(false);
+            that.clearEntityList();
         });
 
-        if (activeButton === toolBar.clicked(clickedOverlay)) {
-            that.setActive(!isActive);
-            return true;
-        }
-
-        if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            url = Window.prompt("Model URL");
-            if (url !== null && url !== "") {
-                addModel(url);
+        Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
+            if (isActive && !canAdjustLocks) {
+                that.setActive(false);
             }
-            return true;
-        }
+        });
 
-        if (newCubeButton === toolBar.clicked(clickedOverlay)) {
+        systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
+        activeButton = systemToolbar.addButton({
+            objectName: EDIT_TOGGLE_BUTTON,
+            imageURL: TOOL_ICON_URL + "edit.svg",
+            visible: true,
+            alpha: 0.9,
+            buttonState: 1,
+            hoverState: 3,
+            defaultState: 1,
+        });
+        activeButton.clicked.connect(function() {
+            that.setActive(!isActive);
+            activeButton.writeProperty("buttonState", isActive ? 0 : 1);
+            activeButton.writeProperty("defaultState", isActive ? 0 : 1);
+            activeButton.writeProperty("hoverState", isActive ? 2 : 3);
+        });
+
+        toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
+        toolBar.writeProperty("shown", false);
+
+        addButton("newModelButton", "model-01.svg", function() {
+            var url = Window.prompt("Model URL");
+            if (url !== null && url !== "") {
+                createNewEntity({
+                    type: "Model",
+                    modelURL: url
+                });
+            }
+        });
+
+        addButton("newCubeButton", "cube-01.svg", function() {
             createNewEntity({
                 type: "Box",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -459,11 +269,9 @@ var toolBar = (function() {
                     blue: 0
                 }
             });
+        });
 
-            return true;
-        }
-
-        if (newSphereButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newSphereButton", "sphere-01.svg", function() {
             createNewEntity({
                 type: "Sphere",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -473,11 +281,9 @@ var toolBar = (function() {
                     blue: 0
                 }
             });
+        });
 
-            return true;
-        }
-
-        if (newLightButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newLightButton", "light-01.svg", function() {
             createNewEntity({
                 type: "Light",
                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
@@ -494,11 +300,9 @@ var toolBar = (function() {
                 exponent: 0,
                 cutoff: 180, // in degrees
             });
+        });
 
-            return true;
-        }
-
-        if (newTextButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newTextButton", "text-01.svg", function() {
             createNewEntity({
                 type: "Text",
                 dimensions: {
@@ -519,11 +323,9 @@ var toolBar = (function() {
                 text: "some text",
                 lineHeight: 0.06
             });
+        });
 
-            return true;
-        }
-
-        if (newWebButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newWebButton", "web-01.svg", function() {
             createNewEntity({
                 type: "Web",
                 dimensions: {
@@ -533,11 +335,9 @@ var toolBar = (function() {
                 },
                 sourceUrl: "https://highfidelity.com/",
             });
+        });
 
-            return true;
-        }
-
-        if (newZoneButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newZoneButton", "zone-01.svg", function() {
             createNewEntity({
                 type: "Zone",
                 dimensions: {
@@ -546,11 +346,9 @@ var toolBar = (function() {
                     z: 10
                 },
             });
+        });
 
-            return true;
-        }
-
-        if (newParticleButton === toolBar.clicked(clickedOverlay)) {
+        addButton("newParticleButton", "particle-01.svg", function() {
             createNewEntity({
                 type: "ParticleEffect",
                 isEmitting: true,
@@ -572,33 +370,63 @@ var toolBar = (function() {
                 emitRate: 100,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
             });
-        }
+        });
 
-        return false;
+        that.setActive(false);
+    }
+    
+    that.clearEntityList = function() {
+        entityListTool.clearEntityList();
     };
 
-    that.mouseReleaseEvent = function(event) {
-        return false;
-    }
-
-    Window.domainChanged.connect(function() {
-        that.setActive(false);
-        that.clearEntityList();
-    });
-
-    Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
-        if (isActive && !canAdjustLocks) {
-            that.setActive(false);
+    that.setActive = function(active) {
+        if (active == isActive) {
+            return;
         }
-    });
-
-    that.cleanup = function() {
-        toolBar.cleanup();
+        if (active && !Entities.canRez() && !Entities.canRezTmp()) {
+            Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
+            return;
+        }
+        Messages.sendLocalMessage("edit-events", JSON.stringify({
+            enabled: active
+        }));
+        isActive = active;
+        Settings.setValue(EDIT_SETTING, active);
+        if (!isActive) {
+            entityListTool.setVisible(false);
+            gridTool.setVisible(false);
+            grid.setEnabled(false);
+            propertiesTool.setVisible(false);
+            selectionManager.clearSelections();
+            cameraManager.disable();
+            selectionDisplay.triggerMapping.disable();
+        } else {
+            UserActivityLogger.enabledEdit();
+            hasShownPropertiesTool = false;
+            entityListTool.setVisible(true);
+            gridTool.setVisible(true);
+            grid.setEnabled(true);
+            propertiesTool.setVisible(true);
+            selectionDisplay.triggerMapping.enable();
+            // Not sure what the following was meant to accomplish, but it currently causes
+            // everybody else to think that Interface has lost focus overall. fogbugzid:558
+            // Window.setFocus();
+        }
+        // Sets visibility of tool buttons, excluding the power button
+        toolBar.writeProperty("shown", active);
+        var visible = toolBar.readProperty("visible");
+        if (active && !visible) { 
+            toolBar.writeProperty("shown", false);
+            toolBar.writeProperty("shown", true);
+        }
+        //toolBar.selectTool(activeButton, isActive);
+        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     initialize();
     return that;
-}());
+})();
 
 
 function isLocked(properties) {
@@ -707,7 +535,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (propertyMenu.mousePressEvent(event) || toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (propertyMenu.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
@@ -750,16 +578,6 @@ function mouseMove(event) {
         mouseHasMovedSincePress = true;
     }
 
-    if (placingEntityID) {
-        var pickRay = Camera.computePickRay(event.x, event.y);
-        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-        var offset = Vec3.multiply(distance, pickRay.direction);
-        var position = Vec3.sum(Camera.position, offset);
-        Entities.editEntity(placingEntityID, {
-            position: position,
-        });
-        return;
-    }
     if (!isActive) {
         return;
     }
@@ -791,20 +609,10 @@ function mouseReleaseEvent(event) {
         mouseMove(lastMouseMoveEvent);
         lastMouseMoveEvent = null;
     }
-    if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
-
+    if (propertyMenu.mouseReleaseEvent(event)) {
         return true;
     }
-    if (placingEntityID) {
-
-        if (isActive) {
-
-            selectionManager.setSelections([placingEntityID]);
-        }
-        placingEntityID = null;
-    }
     if (isActive && selectionManager.hasSelection()) {
-
         tooltip.show(false);
     }
     if (mouseCapturedByTool) {
@@ -1089,7 +897,6 @@ Script.scriptEnding.connect(function() {
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
     progressDialog.cleanup();
-    toolBar.cleanup();
     cleanupModelMenus();
     tooltip.cleanup();
     selectionDisplay.cleanup();
@@ -1438,6 +1245,9 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
         var entityID = SelectionManager.selections[i];
         var initialProperties = SelectionManager.savedProperties[entityID];
         var currentProperties = Entities.getEntityProperties(entityID);
+        if (!initialProperties) {
+            continue;
+        }
         undoData.setProperties.push({
             entityID: entityID,
             properties: {

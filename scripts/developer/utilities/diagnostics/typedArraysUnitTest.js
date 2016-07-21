@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../../libraries/unitTest.js");
+Script.include("../../../../script-archive/libraries/unitTest.js");
 
 // e.g. extractbits([0xff, 0x80, 0x00, 0x00], 23, 30); inclusive
 function extractbits(bytes, lo, hi) {
@@ -551,6 +551,20 @@ test('TypedArray.subarray', function () {
   this.arrayEqual(a.subarray(-1, -4), []);
   this.arrayEqual(a.subarray(1).subarray(1), [3, 4, 5]);
   this.arrayEqual(a.subarray(1, 4).subarray(1, 2), [3]);
+
+  var a = new Float32Array(16);
+  a[0] = -1;
+  a[15] = 1/8;
+  this.assertEquals(a.length, 16);
+  this.assertEquals(a.byteLength, a.length * a.BYTES_PER_ELEMENT);
+
+  this.assertEquals(a.subarray(-12).length, 12, '[-12,)');
+  this.arrayEqual(a.subarray(-16), a, '[-16,)');
+  this.arrayEqual(a.subarray(12, 16), [0,0,0,1/8], '[12,16)');
+  this.arrayEqual(a.subarray(0, 4), [-1,0,0,0],'[0,4)');
+  this.arrayEqual(a.subarray(-16, -12), [-1,0,0,0],'[-16,-12)');
+  this.assertEquals(a.subarray(0, -12).length, 4,'[0,-12)');
+  this.arrayEqual(a.subarray(-10), a.subarray(6),'[-10,)');
 });
 
 
@@ -706,3 +720,45 @@ test('Regression Tests', function() {
   this.assertEquals(truncated, -minFloat32, 'smallest 32 bit float should not truncate to zero');
 });
 
+test('new TypedArray(ArrayBuffer).length Tests', function() {
+  var uint8s = new Uint8Array([0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff]),
+      buffer = uint8s.buffer;
+
+  this.assertEquals(buffer.byteLength, 8, 'buffer.length');
+
+  var _this = this;
+  [
+    'Uint8Array', 'Uint16Array', 'Uint32Array', 'Int8Array', 'Int16Array', 'Int32Array',
+    'Float32Array', 'Float64Array', 'Uint8ClampedArray'
+  ].forEach(function(typeArrayName) {
+    var typeArray = eval(typeArrayName);
+    var a = new typeArray(buffer);
+    _this.assertEquals(a.BYTES_PER_ELEMENT, typeArrayName.match(/\d+/)[0]/8, typeArrayName+'.BYTES_PER_ELEMENT');
+    _this.assertEquals(a.byteLength, buffer.byteLength, typeArrayName+'.byteLength');
+    _this.assertEquals(a.length, buffer.byteLength / typeArray.BYTES_PER_ELEMENT, typeArrayName+'.length');
+  });
+});
+
+test('Native endianness check', function() {
+  var buffer = ArrayBuffer(4);
+  new Uint8Array(buffer).set([0xaa, 0xbb, 0xcc, 0xdd]);
+  var endian = { aabbccdd: 'big', ddccbbaa: 'little' }[
+    new Uint32Array(buffer)[0].toString(16)
+  ];
+  this.assertEquals(endian, 'little');
+});
+
+test('TypeArray byte order tests', function() {
+  var uint8s = new Uint8Array([0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff]),
+      buffer = uint8s.buffer;
+
+  this.arrayEqual(new Uint8Array(buffer), [0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff], "Uint8Array");
+  this.arrayEqual(new Uint16Array(buffer), [0x00ff, 0x0000, 0x0000, 0xff00], "Uint16Array");
+  this.arrayEqual(new Uint32Array(buffer), [0x000000ff, 0xff000000], "Uint32Array");
+
+  this.arrayEqual(new Int8Array(buffer), [-1,0,0,0,0,0,0,-1], "Int8Array");
+  this.arrayEqual(new Int16Array(buffer), [255, 0, 0, -256], "Int16Array");
+
+  this.arrayEqual(new Float32Array(buffer), [3.5733110840282835e-43, -1.7014118346046923e+38], "Float32Array");
+  this.arrayEqual(new Float64Array(buffer), [-5.486124068793999e+303], "Float64Array");
+});
