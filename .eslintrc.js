@@ -40,6 +40,7 @@ module.exports = {
         "SoundCache": false,
         "Stats": false,
         "TextureCache": false,
+        "Toolbars": false,
         "Uuid": false,
         "UndoStack": false,
         "Vec3": false,
