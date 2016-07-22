@@ -32,8 +32,8 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
             _groupIDSet = true;
         }
     }
-    if (perms.contains("rank")) {
-        _rank = perms["rank"].toInt();
+    if (perms.contains("rank_id")) {
+        _rankID = QUuid(perms["rank_id"].toString());
     }
 
     permissions = NodePermissions::Permissions();
@@ -46,14 +46,15 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
         Permission::canConnectPastMaxCapacity : Permission::none;
 }
 
-QVariant NodePermissions::toVariant(QVector<QString> rankNames) {
+QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     QMap<QString, QVariant> values;
     values["permissions_id"] = _id;
     if (_groupIDSet) {
         values["group_id"] = _groupID;
-        values["rank"] = _rank;
-        if (rankNames.size() > _rank) {
-            values["rank_name"] = rankNames[_rank];
+        if (groupRanks.contains(_rankID)) {
+            values["rank_id"] = _rankID;
+            values["rank_name"] = groupRanks[_rankID].name;
+            values["rank_order"] = groupRanks[_rankID].order;
         }
     }
     values["id_can_connect"] = can(Permission::canConnectToDomain);
@@ -147,7 +148,7 @@ QDataStream& operator>>(QDataStream& in, NodePermissions& perms) {
 
 QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     debug.nospace() << "[permissions: " << perms.getID() << "/" << perms.getVerifiedUserName() << " -- ";
-    debug.nospace() << "rank=" << perms.getRank()
+    debug.nospace() << "rank=" << perms.getRankID()
                     << ", groupID=" << perms.getGroupID() << "/" << (perms.isGroup() ? "y" : "n");
     if (perms.can(NodePermissions::Permission::canConnectToDomain)) {
         debug << " connect";

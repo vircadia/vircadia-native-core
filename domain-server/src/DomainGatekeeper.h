@@ -107,7 +107,7 @@ private:
 
     NodePermissions applyPermissionsForUser(bool isLocalUser, NodePermissions userPerms, QString verifiedUsername);
     void getGroupMemberships(const QString& username);
-    void getIsGroupMember(const QString& username, const QUuid groupID);
+    // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
 };
 

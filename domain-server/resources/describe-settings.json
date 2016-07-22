@@ -526,7 +526,7 @@
           "groups": [
             {
               "label": "Group",
-              "span": 4
+              "span": 5
             },
             {
               "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the previous section.</p>'>?</a>",
@@ -540,8 +540,12 @@
               "label": "Group Name"
             },
             {
-              "name": "rank",
-              "label": "Rank"
+              "name": "rank_id",
+              "label": "Rank ID"
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order"
             },
             {
               "name": "rank_name",
@@ -605,7 +609,7 @@
           "groups": [
             {
               "label": "Group",
-              "span": 4
+              "span": 5
             },
             {
               "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the previous section.</p>'>?</a>",
@@ -619,8 +623,12 @@
               "label": "Group Name"
             },
             {
-              "name": "rank",
-              "label": "Rank"
+              "name": "rank_id",
+              "label": "Rank ID"
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order"
             },
             {
               "name": "rank_name",

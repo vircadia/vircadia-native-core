@@ -18,21 +18,24 @@
 #include <QVariant>
 #include <QUuid>
 
+#include "GroupRank.h"
+
 class NodePermissions;
 using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
-using NodePermissionsKey = QPair<QString, int>;
-using NodePermissionsKeyList = QList<QPair<QString, int>>;
+using NodePermissionsKey = QPair<QString, QUuid>; // name, rankID
+using NodePermissionsKeyList = QList<QPair<QString, QUuid>>;
+
 
 class NodePermissions {
 public:
-    NodePermissions() { _id = QUuid::createUuid().toString(); _rank = 0; }
-    NodePermissions(const QString& name) { _id = name.toLower(); _rank = 0; }
-    NodePermissions(const NodePermissionsKey& key) { _id = key.first.toLower(); _rank = key.second; }
+    NodePermissions() { _id = QUuid::createUuid().toString(); _rankID = QUuid(); }
+    NodePermissions(const QString& name) { _id = name.toLower(); _rankID = QUuid(); }
+    NodePermissions(const NodePermissionsKey& key) { _id = key.first.toLower(); _rankID = key.second; }
     NodePermissions(QMap<QString, QVariant> perms);
 
     QString getID() const { return _id; } // a user-name or a group-name, not verified
-    int getRank() const { return _rank; }
-    NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rank); }
+    QUuid getRankID() const { return _rankID; }
+    NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rankID); }
 
     // the _id member isn't authenticated/verified and _username is.
     void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
@@ -63,7 +66,7 @@ public:
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;
 
-    QVariant toVariant(QVector<QString> rankNames = QVector<QString>());
+    QVariant toVariant(QHash<QUuid, GroupRank> groupRanks = QHash<QUuid, GroupRank>());
 
     void setAll(bool value);
 
@@ -81,7 +84,7 @@ public:
 
 protected:
     QString _id;
-    int _rank { 0 }; // 0 unless this is for a group
+    QUuid _rankID { QUuid() }; // 0 unless this is for a group
     QString _verifiedUserName;
 
     bool _groupIDSet { false };
@@ -107,7 +110,7 @@ public:
     bool contains(const NodePermissionsKey& key) const {
         return _data.contains(NodePermissionsKey(key.first.toLower(), key.second));
     }
-    bool contains(const QString& keyFirst, int keySecond) const {
+    bool contains(const QString& keyFirst, QUuid keySecond) const {
         return _data.contains(NodePermissionsKey(keyFirst.toLower(), keySecond));
     }
     QList<NodePermissionsKey> keys() const { return _data.keys(); }

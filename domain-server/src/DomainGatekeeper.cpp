@@ -150,10 +150,12 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
 
             // if this user is a known member of a group, give them the implied permissions
             foreach (QUuid groupID, _server->_settingsManager.getGroupIDs()) {
-                int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
-                if (rank >= 0) {
-                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rank);
-                    qDebug() << "user-permissions: user is in group:" << groupID << " rank:" << rank << "so:" << userPerms;
+                QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                if (rankID != QUuid()) {
+                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rankID);
+
+                    GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
+                    qDebug() << "user-permissions: user is in group:" << groupID << " rank:" << rank.name << "so:" << userPerms;
                 }
             }
 
@@ -161,12 +163,14 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
             qDebug() << "------------------ checking blacklists ----------------------";
             qDebug() << _server->_settingsManager.getBlacklistGroupIDs();
             foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
-                if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
-                    int rank = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
-                    qDebug() << groupID << verifiedUsername << "is member with rank" << rank;
-                    if (rank >= 0) {
-                        userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rank);
-                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << " rank:" << rank
+                QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                if (rankID != QUuid()) {
+                    QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
+                    if (rankID != QUuid()) {
+                        userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rankID);
+
+                        GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
+                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << " rank:" << rank.name
                                  << "so:" << userPerms;
                     }
                 } else {
@@ -197,6 +201,7 @@ void DomainGatekeeper::updateNodePermissions() {
         if (node->getPermissions().isAssignment) {
             // this node is an assignment-client
             userPerms.isAssignment = true;
+            userPerms.permissions |= NodePermissions::Permission::canConnectToDomain;
             userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
             userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
@@ -263,9 +268,10 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
     _pendingAssignedNodes.erase(it);
 
-    // always allow assignment clients to create and destroy entities
     NodePermissions userPerms;
     userPerms.isAssignment = true;
+    userPerms.permissions |= NodePermissions::Permission::canConnectToDomain;
+    // always allow assignment clients to create and destroy entities
     userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
     userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
@@ -701,32 +707,62 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage>
     }
 }
 
+// void DomainGatekeeper::getGroupMemberships(const QString& username) {
+//     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
+//     // will be received asynchronously and permissions will be updated as the answers come in.
+//     QList<QUuid> groupIDs = _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs();
+//     // TODO -- use alternative that allows checking entire group list in one call
+//     foreach (QUuid groupID, groupIDs) {
+//         if (groupID.isNull()) {
+//             continue;
+//         }
+//         getIsGroupMember(username, groupID);
+//     }
+// }
+
+// void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid groupID) {
+//     JSONCallbackParameters callbackParams;
+//     callbackParams.jsonCallbackReceiver = this;
+//     callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
+//     callbackParams.errorCallbackReceiver = this;
+//     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
+
+//     const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/members/%2";
+//     QString groupIDStr = groupID.toString().mid(1,36);
+//     DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
+//                                                           AccountManagerAuth::Required,
+//                                                           QNetworkAccessManager::GetOperation, callbackParams);
+// }
+
+
+
 void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
-    QList<QUuid> groupIDs = _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs();
-    // TODO -- use alternative that allows checking entire group list in one call
-    foreach (QUuid groupID, groupIDs) {
-        if (groupID.isNull()) {
-            continue;
-        }
-        getIsGroupMember(username, groupID);
-    }
-}
 
-void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid groupID) {
+    QJsonObject json;
+    QSet<QString> groupIDSet;
+    foreach (QUuid groupID, _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs()) {
+        groupIDSet += groupID.toString().mid(1,36);
+    }
+    QJsonArray groupIDs = QJsonArray::fromStringList(groupIDSet.toList());
+    json["groups"] = groupIDs;
+
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
     callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
 
-    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/members/%2";
-    QString groupIDStr = groupID.toString().mid(1,36);
-    DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
+    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/members/%2";
+    DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(username),
                                                           AccountManagerAuth::Required,
-                                                          QNetworkAccessManager::GetOperation, callbackParams);
+                                                          QNetworkAccessManager::PostOperation, callbackParams,
+                                                          QJsonDocument(json).toJson());
+
 }
+
+
 
 void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
     // {
@@ -746,8 +782,6 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     // }
 
 
-
-
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
 
     qDebug() << "*********  getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
@@ -760,8 +794,9 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
         _server->_settingsManager.clearGroupMemberships(username);
         foreach (auto groupID, groups.keys()) {
             QJsonObject group = groups[groupID].toObject();
-            int order = group["order"].toInt();
-            _server->_settingsManager.recordGroupMembership(username, groupID, order);
+            QJsonObject rank = group["rank"].toObject();
+            QUuid rankID = QUuid(rank["id"].toString());
+            _server->_settingsManager.recordGroupMembership(username, groupID, rankID);
         }
     } else {
         qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
