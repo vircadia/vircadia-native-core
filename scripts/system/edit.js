@@ -727,7 +727,7 @@ function mouseClickEvent(event) {
             var x = Vec3.dot(Vec3.subtract(P, A), B);
 
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) *
-                              180 / 3.14;
+                              180 / Math.PI;
 
             var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) &&
                          (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
