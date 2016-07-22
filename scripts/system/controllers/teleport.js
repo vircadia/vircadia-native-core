@@ -50,15 +50,13 @@ var COLORS_TELEPORT_CAN_TELEPORT = {
     red: 97,
     green: 247,
     blue: 255
-};
-​
-​
+}
+
 var COLORS_TELEPORT_CANNOT_TELEPORT = {
     red: 0,
     green: 121,
     blue: 141
 };
-​
 
 function ThumbPad(hand) {
     this.hand = hand;
