@@ -288,8 +288,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
-
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
@@ -299,7 +297,11 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
-    Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
+
+    QUrl getAnimGraphOverrideUrl() const;  // thread-safe
+    void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
+    QUrl getAnimGraphUrl() const;  // thread-safe
+    void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
@@ -403,7 +405,9 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
-    QUrl _animGraphUrl {""};
+    ThreadSafeValueCache<QUrl> _currentAnimGraphUrl;
+    ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
+    QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
 

@@ -67,6 +67,18 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
+        auto animGraphVariant = mapping.value("animGraphUrl");
+        if (animGraphVariant.isValid()) {
+            QUrl fstUrl(animGraphVariant.toString());
+            if (fstUrl.isValid()) {
+                _animGraphOverrideUrl = _url.resolved(fstUrl);
+            } else {
+                _animGraphOverrideUrl = QUrl();
+            }
+        } else {
+            _animGraphOverrideUrl = QUrl();
+        }
+
         auto modelCache = DependencyManager::get<ModelCache>();
         GeometryExtra extra{ mapping, _textureBaseUrl };
 
@@ -284,6 +296,8 @@ Geometry::Geometry(const Geometry& geometry) {
     for (const auto& material : geometry._materials) {
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
+
+    _animGraphOverrideUrl = geometry._animGraphOverrideUrl;
 }
 
 void Geometry::setTextures(const QVariantMap& textureMap) {
