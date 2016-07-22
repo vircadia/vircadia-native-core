@@ -81,24 +81,25 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
+
+    void setShowCollisionMesh(bool value);
+
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
         return !_needsReload && isRenderable() && isActive();
     }
     bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges,
-                    bool showCollisionHull = false) {
+                    render::PendingChanges& pendingChanges) {
         auto getters = render::Item::Status::Getters(0);
-        return addToScene(scene, pendingChanges, getters, showCollisionHull);
+        return addToScene(scene, pendingChanges, getters);
     }
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    render::Item::Status::Getters& statusGetters,
-                    bool showCollisionHull = false);
+                    render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
-    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _renderGeometry->getMeshes().empty()); }
+    bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
 
@@ -239,6 +240,7 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+    void setCollisionMesh(model::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -249,9 +251,9 @@ public slots:
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
-    void setCollisionMesh(model::MeshPointer mesh);
 
 protected:
+    bool addedToScene() const { return _addedToScene; }
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
     float getPupilDilation() const { return _pupilDilation; }
@@ -377,10 +379,11 @@ protected:
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
-    void createRenderItems(); // used to calculate our list of translucent vs opaque meshes
+    void createRenderItemSet();
+    void createVisibleRenderItemSet();
+    void createCollisionRenderItemSet();
     static model::MaterialPointer _collisionHullMaterial;
 
-    bool _meshGroupsKnown;
     bool _isWireframe;
 
 
@@ -397,7 +400,8 @@ protected:
     QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
 
-    bool _readyWhenAdded { false };
+    bool _addedToScene { false }; // has been added to scene
+    bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
     bool _showCollisionHull { false };

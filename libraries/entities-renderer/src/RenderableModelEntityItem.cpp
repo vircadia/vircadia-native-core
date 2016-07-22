@@ -177,6 +177,24 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     _needsInitialSimulation = false;
 }
 
+// TODO: we need a solution for changes to the postion/rotation/etc of a model...
+// this current code path only addresses that in this setup case... not the changing/moving case
+bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
+    if (!_model && renderArgs) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
+        getModel(renderer);
+    }
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
+        // make sure to simulate so everything gets set up correctly for rendering
+        doInitialModelSimulation();
+        _model->renderSetup(renderArgs);
+    }
+    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene();
+    return ready;
+}
+
 class RenderableModelEntityItemMeta {
 public:
     RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
@@ -215,21 +233,21 @@ namespace render {
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
     _myMetaItem = scene->allocateID();
-    
+
     auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
-    
+
     pendingChanges.resetItem(_myMetaItem, renderPayload);
-    
+
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-        
-        // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
-        // true so that the system knows our meta item is in the scene!
-        _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
+
+        // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
+        _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
+    // we've successfully added _myMetaItem so we always return true
     return true;
 }
 
@@ -416,19 +434,20 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             // Remap textures for the next frame to avoid flicker
             remapTextures();
 
-            // check to see if when we added our models to the scene they were ready, if they were not ready, then
-            // fix them up in the scene
-            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0
-                && getShapeType() == SHAPE_TYPE_COMPOUND;
-            if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
-                _showCollisionHull = shouldShowCollisionHull;
+            // update whether the model should be showing collision mesh
+            // (this may flag for fixupInScene)
+            bool shouldShowCollisionHull = getShapeType() != SHAPE_TYPE_STATIC_MESH &&
+                (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
+            _model->setShowCollisionMesh(shouldShowCollisionHull);
+
+            if (_model->needsFixupInScene()) {
                 render::PendingChanges pendingChanges;
 
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
                 makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-                _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
+                _model->addToScene(scene, pendingChanges, statusGetters);
 
                 scene->enqueuePendingChanges(pendingChanges);
             }

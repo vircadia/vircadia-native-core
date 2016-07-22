@@ -114,8 +114,6 @@ private:
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
-    bool _showCollisionHull = false;
-
     bool getAnimationFrame();
 
     bool _needsJointSimulation { false };
