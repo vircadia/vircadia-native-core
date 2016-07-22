@@ -45,6 +45,18 @@ var TARGET_MODEL_DIMENSIONS = {
 
 };
 
+
+var COLORS_TELEPORT_CAN_TELEPORT = {
+    red: 136,
+    green: 255,
+    blue: 241
+};
+var COLORS_TELEPORT_CANNOT_TELEPORT = {
+    red: 68,
+    green: 183,
+    blue: 180
+};
+
 function ThumbPad(hand) {
     this.hand = hand;
     var _thisPad = this;
@@ -275,11 +287,7 @@ function Teleporter() {
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, {
-                red: 7,
-                green: 36,
-                blue: 44
-            });
+            this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(rightIntersection);
             } else {
@@ -289,11 +297,7 @@ function Teleporter() {
         } else {
 
             this.deleteTargetOverlay();
-            this.rightLineOn(rightPickRay.origin, location, {
-                red: 7,
-                green: 36,
-                blue: 44
-            });
+            this.rightLineOn(rightPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     }
 
@@ -325,11 +329,7 @@ function Teleporter() {
 
         if (leftIntersection.intersects) {
 
-            this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, {
-                red: 7,
-                green: 36,
-                blue: 44
-            });
+            this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(leftIntersection);
             } else {
@@ -341,11 +341,7 @@ function Teleporter() {
 
 
             this.deleteTargetOverlay();
-            this.leftLineOn(leftPickRay.origin, location, {
-                red: 7,
-                green: 36,
-                blue: 44
-            });
+            this.leftLineOn(leftPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     };
 
