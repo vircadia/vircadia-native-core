@@ -21,6 +21,9 @@
 #include "DomainServer.h"
 #include "DomainServerNodeData.h"
 
+#define WANT_DEBUG 1
+
+
 using SharedAssignmentPointer = QSharedPointer<Assignment>;
 
 DomainGatekeeper::DomainGatekeeper(DomainServer* server) :
@@ -134,16 +137,17 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
     if (verifiedUsername.isEmpty()) {
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
         #ifdef WANT_DEBUG
-        qDebug() << "|  user-permissions: unverified or no username, so:" << userPerms;
+        qDebug() << "|  user-permissions: unverified or no username for" << userPerms.getID() << ", so:" << userPerms;
         #endif
     } else {
-        userPerms.setVerifiedUserName(verifiedUsername);
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
+            userPerms.setVerifiedUserName(verifiedUsername);
             #ifdef WANT_DEBUG
             qDebug() << "|  user-permissions: specific user matches, so:" << userPerms;
             #endif
         } else {
+            userPerms.setVerifiedUserName(verifiedUsername);
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
             #ifdef WANT_DEBUG
@@ -851,7 +855,6 @@ void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply& req
 
 void DomainGatekeeper::refreshGroupsCache() {
     // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
-
     getDomainOwnerFriendsList();
 
     int agentCount = 0;
@@ -872,4 +875,8 @@ void DomainGatekeeper::refreshGroupsCache() {
     }
 
     updateNodePermissions();
+
+    #if WANT_DEBUG
+    _server->_settingsManager.debugDumpGroupsState();
+    #endif
 }

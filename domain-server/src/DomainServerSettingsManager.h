@@ -87,6 +87,8 @@ public:
     // calls http api to refresh group information
     void apiRefreshGroupInformation();
 
+    void debugDumpGroupsState();
+
 signals:
     void updateNodePermissions();
 
@@ -145,9 +147,6 @@ private:
 
     // keep track of answers to api queries about which users are in which groups
     QHash<QString, QHash<QUuid, QUuid>> _groupMembership; // QHash<user-name, QHash<group-id, rank-id>>
-
-
-    void debugDumpGroupsState();
 };
 
 #endif // hifi_DomainServerSettingsManager_h
