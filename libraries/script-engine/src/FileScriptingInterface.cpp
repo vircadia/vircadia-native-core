@@ -80,12 +80,18 @@ void FileScriptingInterface::unzipFile(QString path) {
 
 		//QString zipFileName = QFile::decodeName(compressedFileContent);
         QString dirName = dir.path();
+		QDir testPath("C:/Users/elisa/Downloads/banana.zip");
 		qDebug() << "Zip directory is stored at: " + dirName;
-        JlCompress::extractDir(&buffer, dirName);
+        QStringList list = JlCompress::extractDir(testPath.path(), "C:/Users/elisa/Downloads/test");
 
-        QFileInfoList files = dir.entryInfoList();
-        foreach (QFileInfo file, files) {
-        	recursiveFileScan(file, &dirName);
+		qDebug() << list;
+
+        //QFileInfoList files = dir.entryInfoList();
+		QFileInfoList files = testPath.entryInfoList();
+		foreach(QFileInfo file, files) {
+			qDebug() << "My file: " + file.fileName();
+			recursiveFileScan(file, &dirName);
+			
         }
 
 
@@ -126,15 +132,15 @@ void FileScriptingInterface::unzipFile(QString path) {
 }
 
 void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName) {
-	if (!file.isDir()) {
+	/*if (!file.isDir()) {
 		qDebug() << "Regular file logged: " + file.fileName();
 		return;
-	}
+	}*/
     QFileInfoList files;
 
 	if (file.fileName().contains(".zip")) {
+		qDebug() << "Extracting archive: " + file.fileName();
 		JlCompress::extractDir(file.fileName());
-        qDebug() << "Extracting archive: " + file.fileName();
     }
     files = file.dir().entryInfoList();
 
