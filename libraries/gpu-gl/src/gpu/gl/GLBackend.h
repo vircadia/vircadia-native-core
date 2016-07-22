@@ -196,7 +196,7 @@ protected:
     virtual void initInput() final;
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
-    virtual void resetInputStage() final;
+    virtual void resetInputStage();
     virtual void updateInput();
 
     struct InputStageState {

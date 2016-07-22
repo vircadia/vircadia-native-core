@@ -14,6 +14,18 @@
 using namespace gpu;
 using namespace gpu::gl45;
 
+void GL45Backend::resetInputStage() {
+    Parent::resetInputStage();
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
+        glDisableVertexAttribArray(i);
+    }
+    for (uint32_t i = 0; i < _input._attribBindingBuffers.size(); i++) {
+        glBindVertexBuffer(i, 0, 0, 0);
+    }
+}
+
 void GL45Backend::updateInput() {
 
     if (_input._invalidFormat) {

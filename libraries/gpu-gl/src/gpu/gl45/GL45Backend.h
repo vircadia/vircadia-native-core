@@ -65,6 +65,7 @@ protected:
     void do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) override;
 
     // Input Stage
+    void resetInputStage() override;
     void updateInput() override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
