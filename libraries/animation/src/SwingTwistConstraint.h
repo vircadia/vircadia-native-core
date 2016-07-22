@@ -97,8 +97,7 @@ public:
     /// \return reference to SwingLimitFunction instance for unit-testing
     const SwingLimitFunction& getSwingLimitFunction() const { return _swingLimitFunction; }
 
-    /// \brief exposed for unit testing
-    void clearHistory();
+    void clearHistory() override;
 
 private:
     float handleTwistBoundaryConditions(float twistAngle) const;

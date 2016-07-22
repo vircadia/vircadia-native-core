@@ -298,6 +298,7 @@ public slots:
     void cameraMenuChanged();
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
+    Q_INVOKABLE void centerUI();
 
     void resetPhysicsReadyInformation();
 

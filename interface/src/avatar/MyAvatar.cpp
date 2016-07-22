@@ -231,12 +231,45 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
-
+void MyAvatar::centerBody() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter), Q_ARG(bool, andReload), Q_ARG(bool, andHead));
+        QMetaObject::invokeMethod(this, "centerBody");
         return;
     }
+
+    // derive the desired body orientation from the current hmd orientation, before the sensor reset.
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+
+    // transform this body into world space
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    auto worldBodyPos = extractTranslation(worldBodyMatrix);
+    auto worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+
+    // this will become our new position.
+    setPosition(worldBodyPos);
+    setOrientation(worldBodyRot);
+
+    // reset the body in sensor space
+    _bodySensorMatrix = newBodySensorMatrix;
+
+    // rebuild the sensor to world matrix
+    updateSensorToWorldMatrix();
+}
+
+void MyAvatar::clearIKJointLimitHistory() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearIKJointLimitHistory");
+        return;
+    }
+
+    if (_rig) {
+        _rig->clearIKJointLimitHistory();
+    }
+}
+
+void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
+
+    assert(QThread::currentThread() == thread());
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
