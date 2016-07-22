@@ -29,7 +29,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    print("setting marketplace URL to " + url);
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
 
