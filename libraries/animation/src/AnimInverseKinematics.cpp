@@ -861,7 +861,11 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
 
         // also cache the _hipsParentIndex for later
-        _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
+        if (_hipsIndex >= 0) {
+            _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
+        } else {
+            _hipsParentIndex = -1;
+        }
     } else {
         clearConstraints();
         _headIndex = -1;
