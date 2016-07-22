@@ -1,0 +1,554 @@
+{
+    "Entities": [{
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/skully/skullyhull.obj",
+        "created": "2016-05-16T19:34:28Z",
+        "dimensions": {
+            "x": 0.19080814719200134,
+            "y": 0.20009028911590576,
+            "z": 0.21198928356170654
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -6,
+            "z": 0
+        },
+        "id": "{cef37b0a-bb3d-4549-a645-f3a934f82148}",
+        "modelURL": "atp:/kineticObjects/skully/skully.fbx",
+        "position": {
+            "x": 0.254150390625,
+            "y": 0.4500732421875,
+            "z": 0.26517486572265625
+        },
+        "queryAACube": {
+            "scale": 0.34840109944343567,
+            "x": 0.079949840903282166,
+            "y": 0.27587270736694336,
+            "z": 0.090974316000938416
+        },
+        "rotation": {
+            "w": 0.11515986919403076,
+            "x": -0.087693572044372559,
+            "y": 0.88818192481994629,
+            "z": -0.43608760833740234
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/dressingRoom/trump.obj",
+        "created": "2016-05-18T00:02:46Z",
+        "dimensions": {
+            "x": 0.25387090444564819,
+            "y": 0.28642392158508301,
+            "z": 0.31468403339385986
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{6483a752-5ba0-4a02-bee5-3290781dfef8}",
+        "modelURL": "atp:/dressingRoom/trump.fbx",
+        "position": {
+            "x": 0.3887939453125,
+            "y": 0.879974365234375,
+            "z": 0.2674407958984375
+        },
+        "queryAACube": {
+            "scale": 0.49549484252929688,
+            "x": 0.14104652404785156,
+            "y": 0.63222694396972656,
+            "z": 0.019693374633789062
+        },
+        "rotation": {
+            "w": 0.58565652370452881,
+            "x": -0.039444565773010254,
+            "y": 0.73434042930603027,
+            "z": -0.34084075689315796
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/dressingRoom/dreads.obj",
+        "created": "2016-05-18T00:02:46Z",
+        "dimensions": {
+            "x": 0.30918264389038086,
+            "y": 0.31221473217010498,
+            "z": 0.29840445518493652
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{2f2fb50b-35f0-4818-9cfa-e29f7aeb7a1f}",
+        "modelURL": "atp:/dressingRoom/dreads.fbx",
+        "position": {
+            "x": 0.5389404296875,
+            "y": 0.52008056640625,
+            "z": 0.09856414794921875
+        },
+        "queryAACube": {
+            "scale": 0.53114700317382812,
+            "x": 0.27336692810058594,
+            "y": 0.25450706481933594,
+            "z": -0.16700935363769531
+        },
+        "rotation": {
+            "w": 0.85949492454528809,
+            "x": 0.051773905754089355,
+            "y": -0.41289389133453369,
+            "z": 0.29680323600769043
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/tophat/tophat.obj",
+        "created": "2016-05-16T16:59:22Z",
+        "dimensions": {
+            "x": 0.38495281338691711,
+            "y": 0.26857495307922363,
+            "z": 0.39648750424385071
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{8cff801b-cb50-47d2-a1e8-4f7ee245d2ee}",
+        "modelURL": "atp:/kineticObjects/tophat/tophat.fbx",
+        "position": {
+            "x": 0,
+            "y": 0.541900634765625,
+            "z": 0.4959869384765625
+        },
+        "queryAACube": {
+            "scale": 0.61442941427230835,
+            "x": -0.30721470713615417,
+            "y": 0.23468592762947083,
+            "z": 0.18877223134040833
+        },
+        "rotation": {
+            "w": 0.92727553844451904,
+            "x": -0.18382543325424194,
+            "y": 0.32610058784484863,
+            "z": 0.0003204345703125
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/m2.obj",
+        "created": "2016-05-16T17:12:28Z",
+        "dimensions": {
+            "x": 0.094467177987098694,
+            "y": 0.079604864120483398,
+            "z": 0.029766213148832321
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{0805851a-4ef1-4075-b4b3-5692ca7d6352}",
+        "modelURL": "atp:/kineticObjects/hair/m3.fbx",
+        "position": {
+            "x": 0.0111083984375,
+            "y": 0.00689697265625,
+            "z": 0.45806884765625
+        },
+        "queryAACube": {
+            "scale": 0.12707087397575378,
+            "x": -0.052427038550376892,
+            "y": -0.056638464331626892,
+            "z": 0.39453339576721191
+        },
+        "rotation": {
+            "w": 0.84777605533599854,
+            "x": 0.43642330169677734,
+            "y": 0.26695656776428223,
+            "z": -0.13978791236877441
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/dressingRoom/rectangleFrames.obj",
+        "created": "2016-05-18T15:50:52Z",
+        "dimensions": {
+            "x": 0.18497957289218903,
+            "y": 0.048084259033203125,
+            "z": 0.14581345021724701
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{692df470-2a76-4d5b-971b-257291ff67f7}",
+        "modelURL": "atp:/dressingRoom/rectangleFrames.fbx",
+        "name": "rectangleFrames.fbx",
+        "position": {
+            "x": 0.3701171875,
+            "y": 0.062652587890625,
+            "z": 0.35735321044921875
+        },
+        "queryAACube": {
+            "scale": 0.24039779603481293,
+            "x": 0.24991828203201294,
+            "y": -0.057546310126781464,
+            "z": 0.23715430498123169
+        },
+        "rotation": {
+            "w": -0.084428191184997559,
+            "x": -0.10658425092697144,
+            "y": 0.9651484489440918,
+            "z": -0.2235599160194397
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/b3.obj",
+        "created": "2016-05-16T17:10:17Z",
+        "dimensions": {
+            "x": 0.19054701924324036,
+            "y": 0.16880631446838379,
+            "z": 0.11410932987928391
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{32926ddc-7c3b-49ca-97da-56e69af211af}",
+        "modelURL": "atp:/kineticObjects/hair/b3.fbx",
+        "position": {
+            "x": 0.75,
+            "y": 0.0643310546875,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.27897074818611145,
+            "x": 0.61051464080810547,
+            "y": -0.075154319405555725,
+            "z": -0.13948537409305573
+        },
+        "rotation": {
+            "w": -0.26207369565963745,
+            "x": 0.055374979972839355,
+            "y": 0.93298232555389404,
+            "z": 0.24034488201141357
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/b1.obj",
+        "created": "2016-05-16T17:05:55Z",
+        "dimensions": {
+            "x": 0.18918535113334656,
+            "y": 0.15465652942657471,
+            "z": 0.11267256736755371
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{c412654f-9feb-489d-91f9-6f4eb369afe7}",
+        "modelURL": "atp:/kineticObjects/hair/b1.fbx",
+        "position": {
+            "x": 0.55712890625,
+            "y": 0.0443115234375,
+            "z": 0.0774078369140625
+        },
+        "queryAACube": {
+            "scale": 0.2690814733505249,
+            "x": 0.42258816957473755,
+            "y": -0.090229213237762451,
+            "z": -0.057132899761199951
+        },
+        "rotation": {
+            "w": -0.26680397987365723,
+            "x": 0.16276800632476807,
+            "y": 0.81954681873321533,
+            "z": 0.4802471399307251
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/m3.obj",
+        "created": "2016-05-16T17:12:28Z",
+        "dimensions": {
+            "x": 0.15590831637382507,
+            "y": 0.057838320732116699,
+            "z": 0.033922493457794189
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{c2df6722-e970-4c36-bf42-b117e2bc13c4}",
+        "modelURL": "atp:/kineticObjects/hair/m3.fbx",
+        "position": {
+            "x": 0.1549072265625,
+            "y": 0.006439208984375,
+            "z": 0.34037017822265625
+        },
+        "queryAACube": {
+            "scale": 0.16971567273139954,
+            "x": 0.070049390196800232,
+            "y": -0.078418627381324768,
+            "z": 0.25551235675811768
+        },
+        "rotation": {
+            "w": -0.2230105996131897,
+            "x": 0.19484245777130127,
+            "y": 0.73751425743103027,
+            "z": 0.60689711570739746
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/dressingRoom/Elvis.obj",
+        "created": "2016-05-17T23:58:24Z",
+        "dimensions": {
+            "x": 0.22462925314903259,
+            "y": 0.32056856155395508,
+            "z": 0.32186508178710938
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{5fe0d835-e52b-432b-8ffe-2e7467613974}",
+        "modelURL": "atp:/dressingRoom/Elvis.fbx",
+        "position": {
+            "x": 0.6776123046875,
+            "y": 0.89739990234375,
+            "z": 0.036468505859375
+        },
+        "queryAACube": {
+            "scale": 0.50677376985549927,
+            "x": 0.42422541975975037,
+            "y": 0.64401304721832275,
+            "z": -0.21691837906837463
+        },
+        "rotation": {
+            "w": 0.76330208778381348,
+            "x": 0.26140224933624268,
+            "y": -0.43398183584213257,
+            "z": 0.40090024471282959
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/dressingRoom/roundFrames.obj",
+        "created": "2016-05-18T15:55:14Z",
+        "dimensions": {
+            "x": 0.18497957289218903,
+            "y": 0.061892151832580566,
+            "z": 0.14581345021724701
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{2706fd7c-9f99-4e11-aebe-4c7274d29d69}",
+        "modelURL": "atp:/dressingRoom/roundFrames.fbx",
+        "name": "roundFrames.fbx",
+        "position": {
+            "x": 0.1690673828125,
+            "y": 0.08319091796875,
+            "z": 0.50496673583984375
+        },
+        "queryAACube": {
+            "scale": 0.24353571236133575,
+            "x": 0.047299526631832123,
+            "y": -0.038576938211917877,
+            "z": 0.38319888710975647
+        },
+        "rotation": {
+            "w": -0.27809566259384155,
+            "x": -0.059800088405609131,
+            "y": 0.93838405609130859,
+            "z": -0.19615471363067627
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/m1.obj",
+        "created": "2016-05-16T17:10:17Z",
+        "dimensions": {
+            "x": 0.10473950952291489,
+            "y": 0.044521570205688477,
+            "z": 0.032888296991586685
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{448c53c2-bf1e-44f5-b28f-06da33a4145d}",
+        "modelURL": "atp:/kineticObjects/hair/m1.fbx",
+        "position": {
+            "x": 0.29052734375,
+            "y": 0,
+            "z": 0.254638671875
+        },
+        "queryAACube": {
+            "scale": 0.11846592277288437,
+            "x": 0.23129437863826752,
+            "y": -0.059232961386442184,
+            "z": 0.19540570676326752
+        },
+        "rotation": {
+            "w": -0.24409854412078857,
+            "x": -0.17210650444030762,
+            "y": 0.76794075965881348,
+            "z": -0.56667429208755493
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/hair/b2.obj",
+        "created": "2016-05-16T17:05:55Z",
+        "dimensions": {
+            "x": 0.12604480981826782,
+            "y": 0.090894937515258789,
+            "z": 0.069697588682174683
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{33d3ba77-d2c9-4a5f-ba1c-f6f731d05221}",
+        "modelURL": "atp:/kineticObjects/hair/b3.fbx",
+        "position": {
+            "x": 0.4130859375,
+            "y": 0.030181884765625,
+            "z": 0.182342529296875
+        },
+        "queryAACube": {
+            "scale": 0.1703142374753952,
+            "x": 0.3279288113117218,
+            "y": -0.054975233972072601,
+            "z": 0.097185410559177399
+        },
+        "rotation": {
+            "w": -0.2856946587562561,
+            "x": 0.17711150646209717,
+            "y": 0.86263823509216309,
+            "z": 0.37792015075683594
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "name": "home_model_dressing_room_bricabrac",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/snapback/snapback.obj",
+        "created": "2016-05-16T17:01:33Z",
+        "dimensions": {
+            "x": 0.19942393898963928,
+            "y": 0.12862896919250488,
+            "z": 0.30034130811691284
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{26e895b7-4a83-45fe-a3e9-5b6ba5f5717e}",
+        "modelURL": "atp:/kineticObjects/snapback/snapback.fbx",
+        "position": {
+            "x": 0.7891845703125,
+            "y": 0.492218017578125,
+            "z": 0.0359649658203125
+        },
+        "queryAACube": {
+            "scale": 0.38277959823608398,
+            "x": 0.59779477119445801,
+            "y": 0.30082821846008301,
+            "z": -0.15542483329772949
+        },
+        "rotation": {
+            "w": -0.31783014535903931,
+            "x": -0.04985123872756958,
+            "y": 0.92556643486022949,
+            "z": -0.19945067167282104
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
+    }],
+    "Version": 57
+}

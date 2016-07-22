@@ -14,19 +14,40 @@
 
 #include <type_traits>
 
-#include <QSettings>
-#include <QString>
-#include <QVariant>
+#include <QtCore/QSettings>
+#include <QtCore/QStack>
+#include <QtCore/QString>
+#include <QtCore/QVariant>
+#include <QtCore/QReadWriteLock>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include "SettingInterface.h"
 
+
 // TODO: remove
-class Settings : public QSettings {
+class Settings {
 public:
     static const QString firstRun;
+    Settings();
+    ~Settings();
+
+    void remove(const QString& key);
+    QStringList childGroups() const;
+    QStringList childKeys() const;
+    QStringList allKeys() const;
+    bool contains(const QString& key) const;
+    int	beginReadArray(const QString & prefix);
+    void beginWriteArray(const QString& prefix, int size = -1);
+    void endArray();
+    void setArrayIndex(int i);
+
+    void beginGroup(const QString& prefix);
+    void endGroup();
+
+    void setValue(const QString& name, const QVariant& value);
+    QVariant value(const QString& name, const QVariant& defaultValue = QVariant()) const;
 
     void getFloatValueIfValid(const QString& name, float& floatValue);
     void getBoolValue(const QString& name, bool& boolValue);
@@ -36,6 +57,11 @@ public:
 
     void setQuatValue(const QString& name, const glm::quat& quatValue);
     void getQuatValueIfValid(const QString& name, glm::quat& quatValue);
+
+private:
+    QSharedPointer<Setting::Manager> _manager;
+    QWriteLocker _locker;
+    QStack<QString> _prefixes;
 };
 
 namespace Setting {
@@ -51,15 +77,40 @@ namespace Setting {
         virtual ~Handle() { deinit(); }
         
         // Returns setting value, returns its default value if not found
-        T get() { return get(_defaultValue); }
+        T get() const { 
+            return get(_defaultValue); 
+        }
+
         // Returns setting value, returns other if not found
-        T get(const T& other) { maybeInit(); return (_isSet) ? _value : other; }
-        T getDefault() const { return _defaultValue; }
+        T get(const T& other) const { 
+            maybeInit(); 
+            return (_isSet) ? _value : other; 
+        }
+
+        const T& getDefault() const { 
+            return _defaultValue; 
+        }
         
-        void set(const T& value) { maybeInit(); _value = value; _isSet = true; }
-        void reset() { set(_defaultValue); }
-        
-        void remove() { maybeInit(); _isSet = false; }
+        void reset() { 
+            set(_defaultValue); 
+        }
+
+        void set(const T& value) { 
+            maybeInit(); 
+            if ((!_isSet && (value != _defaultValue)) || _value != value) {
+                _value = value; 
+                _isSet = true; 
+                save(); 
+            } 
+        }
+
+        void remove() { 
+            maybeInit(); 
+            if (_isSet) { 
+                _isSet = false; 
+                save(); 
+            }  
+        }
         
     protected:
         virtual void setVariant(const QVariant& variant);

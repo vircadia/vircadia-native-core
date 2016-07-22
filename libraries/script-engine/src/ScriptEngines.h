@@ -68,6 +68,7 @@ public:
 
     // Called at shutdown time
     void shutdownScripting();
+    bool isStopped() const { return _isStopped; }
 
 signals:
     void scriptCountChanged();
@@ -86,7 +87,6 @@ protected:
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
-    bool isStopped() const { return _isStopped; }
 
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;

@@ -226,10 +226,15 @@ void RenderableWebEntityItem::setSourceUrl(const QString& value) {
 }
 
 void RenderableWebEntityItem::setProxyWindow(QWindow* proxyWindow) {
-    _webSurface->setProxyWindow(proxyWindow);
+    if (_webSurface) {
+        _webSurface->setProxyWindow(proxyWindow);
+    }
 }
 
 QObject* RenderableWebEntityItem::getEventHandler() {
+    if (!_webSurface) {
+        return nullptr;
+    }
     return _webSurface->getEventHandler();
 }
 

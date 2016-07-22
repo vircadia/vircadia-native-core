@@ -14,7 +14,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import "../controls-uit"
 import "../styles-uit"
-import "../windows-uit"
+import "../windows"
 
 ModalWindow {
     id: root

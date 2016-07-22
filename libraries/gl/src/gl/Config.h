@@ -20,6 +20,7 @@
 
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
+#include <OpenGL/OpenGL.h>
 
 #endif
 

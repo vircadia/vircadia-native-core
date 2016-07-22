@@ -27,5 +27,6 @@ void setGLFormatVersion(F& format, int major = 4, int minor = 5) { format.setVer
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 const QGLFormat& getDefaultGLFormat();
 QJsonObject getGLContextData();
+int glVersionToInteger(QString glVersion);
 
 #endif

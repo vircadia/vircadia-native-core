@@ -62,14 +62,14 @@ void Camera::update(float deltaTime) {
 }
 
 void Camera::recompose() {
-    mat4 orientation = glm::mat4_cast(_rotation);
+    mat4 orientation = glm::mat4_cast(_orientation);
     mat4 translation = glm::translate(mat4(), _position);
     _transform = translation * orientation;
 }
 
 void Camera::decompose() {
     _position = vec3(_transform[3]);
-    _rotation = glm::quat_cast(_transform);
+    _orientation = glm::quat_cast(_transform);
 }
 
 void Camera::setTransform(const glm::mat4& transform) {
@@ -85,8 +85,8 @@ void Camera::setPosition(const glm::vec3& position) {
     }
 }
 
-void Camera::setRotation(const glm::quat& rotation) {
-    _rotation = rotation; 
+void Camera::setOrientation(const glm::quat& orientation) {
+    _orientation = orientation;
     recompose();
     if (_isKeepLookingAt) {
         lookAt(_lookingAt);
@@ -154,9 +154,9 @@ QString Camera::getModeString() const {
 void Camera::lookAt(const glm::vec3& lookAt) {
     glm::vec3 up = IDENTITY_UP;
     glm::mat4 lookAtMatrix = glm::lookAt(_position, lookAt, up);
-    glm::quat rotation = glm::quat_cast(lookAtMatrix);
-    rotation.w = -rotation.w; // Rosedale approved
-    _rotation = rotation;
+    glm::quat orientation = glm::quat_cast(lookAtMatrix);
+    orientation.w = -orientation.w; // Rosedale approved
+    _orientation = orientation;
 }
 
 void Camera::keepLookingAt(const glm::vec3& point) {
@@ -171,7 +171,7 @@ void Camera::loadViewFrustum(ViewFrustum& frustum) const {
 
     // Set the viewFrustum up with the correct position and orientation of the camera
     frustum.setPosition(getPosition());
-    frustum.setOrientation(getRotation());
+    frustum.setOrientation(getOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     frustum.calculate();

@@ -64,6 +64,7 @@ public:
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
+    void updateAvatarEntities();
     void simulate(float deltaTime);
     virtual void simulateAttachments(float deltaTime);
 
@@ -153,6 +154,7 @@ public:
     virtual void rebuildCollisionShape();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+    void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
 
     AvatarMotionState* getMotionState() { return _motionState; }
 
@@ -209,7 +211,6 @@ protected:
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
 
-    float _leanScale;
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
@@ -234,8 +235,6 @@ protected:
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
-
-    virtual void updateJointMappings() override;
 
     virtual void updatePalms();
 

@@ -14,15 +14,34 @@
 
 #include <stdint.h>
 
+static const int SRC_MAX_CHANNELS = 2;
+
+// polyphase filter
+static const int SRC_PHASEBITS = 8;
+static const int SRC_PHASES = (1 << SRC_PHASEBITS);
+static const int SRC_FRACBITS = 32 - SRC_PHASEBITS;
+static const uint32_t SRC_FRACMASK = (1 << SRC_FRACBITS) - 1;
+
+static const float QFRAC_TO_FLOAT = 1.0f / (1 << SRC_FRACBITS);
+static const float Q32_TO_FLOAT = 1.0f / (1ULL << 32);
+
+// blocking size in frames, chosen so block processing fits in L1 cache
+static const int SRC_BLOCK = 256;
+
 class AudioSRC {
 
 public:
-    static const int MAX_CHANNELS = 2;
-
     AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels);
     ~AudioSRC();
 
+    // deinterleaved float input/output (native format)
+    int render(float** inputs, float** outputs, int inputFrames);
+
+    // interleaved int16_t input/output
     int render(const int16_t* input, int16_t* output, int inputFrames);
+
+    // interleaved float input/output
+    int render(const float* input, float* output, int inputFrames);
 
     int getMinOutput(int inputFrames);
     int getMaxOutput(int inputFrames);
@@ -33,9 +52,9 @@ private:
     float* _polyphaseFilter;
     int* _stepTable;
 
-    float* _history[MAX_CHANNELS];
-    float* _inputs[MAX_CHANNELS];
-    float* _outputs[MAX_CHANNELS];
+    float* _history[SRC_MAX_CHANNELS];
+    float* _inputs[SRC_MAX_CHANNELS];
+    float* _outputs[SRC_MAX_CHANNELS];
 
     int _inputSampleRate;
     int _outputSampleRate;
@@ -57,10 +76,17 @@ private:
     int multirateFilter1(const float* input0, float* output0, int inputFrames);
     int multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
 
-    void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
-    void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
+    int multirateFilter1_SSE(const float* input0, float* output0, int inputFrames);
+    int multirateFilter2_SSE(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
 
-    int processFloat(float** inputs, float** outputs, int inputFrames);
+    int multirateFilter1_AVX2(const float* input0, float* output0, int inputFrames);
+    int multirateFilter2_AVX2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
+
+    void convertInput(const int16_t* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, int16_t* output, int numFrames);
+
+    void convertInput(const float* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, float* output, int numFrames);
 };
 
 #endif // AudioSRC_h

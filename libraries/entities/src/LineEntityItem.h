@@ -60,7 +60,7 @@ class LineEntityItem : public EntityItem {
     
     const QVector<glm::vec3>& getLinePoints() const{ return _points; }
     
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
+    virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
     // never have a ray intersection pick a LineEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }

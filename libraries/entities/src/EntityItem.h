@@ -283,7 +283,7 @@ public:
 
     void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
 
-    bool getDynamic() const { return _dynamic; }
+    bool getDynamic() const { return SHAPE_TYPE_STATIC_MESH == getShapeType() ? false : _dynamic; }
     void setDynamic(bool value) { _dynamic = value; }
 
     virtual bool shouldBePhysical() const { return false; }
@@ -348,7 +348,7 @@ public:
     void updateDynamic(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
-    virtual void updateShapeType(ShapeType type) { /* do nothing */ }
+    virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
@@ -372,6 +372,7 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
+    void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
@@ -422,11 +423,18 @@ public:
     /// entity to definitively state if the preload signal should be sent.
     ///
     /// We only want to preload if:
-    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    there is some script, and either the script value or the scriptTimestamp
     ///    value have changed since our last preload
-    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+    bool shouldPreloadScript() const { return !_script.isEmpty() &&
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
+    bool getClientOnly() const { return _clientOnly; }
+    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    // if this entity is client-only, which avatar is it associated with?
+    QUuid getOwningAvatarID() const { return _owningAvatarID; }
+    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+
 
 protected:
 
@@ -539,6 +547,25 @@ protected:
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
     QUuid _sourceUUID; /// the server node UUID we came from
+
+    bool _clientOnly { false };
+    QUuid _owningAvatarID;
+
+    // physics related changes from the network to suppress any duplicates and make
+    // sure redundant applications are idempotent
+    glm::vec3 _lastUpdatedPositionValue;
+    glm::quat  _lastUpdatedRotationValue;
+    glm::vec3 _lastUpdatedVelocityValue;
+    glm::vec3 _lastUpdatedAngularVelocityValue;
+    glm::vec3 _lastUpdatedAccelerationValue;
+
+    quint64 _lastUpdatedPositionTimestamp { 0 };
+    quint64 _lastUpdatedRotationTimestamp { 0 };
+    quint64 _lastUpdatedVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAccelerationTimestamp { 0 };
+
+
 };
 
 #endif // hifi_EntityItem_h

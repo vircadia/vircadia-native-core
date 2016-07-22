@@ -14,7 +14,7 @@ Windows.Window {
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
-    visible: false
+    shown: false
     focus: true
     property var channel;
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer

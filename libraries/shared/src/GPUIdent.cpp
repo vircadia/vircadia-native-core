@@ -122,7 +122,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         }
         if (count > bestCount) {
             bestCount = count;
-            _name = sString;
+            _name = QString(sString).trimmed();
 
             hr = spInstance->Get(CComBSTR(_T("DriverVersion")), 0, &var, 0, 0);
             if (hr == S_OK) {

@@ -12,24 +12,39 @@
 
 #include "OffscreenGLCanvas.h"
 
+#include <QtCore/QProcessEnvironment>
 #include <QtGui/QOffscreenSurface>
 #include <QtGui/QOpenGLDebugLogger>
 #include <QtGui/QOpenGLContext>
 
 #include "GLHelpers.h"
 
+#ifdef DEBUG
+static bool enableDebugLogger = true;
+#else
+static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
+static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+
+
 OffscreenGLCanvas::OffscreenGLCanvas() : _context(new QOpenGLContext), _offscreenSurface(new QOffscreenSurface){
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
-#ifdef DEBUG
     if (_logger) {
         makeCurrent();
         delete _logger;
         _logger = nullptr;
     }
-#endif
+    
     _context->doneCurrent();
+    delete _context;
+    _context = nullptr;
+
+    _offscreenSurface->destroy();
+    delete _offscreenSurface;
+    _offscreenSurface = nullptr;
+
 }
 
 bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
@@ -60,7 +75,7 @@ bool OffscreenGLCanvas::makeCurrent() {
         qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
 
-#ifdef DEBUG
+
     if (result && !_logger) {
         _logger = new QOpenGLDebugLogger(this);
         if (_logger->initialize()) {
@@ -71,7 +86,6 @@ bool OffscreenGLCanvas::makeCurrent() {
             _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);
         }
     }
-#endif
 
     return result;
 }

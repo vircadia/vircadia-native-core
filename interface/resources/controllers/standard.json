@@ -9,6 +9,8 @@
           "to": "Actions.StepYaw",
           "filters":
             [
+                { "type": "deadZone", "min": 0.15 },
+                "constrainToInteger",
                 { "type": "pulse", "interval": 0.5 },
                 { "type": "scale", "scale": 22.5 }
             ]

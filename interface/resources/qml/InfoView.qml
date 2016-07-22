@@ -12,9 +12,9 @@ import QtQuick 2.5
 import Hifi 1.0 as Hifi
 
 import "controls-uit"
-import "windows-uit" as Windows
+import "windows" as Windows
 
-Windows.Window {
+Windows.ScrollingWindow {
     id: root
     width: 800
     height: 800

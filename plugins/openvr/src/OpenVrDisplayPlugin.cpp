@@ -9,7 +9,6 @@
 
 #include <memory>
 
-#include <QtCore/QProcessEnvironment>
 #include <QMainWindow>
 #include <QLoggingCategory>
 #include <QGLWidget>
@@ -19,9 +18,11 @@
 #include <GLMHelpers.h>
 #include <gl/GlWindow.h>
 
+#include <controllers/Pose.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ViewFrustum.h>
+#include <display-plugins/CompositorHelper.h>
 #include <shared/NsightHelpers.h>
 #include "OpenVrHelpers.h"
 
@@ -30,23 +31,29 @@ Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
 
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
-static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-
-
-static vr::IVRCompositor* _compositor{ nullptr };
+static vr::IVRCompositor* _compositor { nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
 vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
+
 static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
+bool _openVrDisplayActive { false };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
+    return openVrSupported();
+}
+
+void OpenVrDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
 }
 
 bool OpenVrDisplayPlugin::internalActivate() {
+    _openVrDisplayActive = true;
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
@@ -62,16 +69,14 @@ bool OpenVrDisplayPlugin::internalActivate() {
     // left + right eyes
     _renderTargetSize.x *= 2;
 
-    {
-        Lock lock(_poseMutex);
+    withRenderThreadLock([&] {
         openvr_for_each_eye([&](vr::Hmd_Eye eye) {
             _eyeOffsets[eye] = toGlm(_system->GetEyeToHeadTransform(eye));
             _eyeProjections[eye] = toGlm(_system->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
         });
         // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
         _cullingProjection = _eyeProjections[0];
-
-    }
+    });
 
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
@@ -91,7 +96,9 @@ bool OpenVrDisplayPlugin::internalActivate() {
         glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
         _sensorResetMat = glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
     } else {
-        qDebug() << "OpenVR: error could not get chaperone pointer";
+        #if DEV_BUILD
+            qDebug() << "OpenVR: error could not get chaperone pointer";
+        #endif
     }
 
     return Parent::internalActivate();
@@ -99,8 +106,14 @@ bool OpenVrDisplayPlugin::internalActivate() {
 
 void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
+    _openVrDisplayActive = false;
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
+        // Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
+        // we don't want ViveControllerManager to consider old values to be valid.
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            _trackedDevicePose[i].bPoseIsValid = false;
+        }
         releaseOpenVrSystem();
         _system = nullptr;
     }
@@ -110,7 +123,7 @@ void OpenVrDisplayPlugin::internalDeactivate() {
 void OpenVrDisplayPlugin::customizeContext() {
     // Display plugins in DLLs must initialize glew locally
     static std::once_flag once;
-    std::call_once(once, []{
+    std::call_once(once, [] {
         glewExperimental = true;
         GLenum err = glewInit();
         glGetError(); // clear the potential error from glewExperimental
@@ -120,13 +133,16 @@ void OpenVrDisplayPlugin::customizeContext() {
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    Lock lock(_poseMutex);
-    glm::mat4 m = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
-    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
+    withRenderThreadLock([&] {
+        glm::mat4 m = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+        _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
+    });
 }
 
 
-void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    handleOpenVrEvents();
+
     double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     double frameDuration = 1.f / displayFrequency;
     double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
@@ -142,6 +158,24 @@ void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
     _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, _currentRenderFrameInfo.predictedDisplayTime, _trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 
+
+    vr::TrackedDeviceIndex_t handIndices[2] { vr::k_unTrackedDeviceIndexInvalid, vr::k_unTrackedDeviceIndexInvalid };
+    {
+        vr::TrackedDeviceIndex_t controllerIndices[2] ;
+        auto trackedCount = _system->GetSortedTrackedDeviceIndicesOfClass(vr::TrackedDeviceClass_Controller, controllerIndices, 2);
+        // Find the left and right hand controllers, if they exist
+        for (uint32_t i = 0; i < std::min<uint32_t>(trackedCount, 2); ++i) {
+            if (_trackedDevicePose[i].bPoseIsValid) {
+                auto role = _system->GetControllerRoleForTrackedDeviceIndex(controllerIndices[i]);
+                if (vr::TrackedControllerRole_LeftHand == role) {
+                    handIndices[0] = controllerIndices[i];
+                } else if (vr::TrackedControllerRole_RightHand == role) {
+                    handIndices[1] = controllerIndices[i];
+                }
+            }
+        }
+    }
+
     // copy and process predictedTrackedDevicePoses
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
@@ -151,17 +185,39 @@ void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.rawRenderPose = toGlm(_trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
     _currentRenderFrameInfo.renderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
 
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    bool keyboardVisible = isOpenVrKeyboardShown();
+
+    std::array<mat4, 2> handPoses;
+    if (!keyboardVisible) {
+        for (int i = 0; i < 2; ++i) {
+            if (handIndices[i] == vr::k_unTrackedDeviceIndexInvalid) {
+                continue;
+            }
+            auto deviceIndex = handIndices[i];
+            const mat4& mat = _trackedDevicePoseMat4[deviceIndex];
+            const vec3& linearVelocity = _trackedDeviceLinearVelocities[deviceIndex];
+            const vec3& angularVelocity = _trackedDeviceAngularVelocities[deviceIndex];
+            auto correctedPose = openVrControllerPoseToHandPose(i == 0, mat, linearVelocity, angularVelocity);
+            static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
+            handPoses[i] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
+        }
+    }
+
+    withRenderThreadLock([&] {
+        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
+        // Make controller poses available to the presentation thread
+        _handPoses = handPoses;
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
-
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentPresentFrameIndex)
 
     // Flip y-axis since GL UV coords are backwards.
-    static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
-    static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
+    static vr::VRTextureBounds_t leftBounds { 0, 0, 0.5f, 1 };
+    static vr::VRTextureBounds_t rightBounds { 0.5f, 0, 1, 1 };
 
     vr::Texture_t texture { (void*)oglplus::GetName(_compositeFramebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
 
@@ -182,6 +238,10 @@ bool OpenVrDisplayPlugin::isHmdMounted() const {
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {
+    mat4 sensorResetMat;
+    withPresentThreadLock([&] {
+        sensorResetMat = _sensorResetMat;
+    });
     {
         float fSecondsSinceLastVsync;
         _system->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, nullptr);
@@ -193,9 +253,32 @@ void OpenVrDisplayPlugin::updatePresentPose() {
         _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, &pose, 1);
         _currentPresentFrameInfo.rawPresentPose = toGlm(pose.mDeviceToAbsoluteTracking);
     }
-    _currentPresentFrameInfo.presentPose = _sensorResetMat * _currentPresentFrameInfo.rawPresentPose;
+    _currentPresentFrameInfo.presentPose = sensorResetMat * _currentPresentFrameInfo.rawPresentPose;
     mat3 renderRotation(_currentPresentFrameInfo.rawRenderPose);
     mat3 presentRotation(_currentPresentFrameInfo.rawPresentPose);
     _currentPresentFrameInfo.presentReprojection = glm::mat3(glm::inverse(renderRotation) * presentRotation);
 }
 
+bool OpenVrDisplayPlugin::suppressKeyboard() { 
+    if (isOpenVrKeyboardShown()) {
+        return false;
+    }
+    if (!_keyboardSupressionCount.fetch_add(1)) {
+        disableOpenVrKeyboard();
+    }
+    return true;
+}
+
+void OpenVrDisplayPlugin::unsuppressKeyboard() {
+    if (_keyboardSupressionCount == 0) {
+        qWarning() << "Attempted to unsuppress a keyboard that was not suppressed";
+        return;
+    }
+    if (1 == _keyboardSupressionCount.fetch_sub(1)) {
+        enableOpenVrKeyboard(_container);
+    }
+}
+
+bool OpenVrDisplayPlugin::isKeyboardVisible() {
+    return isOpenVrKeyboardShown(); 
+}

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <algorithm>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
@@ -19,12 +21,18 @@
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 
+#include <QTimeZone>
+
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerSettingsManager.h"
+
+#define WANT_DEBUG 1
+
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
@@ -44,7 +52,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
 
-    QJsonDocument descriptionDocument = QJsonDocument::fromJson(descriptionFile.readAll());
+    QJsonParseError parseError;
+    QJsonDocument descriptionDocument = QJsonDocument::fromJson(descriptionFile.readAll(), &parseError);
 
     if (descriptionDocument.isObject()) {
         QJsonObject descriptionObject = descriptionDocument.object();
@@ -63,8 +72,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     }
 
     static const QString MISSING_SETTINGS_DESC_MSG =
-        QString("Did not find settings decription in JSON at %1 - Unable to continue. domain-server will quit.")
-        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH);
+        QString("Did not find settings description in JSON at %1 - Unable to continue. domain-server will quit.\n%2 at %3")
+        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH).arg(parseError.errorString()).arg(parseError.offset);
     static const int MISSING_SETTINGS_DESC_ERROR_CODE = 6;
 
     QMetaObject::invokeMethod(QCoreApplication::instance(), "queuedQuit", Qt::QueuedConnection,
@@ -88,7 +97,8 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
-    _configMap.loadMasterAndUserConfig(argumentList);
+    _argumentList = argumentList;
+    _configMap.loadMasterAndUserConfig(_argumentList);
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
@@ -97,6 +107,11 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     double oldVersion = appSettings.value(JSON_SETTINGS_VERSION_KEY, 0.0).toDouble();
 
     if (oldVersion != _descriptionVersion) {
+        const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+        const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
+        const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
+        const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
+
         qDebug() << "Previous domain-server settings version was"
             << QString::number(oldVersion, 'g', 8) << "and the new version is"
             << QString::number(_descriptionVersion, 'g', 8) << "- checking if any re-mapping is required";
@@ -127,7 +142,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -163,7 +178,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
 
         }
@@ -186,13 +201,262 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so the merged config is correct
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
+        }
+
+        if (oldVersion < 1.4) {
+            // This was prior to the permissions-grid in the domain-server settings page
+            bool isRestrictedAccess = valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+            QStringList allowedUsers = valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
+            QStringList allowedEditors = valueOrDefaultValueForKeyPath(ALLOWED_EDITORS_SETTINGS_KEYPATH).toStringList();
+            bool onlyEditorsAreRezzers = valueOrDefaultValueForKeyPath(EDITORS_ARE_REZZERS_KEYPATH).toBool();
+
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost].reset(
+                new NodePermissions(NodePermissions::standardNameLocalhost));
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->setAll(true);
+            _standardAgentPermissions[NodePermissions::standardNameAnonymous].reset(
+                new NodePermissions(NodePermissions::standardNameAnonymous));
+            _standardAgentPermissions[NodePermissions::standardNameLoggedIn].reset(
+                new NodePermissions(NodePermissions::standardNameLoggedIn));
+
+            if (isRestrictedAccess) {
+                // only users in allow-users list can connect
+                _standardAgentPermissions[NodePermissions::standardNameAnonymous]->canConnectToDomain = false;
+                _standardAgentPermissions[NodePermissions::standardNameLoggedIn]->canConnectToDomain = false;
+            } // else anonymous and logged-in retain default of canConnectToDomain = true
+
+            foreach (QString allowedUser, allowedUsers) {
+                // even if isRestrictedAccess is false, we have to add explicit rows for these users.
+                // defaults to canConnectToDomain = true
+                _agentPermissions[allowedUser].reset(new NodePermissions(allowedUser));
+            }
+
+            foreach (QString allowedEditor, allowedEditors) {
+                if (!_agentPermissions.contains(allowedEditor)) {
+                    _agentPermissions[allowedEditor].reset(new NodePermissions(allowedEditor));
+                    if (isRestrictedAccess) {
+                        // they can change locks, but can't connect.
+                        _agentPermissions[allowedEditor]->canConnectToDomain = false;
+                    }
+                }
+                _agentPermissions[allowedEditor]->canAdjustLocks = true;
+            }
+
+            QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+            permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
+            foreach (auto permissionsSet, permissionsSets) {
+                foreach (QString userName, permissionsSet.keys()) {
+                    if (onlyEditorsAreRezzers) {
+                        permissionsSet[userName]->canRezPermanentEntities = permissionsSet[userName]->canAdjustLocks;
+                        permissionsSet[userName]->canRezTemporaryEntities = permissionsSet[userName]->canAdjustLocks;
+                    } else {
+                        permissionsSet[userName]->canRezPermanentEntities = true;
+                        permissionsSet[userName]->canRezTemporaryEntities = true;
+                    }
+                }
+            }
+
+            packPermissions();
+            _standardAgentPermissions.clear();
+            _agentPermissions.clear();
+        }
+
+        if (oldVersion < 1.5) {
+            // This was prior to operating hours, so add default hours
+            validateDescriptorsMap();
         }
     }
 
+    unpackPermissions();
+
     // write the current description version to our settings
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
+}
+
+QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
+    validateDescriptorsMap();
+
+    static const QString DESCRIPTORS{ "descriptors" };
+    return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
+}
+
+void DomainServerSettingsManager::validateDescriptorsMap() {
+    static const QString WEEKDAY_HOURS{ "descriptors.weekday_hours" };
+    static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
+    static const QString UTC_OFFSET{ "descriptors.utc_offset" };
+
+    QVariant* weekdayHours = valueForKeyPath(_configMap.getUserConfig(), WEEKDAY_HOURS, true);
+    QVariant* weekendHours = valueForKeyPath(_configMap.getUserConfig(), WEEKEND_HOURS, true);
+    QVariant* utcOffset = valueForKeyPath(_configMap.getUserConfig(), UTC_OFFSET, true);
+
+    static const QString OPEN{ "open" };
+    static const QString CLOSE{ "close" };
+    static const QString DEFAULT_OPEN{ "00:00" };
+    static const QString DEFAULT_CLOSE{ "23:59" };
+    bool wasMalformed = false;
+    if (weekdayHours->isNull()) {
+        *weekdayHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
+        wasMalformed = true;
+    }
+    if (weekendHours->isNull()) {
+        *weekendHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
+        wasMalformed = true;
+    }
+    if (utcOffset->isNull()) {
+        *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)SECS_PER_HOUR);
+        wasMalformed = true;
+    }
+
+    if (wasMalformed) {
+        // write the new settings to file
+        persistToFile();
+
+        // reload the master and user config so the merged config is correct
+        _configMap.loadMasterAndUserConfig(_argumentList);
+    }
+}
+
+void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
+                                                        NodePermissionsMap& agentPermissions,
+                                                        QString keyPath) {
+    QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
+    if (!security || !security->canConvert(QMetaType::QVariantMap)) {
+        security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
+        (*security) = QVariantMap();
+    }
+
+    // save settings for anonymous / logged-in / localhost
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
+    if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
+        permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+        (*permissions) = QVariantList();
+    }
+
+    QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
+    (*permissionsList).clear();
+    foreach (QString userName, agentPermissions.keys()) {
+        *permissionsList += agentPermissions[userName]->toVariant();
+    }
+}
+
+void DomainServerSettingsManager::packPermissions() {
+    // transfer details from _agentPermissions to _configMap
+    packPermissionsForMap("standard_permissions", _standardAgentPermissions, AGENT_STANDARD_PERMISSIONS_KEYPATH);
+
+    // save settings for specific users
+    packPermissionsForMap("permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
+
+    persistToFile();
+    _configMap.loadMasterAndUserConfig(_argumentList);
+}
+
+void DomainServerSettingsManager::unpackPermissions() {
+    // transfer details from _configMap to _agentPermissions;
+
+    _standardAgentPermissions.clear();
+    _agentPermissions.clear();
+
+    bool foundLocalhost = false;
+    bool foundAnonymous = false;
+    bool foundLoggedIn = false;
+    bool needPack = false;
+
+    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    if (!standardPermissions || !standardPermissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "failed to extract standard permissions from settings.";
+        standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH, true);
+        (*standardPermissions) = QVariantList();
+    }
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+    if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "failed to extract permissions from settings.";
+        permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH, true);
+        (*permissions) = QVariantList();
+    }
+
+    QList<QVariant> standardPermissionsList = standardPermissions->toList();
+    foreach (QVariant permsHash, standardPermissionsList) {
+        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
+        QString id = perms->getID();
+        foundLocalhost |= (id == NodePermissions::standardNameLocalhost);
+        foundAnonymous |= (id == NodePermissions::standardNameAnonymous);
+        foundLoggedIn |= (id == NodePermissions::standardNameLoggedIn);
+        if (_standardAgentPermissions.contains(id)) {
+            qDebug() << "duplicate name in standard permissions table: " << id;
+            _standardAgentPermissions[id] |= perms;
+            needPack = true;
+        } else {
+            _standardAgentPermissions[id] = perms;
+        }
+    }
+
+    QList<QVariant> permissionsList = permissions->toList();
+    foreach (QVariant permsHash, permissionsList) {
+        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
+        QString id = perms->getID();
+        if (_agentPermissions.contains(id)) {
+            qDebug() << "duplicate name in permissions table: " << id;
+            _agentPermissions[id] |= perms;
+            needPack = true;
+        } else {
+            _agentPermissions[id] = perms;
+        }
+    }
+
+    // if any of the standard names are missing, add them
+    if (!foundLocalhost) {
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
+        perms->setAll(true);
+        _standardAgentPermissions[perms->getID()] = perms;
+        needPack = true;
+    }
+    if (!foundAnonymous) {
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
+        _standardAgentPermissions[perms->getID()] = perms;
+        needPack = true;
+    }
+    if (!foundLoggedIn) {
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
+        _standardAgentPermissions[perms->getID()] = perms;
+        needPack = true;
+    }
+
+    if (needPack) {
+        packPermissions();
+    }
+
+    #ifdef WANT_DEBUG
+    qDebug() << "--------------- permissions ---------------------";
+    QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+    permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
+    foreach (auto permissionSet, permissionsSets) {
+        QHashIterator<QString, NodePermissionsPointer> i(permissionSet);
+        while (i.hasNext()) {
+            i.next();
+            NodePermissionsPointer perms = i.value();
+            qDebug() << i.key() << perms;
+        }
+    }
+    #endif
+}
+
+NodePermissions DomainServerSettingsManager::getStandardPermissionsForName(const QString& name) const {
+    if (_standardAgentPermissions.contains(name)) {
+        return *(_standardAgentPermissions[name].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
+}
+
+NodePermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {
+    if (_agentPermissions.contains(name)) {
+        return *(_agentPermissions[name].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
@@ -257,7 +521,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
 
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject);
+        bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject);
 
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -267,8 +531,13 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
 
         // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
-        const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
-        QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+        if (restartRequired) {
+            const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+            QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+        } else {
+            unpackPermissions();
+            emit updateNodePermissions();
+        }
 
         return true;
     } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
@@ -281,7 +550,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
         rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
-
 
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
@@ -458,6 +726,8 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
         // TODO: we still need to recurse here with the description in case values in the array have special types
         settingMap[key] = newValue.toArray().toVariantList();
     }
+
+    sortPermissions();
 }
 
 QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName) {
@@ -471,9 +741,10 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
     auto& settingsVariant = _configMap.getUserConfig();
-    
+    bool needRestart = false;
+
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         QJsonValue rootValue = postedObject[rootKey];
@@ -521,6 +792,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
+                if (rootKey != "security") {
+                    needRestart = true;
+                }
             } else {
                 qDebug() << "Setting for root key" << rootKey << "does not exist - cannot update setting.";
             }
@@ -534,6 +808,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     QJsonValue settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
+                    if (rootKey != "security") {
+                        needRestart = true;
+                    }
                 } else {
                     qDebug() << "Could not find description for setting" << settingKey << "in group" << rootKey <<
                         "- cannot update setting.";
@@ -549,9 +826,42 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     // re-merge the user and master configs after a settings change
     _configMap.mergeMasterAndUserConfigs();
+
+    return needRestart;
+}
+
+// Compare two members of a permissions list
+bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
+    if (!v1.canConvert(QMetaType::QVariantMap) ||
+        !v2.canConvert(QMetaType::QVariantMap)) {
+        return v1.toString() < v2.toString();
+    }
+    QVariantMap m1 = v1.toMap();
+    QVariantMap m2 = v2.toMap();
+
+    if (!m1.contains("permissions_id") ||
+        !m2.contains("permissions_id")) {
+        return v1.toString() < v2.toString();
+    }
+    return m1["permissions_id"].toString() < m2["permissions_id"].toString();
+}
+
+void DomainServerSettingsManager::sortPermissions() {
+    // sort the permission-names
+    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    if (standardPermissions && standardPermissions->canConvert(QMetaType::QVariantList)) {
+        QList<QVariant>* standardPermissionsList = reinterpret_cast<QVariantList*>(standardPermissions);
+        std::sort((*standardPermissionsList).begin(), (*standardPermissionsList).end(), permissionVariantLessThan);
+    }
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+    if (permissions && permissions->canConvert(QMetaType::QVariantList)) {
+        QList<QVariant>* permissionsList = reinterpret_cast<QVariantList*>(permissions);
+        std::sort((*permissionsList).begin(), (*permissionsList).end(), permissionVariantLessThan);
+    }
 }
 
 void DomainServerSettingsManager::persistToFile() {
+    sortPermissions();
 
     // make sure we have the dir the settings file is supposed to live in
     QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());

@@ -10,6 +10,7 @@
 #include <ThreadSafeValueCache.h>
 
 #include <QtGlobal>
+#include <Transform.h>
 
 #include "../OpenGLDisplayPlugin.h"
 
@@ -30,7 +31,7 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
-
+    bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
 
 protected:
     virtual void hmdPresent() = 0;
@@ -39,6 +40,7 @@ protected:
     virtual void updatePresentPose();
 
     bool internalActivate() override;
+    void internalDeactivate() override;
     void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
@@ -46,6 +48,26 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
+    void compositeExtra() override;
+
+    struct HandLaserInfo {
+        HandLaserMode mode { HandLaserMode::None };
+        vec4 color { 1.0f };
+        vec3 direction { 0, 0, -1 };
+
+        // Is this hand laser info suitable for drawing?
+        bool valid() const {
+            return (mode != HandLaserMode::None && color.a > 0.0f && direction != vec3());
+        }
+    };
+
+    Transform _uiModelTransform;
+    std::array<HandLaserInfo, 2> _handLasers;
+    std::array<glm::mat4, 2> _handPoses;
+
+    Transform _presentUiModelTransform;
+    std::array<HandLaserInfo, 2> _presentHandLasers;
+    std::array<mat4, 2> _presentHandPoses;
 
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
@@ -70,10 +92,49 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
+    void updateOverlayProgram();
+    void updateLaserProgram();
+    void updateReprojectionProgram();
+
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
-    ShapeWrapperPtr _sphereSection;
+    bool _firstPreview { true };
+
+    ProgramPtr _overlayProgram;
+    struct OverlayUniforms {
+        int32_t mvp { -1 };
+        int32_t alpha { -1 };
+        int32_t glowColors { -1 };
+        int32_t glowPoints { -1 };
+        int32_t resolution { -1 };
+        int32_t radius { -1 };
+    } _overlayUniforms;
+
+    ProgramPtr _previewProgram;
+    struct PreviewUniforms {
+        int32_t previewTexture { -1 };
+    } _previewUniforms;
+
+    float _previewAspect { 0 };
+    GLuint _previewTextureID { 0 };
+    glm::uvec2 _prevWindowSize { 0, 0 };
+    qreal _prevDevicePixelRatio { 0 };
+
     ProgramPtr _reprojectionProgram;
+    struct ReprojectionUniforms {
+        int32_t reprojectionMatrix { -1 };
+        int32_t inverseProjectionMatrix { -1 };
+        int32_t projectionMatrix { -1 };
+    } _reprojectionUniforms;
+
+    ShapeWrapperPtr _sphereSection;
+
+    ProgramPtr _laserProgram;
+    struct LaserUniforms {
+        int32_t mvp { -1 };
+        int32_t color { -1 };
+    } _laserUniforms;
+    ShapeWrapperPtr _laserGeometry;
 };
 

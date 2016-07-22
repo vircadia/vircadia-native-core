@@ -29,6 +29,9 @@ class OffscreenFlags : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
 
+    // Allow scripts that are doing their own navigation support to disable navigation focus (i.e. handControllerPointer.js)
+    Q_PROPERTY(bool navigationFocusDisabled READ isNavigationFocusDisabled WRITE setNavigationFocusDisabled NOTIFY navigationFocusDisabledChanged)
+
 public:
 
     OffscreenFlags(QObject* parent = nullptr) : QObject(parent) {}
@@ -40,11 +43,21 @@ public:
         }
     }
 
+    bool isNavigationFocusDisabled() const { return _navigationFocusDisabled; }
+    void setNavigationFocusDisabled(bool disabled) {
+        if (_navigationFocusDisabled != disabled) {
+            _navigationFocusDisabled = disabled;
+            emit navigationFocusDisabledChanged();
+        }
+    }
+    
 signals:
     void navigationFocusedChanged();
+    void navigationFocusDisabledChanged();
 
 private:
     bool _navigationFocused { false };
+    bool _navigationFocusDisabled{ false };
 };
 
 QString fixupHifiUrl(const QString& urlString) {
@@ -53,8 +66,8 @@ QString fixupHifiUrl(const QString& urlString) {
     QUrl url(urlString);
 	QUrlQuery query(url);
 	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    AccountManager& accountManager = AccountManager::getInstance();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+	    auto accountManager = DependencyManager::get<AccountManager>();
+	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
 	    url.setQuery(query.query());
 	    return url.toString();
 	}
@@ -103,6 +116,10 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
 OffscreenUi::OffscreenUi() {
 }
 
+QObject* OffscreenUi::getFlags() {
+    return offscreenFlags;
+}
+
 void OffscreenUi::create(QOpenGLContext* context) {
     OffscreenQmlSurface::create(context);
     auto rootContext = getRootContext();
@@ -121,32 +138,28 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
         load(url, f);
         item = getRootItem()->findChild<QQuickItem*>(name);
     }
+
     if (item) {
-        item->setVisible(true);
+        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(true);
     }
 }
 
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
-    // Already loaded?  
-    if (item) {
-        emit showDesktop();
-        item->setVisible(!item->isVisible());
+    if (!item) {
+        show(url, name, f);
         return;
     }
 
-    load(url, f);
-    item = getRootItem()->findChild<QQuickItem*>(name);
-    if (item && !item->isVisible()) {
-        emit showDesktop();
-        item->setVisible(true);
-    }
+    // Already loaded, so just flip the bit
+    QQmlProperty shownProperty(item, OFFSCREEN_VISIBILITY_PROPERTY);
+    shownProperty.write(!shownProperty.read().toBool());
 }
 
 void OffscreenUi::hide(const QString& name) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (item) {
-        item->setVisible(false);
+        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
     }
 }
 
@@ -345,6 +358,20 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
 }
 
+void OffscreenUi::togglePinned() {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "togglePinned");
+    if (!invokeResult) {
+        qWarning() << "Failed to toggle window visibility";
+    }
+}
+
+void OffscreenUi::setPinned(bool pinned) {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "setPinned", Q_ARG(QVariant, pinned));
+    if (!invokeResult) {
+        qWarning() << "Failed to set window visibility";
+    }
+}
+
 void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
     if (!_vrMenu) {
         _queuedMenuInitializers.push_back(f);
@@ -382,7 +409,7 @@ QVariant OffscreenUi::waitForInputDialogResult(QQuickItem* inputDialog) {
 }
 
 bool OffscreenUi::navigationFocused() {
-    return offscreenFlags->isNavigationFocused();
+    return !offscreenFlags->isNavigationFocusDisabled() && offscreenFlags->isNavigationFocused();
 }
 
 void OffscreenUi::setNavigationFocused(bool focused) {
@@ -482,10 +509,9 @@ void OffscreenUi::unfocusWindows() {
     Q_ASSERT(invokeResult);
 }
 
-void OffscreenUi::toggleMenu(const QPoint& screenPosition) {
+void OffscreenUi::toggleMenu(const QPoint& screenPosition) { // caller should already have mapped using getReticlePosition
     emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
-    auto virtualPos = mapToVirtualScreen(screenPosition, nullptr);
-    QMetaObject::invokeMethod(_desktop, "toggleMenu",  Q_ARG(QVariant, virtualPos));
+    QMetaObject::invokeMethod(_desktop, "toggleMenu", Q_ARG(QVariant, screenPosition));
 }
 
 
@@ -590,6 +616,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // let the parent class do it's work
     bool result = OffscreenQmlSurface::eventFilter(originalDestination, event);
 
+
     // Check if this is a key press/release event that might need special attention
     auto type = event->type();
     if (type != QEvent::KeyPress && type != QEvent::KeyRelease) {
@@ -597,7 +624,8 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     }
 
     QKeyEvent* keyEvent = dynamic_cast<QKeyEvent*>(event);
-    bool& pressed = _pressedKeys[keyEvent->key()];
+    auto key = keyEvent->key();
+    bool& pressed = _pressedKeys[key];
 
     // Keep track of which key press events the QML has accepted
     if (result && QEvent::KeyPress == type) {
@@ -607,7 +635,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // QML input elements absorb key press, but apparently not key release.
     // therefore we want to ensure that key release events for key presses that were 
     // accepted by the QML layer are suppressed
-    if (!result && type == QEvent::KeyRelease && pressed) {
+    if (type == QEvent::KeyRelease && pressed) {
         pressed = false;
         return true;
     }

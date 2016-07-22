@@ -25,6 +25,7 @@
 #include "AvatarMotionState.h"
 
 class MyAvatar;
+class AudioInjector;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
@@ -69,9 +70,16 @@ public:
 
     void addAvatarToSimulation(Avatar* avatar);
 
+    Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
+                                                                  const QScriptValue& avatarIdsToInclude = QScriptValue(),
+                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue());
+
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
+
+private slots:
+    virtual void removeAvatar(const QUuid& sessionUUID) override;
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -83,7 +91,6 @@ private:
     virtual AvatarSharedPointer newSharedAvatar() override;
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
 
-    virtual void removeAvatar(const QUuid& sessionUUID) override;
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) override;
 
     QVector<AvatarSharedPointer> _avatarFades;
@@ -93,6 +100,8 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
+
+    std::list<QPointer<AudioInjector>> _collisionInjectors;
 
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
     SetOfMotionStates _motionStatesToAddToPhysics;

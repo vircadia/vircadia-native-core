@@ -28,7 +28,7 @@
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <SettingHandle.h>
 
 #include <QLoggingCategory>
@@ -66,14 +66,8 @@ const QString SHOW_DEBUG_RAW = "Debug Draw Raw Data";
 const QString SHOW_DEBUG_CALIBRATED = "Debug Draw Calibrated Data";
 
 bool SixenseManager::isSupported() const {
-#ifdef HAVE_SIXENSE
-
-#if defined(Q_OS_OSX)
-    return QSysInfo::macVersion() <= QSysInfo::MV_MAVERICKS;
-#else
+#if defined(HAVE_SIXENSE) && !defined(Q_OS_OSX)
     return true;
-#endif
-
 #else
     return false;
 #endif
@@ -83,6 +77,7 @@ bool SixenseManager::activate() {
     InputPlugin::activate();
 
 #ifdef HAVE_SIXENSE
+    #if !defined(Q_OS_LINUX)
     _container->addMenu(MENU_PATH);
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { setSixenseFilter(clicked); },
@@ -95,6 +90,7 @@ bool SixenseManager::activate() {
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, SHOW_DEBUG_CALIBRATED,
                             [this] (bool clicked) { _inputDevice->setDebugDrawCalibrated(clicked); },
                             true, false);
+    #endif
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -112,8 +108,10 @@ void SixenseManager::deactivate() {
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
+    #if !defined(Q_OS_LINUX)
     _container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
     _container->removeMenu(MENU_PATH);
+    #endif
 
     _inputDevice->_poseStateMap.clear();
 
@@ -134,21 +132,29 @@ void SixenseManager::setSixenseFilter(bool filter) {
 #endif
 }
 
-void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     BAIL_IF_NOT_LOADED
+
+#ifdef HAVE_SIXENSE
+    static bool sixenseHasBeenConnected { false };
+    if (!sixenseHasBeenConnected && sixenseIsBaseConnected(0)) {
+        sixenseHasBeenConnected = true;
+        emit deviceConnected(getName());
+    }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
-        _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+        _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
     if (_inputDevice->_requestReset) {
         _container->requestReset();
         _inputDevice->_requestReset = false;
     }
+#endif
 }
 
-void SixenseManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void SixenseManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     BAIL_IF_NOT_LOADED
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
@@ -208,14 +214,10 @@ void SixenseManager::InputDevice::update(float deltaTime, const controller::Inpu
             _axisStateMap[left ? LY : RY] = data->joystick_y;
             _axisStateMap[left ? LT : RT] = data->trigger;
 
-            if (!jointsCaptured) {
-                //  Rotation of Palm
-                glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(deltaTime, inputCalibrationData, position, rotation, left);
-                rawPoses[i] = controller::Pose(position, rotation, Vectors::ZERO, Vectors::ZERO);
-            } else {
-                _poseStateMap.clear();
-            }
+            //  Rotation of Palm
+            glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
+            handlePoseEvent(deltaTime, inputCalibrationData, position, rotation, left);
+            rawPoses[i] = controller::Pose(position, rotation, Vectors::ZERO, Vectors::ZERO);
         } else {
             auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
             _poseStateMap[hand] = controller::Pose();

@@ -38,7 +38,7 @@ public:
         sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     
     static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
-                                            bool isReliable = false, bool isPartOfMessage = false);
+                    bool isReliable = false, bool isPartOfMessage = false, PacketVersion version = 0);
     
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
@@ -65,6 +65,7 @@ public:
     void setType(PacketType type);
     
     PacketVersion getVersion() const { return _version; }
+    void setVersion(PacketVersion version);
 
     const QUuid& getSourceID() const { return _sourceID; }
     
@@ -73,7 +74,7 @@ public:
 
 protected:
     
-    NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false);
+    NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false, PacketVersion version = 0);
     NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
     NLPacket(const NLPacket& other);

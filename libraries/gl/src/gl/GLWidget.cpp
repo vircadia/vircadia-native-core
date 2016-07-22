@@ -43,17 +43,21 @@ int GLWidget::getDeviceHeight() const {
 
 void GLWidget::initializeGL() {
     setAttribute(Qt::WA_AcceptTouchEvents);
+    grabGesture(Qt::PinchGesture);
     setAcceptDrops(true);
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
 
-    // TODO: write the proper code for linux
     makeCurrent();
-#if defined(Q_OS_WIN)
     if (isValid() && context() && context()->contextHandle()) {
-        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");;
-    }
+#if defined(Q_OS_WIN)
+        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");
+#elif defined(Q_OS_MAC)
+        _vsyncSupported = true;
+#else
+        // TODO: write the proper code for linux
 #endif
+    }
 }
 
 void GLWidget::paintEvent(QPaintEvent* event) {
@@ -78,6 +82,7 @@ bool GLWidget::event(QEvent* event) {
         case QEvent::TouchBegin:
         case QEvent::TouchEnd:
         case QEvent::TouchUpdate:
+        case QEvent::Gesture:
         case QEvent::Wheel:
         case QEvent::DragEnter:
         case QEvent::Drop:

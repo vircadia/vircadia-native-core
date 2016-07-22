@@ -35,9 +35,9 @@ const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
 const QString SESSION_ID_KEY = "session_id";
 
 void DiscoverabilityManager::updateLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     
-    if (_mode.get() != Discoverability::None && accountManager.isLoggedIn()) {
+    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
         auto addressManager = DependencyManager::get<AddressManager>();
         DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
 
@@ -79,9 +79,6 @@ void DiscoverabilityManager::updateLocation() {
         const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
         locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
 
-        // if we have a session ID add it now, otherwise add a null value
-        rootObject[SESSION_ID_KEY] = _sessionID.isEmpty() ? QJsonValue() : _sessionID;
-
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
@@ -98,7 +95,7 @@ void DiscoverabilityManager::updateLocation() {
             apiPath = API_USER_LOCATION_PATH;
         }
 
-        accountManager.sendRequest(apiPath, AccountManagerAuth::Required,
+        accountManager->sendRequest(apiPath, AccountManagerAuth::Required,
                                    QNetworkAccessManager::PutOperation,
                                    callbackParameters, QJsonDocument(rootObject).toJson());
 
@@ -109,16 +106,8 @@ void DiscoverabilityManager::updateLocation() {
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
-        QJsonObject heartbeatObject;
-        if (!_sessionID.isEmpty()) {
-            heartbeatObject[SESSION_ID_KEY] = _sessionID;
-        } else {
-            heartbeatObject[SESSION_ID_KEY] = QJsonValue();
-        }
-
-        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
-                                   QNetworkAccessManager::PutOperation, callbackParameters,
-                                   QJsonDocument(heartbeatObject).toJson());
+        accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
+                                   QNetworkAccessManager::PutOperation, callbackParameters);
     }
 }
 
@@ -126,13 +115,17 @@ void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply
     auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
     if (!dataObject.isEmpty()) {
-        _sessionID = dataObject[SESSION_ID_KEY].toString();
+        auto sessionID = dataObject[SESSION_ID_KEY].toString();
+
+        // give that session ID to the account manager
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->setSessionID(sessionID);
     }
 }
 
 void DiscoverabilityManager::removeLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
 }
 
 void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {

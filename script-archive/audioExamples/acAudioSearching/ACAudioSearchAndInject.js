@@ -40,6 +40,7 @@ var DEFAULT_SOUND_DATA = {
 
 Script.include("../../libraries/utils.js");
 Agent.isAvatar = true; // This puts a robot at 0,0,0, but is currently necessary in order to use AvatarList.
+Avatar.skeletonModelURL = "http://invalid-url";
 function ignore() {}
 function debug() { // Display the arguments not just [Object object].
     //print.apply(null, [].map.call(arguments, JSON.stringify));
@@ -48,7 +49,7 @@ function debug() { // Display the arguments not just [Object object].
 EntityViewer.setCenterRadius(QUERY_RADIUS);
 
 // ENTITY DATA CACHE
-// 
+//
 var entityCache = {}; // A dictionary of unexpired EntityData objects.
 var examinationCount = 0;
 function EntityDatum(entityIdentifier) { // Just the data of an entity that we need to know about.
@@ -145,7 +146,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
             return;
         }
         that.injector.setOptions(options);                                   // PLAYING => UPDATE POSITION ETC
-        if (!that.injector.isPlaying) { // Subtle: a looping sound will not check playbackGap.
+        if (!that.injector.playing) { // Subtle: a looping sound will not check playbackGap.
             if (repeat()) {                                                  // WAITING => PLAYING
                 // Setup next play just once, now. Changes won't be looked at while we wait.
                 that.playAfter = randomizedNextPlay();
@@ -207,7 +208,7 @@ function updateAllEntityData() { // A fast update of all entities we know about.
             stats.entities++;
             if (datum.url) {
                 stats.sounds++;
-                if (datum.injector && datum.injector.isPlaying) {
+                if (datum.injector && datum.injector.playing) {
                     stats.playing++;
                 }
             }

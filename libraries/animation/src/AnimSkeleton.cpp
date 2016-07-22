@@ -107,6 +107,18 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     }
 }
 
+void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const {
+    // poses start off absolute and leave in relative frame
+    int lastIndex = std::min((int)rotations.size(), (int)_joints.size());
+    for (int i = lastIndex - 1; i >= 0; --i) {
+        int parentIndex = _joints[i].parentIndex;
+        if (parentIndex != -1) {
+            rotations[i] = glm::inverse(rotations[parentIndex]) * rotations[i];
+        }
+    }
+}
+
+
 void AnimSkeleton::mirrorRelativePoses(AnimPoseVec& poses) const {
     convertRelativePosesToAbsolute(poses);
     mirrorAbsolutePoses(poses);

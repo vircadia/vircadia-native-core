@@ -11,8 +11,6 @@
 
 #include "ViveControllerManager.h"
 
-#include <QtCore/QProcessEnvironment>
-
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -20,8 +18,10 @@
 #include <gpu/Context.h>
 #include <DeferredLightingEffect.h>
 #include <NumericalConstants.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
+#include <OffscreenUi.h>
+
 
 #include <controllers/UserInputMapper.h>
 
@@ -38,10 +38,6 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 
 
-static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
-static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                     CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                     CONTROLLER_LENGTH_OFFSET * 2.0f);
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 static const QString MENU_PARENT = "Avatar";
@@ -50,11 +46,9 @@ static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 const QString ViveControllerManager::NAME = "OpenVR";
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
-static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 bool ViveControllerManager::isSupported() const {
-    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
+    return openVrSupported();
 }
 
 bool ViveControllerManager::activate() {
@@ -69,6 +63,8 @@ bool ViveControllerManager::activate() {
         _system = acquireOpenVrSystem();
     }
     Q_ASSERT(_system);
+
+    enableOpenVrKeyboard(_container);
 
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
@@ -127,12 +123,13 @@ bool ViveControllerManager::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
-
     return true;
 }
 
 void ViveControllerManager::deactivate() {
     InputPlugin::deactivate();
+
+    disableOpenVrKeyboard();
 
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);
@@ -214,12 +211,13 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 }
 
 
-void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    handleOpenVrEvents();
 
     // because update mutates the internal state we need to lock
     userInputMapper->withLock([&, this]() {
-        _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+        _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
     if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
@@ -231,22 +229,36 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
     }
 }
 
-void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
+
+    // While the keyboard is open, we defer strictly to the keyboard values
+    if (isOpenVrKeyboardShown()) {
+        _axisStateMap.clear();
+        return;
+    }
 
     PerformanceTimer perfTimer("ViveControllerManager::update");
 
     auto leftHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
     auto rightHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
 
-    if (!jointsCaptured) {
-        handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
-        handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
+    handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
+    handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
+
+    // handle haptics
+    {
+        Locker locker(_lock);
+        if (_leftHapticDuration > 0.0f) {
+            hapticsHelper(deltaTime, true);
+        }
+        if (_rightHapticDuration > 0.0f) {
+            hapticsHelper(deltaTime, false);
+        }
     }
 
     int numTrackedControllers = 0;
@@ -273,7 +285,6 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_system->GetControllerState(deviceIndex, &controllerState)) {
-
             // process each button
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
@@ -286,7 +297,26 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
                 handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
             }
-        }
+
+            // pseudo buttons the depend on both of the above for-loops
+            partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_X, controller::LS_Y);
+            partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_X, controller::RS_Y);
+         }
+    }
+}
+
+void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPseudoButton) {
+    // Populate the L/RS_CENTER/OUTER pseudo buttons, corresponding to a partition of the L/RS space based on the X/Y values.
+    const float CENTER_DEADBAND = 0.6f;
+    const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
+    if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
+        float absX = abs(_axisStateMap[xAxis]);
+        float absY = abs(_axisStateMap[yAxis]);
+        glm::vec2 cartesianQuadrantI(absX, absY);
+        float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
+        float radius = glm::length(cartesianQuadrantI);
+        bool isCenter = radius < CENTER_DEADBAND;
+        _buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPseudoButton));
     }
 }
 
@@ -312,6 +342,11 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
+        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
+        // so we can expose that as an additional button
+        if (x >= 1.0f) {
+            _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
+        }
     }
 }
 
@@ -331,11 +366,15 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         if (button == vr::k_EButton_ApplicationMenu) {
             _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
         } else if (button == vr::k_EButton_Grip) {
-            _buttonPressedMap.insert(isLeftHand ? LEFT_GRIP : RIGHT_GRIP);
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 1.0f;
         } else if (button == vr::k_EButton_SteamVR_Trigger) {
             _buttonPressedMap.insert(isLeftHand ? LT : RT);
         } else if (button == vr::k_EButton_SteamVR_Touchpad) {
             _buttonPressedMap.insert(isLeftHand ? LS : RS);
+        }
+    } else {
+        if (button == vr::k_EButton_Grip) {
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 0.0f;
         }
     }
 
@@ -349,86 +388,60 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                                                          const mat4& mat, const vec3& linearVelocity,
                                                          const vec3& angularVelocity, bool isLeftHand) {
-    // When the sensor-to-world rotation is identity the coordinate axes look like this:
-    //
-    //                       user
-    //                      forward
-    //                        -z
-    //                         |
-    //                        y|      user
-    //      y                  o----x right
-    //       o-----x         user
-    //       |                up
-    //       |
-    //       z
-    //
-    //     Vive
-    //
-
-    // From ABOVE the hand canonical axes looks like this:
-    //
-    //      | | | |          y        | | | |
-    //      | | | |          |        | | | |
-    //      |     |          |        |     |
-    //      |left | /  x---- +      \ |right|
-    //      |     _/          z      \_     |
-    //       |   |                     |   |
-    //       |   |                     |   |
-    //
-
-    // So when the user is standing in Vive space facing the -zAxis with hands outstretched and palms down
-    // the rotation to align the Vive axes with those of the hands is:
-    //
-    //    QviveToHand = halfTurnAboutY * quaterTurnAboutX
-
-    // Due to how the Vive controllers fit into the palm there is an offset that is different for each hand.
-    // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
-    // the combination (measurement * offset) is identity at this orientation.
-    //
-    //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
-    //
-    // An approximate offset for the Vive can be obtained by inspection:
-    //
-    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/4.0f, zAxis) * glm::angleAxis(PI/2.0f, xAxis))
-    //
-    // So the full equation is:
-    //
-    //    Q = combinedMeasurement * viveToHand
-    //
-    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
-    //
-    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
-
-    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
-    static const glm::quat viveToHand = yFlip * quarterX;
-
-    static const glm::quat leftQuaterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
-    static const glm::quat rightQuaterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
-    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
-
-    static const glm::quat leftRotationOffset = glm::inverse(leftQuaterZ * eighthX) * viveToHand;
-    static const glm::quat rightRotationOffset = glm::inverse(rightQuaterZ * eighthX) * viveToHand;
-
-    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
-    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
-
-    auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
-    auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
-
-    glm::vec3 position = extractTranslation(mat);
-    glm::quat rotation = glm::normalize(glm::quat_cast(mat));
-
-    position += rotation * translationOffset;
-    rotation = rotation * rotationOffset;
+    auto pose = openVrControllerPoseToHandPose(isLeftHand, mat, linearVelocity, angularVelocity);
 
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    auto avatarPose = controller::Pose(position, rotation);
-    // handle change in velocity due to translationOffset
-    avatarPose.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
-    avatarPose.angularVelocity = angularVelocity;
-    _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
+    _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
+}
+
+bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    if (hand == controller::BOTH || hand == controller::LEFT) {
+        if (strength == 0.0f) {
+            _leftHapticStrength = 0.0f;
+            _leftHapticDuration = 0.0f;
+        } else {
+            _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
+            _leftHapticDuration = std::max(duration, _leftHapticDuration);
+        }
+    }
+    if (hand == controller::BOTH || hand == controller::RIGHT) {
+        if (strength == 0.0f) {
+            _rightHapticStrength = 0.0f;
+            _rightHapticDuration = 0.0f;
+        } else {
+            _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
+            _rightHapticDuration = std::max(duration, _rightHapticDuration);
+        }
+    }
+    return true;
+}
+
+void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool leftHand) {
+    auto handRole = leftHand ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
+    auto deviceIndex = _system->GetTrackedDeviceIndexForControllerRole(handRole);
+
+    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
+        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+        float strength = leftHand ? _leftHapticStrength : _rightHapticStrength;
+        float duration = leftHand ? _leftHapticDuration : _rightHapticDuration;
+
+        // Vive Controllers only support duration up to 4 ms, which is short enough that any variation feels more like strength
+        const float MAX_HAPTIC_TIME = 3999.0f; // in microseconds
+        float hapticTime = strength * MAX_HAPTIC_TIME;
+        if (hapticTime < duration * 1000.0f) {
+            _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
+        }
+
+        float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
+        if (leftHand) {
+            _leftHapticDuration = remainingHapticTime;
+        } else {
+            _rightHapticDuration = remainingHapticTime;
+        }
+    }
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
@@ -447,10 +460,22 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         // touch pad press
         makePair(LS, "LS"),
         makePair(RS, "RS"),
+        // Differentiate where we are in the touch pad click
+        makePair(LS_CENTER, "LSCenter"),
+        makePair(LS_X, "LSX"),
+        makePair(LS_Y, "LSY"),
+        makePair(RS_CENTER, "RSCenter"),
+        makePair(RS_X, "RSX"),
+        makePair(RS_Y, "RSY"),
+
 
         // triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
+
+        // Trigger clicks
+        makePair(LT_CLICK, "LTClick"),
+        makePair(RT_CLICK, "RTClick"),
 
         // low profile side grip button.
         makePair(LEFT_GRIP, "LeftGrip"),

@@ -21,6 +21,8 @@
 
 #include <DependencyManager.h>
 
+#include <shared/Shapes.h>
+
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
@@ -121,9 +123,6 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
-using VertexVector = std::vector<glm::vec3>;
-using IndexVector = std::vector<uint16_t>;
-
 /// Stores cached geometry.
 class GeometryCache : public Dependency {
     SINGLETON_DEPENDENCY
@@ -133,17 +132,18 @@ public:
         Line,
         Triangle,
         Quad,
+        Hexagon,
+        Octagon,
         Circle,
         Cube,
         Sphere,
         Tetrahedron,
-        Octahetron,
+        Octahedron,
         Dodecahedron,
         Icosahedron,
-        Torus,
-        Cone,
-        Cylinder,
-
+        Torus, // not yet implemented
+        Cone, // not yet implemented
+        Cylinder, // not yet implemented
         NUM_SHAPES,
     };
 
@@ -158,10 +158,25 @@ public:
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
-    
+    render::ShapePipelinePointer getWireShapePipeline() { return GeometryCache::_simpleWirePipeline; }
+
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+    }
+
+    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+        const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+        const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderWireShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+    }
 
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
@@ -173,7 +188,7 @@ public:
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+                                    const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
         renderWireSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
@@ -187,7 +202,7 @@ public:
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+                                    const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
         renderWireCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
@@ -252,6 +267,9 @@ public:
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
+    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
+                    const glm::vec4& color, float glowIntensity = 1.0f, float glowWidth = 0.05f, int id = UNKNOWN_ID);
+
     void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
                           int id = UNKNOWN_ID)
                           { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }
@@ -273,7 +291,9 @@ public:
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec2>& points, const QVector<glm::vec4>& colors);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec4>& colors);
     void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
 
@@ -290,8 +310,8 @@ public:
         gpu::BufferView _normalView;
         gpu::BufferPointer _indices;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices);
-        void setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
+        void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
         void drawWire(gpu::Batch& batch) const;
@@ -350,7 +370,7 @@ private:
 
     QHash<IntPair, VerticesIndices> _coneVBOs;
 
-    int _nextID{ 0 };
+    int _nextID{ 1 };
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
     QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
@@ -390,11 +410,11 @@ private:
     QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
-    QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
-    
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _unlitShader;
     static render::ShapePipelinePointer _simplePipeline;
+    static render::ShapePipelinePointer _simpleWirePipeline;
+    gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 };
 

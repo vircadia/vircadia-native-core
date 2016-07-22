@@ -62,22 +62,12 @@ namespace controller {
 UserInputMapper::~UserInputMapper() {
 }
 
-int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
-    if (!_deviceCounts.contains(deviceName)) {
-        _deviceCounts[deviceName] = 0;
-    }
-    _deviceCounts[deviceName] += 1;
-    return _deviceCounts[deviceName];
-}
-
 void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     Locker locker(_lock);
     if (device->_deviceID == Input::INVALID_DEVICE) {
         device->_deviceID = getFreeDeviceID();
     }
     const auto& deviceID = device->_deviceID;
-
-    recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
 
@@ -132,6 +122,15 @@ void UserInputMapper::removeDevice(int deviceID) {
     if (_mappingsByDevice.end() != mappingsEntry) {
         disableMapping(mappingsEntry->second);
         _mappingsByDevice.erase(mappingsEntry);
+    }
+
+    for (const auto& inputMapping : device->getAvailableInputs()) {
+        const auto& input = inputMapping.first;
+        auto endpoint = _endpointsByInput.find(input);
+        if (endpoint != _endpointsByInput.end()) {
+            _inputsByEndpoint.erase((*endpoint).second);
+            _endpointsByInput.erase(input);
+        }
     }
 
     _registeredDevices.erase(proxyEntry);
@@ -336,10 +335,28 @@ QVector<QString> UserInputMapper::getActionNames() const {
     return result;
 }
 
-static int actionMetaTypeId = qRegisterMetaType<Action>();
-static int inputMetaTypeId = qRegisterMetaType<Input>();
-static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
-static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
+bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    bool toReturn = false;
+    for (auto device : _registeredDevices) {
+        toReturn = toReturn || device.second->triggerHapticPulse(strength, duration, hand);
+    }
+    return toReturn;
+}
+
+bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
+        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, hand);
+    }
+    return false;
+}
+
+int actionMetaTypeId = qRegisterMetaType<Action>();
+int inputMetaTypeId = qRegisterMetaType<Input>();
+int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
+int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
+int handMetaTypeId = qRegisterMetaType<controller::Hand>();
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);
@@ -347,6 +364,8 @@ QScriptValue actionToScriptValue(QScriptEngine* engine, const Action& action);
 void actionFromScriptValue(const QScriptValue& object, Action& action);
 QScriptValue inputPairToScriptValue(QScriptEngine* engine, const Input::NamedPair& inputPair);
 void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inputPair);
+QScriptValue handToScriptValue(QScriptEngine* engine, const controller::Hand& hand);
+void handFromScriptValue(const QScriptValue& object, controller::Hand& hand);
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input) {
     QScriptValue obj = engine->newObject();
@@ -385,12 +404,21 @@ void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inpu
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
+QScriptValue handToScriptValue(QScriptEngine* engine, const controller::Hand& hand) {
+    return engine->newVariant((int)hand);
+}
+
+void handFromScriptValue(const QScriptValue& object, controller::Hand& hand) {
+    hand = Hand(object.toVariant().toInt());
+}
+
 void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<Action> >(engine);
     qScriptRegisterSequenceMetaType<Input::NamedVector>(engine);
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+    qScriptRegisterMetaType(engine, handToScriptValue, handFromScriptValue);
 
     qScriptRegisterMetaType(engine, Pose::toScriptValue, Pose::fromScriptValue);
 }

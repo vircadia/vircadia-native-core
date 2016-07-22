@@ -22,12 +22,12 @@ function printVector(v) {
     return;
 }
 
-function vMinus(a, b) { 
+function vMinus(a, b) {
     var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
     return rval;
 }
 
-//  The model file to be used for the guitar 
+//  The model file to be used for the guitar
 var guitarModel = HIFI_PUBLIC_BUCKET + "models/attachments/guitar.fst";
 
 //  Load sounds that will be played
@@ -47,7 +47,7 @@ chords[6] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Me
 chords[7] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+E+short.raw");
 chords[8] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+G+short.raw");
 
-//  Steel Guitar 
+//  Steel Guitar
 chords[9] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+A.raw");
 chords[10] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+B.raw");
 chords[11] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+E.raw");
@@ -83,8 +83,8 @@ if (leftHanded) {
 }
 
 var lastPosition = { x: 0.0,
-                 y: 0.0, 
-                 z: 0.0 }; 
+                 y: 0.0,
+                 z: 0.0 };
 
 var audioInjector = null;
 var selectorPressed = false;
@@ -106,7 +106,7 @@ function checkHands(deltaTime) {
     var chord = Controller.getValue(chordTrigger);
 
     if (volume > 1.0) volume = 1.0;
-    if ((chord > 0.1) && audioInjector && audioInjector.isPlaying) {
+    if ((chord > 0.1) && audioInjector && audioInjector.playing) {
         // If chord finger trigger pulled, stop current chord
         print("stopping chord because cord trigger pulled");
         audioInjector.stop();
@@ -119,7 +119,7 @@ function checkHands(deltaTime) {
             guitarSelector += NUM_CHORDS;
             if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
                 guitarSelector = 0;
-            } 
+            }
             print("new guitarBase: " + guitarSelector);
             stopAudio(true);
             selectorPressed = true;
@@ -160,7 +160,7 @@ function checkHands(deltaTime) {
 }
 
 function stopAudio(killInjector) {
-    if (audioInjector && audioInjector.isPlaying) {
+    if (audioInjector && audioInjector.playing) {
         print("stopped sound");
         audioInjector.stop();
     }
@@ -212,4 +212,3 @@ function scriptEnding() {
 Script.update.connect(checkHands);
 Script.scriptEnding.connect(scriptEnding);
 Controller.keyPressEvent.connect(keyPressEvent);
-

@@ -151,6 +151,7 @@ public:
     float metallic{ 0.0f };
     float roughness{ 1.0f };
     float emissiveIntensity{ 1.0f };
+    float ambientFactor{ 1.0f };
 
     QString materialID;
     QString name;
@@ -166,6 +167,7 @@ public:
     FBXTexture metallicTexture;
     FBXTexture emissiveTexture;
     FBXTexture occlusionTexture;
+    FBXTexture scatteringTexture;
     FBXTexture lightmapTexture;
     glm::vec2 lightmapParams{ 0.0f, 1.0f };
 
@@ -437,11 +439,12 @@ public:
     QHash<QString, QString> shininessTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> ambientFactorTextures;
     QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 
-    void consolidateFBXMaterials();
+    void consolidateFBXMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;

@@ -20,6 +20,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
+#include <GLMHelpers.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
@@ -29,16 +30,59 @@
 
 using namespace std;
 
-static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
-static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
+int weakGeometryResourceBridgePointerTypeId = qRegisterMetaType<Geometry::WeakPointer >();
+int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
-model::MaterialPointer Model::_collisionHullMaterial;
+const int NUM_COLLISION_HULL_COLORS = 24;
+std::vector<model::MaterialPointer> _collisionHullMaterials;
+
+void initCollisionHullMaterials() {
+    // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
+    // (no browns, greys, or dark shades)
+    float component[NUM_COLLISION_HULL_COLORS] = {
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.2f, 0.4f, 0.6f, 0.8f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        0.8f, 0.6f, 0.4f, 0.2f
+    };
+    _collisionHullMaterials.reserve(NUM_COLLISION_HULL_COLORS);
+
+    // each component gets the same cuve
+    // but offset by a multiple of one third the full width
+    int numComponents = 3;
+    int sectionWidth = NUM_COLLISION_HULL_COLORS / numComponents;
+    int greenPhase = sectionWidth;
+    int bluePhase = 2 * sectionWidth;
+
+    // we stride through the colors to scatter adjacent shades
+    // so they don't tend to group together for large models
+    for (int i = 0; i < sectionWidth; ++i) {
+        for (int j = 0; j < numComponents; ++j) {
+            model::MaterialPointer material;
+            material = std::make_shared<model::Material>();
+            int index = j * sectionWidth + i;
+            float red = component[index];
+            float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
+            float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
+            material->setAlbedo(glm::vec3(red, green, blue));
+            material->setMetallic(0.02f);
+            material->setRoughness(0.5f);
+            _collisionHullMaterials.push_back(material);
+        }
+    }
+}
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
+    _renderGeometry(),
+    _collisionGeometry(),
+    _renderWatcher(_renderGeometry),
+    _collisionWatcher(_collisionGeometry),
     _translation(0.0f),
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
@@ -58,7 +102,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
     _isWireframe(false),
-    _renderCollisionHull(false),
     _rig(rig) {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -76,7 +119,7 @@ AbstractViewStateInterface* Model::_viewState = NULL;
 
 bool Model::needsFixupInScene() const {
     if (readyToAddToScene()) {
-        if (_needsUpdateTextures && _geometry->getGeometry()->areTexturesLoaded()) {
+        if (_needsUpdateTextures && _renderGeometry->areTexturesLoaded()) {
             _needsUpdateTextures = false;
             return true;
         }
@@ -726,10 +769,6 @@ glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     return translatedPoint;
 }
 
-bool Model::getJointState(int index, glm::quat& rotation) const {
-    return _rig->getJointStateRotation(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
@@ -757,13 +796,13 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
         _needsUpdateTextures = true;
-        _geometry->getGeometry()->setTextures(textures);
+        _renderGeometry->setTextures(textures);
     }
 }
 
 void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
-    if (_url == url && _geometry && _geometry->getURL() == url) {
+    if (_url == url && _renderWatcher.getURL() == url) {
         return;
     }
 
@@ -782,16 +821,16 @@ void Model::setURL(const QUrl& url) {
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _geometry = DependencyManager::get<ModelCache>()->getGeometry(url);
+    _renderWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
     onInvalidate();
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
-    if (_collisionUrl == url) {
+    if (_collisionUrl == url && _collisionWatcher.getURL() == url) {
         return;
     }
     _collisionUrl = url;
-    _collisionGeometry = DependencyManager::get<ModelCache>()->getGeometry(url);
+    _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -847,7 +886,7 @@ QStringList Model::getJointNames() const {
 class Blender : public QRunnable {
 public:
 
-    Blender(ModelPointer model, int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
+    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
     virtual void run();
@@ -856,12 +895,12 @@ private:
 
     ModelPointer _model;
     int _blendNumber;
-    std::weak_ptr<NetworkGeometry> _geometry;
+    Geometry::WeakPointer _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(ModelPointer model, int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
+Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
     _blendNumber(blendNumber),
@@ -904,7 +943,7 @@ void Blender::run() {
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
         Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
-        Q_ARG(const std::weak_ptr<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
+        Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
@@ -967,7 +1006,7 @@ void Model::scaleToFit() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
 
     // size is our "target size in world space"
-    // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+    // we need to set our model scale so that the extents of the mesh, fit in a box that size...
     glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
     glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
     setScaleInternal(rescaleDimensions);
@@ -1115,7 +1154,7 @@ bool Model::maybeStartBlender() {
     if (isLoaded()) {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         if (fbxGeometry.hasBlendedMeshes()) {
-            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
+            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry,
                 fbxGeometry.meshes, _blendshapeCoefficients));
             return true;
         }
@@ -1123,10 +1162,10 @@ bool Model::maybeStartBlender() {
     return false;
 }
 
-void Model::setBlendedVertices(int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
+void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
     auto geometryRef = geometry.lock();
-    if (!geometryRef || _geometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
+    if (!geometryRef || _renderGeometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
         return;
     }
     _appliedBlendNumber = blendNumber;
@@ -1169,27 +1208,23 @@ AABox Model::getRenderableMeshBound() const {
 }
 
 void Model::segregateMeshGroups() {
-    NetworkGeometry::Pointer networkGeometry;
+    Geometry::Pointer geometry;
     bool showingCollisionHull = false;
     if (_showCollisionHull && _collisionGeometry) {
         if (isCollisionLoaded()) {
-            networkGeometry = _collisionGeometry;
+            geometry = _collisionGeometry;
             showingCollisionHull = true;
         } else {
             return;
         }
     } else {
         assert(isLoaded());
-        networkGeometry = _geometry;
+        geometry = _renderGeometry;
     }
-    const FBXGeometry& geometry = networkGeometry->getGeometry()->getGeometry();
-    const auto& networkMeshes = networkGeometry->getGeometry()->getMeshes();
+    const auto& meshes = geometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    auto geoMeshesSize = geometry.meshes.size();
-    if ((int)networkMeshes.size() != geoMeshesSize ||
-      //  geometry.meshes.size() != _meshStates.size()) {
-        geoMeshesSize > _meshStates.size()) {
+    if ((int)meshes.size() != _meshStates.size()) {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1213,26 +1248,25 @@ void Model::segregateMeshGroups() {
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
-    for (int i = 0; i < (int)networkMeshes.size(); i++) {
-        const FBXMesh& mesh = geometry.meshes.at(i);
-        const auto& networkMesh = networkMeshes.at(i);
+    uint32_t numMeshes = (uint32_t)meshes.size();
+    for (uint32_t i = 0; i < numMeshes; i++) {
+        const auto& mesh = meshes.at(i);
+        if (mesh) {
 
-        // Create the render payloads
-        int totalParts = mesh.parts.size();
-        for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            if (showingCollisionHull) {
-                if (!_collisionHullMaterial) {
-                    _collisionHullMaterial = std::make_shared<model::Material>();
-                    _collisionHullMaterial->setAlbedo(glm::vec3(1.0f, 0.5f, 0.0f));
-                    _collisionHullMaterial->setMetallic(0.02f);
-                    _collisionHullMaterial->setRoughness(0.5f);
+            // Create the render payloads
+            int numParts = (int)mesh->getNumParts();
+            for (int partIndex = 0; partIndex < numParts; partIndex++) {
+                if (showingCollisionHull) {
+                    if (_collisionHullMaterials.empty()) {
+                        initCollisionHullMaterials();
+                    }
+                    _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS], transform, offset);
+                } else {
+                    _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
                 }
-                _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh, partIndex, _collisionHullMaterial, transform, offset);
-            } else {
-                _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
-            }
 
-            shapeID++;
+                shapeID++;
+            }
         }
     }
     _meshGroupsKnown = true;
@@ -1295,7 +1329,7 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
 }
 
 void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
-        const std::weak_ptr<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+        const Geometry::WeakPointer& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
     if (model) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }

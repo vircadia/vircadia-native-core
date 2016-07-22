@@ -24,6 +24,16 @@ macro(SETUP_HIFI_LIBRARY)
       set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS -mavx)
     endif()
   endforeach()
+
+  # add compiler flags to AVX2 source files
+  file(GLOB_RECURSE AVX2_SRCS "src/avx2/*.cpp" "src/avx2/*.c")
+  foreach(SRC ${AVX2_SRCS})
+    if (WIN32)
+      set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS /arch:AVX2)
+    elseif (APPLE OR UNIX)
+      set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
+    endif()
+  endforeach()
     
   setup_memory_debugger()
 

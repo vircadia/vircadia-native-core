@@ -25,9 +25,7 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 #define __OS_XUN__ 1
 #define BOOL int
 
-#ifdef HAVE_NEURON
 #include <NeuronDataReader.h>
-#endif
 
 const QString NeuronPlugin::NAME = "Neuron";
 const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
@@ -166,69 +164,6 @@ static controller::StandardPoseChannel neuronJointIndexToPoseIndexMap[NeuronJoin
 static glm::vec3 rightHandThumb1DefaultAbsTranslation(-2.155500650405884, -0.7610001564025879, 2.685631036758423);
 static glm::vec3 leftHandThumb1DefaultAbsTranslation(2.1555817127227783, -0.7603635787963867, 2.6856393814086914);
 
-// default translations (cm)
-static glm::vec3 neuronJointTranslations[NeuronJointIndex::Size] = {
-    {131.901, 95.6602, -27.9815},
-    {-9.55907, -1.58772, 0.0760284},
-    {0.0144232, -41.4683, -0.105322},
-    {1.59348, -41.5875, -0.557237},
-    {9.72077, -1.68926, -0.280643},
-    {0.0886684, -43.1586, -0.0111596},
-    {-2.98473, -44.0517, 0.0694456},
-    {0.110967, 16.3959, 0.140463},
-    {0.0500451, 10.0238, 0.0731921},
-    {0.061568, 10.4352, 0.0583075},
-    {0.0500606, 10.0217, 0.0711083},
-    {0.0317731, 10.7176, 0.0779325},
-    {-0.0204253, 9.71067, 0.131734},
-    {-3.24245, 7.13584, 0.185638},
-    {-13.0885, -0.0877601, 0.176065},
-    {-27.2674, 0.0688724, 0.0272146},
-    {-26.7673, 0.0301916, 0.0102847},
-    {-2.56017, 0.195537, 3.20968},
-    {-3.78796, 0, 0},
-    {-2.63141, 0, 0},
-    {-3.31579, 0.522947, 2.03495},
-    {-5.36589, -0.0939789, 1.02771},
-    {-3.72278, 0, 0},
-    {-2.11074, 0, 0},
-    {-3.47874, 0.532042, 0.778358},
-    {-5.32194, -0.0864, 0.322863},
-    {-4.06232, 0, 0},
-    {-2.54653, 0, 0},
-    {-3.46131, 0.553263, -0.132632},
-    {-4.76716, -0.0227368, -0.492632},
-    {-3.54073, 0, 0},
-    {-2.45634, 0, 0},
-    {-3.25137, 0.482779, -1.23613},
-    {-4.25937, -0.0227368, -1.12168},
-    {-2.83528, 0, 0},
-    {-1.79166, 0, 0},
-    {3.25624, 7.13148, -0.131575},
-    {13.149, -0.052598, -0.125076},
-    {27.2903, 0.00282644, -0.0181535},
-    {26.6602, 0.000969969, -0.0487599},
-    {2.56017, 0.195537, 3.20968},
-    {3.78796, 0, 0},
-    {2.63141, 0, 0},
-    {3.31579, 0.522947, 2.03495},
-    {5.36589, -0.0939789, 1.02771},
-    {3.72278, 0, 0},
-    {2.11074, 0, 0},
-    {3.47874, 0.532042, 0.778358},
-    {5.32194, -0.0864, 0.322863},
-    {4.06232, 0, 0},
-    {2.54653, 0, 0},
-    {3.46131, 0.553263, -0.132632},
-    {4.76716, -0.0227368, -0.492632},
-    {3.54073, 0, 0},
-    {2.45634, 0, 0},
-    {3.25137, 0.482779, -1.23613},
-    {4.25937, -0.0227368, -1.12168},
-    {2.83528, 0, 0},
-    {1.79166, 0, 0}
-};
-
 static controller::StandardPoseChannel neuronJointIndexToPoseIndex(NeuronJointIndex i) {
     assert(i >= 0 && i < NeuronJointIndex::Size);
     if (i >= 0 && i < NeuronJointIndex::Size) {
@@ -307,15 +242,12 @@ static const char* controllerJointName(controller::StandardPoseChannel i) {
 
 // convert between YXZ neuron euler angles in degrees to quaternion
 // this is the default setting in the Axis Neuron server.
-static quat eulerToQuat(vec3 euler) {
+static quat eulerToQuat(const vec3& e) {
     // euler.x and euler.y are swaped, WTF.
-    glm::vec3 e = glm::vec3(euler.y, euler.x, euler.z) * RADIANS_PER_DEGREE;
-    return (glm::angleAxis(e.y, Vectors::UNIT_Y) *
-            glm::angleAxis(e.x, Vectors::UNIT_X) *
-            glm::angleAxis(e.z, Vectors::UNIT_Z));
+    return (glm::angleAxis(e.x * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
+            glm::angleAxis(e.y * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
+            glm::angleAxis(e.z * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
 }
-
-#ifdef HAVE_NEURON
 
 //
 // neuronDataReader SDK callback functions
@@ -355,21 +287,6 @@ void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx
 
             // copy the data
             memcpy(&(neuronPlugin->_joints[0]), data, sizeof(NeuronPlugin::NeuronJoint) * NUM_JOINTS);
-
-        } else {
-            qCWarning(inputplugins) << "NeuronPlugin: unsuported binary format, please enable displacements";
-
-            // enter mutex
-            std::lock_guard<std::mutex> guard(neuronPlugin->_jointsMutex);
-
-            if (neuronPlugin->_joints.size() != NeuronJointIndex::Size) {
-                neuronPlugin->_joints.resize(NeuronJointIndex::Size, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
-            }
-
-            for (int i = 0; i < NeuronJointIndex::Size; i++) {
-                neuronPlugin->_joints[i].euler = glm::vec3();
-                neuronPlugin->_joints[i].pos = neuronJointTranslations[i];
-            }
         }
     } else {
         static bool ONCE = false;
@@ -435,26 +352,19 @@ static void SocketStatusChangedCallback(void* context, SOCKET_REF sender, Socket
     qCDebug(inputplugins) << "NeuronPlugin: socket status = " << message;
 }
 
-#endif  // #ifdef HAVE_NEURON
-
 //
 // NeuronPlugin
 //
 
 bool NeuronPlugin::isSupported() const {
-#ifdef HAVE_NEURON
     // Because it's a client/server network architecture, we can't tell
     // if the neuron is actually connected until we connect to the server.
     return true;
-#else
-    return false;
-#endif
 }
 
 bool NeuronPlugin::activate() {
     InputPlugin::activate();
 
-#ifdef HAVE_NEURON
     // register with userInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -477,16 +387,14 @@ bool NeuronPlugin::activate() {
     } else {
         qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
 
+        emit deviceConnected(getName());
+
         BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
         return true;
     }
-#else
-    return false;
-#endif
 }
 
 void NeuronPlugin::deactivate() {
-#ifdef HAVE_NEURON
     // unregister from userInputMapper
     if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -499,10 +407,9 @@ void NeuronPlugin::deactivate() {
     }
 
     InputPlugin::deactivate();
-#endif
 }
 
-void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     std::vector<NeuronJoint> joints;
     {
         // lock and copy
@@ -548,16 +455,23 @@ QString NeuronPlugin::InputDevice::getDefaultMappingConfig() const {
 
 void NeuronPlugin::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
     for (size_t i = 0; i < joints.size(); i++) {
+        int poseIndex = neuronJointIndexToPoseIndex((NeuronJointIndex)i);
         glm::vec3 linearVel, angularVel;
-        glm::vec3 pos = joints[i].pos;
-        glm::quat rot = eulerToQuat(joints[i].euler);
+        const glm::vec3& pos = joints[i].pos;
+        const glm::vec3& rotEuler = joints[i].euler;
+
+        if (Vectors::ZERO == pos && Vectors::ZERO == rotEuler) {
+            _poseStateMap[poseIndex] = controller::Pose();
+            continue;
+        }
+
+        glm::quat rot = eulerToQuat(rotEuler);
         if (i < prevJoints.size()) {
             linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
             // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
             glm::quat d = glm::log(rot * glm::inverse(eulerToQuat(prevJoints[i].euler)));
             angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
-        int poseIndex = neuronJointIndexToPoseIndex((NeuronJointIndex)i);
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
     }
 

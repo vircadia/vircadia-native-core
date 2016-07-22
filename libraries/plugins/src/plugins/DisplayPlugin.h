@@ -16,16 +16,18 @@
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
 #include <QtCore/QElapsedTimer>
-class QImage;
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
+#include <shared/Bilateral.h>
 
 #include "Plugin.h"
 
+class QImage;
+
 enum Eye {
-    Left,
-    Right
+    Left = (int)bilateral::Side::Left,
+    Right = (int)bilateral::Side::Right
 };
 
 /*
@@ -56,7 +58,73 @@ namespace gpu {
     using TexturePointer = std::shared_ptr<Texture>;
 }
 
-class DisplayPlugin : public Plugin {
+// Stereo display functionality
+// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when 
+// displayPlugin->isStereo returns true
+class StereoDisplay {
+public:
+    // Stereo specific methods
+    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
+    virtual glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
+    virtual float getIPD() const { return AVERAGE_HUMAN_IPD; }
+};
+
+// HMD display functionality
+// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when 
+// displayPlugin->isHmd returns true
+class HmdDisplay : public StereoDisplay {
+public:
+    // HMD specific methods
+    // TODO move these into another class?
+    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
+        static const glm::mat4 transform; return transform;
+    }
+
+    // returns a copy of the most recent head pose, computed via updateHeadPose
+    virtual glm::mat4 getHeadPose() const {
+        return glm::mat4();
+    }
+
+    // Needed for timewarp style features
+    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
+        // NOOP
+    }
+
+    virtual void abandonCalibration() {}
+
+    virtual void resetSensors() {}
+
+    enum Hand {
+        LeftHand = 0x01,
+        RightHand = 0x02,
+    };
+
+    enum class HandLaserMode {
+        None, // Render no hand lasers
+        Overlay, // Render hand lasers only if they intersect with the UI layer, and stop at the UI layer
+    };
+
+    virtual bool setHandLaser(
+        uint32_t hands, // Bits from the Hand enum
+        HandLaserMode mode, // Mode in which to render
+        const vec4& color = vec4(1), // The color of the rendered laser
+        const vec3& direction = vec3(0, 0, -1) // The direction in which to render the hand lasers
+        ) {
+        return false;
+    }
+
+    virtual bool suppressKeyboard() { return false;  }
+    virtual void unsuppressKeyboard() {};
+    virtual bool isKeyboardVisible() { return false; }
+};
+
+class DisplayPlugin : public Plugin, public HmdDisplay {
     Q_OBJECT
     using Parent = Plugin;
 public:
@@ -64,8 +132,6 @@ public:
         Present = QEvent::User + 1
     };
 
-    bool activate() override;
-    void deactivate() override;
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
     /// By default, all HMDs are stereo
@@ -117,42 +183,12 @@ public:
         return QRect(0, 0, recommendedSize.x, recommendedSize.y);
     }
 
-    // Stereo specific methods
-    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
-        return baseProjection;
-    }
-
-    virtual glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const {
-        return baseProjection;
-    }
-
-
     // Fetch the most recently displayed image as a QImage
     virtual QImage getScreenshot() const = 0;
 
-    // HMD specific methods
-    // TODO move these into another class?
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
-        static const glm::mat4 transform; return transform;
-    }
-
     // will query the underlying hmd api to compute the most recent head pose
-    virtual void beginFrameRender(uint32_t frameIndex) {}
+    virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
 
-    // returns a copy of the most recent head pose, computed via updateHeadPose
-    virtual glm::mat4 getHeadPose() const {
-        return glm::mat4();
-    }
-
-    // Needed for timewarp style features
-    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
-        // NOOP
-    }
-
-    virtual float getIPD() const { return AVERAGE_HUMAN_IPD; }
-
-    virtual void abandonCalibration() {}
-    virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
@@ -160,6 +196,7 @@ public:
     virtual float newFramePresentRate() const { return -1.0f; }
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
+
     uint32_t presentCount() const { return _presentedFrameIndex; }
     // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)
     int64_t getPaintDelayUsecs() const;
@@ -167,6 +204,7 @@ public:
     virtual void cycleDebugOutput() {}
 
     static const QString& MENU_PATH();
+
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);

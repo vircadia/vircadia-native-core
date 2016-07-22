@@ -118,11 +118,12 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             }
 
             bool visible = !properties.contains(VISIBILE_PROPERTY) || properties[VISIBILE_PROPERTY].toBool();
-            object->setProperty(VISIBILE_PROPERTY, visible);
+            object->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
             object->setProperty(SOURCE_PROPERTY, _source);
 
             // Forward messages received from QML on to the script
             connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(visibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
         });
     }
     Q_ASSERT(_qmlWindow);
@@ -163,8 +164,7 @@ void QmlWindowClass::setVisible(bool visible) {
         QMetaObject::invokeMethod(targetWindow, "showTabForUrl", Qt::QueuedConnection, Q_ARG(QVariant, _source), Q_ARG(QVariant, visible));
     } else {
         DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-            targetWindow->setVisible(visible);
-            //emit visibilityChanged(visible);
+            targetWindow->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
         });
     }
 }

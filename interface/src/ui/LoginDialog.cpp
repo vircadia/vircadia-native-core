@@ -24,14 +24,15 @@ HIFI_QML_DEF(LoginDialog)
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent),
     _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString())
 {
-    connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
-    connect(&AccountManager::getInstance(), &AccountManager::loginFailed,
+    connect(accountManager.data(), &AccountManager::loginFailed,
         this, &LoginDialog::handleLoginFailed);
 }
 
 void LoginDialog::toggleAction() {
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
     Q_CHECK_PTR(loginAction);
     static QMetaObject::Connection connection;
@@ -39,10 +40,10 @@ void LoginDialog::toggleAction() {
         disconnect(connection);
     }
 
-    if (accountManager.isLoggedIn()) {
+    if (accountManager->isLoggedIn()) {
         // change the menu item to logout
-        loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
-        connection = connect(loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+        loginAction->setText("Logout " + accountManager->getAccountInfo().getUsername());
+        connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
         loginAction->setText("Login");
@@ -78,7 +79,7 @@ QString LoginDialog::rootUrl() const {
 void LoginDialog::login(const QString& username, const QString& password) {
     qDebug() << "Attempting to login " << username;
     setStatusText("Logging in...");
-    AccountManager::getInstance().requestAccessToken(username, password);
+    DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
 void LoginDialog::openUrl(const QString& url) {

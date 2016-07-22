@@ -5,6 +5,15 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtOpenGL/QGL>
 #include <QOpenGLContext>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QProcessEnvironment>
+#ifdef DEBUG
+static bool enableDebug = true;
+#else
+static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
+static bool enableDebug = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
@@ -14,9 +23,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
         setGLFormatVersion(format);
-#ifdef DEBUG
-        format.setOption(QSurfaceFormat::DebugContext);
-#endif
+        if (enableDebug) {
+            format.setOption(QSurfaceFormat::DebugContext);
+        }
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         QSurfaceFormat::setDefaultFormat(format);
     });
@@ -37,6 +46,13 @@ const QGLFormat& getDefaultGLFormat() {
         QGLFormat::setDefaultFormat(glFormat);
     });
     return glFormat;
+}
+
+int glVersionToInteger(QString glVersion) {
+    QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
+    int majorNumber = versionParts[0].toInt();
+    int minorNumber = versionParts[1].toInt();
+    return majorNumber * 100 + minorNumber * 10;
 }
 
 QJsonObject getGLContextData() {

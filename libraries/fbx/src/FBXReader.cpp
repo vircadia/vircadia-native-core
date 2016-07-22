@@ -39,7 +39,7 @@
 
 using namespace std;
 
-static int FBXGeometryPointerMetaTypeId = qRegisterMetaType<FBXGeometry::Pointer>();
+int FBXGeometryPointerMetaTypeId = qRegisterMetaType<FBXGeometry::Pointer>();
 
 QStringList FBXGeometry::getJointNames() const {
     QStringList names;
@@ -130,9 +130,9 @@ QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
     return QString();
 }
 
-static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
-static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
-static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
+int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
+int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
 
 glm::vec3 parseVec3(const QString& string) {
@@ -462,7 +462,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QVector<ExtractedBlendshape> blendshapes;
 
     QHash<QString, FBXModel> models;
-    QHash<QString, Cluster> clusters;
+    QHash<QString, Cluster> clusters; 
     QHash<QString, AnimationCurve> animationCurves;
 
     QHash<QString, QString> typeFlags;
@@ -759,7 +759,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);
                     model.preRotation = glm::quat(glm::radians(preRotation));
                     model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::quat(glm::radians(postRotation));
+                    model.postRotation = glm::inverse(glm::quat(glm::radians(postRotation)));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees
@@ -927,6 +927,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                         //  material.emissiveColor = getVec3(property.properties, index);
                                         //  material.emissiveFactor = 1.0;
 
+                                    } else if (property.properties.at(0) == "AmbientFactor") {
+                                        material.ambientFactor = property.properties.at(index).value<double>();
+                                        // Detected just for BLender AO vs lightmap
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
 
@@ -1128,8 +1131,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_emissive_map")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (type.contains("ambient")) {
+                        } else if (type.contains("ambientcolor")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("ambientfactor")) {
+                            ambientFactorTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_ao_map")) {
                             occlusionTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type == "lcl rotation") {
@@ -1361,7 +1366,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     geometry.meshExtents.reset();
 
     // Create the Material Library
-    consolidateFBXMaterials();
+    consolidateFBXMaterials(mapping);
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children

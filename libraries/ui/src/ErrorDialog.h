@@ -30,7 +30,6 @@ public:
     QString text() const;
 
 public slots:
-    virtual void setVisible(bool v);
     void setText(const QString& arg);
 
 signals:

@@ -57,30 +57,7 @@ if (WIN32)
 
 elseif(APPLE)
 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/lib/osx_x64/debug_dll/libsixensed_x64.dylib CACHE TYPE INTERNAL)
-  
-    set(_SIXENSE_LIB_DIR "${SOURCE_DIR}/lib/osx_x64")
-    ExternalProject_Add_Step(
-      ${EXTERNAL_NAME}
-      change-install-name-release
-      COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
-      COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_SIXENSE_LIB_DIR}/release_dll -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
-      DEPENDEES install
-      WORKING_DIRECTORY <SOURCE_DIR>
-      LOG 1
-    )
-
-    set(_SIXENSE_LIB_DIR "${SOURCE_DIR}/lib/osx_x64")
-    ExternalProject_Add_Step(
-      ${EXTERNAL_NAME}
-      change-install-name-debug
-      COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
-      COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_SIXENSE_LIB_DIR}/debug_dll -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
-      DEPENDEES install
-      WORKING_DIRECTORY <SOURCE_DIR>
-      LOG 1
-    )
+    # We no longer support Sixense on Macs due to bugs in the Sixense DLL
     
 elseif(NOT ANDROID)
 

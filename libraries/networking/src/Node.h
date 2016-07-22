@@ -21,19 +21,24 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <UUIDHasher.h>
+
+#include <tbb/concurrent_unordered_set.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
+#include "NodePermissions.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         bool isAllowedEditor, bool canRez, const QUuid& connectionSecret = QUuid(),
+         const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -58,11 +63,16 @@ public:
     void updateClockSkewUsec(qint64 clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    void setIsAllowedEditor(bool isAllowedEditor) { _isAllowedEditor = isAllowedEditor; }
-    bool isAllowedEditor() { return _isAllowedEditor; }
+    void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
+    NodePermissions getPermissions() const { return _permissions; }
+    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
+    bool getCanRez() const { return _permissions.canRezPermanentEntities; }
+    bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
+    bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
 
-    void setCanRez(bool canRez) { _canRez = canRez; }
-    bool getCanRez() { return _canRez; }
+    void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
+    void addIgnoredNode(const QUuid& otherNodeID);
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const { return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
@@ -81,8 +91,8 @@ private:
     qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
-    bool _isAllowedEditor;
-    bool _canRez;
+    NodePermissions _permissions;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
 };
 
 Q_DECLARE_METATYPE(Node*)

@@ -28,7 +28,6 @@ class SixenseManager : public InputPlugin {
 public:
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual bool isJointController() const override { return true; }
     virtual const QString& getName() const override { return NAME; }
     virtual const QString& getID() const override { return HYDRA_ID_STRING; }
 
@@ -36,7 +35,7 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -61,7 +60,7 @@ private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 
         void handleButtonEvent(unsigned int buttons, bool left);

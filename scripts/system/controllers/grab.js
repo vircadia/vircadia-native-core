@@ -316,7 +316,12 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
+    if (event.isLeftButton !== true || event.isRightButton === true || event.isMiddleButton === true) {
+        return;
+    }
+
+    if (Overlays.getOverlayAtPoint(Reticle.position) > 0) {
+        // the mouse is pointing at an overlay; don't look for entities underneath the overlay.
         return;
     }
 

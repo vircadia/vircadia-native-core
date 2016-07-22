@@ -22,7 +22,7 @@ macro(optional_win_executable_signing)
         # setup a post build command to sign the executable
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND ${SIGNTOOL_EXECUTABLE} sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 ${EXECUTABLE_PATH}
+          COMMAND ${SIGNTOOL_EXECUTABLE} sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 ${EXECUTABLE_PATH}
         )
       else ()
         message(FATAL_ERROR "HF_PFX_PASSPHRASE must be set for executables to be signed.")

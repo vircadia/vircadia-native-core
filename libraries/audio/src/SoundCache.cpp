@@ -14,7 +14,7 @@
 #include "AudioLogging.h"
 #include "SoundCache.h"
 
-static int soundPointerMetaTypeId = qRegisterMetaType<SharedSoundPointer>();
+int soundPointerMetaTypeId = qRegisterMetaType<SharedSoundPointer>();
 
 SoundCache::SoundCache(QObject* parent) :
     ResourceCache(parent)

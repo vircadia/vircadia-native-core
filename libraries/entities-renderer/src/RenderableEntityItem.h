@@ -26,6 +26,7 @@ enum class RenderItemStatusIcon {
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
     OTHER_SIMULATION_OWNER = 5,
+    CLIENT_ONLY = 6,
     NONE = 255
 };
 

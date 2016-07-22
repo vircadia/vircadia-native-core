@@ -110,8 +110,10 @@ public:
 
     static Pointer createVertex(const Source& source);
     static Pointer createPixel(const Source& source);
+    static Pointer createGeometry(const Source& source);
 
     static Pointer createProgram(const Pointer& vertexShader, const Pointer& pixelShader);
+    static Pointer createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
 
 
     ~Shader();
@@ -119,6 +121,9 @@ public:
     Type getType() const { return _type; }
     bool isProgram() const { return getType() > NUM_DOMAINS; }
     bool isDomain() const { return getType() < NUM_DOMAINS; }
+
+    void setCompilationHasFailed(bool compilationHasFailed) { _compilationHasFailed = compilationHasFailed; }
+    bool compilationHasFailed() const { return _compilationHasFailed; }
 
     const Source& getSource() const { return _source; }
 
@@ -160,6 +165,7 @@ public:
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, const Pointer& vertex, const Pointer& pixel);
+    Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
 
     Shader(const Shader& shader); // deep copy of the sysmem shader
     Shader& operator=(const Shader& shader); // deep copy of the sysmem texture
@@ -180,6 +186,9 @@ protected:
 
     // The type of the shader, the master key
     Type _type;
+
+    // Whether or not the shader compilation failed
+    bool _compilationHasFailed { false };
 };
 
 typedef Shader::Pointer ShaderPointer;

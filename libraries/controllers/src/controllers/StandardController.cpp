@@ -22,12 +22,6 @@ StandardController::StandardController() : InputDevice("Standard") {
     _deviceID = UserInputMapper::STANDARD_DEVICE; 
 }
 
-StandardController::~StandardController() {
-}
-
-void StandardController::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
-}
-
 void StandardController::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
@@ -71,6 +65,8 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         // Triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
+        makePair(LT_CLICK, "LTClick"),
+        makePair(RT_CLICK, "RTClick"),
 
         // Finger abstractions
         makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),

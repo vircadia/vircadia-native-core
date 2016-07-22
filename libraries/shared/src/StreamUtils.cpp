@@ -23,7 +23,7 @@ void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {
     while (i < buffer.size()) {
         for(int j = 0; i < buffer.size() && j < row_size; ++j) {
             char byte = buffer[i];
-            s << hex_digits[(byte >> 4) & 0x0f] << hex_digits[byte & 0x0f] << " ";
+            s << hex_digits[(byte >> 4) & 0x0f] << hex_digits[byte & 0x0f] << ' ';
             ++i;
         }
         s << "\n";
@@ -31,21 +31,21 @@ void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {
 }
 
 std::ostream& operator<<(std::ostream& s, const glm::vec3& v) {
-    s << "<" << v.x << " " << v.y << " " << v.z << ">";
+    s << '(' << v.x << ' ' << v.y << ' ' << v.z << ')';
     return s;
 }
 
 std::ostream& operator<<(std::ostream& s, const glm::quat& q) {
-    s << "<" << q.x << " " << q.y << " " << q.z << " " << q.w << ">";
+    s << '(' << q.x << ' ' << q.y << ' ' << q.z << ' ' << q.w << ')';
     return s;
 }
 
 std::ostream& operator<<(std::ostream& s, const glm::mat4& m) {
-    s << "[";
+    s << '[';
     for (int j = 0; j < 4; ++j) {
-        s << " " << m[0][j] << " " << m[1][j] << " " << m[2][j] << " " << m[3][j] << ";";
+        s << ' ' << m[0][j] << ' ' << m[1][j] << ' ' << m[2][j] << ' ' << m[3][j] << ';';
     }
-    s << "  ]";
+    s << " ]";
     return s;
 }
 
@@ -69,54 +69,37 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
 #include <QDebug>
 
 QDebug& operator<<(QDebug& dbg, const glm::vec2& v) {
-    dbg.nospace() << "{type='glm::vec2'"
-        ", x=" << v.x <<
-        ", y=" << v.y <<
-        "}";
+    dbg.nospace() << '(' << v.x << ", " << v.y << ')';
     return dbg;
 }
 
 QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
-    dbg.nospace() << "{type='glm::vec3'"
-        ", x=" << v.x <<
-        ", y=" << v.y <<
-        ", z=" << v.z <<
-        "}";
+    dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ')';
     return dbg;
 }
 
 QDebug& operator<<(QDebug& dbg, const glm::vec4& v) {
-    dbg.nospace() << "{type='glm::vec4'"
-        ", x=" << v.x <<
-        ", y=" << v.y <<
-        ", z=" << v.z <<
-        ", w=" << v.w <<
-        "}";
+    dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ')';
     return dbg;
 }
 
 QDebug& operator<<(QDebug& dbg, const glm::quat& q) {
-    dbg.nospace() << "{type='glm::quat'"
-        ", x=" << q.x <<
-        ", y=" << q.y <<
-        ", z=" << q.z <<
-        ", w=" << q.w <<
-        "}";
+    dbg.nospace() << '(' << q.x << ", " << q.y << ", " << q.z << ", " << q.w << ')';
     return dbg;
 }
 
 QDebug& operator<<(QDebug& dbg, const glm::mat4& m) {
-    dbg.nospace() << "{type='glm::mat4', [";
+    dbg.nospace() << '[';
     for (int j = 0; j < 4; ++j) {
         dbg << ' ' << m[0][j] << ' ' << m[1][j] << ' ' << m[2][j] << ' ' << m[3][j] << ';';
     }
-    return dbg << " ]}";
+    return dbg << " ]";
 }
 
 QDebug& operator<<(QDebug& dbg, const QVariantHash& v) {
-    dbg.nospace() << "[";
+    dbg.nospace() << "[ ";
     for (QVariantHash::const_iterator it = v.constBegin(); it != v.constEnd(); it++) {
-        dbg << it.key() << ":" << it.value();
+        dbg << it.key() << ':' << it.value();
     }
     return dbg << " ]";
 }

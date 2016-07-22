@@ -217,6 +217,20 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
     }
 
+    // Scattering map
+    if (materialKey.isScatteringMap()) {
+        auto scatteringMap = textureMaps[model::MaterialKey::SCATTERING_MAP];
+        if (scatteringMap && scatteringMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, scatteringMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
+    }
+
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
@@ -310,7 +324,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
     _shapeID(shapeIndex) {
 
     assert(_model && _model->isLoaded());
-    auto& modelMesh = _model->getGeometry()->getGeometry()->getMeshes().at(_meshIndex);
+    auto& modelMesh = _model->getGeometry()->getMeshes().at(_meshIndex);
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -331,7 +345,7 @@ void ModelMeshPartPayload::initCache() {
         _isBlendShaped = !mesh.blendshapes.isEmpty();
     }
 
-    auto networkMaterial = _model->getGeometry()->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = _model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         _drawMaterial = networkMaterial;
     };
@@ -384,7 +398,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
     assert(_model->isLoaded());
     const FBXGeometry& geometry = _model->getFBXGeometry();
-    const auto& networkMeshes = _model->getGeometry()->getGeometry()->getMeshes();
+    const auto& networkMeshes = _model->getGeometry()->getMeshes();
 
     // guard against partially loaded meshes
     if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size()) {

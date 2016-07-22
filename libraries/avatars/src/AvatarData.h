@@ -53,6 +53,7 @@ typedef unsigned long long quint64;
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
+#include <Packed.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -61,6 +62,8 @@ typedef unsigned long long quint64;
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
+using AvatarEntityMap = QMap<QUuid, QByteArray>;
+using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
@@ -134,6 +137,10 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -165,6 +172,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
+
     static const QString FRAME_NAME;
 
     static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
@@ -272,6 +280,9 @@ public:
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -280,7 +291,19 @@ public:
 
     const HeadData* getHeadData() const { return _headData; }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& data);
+    struct Identity {
+        QUuid uuid;
+        QUrl skeletonModelURL;
+        QVector<AttachmentData> attachmentData;
+        QString displayName;
+        AvatarEntityMap avatarEntityData;
+    };
+
+    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
+
+    // returns true if identity has changed, false otherwise.
+    bool processAvatarIdentity(const Identity& identity);
+
     QByteArray identityByteArray();
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
@@ -322,6 +345,11 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
+
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
 public slots:
     void sendAvatarDataPacket();
@@ -389,6 +417,12 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
+
+    mutable ReadWriteLockable _avatarEntitiesLock;
+    AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityMap _avatarEntityData;
+    bool _avatarEntityDataLocallyEdited { false };
+    bool _avatarEntityDataChanged { false };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -460,5 +494,20 @@ public:
 };
 
 void registerAvatarTypes(QScriptEngine* engine);
+
+class RayToAvatarIntersectionResult {
+public:
+RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
+    bool intersects;
+    QUuid avatarID;
+    float distance;
+    glm::vec3 intersection;
+};
+
+Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
+
+QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
+void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
 
 #endif // hifi_AvatarData_h

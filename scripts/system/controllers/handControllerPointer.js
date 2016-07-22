@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print */
+/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print*/
 
 //
 //  handControllerPointer.js
@@ -14,22 +14,16 @@
 //
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
-// For now:
-// Hydra thumb button 3 is left-mouse, button 4 is right-mouse.
-// A click in the center of the vive thumb pad is left mouse. Vive menu button is context menu (right mouse).
 // First-person only.
 // Starts right handed, but switches to whichever is free: Whichever hand was NOT most recently squeezed.
 //   (For now, the thumb buttons on both controllers are always on.)
-// When over a HUD element, the reticle is shown where the active hand controller beam intersects the HUD.
-// Otherwise, the active hand controller shows a red ball where a click will act.
-//
-// Bugs:
-// On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
-// While hardware mouse move switches to mouse move, hardware mouse click (without amove) does not.
+// When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
+// controller beam intersects the HUD.
 
 
 // UTILITIES -------------
 //
+function ignore() { }
 
 // Utility to make it easier to setup and disconnect cleanly.
 function setupHandler(event, handler) {
@@ -38,6 +32,7 @@ function setupHandler(event, handler) {
         event.disconnect(handler);
     });
 }
+
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
     var last = 0;
@@ -48,23 +43,64 @@ function TimeLock(expiration) {
         return ((optionalNow || Date.now()) - last) > expiration;
     };
 }
+
 var handControllerLockOut = new TimeLock(2000);
 
-// Calls onFunction() or offFunction() when swtich(on), but only if it is to a new value.
-function LatchedToggle(onFunction, offFunction, state) {
-    this.getState = function () {
-        return state;
+function Trigger(label) {
+    // This part is copied and adapted from handControllerGrab.js. Maybe we should refactor this.
+    var that = this;
+    that.label = label;
+    that.TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
+    that.TRIGGER_OFF_VALUE = 0.10;
+    that.TRIGGER_ON_VALUE = that.TRIGGER_OFF_VALUE + 0.05;     //  Squeezed just enough to activate search or near grab
+    that.rawTriggerValue = 0;
+    that.triggerValue = 0;           // rolling average of trigger value
+    that.triggerClicked = false;
+    that.triggerClick = function (value) { that.triggerClicked = value; };
+    that.triggerPress = function (value) { that.rawTriggerValue = value; };
+    that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
+        var triggerValue = that.rawTriggerValue;
+        // smooth out trigger value
+        that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
+            (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
+        OffscreenFlags.navigationFocusDisabled = that.triggerValue != 0.0;
     };
-    this.setState = function (on) {
-        if (state === on) {
-            return;
+    // Current smoothed state, without hysteresis. Answering booleans.
+    that.triggerSmoothedClick = function () {
+        return that.triggerClicked;
+    };
+    that.triggerSmoothedSqueezed = function () {
+        return that.triggerValue > that.TRIGGER_ON_VALUE;
+    };
+    that.triggerSmoothedReleased = function () {
+        return that.triggerValue < that.TRIGGER_OFF_VALUE;
+    };
+
+    // This part is not from handControllerGrab.js
+    that.state = null; // tri-state: falsey, 'partial', 'full'
+    that.update = function () { // update state, called from an update function
+        var state = that.state;
+        that.updateSmoothedTrigger();
+
+        // The first two are independent of previous state:
+        if (that.triggerSmoothedClick()) {
+            state = 'full';
+        } else if (that.triggerSmoothedReleased()) {
+            state = null;
+        } else if (that.triggerSmoothedSqueezed()) {
+            // Another way to do this would be to have hysteresis in this branch, but that seems to make things harder to use.
+            // In particular, the vive has a nice detent as you release off of full, and we want that to be a transition from
+            // full to partial.
+            state = 'partial';
         }
-        state = on;
-        if (on) {
-            onFunction();
-        } else {
-            offFunction();
-        }
+        that.state = state;
+    };
+    // Answer a controller source function (answering either 0.0 or 1.0).
+    that.partial = function () {
+        return that.state ? 1.0 : 0.0; // either 'partial' or 'full'
+    };
+    that.full = function () {
+        return (that.state === 'full') ? 1.0 : 0.0;
     };
 }
 
@@ -84,6 +120,10 @@ function ignoreMouseActivity() {
     if (!Reticle.allowMouseCapture) {
         return true;
     }
+    var pos = Reticle.position;
+    if (pos.x == -1 && pos.y == -1) {
+        return true;
+    }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
     if (!weMovedReticle) {
         return false;
@@ -91,8 +131,17 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
+var MARGIN = 25;
+var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
+function updateRecommendedArea() {
+    var dims = Controller.getViewportDimensions();
+    reticleMaxX = dims.x - MARGIN;
+    reticleMaxY = dims.y - MARGIN;
+}
 var setReticlePosition = function (point2d) {
     weMovedReticle = true;
+    point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
+    point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
     Reticle.setPosition(point2d);
 };
 
@@ -110,9 +159,8 @@ function isPointingAtOverlay(optionalHudPosition2d) {
 }
 
 // Generalized HUD utilities, with or without HMD:
-// These two "vars" are for documentation. Do not change their values!
-var SPHERICAL_HUD_DISTANCE = 1; // meters.
-var PLANAR_PERPENDICULAR_HUD_DISTANCE = SPHERICAL_HUD_DISTANCE;
+// This "var" is for documentation. Do not change the value!
+var PLANAR_PERPENDICULAR_HUD_DISTANCE = 1;
 function calculateRayUICollisionPoint(position, direction) {
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
@@ -154,6 +202,32 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
+    var controllerPose = Controller.getPoseValue(activeHand);
+    // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
+    if (!controllerPose.valid) {
+        return; // Controller is cradled.
+    }
+    var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
+                                      MyAvatar.position);
+    // This gets point direction right, but if you want general quaternion it would be more complicated:
+    var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
+
+    var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
+    if (!hudPoint3d) {
+        if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
+            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+        }
+        return;
+    }
+    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+
+    // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
+    // it's pointing at a QML tool (aka system overlay).
+    setReticlePosition(hudPoint2d);
+    return hudPoint2d;
+}
+
 // MOUSE ACTIVITY --------
 //
 var isSeeking = false;
@@ -175,20 +249,24 @@ function isShakingMouse() { // True if the person is waving the mouse around try
     return isShaking;
 }
 var NON_LINEAR_DIVISOR = 2;
-var MINIMUM_SEEK_DISTANCE = 0.01;
-function updateSeeking() {
-    if (!Reticle.visible || isShakingMouse()) {
-        isSeeking = true;
+var MINIMUM_SEEK_DISTANCE = 0.1;
+function updateSeeking(doNotStartSeeking) {
+    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
+        if (!isSeeking) {
+            print('Start seeking mouse.');
+            isSeeking = true;
+        }
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
     }
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
-    if (!lookAt2D) {
+    if (!lookAt2D) { // If this happens, something has gone terribly wrong.
         print('Cannot seek without lookAt position');
-        return;
-    } // E.g., if parallel to location in HUD
+        isSeeking = false;
+        return; // E.g., if parallel to location in HUD
+    }
     var copy = Reticle.position;
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
@@ -201,6 +279,7 @@ function updateSeeking() {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
+        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
@@ -226,6 +305,11 @@ function expireMouseCursor(now) {
         Reticle.visible = false;
     }
 }
+function hudReticleDistance() { // 3d distance from camera to the reticle position on hud
+    // (The camera is only in the center of the sphere on reset.)
+    var reticlePositionOnHUD = HMD.worldPointFromOverlay(Reticle.position);
+    return Vec3.distance(reticlePositionOnHUD, HMD.position);
+}
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
     if (ignoreMouseActivity()) {
@@ -235,11 +319,10 @@ function onMouseMove() {
     if (HMD.active) { // set depth
         updateSeeking();
         if (isPointingAtOverlay()) {
-            Reticle.setDepth(SPHERICAL_HUD_DISTANCE); // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
+            Reticle.depth = hudReticleDistance();
         } else {
             var result = findRayIntersection(Camera.computePickRay(Reticle.position.x, Reticle.position.y));
-            var depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
-            Reticle.setDepth(depth);
+            Reticle.depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
         }
     }
     updateMouseActivity(); // After the above, just in case the depth movement is awkward when becoming visible.
@@ -254,206 +337,175 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 // CONTROLLER MAPPING ---------
 //
 
+var leftTrigger = new Trigger('left');
+var rightTrigger = new Trigger('right');
+var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
-function toggleHand() {
+var LEFT_HUD_LASER = 1;
+var RIGHT_HUD_LASER = 2;
+var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
+var activeHudLaser = RIGHT_HUD_LASER;
+function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
+        activeTrigger = leftTrigger;
+        activeHudLaser = LEFT_HUD_LASER;
     } else {
         activeHand = Controller.Standard.RightHand;
+        activeTrigger = rightTrigger;
+        activeHudLaser = RIGHT_HUD_LASER;
     }
+    clearSystemLaser();
+}
+function makeToggleAction(hand) { // return a function(0|1) that makes the specified hand control mouse when 1
+    return function (on) {
+        if (on && (activeHand !== hand)) {
+            toggleHand();
+        }
+    };
 }
 
-// Create clickMappings as needed, on demand.
-var clickMappings = {}, clickMapping, clickMapToggle;
-var hardware; // undefined
-function checkHardware() {
-    var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive' : null); // not undefined
-    if (hardware === newHardware) {
-        return;
-    }
-    print('Setting mapping for new controller hardware:', newHardware);
-    if (clickMapToggle) {
-        clickMapToggle.setState(false);
-    }
-    hardware = newHardware;
-    if (clickMappings[hardware]) {
-        clickMapping = clickMappings[hardware];
-    } else {
-        clickMapping = Controller.newMapping(Script.resolvePath('') + '-click-' + hardware);
-        Script.scriptEnding.connect(clickMapping.disable);
-        function mapToAction(button, action) {
-            clickMapping.from(Controller.Hardware[hardware][button]).peek().to(Controller.Actions[action]);
-        }
-        function makeHandToggle(button, hand, optionalWhen) {
-            var whenThunk = optionalWhen || function () {
-                return true;
-            };
-            function maybeToggle() {
-                if (activeHand !== Controller.Standard[hand]) {
-                    toggleHand();
-                }
+var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+Script.scriptEnding.connect(clickMapping.disable);
 
-            }
-            clickMapping.from(Controller.Hardware[hardware][button]).peek().when(whenThunk).to(maybeToggle);
+// Gather the trigger data for smoothing.
+clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
+clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
+clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
+clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
+// Full smoothed trigger is a click.
+function isPointingAtOverlayStartedNonFullTrigger(trigger) {
+    // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
+    // The idea is to not count clicks when we're full-triggering and reach the edge of a window.
+    var lockedIn = false;
+    return function () {
+        if (trigger !== activeTrigger) {
+            return lockedIn = false;
         }
-        function makeViveWhen(click, x, y) {
-            var viveClick = Controller.Hardware.Vive[click],
-                viveX = Controller.Standard[x],  // Standard after filtering by mapping
-                viveY = Controller.Standard[y];
-            return function () {
-                var clickValue = Controller.getValue(viveClick);
-                var xValue = Controller.getValue(viveX);
-                var yValue = Controller.getValue(viveY);
-                return clickValue && !xValue && !yValue;
-            };
+        if (!isPointingAtOverlay()) {
+            return lockedIn = false;
         }
-        switch (hardware) {
-            case 'Hydra':
-                makeHandToggle('R3', 'RightHand');
-                makeHandToggle('L3', 'LeftHand');
-
-                mapToAction('R3', 'ReticleClick');
-                mapToAction('L3', 'ReticleClick');
-                mapToAction('R4', 'ContextMenu');
-                mapToAction('L4', 'ContextMenu');
-                break;
-            case 'Vive':
-                // When touchpad click is NOT treated as movement, treat as left click
-                makeHandToggle('RS', 'RightHand', makeViveWhen('RS', 'RX', 'RY'));
-                makeHandToggle('LS', 'LeftHand', makeViveWhen('LS', 'LX', 'LY'));
-                clickMapping.from(Controller.Hardware.Vive.RS).when(makeViveWhen('RS', 'RX', 'RY')).to(Controller.Actions.ReticleClick);
-                clickMapping.from(Controller.Hardware.Vive.LS).when(makeViveWhen('LS', 'LX', 'LY')).to(Controller.Actions.ReticleClick);
-                mapToAction('RightApplicationMenu', 'ContextMenu');
-                mapToAction('LeftApplicationMenu', 'ContextMenu');
-                break;
+        if (lockedIn) {
+            return true;
         }
-        clickMappings[hardware] = clickMapping;
+        lockedIn = !trigger.full();
+        return lockedIn;
     }
-    clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
-    clickMapToggle.setState(true);
 }
-checkHardware();
+clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+// The following is essentially like Left and Right versions of
+// clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+// except that we first update the reticle position from the appropriate hand position, before invoking the ContextMenu.
+var wantsMenu = 0;
+clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
+clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2d(Controller.Standard.RightHand);
+    }
+    wantsMenu = clicked;
+});
+clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2d(Controller.Standard.LeftHand);
+    }
+    wantsMenu = clicked;
+});
+clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
+    // Allow the reticle depth to be set correctly:
+    // Wait a tick for the context menu to be displayed, and then simulate a (non-hand-controller) mouse move
+    // so that the system updates qml state (Reticle.pointingAtSystemOverlay) before it gives us a mouseMove.
+    // We don't want the system code to always do this for us, because, e.g., we do not want to get a mouseMove
+    // after the Left/RightSecondaryThumb gives us a context menu. Only from the mouse.
+    Script.setTimeout(function () {
+        Reticle.setPosition(Reticle.position);
+    }, 0);
+});
+// Partial smoothed trigger is activation.
+clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
+clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
+clickMapping.enable();
 
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
-var BALL_SIZE = 0.011;
-var BALL_ALPHA = 0.5;
-var fakeProjectionBall = Overlays.addOverlay("sphere", {
-    size: 5 * BALL_SIZE,
-    color: {red: 255, green: 10, blue: 10},
-    ignoreRayIntersection: true,
-    alpha: BALL_ALPHA,
-    visible: false,
-    solid: true,
-    drawInFront: true // Even when burried inside of something, show it.
-});
-var overlays = [fakeProjectionBall]; // If we want to try showing multiple balls and lasers.
-Script.scriptEnding.connect(function () {
-    overlays.forEach(Overlays.deleteOverlay);
-});
-var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
-function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
-    if (!optionalEnableClicks) {
-        expireMouseCursor();
-    }
-    if (!visualizationIsShowing) {
+var LASER_ALPHA = 0.5;
+var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: LASER_ALPHA};
+var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER_ALPHA};
+var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
+var systemLaserOn = false;
+function clearSystemLaser() {
+    if (!systemLaserOn) {
         return;
     }
-    visualizationIsShowing = false;
-    overlays.forEach(function (overlay) {
-        Overlays.editOverlay(overlay, {visible: false});
-    });
+    HMD.disableHandLasers(BOTH_HUD_LASERS);
+    systemLaserOn = false;
+    weMovedReticle = true;
+    Reticle.position = { x: -1, y: -1 }; 
 }
-var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
-function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
-    // Show an indication of where the cursor will appear when crossing a HUD element,
-    // and where in-world clicking will occur.
-    //
-    // There are a number of ways we could do this, but for now, it's a blue sphere that rolls along
-    // the HUD surface, and a red sphere that rolls along the 3d objects that will receive the click.
-    // We'll leave it to other scripts (like handControllerGrab) to show a search beam when desired.
-
-    function intersection3d(position, direction) {
-        // Answer in-world intersection (entity or 3d overlay), or way-out point
-        var pickRay = {origin: position, direction: direction};
-        var result = findRayIntersection(pickRay);
-        return result.intersects ? result.intersection : Vec3.sum(position, Vec3.multiply(MAX_RAY_SCALE, direction));
-    }
-
-    visualizationIsShowing = true;
-    // We'd rather in-world interactions be done at the termination of the hand beam
-    // -- intersection3d(controllerPosition, controllerDirection). Maybe have handControllerGrab
-    // direclty manipulate both entity and 3d overlay objects.
-    // For now, though, we present a false projection of the cursor onto whatever is below it. This is
-    // different from the hand beam termination because the false projection is from the camera, while
-    // the hand beam termination is from the hand.
-    var eye = Camera.getPosition();
-    var falseProjection = intersection3d(eye, Vec3.subtract(hudPosition3d, eye));
-    Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
-    Reticle.visible = false;
-
-    return visualizationIsShowing; // In case we change caller to act conditionally.
+function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
+    var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+    return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
 // MAIN OPERATIONS -----------
 //
 function update() {
     var now = Date.now();
+    function off() {
+        expireMouseCursor();
+        clearSystemLaser();
+    }
+    updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
-        return turnOffVisualization();
-    } // Let them use mouse it in peace.
+        return off(); // Let them use mouse in peace.
+    }
     if (!Menu.isOptionChecked("First Person")) {
-        return turnOffVisualization();
-    }  // What to do? menus can be behind hand!
-    if (!Window.hasFocus()) { // Don't mess with other apps
-        return turnOffVisualization();
+        return off(); // What to do? menus can be behind hand!
     }
-    var controllerPose = Controller.getPoseValue(activeHand);
-    // Vive is effectively invalid when not in HMD
-    if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) {
-        return turnOffVisualization();
-    } // Controller is cradled.
-    var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
-                                      MyAvatar.position);
-    // This gets point direction right, but if you want general quaternion it would be more complicated:
-    var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
-
-    var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) {
-        print('Controller is parallel to HUD');
-        return turnOffVisualization();
+    if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
+        return off(); // Don't mess with other apps or paused mouse activity
     }
-    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
-
-    // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
-    // it's pointing at a QML tool (aka system overlay).
-    setReticlePosition(hudPoint2d);
+    leftTrigger.update();
+    rightTrigger.update();
+    if (!activeTrigger.state) {
+        return off(); // No trigger
+    }
+    var hudPoint2d = activeHudPoint2d(activeHand);
+    if (!hudPoint2d) {
+        return off();
+    }
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
-        if (HMD.active) {  // Doesn't hurt anything without the guard, but consider it documentation.
-            Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
+        if (HMD.active) {
+            Reticle.depth = hudReticleDistance();
         }
-        Reticle.visible = true;
-        return turnOffVisualization(true);
+        if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
+            // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
+            systemLaserOn = setColoredLaser();
+            Reticle.visible = !systemLaserOn;
+        } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
+            clearSystemLaser();
+            Reticle.visible = false;
+        }
+        return;
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
-    updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
+    clearSystemLaser();
+    Reticle.visible = false;
 }
-
-var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
-var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () {
-    Script.clearInterval(updater);
-});
+setupHandler(Script.update, update);
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
-    checkHardware();
+    updateRecommendedArea();
 }
 checkSettings();
+
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    OffscreenFlags.navigationFocusDisabled = false;
 });
+

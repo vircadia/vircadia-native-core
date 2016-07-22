@@ -235,7 +235,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
 }
 
 void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         QString assetPath = message.readString();
 
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
@@ -251,7 +251,7 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
 }
 
 void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         int numberOfDeletedMappings { 0 };
         message.readPrimitive(&numberOfDeletedMappings);
 
@@ -272,7 +272,7 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
 }
 
 void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         QString oldPath = message.readString();
         QString newPath = message.readString();
 
@@ -298,7 +298,8 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     message->readPrimitive(&messageID);
     assetHash = message->readWithoutCopy(SHA256_HASH_LENGTH);
 
-    auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
+    auto size = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(AssetServerError) + sizeof(qint64));
+    auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply, size, true);
 
     QByteArray hexHash = assetHash.toHex();
 
@@ -337,7 +338,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
@@ -347,7 +348,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
         // for now this also means it isn't allowed to add assets
         // so return a packet with error that indicates that
 
-        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
+        auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError), true);
 
         MessageID messageID;
         message->readPrimitive(&messageID);

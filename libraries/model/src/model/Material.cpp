@@ -104,6 +104,13 @@ void Material::setMetallic(float metallic) {
     _schemaBuffer.edit<Schema>()._metallic = metallic;
 }
 
+void Material::setScattering(float scattering) {
+    scattering = glm::clamp(scattering, 0.0f, 1.0f);
+    _key.setMetallic(scattering > 0.0f);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+    _schemaBuffer.edit<Schema>()._scattering = scattering;
+}
+
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
@@ -120,6 +127,10 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 
         // update the texcoord0 with albedo
         _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[0] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+    }
+
+    if (channel == MaterialKey::OCCLUSION_MAP) {
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
     if (channel == MaterialKey::LIGHTMAP_MAP) {

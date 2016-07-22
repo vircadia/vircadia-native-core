@@ -28,6 +28,7 @@
 
 #ifdef Q_OS_WIN
 #include "CPUIdent.h"
+#include <Psapi.h>
 #endif
 
 
@@ -842,4 +843,30 @@ void printSystemInformation() {
         qDebug().noquote().nospace() << "\t" <<
             (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
+}
+
+bool getMemoryInfo(MemoryInfo& info) {
+#ifdef Q_OS_WIN
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (!GlobalMemoryStatusEx(&ms)) {
+        return false;
+    }
+
+    info.totalMemoryBytes = ms.ullTotalPhys;
+    info.availMemoryBytes = ms.ullAvailPhys;
+    info.usedMemoryBytes = ms.ullTotalPhys - ms.ullAvailPhys;
+
+
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return false;
+    }
+    info.processUsedMemoryBytes = pmc.PrivateUsage;
+    info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
+
+    return true;
+#endif
+
+    return false;
 }

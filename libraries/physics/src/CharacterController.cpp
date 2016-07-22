@@ -264,6 +264,10 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
+    if (!_flyingAllowed && desiredState == State::Hover) {
+        desiredState = State::InAir;
+    }
+
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
         qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
@@ -397,11 +401,10 @@ glm::vec3 CharacterController::getLinearVelocity() const {
 }
 
 glm::vec3 CharacterController::getVelocityChange() const {
-    glm::vec3 velocity(0.0f);
     if (_rigidBody) {
-        velocity = bulletToGLM(_rigidBody->getLinearVelocity());
+        return bulletToGLM(_velocityChange);
     }
-    return velocity;
+    return glm::vec3(0.0f);
 }
 
 void CharacterController::clearMotors() {
@@ -643,4 +646,14 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
     avatarRigidBodyPosition = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
     avatarRigidBodyRotation = bulletToGLM(worldTrans.getRotation());
     return true;
+}
+
+void CharacterController::setFlyingAllowed(bool value) {
+    if (_flyingAllowed != value) {
+        _flyingAllowed = value;
+
+        if (!_flyingAllowed && _state == State::Hover) {
+            SET_STATE(State::InAir, "flying not allowed");
+        }
+    }
 }

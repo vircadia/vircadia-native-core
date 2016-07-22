@@ -344,6 +344,7 @@ var usersWindow = (function () {
         windowTextHeight,
         windowLineSpacing,
         windowLineHeight, // = windowTextHeight + windowLineSpacing
+        windowMinimumHeight,
 
         usersOnline, // Raw users data
         linesOfUsers = [], // Array of indexes pointing into usersOnline
@@ -359,25 +360,29 @@ var usersWindow = (function () {
         usersTimer = null,
         USERS_UPDATE_TIMEOUT = 5000, // ms = 5s
 
+        showMe,
         myVisibility,
 
-        MENU_NAME = "Tools",
+        MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Chat...",
+        MENU_ITEM_AFTER = "Overlays",
 
+        SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
+        SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
         SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
-        SETINGS_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
+        SETTING_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
         // +ve x, y values are offset from left, top of screen; -ve from right, bottom.
 
+        isLoggedIn = false,
         isVisible = true,
-        isMinimized = false,
+        isMinimized = true,
         isBorderVisible = false,
 
         viewport,
         isMirrorDisplay = false,
         isFullscreenMirror = false,
 
-        windowPosition = { },  // Bottom left corner of window pane.
+        windowPosition = {},  // Bottom left corner of window pane.
         isMovingWindow = false,
         movingClickOffset = { x: 0, y: 0 },
 
@@ -387,6 +392,12 @@ var usersWindow = (function () {
         scrollbarBarPosition = {},
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
+
+    function isValueTrue(value) {
+        // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
+        // Being written if refresh script.
+        return value === true || value === "true";
+    }
 
     function calculateWindowHeight() {
         var AUDIO_METER_HEIGHT = 52,
@@ -423,6 +434,11 @@ var usersWindow = (function () {
             firstUserToDisplay = 0;
             scrollbarValue = 0.0;
         }
+    }
+
+    function saturateWindowPosition() {
+        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
     function updateOverlayPositions() {
@@ -517,13 +533,13 @@ var usersWindow = (function () {
             scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
             Overlays.editOverlay(scrollbarBackground, {
                 height: scrollbarBackgroundHeight,
-                visible: isUsingScrollbars
+                visible: isLoggedIn && isUsingScrollbars
             });
             scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight,
                 SCROLLBAR_BAR_MIN_HEIGHT);
             Overlays.editOverlay(scrollbarBar, {
                 height: scrollbarBarHeight,
-                visible: isUsingScrollbars
+                visible: isLoggedIn && isUsingScrollbars
             });
         }
 
@@ -541,10 +557,45 @@ var usersWindow = (function () {
         });
     }
 
+    function updateOverlayVisibility() {
+        Overlays.editOverlay(windowBorder, {
+            visible: isLoggedIn && isVisible && isBorderVisible
+        });
+        Overlays.editOverlay(windowPane, {
+            visible: isLoggedIn && isVisible
+        });
+        Overlays.editOverlay(windowHeading, {
+            visible: isLoggedIn && isVisible
+        });
+        Overlays.editOverlay(minimizeButton, {
+            visible: isLoggedIn && isVisible
+        });
+        Overlays.editOverlay(scrollbarBackground, {
+            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+        });
+        Overlays.editOverlay(scrollbarBar, {
+            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+        });
+        Overlays.editOverlay(friendsButton, {
+            visible: isLoggedIn && isVisible && !isMinimized
+        });
+        displayControl.setVisible(isLoggedIn && isVisible && !isMinimized);
+        visibilityControl.setVisible(isLoggedIn && isVisible && !isMinimized);
+    }
+
+    function checkLoggedIn() {
+        var wasLoggedIn = isLoggedIn;
+
+        isLoggedIn = Account.isLoggedIn();
+        if (isLoggedIn !== wasLoggedIn) {
+            updateOverlayVisibility();
+        }
+    }
+
     function pollUsers() {
         var url = API_URL;
 
-        if (displayControl.getValue() === DISPLAY_FRIENDS) {
+        if (showMe === DISPLAY_FRIENDS) {
             url += API_FRIENDS_FILTER;
         }
 
@@ -599,6 +650,8 @@ var usersWindow = (function () {
                 updateUsersDisplay();
                 updateOverlayPositions();
 
+                checkLoggedIn();
+
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
                 usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
@@ -614,32 +667,6 @@ var usersWindow = (function () {
         usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
     };
 
-    function updateOverlayVisibility() {
-        Overlays.editOverlay(windowBorder, {
-            visible: isVisible && isBorderVisible
-        });
-        Overlays.editOverlay(windowPane, {
-            visible: isVisible
-        });
-        Overlays.editOverlay(windowHeading, {
-            visible: isVisible
-        });
-        Overlays.editOverlay(minimizeButton, {
-            visible: isVisible
-        });
-        Overlays.editOverlay(scrollbarBackground, {
-            visible: isVisible && isUsingScrollbars && !isMinimized
-        });
-        Overlays.editOverlay(scrollbarBar, {
-            visible: isVisible && isUsingScrollbars && !isMinimized
-        });
-        Overlays.editOverlay(friendsButton, {
-            visible: isVisible && !isMinimized
-        });
-        displayControl.setVisible(isVisible && !isMinimized);
-        visibilityControl.setVisible(isVisible && !isMinimized);
-    }
-
     function setVisible(visible) {
         isVisible = visible;
 
@@ -653,7 +680,6 @@ var usersWindow = (function () {
         }
 
         updateOverlayVisibility();
-
     }
 
     function setMinimized(minimized) {
@@ -664,6 +690,7 @@ var usersWindow = (function () {
             }
         });
         updateOverlayVisibility();
+        Settings.setValue(SETTING_USERS_WINDOW_MINIMIZED, isMinimized);
     }
 
     function onMenuItemEvent(event) {
@@ -674,9 +701,11 @@ var usersWindow = (function () {
 
     function onFindableByChanged(event) {
         if (VISIBILITY_VALUES.indexOf(event) !== -1) {
+            myVisibility = event;
             visibilityControl.setValue(event);
+            Settings.setValue(SETTING_USERS_VISIBLE_TO, myVisibility);
         } else {
-            print("Error: Unrecognized onFindableByChanged value: " + myVisibility);
+            print("Error: Unrecognized onFindableByChanged value: " + event);
         }
     }
 
@@ -706,17 +735,21 @@ var usersWindow = (function () {
                 usersTimer = null;
             }
             pollUsers();
+            showMe = displayControl.getValue();
+            Settings.setValue(SETTING_USERS_SHOW_ME, showMe);
             return;
         }
 
         if (visibilityControl.handleClick(clickedOverlay)) {
-            GlobalServices.findableBy = visibilityControl.getValue();
+            myVisibility = visibilityControl.getValue();
+            GlobalServices.findableBy = myVisibility;
+            Settings.setValue(SETTING_USERS_VISIBLE_TO, myVisibility);
             return;
         }
 
         if (clickedOverlay === windowPane) {
 
-            overlayX = event.x - WINDOW_MARGIN;
+            overlayX = event.x - windowPosition.x - WINDOW_MARGIN;
             overlayY = event.y - windowPosition.y + windowHeight - WINDOW_MARGIN - windowLineHeight;
 
             numLinesBefore = Math.round(overlayY / windowLineHeight);
@@ -799,6 +832,10 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
+        if (!isLoggedIn) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
                     && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
@@ -823,6 +860,8 @@ var usersWindow = (function () {
                 x: event.x - movingClickOffset.x,
                 y: event.y - movingClickOffset.y
             };
+
+            saturateWindowPosition();
             calculateWindowHeight();
             updateOverlayPositions();
             updateUsersDisplay();
@@ -860,9 +899,11 @@ var usersWindow = (function () {
 
         if (isMovingWindow) {
             // Save offset of bottom of window to nearest edge of the window.
-            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2) ? windowPosition.x : windowPosition.x - viewport.x;
-            offset.y = (windowPosition.y < viewport.y / 2) ? windowPosition.y : windowPosition.y - viewport.y;
-            Settings.setValue(SETINGS_USERS_WINDOW_OFFSET, JSON.stringify(offset));
+            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2)
+                ? windowPosition.x : windowPosition.x - viewport.x;
+            offset.y = (windowPosition.y < viewport.y / 2)
+                ? windowPosition.y : windowPosition.y - viewport.y;
+            Settings.setValue(SETTING_USERS_WINDOW_OFFSET, JSON.stringify(offset));
             isMovingWindow = false;
         }
     }
@@ -914,18 +955,18 @@ var usersWindow = (function () {
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
+        windowMinimumHeight = windowTextHeight + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
         Overlays.deleteOverlay(textSizeOverlay);
 
         viewport = Controller.getViewportDimensions();
 
-        offsetSetting = Settings.getValue(SETINGS_USERS_WINDOW_OFFSET);
+        offsetSetting = Settings.getValue(SETTING_USERS_WINDOW_OFFSET);
         if (offsetSetting !== "") {
-            offset = JSON.parse(Settings.getValue(SETINGS_USERS_WINDOW_OFFSET));
+            offset = JSON.parse(Settings.getValue(SETTING_USERS_WINDOW_OFFSET));
         }
         if (offset.hasOwnProperty("x") && offset.hasOwnProperty("y")) {
             windowPosition.x = offset.x < 0 ? viewport.x + offset.x : offset.x;
             windowPosition.y = offset.y <= 0 ? viewport.y + offset.y : offset.y;
-
         } else {
             hmdViewport = Controller.getRecommendedOverlayRect();
             windowPosition = {
@@ -934,6 +975,7 @@ var usersWindow = (function () {
             };
         }
 
+        saturateWindowPosition();
         calculateWindowHeight();
 
         windowBorder = Overlays.addOverlay("rectangle", {
@@ -944,7 +986,7 @@ var usersWindow = (function () {
             radius: WINDOW_BORDER_RADIUS,
             color: WINDOW_BORDER_COLOR,
             alpha: WINDOW_BORDER_ALPHA,
-            visible: isVisible && isBorderVisible
+            visible: false
         });
 
         windowPane = Overlays.addOverlay("text", {
@@ -960,7 +1002,7 @@ var usersWindow = (function () {
             backgroundAlpha: WINDOW_BACKGROUND_ALPHA,
             text: "",
             font: WINDOW_FONT,
-            visible: isVisible
+            visible: false
         });
 
         windowHeading = Overlays.addOverlay("text", {
@@ -975,7 +1017,7 @@ var usersWindow = (function () {
             backgroundAlpha: 0.0,
             text: "No users online",
             font: WINDOW_FONT,
-            visible: isVisible && !isMinimized
+            visible: false
         });
 
         minimizeButton = Overlays.addOverlay("image", {
@@ -992,7 +1034,7 @@ var usersWindow = (function () {
             },
             color: MIN_MAX_BUTTON_COLOR,
             alpha: MIN_MAX_BUTTON_ALPHA,
-            visible: isVisible && !isMinimized
+            visible: false
         });
 
         scrollbarBackgroundPosition = {
@@ -1007,7 +1049,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BACKGROUND_COLOR,
             backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA,
             text: "",
-            visible: isVisible && isUsingScrollbars && !isMinimized
+            visible: false
         });
 
         scrollbarBarPosition = {
@@ -1022,7 +1064,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BAR_COLOR,
             backgroundAlpha: SCROLLBAR_BAR_ALPHA,
             text: "",
-            visible: isVisible && isUsingScrollbars && !isMinimized
+            visible: false
         });
 
         friendsButton = Overlays.addOverlay("image", {
@@ -1038,12 +1080,18 @@ var usersWindow = (function () {
                 height: FRIENDS_BUTTON_SVG_HEIGHT
             },
             color: FRIENDS_BUTTON_COLOR,
-            alpha: FRIENDS_BUTTON_ALPHA
+            alpha: FRIENDS_BUTTON_ALPHA,
+            visible: false
         });
+
+        showMe = Settings.getValue(SETTING_USERS_SHOW_ME, "");
+        if (DISPLAY_VALUES.indexOf(showMe) === -1) {
+            showMe = DISPLAY_EVERYONE;
+        }
 
         displayControl = new PopUpMenu({
             prompt: DISPLAY_PROMPT,
-            value: DISPLAY_VALUES[0],
+            value: showMe,
             values: DISPLAY_VALUES,
             displayValues: DISPLAY_DISPLAY_VALUES,
             x: 0,
@@ -1065,13 +1113,12 @@ var usersWindow = (function () {
             popupBackgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
             buttonColor: MIN_MAX_BUTTON_COLOR,
             buttonAlpha: MIN_MAX_BUTTON_ALPHA,
-            visible: isVisible && !isMinimized
+            visible: false
         });
 
-        myVisibility = GlobalServices.findableBy;
+        myVisibility = Settings.getValue(SETTING_USERS_VISIBLE_TO, "");
         if (VISIBILITY_VALUES.indexOf(myVisibility) === -1) {
-            print("Error: Unrecognized findableBy value: " + myVisibility);
-            myVisibility = VISIBILITY_ALL;
+            myVisibility = VISIBILITY_FRIENDS;
         }
 
         visibilityControl = new PopUpMenu({
@@ -1098,7 +1145,7 @@ var usersWindow = (function () {
             popupBackgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
             buttonColor: MIN_MAX_BUTTON_COLOR,
             buttonAlpha: MIN_MAX_BUTTON_ALPHA,
-            visible: isVisible && !isMinimized
+            visible: false
         });
 
         Controller.mousePressEvent.connect(onMousePressEvent);
@@ -1121,12 +1168,10 @@ var usersWindow = (function () {
         pollUsers();
 
         // Set minimized at end - setup code does not handle `minimized == false` correctly
-        setMinimized(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false));
+        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false)));
     }
 
     function tearDown() {
-        Settings.setValue(SETTING_USERS_WINDOW_MINIMIZED, isMinimized);
-
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);

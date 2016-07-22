@@ -21,6 +21,7 @@
 
 in vec4 _position;
 in vec2 _texCoord0;
+in vec2 _texCoord1;
 in vec3 _normal;
 in vec3 _color;
 
@@ -28,7 +29,8 @@ in vec3 _color;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex, occlusionTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -47,6 +49,8 @@ void main(void) {
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
+    float scattering = getMaterialScattering(mat);
+
     packDeferredFragment(
         normalize(_normal), 
         opacity,
@@ -54,5 +58,6 @@ void main(void) {
         roughness,
         metallic,
         emissive,
-        occlusionTex);
+        occlusionTex,
+        scattering);
 }

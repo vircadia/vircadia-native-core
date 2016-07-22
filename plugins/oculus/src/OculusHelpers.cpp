@@ -14,6 +14,10 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
+#include <QtCore/QProcessEnvironment>
+
+#include <controllers/Input.h>
+#include <controllers/Pose.h>
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -50,6 +54,13 @@ bool oculusAvailable() {
     static std::once_flag once;
     static bool result { false };
     std::call_once(once, [&] {
+
+        static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+        static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+        if (enableDebugOpenVR) {
+            return;
+        }
+
         ovrDetectResult detect = ovr_Detect(0);
         if (!detect.IsOculusServiceRunning || !detect.IsOculusHMDConnected) {
             return;
@@ -190,4 +201,89 @@ void SwapFramebufferWrapper::onBind(oglplus::Framebuffer::Target target) {
 
 void SwapFramebufferWrapper::onUnbind(oglplus::Framebuffer::Target target) {
     glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+}
+
+
+controller::Pose ovrControllerPoseToHandPose(
+    ovrHandType hand,
+    const ovrPoseStatef& handPose) {
+    // When the sensor-to-world rotation is identity the coordinate axes look like this:
+    //
+    //                       user
+    //                      forward
+    //                        -z
+    //                         |
+    //                        y|      user
+    //      y                  o----x right
+    //       o-----x         user
+    //       |                up
+    //       |
+    //       z
+    //
+    //     Rift
+
+    // From ABOVE the hand canonical axes looks like this:
+    //
+    //      | | | |          y        | | | |
+    //      | | | |          |        | | | |
+    //      |     |          |        |     |
+    //      |left | /  x---- +      \ |right|
+    //      |     _/          z      \_     |
+    //       |   |                     |   |
+    //       |   |                     |   |
+    //
+
+    // So when the user is in Rift space facing the -zAxis with hands outstretched and palms down
+    // the rotation to align the Touch axes with those of the hands is:
+    //
+    //    touchToHand = halfTurnAboutY * quaterTurnAboutX
+
+    // Due to how the Touch controllers fit into the palm there is an offset that is different for each hand.
+    // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
+    // the combination (measurement * offset) is identity at this orientation.
+    //
+    //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
+    //
+    // An approximate offset for the Touch can be obtained by inspection:
+    //
+    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/2.0f, zAxis) * glm::angleAxis(PI/4.0f, xAxis))
+    //
+    // So the full equation is:
+    //
+    //    Q = combinedMeasurement * touchToHand
+    //
+    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
+    //
+    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+    static const glm::quat touchToHand = yFlip * quarterX;
+
+    static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
+
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ * eighthX) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
+
+    static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+    static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET * 2.0f);
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+
+    auto translationOffset = (hand == ovrHand_Left ? leftTranslationOffset : rightTranslationOffset);
+    auto rotationOffset = (hand == ovrHand_Left ? leftRotationOffset : rightRotationOffset);
+
+    glm::quat rotation = toGlm(handPose.ThePose.Orientation);
+
+    controller::Pose pose;
+    pose.translation = toGlm(handPose.ThePose.Position);
+    pose.translation += rotation * translationOffset;
+    pose.rotation = rotation * rotationOffset;
+    pose.angularVelocity = toGlm(handPose.AngularVelocity);
+    pose.velocity = toGlm(handPose.LinearVelocity);
+    pose.valid = true;
+    return pose;
 }

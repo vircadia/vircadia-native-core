@@ -299,9 +299,9 @@ public:
     void loadOctreeFile(const char* fileName);
 
     // Octree exporters
-    void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
-    void writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
-    void writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
+    bool writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
+    bool writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
+    bool writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) = 0;
 

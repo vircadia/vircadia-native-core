@@ -14,7 +14,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import "../controls-uit"
 import "../styles-uit"
-import "../windows-uit"
+import "../windows"
 
 import "messageDialog"
 
@@ -24,7 +24,7 @@ ModalWindow {
     implicitWidth: 640
     implicitHeight: 320
     destroyOnCloseButton: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     visible: true
 
     signal selected(int button);

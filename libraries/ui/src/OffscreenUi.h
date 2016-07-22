@@ -28,6 +28,8 @@
 
 class VrMenu;
 
+#define OFFSCREEN_VISIBILITY_PROPERTY "shown"
+
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
 
@@ -44,9 +46,16 @@ public:
     void setNavigationFocused(bool focused);
     void unfocusWindows();
     void toggleMenu(const QPoint& screenCoordinates);
+
+
+    // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
+    void setPinned(bool pinned = true);
+
+    void togglePinned();
+
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
     void addMenuInitializer(std::function<void(VrMenu*)> f);
-
+    QObject* getFlags();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 

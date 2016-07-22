@@ -77,7 +77,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
@@ -145,7 +145,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += bytesFromAnimation;
     }
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
     if (animationPropertiesChanged) {
         _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
@@ -257,37 +257,54 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
-void ModelEntityItem::updateShapeType(ShapeType type) {
-    // BEGIN_TEMPORARY_WORKAROUND
-    // we have allowed inconsistent ShapeType's to be stored in SVO files in the past (this was a bug)
-    // but we are now enforcing the entity properties to be consistent.  To make the possible we're
-    // introducing a temporary workaround: we will ignore ShapeType updates that conflict with the
-    // _compoundShapeURL.
-    if (hasCompoundShapeURL()) {
-        type = SHAPE_TYPE_COMPOUND;
-    }
-    // END_TEMPORARY_WORKAROUND
-
+void ModelEntityItem::setShapeType(ShapeType type) {
     if (type != _shapeType) {
+        if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+            // dynamic and STATIC_MESH are incompatible
+            // since the shape is being set here we clear the dynamic bit
+            _dynamic = false;
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        }
         _shapeType = type;
         _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
     }
 }
 
-// virtual
 ShapeType ModelEntityItem::getShapeType() const {
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
-    } else {
-        return _shapeType;
+    return computeTrueShapeType();
+}
+
+ShapeType ModelEntityItem::computeTrueShapeType() const {
+    ShapeType type = _shapeType;
+    if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+        // dynamic is incompatible with STATIC_MESH
+        // shouldn't fall in here but just in case --> fall back to COMPOUND
+        type = SHAPE_TYPE_COMPOUND;
+    }
+    if (type == SHAPE_TYPE_COMPOUND && !hasCompoundShapeURL()) {
+        // no compoundURL set --> fall back to NONE
+        type = SHAPE_TYPE_NONE;
+    }
+    return type;
+}
+
+void ModelEntityItem::setModelURL(const QString& url) {
+    if (_modelURL != url) {
+        _modelURL = url;
+        _parsedModelURL = QUrl(url);
+        if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
     }
 }
 
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     if (_compoundShapeURL != url) {
+        ShapeType oldType = computeTrueShapeType();
         _compoundShapeURL = url;
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-        _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
+        if (oldType != computeTrueShapeType()) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
     }
 }
 

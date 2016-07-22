@@ -35,10 +35,7 @@ public:
     const QString& getName() const { return _name; }
 
     // Device functions
-    virtual Input::NamedVector getAvailableInputs() const override;
-
-    void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) override {}
-    void focusOutEvent() override {}
+    Input::NamedVector getAvailableInputs() const override;
 
     void setInputVariant(const QString& name, ReadLambda lambda);
 

@@ -45,6 +45,8 @@ public:
     template <typename F>
     bool withTryReadLock(F&& f, int timeout) const;
 
+    QReadWriteLock& getLock() const { return _lock; }
+
 private:
     mutable QReadWriteLock _lock { QReadWriteLock::Recursive };
 };

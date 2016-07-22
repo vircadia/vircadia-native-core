@@ -32,97 +32,78 @@ uniform sampler2D obscuranceMap;
 uniform sampler2D lightingMap;
 
 
-struct DeferredTransform { 
-    mat4 projection;
-    mat4 viewInverse;
-    float stereoSide;
-    vec3 _spareABC;
-};
-
-layout(std140) uniform deferredTransformBuffer {
-    DeferredTransform _deferredTransform;
-};
-DeferredTransform getDeferredTransform() {
-    return _deferredTransform;
-}
-
-bool getStereoMode(DeferredTransform deferredTransform) {
-    return (deferredTransform.stereoSide != 0.0);
-}
-float getStereoSide(DeferredTransform deferredTransform) {
-    return  (deferredTransform.stereoSide);
-}
-
-vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
-    vec3 nPos = vec3(texcoord.xy * 2.0f - 1.0f, depthVal * 2.0f - 1.0f);
-
-    // compute the view space position using the depth
-    // basically manually pick the proj matrix components to do the inverse
-    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
-    float Xe = (-Ze * nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
-    float Ye = (-Ze * nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
-    return vec4(Xe, Ye, Ze, 1.0f);
-}
-
 struct DeferredFragment {
-    vec4 normalVal;
-    vec4 diffuseVal;
-    vec4 specularVal;
     vec4 position;
     vec3 normal;
     float metallic;
-    vec3 diffuse;
+    vec3 albedo;
     float obscurance;
-    vec3 specular;
+    vec3 fresnel;
     float roughness;
-    vec3 emissive;
     int mode;
+    float scattering;
     float depthVal;
 };
 
-vec4 unpackDeferredPosition(DeferredTransform deferredTransform, float depthValue, vec2 texcoord) {
-    if (getStereoMode(deferredTransform)) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-        }
-        texcoord.x *= 2.0;
-    }
-    return evalEyePositionFromZ(deferredTransform, depthValue, texcoord);
-}
-
 DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
-
+    vec4 normalVal;
+    vec4 diffuseVal;
+    vec4 specularVal;
+    
     DeferredFragment frag;
     frag.depthVal = -1;
-    frag.normalVal = texture(normalMap, texcoord);
-    frag.diffuseVal = texture(albedoMap, texcoord);
-    frag.specularVal = texture(specularMap, texcoord);
+    normalVal = texture(normalMap, texcoord);
+    diffuseVal = texture(albedoMap, texcoord);
+    specularVal = texture(specularMap, texcoord);
     frag.obscurance = texture(obscuranceMap, texcoord).x;
 
     // Unpack the normal from the map
-    frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
-    frag.roughness = frag.normalVal.a;
+    frag.normal = unpackNormal(normalVal.xyz);
+    frag.roughness = normalVal.a;
 
     // Diffuse color and unpack the mode and the metallicness
-    frag.diffuse = frag.diffuseVal.xyz;
-    unpackModeMetallic(frag.diffuseVal.w, frag.mode, frag.metallic);
+    frag.albedo = diffuseVal.xyz;
+    frag.scattering = 0.0;
+    unpackModeMetallic(diffuseVal.w, frag.mode, frag.metallic);
 
+    //frag.emissive = specularVal.xyz;
+    frag.obscurance = min(specularVal.w, frag.obscurance);
+
+
+    if (frag.mode == FRAG_MODE_SCATTERING) {
+        frag.scattering = specularVal.x;
+    }
 
     if (frag.metallic <= 0.5) {
         frag.metallic = 0.0;
-        frag.specular = vec3(0.03); // Default Di-electric fresnel value
+        frag.fresnel = vec3(0.03); // Default Di-electric fresnel value
     } else {
-        frag.specular = vec3(frag.diffuseVal.xyz);
+        frag.fresnel = vec3(diffuseVal.xyz);
         frag.metallic = 1.0;
     }
-
-    frag.emissive = frag.specularVal.xyz;
-    frag.obscurance = min(frag.specularVal.w, frag.obscurance);
 
     return frag;
 }
 
-DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec2 texcoord) {
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float depthValue, vec2 texcoord) {
+    int side = 0;
+    if (isStereo()) {
+        if (texcoord.x > 0.5) {
+            texcoord.x -= 0.5;
+            side = 1;
+        }
+        texcoord.x *= 2.0;
+    }
+    float Zeye = evalZeyeFromZdb(depthValue);
+
+    return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
+}
+
+DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform, vec2 texcoord) {
 
     float depthValue = texture(depthMap, texcoord).r;
 
@@ -136,5 +117,30 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
 
 
 
+<@func declareDeferredCurvature()@>
+
+// the curvature texture
+uniform sampler2D curvatureMap;
+
+vec4 fetchCurvature(vec2 texcoord) {
+    return texture(curvatureMap, texcoord);
+}
+
+// the curvature texture
+uniform sampler2D diffusedCurvatureMap;
+
+vec4 fetchDiffusedCurvature(vec2 texcoord) {
+    return texture(diffusedCurvatureMap, texcoord);
+}
+
+void unpackMidLowNormalCurvature(vec2 texcoord, out vec4 midNormalCurvature, out vec4 lowNormalCurvature) {
+    midNormalCurvature = fetchCurvature(texcoord);
+    lowNormalCurvature = fetchDiffusedCurvature(texcoord);
+    midNormalCurvature.xyz = normalize((midNormalCurvature.xyz - 0.5f) * 2.0f);
+    lowNormalCurvature.xyz = normalize((lowNormalCurvature.xyz - 0.5f) * 2.0f);
+    midNormalCurvature.w = (midNormalCurvature.w * 2 - 1);
+    lowNormalCurvature.w = (lowNormalCurvature.w * 2 - 1);
+}
+<@endfunc@>
 
 <@endif@>

@@ -32,11 +32,12 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
-    getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
+    getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -47,6 +48,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -123,9 +129,16 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
+
+    if (clientOnly) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesWithSimID.setClientOnly(clientOnly);
+        propertiesWithSimID.setOwningAvatarID(myNodeID);
+    }
 
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -166,6 +179,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
+                propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
@@ -177,9 +191,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     if (success) {
         emit debitEnergySource(cost);
         queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
-    }
 
-    return id;
+        return id;
+    } else {
+        return QUuid();
+    }
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
@@ -272,13 +288,21 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (!entity) {
+            return;
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+            // don't edit other avatar's avatarEntities
+            return;
+        }
+
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (!entity) {
-                return;
-            }
+
             //existing entity, retrieve old velocity for check down below
             oldVelocity = entity->getVelocity().length();
 
@@ -296,6 +320,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
+        properties.setClientOnly(entity->getClientOnly());
+        properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;
@@ -353,6 +379,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
+            properties.setLastEdited(entity->getLastEdited());
 
             // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
             // if they've changed.
@@ -383,6 +410,14 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
+
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                    // don't delete other avatar's avatarEntities
+                    shouldDelete = false;
+                    return;
+                }
 
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -771,6 +806,11 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         return false;
     }
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
+    EntityItemProperties properties;
+
     EntityItemPointer entity;
     bool doTransmit = false;
     _entityTree->withWriteLock([&] {
@@ -786,15 +826,20 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+            return;
+        }
+
         doTransmit = actor(simulation, entity);
         if (doTransmit) {
+            properties.setClientOnly(entity->getClientOnly());
+            properties.setOwningAvatarID(entity->getOwningAvatarID());
             _entityTree->entityChanged(entity);
         }
     });
 
     // transmit the change
     if (doTransmit) {
-        EntityItemProperties properties;
         _entityTree->withReadLock([&] {
             properties = entity->getProperties();
         });
@@ -1083,6 +1128,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
     return result;
 }
 

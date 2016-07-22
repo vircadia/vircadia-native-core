@@ -9,45 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackend.h"
-#include "GLBackendShared.h"
+#include "GLShared.h"
+#include "GLInputFormat.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
-
-GLBackend::GLInputFormat::GLInputFormat() {
-}
-
-GLBackend::GLInputFormat:: ~GLInputFormat() {
-
-}
-
-GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFormat) {
-    GLInputFormat* object = Backend::getGPUObject<GLBackend::GLInputFormat>(inputFormat);
-
-    if (!object) {
-        object = new GLInputFormat();
-        object->key = inputFormat.getKey();
-        Backend::setGPUObject(inputFormat, object);
-    }
-
-    return object;
-}
-
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-    if(GLBackend::syncGPUObject(*format)) {
-        if (format != _input._format) {
-            _input._format = format;
-            if (format) {
-                if (_input._formatKey != format->getKey()) {
-                    _input._formatKey = format->getKey();
-                    _input._invalidFormat = true;
-                }
-            } else {
-                _input._formatKey.clear();
+    if (format != _input._format) {
+        _input._format = format;
+        if (format) {
+            auto inputFormat = GLInputFormat::sync((*format));
+            assert(inputFormat);
+            if (_input._formatKey != inputFormat->key) {
+                _input._formatKey = inputFormat->key;
                 _input._invalidFormat = true;
             }
+        } else {
+            _input._formatKey.clear();
+            _input._invalidFormat = true;
         }
     }
 }
@@ -114,6 +95,7 @@ void GLBackend::syncInputStateCache() {
     glBindVertexArray(_input._defaultVAO);
 }
 
+
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {
@@ -122,6 +104,7 @@ void GLBackend::updateInput() {
 
         // Assign the vertex format required
         if (_input._format) {
+<<<<<<< HEAD
             _input._attribBindingBuffers.reset();
 
             const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
@@ -163,9 +146,32 @@ void GLBackend::updateInput() {
                     }
 
                     (void)CHECK_GL_ERROR();
+=======
+            for (auto& it : _input._format->getAttributes()) {
+                const Stream::Attribute& attrib = (it).second;
+
+                GLuint slot = attrib._slot;
+                GLuint count = attrib._element.getLocationScalarCount();
+                uint8_t locationCount = attrib._element.getLocationCount();
+                GLenum type = _elementTypeToGL41Type[attrib._element.getType()];
+                GLuint offset = attrib._offset;;
+                GLboolean isNormalized = attrib._element.isNormalized();
+
+                GLenum perLocationSize = attrib._element.getLocationSize();
+
+                for (size_t locNum = 0; locNum < locationCount; ++locNum) {
+                    newActivation.set(slot + locNum);
+                    glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
+                    glVertexAttribBinding(slot + locNum, attrib._channel);
+>>>>>>> 592a50356bf598a4ca49d45c0c30525477831c6d
                 }
                 glVertexBindingDivisor(bufferChannelNum, frequency);
             }
+<<<<<<< HEAD
+=======
+            (void)CHECK_GL_ERROR();
+        }
+>>>>>>> 592a50356bf598a4ca49d45c0c30525477831c6d
 
             // Manage Activation what was and what is expected now
             // This should only disable VertexAttribs since the one in use have been disabled above
@@ -182,7 +188,11 @@ void GLBackend::updateInput() {
             }
             (void)CHECK_GL_ERROR();
         }
+<<<<<<< HEAD
 
+=======
+        (void)CHECK_GL_ERROR();
+>>>>>>> 592a50356bf598a4ca49d45c0c30525477831c6d
 
         _input._invalidFormat = false;
         _stats._ISNumFormatChanges++;
@@ -200,7 +210,7 @@ void GLBackend::updateInput() {
         }
 
         _input._invalidBuffers.reset();
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
     }
 #else
     if (_input._invalidFormat || _input._invalidBuffers.any()) {
@@ -220,7 +230,7 @@ void GLBackend::updateInput() {
                     }
                 }
             }
-            
+
             // Manage Activation what was and what is expected now
             for (unsigned int i = 0; i < newActivation.size(); i++) {
                 bool newState = newActivation[i];
@@ -231,8 +241,8 @@ void GLBackend::updateInput() {
                     } else {
                         glDisableVertexAttribArray(i);
                     }
-                    (void) CHECK_GL_ERROR();
-                    
+                    (void)CHECK_GL_ERROR();
+
                     _input._attributeActivation.flip(i);
                 }
             }
@@ -255,11 +265,11 @@ void GLBackend::updateInput() {
                     int bufferNum = (channelIt).first;
 
                     if (_input._invalidBuffers.test(bufferNum) || _input._invalidFormat) {
-                      //  GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
+                        //  GLuint vbo = gpu::GL41Backend::getBufferID((*buffers[bufferNum]));
                         GLuint vbo = _input._bufferVBOs[bufferNum];
                         if (boundVBO != vbo) {
                             glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                            (void) CHECK_GL_ERROR();
+                            (void)CHECK_GL_ERROR();
                             boundVBO = vbo;
                         }
                         _input._invalidBuffers[bufferNum] = false;
@@ -269,7 +279,7 @@ void GLBackend::updateInput() {
                             GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getLocationScalarCount();
                             uint8_t locationCount = attrib._element.getLocationCount();
-                            GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                            GLenum type = gl::ELEMENT_TYPE_TO_GL[attrib._element.getType()];
                             // GLenum perLocationStride = strides[bufferNum];
                             GLenum perLocationStride = attrib._element.getLocationSize();
                             GLuint stride = (GLuint)strides[bufferNum];
@@ -281,10 +291,10 @@ void GLBackend::updateInput() {
                                     reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
                                 glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
                             }
-                            
+
                             // TODO: Support properly the IAttrib version
 
-                            (void) CHECK_GL_ERROR();
+                            (void)CHECK_GL_ERROR();
                         }
                     }
                 }
@@ -295,6 +305,17 @@ void GLBackend::updateInput() {
     }
 #endif
 }
+
+// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
+// Core 43 does :)
+// FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
+// Once resolved, break this up into the GL 4.1 and 4.5 backends
+#if 1 || (GPU_INPUT_PROFILE == GPU_CORE_41)
+#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
+#else
+#define SUPPORT_VERTEX_ATTRIB_FORMAT
+#endif
+
 
 void GLBackend::resetInputStage() {
     // Reset index buffer

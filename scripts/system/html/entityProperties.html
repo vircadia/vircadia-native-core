@@ -25,6 +25,7 @@
         var ICON_FOR_TYPE = {
             Box: "V",
             Sphere: "n",
+            Shape: "n",
             ParticleEffect: "&#xe004;",
             Model: "&#xe008;",
             Web: "q",
@@ -403,6 +404,10 @@
                 var elColorGreen = document.getElementById("property-color-green");
                 var elColorBlue = document.getElementById("property-color-blue");
     
+                var elShapeSections = document.querySelectorAll(".shape-section");
+                allSections.push(elShapeSections);
+                var elShape = document.getElementById("property-shape");
+                
                 var elLightSections = document.querySelectorAll(".light-section");
                 allSections.push(elLightSections);
                 var elLightSpotLight = document.getElementById("property-light-spot-light");
@@ -447,6 +452,7 @@
                 var elTextText = document.getElementById("property-text-text");
                 var elTextLineHeight = document.getElementById("property-text-line-height");
                 var elTextTextColor = document.getElementById("property-text-text-color");
+                var elTextFaceCamera = document.getElementById("property-text-face-camera");
                 var elTextTextColorRed = document.getElementById("property-text-text-color-red");
                 var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
                 var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
@@ -484,6 +490,9 @@
                 var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
                 var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
                 var elZoneSkyboxURL = document.getElementById("property-zone-skybox-url");
+
+                var elZoneFlyingAllowed = document.getElementById("property-zone-flying-allowed");
+                var elZoneGhostingAllowed = document.getElementById("property-zone-ghosting-allowed");
     
                 var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
                 allSections.push(elPolyVoxSections);
@@ -538,18 +547,10 @@
 
                                 disableProperties();
                             } else {
-                                var activeElement = document.activeElement;
-    
-                                try {
-                                    var selected = (activeElement
-                                               && activeElement.selectionStart == 0
-                                               && activeElement.selectionEnd == activeElement.value.length);
-                                } catch (e) {
-                                    var  selected = false;
-                                }
+            
     
                                 properties = data.selections[0].properties;
-    
+
                                 elID.innerHTML = properties.id;
     
                                 elType.innerHTML = properties.type;
@@ -564,7 +565,6 @@
                                 } else {
                                     enableProperties();
                                 }
-
     
                                 elName.value = properties.name;
     
@@ -626,18 +626,19 @@
                                 var parsedUserData = {}
                                 try {
                                     parsedUserData = JSON.parse(properties.userData);
+                                                            
+                                    if ("grabbableKey" in parsedUserData) {
+                                        if ("grabbable" in parsedUserData["grabbableKey"]) {
+                                            elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
+                                        }
+                                        if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
+                                            elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
+                                        }
+                                        if ("ignoreIK" in parsedUserData["grabbableKey"]) {
+                                            elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
+                                        }
+                                    }
                                 } catch(e) {}
-                                if ("grabbableKey" in parsedUserData) {
-                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
-                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
-                                    }
-                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
-                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
-                                    }
-                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
-                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
-                                    }
-                                }
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -662,7 +663,20 @@
                                     elHyperlinkSections[i].style.display = 'table';
                                 }
 
-                                if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        elShapeSections[i].style.display = 'table';
+                                    }
+                                    elShape.value = properties.shape;
+                                    setDropdownText(elShape);
+
+                                } else {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        elShapeSections[i].style.display = 'none';
+                                    }
+                                }
+                                
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                                     for (var i = 0; i < elColorSections.length; i++) {
                                         elColorSections[i].style.display = 'table';
                                     }
@@ -713,6 +727,7 @@
     
                                     elTextText.value = properties.text;
                                     elTextLineHeight.value = properties.lineHeight.toFixed(4);
+                                    elTextFaceCamera = properties.faceCamera;
                                     elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
                                     elTextTextColorRed.value = properties.textColor.red;
                                     elTextTextColorGreen.value = properties.textColor.green;
@@ -770,6 +785,9 @@
                                     elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                                     elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
                                     elZoneSkyboxURL.value = properties.skybox.url;
+
+                                    elZoneFlyingAllowed.checked = properties.flyingAllowed;
+                                    elZoneGhostingAllowed.checked = properties.ghostingAllowed;
     
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 } else if (properties.type == "PolyVox") {
@@ -786,9 +804,10 @@
                                     elYTextureURL.value = properties.yTextureURL;
                                     elZTextureURL.value = properties.zTextureURL;
                                 }
-    
-                                if (selected) {
-                                    activeElement.focus();
+                                
+                                var activeElement = document.activeElement;
+                                
+                                if(typeof activeElement.select!=="undefined"){
                                     activeElement.select();
                                 }
                             }
@@ -951,6 +970,8 @@
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
+                elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
@@ -969,8 +990,8 @@
                 elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
     
                 elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
+                elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));
                 elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
-    
                 var textTextColorChangeFunction = createEmitColorPropertyUpdateFunction(
                     'textColor', elTextTextColorRed, elTextTextColorGreen, elTextTextColorBlue);
                 elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
@@ -1076,7 +1097,10 @@
                 }));
     
                 elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
-    
+
+                elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
+                elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
+
                 var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
                     'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
                 elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
@@ -1148,7 +1172,7 @@
                 for (var i = 0; i < els.length; i++) {
                     var clicked = false;
                     var originalText;
-                    els[i].onfocus = function() {
+                    els[i].onfocus = function(e) {
                         originalText = this.value;
                         this.select();
                         clicked = false;
@@ -1321,6 +1345,20 @@
             </div>
         </div>
         <hr />
+        <div class="shape-group shape-section property dropdown">
+            <label for="property-shape">Shape</label>
+            <select name="SelectShape" id="property-shape">
+                <option value="Cube">Box</option>
+                <option value="Sphere">Sphere</option>
+                <option value="Tetrahedron">Tetrahedron</option>
+                <option value="Octahedron">Octahedron</option>
+                <option value="Icosahedron">Icosahedron</option>
+                <option value="Dodecahedron">Dodecahedron</option>
+                <option value="Hexagon">Hexagon</option>
+                <option value="Triangle">Triangle</option>
+                <option value="Octagon">Octagon</option>
+            </select>
+        </div>
         <div class="property text">
             <label for="property-name">Name</label>
             <input type="text" id="property-name">
@@ -1333,7 +1371,6 @@
             <label>ID:</label>
             <span id="property-id" class="selectable"></span>
         </div>
-
 
         <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
@@ -1612,6 +1649,9 @@
                 <option value="box">Box</option>
                 <option value="sphere">Sphere</option>
                 <option value="compound">Compound</option>
+                <option value="simple-hull">One Hull</option>
+                <option value="simple-compound">Hull Per Submesh</option>
+                <option value="static-mesh">Static Mesh</option>
             </select>
         </div>
         <div class="model-group model-section zone-section property url ">
@@ -1668,13 +1708,16 @@
             <textarea id="property-model-original-textures" readonly></textarea>
         </div>
 
-
         <div class="section-header text-group text-section">
             <label>Text</label><span>M</span>
         </div>
         <div class="text-group text-section property text">
             <label for="property-text-text">Text content</label>
             <input type="text" id="property-text-text">
+        </div>
+        <div class="text-group text-section property checkbox">
+            <input type="checkbox" id="property-text-face-camera">
+            <label for="property-text-face-camera">&nbsp;Face Camera</label>
         </div>
         <div class="text-group text-section property number">
             <label>Line height <span class="unit">m</span></label>
@@ -1706,6 +1749,14 @@
         <div class="zone-group zone-section property checkbox">
             <input type="checkbox" id="property-zone-stage-sun-model-enabled">
             <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+            <input type="checkbox" id="property-zone-flying-allowed">
+            <label for="property-zone-flying-allowed">Flying allowed</label>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+            <input type="checkbox" id="property-zone-ghosting-allowed">
+            <label for="property-zone-ghosting-allowed">Ghosting allowed</label>
         </div>
 
         <div class="sub-section-header zone-group zone-section keylight-section">

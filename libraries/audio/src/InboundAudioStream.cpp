@@ -13,6 +13,7 @@
 
 #include <NLPacket.h>
 #include <Node.h>
+#include <NodeList.h>
 
 #include "InboundAudioStream.h"
 
@@ -58,6 +59,9 @@ void InboundAudioStream::reset() {
     _isStarved = true;
     _hasStarted = false;
     resetStats();
+    // FIXME: calling cleanupCodec() seems to be the cause of the buzzsaw -- we get an assert
+    // after this is called in AudioClient.  Ponder and fix...
+    // cleanupCodec();
 }
 
 void InboundAudioStream::resetStats() {
@@ -99,12 +103,12 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 }
 
 int InboundAudioStream::parseData(ReceivedMessage& message) {
-    
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
     SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
                                                                                                        message.getSourceID());
+    QString codecInPacket = message.readString();
 
     packetReceivedUpdateTimingStats();
 
@@ -114,7 +118,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int prePropertyPosition = message.getPosition();
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
     message.seek(prePropertyPosition + propertyBytes);
-    
+
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Early: {
@@ -129,9 +133,22 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
+                // FIXME - Some codecs need to know about these silent frames... and can produce better output
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                parseAudioData(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+                // note: PCM and no codec are identical
+                bool selectedPCM = _selectedCodecName == "pcm" || _selectedCodecName == "";
+                bool packetPCM = codecInPacket == "pcm" || codecInPacket == "";
+                if (codecInPacket == _selectedCodecName || (packetPCM && selectedPCM)) {
+                    auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
+                    parseAudioData(message.getType(), afterProperties);
+                } else {
+                    qDebug() << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
+                    writeDroppableSilentSamples(networkSamples);
+                    // inform others of the mismatch
+                    auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                    emit mismatchedAudioCodec(sendingNode, _selectedCodecName);
+                }
             }
             break;
         }
@@ -172,16 +189,27 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
         return sizeof(quint16);
     } else {
         // mixed audio packets do not have any info between the seq num and the audio data.
-        numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+        numAudioSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
         return 0;
     }
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
-    return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
+int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
+    QByteArray decodedBuffer;
+    if (_decoder) {
+        _decoder->decode(packetAfterStreamProperties, decodedBuffer);
+    } else {
+        decodedBuffer = packetAfterStreamProperties;
+    }
+    auto actualSize = decodedBuffer.size();
+    return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
 int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+    if (_decoder) {
+        _decoder->trackLostFrames(silentSamples);
+    }
+
     // calculate how many silent frames we should drop.
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
@@ -497,3 +525,21 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     return 0.0f;
 }
 
+void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels) {
+    cleanupCodec(); // cleanup any previously allocated coders first
+    _codec = codec;
+    _selectedCodecName = codecName;
+    if (_codec) {
+        _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, numChannels);
+    }
+}
+
+void InboundAudioStream::cleanupCodec() {
+    // release any old codec encoder/decoder first...
+    if (_codec) {
+        if (_decoder) {
+            _codec->releaseDecoder(_decoder);
+            _decoder = nullptr;
+        }
+    }
+}

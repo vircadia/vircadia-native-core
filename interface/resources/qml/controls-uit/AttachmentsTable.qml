@@ -15,13 +15,12 @@ import QtQuick.XmlListModel 2.0
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-import "../windows-uit"
+import "../windows"
 import "../hifi/models"
 
 TableView {
     id: tableView
 
-    //    property var tableModel: ListModel { }
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
@@ -46,7 +45,7 @@ TableView {
 
         RalewayRegular {
             id: textHeader
-            size: hifi.fontSizes.tableText
+            size: hifi.fontSizes.tableHeading
             color: hifi.colors.lightGrayText
             text: styleData.value
             anchors {
@@ -87,7 +86,7 @@ TableView {
                     bottomMargin: 3     // ""
                 }
                 radius: 3
-                color: hifi.colors.tableScrollHandle
+                color: hifi.colors.tableScrollHandleDark
             }
         }
 
@@ -107,7 +106,7 @@ TableView {
                     margins: 1      // Shrink
                 }
                 radius: 4
-                color: hifi.colors.tableScrollBackground
+                color: hifi.colors.tableScrollBackgroundDark
             }
         }
 

@@ -10,14 +10,7 @@
         { "from": "Standard.RB", "to": "Actions.UiNavGroup" },
         { "from": [ "Standard.A", "Standard.X" ], "to": "Actions.UiNavSelect" },
         { "from": [ "Standard.B", "Standard.Y" ], "to": "Actions.UiNavBack" },
-        { 
-            "from": [ "Standard.RT", "Standard.LT" ], 
-            "to": "Actions.UiNavSelect", 
-            "filters": [
-                { "type": "deadZone", "min": 0.5 },
-                "constrainToInteger"
-            ]
-        },
+        { "from": [ "Standard.RTClick", "Standard.LTClick" ], "to": "Actions.UiNavSelect" },
         {
             "from": "Standard.LX", "to": "Actions.UiNavLateral",
             "filters": [

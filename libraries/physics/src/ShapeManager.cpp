@@ -32,15 +32,13 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
         return NULL;
     }
-    if (info.getType() != SHAPE_TYPE_COMPOUND) {
-        // Very small or large non-compound objects are not supported.
-        float diagonal = 4.0f * glm::length2(info.getHalfExtents());
-        const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
-        if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED) {
-            // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
-            return NULL;
-        }
+    const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
+    if (4.0f * glm::length2(info.getHalfExtents()) < MIN_SHAPE_DIAGONAL_SQUARED) {
+        // tiny shapes are not supported
+        // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
+        return NULL;
     }
+
     DoubleHashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
@@ -66,8 +64,8 @@ bool ShapeManager::releaseShapeByKey(const DoubleHashKey& key) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
                 _pendingGarbage.push_back(key);
-                const int MAX_GARBAGE_CAPACITY = 255;
-                if (_pendingGarbage.size() > MAX_GARBAGE_CAPACITY) {
+                const int MAX_SHAPE_GARBAGE_CAPACITY = 255;
+                if (_pendingGarbage.size() > MAX_SHAPE_GARBAGE_CAPACITY) {
                     collectGarbage();
                 }
             }

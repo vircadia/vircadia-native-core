@@ -137,6 +137,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
 
+    requestedProperties += PROP_CLIENT_ONLY;
+    requestedProperties += PROP_OWNING_AVATAR_ID;
+
     return requestedProperties;
 }
 
@@ -684,15 +687,80 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
-        // but since we're using macros below we have to temporarily modify overwriteLocalData.
-        bool oldOverwrite = overwriteLocalData;
-        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotationFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
-        overwriteLocalData = oldOverwrite;
+        // we also want to ignore any duplicate packets that have the same "recently updated" values
+        // as a packet we've already recieved. This is because we want multiple edits of the same 
+        // information to be idempotent, but if we applied new physics properties we'd resimulation
+        // with small differences in results.
+
+        // Because the regular streaming property "setters" only have access to the new value, we've
+        // made these lambdas that can access other details about the previous updates to suppress
+        // any duplicates.
+
+        // Note: duplicate packets are expected and not wrong. They may be sent for any number of 
+        // reasons and the contract is that the client handles them in an idempotent manner.
+        auto lastEdited = lastEditedFromBufferAdjusted;
+        auto customUpdatePositionFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedPositionTimestamp;
+            bool valueChanged = value != _lastUpdatedPositionValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updatePositionFromNetwork(value);
+                _lastUpdatedPositionTimestamp = lastEdited;
+                _lastUpdatedPositionValue = value;
+            }
+        };
+
+        auto customUpdateRotationFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::quat value){
+            bool simulationChanged = lastEdited > _lastUpdatedRotationTimestamp;
+            bool valueChanged = value != _lastUpdatedRotationValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateRotationFromNetwork(value);
+                _lastUpdatedRotationTimestamp = lastEdited;
+                _lastUpdatedRotationValue = value;
+            }
+        };
+
+        auto customUpdateVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedVelocityTimestamp;
+            bool valueChanged = value != _lastUpdatedVelocityValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateVelocityFromNetwork(value);
+                _lastUpdatedVelocityTimestamp = lastEdited;
+                _lastUpdatedVelocityValue = value;
+            }
+        };
+
+        auto customUpdateAngularVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedAngularVelocityTimestamp;
+            bool valueChanged = value != _lastUpdatedAngularVelocityValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateAngularVelocityFromNetwork(value);
+                _lastUpdatedAngularVelocityTimestamp = lastEdited;
+                _lastUpdatedAngularVelocityValue = value;
+            }
+        };
+
+        auto customSetAcceleration = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedAccelerationTimestamp;
+            bool valueChanged = value != _lastUpdatedAccelerationValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                setAcceleration(value);
+                _lastUpdatedAccelerationTimestamp = lastEdited;
+                _lastUpdatedAccelerationValue = value;
+            }
+        };
+
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
+
+
     }
 
     READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
@@ -919,13 +987,11 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     #endif
 
-    if (!hasActions()) {
-        if (!stepKinematicMotion(timeElapsed)) {
-            // this entity is no longer moving
-            // flag it to transition from KINEMATIC to STATIC
-            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-            setAcceleration(Vectors::ZERO);
-        }
+    if (!stepKinematicMotion(timeElapsed)) {
+        // this entity is no longer moving
+        // flag it to transition from KINEMATIC to STATIC
+        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        setAcceleration(Vectors::ZERO);
     }
     _lastSimulated = now;
 }
@@ -1093,6 +1159,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._id = getID();
     properties._idSet = true;
     properties._created = _created;
+    properties.setClientOnly(_clientOnly);
+    properties.setOwningAvatarID(_owningAvatarID);
 
     properties._type = getType();
 
@@ -1132,6 +1200,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(clientOnly, getClientOnly);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
 
     properties._defaultSettings = false;
 
@@ -1221,6 +1292,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(clientOnly, setClientOnly);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     AACube saveQueryAACube = _queryAACube;
     checkAndAdjustQueryAACube();
@@ -1528,14 +1602,20 @@ void EntityItem::updateMass(float mass) {
 void EntityItem::updateVelocity(const glm::vec3& value) {
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
-        const float MIN_LINEAR_SPEED = 0.001f;
-        if (glm::length(value) < MIN_LINEAR_SPEED) {
-            velocity = ENTITY_ITEM_ZERO_VEC3;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (velocity != Vectors::ZERO) {
+                setLocalVelocity(Vectors::ZERO);
+            }
         } else {
-            velocity = value;
+            const float MIN_LINEAR_SPEED = 0.001f;
+            if (glm::length(value) < MIN_LINEAR_SPEED) {
+                velocity = ENTITY_ITEM_ZERO_VEC3;
+            } else {
+                velocity = value;
+            }
+            setLocalVelocity(velocity);
+            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
-        setLocalVelocity(velocity);
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
 }
 
@@ -1556,22 +1636,30 @@ void EntityItem::updateDamping(float value) {
 
 void EntityItem::updateGravity(const glm::vec3& value) {
     if (_gravity != value) {
-        _gravity = value;
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            _gravity = Vectors::ZERO;
+        } else {
+            _gravity = value;
+            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+        }
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
-        const float MIN_ANGULAR_SPEED = 0.0002f;
-        if (glm::length(value) < MIN_ANGULAR_SPEED) {
-            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            setLocalAngularVelocity(Vectors::ZERO);
         } else {
-            angularVelocity = value;
+            const float MIN_ANGULAR_SPEED = 0.0002f;
+            if (glm::length(value) < MIN_ANGULAR_SPEED) {
+                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            } else {
+                angularVelocity = value;
+            }
+            setLocalAngularVelocity(angularVelocity);
+            _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
-        setLocalAngularVelocity(angularVelocity);
-        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
 }
 
@@ -1605,9 +1693,17 @@ void EntityItem::updateCollisionMask(uint8_t value) {
 }
 
 void EntityItem::updateDynamic(bool value) {
-    if (_dynamic != value) {
-        _dynamic = value;
-        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+    if (getDynamic() != value) {
+        // dynamic and STATIC_MESH are incompatible so we check for that case
+        if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (_dynamic) {
+                _dynamic = false;
+                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            }
+        } else {
+            _dynamic = value;
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        }
     }
 }
 
@@ -1657,7 +1753,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
     } else {
-        if (_dynamic) {
+        if (getDynamic()) {
             group = BULLET_COLLISION_GROUP_DYNAMIC;
         } else if (isMovingRelativeToParent() || hasActions()) {
             group = BULLET_COLLISION_GROUP_KINEMATIC;

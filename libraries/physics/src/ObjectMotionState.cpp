@@ -203,35 +203,37 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
         }
     }
 
-    if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
-        btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
-            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+    if (_body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
+            btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
+                if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
-        }
-        _body->setLinearVelocity(newLinearVelocity);
+            _body->setLinearVelocity(newLinearVelocity);
 
-        btVector3 newGravity = glmToBullet(getObjectGravity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newGravity - _body->getGravity()).length();
-            if (delta > ACTIVATION_GRAVITY_DELTA ||
-                    (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            btVector3 newGravity = glmToBullet(getObjectGravity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newGravity - _body->getGravity()).length();
+                if (delta > ACTIVATION_GRAVITY_DELTA ||
+                        (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
+            _body->setGravity(newGravity);
         }
-        _body->setGravity(newGravity);
-    }
-    if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
-        btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
-            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
+            btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
+                if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
+            _body->setAngularVelocity(newAngularVelocity);
         }
-        _body->setAngularVelocity(newAngularVelocity);
     }
 
     if (flags & Simulation::DIRTY_MATERIAL) {

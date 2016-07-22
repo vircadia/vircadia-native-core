@@ -196,7 +196,7 @@ bool AssetMappingModel::isKnownFolder(QString path) const {
     return false;
 }
 
-static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
+int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
 void AssetMappingModel::refresh() {
     qDebug() << "Refreshing asset mapping model";

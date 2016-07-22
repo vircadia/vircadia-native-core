@@ -5,18 +5,31 @@
 //  deferred_light.vert
 //  vertex shader
 //
-//  Created by Andrzej Kapolka on 9/18/14.
+//  Created by Sam Gateau on 6/16/16.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Inputs.slh@>
-
 out vec2 _texCoord0;
 
+uniform vec4 texcoordFrameTransform;
+
 void main(void) {
-    _texCoord0 = inTexCoord0.st;
-    gl_Position = inPosition;
+    const float depth = 1.0;
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    _texCoord0 = (pos.xy + 1) * 0.5;
+
+    _texCoord0 *= texcoordFrameTransform.zw;
+    _texCoord0 += texcoordFrameTransform.xy;
+
+    gl_Position = pos;
 }

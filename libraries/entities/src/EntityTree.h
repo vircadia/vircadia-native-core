@@ -62,6 +62,9 @@ public:
 
     void createRootElement();
 
+
+    void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
+
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
 
@@ -207,6 +210,7 @@ public:
                             bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
 
+    glm::vec3 getContentsDimensions();
     float getContentsLargestDimension();
 
     virtual void resetEditStats() override {
@@ -250,6 +254,8 @@ public:
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
+
+    static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
 public slots:
     void callLoader(EntityItemID entityID);
@@ -330,6 +336,8 @@ protected:
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
+
+    float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 };
 
 #endif // hifi_EntityTree_h

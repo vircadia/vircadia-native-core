@@ -12,17 +12,23 @@
 #ifndef hifi_SettingManager_h
 #define hifi_SettingManager_h
 
-#include <QPointer>
-#include <QSettings>
-#include <QTimer>
+#include <QtCore/QPointer>
+#include <QtCore/QSettings>
+#include <QtCore/QTimer>
+#include <QtCore/QUuid>
 
+#include "DependencyManager.h"
 #include "shared/ReadWriteLockable.h"
 
 namespace Setting {
     class Interface;
 
-    class Manager : public QSettings, public ReadWriteLockable {
+    class Manager : public QSettings, public ReadWriteLockable, public Dependency {
         Q_OBJECT
+
+    public:
+        void customDeleter() override;
+
     protected:
         ~Manager();
         void registerHandle(Interface* handle);
@@ -40,6 +46,8 @@ namespace Setting {
     private:
         QHash<QString, Interface*> _handles;
         QPointer<QTimer> _saveTimer = nullptr;
+        const QVariant UNSET_VALUE { QUuid::createUuid().variant() };
+        QHash<QString, QVariant> _pendingChanges;
 
         friend class Interface;
         friend void cleanupPrivateInstance();

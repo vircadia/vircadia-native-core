@@ -34,10 +34,11 @@ protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
 
-    Q_INVOKABLE void loadAddress(const QString& address);
+    Q_INVOKABLE void loadAddress(const QString& address, bool fromSuggestions = false);
     Q_INVOKABLE void loadHome();
     Q_INVOKABLE void loadBack();
     Q_INVOKABLE void loadForward();
+    Q_INVOKABLE void observeShownChanged(bool visible);
 
     bool _backEnabled;
     bool _forwardEnabled;

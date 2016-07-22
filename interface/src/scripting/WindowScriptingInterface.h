@@ -45,10 +45,15 @@ public slots:
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
-    void domainConnectionRefused(const QString& reason);
+    void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
+    void snapshotTaken(const QString& path);
 
 private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+
+private:
+    QString getPreviousBrowseLocation() const;
+    void setPreviousBrowseLocation(const QString& location);
 };
 
 #endif // hifi_WindowScriptingInterface_h

@@ -981,7 +981,7 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
             PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
             EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
             if (packetSender) {
-                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, tree, entity->getID(), properties);
             }
         });
     });
@@ -1198,7 +1198,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     QtConcurrent::run([entity, voxelSurfaceStyle, voxelVolumeSize, mesh] {
         auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
-        QVector<QVector<glm::vec3>> points;
+        QVector<QVector<glm::vec3>> pointCollection;
         AABox box;
         glm::mat4 vtoM = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->voxelToLocalMatrix();
 
@@ -1207,7 +1207,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
             // pull each triangle in the mesh into a polyhedron which can be collided with
             unsigned int i = 0;
 
-            const gpu::BufferView vertexBufferView = mesh->getVertexBuffer();
+            const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
             const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
 
             gpu::BufferView::Iterator<const uint32_t> it = indexBufferView.cbegin<uint32_t>();
@@ -1241,9 +1241,9 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
                 pointsInPart << p3Model;
                 // add next convex hull
                 QVector<glm::vec3> newMeshPoints;
-                points << newMeshPoints;
+                pointCollection << newMeshPoints;
                 // add points to the new convex hull
-                points[i++] << pointsInPart;
+                pointCollection[i++] << pointsInPart;
             }
         } else {
             unsigned int i = 0;
@@ -1299,19 +1299,19 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
                     // add next convex hull
                     QVector<glm::vec3> newMeshPoints;
-                    points << newMeshPoints;
+                    pointCollection << newMeshPoints;
                     // add points to the new convex hull
-                    points[i++] << pointsInPart;
+                    pointCollection[i++] << pointsInPart;
                 }
             });
         }
-        polyVoxEntity->setCollisionPoints(points, box);
+        polyVoxEntity->setCollisionPoints(pointCollection, box);
     });
 }
 
-void RenderablePolyVoxEntityItem::setCollisionPoints(const QVector<QVector<glm::vec3>> points, AABox box) {
+void RenderablePolyVoxEntityItem::setCollisionPoints(ShapeInfo::PointCollection pointCollection, AABox box) {
     // this catches the payload from computeShapeInfoWorker
-    if (points.isEmpty()) {
+    if (pointCollection.isEmpty()) {
         EntityItem::computeShapeInfo(_shapeInfo);
         return;
     }
@@ -1325,7 +1325,7 @@ void RenderablePolyVoxEntityItem::setCollisionPoints(const QVector<QVector<glm::
                 QString::number(_registrationPoint.y) + "," +
                 QString::number(_registrationPoint.z);
             _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
-            _shapeInfo.setConvexHulls(points);
+            _shapeInfo.setPointCollection(pointCollection);
             _meshDirty = false;
         });
 }

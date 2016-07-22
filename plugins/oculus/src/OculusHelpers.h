@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <gl/OglplusHelpers.h>
+#include <controllers/Forward.h>
 
 void logWarning(const char* what);
 void logFatal(const char* what);
@@ -128,3 +129,7 @@ protected:
 private:
     ovrSession _session;
 };
+
+controller::Pose ovrControllerPoseToHandPose(
+    ovrHandType hand,
+    const ovrPoseStatef& handPose);

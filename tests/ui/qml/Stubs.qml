@@ -24,8 +24,20 @@ Item {
     }
 
     Item {
+        objectName: "GL"
+        property string vendor: ""
+    }
+
+    Item {
         objectName: "ApplicationCompositor"
         property bool reticleOverDesktop: true
+    }
+
+    Item {
+        objectName: "Controller"
+        function getRecommendedOverlayRect() {
+            return Qt.rect(0, 0, 1920, 1080);
+        }
     }
 
     Item {

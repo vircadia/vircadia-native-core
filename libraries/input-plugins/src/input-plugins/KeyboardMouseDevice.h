@@ -65,12 +65,11 @@ public:
     };
 
     // Plugin functions
-    virtual bool isSupported() const override { return true; }
-    virtual bool isJointController() const override { return false; }
-    virtual const QString& getName() const override { return NAME; }
+    bool isSupported() const override { return true; }
+    const QString& getName() const override { return NAME; }
 
-    virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -85,6 +84,8 @@ public:
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+
+    static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
     
     static const QString NAME;
 
@@ -97,7 +98,7 @@ protected:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 
         // Let's make it easy for Qt because we assume we love Qt forever
@@ -123,6 +124,8 @@ protected:
     bool _isTouching = false;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
+
+    static bool _enableTouch;
 };
 
 #endif // hifi_KeyboardMouseDevice_h

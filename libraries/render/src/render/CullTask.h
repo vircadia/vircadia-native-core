@@ -140,16 +140,6 @@ namespace render {
         int getNumItems() { return numItems; }
     };
 
-    template < class T, int NUM >
-    class VaryingArray : public std::array<Varying, NUM> {
-    public:
-        VaryingArray() {
-            for (size_t i = 0; i < NUM; i++) {
-                (*this)[i] = Varying(T());
-            }
-        }
-    };
-
     template <int NUM_FILTERS>
     class MultiFilterItem {
     public:

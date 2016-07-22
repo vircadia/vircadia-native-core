@@ -16,6 +16,7 @@
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<@include LightingModel.slh@>
 
 in vec2 _texCoord0;
 in vec3 _color;
@@ -26,7 +27,7 @@ out vec4 _fragColor;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -35,5 +36,5 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    _fragColor = vec4(albedo, opacity);
+    _fragColor = vec4(albedo * isUnlitEnabled(), opacity);
 }

@@ -14,9 +14,14 @@
 
 <@include DeferredBufferRead.slh@>
 
-uniform sampler2D pyramidMap;
+uniform sampler2D linearDepthMap;
+uniform sampler2D halfLinearDepthMap;
+uniform sampler2D halfNormalMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
+uniform sampler2D curvatureMap;
+uniform sampler2D diffusedCurvatureMap;
+uniform sampler2D scatteringMap;
 
 in vec2 uv;
 out vec4 outFragColor;

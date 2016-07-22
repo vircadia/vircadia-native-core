@@ -13,10 +13,11 @@
 //
 
 <@include DeferredBufferWrite.slh@>
+<@include LightingModel.slh@>
 <@include model/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+<$declareMaterialTextures(ALBEDO)$>
 
 in vec2 _texCoord0;
 in vec3 _normal;
@@ -27,7 +28,7 @@ void main(void) {
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -40,5 +41,5 @@ void main(void) {
     packDeferredFragmentUnlit(
         normalize(_normal), 
         opacity,
-        albedo);
+        albedo * isUnlitEnabled());
 }

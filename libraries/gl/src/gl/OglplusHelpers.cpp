@@ -45,9 +45,11 @@ in vec2 vTexCoord;
 out vec4 FragColor;
 
 void main() {
-
     FragColor = texture(sampler, vTexCoord);
     FragColor.a *= alpha;
+    if (FragColor.a <= 0.0) {
+        discard;
+    }
 }
 
 )FS";
@@ -83,6 +85,36 @@ ProgramPtr loadCubemapShader() {
     ProgramPtr result;
     compileProgram(result, SIMPLE_TEXTURED_VS, SIMPLE_TEXTURED_CUBEMAP_FS);
     return result;
+}
+
+void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& gs, const std::string& fs) {
+    using namespace oglplus;
+    try {
+        result = std::make_shared<Program>();
+        // attach the shaders to the program
+        result->AttachShader(
+            VertexShader()
+            .Source(GLSLSource(vs))
+            .Compile()
+            );
+        result->AttachShader(
+            GeometryShader()
+            .Source(GLSLSource(gs))
+            .Compile()
+            );
+        result->AttachShader(
+            FragmentShader()
+            .Source(GLSLSource(fs))
+            .Compile()
+            );
+        result->Link();
+    } catch (ProgramBuildError& err) {
+        Q_UNUSED(err);
+        qWarning() << err.Log().c_str();
+        Q_ASSERT_X(false, "compileProgram", "Failed to build shader program");
+        qFatal("%s", (const char*)err.Message);
+        result.reset();
+    }
 }
 
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs) {
@@ -357,6 +389,94 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
     return ShapeWrapperPtr(
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
+}
+
+namespace oglplus {
+    namespace shapes {
+
+        class Laser : public DrawingInstructionWriter, public DrawMode {
+        public:
+            using IndexArray = std::vector<GLuint>;
+            using PosArray = std::vector<float>;
+            /// The type of the index container returned by Indices()
+            // vertex positions
+            PosArray _pos_data;
+            IndexArray _idx_data;
+            unsigned int _prim_count { 0 };
+
+        public:
+            Laser() {
+                int vertices = 2;
+                _pos_data.resize(vertices * 3);
+                _pos_data[0] = 0;
+                _pos_data[1] = 0;
+                _pos_data[2] = 0;
+
+                _pos_data[3] = 0;
+                _pos_data[4] = 0;
+                _pos_data[5] = -1;
+
+                _idx_data.push_back(0);
+                _idx_data.push_back(1);
+                _prim_count = 1;
+            }
+
+            /// Returns the winding direction of faces
+            FaceOrientation FaceWinding(void) const {
+                return FaceOrientation::CCW;
+            }
+
+            /// Queries the bounding sphere coordinates and dimensions
+            template <typename T>
+            void BoundingSphere(Sphere<T>& bounding_sphere) const {
+                bounding_sphere = Sphere<T>(0, 0, -0.5, 0.5);
+            }
+
+            typedef GLuint(Laser::*VertexAttribFunc)(std::vector<GLfloat>&) const;
+
+            /// Makes the vertex positions and returns the number of values per vertex
+            template <typename T>
+            GLuint Positions(std::vector<T>& dest) const {
+                dest.clear();
+                dest.insert(dest.begin(), _pos_data.begin(), _pos_data.end());
+                return 3;
+            }
+
+            typedef VertexAttribsInfo<
+                Laser,
+                std::tuple<VertexPositionsTag>
+            > VertexAttribs;
+
+
+            /// Returns element indices that are used with the drawing instructions
+            const IndexArray & Indices(Default = Default()) const {
+                return _idx_data;
+            }
+
+            /// Returns the instructions for rendering of faces
+            DrawingInstructions Instructions(PrimitiveType primitive) const {
+                DrawingInstructions instr = MakeInstructions();
+                DrawOperation operation;
+                operation.method = DrawOperation::Method::DrawElements;
+                operation.mode = primitive;
+                operation.first = 0;
+                operation.count = _prim_count * 3;
+                operation.restart_index = DrawOperation::NoRestartIndex();
+                operation.phase = 0;
+                AddInstruction(instr, operation);
+                return instr;
+            }
+
+            /// Returns the instructions for rendering of faces
+            DrawingInstructions Instructions(Default = Default()) const {
+                return Instructions(PrimitiveType::Lines);
+            }
+        };
+    }
+}
+
+ShapeWrapperPtr loadLaser(const ProgramPtr& program) {
+    return std::make_shared<shapes::ShapeWrapper>(shapes::ShapeWrapper("Position", shapes::Laser(), *program));
 }
 
 void TextureRecycler::setSize(const uvec2& size) {

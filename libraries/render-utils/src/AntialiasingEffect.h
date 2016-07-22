@@ -26,11 +26,11 @@ public:
 class Antialiasing {
 public:
     using Config = AntiAliasingConfig;
-    using JobModel = render::Job::Model<Antialiasing, Config>;
+    using JobModel = render::Job::ModelI<Antialiasing, gpu::FramebufferPointer, Config>;
 
     Antialiasing();
     void configure(const Config& config) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();

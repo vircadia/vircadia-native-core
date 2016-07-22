@@ -38,7 +38,7 @@ const float MAGNIFY_MULT = 2.0f;
 class CompositorHelper : public QObject, public Dependency {
     Q_OBJECT
 
-    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha)
+    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha NOTIFY alphaChanged)
     Q_PROPERTY(bool reticleOverDesktop READ getReticleOverDesktop WRITE setReticleOverDesktop)
 public:
     static const uvec2 VIRTUAL_SCREEN_SIZE;
@@ -75,12 +75,8 @@ public:
     void setModelTransform(const Transform& transform) { _modelTransform = transform; }
     const Transform& getModelTransform() const { return _modelTransform; }
 
-    void fadeIn();
-    void fadeOut();
-    void toggle();
-
     float getAlpha() const { return _alpha; }
-    void setAlpha(float alpha) { _alpha = alpha; }
+    void setAlpha(float alpha) { if (alpha != _alpha) { emit alphaChanged();  _alpha = alpha; } }
 
     bool getReticleVisible() const { return _reticleVisible; }
     void setReticleVisible(bool visible) { _reticleVisible = visible; }
@@ -113,10 +109,11 @@ public:
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
-    void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; _currentFrame = frame;  }
+    void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }
 
 signals:
     void allowMouseCaptureChanged();
+    void alphaChanged();
 
 protected slots:
     void sendFakeMouseEvent();
@@ -127,7 +124,6 @@ private:
 
     DisplayPluginPointer _currentDisplayPlugin;
     glm::mat4 _currentCamera;
-    uint32_t _currentFrame { 0 };
     QWidget* _renderingWidget{ nullptr };
 
     //// Support for hovering and tooltips
@@ -144,16 +140,7 @@ private:
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 
     float _alpha { 1.0f };
-    float _prevAlpha { 1.0f };
-    float _fadeInAlpha { true };
-    float _oculusUIRadius { 1.0f };
-
-    quint64 _fadeStarted { 0 };
-    float _fadeFailsafeEndValue { 1.0f };
-    void checkFadeFailsafe();
-    void startFadeFailsafe(float endValue);
-
-    int _reticleQuad;
+    float _hmdUIRadius { 1.0f };
 
     int _previousBorderWidth { -1 };
     int _previousBorderHeight { -1 };
@@ -187,7 +174,7 @@ private:
 // Scripting interface available to control the Reticle
 class ReticleInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(QVariant position READ getPosition WRITE setPosition)
     Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
@@ -211,8 +198,8 @@ public:
     Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
     Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
 
-    Q_INVOKABLE glm::vec2 getPosition() { return _compositor->getReticlePosition(); }
-    Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
+    Q_INVOKABLE QVariant getPosition() const;
+    Q_INVOKABLE void setPosition(QVariant position);
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
 

@@ -18,17 +18,23 @@ const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device p
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
-    virtual bool isSupported() const override;
-    virtual const QString& getName() const override { return NAME; }
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
 
-    virtual float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+    void init() override;
 
-    virtual void customizeContext() override;
+    float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+
+    void customizeContext() override;
 
     // Stereo specific methods
-    virtual void resetSensors() override;
-    virtual void beginFrameRender(uint32_t frameIndex) override;
+    void resetSensors() override;
+    bool beginFrameRender(uint32_t frameIndex) override;
     void cycleDebugOutput() override { _lockCurrentTexture = !_lockCurrentTexture; }
+
+    bool suppressKeyboard() override;
+    void unsuppressKeyboard() override;
+    bool isKeyboardVisible() override;
 
 protected:
     bool internalActivate() override;
@@ -39,9 +45,10 @@ protected:
     bool isHmdMounted() const override;
     void postPreview() override;
 
+
 private:
     vr::IVRSystem* _system { nullptr };
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
+    std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
     static const QString NAME;
-    mutable Mutex _poseMutex;
 };

@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include([
-    "libraries/toolBars.js",
-]);
-
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
@@ -37,6 +33,8 @@ function showExamples(marketplaceID) {
     print("setting examples URL to " + url);
     examplesWindow.setURL(url);
     examplesWindow.setVisible(true);
+
+    UserActivityLogger.openedMarketplace();
 }
 
 function hideExamples() {
@@ -52,87 +50,30 @@ function toggleExamples() {
     }
 }
 
-var toolBar = (function() {
-    var that = {},
-        toolBar,
-        browseExamplesButton;
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
-    function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
-            return {
-                x: windowDimensions.x / 2,
-                y: windowDimensions.y
-            };
-        }, {
-            x: -toolWidth / 2,
-            y: -TOOLBAR_MARGIN_Y - toolHeight
-        });
-        browseExamplesButton = toolBar.addTool({
-            imageURL: toolIconUrl + "examples-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: true,
-            showButtonDown: true
-        });
+var browseExamplesButton = toolBar.addButton({
+    imageURL: toolIconUrl + "market.svg",
+    objectName: "examples",
+    buttonState: 1,
+    defaultState: 1,
+    hoverState: 3,
+    alpha: 0.9
+});
 
-        toolBar.showTool(browseExamplesButton, true);
-    }
+function onExamplesWindowVisibilityChanged() {
+    browseExamplesButton.writeProperty('buttonState', examplesWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('defaultState', examplesWindow.visible ? 0 : 1);
+    browseExamplesButton.writeProperty('hoverState', examplesWindow.visible ? 2 : 3);
+}
+function onClick() {
+    toggleExamples();
+}
+browseExamplesButton.clicked.connect(onClick);
+examplesWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
 
-    var browseExamplesButtonDown = false;
-    that.mousePressEvent = function(event) {
-        var clickedOverlay,
-            url,
-            file;
-
-        if (!event.isLeftButton) {
-            // if another mouse button than left is pressed ignore it
-            return false;
-        }
-
-        clickedOverlay = Overlays.getOverlayAtPoint({
-            x: event.x,
-            y: event.y
-        });
-
-        if (browseExamplesButton === toolBar.clicked(clickedOverlay)) {
-            toggleExamples();
-            return true;
-        }
-
-        return false;
-    };
-
-    that.mouseReleaseEvent = function(event) {
-        var handled = false;
-
-
-        if (browseExamplesButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-        }
-
-        newModelButtonDown = false;
-        browseExamplesButtonDown = false;
-
-        return handled;
-    }
-
-    that.cleanup = function() {
-        toolBar.cleanup();
-    };
-
-    initialize();
-    return that;
-}());
-
-Controller.mousePressEvent.connect(toolBar.mousePressEvent)
-Script.scriptEnding.connect(toolBar.cleanup);
+Script.scriptEnding.connect(function () {
+    toolBar.removeButton("examples");
+    browseExamplesButton.clicked.disconnect(onClick);
+    examplesWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
+});

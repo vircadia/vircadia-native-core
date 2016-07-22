@@ -15,15 +15,15 @@ import Qt.labs.settings 1.0
 
 import "styles-uit"
 import "controls-uit" as HifiControls
-import "windows-uit"
+import "windows"
 import "dialogs"
 
-Window {
+ScrollingWindow {
     id: root
     objectName: "AssetServer"
     title: "Asset Browser"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
@@ -341,7 +341,7 @@ Window {
 
                 HifiControls.GlyphButton {
                     glyph: hifi.glyphs.reload
-                    color: hifi.buttons.white
+                    color: hifi.buttons.black
                     colorScheme: root.colorScheme
                     width: hifi.dimensions.controlLineHeight
 
@@ -349,8 +349,8 @@ Window {
                 }
 
                 HifiControls.Button {
-                    text: "ADD TO WORLD"
-                    color: hifi.buttons.white
+                    text: "Add To World"
+                    color: hifi.buttons.black
                     colorScheme: root.colorScheme
                     width: 120
 
@@ -360,8 +360,8 @@ Window {
                 }
 
                 HifiControls.Button {
-                    text: "RENAME"
-                    color: hifi.buttons.white
+                    text: "Rename"
+                    color: hifi.buttons.black
                     colorScheme: root.colorScheme
                     width: 80
 
@@ -372,7 +372,7 @@ Window {
                 HifiControls.Button {
                     id: deleteButton
 
-                    text: "DELETE"
+                    text: "Delete"
                     color: hifi.buttons.red
                     colorScheme: root.colorScheme
                     width: 80

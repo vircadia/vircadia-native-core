@@ -36,15 +36,15 @@ SpinBox {
         id: spinStyle
         background: Rectangle {
             color: isLightColorScheme
-                   ? (spinBox.focus ? hifi.colors.white : hifi.colors.lightGray)
-                   : (spinBox.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
+                   ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
+                   : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
-            border.width: spinBox.focus ? spinBoxLabelInside.visible ? 2 : 1 : 0
+            border.width: spinBox.activeFocus ? spinBoxLabelInside.visible ? 2 : 1 : 0
         }
 
         textColor: isLightColorScheme
-                   ? (spinBox.focus ? hifi.colors.black : hifi.colors.lightGray)
-                   : (spinBox.focus ? hifi.colors.white : hifi.colors.lightGrayText)
+                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+                   : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
 
@@ -56,7 +56,7 @@ SpinBox {
         incrementControl: HiFiGlyphs {
             id: incrementButton
             text: hifi.glyphs.caratUp
-            x: 6
+            x: 10
             y: 1
             size: hifi.dimensions.spinnerSize
             color: styleData.upPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
@@ -64,8 +64,8 @@ SpinBox {
 
         decrementControl: HiFiGlyphs {
             text: hifi.glyphs.caratDn
-            x: 6
-            y: -3
+            x: 10
+            y: -1
             size: hifi.dimensions.spinnerSize
             color: styleData.downPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
@@ -96,7 +96,7 @@ SpinBox {
         anchors.fill: parent
         propagateComposedEvents: true
         onWheel: {
-            if(spinBox.focus)
+            if(spinBox.activeFocus)
                 wheel.accepted = false
             else
                 wheel.accepted = true

@@ -52,7 +52,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     batch.setModelTransform(Transform()); // only for Mac
 
     auto& procedural = skybox._procedural;
-    procedural.prepare(batch, glm::vec3(0), glm::vec3(1));
+    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
     auto textureSlot = procedural.getShader()->getTextures().findLocation("cubeMap");
     auto bufferSlot = procedural.getShader()->getBuffers().findLocation("skyboxBuffer");
     skybox.prepare(batch, textureSlot, bufferSlot);

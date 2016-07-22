@@ -18,6 +18,7 @@ struct TransformCamera {
     mat4 _projection;
     mat4 _projectionInverse;
     vec4 _viewport;
+    vec4 _stereoInfo;
 };
 
 layout(std140) uniform transformCameraBuffer {
@@ -27,6 +28,20 @@ layout(std140) uniform transformCameraBuffer {
 TransformCamera getTransformCamera() {
     return _camera;
 }
+
+vec3 getEyeWorldPos() {
+    return _camera._viewInverse[3].xyz;
+}
+
+
+bool cam_isStereo() {
+    return _camera._stereoInfo.x > 0.0;
+}
+
+float cam_getStereoSide() {
+    return _camera._stereoInfo.y;
+}
+
 <@endfunc@>
 
 
@@ -119,6 +134,15 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToWorldDir(cameraTransform, objectTransform, modelDir, worldDir)@>
+    { // transformModelToEyeDir
+        vec3 mr0 = <$objectTransform$>._modelInverse[0].xyz;
+        vec3 mr1 = <$objectTransform$>._modelInverse[1].xyz;
+        vec3 mr2 = <$objectTransform$>._modelInverse[2].xyz;
+
+        <$worldDir$> = vec3(dot(mr0, <$modelDir$>), dot(mr1, <$modelDir$>), dot(mr2, <$modelDir$>));
+    }
+<@endfunc@>
 
 <@func transformModelToEyeDir(cameraTransform, objectTransform, modelDir, eyeDir)@>
     { // transformModelToEyeDir

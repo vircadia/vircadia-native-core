@@ -24,6 +24,7 @@
 
 out vec4 _position;
 out vec2 _texCoord0;
+out vec2 _texCoord1;
 out vec3 _normal;
 out vec3 _color;
 out float _alpha;
@@ -40,11 +41,11 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    _normal = interpolatedNormal.xyz;
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normal.xyz)$>
 }

@@ -9,27 +9,33 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SettingInterface.h"
+
 #include <QCoreApplication>
 #include <QDebug>
 #include <QFile>
 #include <QThread>
 
 #include "PathUtils.h"
-#include "SettingInterface.h"
 #include "SettingManager.h"
 #include "SharedLogging.h"
 
 namespace Setting {
-    static Manager* privateInstance = nullptr;
+    static QSharedPointer<Manager> globalManager;
     
+    const QString Interface::FIRST_RUN { "firstRun" };
+
     // cleans up the settings private instance. Should only be run once at closing down.
     void cleanupPrivateInstance() {
         // grab the thread before we nuke the instance
-        QThread* settingsManagerThread = privateInstance->thread();
-        
+        QThread* settingsManagerThread = DependencyManager::get<Manager>()->thread();
+
         // tell the private instance to clean itself up on its thread
-        privateInstance->deleteLater();
-        privateInstance = NULL;
+        DependencyManager::destroy<Manager>();
+
+        //
+        globalManager->deleteLater();
+        globalManager.reset();
         
         // quit the settings manager thread and wait on it to make sure it's gone
         settingsManagerThread->quit();
@@ -63,14 +69,13 @@ namespace Setting {
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
         thread->setObjectName("Settings Thread");
-        
-        privateInstance = new Manager();
-        Q_CHECK_PTR(privateInstance);
 
-        QObject::connect(privateInstance, SIGNAL(destroyed()), thread, SLOT(quit()));
-        QObject::connect(thread, SIGNAL(started()), privateInstance, SLOT(startTimer()));
+        globalManager = DependencyManager::set<Manager>();
+
+        QObject::connect(globalManager.data(), SIGNAL(destroyed()), thread, SLOT(quit()));
+        QObject::connect(thread, SIGNAL(started()), globalManager.data(), SLOT(startTimer()));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-        privateInstance->moveToThread(thread);
+        globalManager->moveToThread(thread);
         thread->start();
         qCDebug(shared) << "Settings thread started.";    
 
@@ -79,7 +84,7 @@ namespace Setting {
     }
     
     void Interface::init() {
-        if (!privateInstance) {
+        if (!DependencyManager::isSet<Manager>()) {
             // WARNING: As long as we are using QSettings this should always be triggered for each Setting::Handle
             // in an assignment-client - the QSettings backing we use for this means persistence of these
             // settings from an AC (when there can be multiple terminating at same time on one machine)
@@ -87,9 +92,15 @@ namespace Setting {
             qWarning() << "Setting::Interface::init() for key" << _key << "- Manager not yet created." << 
                 "Settings persistence disabled.";
         } else {
-            // Register Handle
-            privateInstance->registerHandle(this);
-            _isInitialized = true;
+            _manager = DependencyManager::get<Manager>();
+            auto manager = _manager.lock();
+            if (manager) {
+                // Register Handle
+                manager->registerHandle(this);
+                _isInitialized = true;
+            } else {
+                qWarning() << "Settings interface used after manager destroyed";
+            }
         
             // Load value from disk
             load();
@@ -97,30 +108,34 @@ namespace Setting {
     }
 
     void Interface::deinit() {
-        if (privateInstance) {
-            // Save value to disk
-            save();
-
-            privateInstance->removeHandle(_key);
+        if (_isInitialized && _manager) {
+            auto manager = _manager.lock();
+            if (manager) {
+                // Save value to disk
+                save();
+                manager->removeHandle(_key);
+            }
         }
     }
 
     
-    void Interface::maybeInit() {
+    void Interface::maybeInit() const {
         if (!_isInitialized) {
-            init();
+            const_cast<Interface*>(this)->init();
         }
     }
     
     void Interface::save() {
-        if (privateInstance) {
-            privateInstance->saveSetting(this);
+        auto manager = _manager.lock();
+        if (manager) {
+            manager->saveSetting(this);
         }
     }
     
     void Interface::load() {
-        if (privateInstance) {
-            privateInstance->loadSetting(this);
+        auto manager = _manager.lock();
+        if (manager) {
+            manager->loadSetting(this);
         }
     }
 }

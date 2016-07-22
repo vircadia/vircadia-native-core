@@ -23,3 +23,4 @@ void TaskConfig::refresh() {
 
     _task->configure(*this);
 }
+

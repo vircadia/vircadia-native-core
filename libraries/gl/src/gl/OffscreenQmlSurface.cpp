@@ -396,6 +396,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     _renderer->_renderControl->_renderWindow = _proxyWindow;
 
+    connect(_renderer->_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
     if (!_qmlEngine->incubationController()) {
@@ -414,7 +416,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _updateTimer.start();
 }
 
-void OffscreenQmlSurface::resize(const QSize& newSize_) {
+void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
     if (!_renderer || !_renderer->_quickWindow) {
         return;
@@ -433,7 +435,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_) {
     }
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();
-    if (newSize == currentSize) {
+    if (newSize == currentSize && !forceResize) {
         return;
     }
 
@@ -716,9 +718,9 @@ QQmlContext* OffscreenQmlSurface::getRootContext() {
 }
 
 Q_DECLARE_METATYPE(std::function<void()>);
-static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
 Q_DECLARE_METATYPE(std::function<QVariant()>);
-static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
 
 
 void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
@@ -741,4 +743,22 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     }
 
     return function();
+}
+
+void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    if (!object) {
+        setFocusText(false);
+        return;
+    }
+
+    QInputMethodQueryEvent query(Qt::ImEnabled);
+    qApp->sendEvent(object, &query);
+    setFocusText(query.value(Qt::ImEnabled).toBool());
+}
+
+void OffscreenQmlSurface::setFocusText(bool newFocusText) {
+    if (newFocusText != _focusText) {
+        _focusText = newFocusText;
+        emit focusTextChanged(_focusText);
+    }
 }

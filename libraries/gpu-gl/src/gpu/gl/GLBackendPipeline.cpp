@@ -9,53 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackend.h"
-#include "GLBackendShared.h"
+#include "GLShared.h"
+#include "GLPipeline.h"
+#include "GLShader.h"
+#include "GLState.h"
+#include "GLBuffer.h"
+#include "GLTexture.h"
 
 using namespace gpu;
 using namespace gpu::gl;
-
-GLBackend::GLPipeline::GLPipeline() :
-    _program(nullptr),
-    _state(nullptr)
-{}
-
-GLBackend::GLPipeline::~GLPipeline() {
-    _program = nullptr;
-    _state = nullptr;
-}
-
-GLBackend::GLPipeline* GLBackend::syncGPUObject(const Pipeline& pipeline) {
-    GLPipeline* object = Backend::getGPUObject<GLBackend::GLPipeline>(pipeline);
-
-    // If GPU object already created then good
-    if (object) {
-        return object;
-    }
-
-    // No object allocated yet, let's see if it's worth it...
-    ShaderPointer shader = pipeline.getProgram();
-    GLShader* programObject = GLBackend::syncGPUObject((*shader));
-    if (programObject == nullptr) {
-        return nullptr;
-    }
-
-    StatePointer state = pipeline.getState();
-    GLState* stateObject = GLBackend::syncGPUObject((*state));
-    if (stateObject == nullptr) {
-        return nullptr;
-    }
-
-    // Program and state are valid, we can create the pipeline object
-    if (!object) {
-        object = new GLPipeline();
-        Backend::setGPUObject(pipeline, object);
-    }
-
-    object->_program = programObject;
-    object->_state = stateObject;
-
-    return object;
-}
 
 void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
     PipelinePointer pipeline = batch._pipelines.get(batch._params[paramOffset + 0]._uint);
@@ -78,7 +40,7 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         _pipeline._state = nullptr;
         _pipeline._invalidState = true;
     } else {
-        auto pipelineObject = syncGPUObject((*pipeline));
+        auto pipelineObject = GLPipeline::sync(*pipeline);
         if (!pipelineObject) {
             return;
         }
@@ -155,14 +117,12 @@ void GLBackend::resetPipelineStage() {
     glUseProgram(0);
 }
 
-
 void GLBackend::releaseUniformBuffer(uint32_t slot) {
     auto& buf = _uniform._buffers[slot];
     if (buf) {
-        auto* object = Backend::getGPUObject<GLBackend::GLBuffer>(*buf);
+        auto* object = Backend::getGPUObject<GLBuffer>(*buf);
         if (object) {
             glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0); // RELEASE
-
             (void) CHECK_GL_ERROR();
         }
         buf.reset();
@@ -181,9 +141,6 @@ void GLBackend::do_setUniformBuffer(Batch& batch, size_t paramOffset) {
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
-
-
-
     if (!uniformBuffer) {
         releaseUniformBuffer(slot);
         return;
@@ -195,7 +152,7 @@ void GLBackend::do_setUniformBuffer(Batch& batch, size_t paramOffset) {
     }
 
     // Sync BufferObject
-    auto* object = GLBackend::syncGPUObject(*uniformBuffer);
+    auto* object = syncGPUObject(*uniformBuffer);
     if (object) {
         glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, rangeStart, rangeSize);
 
@@ -210,18 +167,16 @@ void GLBackend::do_setUniformBuffer(Batch& batch, size_t paramOffset) {
 void GLBackend::releaseResourceTexture(uint32_t slot) {
     auto& tex = _resource._textures[slot];
     if (tex) {
-        auto* object = Backend::getGPUObject<GLBackend::GLTexture>(*tex);
+        auto* object = Backend::getGPUObject<GLTexture>(*tex);
         if (object) {
             GLuint target = object->_target;
             glActiveTexture(GL_TEXTURE0 + slot);
             glBindTexture(target, 0); // RELEASE
-
             (void) CHECK_GL_ERROR();
         }
         tex.reset();
     }
 }
-
 
 void GLBackend::resetResourceStage() {
     for (uint32_t i = 0; i < _resource._textures.size(); i++) {
@@ -246,7 +201,7 @@ void GLBackend::do_setResourceTexture(Batch& batch, size_t paramOffset) {
     _stats._RSNumTextureBounded++;
 
     // Always make sure the GLObject is in sync
-    GLTexture* object = GLBackend::syncGPUObject(resourceTexture);
+    GLTexture* object = syncGPUObject(resourceTexture);
     if (object) {
         GLuint to = object->_texture;
         GLuint target = object->_target;

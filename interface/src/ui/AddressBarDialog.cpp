@@ -16,6 +16,7 @@
 
 #include "DependencyManager.h"
 #include "AddressManager.h"
+#include "DialogsManager.h"
 
 HIFI_QML_DEF(AddressBarDialog)
 
@@ -39,10 +40,10 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
 }
 
-void AddressBarDialog::loadAddress(const QString& address) {
+void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
-        DependencyManager::get<AddressManager>()->handleLookupString(address);
+        DependencyManager::get<AddressManager>()->handleLookupString(address, fromSuggestions);
     }
 }
 
@@ -74,3 +75,6 @@ void AddressBarDialog::displayAddressNotFoundMessage() {
     OffscreenUi::critical("", "There is no address information for that user or place");
 }
 
+void AddressBarDialog::observeShownChanged(bool visible) {
+    DependencyManager::get<DialogsManager>()->emitAddressBarShown(visible);
+}

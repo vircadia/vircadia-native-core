@@ -144,19 +144,21 @@ public:
 
     bool hasAncestorOfType(NestableType nestableType);
 
+    void getLocalTransformAndVelocities(Transform& localTransform,
+                                        glm::vec3& localVelocity,
+                                        glm::vec3& localAngularVelocity) const;
+
+    void setLocalTransformAndVelocities(
+            const Transform& localTransform,
+            const glm::vec3& localVelocity,
+            const glm::vec3& localAngularVelocity);
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer(bool& success) const;
-
-    void getLocalTransformAndVelocities(Transform& localTransform, glm::vec3& localVelocity, glm::vec3& localAngularVelocity) const;
-
-    void setLocalTransformAndVelocities(
-            const Transform& localTransform,
-            const glm::vec3& localVelocity,
-            const glm::vec3& localAngularVelocity);
 
     mutable SpatiallyNestableWeakPointer _parent;
 

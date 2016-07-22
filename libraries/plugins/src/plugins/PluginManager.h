@@ -13,10 +13,21 @@
 
 class PluginManager : public QObject {
 public:
-  static PluginManager* getInstance();
-  PluginManager();
+    static PluginManager* getInstance();
+    PluginManager();
 
-  const DisplayPluginList& getDisplayPlugins();
-  const InputPluginList& getInputPlugins();
-  void saveSettings();
+    const DisplayPluginList& getDisplayPlugins();
+    const InputPluginList& getInputPlugins();
+    const CodecPluginList& getCodecPlugins();
+
+    DisplayPluginList getPreferredDisplayPlugins();
+    void setPreferredDisplayPlugins(const QStringList& displays);
+
+    void disableDisplayPlugin(const QString& name);
+    void disableDisplays(const QStringList& displays);
+    void disableInputs(const QStringList& inputs);
+    void saveSettings();
+    void setContainer(PluginContainer* container) { _container = container; }
+private:
+    PluginContainer* _container { nullptr };
 };

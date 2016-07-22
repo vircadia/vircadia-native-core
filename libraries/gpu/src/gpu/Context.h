@@ -95,7 +95,7 @@ public:
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in TransformCamera.slh
+    // UBO class... layout MUST match the layout in Transform.slh
     class TransformCamera {
     public:
         mutable Mat4 _view;
@@ -104,6 +104,7 @@ public:
         Mat4 _projection;
         mutable Mat4 _projectionInverse;
         Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+        mutable Vec4 _stereoInfo;
 
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
         TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;
@@ -231,11 +232,9 @@ typedef std::shared_ptr<Context> ContextPointer;
 
 template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
-    static gpu::Batch::CacheState cacheState;
-    gpu::Batch batch(cacheState);
+    gpu::Batch batch;
     f(batch);
     context->render(batch);
-    cacheState = batch.getCacheState();
 }
 
 };

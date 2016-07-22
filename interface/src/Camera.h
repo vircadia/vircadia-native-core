@@ -29,6 +29,10 @@ enum CameraMode
 };
 
 Q_DECLARE_METATYPE(CameraMode);
+
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((unused))
+#endif
 static int cameraModeId = qRegisterMetaType<CameraMode>();
 
 class Camera : public QObject {
@@ -41,7 +45,7 @@ class Camera : public QObject {
 public:
     Camera();
 
-    void initialize(); // instantly put the camera at the ideal position and rotation. 
+    void initialize(); // instantly put the camera at the ideal position and orientation. 
 
     void update( float deltaTime );
 
@@ -53,24 +57,21 @@ public:
 
     EntityItemPointer getCameraEntityPointer() const { return _cameraEntity; }
 
-public slots:
-    QString getModeString() const;
-    void setModeString(const QString& mode);
-
-    glm::quat getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation);
-
-    glm::vec3 getPosition() const { return _position; }
-    void setPosition(const glm::vec3& position);
-
-    glm::quat getOrientation() const { return getRotation(); }
-    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
-
     const glm::mat4& getTransform() const { return _transform; }
     void setTransform(const glm::mat4& transform);
 
     const glm::mat4& getProjection() const { return _projection; }
     void setProjection(const glm::mat4& projection);
+
+public slots:
+    QString getModeString() const;
+    void setModeString(const QString& mode);
+
+    glm::vec3 getPosition() const { return _position; }
+    void setPosition(const glm::vec3& position);
+
+    glm::quat getOrientation() const { return _orientation; }
+    void setOrientation(const glm::quat& orientation);
 
     QUuid getCameraEntity() const;
     void setCameraEntity(QUuid entityID);
@@ -101,7 +102,7 @@ private:
 
     // derived
     glm::vec3 _position;
-    glm::quat _rotation;
+    glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
     EntityItemPointer _cameraEntity;

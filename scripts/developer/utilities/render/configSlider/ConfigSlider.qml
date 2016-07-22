@@ -40,7 +40,7 @@ Item {
     Label {
         text: sliderControl.value.toFixed(root.integral ? 0 : 2)
         anchors.left: root.left
-        anchors.leftMargin: 140
+        anchors.leftMargin: 200
         anchors.top: root.top
         anchors.topMargin: 7
     }
@@ -56,7 +56,7 @@ Item {
     Slider {
         id: sliderControl
         stepSize: root.integral ? 1.0 : 0.0
-        width: 192
+        width: 150
         height: 20
         anchors.right: root.right
         anchors.rightMargin: 8

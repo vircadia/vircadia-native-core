@@ -84,7 +84,7 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
-    Q_INVOKABLE void stop();
+    Q_INVOKABLE void stop(bool marshal = false);
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
     void waitTillDoneRunning();
@@ -147,6 +147,9 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
+    // this is used by code in ScriptEngines.cpp during the "reload all" operation
+    bool isStopping() const { return _isStopping; }
+
     bool isDebuggable() const { return _debuggable; }
 
     void disconnectNonEssentialSignals();
@@ -189,6 +192,7 @@ protected:
     QString _parentURL;
     std::atomic<bool> _isFinished { false };
     std::atomic<bool> _isRunning { false };
+    std::atomic<bool> _isStopping { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;

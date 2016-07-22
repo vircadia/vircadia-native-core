@@ -1,0 +1,39 @@
+{
+    "Entities": [{
+        "name": "home_model_umbrella",
+        "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+        "collisionMask": 23,
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/umbrella/umbrellaopen_ch.obj",
+        "created": "2016-05-16T22:48:54Z",
+        "dimensions": {
+            "x": 1.2649545669555664,
+            "y": 1.0218980312347412,
+            "z": 1.2649545669555664
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{59f5cc21-c6e8-4deb-a1e2-0364e82fe062}",
+        "modelURL": "atp:/kineticObjects/umbrella/umbrella_open.fbx",
+        "queryAACube": {
+            "scale": 2.0602173805236816,
+            "x": -1.0301086902618408,
+            "y": -1.0301086902618408,
+            "z": -1.0301086902618408
+        },
+        "rotation": {
+            "w": 0.66066992282867432,
+            "x": -0.2207522988319397,
+            "y": 0.64501416683197021,
+            "z": -0.31422901153564453
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

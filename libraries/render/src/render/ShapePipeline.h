@@ -196,10 +196,11 @@ public:
     class Slot {
     public:
         enum BUFFER {
-            SKINNING = 2,
+            SKINNING = 0,
             MATERIAL,
             TEXMAPARRAY,
-            LIGHT
+            LIGHTING_MODEL,
+            LIGHT,
         };
 
         enum MAP {
@@ -209,6 +210,7 @@ public:
             EMISSIVE_LIGHTMAP,
             ROUGHNESS,
             OCCLUSION,
+            SCATTERING,
             LIGHT_AMBIENT,
 
             NORMAL_FITTING = 10,
@@ -224,6 +226,7 @@ public:
         int emissiveTextureUnit;
         int occlusionTextureUnit;
         int normalFittingMapUnit;
+        int lightingModelBufferUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;
         int texMapArrayBufferUnit;

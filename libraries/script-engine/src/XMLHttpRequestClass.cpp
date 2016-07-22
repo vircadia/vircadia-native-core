@@ -140,11 +140,11 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
         _async = async;
 
         if (url.toLower().left(METAVERSE_API_URL.length()) == METAVERSE_API_URL) {
-            AccountManager& accountManager = AccountManager::getInstance();
+            auto accountManager = DependencyManager::get<AccountManager>();
                 
-            if (accountManager.hasValidAccessToken()) {
+            if (accountManager->hasValidAccessToken()) {
                 QUrlQuery urlQuery(_url.query());
-                urlQuery.addQueryItem("access_token", accountManager.getAccountInfo().getAccessToken().token);
+                urlQuery.addQueryItem("access_token", accountManager->getAccountInfo().getAccessToken().token);
                 _url.setQuery(urlQuery);
             }
                 

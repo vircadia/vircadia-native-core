@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptCache.h"
+
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QNetworkAccessManager>
@@ -20,7 +22,7 @@
 #include <assert.h>
 #include <SharedUtil.h>
 
-#include "ScriptCache.h"
+#include "ScriptEngines.h"
 #include "ScriptEngineLogging.h"
 
 ScriptCache::ScriptCache(QObject* parent) {
@@ -78,22 +80,25 @@ void ScriptCache::scriptDownloaded() {
     QList<ScriptUser*> scriptUsers = _scriptUsers.values(url);
     _scriptUsers.remove(url);
 
-    if (req->getResult() == ResourceRequest::Success) {
-        auto scriptContents = req->getData();
-        _scriptCache[url] = scriptContents;
-        lock.unlock();
-        qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
+    if (!DependencyManager::get<ScriptEngines>()->isStopped()) {
+        if (req->getResult() == ResourceRequest::Success) {
+            auto scriptContents = req->getData();
+            _scriptCache[url] = scriptContents;
+            lock.unlock();
+            qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
-        foreach(ScriptUser* user, scriptUsers) {
-            user->scriptContentsAvailable(url, scriptContents);
-        }
-    } else {
-        lock.unlock();
-        qCWarning(scriptengine) << "Error loading script from URL " << url;
-        foreach(ScriptUser* user, scriptUsers) {
-            user->errorInLoadingScript(url);
+            foreach(ScriptUser* user, scriptUsers) {
+                user->scriptContentsAvailable(url, scriptContents);
+            }
+        } else {
+            lock.unlock();
+            qCWarning(scriptengine) << "Error loading script from URL " << url;
+            foreach(ScriptUser* user, scriptUsers) {
+                user->errorInLoadingScript(url);
+            }
         }
     }
+
     req->deleteLater();
 }
 
@@ -162,9 +167,11 @@ void ScriptCache::scriptContentAvailable() {
         }
     }
 
-    foreach(contentAvailableCallback thisCallback, allCallbacks) {
-        thisCallback(url.toString(), scriptContent, true, success);
-    }
     req->deleteLater();
-}
 
+    if (!DependencyManager::get<ScriptEngines>()->isStopped()) {
+        foreach(contentAvailableCallback thisCallback, allCallbacks) {
+            thisCallback(url.toString(), scriptContent, true, success);
+        }
+    }
+}

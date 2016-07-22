@@ -27,7 +27,7 @@
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
-bool CrashHandler::checkForResetSettings() {
+bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings settings;
     settings.beginGroup("Developer");
@@ -41,6 +41,10 @@ bool CrashHandler::checkForResetSettings() {
 
     QFile runningMarkerFile(runningMarkerFilePath());
     bool wasLikelyCrash = runningMarkerFile.exists();
+
+    if (suppressPrompt) {
+        return wasLikelyCrash;
+    }
 
     if (wasLikelyCrash || askToResetSettings) {
         if (displaySettingsResetOnCrash || askToResetSettings) {
