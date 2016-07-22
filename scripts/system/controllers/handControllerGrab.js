@@ -149,10 +149,7 @@ var USE_OVERLAY_LINES_FOR_SEARCHING = true;
 
 var USE_ENTITY_LINES_FOR_MOVING = false;
 var USE_OVERLAY_LINES_FOR_MOVING = false;
-var USE_PARTICLE_BEAM_FOR_MOVING = true;
 
-var USE_SPOTLIGHT = false;
-var USE_POINTLIGHT = false;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ['Unknown', 'Light', 'PolyLine', 'Zone'];
@@ -617,11 +614,8 @@ function MyController(hand) {
 
     // for visualizations
     this.overlayLine = null;
-    this.particleBeamObject = null;
 
     // for lights
-    this.spotlight = null;
-    this.pointlight = null;
     this.overlayLine = null;
     this.searchSphere = null;
 
@@ -843,88 +837,6 @@ function MyController(hand) {
         }
     };
 
-    this.handleDistantParticleBeam = function (handPosition, objectPosition, color) {
-
-        var handToObject = Vec3.subtract(objectPosition, handPosition);
-        var finalRotationObject = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
-        var distance = Vec3.distance(handPosition, objectPosition);
-        var speed = distance * 3;
-        var spread = 0;
-        var lifespan = distance / speed;
-
-        if (this.particleBeamObject === null) {
-            this.createParticleBeam(objectPosition, finalRotationObject, color, speed, spread, lifespan);
-        } else {
-            this.updateParticleBeam(objectPosition, finalRotationObject, color, speed, spread, lifespan);
-        }
-    };
-
-    this.createParticleBeam = function (positionObject, orientationObject, color, speed, spread, lifespan) {
-
-        var particleBeamPropertiesObject = {
-            type: "ParticleEffect",
-            isEmitting: true,
-            position: positionObject,
-            visible: false,
-            lifetime: 60,
-            "name": "Particle Beam",
-            "color": color,
-            "maxParticles": 2000,
-            "lifespan": lifespan,
-            "emitRate": 1000,
-            "emitSpeed": speed,
-            "speedSpread": spread,
-            "emitOrientation": {
-                "x": -1,
-                "y": 0,
-                "z": 0,
-                "w": 1
-            },
-            "emitDimensions": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "emitRadiusStart": 0.5,
-            "polarStart": 0,
-            "polarFinish": 0,
-            "azimuthStart": -3.1415927410125732,
-            "azimuthFinish": 3.1415927410125732,
-            "emitAcceleration": {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            "accelerationSpread": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "particleRadius": 0.015,
-            "radiusSpread": 0.005,
-            "alpha": 1,
-            "alphaSpread": 0,
-            "alphaStart": 1,
-            "alphaFinish": 1,
-            "additiveBlending": 0,
-            "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
-        };
-
-        this.particleBeamObject = Entities.addEntity(particleBeamPropertiesObject);
-    };
-
-    this.updateParticleBeam = function (positionObject, orientationObject, color, speed, spread, lifespan) {
-        Entities.editEntity(this.particleBeamObject, {
-            rotation: orientationObject,
-            position: positionObject,
-            visible: true,
-            color: color,
-            emitSpeed: speed,
-            speedSpread: spread,
-            lifespan: lifespan
-        });
-    };
-
     this.evalLightWorldTransform = function (modelPos, modelRot) {
 
         var MODEL_LIGHT_POSITION = {
@@ -943,75 +855,6 @@ function MyController(hand) {
             p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
             q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
         };
-    };
-
-    this.handleSpotlight = function (parentID) {
-        var LIFETIME = 100;
-
-        var modelProperties = Entities.getEntityProperties(parentID, ['position', 'rotation']);
-
-        var lightTransform = this.evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
-        var lightProperties = {
-            type: "Light",
-            isSpotlight: true,
-            dimensions: {
-                x: 2,
-                y: 2,
-                z: 20
-            },
-            parentID: parentID,
-            color: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            intensity: 2,
-            exponent: 0.3,
-            cutoff: 20,
-            lifetime: LIFETIME,
-            position: lightTransform.p
-        };
-
-        if (this.spotlight === null) {
-            this.spotlight = Entities.addEntity(lightProperties);
-        } else {
-            Entities.editEntity(this.spotlight, {
-                // without this, this light would maintain rotation with its parent
-                rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0)
-            });
-        }
-    };
-
-    this.handlePointLight = function (parentID) {
-        var LIFETIME = 100;
-
-        var modelProperties = Entities.getEntityProperties(parentID, ['position', 'rotation']);
-        var lightTransform = this.evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
-
-        var lightProperties = {
-            type: "Light",
-            isSpotlight: false,
-            dimensions: {
-                x: 2,
-                y: 2,
-                z: 20
-            },
-            parentID: parentID,
-            color: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            intensity: 2,
-            exponent: 0.3,
-            cutoff: 20,
-            lifetime: LIFETIME,
-            position: lightTransform.p
-        };
-
-        if (this.pointlight === null) {
-            this.pointlight = Entities.addEntity(lightProperties);
-        }
     };
 
     this.lineOff = function () {
@@ -1037,25 +880,6 @@ function MyController(hand) {
         }
     };
 
-    this.particleBeamOff = function () {
-        if (this.particleBeamObject !== null) {
-            Entities.deleteEntity(this.particleBeamObject);
-            this.particleBeamObject = null;
-        }
-    };
-
-    this.turnLightsOff = function () {
-        if (this.spotlight !== null) {
-            Entities.deleteEntity(this.spotlight);
-            this.spotlight = null;
-        }
-
-        if (this.pointlight !== null) {
-            Entities.deleteEntity(this.pointlight);
-            this.pointlight = null;
-        }
-    };
-
     this.turnOffVisualizations = function () {
         if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOff();
@@ -1065,9 +889,7 @@ function MyController(hand) {
             this.overlayLineOff();
         }
 
-        if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-            this.particleBeamOff();
-        }
+ 
         this.searchSphereOff();
         restore2DMode();
 
@@ -1741,15 +1563,6 @@ function MyController(hand) {
         if (USE_OVERLAY_LINES_FOR_MOVING === true) {
             this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
-        if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR);
-        }
-        if (USE_POINTLIGHT === true) {
-            this.handlePointLight(this.grabbedEntity);
-        }
-        if (USE_SPOTLIGHT === true) {
-            this.handleSpotlight(this.grabbedEntity);
-        }
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -2154,7 +1967,6 @@ function MyController(hand) {
     };
 
     this.release = function () {
-        this.turnLightsOff();
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2207,9 +2019,6 @@ function MyController(hand) {
 
     this.cleanup = function () {
         this.release();
-        Entities.deleteEntity(this.particleBeamObject);
-        Entities.deleteEntity(this.spotLight);
-        Entities.deleteEntity(this.pointLight);
     };
 
     this.heartBeat = function (entityID) {
