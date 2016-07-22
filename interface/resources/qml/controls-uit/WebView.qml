@@ -25,6 +25,8 @@ WebEngineView {
         });
     }
 
+	
+
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
     Timer {
         id: urlReplacementTimer
@@ -68,9 +70,17 @@ WebEngineView {
         request.openIn(newWindow.webView);
     }
 
+	property var myScript: 'var element = $("a.download-file");
+					element.removeClass("download-file");
+					element.removeAttr("download _target");'
+
 	onLinkHovered: {
 		desktop.currentUrl = hoveredUrl
 		console.log("my url in WebView: " + desktop.currentUrl)
+		if (File.testUrl(desktop.currentUrl)) {
+			runJavaScript(myScript, function() {console.log("ran the JS"); });
+		}
+
 	}
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6

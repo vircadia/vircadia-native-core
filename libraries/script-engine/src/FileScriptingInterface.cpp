@@ -38,7 +38,8 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
 }
 
 bool FileScriptingInterface::testUrl(QUrl url) {
-	if (url.toString().contains(".zip")) return true;
+	if (url.toString().contains(".zip") && url.toString().contains("fbx")) return true;
+	qDebug() << "This model is not a .fbx packaged in a .zip. Please try with another model.";
 	return false;
 }
 
@@ -80,14 +81,14 @@ void FileScriptingInterface::unzipFile(QString path) {
 
 		//QString zipFileName = QFile::decodeName(compressedFileContent);
         QString dirName = dir.path();
-		QDir testPath("C:/Users/elisa/Downloads/banana.zip");
+		//QDir testPath("C:/Users/elisa/Downloads/banana.zip");
 		qDebug() << "Zip directory is stored at: " + dirName;
-        QStringList list = JlCompress::extractDir(testPath.path(), "C:/Users/elisa/Downloads/test");
+        QStringList list = JlCompress::extractDir(dirName, "C:/Users/elisa/Downloads/test");
 
 		qDebug() << list;
 
         //QFileInfoList files = dir.entryInfoList();
-		QFileInfoList files = testPath.entryInfoList();
+		QFileInfoList files = dir.entryInfoList();
 		foreach(QFileInfo file, files) {
 			qDebug() << "My file: " + file.fileName();
 			recursiveFileScan(file, &dirName);

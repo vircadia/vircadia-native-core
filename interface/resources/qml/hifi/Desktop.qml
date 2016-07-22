@@ -19,7 +19,9 @@ OriginalDesktop.Desktop {
         scrollGestureEnabled: false // we don't need/want these
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.NoButtonMouseArea
+		
+
     }
 
     // The tool window, one instance
@@ -82,11 +84,11 @@ OriginalDesktop.Desktop {
 
 		profile.downloadRequested.connect(function(download){
 			console.log("Download start: " + download.state)
-			if (!File.testUrl(currentUrl)) {
-				console.log("This file type is not accepted. Look for a zip file")
-				download.cancel()
-				return
-			}
+			//if (!File.testUrl(currentUrl)) {
+				//console.log("This file type is not accepted. Look for a zip file")
+				//download.cancel()
+				//return
+			//}
 			adaptedPath = File.convertUrlToPath(currentUrl)
 			download.path = "C:/Users/elisa/Downloads/" + adaptedPath
 			console.log("Path where it should download: " + download.path)

@@ -12,7 +12,8 @@
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 //var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
-var EXAMPLES_URL = "https://clara.io/view/c1c4d926-5648-4fd3-9673-6d9018ad4627";
+//var EXAMPLES_URL = "https://clara.io/view/c1c4d926-5648-4fd3-9673-6d9018ad4627";
+var EXAMPLES_URL = "https://clara.io/library";
 //var EXAMPLES_URL = "http://s3.amazonaws.com/DreamingContent/test.html";
 //var EXAMPLES_URL = "https://hifi-content.s3.amazonaws.com/elisalj/test.html";
 //var EXAMPLES_URL = "https://hifi-content.s3.amazonaws.com/elisalj/test_download.html";
