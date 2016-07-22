@@ -21,9 +21,6 @@
 #include "DomainServer.h"
 #include "DomainServerNodeData.h"
 
-#define WANT_DEBUG 1
-
-
 using SharedAssignmentPointer = QSharedPointer<Assignment>;
 
 DomainGatekeeper::DomainGatekeeper(DomainServer* server) :
