@@ -47,16 +47,18 @@ var TARGET_MODEL_DIMENSIONS = {
 
 
 var COLORS_TELEPORT_CAN_TELEPORT = {
-    red: 136,
-    green: 255,
-    blue: 241
+    red: 97,
+    green: 247,
+    blue: 255
 };
-
+​
+​
 var COLORS_TELEPORT_CANNOT_TELEPORT = {
-    red: 68,
-    green: 183,
-    blue: 180
+    red: 0,
+    green: 121,
+    blue: 141
 };
+​
 
 function ThumbPad(hand) {
     this.hand = hand;
