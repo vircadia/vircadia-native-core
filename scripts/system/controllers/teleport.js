@@ -51,6 +51,7 @@ var COLORS_TELEPORT_CAN_TELEPORT = {
     green: 255,
     blue: 241
 };
+
 var COLORS_TELEPORT_CANNOT_TELEPORT = {
     red: 68,
     green: 183,
@@ -281,7 +282,7 @@ function Teleporter() {
 
         this.rightPickRay = rightPickRay;
 
-        var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 500));
+        var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 50));
 
 
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
@@ -322,7 +323,7 @@ function Teleporter() {
 
         this.leftPickRay = leftPickRay;
 
-        var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 500));
+        var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 50));
 
 
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
@@ -338,7 +339,6 @@ function Teleporter() {
 
 
         } else {
-
 
             this.deleteTargetOverlay();
             this.leftLineOn(leftPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);

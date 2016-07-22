@@ -43,9 +43,9 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 var PICK_WITH_HAND_RAY = true;
 
 var EQUIP_SPHERE_COLOR = {
-    red: 179,
-    green: 120,
-    blue: 211
+    red: 116,
+    green: 90,
+    blue: 238
 };
 var EQUIP_SPHERE_ALPHA = 0.15;
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
@@ -59,17 +59,6 @@ var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to thei
 var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
 var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
-
-var NO_INTERSECT_COLOR = {
-    red: 10,
-    green: 10,
-    blue: 255
-}; // line color when pick misses
-var INTERSECT_COLOR = {
-    red: 250,
-    green: 10,
-    blue: 10
-}; // line color when pick hits
 
 var COLORS_GRAB_SEARCHING_HALF_SQUEEZE = {
     red: 255,
@@ -87,12 +76,6 @@ var COLORS_GRAB_DISTANCE_HOLD = {
     red: 238,
     green: 75,
     blue: 214
-};
-
-var COLORS_EQUIP_SPHERE = {
-    red: 116,
-    green: 90,
-    blue: 238
 };
 
 
@@ -1535,7 +1518,7 @@ function MyController(hand) {
 
         // visualizations
 
-        this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
+        this.overlayLineOn(handPosition, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
