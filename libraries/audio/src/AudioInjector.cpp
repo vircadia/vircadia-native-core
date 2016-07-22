@@ -159,8 +159,8 @@ bool AudioInjector::injectLocally() {
     }
 
     if (!success) {
-        // we never started so we are finished, call our stop method
-        stop();
+        // we never started so we are finished with local injection
+        finishLocalInjection();
     }
 
     return success;
@@ -169,6 +169,21 @@ bool AudioInjector::injectLocally() {
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
+
+qint64 writeStringToStream(const QString& string, QDataStream& stream) {
+    QByteArray data = string.toUtf8();
+    uint32_t length = data.length();
+    if (length == 0) {
+        stream << static_cast<quint32>(length);
+    } else {
+        // http://doc.qt.io/qt-5/datastreamformat.html
+        // QDataStream << QByteArray - 
+        //   If the byte array is null : 0xFFFFFFFF (quint32)
+        //   Otherwise : the array size(quint32) followed by the array bytes, i.e.size bytes
+        stream << data;
+    }
+    return length + sizeof(uint32_t);
+}
 
 int64_t AudioInjector::injectNextFrame() {
     if (_state == AudioInjector::State::Finished) {
@@ -180,7 +195,7 @@ int64_t AudioInjector::injectNextFrame() {
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
-
+    
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
             _currentSendOffset >= _audioData.size()) {
@@ -216,6 +231,10 @@ int64_t AudioInjector::injectNextFrame() {
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
 
+            // current injectors don't use codecs, so pack in the unknown codec name
+            QString noCodecForInjectors("");
+            writeStringToStream(noCodecForInjectors, audioPacketStream); 
+
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();
 
@@ -243,7 +262,6 @@ int64_t AudioInjector::injectNextFrame() {
             volumeOptionOffset = _currentPacket->pos();
             quint8 volume = MAX_INJECTOR_VOLUME;
             audioPacketStream << volume;
-
             audioPacketStream << _options.ignorePenumbra;
 
             audioDataOffset = _currentPacket->pos();
@@ -254,7 +272,6 @@ int64_t AudioInjector::injectNextFrame() {
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
-
     if (!_frameTimer->isValid()) {
         // in the case where we have been restarted, the frame timer will be invalid and we need to start it back over here
         _frameTimer->restart();
@@ -353,7 +370,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
         return;
     }
 
-    if (_state == State::Finished) {
+    if (stateHas(AudioInjectorState::Finished)) {
         stopAndDeleteLater();
     } else {
         _state = State::NotFinishedWithPendingDelete;
@@ -419,21 +436,17 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
     // setup parameters required for injection
     injector->setupInjection();
 
-    if (options.localOnly) {
-        if (injector->injectLocally()) {
-            // local injection succeeded, return the pointer to injector
-            return injector;
-        } else {
-            // unable to inject locally, return a nullptr
-            return nullptr;
-        }
-    } else {
-        // attempt to thread the new injector
-        if (injectorManager->threadInjector(injector)) {
-            return injector;
-        } else {
+    // we always inject locally, except when there is no localInterface
+    injector->injectLocally();
+    
+    // if localOnly, we are done, just return injector.
+    if (!options.localOnly) {
+
+        // send off to server for everyone else
+        if (!injectorManager->threadInjector(injector)) {
             // we failed to thread the new injector (we are at the max number of injector threads)
-            return nullptr;
+            qDebug() << "AudioInjector::playSound failed to thread injector";
         }
     }
+    return injector;
 }
