@@ -428,7 +428,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             // shift hips according to the _hipsOffset from the previous frame
             float offsetLength = glm::length(_hipsOffset);
             const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
-            if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
+            if (offsetLength > MIN_HIPS_OFFSET_LENGTH && _hipsIndex >= 0) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
                 if (_hipsParentIndex == -1) {
