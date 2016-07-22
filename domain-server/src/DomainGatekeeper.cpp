@@ -126,26 +126,36 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
 
     if (isLocalUser) {
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-        qDebug() << "user-permissions: is local user, so:" << userPerms;
+        #ifdef WANT_DEBUG
+        qDebug() << "|  user-permissions: is local user, so:" << userPerms;
+        #endif
     }
 
     if (verifiedUsername.isEmpty()) {
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-        qDebug() << "user-permissions: unverified or no username, so:" << userPerms;
+        #ifdef WANT_DEBUG
+        qDebug() << "|  user-permissions: unverified or no username, so:" << userPerms;
+        #endif
     } else {
         userPerms.setVerifiedUserName(verifiedUsername);
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
-            qDebug() << "user-permissions: specific user matches, so:" << userPerms;
+            #ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: specific user matches, so:" << userPerms;
+            #endif
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-            qDebug() << "user-permissions: user is logged-into metaverse, so:" << userPerms;
+            #ifdef WANT_DEBUG
+            qDebug() << "|  user-permissions: user is logged-into metaverse, so:" << userPerms;
+            #endif
 
             // if this user is a friend of the domain-owner, give them friend's permissions
             if (_domainOwnerFriends.contains(verifiedUsername)) {
                 userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
-                qDebug() << "user-permissions: user is friends with domain-owner, so:" << userPerms;
+                #ifdef WANT_DEBUG
+                qDebug() << "|  user-permissions: user is friends with domain-owner, so:" << userPerms;
+                #endif
             }
 
             // if this user is a known member of a group, give them the implied permissions
@@ -155,13 +165,14 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
                     userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rankID);
 
                     GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
-                    qDebug() << "user-permissions: user is in group:" << groupID << " rank:" << rank.name << "so:" << userPerms;
+                    #ifdef WANT_DEBUG
+                    qDebug() << "|  user-permissions: user is in group:" << groupID << " rank:"
+                             << rank.name << "so:" << userPerms;
+                    #endif
                 }
             }
 
             // if this user is a known member of a blacklist group, remove the implied permissions
-            qDebug() << "------------------ checking blacklists ----------------------";
-            qDebug() << _server->_settingsManager.getBlacklistGroupIDs();
             foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
                 QUuid rankID = _server->_settingsManager.isGroupMember(verifiedUsername, groupID);
                 if (rankID != QUuid()) {
@@ -170,17 +181,19 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
                         userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rankID);
 
                         GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
-                        qDebug() << "user-permissions: user is in blacklist group:" << groupID << " rank:" << rank.name
+                        #ifdef WANT_DEBUG
+                        qDebug() << "|  user-permissions: user is in blacklist group:" << groupID << " rank:" << rank.name
                                  << "so:" << userPerms;
+                        #endif
                     }
-                } else {
-                    qDebug() << groupID << verifiedUsername << "is not member.";
                 }
             }
         }
     }
 
-    qDebug() << "user-permissions: final:" << userPerms;
+    #ifdef WANT_DEBUG
+    qDebug() << "|  user-permissions: final:" << userPerms;
+    #endif
     return userPerms;
 }
 
@@ -781,12 +794,7 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     //     "status":"success"
     // }
 
-
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-
-    qDebug() << "*********  getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
-
-
     if (jsonObject["status"].toString() == "success") {
         QJsonObject data = jsonObject["data"].toObject();
         QJsonObject groups = data["groups"].toObject();

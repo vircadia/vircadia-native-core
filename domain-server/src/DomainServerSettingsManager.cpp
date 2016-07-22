@@ -31,9 +31,6 @@
 
 #include "DomainServerSettingsManager.h"
 
-#define WANT_DEBUG 1
-
-
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
@@ -598,8 +595,6 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
         }
     }
 
-    debugDumpGroupsState();
-
     return changed;
 }
 
@@ -764,10 +759,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
         rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
-
-
-        qDebug() << QJsonDocument(rootObject).toJson(QJsonDocument::Indented);
-
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
 
