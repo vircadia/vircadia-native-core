@@ -204,7 +204,16 @@ function goActive() {
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
-    MyAvatar.reset(true);
+
+    // update the UI sphere to be centered about the current HMD orientation.
+    HMD.centerUI();
+
+    // forget about any IK joint limits
+    MyAvatar.clearIKJointLimitHistory();
+
+    // update the avatar hips to point in the same direction as the HMD orientation.
+    MyAvatar.centerBody();
+
     hideOverlay();
 
     // restore overlays state to what it was when we went "away"

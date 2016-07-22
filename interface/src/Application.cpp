@@ -3405,6 +3405,10 @@ void Application::setOverlaysVisible(bool visible) {
     menu->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
+void Application::centerUI() {
+    _overlayConductor.centerUI();
+}
+
 void Application::cycleCamera() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {

@@ -1093,8 +1093,8 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     // add the versions
     static const QString VERSION_KEY = "version";
     domainObject[VERSION_KEY] = BuildInfo::VERSION;
-    static const QString PROTOCOL_KEY = "protocol";
-    domainObject[PROTOCOL_KEY] = protocolVersionsSignatureBase64();
+    static const QString PROTOCOL_VERSION_KEY = "protocol";
+    domainObject[PROTOCOL_VERSION_KEY] = protocolVersionsSignatureBase64();
 
     // add networking
     if (!networkAddress.isEmpty()) {
@@ -1127,12 +1127,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
     static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-    QString path = DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID()));
-#if DEV_BUILD || PR_BUILD
-    qDebug() << "Domain metadata sent to" << path;
-    qDebug() << "Domain metadata update:" << domainUpdateJSON;
-#endif
-    DependencyManager::get<AccountManager>()->sendRequest(path,
+    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
                                               JSONCallbackParameters(nullptr, QString(), this, "handleMetaverseHeartbeatError"),
