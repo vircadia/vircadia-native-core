@@ -256,6 +256,8 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
 
+    QReadLocker readLock(&_jointDataLock);
+
     // joint rotation data
     *destinationBuffer++ = _jointData.size();
     unsigned char* validityPosition = destinationBuffer;
@@ -378,6 +380,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
 
 void AvatarData::doneEncoding(bool cullSmallChanges) {
     // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
+    QReadLocker readLock(&_jointDataLock);
     _lastSentJointData.resize(_jointData.size());
     for (int i = 0; i < _jointData.size(); i ++) {
         const JointData& data = _jointData[ i ];
@@ -551,8 +554,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
     int numJoints = *sourceBuffer++;
 
-    _jointData.resize(numJoints);
-
     const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
     PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);
 
@@ -576,6 +577,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     // each joint rotation is stored in 6 bytes.
+    QWriteLocker writeLock(&_jointDataLock);
+    _jointData.resize(numJoints);
+
     const int COMPRESSED_QUATERNION_SIZE = 6;
     PACKET_READ_CHECK(JointRotations, numValidJointRotations * COMPRESSED_QUATERNION_SIZE);
     for (int i = 0; i < numJoints; i++) {
@@ -653,6 +657,7 @@ void AvatarData::setRawJointData(QVector<JointData> data) {
         QMetaObject::invokeMethod(this, "setRawJointData", Q_ARG(QVector<JointData>, data));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     _jointData = data;
 }
 
@@ -664,6 +669,7 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -682,6 +688,8 @@ void AvatarData::clearJointData(int index) {
         QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
+    // BUG: I don't understand how this "clears" the joint data at index
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -710,6 +718,7 @@ glm::quat AvatarData::getJointRotation(int index) const {
             Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
@@ -724,6 +733,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
 }
 
@@ -771,6 +781,7 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
         QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -787,6 +798,7 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
         QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
         return;
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -831,6 +843,7 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
                                   Q_RETURN_ARG(QVector<glm::quat>, result));
         return result;
     }
+    QReadLocker readLock(&_jointDataLock);
     QVector<glm::quat> jointRotations(_jointData.size());
     for (int i = 0; i < _jointData.size(); ++i) {
         jointRotations[i] = _jointData[i].rotation;
@@ -845,6 +858,7 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
                                   "setJointRotations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::quat>, jointRotations));
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() < jointRotations.size()) {
         _jointData.resize(jointRotations.size());
     }
@@ -862,6 +876,7 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
                                   "setJointTranslations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::vec3>, jointTranslations));
     }
+    QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() < jointTranslations.size()) {
         _jointData.resize(jointTranslations.size());
     }
@@ -873,9 +888,21 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
 }
 
 void AvatarData::clearJointsData() {
+    // BUG: this method is terribly inefficient and probably doesn't even work
+    // (see implementation of clearJointData(index))
     for (int i = 0; i < _jointData.size(); ++i) {
         clearJointData(i);
     }
+}
+
+int AvatarData::getJointIndex(const QString& name) const {
+    QReadLocker readLock(&_jointDataLock);
+    return _jointIndices.value(name) - 1;
+}
+
+QStringList AvatarData::getJointNames() const {
+    QReadLocker readLock(&_jointDataLock);
+    return _jointNames;
 }
 
 void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
@@ -1027,38 +1054,41 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 void AvatarData::setJointMappingsFromNetworkReply() {
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
-    QByteArray line;
-    while (!(line = networkReply->readLine()).isEmpty()) {
-        line = line.trimmed();
-        if (line.startsWith("filename")) {
-            int filenameIndex = line.indexOf('=') + 1;
-                if (filenameIndex > 0) {
-                    _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        QByteArray line;
+        while (!(line = networkReply->readLine()).isEmpty()) {
+            line = line.trimmed();
+            if (line.startsWith("filename")) {
+                int filenameIndex = line.indexOf('=') + 1;
+                    if (filenameIndex > 0) {
+                        _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                    }
                 }
+            if (!line.startsWith("jointIndex")) {
+                continue;
             }
-        if (!line.startsWith("jointIndex")) {
-            continue;
-        }
-        int jointNameIndex = line.indexOf('=') + 1;
-        if (jointNameIndex == 0) {
-            continue;
-        }
-        int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
-        if (secondSeparatorIndex == -1) {
-            continue;
-        }
-        QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
-        bool ok;
-        int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
-        if (ok) {
-            while (_jointNames.size() < jointIndex + 1) {
-                _jointNames.append(QString());
+            int jointNameIndex = line.indexOf('=') + 1;
+            if (jointNameIndex == 0) {
+                continue;
             }
-            _jointNames[jointIndex] = jointName;
+            int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
+            if (secondSeparatorIndex == -1) {
+                continue;
+            }
+            QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
+            bool ok;
+            int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
+            if (ok) {
+                while (_jointNames.size() < jointIndex + 1) {
+                    _jointNames.append(QString());
+                }
+                _jointNames[jointIndex] = jointName;
+            }
         }
-    }
-    for (int i = 0; i < _jointNames.size(); i++) {
-        _jointIndices.insert(_jointNames.at(i), i + 1);
+        for (int i = 0; i < _jointNames.size(); i++) {
+            _jointIndices.insert(_jointNames.at(i), i + 1);
+        }
     }
 
     networkReply->deleteLater();
@@ -1101,16 +1131,19 @@ void AvatarData::sendIdentityPacket() {
 }
 
 void AvatarData::updateJointMappings() {
-    _jointIndices.clear();
-    _jointNames.clear();
-    _jointData.clear();
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        _jointIndices.clear();
+        _jointNames.clear();
+        _jointData.clear();
+    }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
-        connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
+        connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
     }
 }
 
