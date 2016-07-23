@@ -502,5 +502,4 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
         }
     }
     return injector;
-
 }
