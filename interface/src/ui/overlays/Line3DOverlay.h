@@ -30,10 +30,14 @@ public:
     // getters
     const glm::vec3& getStart() const { return _start; }
     const glm::vec3& getEnd() const { return _end; }
+    const float& getGlow() const { return _glow; }
+    const float& getGlowWidth() const { return _glowWidth; }
 
     // setters
     void setStart(const glm::vec3& start) { _start = start; }
     void setEnd(const glm::vec3& end) { _end = end; }
+    void setGlow(const float& glow) { _glow = glow; }
+    void setGlowWidth(const float& glowWidth) { _glowWidth = glowWidth; }
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -43,6 +47,8 @@ public:
 protected:
     glm::vec3 _start;
     glm::vec3 _end;
+    float _glow { 0.0 };
+    float _glowWidth { 0.0 };
     int _geometryCacheID;
 };
 

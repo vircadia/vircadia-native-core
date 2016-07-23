@@ -344,6 +344,7 @@ var usersWindow = (function () {
         windowTextHeight,
         windowLineSpacing,
         windowLineHeight, // = windowTextHeight + windowLineSpacing
+        windowMinimumHeight,
 
         usersOnline, // Raw users data
         linesOfUsers = [], // Array of indexes pointing into usersOnline
@@ -433,6 +434,11 @@ var usersWindow = (function () {
             firstUserToDisplay = 0;
             scrollbarValue = 0.0;
         }
+    }
+
+    function saturateWindowPosition() {
+        windowPosition.x = Math.max(0, Math.min(viewport.x - WINDOW_WIDTH, windowPosition.x));
+        windowPosition.y = Math.max(windowMinimumHeight, Math.min(viewport.y, windowPosition.y));
     }
 
     function updateOverlayPositions() {
@@ -826,6 +832,10 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
+        if (!isLoggedIn) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
                     && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
@@ -850,6 +860,8 @@ var usersWindow = (function () {
                 x: event.x - movingClickOffset.x,
                 y: event.y - movingClickOffset.y
             };
+
+            saturateWindowPosition();
             calculateWindowHeight();
             updateOverlayPositions();
             updateUsersDisplay();
@@ -943,6 +955,7 @@ var usersWindow = (function () {
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
+        windowMinimumHeight = windowTextHeight + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
         Overlays.deleteOverlay(textSizeOverlay);
 
         viewport = Controller.getViewportDimensions();
@@ -954,7 +967,6 @@ var usersWindow = (function () {
         if (offset.hasOwnProperty("x") && offset.hasOwnProperty("y")) {
             windowPosition.x = offset.x < 0 ? viewport.x + offset.x : offset.x;
             windowPosition.y = offset.y <= 0 ? viewport.y + offset.y : offset.y;
-
         } else {
             hmdViewport = Controller.getRecommendedOverlayRect();
             windowPosition = {
@@ -963,6 +975,7 @@ var usersWindow = (function () {
             };
         }
 
+        saturateWindowPosition();
         calculateWindowHeight();
 
         windowBorder = Overlays.addOverlay("rectangle", {

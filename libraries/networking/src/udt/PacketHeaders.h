@@ -61,7 +61,7 @@ public:
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
-        TYPE_UNUSED_1,
+        NodeIgnoreRequest,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
@@ -95,7 +95,10 @@ public:
         AssetMappingOperation,
         AssetMappingOperationReply,
         ICEServerHeartbeatACK,
-        LAST_PACKET_TYPE = ICEServerHeartbeatACK
+        NegotiateAudioFormat,
+        SelectedAudioFormat,
+        MoreEntityShapes,
+        LAST_PACKET_TYPE = MoreEntityShapes
     };
 };
 
@@ -107,10 +110,10 @@ typedef char PacketVersion;
 
 extern const QSet<PacketType> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType> NON_SOURCED_PACKETS;
-extern const QSet<PacketType> RELIABLE_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
 QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
+QString protocolVersionsSignatureBase64();
 
 #if (PR_BUILD || DEV_BUILD)
 void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debugging version negotiation
@@ -181,6 +184,7 @@ const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
 const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
 const PacketVersion VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS = 60;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
+const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
@@ -208,6 +212,11 @@ enum class DomainServerAddedNodeVersion : PacketVersion {
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid
+};
+
+enum class AudioVersion : PacketVersion {
+    HasCompressedAudio = 17,
+    CodecNameInAudioPackets
 };
 
 #endif // hifi_PacketHeaders_h

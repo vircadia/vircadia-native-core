@@ -291,7 +291,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
                 if (!entitiesContainingAvatar.contains(entityID)) {
                     emit leaveEntity(entityID);
-                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                    if (_entitiesScriptEngine) {
+                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                    }
                 }
             }
 
@@ -299,7 +301,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
                 if (!_currentEntitiesInside.contains(entityID)) {
                     emit enterEntity(entityID);
-                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                    if (_entitiesScriptEngine) {
+                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "enterEntity");
+                    }
                 }
             }
             _currentEntitiesInside = entitiesContainingAvatar;
@@ -315,7 +319,9 @@ void EntityTreeRenderer::leaveAllEntities() {
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
         foreach(const EntityItemID& entityID, _currentEntitiesInside) {
             emit leaveEntity(entityID);
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+            }
         }
         _currentEntitiesInside.clear();
         forceRecheckEntities();
@@ -652,11 +658,15 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         }
 
         emit mousePressOnEntity(rayPickResult, event);
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", MouseEvent(*event));
+        }
     
         _currentClickingOnEntityID = rayPickResult.entityID;
         emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
-        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", MouseEvent(*event));
+        }
     } else {
         emit mousePressOffEntity(rayPickResult, event);
     }
@@ -677,14 +687,18 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         emit mouseReleaseOnEntity(rayPickResult, event);
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", MouseEvent(*event));
+        }
     }
 
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
         emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", MouseEvent(*event));
+        }
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
@@ -707,8 +721,10 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
 
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", MouseEvent(*event));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", MouseEvent(*event));
+        }
     
         // handle the hover logic...
     
@@ -716,19 +732,25 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
             emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
-            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+            }
         }
 
         // If the new hover entity does not match the previous hover entity then we are entering the new one
         // this is true if the _currentHoverOverEntityID is known or unknown
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", MouseEvent(*event));
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", MouseEvent(*event));
+            }
         }
 
         // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
         // we should send our hover over event
         emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", MouseEvent(*event));
+        }
 
         // remember what we're hovering over
         _currentHoverOverEntityID = rayPickResult.entityID;
@@ -739,7 +761,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
             emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
-            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+            }
             _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
@@ -748,14 +772,16 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     // not yet released the hold then this is still considered a holdingClickOnEntity event
     if (!_currentClickingOnEntityID.isInvalidID()) {
         emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
-        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", MouseEvent(*event));
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", MouseEvent(*event));
+        }
     }
     _lastMouseEvent = MouseEvent(*event);
     _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    if (_tree && !_shuttingDown) {
+    if (_tree && !_shuttingDown && _entitiesScriptEngine) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
     }
 
@@ -801,7 +827,7 @@ void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
-        if (entity && entity->shouldPreloadScript()) {
+        if (entity && entity->shouldPreloadScript() && _entitiesScriptEngine) {
             QString scriptUrl = entity->getScript();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
@@ -910,12 +936,16 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     // And now the entity scripts
     if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
         emit collisionWithEntity(idA, idB, collision);
-        _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+        }
     }
 
     if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
         emit collisionWithEntity(idB, idA, collision);
-        _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+        }
     }
 }
 
@@ -941,7 +971,9 @@ void EntityTreeRenderer::updateZone(const EntityItemID& id) {
         if (zone && zone->contains(_lastAvatarPosition)) {
             _currentEntitiesInside << id;
             emit enterEntity(id);
-            _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
+            }
             if (zone->getVisible()) {
                 _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
             }

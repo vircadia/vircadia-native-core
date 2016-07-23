@@ -44,6 +44,7 @@ const QString URL = "highfidelity_url";
 
 Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+Setting::Handle<bool> Snapshot::hasSetSnapshotsLocation("hasSetSnapshotsLocation", false);
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 
@@ -103,7 +104,14 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
-        QString snapshotFullPath = snapshotsLocation.get();
+        QString snapshotFullPath;
+        if (!hasSetSnapshotsLocation.get()) {
+            snapshotFullPath = QFileDialog::getExistingDirectory(nullptr, "Choose Snapshots Directory", snapshotsLocation.get());
+            hasSetSnapshotsLocation.set(true);
+            snapshotsLocation.set(snapshotFullPath);
+        } else {
+            snapshotFullPath = snapshotsLocation.get();
+        }
 
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());
@@ -133,118 +141,3 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
         return imageTempFile;
     }
 }
-
-const QString FORUM_URL = "https://alphas.highfidelity.io";
-const QString FORUM_UPLOADS_URL = FORUM_URL + "/uploads";
-const QString FORUM_POST_URL = FORUM_URL + "/posts";
-const QString FORUM_REPLY_TO_TOPIC = "244";
-const QString FORUM_POST_TEMPLATE = "<img src='%1'/><p>%2</p>";
-const QString SHARE_DEFAULT_ERROR = "The server isn't responding. Please try again in a few minutes.";
-const QString SUCCESS_LABEL_TEMPLATE = "Success!!! Go check out your image ...<br/><a style='color:#333;text-decoration:none' href='%1'>%1</a>";
-
-
-QString SnapshotUploader::uploadSnapshot(const QUrl& fileUrl) {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (accountManager->getAccountInfo().getDiscourseApiKey().isEmpty()) {
-        OffscreenUi::warning(nullptr, "", "Your Discourse API key is missing, you cannot share snapshots. Please try to relog.");
-        return QString();
-    }
-
-    QHttpPart apiKeyPart;
-    apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"api_key\""));
-    apiKeyPart.setBody(accountManager->getAccountInfo().getDiscourseApiKey().toLatin1());
-
-    QString filename = fileUrl.toLocalFile();
-    qDebug() << filename;
-    QFile* file = new QFile(filename);
-    Q_ASSERT(file->exists());
-    file->open(QIODevice::ReadOnly);
-
-    QHttpPart imagePart;
-    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
-    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
-        QVariant("form-data; name=\"file\"; filename=\"" + file->fileName() + "\""));
-    imagePart.setBodyDevice(file);
-
-    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
-    multiPart->append(apiKeyPart);
-    multiPart->append(imagePart);
-
-    QUrl url(FORUM_UPLOADS_URL);
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-
-    QString result;
-    QEventLoop loop;
-
-    QSharedPointer<QNetworkReply> reply(NetworkAccessManager::getInstance().post(request, multiPart));
-    QObject::connect(reply.data(), &QNetworkReply::finished, [&] {
-        loop.quit();
-
-        qDebug() << reply->errorString();
-        for (const auto& header : reply->rawHeaderList()) {
-            qDebug() << "Header " << QString(header);
-        }
-        auto replyResult = reply->readAll();
-        qDebug() << QString(replyResult);
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(replyResult);
-        const QJsonObject& responseObject = jsonResponse.object();
-        if (!responseObject.contains("url")) {
-            OffscreenUi::warning(this, "", SHARE_DEFAULT_ERROR);
-            return;
-        }
-        result = responseObject["url"].toString();
-    });
-    loop.exec();
-    return result;
-}
-
-QString SnapshotUploader::sendForumPost(const QString& snapshotPath, const QString& notes) {
-    // post to Discourse forum
-    QNetworkRequest request;
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QUrl forumUrl(FORUM_POST_URL);
-
-    QUrlQuery query;
-    query.addQueryItem("api_key", DependencyManager::get<AccountManager>()->getAccountInfo().getDiscourseApiKey());
-    query.addQueryItem("topic_id", FORUM_REPLY_TO_TOPIC);
-    query.addQueryItem("raw", FORUM_POST_TEMPLATE.arg(snapshotPath, notes));
-    forumUrl.setQuery(query);
-
-    QByteArray postData = forumUrl.toEncoded(QUrl::RemoveFragment);
-    request.setUrl(forumUrl);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
-    QNetworkReply* requestReply = NetworkAccessManager::getInstance().post(request, postData);
-
-    QEventLoop loop;
-    QString result;
-    connect(requestReply, &QNetworkReply::finished, [&] {
-        loop.quit();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-        requestReply->deleteLater();
-        const QJsonObject& responseObject = jsonResponse.object();
-
-        if (!responseObject.contains("id")) {
-            QString errorMessage(SHARE_DEFAULT_ERROR);
-            if (responseObject.contains("errors")) {
-                QJsonArray errorArray = responseObject["errors"].toArray();
-                if (!errorArray.first().toString().isEmpty()) {
-                    errorMessage = errorArray.first().toString();
-                }
-            }
-            OffscreenUi::warning(this, "", errorMessage);
-            return;
-        }
-
-        const QString urlTemplate = "%1/t/%2/%3/%4";
-        result = urlTemplate.arg(FORUM_URL,
-            responseObject["topic_slug"].toString(),
-            QString::number(responseObject["topic_id"].toDouble()),
-            QString::number(responseObject["post_number"].toDouble()));
-    });
-    loop.exec();
-    return result;
-}
-

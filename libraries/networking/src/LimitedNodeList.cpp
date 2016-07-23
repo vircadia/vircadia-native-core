@@ -34,7 +34,7 @@
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
 
-const char SOLO_NODE_TYPES[2] = {
+const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
 };
@@ -425,12 +425,8 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QMutexLocker locker(&sendingNode->getMutex());
 
-    NodeData* linkedData = sendingNode->getLinkedData();
-    if (!linkedData && linkedDataCreateCallback) {
-        linkedDataCreateCallback(sendingNode.data());
-    }
+    NodeData* linkedData = getOrCreateLinkedData(sendingNode);
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
@@ -438,6 +434,17 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage
     }
 
     return 0;
+}
+
+NodeData* LimitedNodeList::getOrCreateLinkedData(SharedNodePointer node) {
+    QMutexLocker locker(&node->getMutex());
+
+    NodeData* linkedData = node->getLinkedData();
+    if (!linkedData && linkedDataCreateCallback) {
+        linkedDataCreateCallback(node.data());
+    }
+
+    return node->getLinkedData();
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
@@ -522,11 +529,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    const NodePermissions& permissions,
                                                    const QUuid& connectionSecret) {
+    QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
     if (it != _nodeHash.end()) {
         SharedNodePointer& matchingNode = it->second;
-
+        
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setPermissions(permissions);
@@ -543,7 +551,33 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
 
+        // if this is a solo node type, we assume that the DS has replaced its assignment and we should kill the previous node
+        if (SOLO_NODE_TYPES.count(newNode->getType())) {
+            // while we still have the read lock, see if there is a previous solo node we'll need to remove
+            auto previousSoloIt = std::find_if(_nodeHash.cbegin(), _nodeHash.cend(), [newNode](const UUIDNodePair& nodePair){
+                return nodePair.second->getType() == newNode->getType();
+            });
+
+            if (previousSoloIt != _nodeHash.cend()) {
+                // we have a previous solo node, switch to a write lock so we can remove it
+                readLocker.unlock();
+
+                QWriteLocker writeLocker(&_nodeMutex);
+
+                auto oldSoloNode = previousSoloIt->second;
+
+                _nodeHash.unsafe_erase(previousSoloIt);
+                handleNodeKill(oldSoloNode);
+
+                // convert the current lock back to a read lock for insertion of new node
+                writeLocker.unlock();
+                readLocker.relock();
+            }
+        }
+
+        // insert the new node and release our read lock
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+        readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;
 

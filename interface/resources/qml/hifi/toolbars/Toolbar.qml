@@ -19,14 +19,13 @@ Window {
     shown: true
     width: content.width
     height: content.height
-    visible: true
     // Disable this window from being able to call 'desktop.raise() and desktop.showDesktop'
     activator: Item {}
     property bool horizontal: true
     property real buttonSize: 50;
     property var buttons: []
     property var container: horizontal ? row : column
-
+            
     Settings {
         category: "toolbar/" + window.objectName
         property alias x: window.x

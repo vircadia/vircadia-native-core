@@ -44,6 +44,8 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
     elseif(${SHADER_EXT} STREQUAL .slf) 
         set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+    elseif(${SHADER_EXT} STREQUAL .slg) 
+        set(SHADER_TARGET ${SHADER_TARGET}_geom.h)
     endif()
 
     set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
@@ -87,7 +89,7 @@ macro(AUTOSCRIBE_SHADER_LIB)
   #message(${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
 
   file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
-  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)
+  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf src/*.slg)
 
   #make the shader folder
   set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
