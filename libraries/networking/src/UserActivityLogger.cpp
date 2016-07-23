@@ -178,6 +178,9 @@ void UserActivityLogger::wentTo(AddressManager::LookupTrigger lookupTrigger, QSt
         case AddressManager::StartupFromSettings:
             trigger = "StartupFromSettings";
             break;
+        case AddressManager::Suggestions:
+            trigger = "Suggestions";
+            break;
         default:
             return;
     }

@@ -8,7 +8,9 @@
 macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
     set(${TARGET_NAME}_SHARED 1)
     setup_hifi_library(${ARGV})
-    add_dependencies(interface ${TARGET_NAME})
+    if (NOT DEFINED SERVER_ONLY)
+      add_dependencies(interface ${TARGET_NAME})
+    endif()
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Plugins")
 
     if (APPLE)
@@ -37,7 +39,7 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
         ${CLIENT_PLUGIN_FULL_PATH}
     )
     # copy the client plugin binaries
-    add_custom_command(TARGET ${DIR} POST_BUILD
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy
         "$<TARGET_FILE:${TARGET_NAME}>"
         ${CLIENT_PLUGIN_FULL_PATH}
@@ -50,7 +52,7 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
         ${SERVER_PLUGIN_FULL_PATH}
     )
     # copy the server plugin binaries
-    add_custom_command(TARGET ${DIR} POST_BUILD
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy
         "$<TARGET_FILE:${TARGET_NAME}>"
         ${SERVER_PLUGIN_FULL_PATH}

@@ -214,4 +214,9 @@ enum class DomainListVersion : PacketVersion {
     PermissionsGrid
 };
 
+enum class AudioVersion : PacketVersion {
+    HasCompressedAudio = 17,
+    CodecNameInAudioPackets
+};
+
 #endif // hifi_PacketHeaders_h

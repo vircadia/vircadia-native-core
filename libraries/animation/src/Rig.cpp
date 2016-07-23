@@ -295,6 +295,19 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
+void Rig::clearIKJointLimitHistory() {
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            // only report clip nodes as valid roles.
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->clearIKJointLimitHistory();
+            }
+            return true;
+        });
+    }
+}
+
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {

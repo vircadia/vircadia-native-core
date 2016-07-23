@@ -25,7 +25,7 @@ Query::~Query()
 }
 
 double Query::getElapsedTime() const {
-    return ((double) _queryResult) * 0.000001;
+    return ((double)_queryResult) / 1000000.0;
 }
 
 void Query::triggerReturnHandler(uint64_t queryResult) {

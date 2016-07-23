@@ -305,6 +305,8 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
+
+
                     deadlockDetectionCrash();
                 #endif
             }
@@ -1690,7 +1692,6 @@ void Application::paintGL() {
     auto inputs = AvatarInputs::getInstance();
     if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
@@ -2746,7 +2747,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchUpdateEvent(event);
     }
 }
@@ -2767,7 +2768,7 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchBeginEvent(event);
     }
 
@@ -2787,7 +2788,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchEndEvent(event);
     }
 
@@ -2795,7 +2796,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::touchGestureEvent(QGestureEvent* event) {
-    if (_touchscreenDevice->isActive()) {
+    if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchGestureEvent(event);
     }
 }
@@ -3402,6 +3403,10 @@ void Application::toggleOverlays() {
 void Application::setOverlaysVisible(bool visible) {
     auto menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::Overlays, true);
+}
+
+void Application::centerUI() {
+    _overlayConductor.centerUI();
 }
 
 void Application::cycleCamera() {
@@ -4710,6 +4715,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    qScriptRegisterMetaType(scriptEngine, CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.

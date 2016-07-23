@@ -72,6 +72,13 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
 
+        case PacketType::MixedAudio:
+        case PacketType::SilentAudioFrame:
+        case PacketType::InjectAudio:
+        case PacketType::MicrophoneAudioNoEcho:
+        case PacketType::MicrophoneAudioWithEcho:
+            return static_cast<PacketVersion>(AudioVersion::CodecNameInAudioPackets);
+
         default:
             return 17;
     }

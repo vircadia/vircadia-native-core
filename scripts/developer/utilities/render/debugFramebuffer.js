@@ -19,7 +19,7 @@ var qml = Script.resolvePath('framebuffer.qml');
 var window = new OverlayWindow({
     title: 'Framebuffer Debug',
     source: qml,
-    width: 400, height: 400,
+    width: 400, height: 50,
 });
 window.setPosition(25, 50);
 window.closed.connect(function() { Script.stop(); });

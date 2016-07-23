@@ -165,14 +165,10 @@ void AudioInjector::restart() {
             if (!_options.localOnly) {
 
                 if (!injectorManager->restartFinishedInjector(this)) {
-                    // TODO: this logic seems to remove the pending delete,
-                    // which makes me wonder about the deleteLater calls
                     _state = AudioInjectorState::Finished; // we're not playing, so reset the state used by isPlaying.
                 }
             }
         } else {
-            // TODO: this logic seems to remove the pending delete,
-            // which makes me wonder about the deleteLater calls
             _state = AudioInjectorState::Finished; // we failed to play, so we are finished again
         }
     }
@@ -217,6 +213,14 @@ bool AudioInjector::injectLocally() {
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
+
+qint64 writeStringToStream(const QString& string, QDataStream& stream) {
+    QByteArray data = string.toUtf8();
+    uint32_t length = data.length();
+    stream << static_cast<quint32>(length);
+    stream << data;
+    return length + sizeof(uint32_t);
+}
 
 int64_t AudioInjector::injectNextFrame() {
     if (stateHas(AudioInjectorState::NetworkInjectionFinished)) {
@@ -263,6 +267,10 @@ int64_t AudioInjector::injectNextFrame() {
 
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
+
+            // current injectors don't use codecs, so pack in the unknown codec name
+            QString noCodecForInjectors("");
+            writeStringToStream(noCodecForInjectors, audioPacketStream);
 
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();

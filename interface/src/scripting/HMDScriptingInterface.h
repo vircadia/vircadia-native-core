@@ -55,6 +55,9 @@ public:
     /// Query the display plugin to determine the current VR keyboard visibility
     Q_INVOKABLE bool isKeyboardVisible();
 
+    // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
+    Q_INVOKABLE void centerUI();
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);

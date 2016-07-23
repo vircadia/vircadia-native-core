@@ -88,6 +88,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             motionState->updateBodyVelocities();
             motionState->updateLastKinematicStep();
             body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
+            motionState->clearInternalKinematicChanges();
             break;
         }
         case MOTION_TYPE_DYNAMIC: {

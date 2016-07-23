@@ -1,0 +1,56 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 7/5/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+<@func declareLightingSpot(supportScattering)@>
+
+void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
+    vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
+    float metallic, vec3 fresnel, vec3 albedo, float shadow
+<@if supportScattering@>
+    , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
+<@endif@>
+    ) {
+
+    // Allright we re valid in the volume
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
+
+    // Eval attenuation  
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
+    vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+
+    // Eval shading
+    evalFragShading(diffuse, specular, normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness, albedo
+<@if supportScattering@>
+    ,scattering, midNormalCurvature, lowNormalCurvature
+<@endif@>
+    );
+    
+    diffuse *= lightEnergy * isDiffuseEnabled() * isSpotEnabled();
+    specular *= lightEnergy * isSpecularEnabled() * isSpotEnabled();
+
+    if (isShowLightContour() > 0.0) {
+        // Show edges
+        float edgeDistR = (getLightRadius(light) - fragLightDistance);
+        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
+        float edgeDist = min(edgeDistR, edgeDistS);
+        float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
+        }
+    }
+}
+
+<@endfunc@>
+
+
