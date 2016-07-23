@@ -84,6 +84,7 @@ public:
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
         return !_needsReload && isRenderable() && isActive();
     }
+    bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
@@ -232,6 +233,9 @@ public:
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
+    // returns 'true' if needs fullUpdate after geometry change
+    bool updateGeometry();
+
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
@@ -296,9 +300,6 @@ protected:
     QVector<MeshState> _meshStates;
     std::unordered_set<int> _cauterizeBoneSet;
     bool _cauterizeBones;
-
-    // returns 'true' if needs fullUpdate after geometry change
-    bool updateGeometry();
 
     virtual void initJointStates();
 

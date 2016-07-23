@@ -343,6 +343,23 @@ QString OffscreenUi::getItem(const Icon icon, const QString& title, const QStrin
     return result.toString();
 }
 
+QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok) {
+    if (ok) {
+        *ok = false;
+    }
+
+    QVariant result = DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
+    if (result.isValid()) {
+        // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
+        result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
+        if (ok) {
+            *ok = true;
+        }
+    }
+
+    return result;
+}
+
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
@@ -356,6 +373,20 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     }
 
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
+}
+
+QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "customInputDialog", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QVariant, result),
+                                  Q_ARG(Icon, icon),
+                                  Q_ARG(QString, title),
+                                  Q_ARG(QVariantMap, config));
+        return result;
+    }
+
+    return waitForInputDialogResult(createCustomInputDialog(icon, title, config));
 }
 
 void OffscreenUi::togglePinned() {
@@ -395,6 +426,23 @@ QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title
 
     if (!invokeResult) {
         qWarning() << "Failed to create message box";
+        return nullptr;
+    }
+
+    return qvariant_cast<QQuickItem*>(result);
+}
+
+QQuickItem* OffscreenUi::createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
+    QVariantMap map = config;
+    map.insert("title", title);
+    map.insert("icon", icon);
+    QVariant result;
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "customInputDialog",
+                                                  Q_RETURN_ARG(QVariant, result),
+                                                  Q_ARG(QVariant, QVariant::fromValue(map)));
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create custom message box";
         return nullptr;
     }
 
