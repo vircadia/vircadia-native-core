@@ -700,10 +700,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
         info.setParams(type, dimensions, _compoundShapeURL);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        updateModelBounds();
-
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
+
+        updateModelBounds();
+        _model->updateGeometry();
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
