@@ -34,6 +34,7 @@ public:
     NodePermissions(QMap<QString, QVariant> perms);
 
     QString getID() const { return _id; } // a user-name or a group-name, not verified
+    void setRankID(QUuid& rankID) { _rankID = rankID; }
     QUuid getRankID() const { return _rankID; }
     NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rankID); }
 
@@ -116,6 +117,7 @@ public:
     QList<NodePermissionsKey> keys() const { return _data.keys(); }
     QHash<NodePermissionsKey, NodePermissionsPointer> get() { return _data; }
     void clear() { _data.clear(); }
+    void remove(const NodePermissionsKey& key) { _data.remove(key); }
 
 private:
     QHash<NodePermissionsKey, NodePermissionsPointer> _data;

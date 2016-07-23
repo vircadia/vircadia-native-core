@@ -125,7 +125,8 @@ private:
     void apiGetGroupID(const QString& groupName);
     void apiGetGroupRanks(const QUuid& groupID);
 
-    void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
+    void initializeGroupPermissions(NodePermissionsMap& permissionsRows, QString groupName, NodePermissionsPointer perms);
+    void packPermissionsForMap(QString mapName, NodePermissionsMap& permissionsRows, QString keyPath);
     void packPermissions();
     void unpackPermissions();
     bool ensurePermissionsForGroupRanks();

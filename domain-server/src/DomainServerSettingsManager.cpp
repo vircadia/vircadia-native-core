@@ -324,8 +324,34 @@ void DomainServerSettingsManager::validateDescriptorsMap() {
     }
 }
 
+
+void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap& permissionsRows,
+                                                             QString groupName, NodePermissionsPointer perms) {
+    // this is called when someone has used the domain-settings webpage to add a group.  They type the group's name
+    // and give it some permissions.  The domain-server asks api for the group's ranks and populates the map
+    // with them.  Here, that initial user-entered row is removed and it's permissions are copied to all the ranks
+    // except owner.
+
+    QString groupNameLower = groupName.toLower();
+
+    foreach (NodePermissionsKey nameKey, permissionsRows.keys()) {
+        if (nameKey.first.toLower() != groupNameLower) {
+            continue;
+        }
+        QUuid groupID = _groupIDs[groupNameLower];
+        QUuid rankID = nameKey.second;
+        GroupRank rank = _groupRanks[groupID][rankID];
+        if (rank.order == 0) {
+            // we don't copy the initial permissions to the owner.
+            continue;
+        }
+        permissionsRows[nameKey]->setAll(false);
+        permissionsRows[nameKey] |= perms;
+    }
+}
+
 void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
-                                                        NodePermissionsMap& agentPermissions,
+                                                        NodePermissionsMap& permissionsRows,
                                                         QString keyPath) {
     // find (or create) the "security" section of the settings map
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
@@ -344,7 +370,7 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
     // convert details for each member of the subsection
     QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
     (*permissionsList).clear();
-    QList<NodePermissionsKey> permissionsKeys = agentPermissions.keys();
+    QList<NodePermissionsKey> permissionsKeys = permissionsRows.keys();
 
     // when a group is added from the domain-server settings page, the config map has a group-name with
     // no ID or rank.  We need to leave that there until we get a valid response back from the api.
@@ -353,20 +379,30 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
     QHash<QString, bool> groupNamesWithRanks;
     // note which groups have rank/ID information
     foreach (NodePermissionsKey userKey, permissionsKeys) {
-        NodePermissionsPointer perms = agentPermissions[userKey];
+        NodePermissionsPointer perms = permissionsRows[userKey];
         if (perms->getRankID() != QUuid()) {
             groupNamesWithRanks[userKey.first] = true;
+        }
+    }
+    foreach (NodePermissionsKey userKey, permissionsKeys) {
+        NodePermissionsPointer perms = permissionsRows[userKey];
+        if (perms->isGroup()) {
+            QString groupName = userKey.first;
+            if (perms->getRankID() == QUuid() && groupNamesWithRanks.contains(groupName)) {
+                // copy the values from this user-added entry to the other (non-owner) ranks and remove it.
+                permissionsRows.remove(userKey);
+                initializeGroupPermissions(permissionsRows, groupName, perms);
+            }
         }
     }
 
     // convert each group-name / rank-id pair to a variant-map
     foreach (NodePermissionsKey userKey, permissionsKeys) {
-        NodePermissionsPointer perms = agentPermissions[userKey];
+        if (!permissionsRows.contains(userKey)) {
+            continue;
+        }
+        NodePermissionsPointer perms = permissionsRows[userKey];
         if (perms->isGroup()) {
-            if (perms->getRankID() == QUuid() && groupNamesWithRanks.contains(userKey.first)) {
-                // skip over the entry that was created when the user added the group.
-                continue;
-            }
             QHash<QUuid, GroupRank>& groupRanks = _groupRanks[perms->getGroupID()];
             *permissionsList += perms->toVariant(groupRanks);
         } else {
@@ -567,8 +603,15 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
                 perms = _groupPermissions[nameKey];
             } else {
                 perms = NodePermissionsPointer(new NodePermissions(nameKey));
-                perms->setGroupID(groupID);
                 _groupPermissions[nameKey] = perms;
+                changed = true;
+            }
+            if (perms->getGroupID() != groupID) {
+                perms->setGroupID(groupID);
+                changed = true;
+            }
+            if (perms->getRankID() != rankID) {
+                perms->setRankID(rankID);
                 changed = true;
             }
             _groupPermissionsByUUID[idKey] = perms;
@@ -587,8 +630,15 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
                 perms = _groupForbiddens[nameKey];
             } else {
                 perms = NodePermissionsPointer(new NodePermissions(nameKey));
-                perms->setGroupID(groupID);
                 _groupForbiddens[nameKey] = perms;
+                changed = true;
+            }
+            if (perms->getGroupID() != groupID) {
+                perms->setGroupID(groupID);
+                changed = true;
+            }
+            if (perms->getRankID() != rankID) {
+                perms->setRankID(rankID);
                 changed = true;
             }
             _groupForbiddensByUUID[idKey] = perms;
@@ -745,6 +795,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
             QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
         } else {
             unpackPermissions();
+            apiRefreshGroupInformation();
             emit updateNodePermissions();
         }
 
@@ -1272,8 +1323,6 @@ void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
 }
 
 void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& requestReply) {
-
-
     // {
     //     "data":{
     //         "groups":{
@@ -1420,16 +1469,11 @@ void DomainServerSettingsManager::debugDumpGroupsState() {
     qDebug() << "_groupRanks:";
     foreach (QUuid groupID, _groupRanks.keys()) {
         QHash<QUuid, GroupRank>& ranksForGroup = _groupRanks[groupID];
-        QString readableRanks;
+        qDebug() << "|  " << groupID;
         foreach (QUuid rankID, ranksForGroup.keys()) {
             QString rankName = ranksForGroup[rankID].name;
-            if (readableRanks == "") {
-                readableRanks = rankName;
-            } else {
-                readableRanks += "," + rankName;
-            }
+            qDebug() << "|      " << rankID << rankName;
         }
-        qDebug() << "|  " << groupID << "==>" << readableRanks;
     }
 
     qDebug() << "_groupMembership";

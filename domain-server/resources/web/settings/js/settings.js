@@ -975,7 +975,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   _.each(setting.columns, function(col) {
-    html += "<td class='data " + (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
+    html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='data " +
+      (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
   if (!isLocked && !setting.read_only) {
@@ -1027,8 +1028,9 @@ function makeTable(setting, keypath, setting_value, isLocked) {
                   + "name='" + colName + "' value='" + (colValue || col.default || "00:00") + "' /></td>";
         } else {
           // Use a hidden input so that the values are posted.
-          html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>"
-                  + colValue + "<input type='hidden' name='" + colName + "' value='" + colValue + "'/></td>";
+          html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='" + Settings.DATA_COL_CLASS +
+            "' name='" + colName + "'>" + colValue + "<input type='hidden' name='" + colName +
+            "' value='" + colValue + "'/></td>";
         }
 
       })
@@ -1081,7 +1083,7 @@ function makeTableInputs(setting) {
               + "<input type='checkbox' class='form-control table-checkbox' "
               + "name='" + col.name + "'" + (col.default ? " checked" : "") + "/></td>";
     } else {
-      html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
+      html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
                <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
                value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'" + (col.readonly ? " readonly" : "") + ">\
                </td>"
