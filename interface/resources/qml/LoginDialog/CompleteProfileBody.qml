@@ -54,6 +54,8 @@ Item {
 
             text: qsTr("Create your profile")
             color: hifi.buttons.blue
+
+            onClicked: loginDialog.createAccountFromStream()
         }
 
         Button {
@@ -83,11 +85,46 @@ Item {
         lineHeight: 2
         lineHeightMode: Text.ProportionalHeight
         horizontalAlignment: Text.AlignHCenter
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                bodyLoader.source = "LinkAccountBody.qml"
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
+        }
     }
 
     Component.onCompleted: {
         root.title = qsTr("Complete Your Profile")
         root.iconText = "<"
         d.resize();
+    }
+
+    Connections {
+        target: loginDialog
+        onHandleCreateCompleted: {
+            console.log("Create Succeeded")
+
+            loginDialog.loginThroughSteam()
+        }
+        onHandleCreateFailed: {
+            console.log("Create Failed: " + error)
+
+            bodyLoader.source = "UsernameCollisionBody.qml"
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+        onHandleLoginCompleted: {
+            console.log("Login Succeeded")
+
+            bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : false })
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+        onHandleLoginFailed: {
+            console.log("Login Failed")
+        }
     }
 }

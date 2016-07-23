@@ -19,10 +19,14 @@ import "../styles-uit"
 Item {
     id: linkAccountBody
     clip: true
-    width: pane.width
-    height: pane.height
+    width: root.pane.width
+    height: root.pane.height
 
-    property bool existingEmail: true
+    property bool existingEmail: false
+
+    function login() {
+        loginDialog.login(usernameField.text, passwordField.text)
+    }
 
     QtObject {
         id: d
@@ -64,7 +68,7 @@ Item {
     Column {
         id: form
         anchors {
-            top: mainTextContainer.bottom
+            top: mainTextContainer.visible ? mainTextContainer.bottom : parent.top
             left: parent.left
             margins: 0
             topMargin: 2 * hifi.dimensions.contentSpacing.y
@@ -96,6 +100,15 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        bodyLoader.source = "RecoverPasswordBody.qml"
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
+                }
             }
         }
         Row {
@@ -124,6 +137,15 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        bodyLoader.source = "RecoverPasswordBody.qml"
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
+                }
             }
         }
 
@@ -141,11 +163,14 @@ Item {
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Button {
+            id: linkAccountButton
             anchors.verticalCenter: parent.verticalCenter
             width: 200
 
-            text: qsTr("Link Account")
+            text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
             color: hifi.buttons.blue
+
+            onClicked: linkAccountBody.login()
         }
 
         Button {
@@ -161,5 +186,51 @@ Item {
         root.title = qsTr("Sign Into High Fidelity")
         root.iconText = "<"
         d.resize();
+
+        usernameField.forceActiveFocus()
+    }
+
+    Connections {
+        target: loginDialog
+        onHandleLoginCompleted: {
+            console.log("Login Succeeded, linking steam account")
+
+            if (loginDialog.isSteamRunning()) {
+                loginDialog.linkSteam()
+            } else {
+                bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
+        }
+        onHandleLoginFailed: {
+            console.log("Login Failed")
+
+        }
+        onHandleLinkCompleted: {
+            console.log("Link Succeeded")
+
+            bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+        onHandleLinkFailed: {
+            console.log("Link Failed")
+
+        }
+    }
+
+    Keys.onPressed: {
+        if (!visible) {
+            return
+        }
+
+        switch (event.key) {
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                event.accepted = true
+                linkAccountBody.login()
+                break
+        }
     }
 }

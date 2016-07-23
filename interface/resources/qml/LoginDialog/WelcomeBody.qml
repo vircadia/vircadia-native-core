@@ -20,7 +20,13 @@ Item {
     width: pane.width
     height: pane.height
 
-    property bool welcomeBack: true
+    property bool welcomeBack: false
+
+    function setTitle() {
+        root.title = (welcomeBack ? qsTr("Welcome back <b>") : qsTr("Welcome <b>")) + Account.username + qsTr("</b>!")
+        root.iconText = ""
+        d.resize();
+    }
 
     QtObject {
         id: d
@@ -75,9 +81,10 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        root.title = (welcomeBack ? qsTr("Welcome back <b>") : qsTr("Welcome <b>")) + Account.getUsername() + qsTr("</b>!")
-        root.iconText = ""
-        d.resize();
+    Component.onCompleted: welcomeBody.setTitle()
+
+    Connections {
+        target: Account
+        onUsernameChanged: welcomeBody.setTitle()
     }
 }

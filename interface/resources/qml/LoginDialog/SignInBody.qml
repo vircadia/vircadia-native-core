@@ -107,4 +107,22 @@ Item {
         root.iconText = ""
         d.resize();
     }
+
+    Connections {
+        target: loginDialog
+        onHandleLoginCompleted: {
+            console.log("Login Succeeded")
+
+            bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+        onHandleLoginFailed: {
+            console.log("Login Failed")
+
+            bodyLoader.source = "CompleteProfileBody.qml"
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+    }
 }

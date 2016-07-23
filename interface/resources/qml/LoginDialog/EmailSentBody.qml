@@ -17,10 +17,10 @@ import "../styles-uit"
 Item {
     id: emailSentBody
     clip: true
-    width: pane.width
-    height: pane.height
+    width: root.pane.width
+    height: root.pane.height
 
-    property string email: "clement@highfidelity.com"
+    property string email: ""
 
     QtObject {
         id: d

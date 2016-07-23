@@ -33,34 +33,13 @@ ModalWindow {
     property string title: ""
     property int titleWidth: 0
 
-    Component {
-        id: signInBody
-        SignInBody {}
-    }
-    Component {
-        id: welcomeBody
-        WelcomeBody {}
-    }
-
     LoginDialog {
         id: loginDialog
 
         Loader {
             id: bodyLoader
             anchors.fill: parent
-            sourceComponent: signInBody
-        }
-
-        Connections {
-            target: loginDialog
-            onHandleLoginCompleted: {
-                console.log("Login Succeeded")
-                bodyLoader.sourceComponent = welcomeBody
-                bodyLoader.active = true
-            }
-            onHandleLoginFailed: {
-                console.log("Login Failed")
-            }
+            source: loginDialog.isSteamRunning() ? "LoginDialog/SignInBody.qml" : "LoginDialog/LinkAccountBody.qml"
         }
     }
 

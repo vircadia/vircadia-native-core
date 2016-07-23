@@ -568,6 +568,7 @@ void AccountManager::requestAccessTokenFinished() {
 void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qCDebug(networking) << "AccountManager requestError - " << error;
+    emit loginFailed();
 }
 
 void AccountManager::requestProfile() {

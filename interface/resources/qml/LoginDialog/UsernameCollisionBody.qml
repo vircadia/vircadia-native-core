@@ -19,8 +19,8 @@ import "../styles-uit"
 Item {
     id: usernameCollisionBody
     clip: true
-    width: pane.width
-    height: pane.height
+    width: root.pane.width
+    height: root.pane.height
 
     QtObject {
         id: d
@@ -30,26 +30,59 @@ Item {
         readonly property int maxHeight: 720
 
         function resize() {
-            var targetWidth = Math.max(titleWidth, mainTextContainer.visible ? mainTextContainer.contentWidth : 0)
-            var targetHeight = (mainTextContainer.visible ? mainTextContainer.height : 0) +
-                               4 * hifi.dimensions.contentSpacing.y + form.height +
-                               4 * hifi.dimensions.contentSpacing.y + buttons.height
+            var targetWidth = Math.max(titleWidth, Math.max(mainTextContainer.contentWidth,
+                                                            termsContainer.contentWidth))
+            var targetHeight =  mainTextContainer.height +
+                                2 * hifi.dimensions.contentSpacing.y + textField.height +
+                                5 * hifi.dimensions.contentSpacing.y + termsContainer.height +
+                                1 * hifi.dimensions.contentSpacing.y + buttons.height
 
             root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 
-    MenuItem {
+    ShortcutText {
         id: mainTextContainer
         anchors {
             top: parent.top
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
             margins: 0
             topMargin: hifi.dimensions.contentSpacing.y
         }
 
-        text: qsTr("Choose your High Fidelity user name:")
+        text: qsTr("Your Steam username is not available.")
+        wrapMode: Text.WordWrap
+        color: hifi.colors.redAccent
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
+    }
+
+
+    TextField {
+        id: textField
+        anchors {
+            top: mainTextContainer.bottom
+            left: parent.left
+            margins: 0
+            topMargin: 2 * hifi.dimensions.contentSpacing.y
+        }
+        width: 250
+
+        placeholderText: "Choose your own"
+    }
+
+    MenuItem {
+        id: termsContainer
+        anchors {
+            top: textField.bottom
+            left: parent.left
+            margins: 0
+            topMargin: 3 * hifi.dimensions.contentSpacing.y
+        }
+
+        text: qsTr("By creating this user profile, you agree to <a href=\"https://highfidelity.com/terms\">High Fidelity's Terms of Service</a>")
         wrapMode: Text.WordWrap
         color: hifi.colors.baseGrayHighlight
         lineHeight: 1
@@ -57,82 +90,13 @@ Item {
         horizontalAlignment: Text.AlignHCenter
     }
 
-
-    Column {
-        id: form
-        anchors {
-            top: mainTextContainer.bottom
-            left: parent.left
-            margins: 0
-            topMargin: 2 * hifi.dimensions.contentSpacing.y
-        }
-        spacing: 2 * hifi.dimensions.contentSpacing.y
-
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
-            TextField {
-                id: usernameField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
-
-                label: "User Name or Email"
-            }
-
-            ShortcutText {
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-
-                text: "Need help?"
-
-                color: hifi.colors.blueAccent
-                font.underline: true
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-            }
-        }
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
-            TextField {
-                id: passwordField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
-
-                label: "Password"
-                echoMode: TextInput.Password
-            }
-
-            ShortcutText {
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-
-                text: "Need help?"
-
-                color: hifi.colors.blueAccent
-                font.underline: true
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-            }
-        }
-
-    }
-
     Row {
         id: buttons
         anchors {
-            top: form.bottom
+            top: termsContainer.bottom
             right: parent.right
             margins: 0
-            topMargin: 3 * hifi.dimensions.contentSpacing.y
+            topMargin: 1 * hifi.dimensions.contentSpacing.y
         }
         spacing: hifi.dimensions.contentSpacing.x
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
@@ -143,6 +107,10 @@ Item {
 
             text: qsTr("Create your profile")
             color: hifi.buttons.blue
+
+            onClicked: {
+                loginDialog.createAccountFromStream(textField.text)
+            }
         }
 
         Button {
@@ -158,5 +126,26 @@ Item {
         root.title = qsTr("Complete Your Profile")
         root.iconText = "<"
         d.resize();
+    }
+    Connections {
+        target: loginDialog
+        onHandleCreateCompleted: {
+            console.log("Create Succeeded")
+
+            loginDialog.loginThroughSteam()
+        }
+        onHandleCreateFailed: {
+            console.log("Create Failed: " + error)
+        }
+        onHandleLoginCompleted: {
+            console.log("Login Succeeded")
+
+            bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : false })
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
+        }
+        onHandleLoginFailed: {
+            console.log("Login Failed")
+        }
     }
 }

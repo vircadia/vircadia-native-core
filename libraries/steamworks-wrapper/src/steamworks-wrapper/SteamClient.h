@@ -22,6 +22,8 @@ using TicketRequestCallback = std::function<void(Ticket)>;
 
 class SteamClient {
 public:
+    static bool isRunning();
+
     static bool init();
     static void shutdown();
 

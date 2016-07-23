@@ -133,8 +133,16 @@ void SteamTicketRequests::onGetAuthSessionTicketResponse(GetAuthSessionTicketRes
 static std::atomic_bool initialized { false };
 static std::unique_ptr<SteamTicketRequests> steamTicketRequests;
 
-bool SteamClient::init() {
+
+bool SteamClient::isRunning() {
     if (!initialized) {
+        init();
+    }
+    return initialized;
+}
+
+bool SteamClient::init() {
+    if (SteamAPI_IsSteamRunning() && !initialized) {
         initialized = SteamAPI_Init();
     }
 
@@ -157,11 +165,6 @@ void SteamClient::shutdown() {
 
 void SteamClient::runCallbacks() {
     if (!initialized) {
-        init();
-    }
-
-    if (!initialized) {
-        qDebug() << "Steam not initialized";
         return;
     }
 
@@ -176,7 +179,13 @@ void SteamClient::runCallbacks() {
 
 void SteamClient::requestTicket(TicketRequestCallback callback) {
     if (!initialized) {
-        init();
+        if (SteamAPI_IsSteamRunning()) {
+            init();
+        } else {
+            qWarning() << "Steam is not running";
+            callback(INVALID_TICKET);
+            return;
+        }
     }
 
     if (!initialized) {

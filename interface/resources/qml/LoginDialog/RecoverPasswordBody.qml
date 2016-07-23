@@ -19,8 +19,16 @@ import "../styles-uit"
 Item {
     id: recoverPasswordBody
     clip: true
-    width: pane.width
-    height: pane.height
+    width: root.pane.width
+    height: root.pane.height
+
+    function send() {
+        loginDialog.sendRecoveryEmail(emailField.text)
+
+        bodyLoader.setSource("EmailSentBody.qml", { "email": emailField.text })
+        bodyLoader.item.width = root.pane.width
+        bodyLoader.item.height = root.pane.height
+    }
 
     QtObject {
         id: d
@@ -70,6 +78,10 @@ Item {
         width: 350
 
         label: "Email address"
+
+        Component.onCompleted: {
+            emailField.forceActiveFocus()
+        }
     }
 
     Row {
@@ -89,12 +101,20 @@ Item {
 
             text: qsTr("Send recovery email")
             color: hifi.buttons.blue
+
+            onClicked: recoverPasswordBody.send()
         }
 
         Button {
             anchors.verticalCenter: parent.verticalCenter
 
             text: qsTr("Back")
+
+            onClicked: {
+                bodyLoader.source = "LinkAccountBody.qml"
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
         }
     }
 
@@ -102,5 +122,19 @@ Item {
         root.title = qsTr("Recover Password")
         root.iconText = "<"
         d.resize();
+    }
+
+    Keys.onPressed: {
+        if (!visible) {
+            return
+        }
+
+        switch (event.key) {
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                event.accepted = true
+                recoverPasswordBody.send()
+                break
+        }
     }
 }
