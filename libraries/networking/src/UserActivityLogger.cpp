@@ -53,7 +53,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qCDebug(networking) << "Logging activity" << action;
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
