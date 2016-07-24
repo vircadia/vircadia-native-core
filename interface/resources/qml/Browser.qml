@@ -34,12 +34,10 @@ ScrollingWindow {
     }
 
     function showPermissionsBar(){
-        console.log('should show permissions bar')
         permissionsContainer.visible=true;
     }
 
     function hidePermissionsBar(){
-      console.log('should hide permissions bar')
       permissionsContainer.visible=false;
     }
 
@@ -141,39 +139,39 @@ ScrollingWindow {
             }
         }
 
-    Rectangle {
-    id:permissionsContainer
-    visible:false
-    color: "#000000"
-    width:  parent.width
-    anchors.top: buttons.bottom
-    height:40
-    z:100
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: "black" }
-        GradientStop { position: 1.0; color: "grey" }
-    }
-
-        RalewayLight {
-                id: permissionsInfo
-                anchors.right:permissionsRow.left
-                anchors.rightMargin: 32
-                anchors.topMargin:8
-                anchors.top:parent.top
-                text: "This site wants to use your microphone/camera"
-                size: 18
-                color: hifi.colors.white
+        Rectangle {
+        id:permissionsContainer
+        visible:false
+        color: "#000000"
+        width:  parent.width
+        anchors.top: buttons.bottom
+        height:40
+        z:100
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "black" }
+            GradientStop { position: 1.0; color: "grey" }
         }
-     
-        Row {
-            id: permissionsRow
-            spacing: 4
-            anchors.top:parent.top
-            anchors.topMargin: 8
-            anchors.right: parent.right
-            visible: true
-            z:101
 
+            RalewayLight {
+                    id: permissionsInfo
+                    anchors.right:permissionsRow.left
+                    anchors.rightMargin: 32
+                    anchors.topMargin:8
+                    anchors.top:parent.top
+                    text: "This site wants to use your microphone/camera"
+                    size: 18
+                    color: hifi.colors.white
+            }
+         
+            Row {
+                id: permissionsRow
+                spacing: 4
+                anchors.top:parent.top
+                anchors.topMargin: 8
+                anchors.right: parent.right
+                visible: true
+                z:101
+                
                 Button {
                     id:allow
                     text: "Allow"
@@ -196,10 +194,7 @@ ScrollingWindow {
                     z:101
                 }
             }
-    }
-
-
-
+        }
 
         WebEngineView {
             id: webview
@@ -228,7 +223,6 @@ ScrollingWindow {
                 request.openIn(newWindow.webView)
             }      
             //profile: desktop.browserProfile
-    
         }
 
     } // item
