@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <array>
+#include <string>
 
 #include <assert.h>
 
