@@ -271,9 +271,9 @@ public:
     Q_INVOKABLE virtual void clearJointsData();
 
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; }
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
 
-    Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
+    Q_INVOKABLE virtual QStringList getJointNames() const;
 
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
@@ -374,6 +374,7 @@ protected:
 
     QVector<JointData> _jointData; ///< the state of the skeleton joints
     QVector<JointData> _lastSentJointData; ///< the state of the skeleton joints last time we transmitted
+    mutable QReadWriteLock _jointDataLock;
 
     // key state
     KeyState _keyState;
