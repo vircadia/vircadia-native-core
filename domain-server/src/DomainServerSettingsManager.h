@@ -27,6 +27,8 @@ const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
 const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
+const QString IP_PERMISSIONS_KEYPATH = "security.ip_permissions";
+const QString IP_FORBIDDENS_KEYPATH = "security.ip_forbiddens";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
 
@@ -57,6 +59,14 @@ public:
     NodePermissions getPermissionsForName(const QString& name) const;
     NodePermissions getPermissionsForName(const NodePermissionsKey& key) const { return getPermissionsForName(key.first); }
     QStringList getAllNames() const;
+
+    // these give access to permissions for specific IPs from the domain-server settings page
+    bool havePermissionsForIP(const QHostAddress& address) const { return _ipPermissions.contains(address.toString(), 0); }
+    NodePermissions getPermissionsForIP(const QHostAddress& address) const;
+
+    // these remove permissions from users connecting from specific IPs
+    bool haveForbiddensForIP(const QHostAddress& address) const { return _ipForbiddens.contains(address.toString(), 0); }
+    NodePermissions getForbiddensForIP(const QHostAddress& address) const;
 
     // these give access to permissions for specific groups from the domain-server settings page
     bool havePermissionsForGroup(const QString& groupName, QUuid rankID) const {
@@ -129,10 +139,15 @@ private:
     void packPermissionsForMap(QString mapName, NodePermissionsMap& permissionsRows, QString keyPath);
     void packPermissions();
     void unpackPermissions();
+    bool unpackPermissionsForKeypath(const QString& keyPath, NodePermissionsMap* destinationMapPointer,
+                                     std::function<void(NodePermissionsPointer)> customUnpacker = {});
     bool ensurePermissionsForGroupRanks();
 
     NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost, friend-of-domain-owner
     NodePermissionsMap _agentPermissions; // specific account-names
+
+    NodePermissionsMap _ipPermissions; // permissions granted by node IP address
+    NodePermissionsMap _ipForbiddens; // permissions denied by node IP address
 
     NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
     NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group

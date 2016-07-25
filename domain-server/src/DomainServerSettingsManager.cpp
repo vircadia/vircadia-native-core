@@ -430,114 +430,84 @@ void DomainServerSettingsManager::packPermissions() {
     _configMap.loadMasterAndUserConfig(_argumentList);
 }
 
-void DomainServerSettingsManager::unpackPermissions() {
-    // transfer details from _configMap to _agentPermissions;
+bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& keyPath,
+                                                              NodePermissionsMap* mapPointer,
+                                                              std::function<void(NodePermissionsPointer)> customUnpacker) {
 
-    _standardAgentPermissions.clear();
-    _agentPermissions.clear();
-    _groupPermissions.clear();
-    _groupForbiddens.clear();
+    mapPointer->clear();
 
-    bool foundLocalhost = false;
-    bool foundAnonymous = false;
-    bool foundLoggedIn = false;
-    bool foundFriends = false;
-    bool needPack = false;
-
-    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
-    if (!standardPermissions || !standardPermissions->canConvert(QMetaType::QVariantList)) {
-        qDebug() << "failed to extract standard permissions from settings.";
-        standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH, true);
-        (*standardPermissions) = QVariantList();
-    }
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
-    if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
-        qDebug() << "failed to extract permissions from settings.";
-        permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH, true);
+    QVariant* permissions = valueForKeyPath(_configMap.getMergedConfig(), keyPath, true);
+    if (!permissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "Failed to extract permissions for key path" << keyPath << "from settings.";
         (*permissions) = QVariantList();
     }
-    QVariant* groupPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_PERMISSIONS_KEYPATH);
-    if (!groupPermissions || !groupPermissions->canConvert(QMetaType::QVariantList)) {
-        qDebug() << "failed to extract group permissions from settings.";
-        groupPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_PERMISSIONS_KEYPATH, true);
-        (*groupPermissions) = QVariantList();
-    }
-    QVariant* groupForbiddens = valueForKeyPath(_configMap.getUserConfig(), GROUP_FORBIDDENS_KEYPATH);
-    if (!groupForbiddens || !groupForbiddens->canConvert(QMetaType::QVariantList)) {
-        qDebug() << "failed to extract group forbiddens from settings.";
-        groupForbiddens = valueForKeyPath(_configMap.getUserConfig(), GROUP_FORBIDDENS_KEYPATH, true);
-        (*groupForbiddens) = QVariantList();
-    }
 
-    QList<QVariant> standardPermissionsList = standardPermissions->toList();
-    foreach (QVariant permsHash, standardPermissionsList) {
-        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
-        QString id = perms->getID();
-        NodePermissionsKey idKey = NodePermissionsKey(id, 0);
-        foundLocalhost |= (idKey == NodePermissions::standardNameLocalhost);
-        foundAnonymous |= (idKey == NodePermissions::standardNameAnonymous);
-        foundLoggedIn |= (idKey == NodePermissions::standardNameLoggedIn);
-        foundFriends |= (idKey == NodePermissions::standardNameFriends);
-        if (_standardAgentPermissions.contains(idKey)) {
-            qDebug() << "duplicate name in standard permissions table: " << id;
-            *(_standardAgentPermissions[idKey]) |= *perms;
-            needPack = true;
-        } else {
-            _standardAgentPermissions[idKey] = perms;
-        }
-    }
+    bool needPack = false;
 
     QList<QVariant> permissionsList = permissions->toList();
     foreach (QVariant permsHash, permissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        NodePermissionsKey idKey = NodePermissionsKey(id, 0);
-        if (_agentPermissions.contains(idKey)) {
-            qDebug() << "duplicate name in permissions table: " << id;
-            *(_agentPermissions[idKey]) |= *perms;
+        
+        NodePermissionsKey idKey = perms->getKey();
+
+        if (mapPointer->contains(idKey)) {
+            qDebug() << "Duplicate name in permissions table for" << keyPath << " - " << id;
+            (*mapPointer)[idKey] |= perms;
             needPack = true;
         } else {
-            _agentPermissions[idKey] = perms;
+            (*mapPointer)[idKey] = perms;
+        }
+
+        if (customUnpacker) {
+            customUnpacker(perms);
         }
     }
 
-    QList<QVariant> groupPermissionsList = groupPermissions->toList();
-    foreach (QVariant permsHash, groupPermissionsList) {
-        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
-        QString id = perms->getID();
-        NodePermissionsKey idKey = perms->getKey();
-        if (_groupPermissions.contains(idKey)) {
-            qDebug() << "duplicate name in group permissions table: " << id;
-            *(_groupPermissions[idKey]) |= *perms;
-            needPack = true;
-        } else {
-            *(_groupPermissions[idKey]) = *perms;
-        }
-        if (perms->isGroup()) {
-            // the group-id was cached.  hook-up the uuid in the uuid->group hash
-            _groupPermissionsByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRankID())] = _groupPermissions[idKey];
-            needPack |= setGroupID(perms->getID(), perms->getGroupID());
-        }
-    }
+    return needPack;
 
-    QList<QVariant> groupForbiddensList = groupForbiddens->toList();
-    foreach (QVariant permsHash, groupForbiddensList) {
-        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
-        QString id = perms->getID();
-        NodePermissionsKey idKey = perms->getKey();
-        if (_groupForbiddens.contains(idKey)) {
-            qDebug() << "duplicate name in group forbiddens table: " << id;
-            *(_groupForbiddens[idKey]) |= *perms;
-            needPack = true;
-        } else {
-            _groupForbiddens[idKey] = perms;
-        }
-        if (perms->isGroup()) {
-            // the group-id was cached.  hook-up the uuid in the uuid->group hash
-            _groupForbiddensByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRankID())] = _groupForbiddens[idKey];
-            needPack |= setGroupID(perms->getID(), perms->getGroupID());
-        }
-    }
+}
+
+void DomainServerSettingsManager::unpackPermissions() {
+    // transfer details from _configMap to _agentPermissions;
+
+    bool foundLocalhost = false;
+    bool foundAnonymous = false;
+    bool foundLoggedIn = false;
+    bool foundFriends = false;
+
+    bool needPack = false;
+
+    needPack |= unpackPermissionsForKeypath(AGENT_STANDARD_PERMISSIONS_KEYPATH, &_standardAgentPermissions,
+        [&foundLocalhost, &foundAnonymous, &foundLoggedIn, &foundFriends](NodePermissionsPointer perms){
+            NodePermissionsKey idKey = perms->getKey();
+            foundLocalhost |= (idKey == NodePermissions::standardNameLocalhost);
+            foundAnonymous |= (idKey == NodePermissions::standardNameAnonymous);
+            foundLoggedIn |= (idKey == NodePermissions::standardNameLoggedIn);
+            foundFriends |= (idKey == NodePermissions::standardNameFriends);
+    });
+
+    needPack |= unpackPermissionsForKeypath(AGENT_PERMISSIONS_KEYPATH, &_agentPermissions);
+    needPack |= unpackPermissionsForKeypath(IP_PERMISSIONS_KEYPATH, &_ipPermissions);
+    needPack |= unpackPermissionsForKeypath(IP_FORBIDDENS_KEYPATH, &_ipForbiddens);
+
+    needPack |= unpackPermissionsForKeypath(GROUP_PERMISSIONS_KEYPATH, &_groupPermissions,
+        [&](NodePermissionsPointer perms){
+            if (perms->isGroup()) {
+                // the group-id was cached.  hook-up the uuid in the uuid->group hash
+                _groupPermissionsByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRankID())] = _groupPermissions[perms->getKey()];
+                needPack |= setGroupID(perms->getID(), perms->getGroupID());
+            }
+    });
+
+    needPack |= unpackPermissionsForKeypath(GROUP_FORBIDDENS_KEYPATH, &_groupForbiddens,
+        [&](NodePermissionsPointer perms) {
+            if (perms->isGroup()) {
+                // the group-id was cached.  hook-up the uuid in the uuid->group hash
+                _groupForbiddensByUUID[GroupByUUIDKey(perms->getGroupID(), perms->getRankID())] = _groupForbiddens[perms->getKey()];
+                needPack |= setGroupID(perms->getID(), perms->getGroupID());
+            }
+    });
 
     // if any of the standard names are missing, add them
     if (!foundLocalhost) {
