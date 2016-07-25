@@ -347,7 +347,6 @@ void RenderableModelEntityItem::updateModelBounds() {
         return;
     }
 
-        
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     glm::vec3 dimensions = getDimensions();
     bool success;
@@ -701,17 +700,18 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
         info.setParams(type, dimensions, _compoundShapeURL);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        updateModelBounds();
-
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
+
+        updateModelBounds();
+        _model->updateGeometry();
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
-        int32_t numMeshes = (int32_t)fbxGeometry.meshes.size();
-        int32_t totalNumVertices = 0;
-        for (int32_t i = 0; i < numMeshes; i++) {
+        int numFbxMeshes = fbxGeometry.meshes.size();
+        int totalNumVertices = 0;
+        for (int i = 0; i < numFbxMeshes; i++) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
@@ -730,10 +730,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             return;
         }
 
-        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
-
-        // the render geometry's mesh count should match that of the FBXGeometry
-        assert(numMeshes == (int32_t)(meshes.size()));
+        auto& meshes = _model->getGeometry()->getMeshes();
+        int32_t numMeshes = (int32_t)(meshes.size());
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
         pointCollection.clear();
@@ -742,6 +740,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         } else {
             pointCollection.resize(1);
         }
+
+        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+        triangleIndices.clear();
 
         Extents extents;
         int32_t meshCount = 0;
@@ -777,8 +778,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
             if (type == SHAPE_TYPE_STATIC_MESH) {
                 // copy into triangleIndices
-                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-                triangleIndices.clear();
                 triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
                 gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
                 while (partItr != parts.cend<const model::Mesh::Part>()) {
@@ -829,8 +828,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 }
             } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
                 // for each mesh copy unique part indices, separated by special bogus (flag) index values
-                ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-                triangleIndices.clear();
                 gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
                 while (partItr != parts.cend<const model::Mesh::Part>()) {
                     // collect unique list of indices for this part

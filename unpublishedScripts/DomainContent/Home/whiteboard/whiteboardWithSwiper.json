@@ -1,0 +1,149 @@
+{
+    "Entities": [{
+        "clientOnly": 0,
+        "compoundShapeURL": "atp:/whiteboard/handScannerSwitch_phys.obj",
+        "created": "2016-06-14T18:08:49Z",
+        "dimensions": {
+            "x": 0.11707025021314621,
+            "y": 0.16469044983386993,
+            "z": 0.10442595928907394
+        },
+        "id": "{21d2185f-4161-484d-bb0f-70bdc307700d}",
+        "modelURL": "atp:/whiteboard/handScannerSwitch_tall_VR.fbx",
+        "name": "hifi_whiteboardSwiper",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "parentID": "{7b380903-a6d5-46e8-a4b3-4d58eaaa0419}",
+        "position": {
+            "x": -0.86872124671936035,
+            "y": -0.33092412352561951,
+            "z": 0.072394371032714844
+        },
+        "queryAACube": {
+            "scale": 0.22744926810264587,
+            "x": 4.9953713417053223,
+            "y": 0.33575963973999023,
+            "z": 1.1766284704208374
+        },
+        "rotation": {
+            "w": 0.71929502487182617,
+            "x": -4.57763671875e-05,
+            "y": -0.69472801685333252,
+            "z": -1.52587890625e-05
+        },
+        "script": "atp:/whiteboard/swiper.js",
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "clientOnly": 0,
+        "color": {
+            "blue": 200,
+            "green": 10,
+            "red": 200
+        },
+        "created": "2016-06-14T18:08:49Z",
+        "dimensions": {
+            "x": 1.8200000524520874,
+            "y": 1.7999999523162842,
+            "z": 0.0099999997764825821
+        },
+        "id": "{5572abff-1575-48e8-bc79-1d6373046fe9}",
+        "name": "hifi-whiteboardDrawingSurface",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "parentID": "{7b380903-a6d5-46e8-a4b3-4d58eaaa0419}",
+        "position": {
+            "x": -0.019987192004919052,
+            "y": 0.45400944352149963,
+            "z": 0.020008884370326996
+        },
+        "queryAACube": {
+            "scale": 2.5597851276397705,
+            "x": 3.3173346519470215,
+            "y": -0.045509219169616699,
+            "z": -0.66857552528381348
+        },
+        "rotation": {
+            "w": 1,
+            "x": -1.52587890625e-05,
+            "y": -1.52587890625e-05,
+            "z": -1.52587890625e-05
+        },
+        "shape": "Cube",
+        "type": "Box",
+        "visible": 0,
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "clientOnly": 0,
+        "color": {
+            "blue": 200,
+            "green": 10,
+            "red": 200
+        },
+        "created": "2016-06-14T18:08:49Z",
+        "dimensions": {
+            "x": 1.8200000524520874,
+            "y": 1.7999999523162842,
+            "z": 0.0099999997764825821
+        },
+        "id": "{22152131-5ac7-4758-a5bc-3dda3f034eb4}",
+        "name": "hifi-whiteboardDrawingSurface",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "parentID": "{7b380903-a6d5-46e8-a4b3-4d58eaaa0419}",
+        "position": {
+            "x": -0.020041000097990036,
+            "y": 0.45001220703125,
+            "z": -0.019985578954219818
+        },
+        "queryAACube": {
+            "scale": 2.5597851276397705,
+            "x": 3.2840065956115723,
+            "y": -0.049505829811096191,
+            "z": -0.6464693546295166
+        },
+        "rotation": {
+            "w": 1,
+            "x": -1.52587890625e-05,
+            "y": -1.52587890625e-05,
+            "z": -1.52587890625e-05
+        },
+        "shape": "Cube",
+        "type": "Box",
+        "visible": 0,
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "clientOnly": 0,
+        "compoundShapeURL": "atp:/whiteboard/whiteboardCollisionHull.obj",
+        "created": "2016-06-14T18:08:49Z",
+        "dimensions": {
+            "x": 1.8600000143051147,
+            "y": 2.7000000476837158,
+            "z": 0.46360000967979431
+        },
+        "gravity": {
+            "x": 0,
+            "y": -9.8,
+            "z": 0
+        },
+        "id": "{7b380903-a6d5-46e8-a4b3-4d58eaaa0419}",
+        "modelURL": "atp:/whiteboard/Whiteboard-4.fbx",
+        "name": "hifi_whiteboard",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "queryAACube": {
+            "scale": 3.3112723827362061,
+            "x": -1.655636191368103,
+            "y": -1.655636191368103,
+            "z": -1.655636191368103
+        },
+        "rotation": {
+            "w": -0.30053186416625977,
+            "x": -2.1577336156042293e-05,
+            "y": 0.95376050472259521,
+            "z": 2.824626790243201e-07
+        },
+        "script": "atp:/whiteboard/whiteboard.js",
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 60
+}

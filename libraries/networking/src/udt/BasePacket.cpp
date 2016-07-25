@@ -152,8 +152,10 @@ QByteArray BasePacket::readWithoutCopy(qint64 maxSize) {
 
 qint64 BasePacket::writeString(const QString& string) {
     QByteArray data = string.toUtf8();
-    writePrimitive(static_cast<uint32_t>(data.length()));
-    return writeData(data.constData(), data.length());
+    uint32_t length = data.length();
+    writePrimitive(length);
+    write(data.constData(), data.length());
+    return length + sizeof(uint32_t);
 }
 
 QString BasePacket::readString() {
@@ -173,7 +175,6 @@ bool BasePacket::reset() {
 }
 
 qint64 BasePacket::writeData(const char* data, qint64 maxSize) {
-   
     Q_ASSERT_X(maxSize <= bytesAvailableForWrite(), "BasePacket::writeData", "not enough space for write");
     
     // make sure we have the space required to write this block

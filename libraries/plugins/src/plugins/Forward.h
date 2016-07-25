@@ -13,10 +13,12 @@
 enum class PluginType {
     DISPLAY_PLUGIN,
     INPUT_PLUGIN,
+    CODEC_PLUGIN,
 };
 
 class DisplayPlugin;
 class InputPlugin;
+class CodecPlugin;
 class Plugin;
 class PluginContainer;
 class PluginManager;
@@ -25,4 +27,6 @@ using DisplayPluginPointer = std::shared_ptr<DisplayPlugin>;
 using DisplayPluginList = std::vector<DisplayPluginPointer>;
 using InputPluginPointer = std::shared_ptr<InputPlugin>;
 using InputPluginList = std::vector<InputPluginPointer>;
+using CodecPluginPointer = std::shared_ptr<CodecPlugin>;
+using CodecPluginList = std::vector<CodecPluginPointer>;
 

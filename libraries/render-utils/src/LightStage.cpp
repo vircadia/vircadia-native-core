@@ -88,8 +88,9 @@ const glm::mat4& LightStage::Shadow::getProjection() const {
 }
 
 const LightStage::LightPointer LightStage::addLight(model::LightPointer light) {
-    Shadow stageShadow{light};
-    LightPointer stageLight = std::make_shared<Light>(std::move(stageShadow));
+  //  Shadow stageShadow{light};
+    LightPointer stageLight = std::make_shared<Light>(Shadow(light));
+    stageLight->light = light;
     lights.push_back(stageLight);
     return stageLight;
 }

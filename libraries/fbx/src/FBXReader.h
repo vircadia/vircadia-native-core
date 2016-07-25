@@ -167,6 +167,7 @@ public:
     FBXTexture metallicTexture;
     FBXTexture emissiveTexture;
     FBXTexture occlusionTexture;
+    FBXTexture scatteringTexture;
     FBXTexture lightmapTexture;
     glm::vec2 lightmapParams{ 0.0f, 1.0f };
 
@@ -443,7 +444,7 @@ public:
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 
-    void consolidateFBXMaterials();
+    void consolidateFBXMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;

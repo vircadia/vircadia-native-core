@@ -17,6 +17,7 @@ ScrollingWindow {
     width: 800
     height: 600
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
+    property alias url: webview.url
     property alias webView: webview
     x: 100
     y: 100

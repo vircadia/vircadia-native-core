@@ -113,10 +113,12 @@ void HmdDisplayPlugin::customizeContext() {
 
     updateReprojectionProgram();
     updateOverlayProgram();
+#ifdef HMD_HAND_LASER_SUPPORT
     updateLaserProgram();
-
     _laserGeometry = loadLaser(_laserProgram);
+#endif
 }
+
 //#define LIVE_SHADER_RELOAD 1
 
 static QString readFile(const QString& filename) {
@@ -162,6 +164,7 @@ void HmdDisplayPlugin::updateReprojectionProgram() {
 
 }
 
+#ifdef HMD_HAND_LASER_SUPPORT
 void HmdDisplayPlugin::updateLaserProgram() {
     static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_hand_lasers.vert";
     static const QString gsFile = PathUtils::resourcesPath() + "/shaders/hmd_hand_lasers.geom";
@@ -202,6 +205,7 @@ void HmdDisplayPlugin::updateLaserProgram() {
         }
     }
 }
+#endif
 
 void HmdDisplayPlugin::updateOverlayProgram() {
     static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
@@ -249,8 +253,10 @@ void HmdDisplayPlugin::uncustomizeContext() {
     _compositeFramebuffer.reset();
     _previewProgram.reset();
     _reprojectionProgram.reset();
+#ifdef HMD_HAND_LASER_SUPPORT
     _laserProgram.reset();
     _laserGeometry.reset();
+#endif
     Parent::uncustomizeContext();
 }
 
@@ -516,6 +522,7 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
 }
 
 void HmdDisplayPlugin::compositeExtra() {
+#ifdef HMD_HAND_LASER_SUPPORT
     // If neither hand laser is activated, exit
     if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid()) {
         return;
@@ -584,4 +591,5 @@ void HmdDisplayPlugin::compositeExtra() {
         }
     });
     glDisable(GL_BLEND);
+#endif
 }

@@ -45,7 +45,9 @@ private slots:
     void broadcastMixes();
     void handleNodeAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
+    void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
@@ -90,6 +92,8 @@ private:
     int _manualStereoMixes { 0 };
     int _manualEchoMixes { 0 };
     int _totalMixes { 0 };
+
+    QString _codecPreferenceOrder;
 
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];

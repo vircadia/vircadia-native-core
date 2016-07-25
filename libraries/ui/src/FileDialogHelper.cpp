@@ -108,3 +108,10 @@ QStringList FileDialogHelper::drives() {
 void FileDialogHelper::openDirectory(const QString& path) {
     QDesktopServices::openUrl(path);
 }
+
+QList<QUrl> FileDialogHelper::urlToList(const QUrl& url) {
+    QList<QUrl> results;
+    results.push_back(url);
+    return results;
+}
+

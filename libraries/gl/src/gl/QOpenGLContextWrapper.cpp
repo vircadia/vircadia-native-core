@@ -28,16 +28,17 @@ QOpenGLContext* QOpenGLContextWrapper::currentContext() {
     return QOpenGLContext::currentContext();
 }
 
-
 QOpenGLContextWrapper::QOpenGLContextWrapper() :
-_context(new QOpenGLContext)
-{
-}
-
+    _ownContext(true), _context(new QOpenGLContext) { }
 
 QOpenGLContextWrapper::QOpenGLContextWrapper(QOpenGLContext* context) :
-    _context(context)
-{
+    _context(context) { }
+
+QOpenGLContextWrapper::~QOpenGLContextWrapper() {
+    if (_ownContext) {
+        delete _context;
+        _context = nullptr;
+    }
 }
 
 void QOpenGLContextWrapper::setFormat(const QSurfaceFormat& format) {

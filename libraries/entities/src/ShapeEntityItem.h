@@ -15,6 +15,8 @@ namespace entity {
     enum Shape {
         Triangle,
         Quad,
+        Hexagon,
+        Octagon,
         Circle,
         Cube,
         Sphere,

@@ -14,6 +14,10 @@
 
 #include "../OpenGLDisplayPlugin.h"
 
+#ifdef Q_OS_WIN
+#define HMD_HAND_LASER_SUPPORT
+#endif
+
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
@@ -93,7 +97,9 @@ protected:
 
 private:
     void updateOverlayProgram();
+#ifdef HMD_HAND_LASER_SUPPORT
     void updateLaserProgram();
+#endif
     void updateReprojectionProgram();
 
     bool _enablePreview { false };
@@ -130,11 +136,13 @@ private:
 
     ShapeWrapperPtr _sphereSection;
 
+#ifdef HMD_HAND_LASER_SUPPORT
     ProgramPtr _laserProgram;
     struct LaserUniforms {
         int32_t mvp { -1 };
         int32_t color { -1 };
     } _laserUniforms;
     ShapeWrapperPtr _laserGeometry;
+#endif
 };
 

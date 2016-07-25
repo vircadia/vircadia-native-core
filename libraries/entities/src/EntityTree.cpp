@@ -723,13 +723,10 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         int index = changedProperties.indexOf("velocity");
         if (index >= 0) {
             glm::vec3 value = properties.getVelocity();
-            QString changeHint = "0";
-            if (value.x + value.y + value.z > 0) {
-                changeHint = "+";
-            } else if (value.x + value.y + value.z < 0) {
-                changeHint = "-";
-            }
-            changedProperties[index] = QString("velocity:") + changeHint;
+            changedProperties[index] = QString("velocity:") +
+                QString::number((int)value.x) + "," +
+                QString::number((int)value.y) + "," +
+                QString::number((int)value.z);
         }
     }
 

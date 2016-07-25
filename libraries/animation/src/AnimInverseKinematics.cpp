@@ -428,7 +428,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             // shift hips according to the _hipsOffset from the previous frame
             float offsetLength = glm::length(_hipsOffset);
             const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
-            if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
+            if (offsetLength > MIN_HIPS_OFFSET_LENGTH && _hipsIndex >= 0) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
                 if (_hipsParentIndex == -1) {
@@ -486,6 +486,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         }
     }
     return _relativePoses;
+}
+
+void AnimInverseKinematics::clearIKJointLimitHistory() {
+    for (auto& pair : _constraints) {
+        pair.second->clearHistory();
+    }
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
@@ -855,7 +861,11 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
 
         // also cache the _hipsParentIndex for later
-        _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
+        if (_hipsIndex >= 0) {
+            _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
+        } else {
+            _hipsParentIndex = -1;
+        }
     } else {
         clearConstraints();
         _headIndex = -1;

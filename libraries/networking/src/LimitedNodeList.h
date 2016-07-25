@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <iterator>
 #include <memory>
+#include <set>
 #include <unordered_map>
 
 #ifndef _WIN32
@@ -46,7 +47,7 @@
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
-extern const char SOLO_NODE_TYPES[2];
+extern const std::set<NodeType_t> SOLO_NODE_TYPES;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
@@ -149,6 +150,7 @@ public:
     void processKillNode(ReceivedMessage& message);
 
     int updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer matchingNode);
+    NodeData* getOrCreateLinkedData(SharedNodePointer node);
 
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);

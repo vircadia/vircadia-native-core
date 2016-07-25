@@ -1083,9 +1083,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     // Setup the domain object to send to the data server
     QJsonObject domainObject;
 
-    // add the version
+    // add the versions
     static const QString VERSION_KEY = "version";
     domainObject[VERSION_KEY] = BuildInfo::VERSION;
+    static const QString PROTOCOL_VERSION_KEY = "protocol";
+    domainObject[PROTOCOL_VERSION_KEY] = protocolVersionsSignatureBase64();
 
     // add networking
     if (!networkAddress.isEmpty()) {

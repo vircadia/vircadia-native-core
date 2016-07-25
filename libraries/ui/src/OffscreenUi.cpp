@@ -29,6 +29,9 @@ class OffscreenFlags : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
 
+    // Allow scripts that are doing their own navigation support to disable navigation focus (i.e. handControllerPointer.js)
+    Q_PROPERTY(bool navigationFocusDisabled READ isNavigationFocusDisabled WRITE setNavigationFocusDisabled NOTIFY navigationFocusDisabledChanged)
+
 public:
 
     OffscreenFlags(QObject* parent = nullptr) : QObject(parent) {}
@@ -40,11 +43,21 @@ public:
         }
     }
 
+    bool isNavigationFocusDisabled() const { return _navigationFocusDisabled; }
+    void setNavigationFocusDisabled(bool disabled) {
+        if (_navigationFocusDisabled != disabled) {
+            _navigationFocusDisabled = disabled;
+            emit navigationFocusDisabledChanged();
+        }
+    }
+    
 signals:
     void navigationFocusedChanged();
+    void navigationFocusDisabledChanged();
 
 private:
     bool _navigationFocused { false };
+    bool _navigationFocusDisabled{ false };
 };
 
 QString fixupHifiUrl(const QString& urlString) {
@@ -101,6 +114,10 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
 }
 
 OffscreenUi::OffscreenUi() {
+}
+
+QObject* OffscreenUi::getFlags() {
+    return offscreenFlags;
 }
 
 void OffscreenUi::create(QOpenGLContext* context) {
@@ -326,6 +343,23 @@ QString OffscreenUi::getItem(const Icon icon, const QString& title, const QStrin
     return result.toString();
 }
 
+QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok) {
+    if (ok) {
+        *ok = false;
+    }
+
+    QVariant result = DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
+    if (result.isValid()) {
+        // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
+        result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
+        if (ok) {
+            *ok = true;
+        }
+    }
+
+    return result;
+}
+
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
@@ -339,6 +373,20 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     }
 
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
+}
+
+QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "customInputDialog", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QVariant, result),
+                                  Q_ARG(Icon, icon),
+                                  Q_ARG(QString, title),
+                                  Q_ARG(QVariantMap, config));
+        return result;
+    }
+
+    return waitForInputDialogResult(createCustomInputDialog(icon, title, config));
 }
 
 void OffscreenUi::togglePinned() {
@@ -384,6 +432,23 @@ QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title
     return qvariant_cast<QQuickItem*>(result);
 }
 
+QQuickItem* OffscreenUi::createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
+    QVariantMap map = config;
+    map.insert("title", title);
+    map.insert("icon", icon);
+    QVariant result;
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "customInputDialog",
+                                                  Q_RETURN_ARG(QVariant, result),
+                                                  Q_ARG(QVariant, QVariant::fromValue(map)));
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create custom message box";
+        return nullptr;
+    }
+
+    return qvariant_cast<QQuickItem*>(result);
+}
+
 QVariant OffscreenUi::waitForInputDialogResult(QQuickItem* inputDialog) {
     if (!inputDialog) {
         return QVariant();
@@ -392,7 +457,7 @@ QVariant OffscreenUi::waitForInputDialogResult(QQuickItem* inputDialog) {
 }
 
 bool OffscreenUi::navigationFocused() {
-    return offscreenFlags->isNavigationFocused();
+    return !offscreenFlags->isNavigationFocusDisabled() && offscreenFlags->isNavigationFocused();
 }
 
 void OffscreenUi::setNavigationFocused(bool focused) {

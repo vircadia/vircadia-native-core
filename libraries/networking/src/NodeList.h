@@ -20,6 +20,8 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <tbb/concurrent_unordered_set.h>
+
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
@@ -68,6 +70,9 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
+    void ignoreNodeBySessionID(const QUuid& nodeID);
+    bool isIgnoringNode(const QUuid& nodeID) const;
+
 public slots:
     void reset();
     void sendDomainServerCheckIn();
@@ -92,6 +97,8 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
+    void ignoredNode(const QUuid& nodeID);
+    
 private slots:
     void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
@@ -103,6 +110,8 @@ private slots:
     void pingPunchForDomainServer();
     
     void sendKeepAlivePings();
+
+    void maybeSendIgnoreSetToNode(SharedNodePointer node);
     
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
@@ -128,6 +137,9 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+
+    mutable QReadWriteLock _ignoredSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

@@ -69,7 +69,6 @@ static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
 
 // util method
 btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
-    //std::cout << "adebug createConvexHull() points.size() = " << points.size() << std::endl;  // adebug
     assert(points.size() > 0);
 
     btConvexHullShape* hull = new btConvexHullShape();
@@ -241,7 +240,6 @@ void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
 btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
-    //std::cout << "adebug createShapeFromInfo() type = " << type << std::endl;  // adebug
     switch(type) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
