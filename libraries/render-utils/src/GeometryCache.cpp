@@ -1768,25 +1768,17 @@ gpu::PipelinePointer GeometryCache::getSimpleSRGBTexturedUnlitNoDstAlphaPipeline
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
         gpu::Shader::makeProgram(*_simpleSRGBTexturedUnlitNoDstAlphaShader, slotBindings);
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_NONE);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setBlendFunction(false,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        _simpleSRGBTexturedUnlitNoDstAlphaPipeline = gpu::Pipeline::create(_simpleSRGBTexturedUnlitNoDstAlphaShader, state);
     });
 
-    if (_simpleSRGBTexturedUnlitNoDstAlphaPipeline) {
-        return _simpleSRGBTexturedUnlitNoDstAlphaPipeline;
-    }
-
-    // If the pipeline did not exist, make it
-    auto state = std::make_shared<gpu::State>();
-    state->setCullMode(gpu::State::CULL_NONE);
-
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    state->setBlendFunction(false,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-    gpu::ShaderPointer program = _simpleSRGBTexturedUnlitNoDstAlphaShader;
-    gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
-    _simpleSRGBTexturedUnlitNoDstAlphaPipeline = pipeline;
-    return pipeline;
+    return _simpleSRGBTexturedUnlitNoDstAlphaPipeline;
 }
 
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool unlit, bool depthBiased) {
