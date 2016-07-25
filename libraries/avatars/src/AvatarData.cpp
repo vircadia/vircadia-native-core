@@ -689,7 +689,7 @@ void AvatarData::clearJointData(int index) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
-    // BUG: I don't understand how this "clears" the joint data at index
+    // FIXME: I don't understand how this "clears" the joint data at index
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
@@ -888,7 +888,7 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
 }
 
 void AvatarData::clearJointsData() {
-    // BUG: this method is terribly inefficient and probably doesn't even work
+    // FIXME: this method is terribly inefficient and probably doesn't even work
     // (see implementation of clearJointData(index))
     for (int i = 0; i < _jointData.size(); ++i) {
         clearJointData(i);
