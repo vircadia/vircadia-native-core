@@ -61,9 +61,9 @@ var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance 
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 
 var COLORS_GRAB_SEARCHING_HALF_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 161,
+    green: 108,
+    blue: 238
 };
 
 var COLORS_GRAB_SEARCHING_FULL_SQUEEZE = {
@@ -1518,7 +1518,10 @@ function MyController(hand) {
 
         // visualizations
 
-        this.overlayLineOn(handPosition, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+         var rayPickInfo = this.calcRayPickInfo(this.hand);
+     //   this.searchIndicatorOn(rayPickInfo.searchRay);
+
+       this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
