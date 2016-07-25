@@ -207,7 +207,7 @@ ScrollingWindow {
             anchors.right: parent.right
             onFeaturePermissionRequested: {
                 permissionsBar.securityOrigin = securityOrigin;
-                permissionsBar.feature  = feature;
+                permissionsBar.feature = feature;
                 root.showPermissionsBar();
             }
             onLoadingChanged: {
