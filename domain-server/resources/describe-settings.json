@@ -704,7 +704,7 @@
           ]
         },
         {
-          "name": "ip_forbidden",
+          "name": "ip_forbiddens",
           "type": "table",
           "caption": "Permissions denied to Users from IP Addresses",
           "can_add_new_rows": true,
