@@ -213,7 +213,7 @@ ScrollingWindow {
                         // different scripting engine from QTScript.
                         gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 10);
                     } else {
-                        gravity = { x: 0, y: 0, z: 0 };
+                        gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
                     }
 
                     print("Asset browser - adding asset " + url + " (" + name + ") to world.");
