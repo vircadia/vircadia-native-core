@@ -61,15 +61,15 @@ var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance 
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 
 var COLORS_GRAB_SEARCHING_HALF_SQUEEZE = {
-    red: 161,
-    green: 108,
-    blue: 238
+    red: 10,
+    green: 10,
+    blue: 255
 };
 
 var COLORS_GRAB_SEARCHING_FULL_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 250,
+    green: 10,
+    blue: 10
 };
 
 var COLORS_GRAB_DISTANCE_HOLD = {
