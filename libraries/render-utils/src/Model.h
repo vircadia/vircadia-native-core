@@ -238,6 +238,8 @@ public:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
+    float priority { 0 };
+
 public slots:
     void loadURLFinished(bool success);
     void loadCollisionModelURLFinished(bool success);

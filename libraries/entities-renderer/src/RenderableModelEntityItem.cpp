@@ -484,7 +484,11 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
+            auto dims = this->getDimensions();
+            auto maxSize = glm::max(dims.x, dims.y, dims.z);
+            auto distance = glm::distance(renderer->cameraPosition, getPosition());
+            float priority = atan2(maxSize / 2, distance);
+            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL(), priority);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if ((QUrl(getModelURL()) != _model->getURL() || QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
