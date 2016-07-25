@@ -141,17 +141,17 @@ ScrollingWindow {
         }
 
         Rectangle {
-        id:permissionsContainer
-        visible:false
-        color: "#000000"
-        width:  parent.width
-        anchors.top: buttons.bottom
-        height:40
-        z:100
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "black" }
-            GradientStop { position: 1.0; color: "grey" }
-        }
+            id:permissionsContainer
+            visible:false
+            color: "#000000"
+            width:  parent.width
+            anchors.top: buttons.bottom
+            height:40
+            z:100
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "black" }
+                GradientStop { position: 1.0; color: "grey" }
+            }
 
             RalewayLight {
                     id: permissionsInfo
@@ -206,7 +206,7 @@ ScrollingWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             onFeaturePermissionRequested: {
-                permissionsBar.securityOrigin =securityOrigin;
+                permissionsBar.securityOrigin = securityOrigin;
                 permissionsBar.feature  = feature;
                 root.showPermissionsBar();
             }
