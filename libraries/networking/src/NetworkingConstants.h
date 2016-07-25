@@ -15,7 +15,7 @@
 #include <QtCore/QUrl>
 
 namespace NetworkingConstants {
-    const QUrl METAVERSE_SERVER_URL = QUrl("http://localhost:3000");
+    const QUrl METAVERSE_SERVER_URL = QUrl("https://hifi.ngrok.io");
 }
 
 #endif // hifi_NetworkingConstants_h
