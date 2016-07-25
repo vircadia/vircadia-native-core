@@ -469,23 +469,11 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 }
 
 void DomainServerSettingsManager::unpackPermissions() {
-    // transfer details from _configMap to _agentPermissions;
-
-    bool foundLocalhost = false;
-    bool foundAnonymous = false;
-    bool foundLoggedIn = false;
-    bool foundFriends = false;
+    // transfer details from _configMap to _agentPermissions
 
     bool needPack = false;
 
-    needPack |= unpackPermissionsForKeypath(AGENT_STANDARD_PERMISSIONS_KEYPATH, &_standardAgentPermissions,
-        [&foundLocalhost, &foundAnonymous, &foundLoggedIn, &foundFriends](NodePermissionsPointer perms){
-            NodePermissionsKey idKey = perms->getKey();
-            foundLocalhost |= (idKey == NodePermissions::standardNameLocalhost);
-            foundAnonymous |= (idKey == NodePermissions::standardNameAnonymous);
-            foundLoggedIn |= (idKey == NodePermissions::standardNameLoggedIn);
-            foundFriends |= (idKey == NodePermissions::standardNameFriends);
-    });
+    needPack |= unpackPermissionsForKeypath(AGENT_STANDARD_PERMISSIONS_KEYPATH, &_standardAgentPermissions);
 
     needPack |= unpackPermissionsForKeypath(AGENT_PERMISSIONS_KEYPATH, &_agentPermissions);
     needPack |= unpackPermissionsForKeypath(IP_PERMISSIONS_KEYPATH, &_ipPermissions);
@@ -510,26 +498,23 @@ void DomainServerSettingsManager::unpackPermissions() {
     });
 
     // if any of the standard names are missing, add them
-    if (!foundLocalhost) {
-        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
-        perms->setAll(true);
-        _standardAgentPermissions[perms->getKey()] = perms;
-        needPack = true;
-    }
-    if (!foundAnonymous) {
-        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
-        _standardAgentPermissions[perms->getKey()] = perms;
-        needPack = true;
-    }
-    if (!foundLoggedIn) {
-        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
-        _standardAgentPermissions[perms->getKey()] = perms;
-        needPack = true;
-    }
-    if (!foundFriends) {
-        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameFriends) };
-        _standardAgentPermissions[perms->getKey()] = perms;
-        needPack = true;
+    foreach(const QString& standardName, NodePermissions::standardNames) {
+        NodePermissionsKey standardKey { standardName, 0 };
+        if (!_standardAgentPermissions.contains(standardKey)) {
+            // we don't have permissions for one of the standard groups, so we'll add them now
+            NodePermissionsPointer perms { new NodePermissions(standardKey) };
+
+            // the localhost user is granted all permissions by default
+            if (standardKey == NodePermissions::standardNameLocalhost) {
+                perms->setAll(true);
+            }
+
+            // add the permissions to the standard map
+            _standardAgentPermissions[standardKey] = perms;
+
+            // this will require a packing of permissions
+            needPack = true;
+        }
     }
 
     needPack |= ensurePermissionsForGroupRanks();
