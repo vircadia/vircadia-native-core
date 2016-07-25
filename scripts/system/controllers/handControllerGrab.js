@@ -1519,7 +1519,6 @@ function MyController(hand) {
         // visualizations
 
          var rayPickInfo = this.calcRayPickInfo(this.hand);
-     //   this.searchIndicatorOn(rayPickInfo.searchRay);
 
        this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
