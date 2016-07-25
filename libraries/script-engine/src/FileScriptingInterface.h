@@ -33,10 +33,11 @@ public slots:
 	void runUnzip(QString path, QUrl url);
 
 signals:
+	void unzipSuccess(QString url);
 
 private:
 	//void downloadZip();
-	void unzipFile(QString path);
+	QString unzipFile(QString path);
 	void recursiveFileScan(QFileInfo file, QString* dirName);
 	void downloadZip(QString path, const QString link);
 

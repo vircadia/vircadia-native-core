@@ -34,7 +34,16 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 void FileScriptingInterface::runUnzip(QString path, QUrl url) {
 	qDebug() << "Url that was downloaded: " + url.toString();
 	qDebug() << "Path where download is saved: " + path;
-	unzipFile(path);
+	QString file = unzipFile(path);
+	if (file != "") {
+		qDebug() << "file to upload: " + file;
+		QUrl url = QUrl::fromLocalFile(file);
+		qDebug() << "url from local file: " + url.toString();
+		emit unzipSuccess(url.toString());
+		//Application::toggleAssetServerWidget(file);
+	} else {
+		qDebug() << "unzip failed";
+	}
 }
 
 bool FileScriptingInterface::testUrl(QUrl url) {
@@ -68,67 +77,22 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
 }
 
 // clement's help :D
-void FileScriptingInterface::unzipFile(QString path) {
-	//ResourceRequest* request = qobject_cast<ResourceRequest*>(sender());
-    //QUrl url = request->getUrl();
+QString FileScriptingInterface::unzipFile(QString path) {
 
-    //if (request->getResult() == ResourceRequest::Success) {
-        qDebug() << "Zip file was downloaded";
-	    QDir dir(path);
-        //QByteArray compressedFileContent = request->getData(); // <-- Downloaded file is in here
-        //QBuffer buffer(&compressedFileContent);
-        //buffer.open(QIODevice::ReadOnly);
+    qDebug() << "Zip file was downloaded";
+	QDir dir(path);
+    QString dirName = dir.path();
+	qDebug() << "Zip directory is stored at: " + dirName;
+    QStringList list = JlCompress::extractDir(dirName, "C:/Users/elisa/Downloads/test");
 
-		//QString zipFileName = QFile::decodeName(compressedFileContent);
-        QString dirName = dir.path();
-		//QDir testPath("C:/Users/elisa/Downloads/banana.zip");
-		qDebug() << "Zip directory is stored at: " + dirName;
-        QStringList list = JlCompress::extractDir(dirName, "C:/Users/elisa/Downloads/test");
+	qDebug() << list;
 
-		qDebug() << list;
-
-        //QFileInfoList files = dir.entryInfoList();
-		QFileInfoList files = dir.entryInfoList();
-		foreach(QFileInfo file, files) {
-			qDebug() << "My file: " + file.fileName();
-			recursiveFileScan(file, &dirName);
-			
-        }
-
-
-        /*foreach (QFileInfo file, files) {
-        	if (file.isDir()) {
-        		if (file.fileName().contains(".zip")) {
-        			qDebug() << "Zip file expanded: " + file.fileName();
-        		}
-
-        		qDebug() << "Regular file logged: " + file.fileName();
-        	}
-        }*/
-
-
-        
-
-        //QFile file = 
-        //need to convert this byte array to a file
-        /*QuaZip zip(zipFileName);
-
-        if (zip.open(QuaZip::mdUnzip)) {
-        qDebug() << "Opened";
- 
-        for (bool more = zip.goToFirstFile(); more; more = zip.goToNextFile()) {
-            // do something
-            qDebug() << zip.getCurrentFileName();
-        }
-        if (zip.getZipError() == UNZ_OK) {
-            // ok, there was no error
-        }*/
-
-
-        //buffer.close();
-    //} else {
-       // qDebug() << "Could not download the zip file";
-    //}
+	if (!list.isEmpty()) {
+		return list.front();
+	} else {
+		qDebug() << "Extraction failed";
+		return "";
+	}
 
 }
 

@@ -1543,7 +1543,10 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-	rootContext->setContextProperty("File", new FileScriptingInterface(engine));
+	//rootContext->setContextProperty("File", new FileScriptingInterface(engine));
+	FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+	rootContext->setContextProperty("File", fileDownload);
+	connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::toggleAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -5035,6 +5038,7 @@ void Application::toggleAssetServerWidget(QString filePath) {
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
         if (!filePath.isEmpty()) {
+			qDebug() << "file in toggle: " + filePath;
             emit uploadRequest(filePath);
         }
     };
