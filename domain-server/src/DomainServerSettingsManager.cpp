@@ -273,6 +273,15 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // This was prior to operating hours, so add default hours
             validateDescriptorsMap();
         }
+
+        if (oldVersion < 1.6) {
+            unpackPermissions();
+
+            // This was prior to addition of kick permissions, add that to localhost permissions by default
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canKick);
+
+            packPermissions();
+        }
     }
 
     unpackPermissions();
