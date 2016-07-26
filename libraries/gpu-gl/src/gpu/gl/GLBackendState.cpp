@@ -158,13 +158,18 @@ void GLBackend::do_setStateDepthBias(Vec2 bias) {
 }
 
 void GLBackend::do_setStateDepthTest(State::DepthTest test) {
-    if (_pipeline._stateCache.depthTest != test) {
+    const auto& current = _pipeline._stateCache.depthTest;
+    if (current != test) {
         if (test.isEnabled()) {
             glEnable(GL_DEPTH_TEST);
-            glDepthMask(test.getWriteMask());
-            glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         } else {
             glDisable(GL_DEPTH_TEST);
+        }
+        if (test.getWriteMask() != current.getWriteMask()) {
+            glDepthMask(test.getWriteMask());
+        }
+        if (test.getFunction() != current.getFunction()) {
+            glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         }
         if (CHECK_GL_ERROR()) {
             qDebug() << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
@@ -172,50 +177,54 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
                 << "Func=" << test.getFunction()
                 << "Raw=" << test.getRaw();
         }
-
         _pipeline._stateCache.depthTest = test;
     }
 }
 
 void GLBackend::do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest) {
-
-    if ((_pipeline._stateCache.stencilActivation != activation)
-        || (_pipeline._stateCache.stencilTestFront != frontTest)
-        || (_pipeline._stateCache.stencilTestBack != backTest)) {
+    const auto& currentActivation = _pipeline._stateCache.stencilActivation;
+    const auto& currentTestFront = _pipeline._stateCache.stencilTestFront;
+    const auto& currentTestBack = _pipeline._stateCache.stencilTestBack;
+    if ((currentActivation != activation)
+        || (currentTestFront != frontTest)
+        || (currentTestBack != backTest)) {
 
         if (activation.isEnabled()) {
             glEnable(GL_STENCIL_TEST);
-
-            if (activation.getWriteMaskFront() != activation.getWriteMaskBack()) {
-                glStencilMaskSeparate(GL_FRONT, activation.getWriteMaskFront());
-                glStencilMaskSeparate(GL_BACK, activation.getWriteMaskBack());
-            } else {
-                glStencilMask(activation.getWriteMaskFront());
-            }
-
-            static GLenum STENCIL_OPS[] = {
-                GL_KEEP,
-                GL_ZERO,
-                GL_REPLACE,
-                GL_INCR_WRAP,
-                GL_DECR_WRAP,
-                GL_INVERT,
-                GL_INCR,
-                GL_DECR };
-
-            if (frontTest != backTest) {
-                glStencilOpSeparate(GL_FRONT, STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
-                glStencilFuncSeparate(GL_FRONT, COMPARISON_TO_GL[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
-
-                glStencilOpSeparate(GL_BACK, STENCIL_OPS[backTest.getFailOp()], STENCIL_OPS[backTest.getPassOp()], STENCIL_OPS[backTest.getDepthFailOp()]);
-                glStencilFuncSeparate(GL_BACK, COMPARISON_TO_GL[backTest.getFunction()], backTest.getReference(), backTest.getReadMask());
-            } else {
-                glStencilOp(STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
-                glStencilFunc(COMPARISON_TO_GL[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
-            }
-        } else {
+        }
+        else {
             glDisable(GL_STENCIL_TEST);
         }
+
+        if (activation.getWriteMaskFront() != activation.getWriteMaskBack()) {
+            glStencilMaskSeparate(GL_FRONT, activation.getWriteMaskFront());
+            glStencilMaskSeparate(GL_BACK, activation.getWriteMaskBack());
+        }
+        else {
+            glStencilMask(activation.getWriteMaskFront());
+        }
+
+        static GLenum STENCIL_OPS[State::NUM_STENCIL_OPS] = {
+            GL_KEEP,
+            GL_ZERO,
+            GL_REPLACE,
+            GL_INCR_WRAP,
+            GL_DECR_WRAP,
+            GL_INVERT,
+            GL_INCR,
+            GL_DECR };
+
+        if (frontTest != backTest) {
+            glStencilOpSeparate(GL_FRONT, STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
+            glStencilFuncSeparate(GL_FRONT, COMPARISON_TO_GL[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
+
+            glStencilOpSeparate(GL_BACK, STENCIL_OPS[backTest.getFailOp()], STENCIL_OPS[backTest.getPassOp()], STENCIL_OPS[backTest.getDepthFailOp()]);
+            glStencilFuncSeparate(GL_BACK, COMPARISON_TO_GL[backTest.getFunction()], backTest.getReference(), backTest.getReadMask());
+        } else {
+            glStencilOp(STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
+            glStencilFunc(COMPARISON_TO_GL[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
+        }
+
         (void)CHECK_GL_ERROR();
 
         _pipeline._stateCache.stencilActivation = activation;
