@@ -18,53 +18,69 @@
 
 #include <ShapeInfo.h> // for MAX_HULL_POINTS
 
-float verts[3 * MAX_HULL_POINTS];
+const int32_t MAX_HULL_INDICES = 6 * MAX_HULL_POINTS;
+float tempVertexBuffer[3 * MAX_HULL_POINTS];
+model::Index tempIndexBuffer[MAX_HULL_INDICES];
 
-void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape, model::MeshPointer mesh) {
-    assert((bool)mesh);
+//void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape, model::MeshPointer mesh) {
+void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
+        gpu::BufferView& vertices, gpu::BufferView& indices, gpu::BufferView& parts) {
     assert(shape);
 
     btShapeHull hull(shape);
     const btScalar MARGIN = 0.0f;
     hull.buildHull(MARGIN);
 
-    const uint32_t* hullIndices = hull.getIndexPointer();
-    int32_t numIndices = hull.numIndices();
-    assert(numIndices <= 6 * MAX_HULL_POINTS);
+    int32_t numHullIndices = hull.numIndices();
+    assert(numHullIndices <= MAX_HULL_INDICES);
+
+    int32_t numHullVertices = hull.numVertices();
+    assert(numHullVertices <= MAX_HULL_POINTS);
 
     { // new part
         model::Mesh::Part part;
-        part._startIndex = mesh->getIndexBuffer().getNumElements();
-        part._numIndices = (model::Index)numIndices;
-        part._baseVertex = mesh->getVertexBuffer().getNumElements();
+        part._startIndex = indices.getNumElements();
+        part._numIndices = (model::Index)numHullIndices;
+        // FIXME: the render code cannot handle the case where part._baseVertex != 0
+        //part._baseVertex = vertices.getNumElements(); // DOES NOT WORK
+        part._baseVertex = 0;
 
         gpu::BufferView::Size numBytes = sizeof(model::Mesh::Part);
         const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(&part);
-        mesh->getPartBuffer()._buffer->append(numBytes, data);
+        parts._buffer->append(numBytes, data);
+        parts._size = parts._buffer->getSize();
     }
 
+    model::Index indexOffset = vertices.getNumElements();
     { // new vertices
         const btVector3* hullVertices = hull.getVertexPointer();
-        int32_t numVertices = hull.numVertices();
-        assert(numVertices <= MAX_HULL_POINTS);
-        for (int32_t i = 0; i < numVertices; ++i) {
+        assert(numHullVertices <= MAX_HULL_POINTS);
+        for (int32_t i = 0; i < numHullVertices; ++i) {
             btVector3 transformedPoint = transform * hullVertices[i];
-            memcpy(transformedPoint.m_floats, verts + 3 * i, 3 * sizeof(float));
-            //data[0] = transformedPoint.getX();
-            //data[1] = transformedPoint.getY();
-            //data[2] = transformedPoint.getZ();
+            memcpy(tempVertexBuffer + 3 * i, transformedPoint.m_floats, 3 * sizeof(float));
         }
 
-        gpu::BufferView::Size numBytes = sizeof(float) * (3 * numVertices);
-        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(verts);
-        mesh->getVertexBuffer()._buffer->append(numBytes, data);
+        gpu::BufferView::Size numBytes = sizeof(float) * (3 * numHullVertices);
+        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(tempVertexBuffer);
+        vertices._buffer->append(numBytes, data);
+        vertices._size = vertices._buffer->getSize();
     }
 
     { // new indices
-        gpu::BufferView::Size numBytes = (gpu::BufferView::Size)(sizeof(uint32_t) * hull.numIndices());
-        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(hullIndices);
-        mesh->getIndexBuffer()._buffer->append(numBytes, data);
+        const uint32_t* hullIndices = hull.getIndexPointer();
+        // FIXME: the render code cannot handle the case where part._baseVertex != 0
+        // so we must add an offset to each index
+        for (int32_t i = 0; i < numHullIndices; ++i) {
+            tempIndexBuffer[i] = hullIndices[i] + indexOffset;
+        }
+        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(tempIndexBuffer);
+        gpu::BufferView::Size numBytes = (gpu::BufferView::Size)(sizeof(model::Index) * numHullIndices);
+        indices._buffer->append(numBytes, data);
+        indices._size = indices._buffer->getSize();
     }
+
+    gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
+    gpu::Size numParts = parts.getNumElements();
 }
 
 model::MeshPointer createMeshFromShape(const void* pointer) {
@@ -73,17 +89,18 @@ model::MeshPointer createMeshFromShape(const void* pointer) {
         return mesh;
     }
 
-    // pointer must actually be a const btCollisionShape*, but it only
-    // needs to be valid here when its render mesh is created.
+    // pointer must be a const btCollisionShape* (cast to void*), but it only
+    // needs to be valid here when its render mesh is created, after this call
+    // the cache doesn't care what happens to the shape behind the pointer
     const btCollisionShape* shape = static_cast<const btCollisionShape*>(pointer);
 
     int32_t shapeType = shape->getShapeType();
     if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE || shape->isConvex()) {
         // create the mesh and allocate buffers for it
         mesh = std::make_shared<model::Mesh>();
-        mesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getVertexBuffer()._element));
-        mesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getIndexBuffer()._element));
-        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(), mesh->getPartBuffer()._element));
+        gpu::BufferView vertices(new gpu::Buffer(), mesh->getVertexBuffer()._element);
+        gpu::BufferView indices(new gpu::Buffer(), mesh->getIndexBuffer()._element);
+        gpu::BufferView parts(new gpu::Buffer(), mesh->getPartBuffer()._element);
 
         if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
             const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
@@ -92,14 +109,19 @@ model::MeshPointer createMeshFromShape(const void* pointer) {
                 const btCollisionShape* childShape = compoundShape->getChildShape(i);
                 if (childShape->isConvex()) {
                     const btConvexShape* convexShape = static_cast<const btConvexShape*>(childShape);
-                    copyShapeToMesh(compoundShape->getChildTransform(i), convexShape, mesh);
+                    copyShapeToMesh(compoundShape->getChildTransform(i), convexShape, vertices, indices, parts);
                 }
             }
         } else {
             // shape is convex
             const btConvexShape* convexShape = static_cast<const btConvexShape*>(shape);
-            copyShapeToMesh(btTransform(), convexShape, mesh);
+            btTransform transform;
+            transform.setIdentity();
+            copyShapeToMesh(transform, convexShape, vertices, indices, parts);
         }
+        mesh->setVertexBuffer(vertices);
+        mesh->setIndexBuffer(indices);
+        mesh->setPartBuffer(parts);
     }
     return mesh;
 }
@@ -151,7 +173,7 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
 
 void CollisionRenderMeshCache::collectGarbage() {
     uint32_t numShapes = _pendingGarbage.size();
-    for (int32_t i = 0; i < numShapes; ++i) {
+    for (uint32_t i = 0; i < numShapes; ++i) {
         CollisionRenderMeshCache::Key key = _pendingGarbage[i];
         CollisionMeshMap::const_iterator itr = _meshMap.find(key);
         if (itr != _meshMap.end()) {

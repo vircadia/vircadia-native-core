@@ -219,10 +219,6 @@ void Model::updateRenderItems() {
             modelMeshOffset.postTranslate(self->_offset);
         }
 
-        // only apply offset only, collision mesh does not share the same unit scale as the FBX file's mesh.
-        Transform collisionMeshOffset;
-        collisionMeshOffset.postTranslate(self->_offset);
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
@@ -243,6 +239,11 @@ void Model::updateRenderItems() {
             });
         }
 
+        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
+        Transform collisionMeshOffset;
+        // adebug FIXME: recover correct behavior for collisionURL shapes
+        //collisionMeshOffset.postTranslate(self->_offset);
+        collisionMeshOffset.setIdentity();
         foreach (auto itemID, self->_collisionRenderItems.keys()) {
             pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
@@ -1321,12 +1322,16 @@ void Model::createCollisionRenderItemSet() {
     Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
     Transform transform;
-    transform.setTranslation(_translation);
-    transform.setRotation(_rotation);
+    transform.setIdentity();
+    // adebug FIXME: recover correct behavior for collisionURL
+    //transform.setTranslation(_translation);
+    //transform.setRotation(_rotation);
 
     Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
+    // adebug FIXME: recover correct behavior for collisionURL
+    offset.setIdentity();
+    //offset.setScale(_scale);
+    //offset.postTranslate(_offset);
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     uint32_t numMeshes = (uint32_t)meshes.size();
@@ -1339,7 +1344,7 @@ void Model::createCollisionRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            model::MaterialPointer& material =  _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
+            model::MaterialPointer& material = _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
             _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, material, transform, offset);
         }
     }
