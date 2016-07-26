@@ -4678,6 +4678,11 @@ void Application::packetSent(quint64 length) {
 }
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
+
+    scriptEngine->setEmitScriptUpdatesFunction([this]() {
+        return isPhysicsEnabled();
+    });
+
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
