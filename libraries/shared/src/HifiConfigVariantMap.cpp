@@ -111,7 +111,7 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
 
-    // load the user config - that method replaces loadMasterAndUserConfig after the 1.7 migration
+    // load the user config - that method replace loadMasterAndUserConfig after the 1.7 migration
     loadConfig(argumentList);
 
     mergeMasterAndUserConfigs();

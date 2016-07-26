@@ -120,7 +120,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // This was prior to the introduction of security.restricted_access
             // If the user has a list of allowed users then set their value for security.restricted_access to true
 
-            QVariant* allowedUsers = valueForKeyPath(_configMap.getMergedConfig(), ALLOWED_USERS_SETTINGS_KEYPATH);
+            QVariant* allowedUsers = _configMap.valueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH);
 
             if (allowedUsers
                 && allowedUsers->canConvert(QMetaType::QVariantList)
@@ -131,9 +131,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // In the pre-toggle system the user had a list of allowed users, so
                 // we need to set security.restricted_access to true
-                QVariant* restrictedAccess = valueForKeyPath(_configMap.getUserConfig(),
-                                                             RESTRICTED_ACCESS_SETTINGS_KEYPATH,
-                                                             true);
+                QVariant* restrictedAccess = _configMap.valueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH, true);
 
                 *restrictedAccess = QVariant(true);
 
@@ -151,21 +149,20 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             static const QString ENTITY_FILE_PATH_KEYPATH = ENTITY_SERVER_SETTINGS_KEY + ".persistFilePath";
 
             // this was prior to change of poorly named entitiesFileName to entitiesFilePath
-            QVariant* persistFileNameVariant = valueForKeyPath(_configMap.getMergedConfig(),
-                                                               ENTITY_SERVER_SETTINGS_KEY + "." + ENTITY_FILE_NAME_KEY);
+            QVariant* persistFileNameVariant = _configMap.valueForKeyPath(ENTITY_SERVER_SETTINGS_KEY + "." + ENTITY_FILE_NAME_KEY);
             if (persistFileNameVariant && persistFileNameVariant->canConvert(QMetaType::QString)) {
                 QString persistFileName = persistFileNameVariant->toString();
 
                 qDebug() << "Migrating persistFilename to persistFilePath for entity-server settings";
 
                 // grab the persistFilePath option, create it if it doesn't exist
-                QVariant* persistFilePath = valueForKeyPath(_configMap.getUserConfig(), ENTITY_FILE_PATH_KEYPATH, true);
+                QVariant* persistFilePath = _configMap.valueForKeyPath(ENTITY_FILE_PATH_KEYPATH, true);
 
                 // write the migrated value
                 *persistFilePath = persistFileName;
 
                 // remove the old setting
-                QVariant* entityServerVariant = valueForKeyPath(_configMap.getUserConfig(), ENTITY_SERVER_SETTINGS_KEY);
+                QVariant* entityServerVariant = _configMap.valueForKeyPath(ENTITY_SERVER_SETTINGS_KEY);
                 if (entityServerVariant && entityServerVariant->canConvert(QMetaType::QVariantMap)) {
                     QVariantMap entityServerMap = entityServerVariant->toMap();
                     entityServerMap.remove(ENTITY_FILE_NAME_KEY);
@@ -187,7 +184,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // If we have a password in the previous settings file, make it base 64
             static const QString BASIC_AUTH_PASSWORD_KEY_PATH { "security.http_password" };
 
-            QVariant* passwordVariant = valueForKeyPath(_configMap.getUserConfig(), BASIC_AUTH_PASSWORD_KEY_PATH);
+            QVariant* passwordVariant = _configMap.valueForKeyPath(BASIC_AUTH_PASSWORD_KEY_PATH);
 
             if (passwordVariant && passwordVariant->canConvert(QMetaType::QString)) {
                 QString plaintextPassword = passwordVariant->toString();
@@ -292,7 +289,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             qDebug() << "Migrating merged config to user config file. The master config file is deprecated.";
 
             // replace the user config by the merged config
-            _configMap.getUserConfig() = _configMap.getMergedConfig();
+            _configMap.getConfig() = _configMap.getMergedConfig();
 
             // persist the new config so the user config file has the correctly merged config
             persistToFile();
@@ -317,9 +314,9 @@ void DomainServerSettingsManager::validateDescriptorsMap() {
     static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
     static const QString UTC_OFFSET{ "descriptors.utc_offset" };
 
-    QVariant* weekdayHours = valueForKeyPath(_configMap.getUserConfig(), WEEKDAY_HOURS, true);
-    QVariant* weekendHours = valueForKeyPath(_configMap.getUserConfig(), WEEKEND_HOURS, true);
-    QVariant* utcOffset = valueForKeyPath(_configMap.getUserConfig(), UTC_OFFSET, true);
+    QVariant* weekdayHours = _configMap.valueForKeyPath(WEEKDAY_HOURS, true);
+    QVariant* weekendHours = _configMap.valueForKeyPath(WEEKEND_HOURS, true);
+    QVariant* utcOffset = _configMap.valueForKeyPath(UTC_OFFSET, true);
 
     static const QString OPEN{ "open" };
     static const QString CLOSE{ "close" };
@@ -375,13 +372,13 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
                                                         NodePermissionsMap& permissionsRows,
                                                         QString keyPath) {
     // find (or create) the "security" section of the settings map
-    QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
+    QVariant* security = _configMap.valueForKeyPath("security", true);
     if (!security->canConvert(QMetaType::QVariantMap)) {
         (*security) = QVariantMap();
     }
 
     // find (or create) whichever subsection of "security" we are packing
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+    QVariant* permissions = _configMap.valueForKeyPath(keyPath, true);
     if (!permissions->canConvert(QMetaType::QVariantList)) {
         (*permissions) = QVariantList();
     }
@@ -457,7 +454,7 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 
     mapPointer->clear();
 
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+    QVariant* permissions = _configMap.valueForKeyPath(keyPath, true);
     if (!permissions->canConvert(QMetaType::QVariantList)) {
         qDebug() << "Failed to extract permissions for key path" << keyPath << "from settings.";
         (*permissions) = QVariantList();
@@ -788,7 +785,7 @@ NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& 
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
-    const QVariant* foundValue = valueForKeyPath(_configMap.getUserConfig(), keyPath);
+    const QVariant* foundValue = _configMap.valueForKeyPath(keyPath);
 
     if (foundValue) {
         return *foundValue;
@@ -919,13 +916,13 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                         QVariant variantValue;
 
                         if (!groupKey.isEmpty()) {
-                             QVariant settingsMapGroupValue = _configMap.getUserConfig().value(groupKey);
+                             QVariant settingsMapGroupValue = _configMap.value(groupKey);
 
                             if (!settingsMapGroupValue.isNull()) {
                                 variantValue = settingsMapGroupValue.toMap().value(settingName);
                             }
                         } else {
-                            variantValue = _configMap.getUserConfig().value(settingName);
+                            variantValue = _configMap.value(settingName);
                         }
 
                         QJsonValue result;
@@ -1067,7 +1064,7 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 }
 
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
-    auto& settingsVariant = _configMap.getUserConfig();
+    auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
     // Iterate on the setting groups
@@ -1179,22 +1176,22 @@ bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
 
 void DomainServerSettingsManager::sortPermissions() {
     // sort the permission-names
-    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    QVariant* standardPermissions = _configMap.valueForKeyPath(AGENT_STANDARD_PERMISSIONS_KEYPATH);
     if (standardPermissions && standardPermissions->canConvert(QMetaType::QVariantList)) {
         QList<QVariant>* standardPermissionsList = reinterpret_cast<QVariantList*>(standardPermissions);
         std::sort((*standardPermissionsList).begin(), (*standardPermissionsList).end(), permissionVariantLessThan);
     }
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+    QVariant* permissions = _configMap.valueForKeyPath(AGENT_PERMISSIONS_KEYPATH);
     if (permissions && permissions->canConvert(QMetaType::QVariantList)) {
         QList<QVariant>* permissionsList = reinterpret_cast<QVariantList*>(permissions);
         std::sort((*permissionsList).begin(), (*permissionsList).end(), permissionVariantLessThan);
     }
-    QVariant* groupPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_PERMISSIONS_KEYPATH);
+    QVariant* groupPermissions = _configMap.valueForKeyPath(GROUP_PERMISSIONS_KEYPATH);
     if (groupPermissions && groupPermissions->canConvert(QMetaType::QVariantList)) {
         QList<QVariant>* permissionsList = reinterpret_cast<QVariantList*>(groupPermissions);
         std::sort((*permissionsList).begin(), (*permissionsList).end(), permissionVariantLessThan);
     }
-    QVariant* forbiddenPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_FORBIDDENS_KEYPATH);
+    QVariant* forbiddenPermissions = _configMap.valueForKeyPath(GROUP_FORBIDDENS_KEYPATH);
     if (forbiddenPermissions && forbiddenPermissions->canConvert(QMetaType::QVariantList)) {
         QList<QVariant>* permissionsList = reinterpret_cast<QVariantList*>(forbiddenPermissions);
         std::sort((*permissionsList).begin(), (*permissionsList).end(), permissionVariantLessThan);
@@ -1214,7 +1211,7 @@ void DomainServerSettingsManager::persistToFile() {
     QFile settingsFile(_configMap.getUserConfigFilename());
 
     if (settingsFile.open(QIODevice::WriteOnly)) {
-        settingsFile.write(QJsonDocument::fromVariant(_configMap.getUserConfig()).toJson());
+        settingsFile.write(QJsonDocument::fromVariant(_configMap.getConfig()).toJson());
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
 

@@ -44,8 +44,7 @@ public:
     void setupConfigMap(const QStringList& argumentList);
     QVariant valueOrDefaultValueForKeyPath(const QString& keyPath);
 
-    QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
-    QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
+    QVariantMap& getSettingsMap() { return _configMap.getConfig(); }
 
     QVariantMap& getDescriptorsMap();
 
