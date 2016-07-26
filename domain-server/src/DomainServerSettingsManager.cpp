@@ -528,7 +528,7 @@ void DomainServerSettingsManager::unpackPermissions() {
     qDebug() << "--------------- permissions ---------------------";
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
-                    << _groupPermissions.get() << _groupForbiddens.get();
+                    << _groupPermissions.get() << _groupForbiddens.get() << _ipPermissions.get();
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {

@@ -142,7 +142,6 @@ private:
     NodePermissionsMap _agentPermissions; // specific account-names
 
     NodePermissionsMap _ipPermissions; // permissions granted by node IP address
-    NodePermissionsMap _ipForbiddens; // permissions denied by node IP address
 
     NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
     NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group

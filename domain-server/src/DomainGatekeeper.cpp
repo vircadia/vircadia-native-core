@@ -246,7 +246,7 @@ void DomainGatekeeper::updateNodePermissions() {
 
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
-            HifiSockAddr connectingAddr = node->getActiveSocket() ? node->getPublicSocket() : *node->getActiveSocket();
+            HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
             userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress());
         }
