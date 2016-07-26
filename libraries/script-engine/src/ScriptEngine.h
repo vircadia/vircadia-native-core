@@ -168,7 +168,7 @@ public:
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
-    void setPhysicsEnabledFunction(std::function<bool()> func) { _isPhysicsEnabledFunc = func; }
+    void setEmitScriptUpdatesFunction(std::function<bool()> func) { _emitScriptUpdates = func; }
 
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
@@ -239,7 +239,7 @@ protected:
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
-    std::function<bool()> _isPhysicsEnabledFunc{ [](){ return true; }  };
+    std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
 
 };
 

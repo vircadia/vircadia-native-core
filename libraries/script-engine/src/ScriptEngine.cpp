@@ -894,7 +894,7 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (_isPhysicsEnabledFunc() && _lastUpdate < now) {
+        if (_emitScriptUpdates() && _lastUpdate < now) {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 auto preUpdate = clock::now();

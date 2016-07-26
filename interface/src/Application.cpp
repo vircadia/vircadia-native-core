@@ -4679,7 +4679,7 @@ void Application::packetSent(quint64 length) {
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
 
-    scriptEngine->setPhysicsEnabledFunction([this]() { 
+    scriptEngine->setEmitScriptUpdatesFunction([this]() {
         return isPhysicsEnabled();
     });
 
