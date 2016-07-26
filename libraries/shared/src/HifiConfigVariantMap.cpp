@@ -111,6 +111,13 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
 
+    // load the user config - that method replaces loadMasterAndUserConfig after the 1.7 migration
+    loadConfig(argumentList);
+
+    mergeMasterAndUserConfigs();
+}
+
+void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
     static const QString USER_CONFIG_FILE_NAME = "config.json";
@@ -159,12 +166,10 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
                 }
             }
         }
-
+        
     }
-
+    
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
-
-    mergeMasterAndUserConfigs();
 }
 
 void HifiConfigVariantMap::mergeMasterAndUserConfigs() {

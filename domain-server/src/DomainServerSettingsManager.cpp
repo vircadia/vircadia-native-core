@@ -95,6 +95,8 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
     _argumentList = argumentList;
+
+    // after 1.7 we no longer use the master or merged configs - this is kept in place for migration
     _configMap.loadMasterAndUserConfig(_argumentList);
 
     // What settings version were we before and what are we using now?
@@ -282,6 +284,19 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             packPermissions();
         }
+
+        if (oldVersion < 1.7) {
+            // This was prior to the removal of the master config file
+            // So we write the merged config to the user config file, and stop reading from the user config file
+
+            qDebug() << "Migrating merged config to user config file. The master config file is deprecated.";
+
+            // replace the user config by the merged config
+            _configMap.getUserConfig() = _configMap.getMergedConfig();
+
+            // persist the new config so the user config file has the correctly merged config
+            persistToFile();
+        }
     }
 
     unpackPermissions();
@@ -327,9 +342,6 @@ void DomainServerSettingsManager::validateDescriptorsMap() {
     if (wasMalformed) {
         // write the new settings to file
         persistToFile();
-
-        // reload the master and user config so the merged config is correct
-        _configMap.loadMasterAndUserConfig(_argumentList);
     }
 }
 
@@ -437,7 +449,6 @@ void DomainServerSettingsManager::packPermissions() {
     packPermissionsForMap("permissions", _groupForbiddens, GROUP_FORBIDDENS_KEYPATH);
 
     persistToFile();
-    _configMap.loadMasterAndUserConfig(_argumentList);
 }
 
 bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& keyPath,
@@ -446,7 +457,7 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 
     mapPointer->clear();
 
-    QVariant* permissions = valueForKeyPath(_configMap.getMergedConfig(), keyPath, true);
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
     if (!permissions->canConvert(QMetaType::QVariantList)) {
         qDebug() << "Failed to extract permissions for key path" << keyPath << "from settings.";
         (*permissions) = QVariantList();
@@ -777,7 +788,7 @@ NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& 
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
-    const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
+    const QVariant* foundValue = valueForKeyPath(_configMap.getUserConfig(), keyPath);
 
     if (foundValue) {
         return *foundValue;
@@ -860,12 +871,10 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         // setup a JSON Object with descriptions and non-omitted settings
         const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
         const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
-        const QString SETTINGS_RESPONSE_LOCKED_VALUES_KEY = "locked";
 
         QJsonObject rootObject;
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
-        rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
 
@@ -910,13 +919,13 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                         QVariant variantValue;
 
                         if (!groupKey.isEmpty()) {
-                             QVariant settingsMapGroupValue = _configMap.getMergedConfig().value(groupKey);
+                             QVariant settingsMapGroupValue = _configMap.getUserConfig().value(groupKey);
 
                             if (!settingsMapGroupValue.isNull()) {
                                 variantValue = settingsMapGroupValue.toMap().value(settingName);
                             }
                         } else {
-                            variantValue = _configMap.getMergedConfig().value(settingName);
+                            variantValue = _configMap.getUserConfig().value(settingName);
                         }
 
                         QJsonValue result;
@@ -1208,6 +1217,9 @@ void DomainServerSettingsManager::persistToFile() {
         settingsFile.write(QJsonDocument::fromVariant(_configMap.getUserConfig()).toJson());
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
+
+        // failed to write, reload whatever the current config state is
+        _configMap.loadConfig(_argumentList);
     }
 }
 

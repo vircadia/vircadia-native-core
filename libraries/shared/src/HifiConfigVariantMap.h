@@ -21,6 +21,7 @@ public:
 
     HifiConfigVariantMap();
     void loadMasterAndUserConfig(const QStringList& argumentList);
+    void loadConfig(const QStringList& argumentList);
 
     const QVariantMap& getMasterConfig() const { return _masterConfig; }
     QVariantMap& getUserConfig() { return _userConfig; }
