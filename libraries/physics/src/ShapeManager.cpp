@@ -28,7 +28,7 @@ ShapeManager::~ShapeManager() {
     _shapeMap.clear();
 }
 
-btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
+const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
         return nullptr;
     }
@@ -45,7 +45,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         shapeRef->refCount++;
         return shapeRef->shape;
     }
-    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     if (shape) {
         ShapeReference newRef;
         newRef.refCount = 1;

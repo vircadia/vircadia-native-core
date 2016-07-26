@@ -26,7 +26,7 @@ public:
     ~ShapeManager();
 
     /// \return pointer to shape
-    btCollisionShape* getShape(const ShapeInfo& info);
+    const btCollisionShape* getShape(const ShapeInfo& info);
 
     /// \return true if shape was found and released
     bool releaseShape(const btCollisionShape* shape);
@@ -46,7 +46,7 @@ private:
     class ShapeReference {
     public:
         int refCount;
-        btCollisionShape* shape;
+        const btCollisionShape* shape;
         DoubleHashKey key;
         ShapeReference() : refCount(0), shape(nullptr) {}
     };

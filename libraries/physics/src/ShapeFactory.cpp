@@ -247,7 +247,7 @@ void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
     delete dataArray;
 }
 
-btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
+const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
     switch(type) {
@@ -359,10 +359,14 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     return shape;
 }
 
-void ShapeFactory::deleteShape(btCollisionShape* shape) {
+void ShapeFactory::deleteShape(const btCollisionShape* shape) {
     assert(shape);
-    if (shape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
-        btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
+    // ShapeFactory is responsible for deleting all shapes, even the const ones that are stored
+    // in the ShapeManager, so we must cast to non-const here when deleting.
+    // so we cast to non-const here when deleting memory.
+    btCollisionShape* nonConstShape = const_cast<btCollisionShape*>(shape);
+    if (nonConstShape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+        btCompoundShape* compoundShape = static_cast<btCompoundShape*>(nonConstShape);
         const int numChildShapes = compoundShape->getNumChildShapes();
         for (int i = 0; i < numChildShapes; i ++) {
             btCollisionShape* childShape = compoundShape->getChildShape(i);
@@ -374,7 +378,7 @@ void ShapeFactory::deleteShape(btCollisionShape* shape) {
             }
         }
     }
-    delete shape;
+    delete nonConstShape;
 }
 
 // the dataArray must be created before we create the StaticMeshShape
