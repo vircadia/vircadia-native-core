@@ -633,8 +633,13 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                 auto verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
 
+                bool hadExistingPermissions = false;
+
                 if (!verifiedUsername.isEmpty()) {
                     // if we have a verified user name for this user, we apply the kick to the username
+
+                    // check if there were already permissions
+                    hadExistingPermissions = havePermissionsForName(verifiedUsername);
 
                     // grab or create permissions for the given username
                     destinationPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
@@ -645,18 +650,37 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         ? matchingNode->getActiveSocket()->getAddress()
                         : matchingNode->getPublicSocket().getAddress();
 
-                    // grab or create permissions for the given IP address
                     NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
+
+                    // check if there were already permissions for the IP
+                    hadExistingPermissions = hasPermissionsForIP(kickAddress);
+
+                    // grab or create permissions for the given IP address
                     destinationPermissions = _ipPermissions[ipAddressKey];
                 }
 
-                // ensure that the connect permission is clear
-                destinationPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                // make sure we didn't already have existing permissions that disallowed connect
+                if (!hadExistingPermissions
+                    || destinationPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
 
-                // we've changed permissions, time to store them to disk and emit our signal to say they have changed
-                packPermissions();
+                    qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
+                        << "after kick request";
 
-                emit updateNodePermissions();
+                    // ensure that the connect permission is clear
+                    destinationPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+
+                    // we've changed permissions, time to store them to disk and emit our signal to say they have changed
+                    packPermissions();
+
+                    emit updateNodePermissions();
+                } else {
+                    qWarning() << "Received kick request for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
+                        << "that already did not have permission to connect";
+
+                    // in this case, though we don't expect the node to be connected to the domain, it is
+                    // emit updateNodePermissions so that the DomainGatekeeper kicks it out
+                    emit updateNodePermissions();
+                }
 
             } else {
                 qWarning() << "Node kick request received for unknown node. Refusing to process.";
