@@ -354,16 +354,14 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
                                                         NodePermissionsMap& permissionsRows,
                                                         QString keyPath) {
     // find (or create) the "security" section of the settings map
-    QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
-    if (!security || !security->canConvert(QMetaType::QVariantMap)) {
-        security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
+    QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
+    if (!security->canConvert(QMetaType::QVariantMap)) {
         (*security) = QVariantMap();
     }
 
     // find (or create) whichever subsection of "security" we are packing
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
-    if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
-        permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+    if (!permissions->canConvert(QMetaType::QVariantList)) {
         (*permissions) = QVariantList();
     }
 
@@ -419,6 +417,12 @@ void DomainServerSettingsManager::packPermissions() {
 
     // save settings for specific users
     packPermissionsForMap("permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
+
+    // save settings for IP addresses
+    packPermissionsForMap("permissions", _ipPermissions, IP_PERMISSIONS_KEYPATH);
+
+    // save settings for IP address blacklist
+    packPermissionsForMap("permissions", _ipForbiddens, IP_FORBIDDENS_KEYPATH);
 
     // save settings for groups
     packPermissionsForMap("permissions", _groupPermissions, GROUP_PERMISSIONS_KEYPATH);
