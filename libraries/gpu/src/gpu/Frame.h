@@ -18,6 +18,7 @@ public:
     glm::mat4 pose;
     /// The collection of batches which make up the frame
     std::vector<Batch> batches;
+    std::vector<StereoState> stereoStates;
     /// The destination framebuffer in which the results will be placed
     FramebufferPointer framebuffer;
 };

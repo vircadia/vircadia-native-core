@@ -86,6 +86,15 @@ namespace gpu {
     class TextureView;
     using TextureViews = std::vector<TextureView>;
 
+    struct StereoState {
+        bool _enable{ false };
+        bool _skybox{ false };
+        // 0 for left eye, 1 for right eye
+        uint8 _pass{ 0 };
+        Mat4 _eyeViews[2];
+        Mat4 _eyeProjections[2];
+    };
+
     namespace gl {
         class GLBuffer;
     }
