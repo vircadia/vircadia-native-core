@@ -89,8 +89,8 @@ protected:
     #endif
 
     bool isReadyToComputeShape() const override;
-    btCollisionShape* computeNewShape() override;
-    void setShape(btCollisionShape* shape) override;
+    const btCollisionShape* computeNewShape() override;
+    void setShape(const btCollisionShape* shape) override;
     void setMotionType(PhysicsMotionType motionType) override;
 
     // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be

@@ -62,14 +62,13 @@ ShapeManager* ObjectMotionState::getShapeManager() {
     return shapeManager;
 }
 
-ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
+ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
-    _shape(nullptr),
+    _shape(shape),
     _body(nullptr),
     _mass(0.0f),
     _lastKinematicStep(worldSimulationStep)
 {
-    setShape(shape);
 }
 
 ObjectMotionState::~ObjectMotionState() {
@@ -154,12 +153,13 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         _body = body;
         if (_body) {
             _body->setUserPointer(this);
+            assert(_body->getCollisionShape() == _shape);
         }
         updateCCDConfiguration();
     }
 }
 
-void ObjectMotionState::setShape(btCollisionShape* shape) {
+void ObjectMotionState::setShape(const btCollisionShape* shape) {
     if (_shape != shape) {
         if (_shape) {
             getShapeManager()->releaseShape(_shape);
@@ -254,7 +254,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         if (!isReadyToComputeShape()) {
             return false;
         }
-        btCollisionShape* newShape = computeNewShape();
+        const btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
@@ -274,7 +274,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
             // and clear the reference we just created
             getShapeManager()->releaseShape(_shape);
         } else {
-            _body->setCollisionShape(newShape);
+            _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
             setShape(newShape);
             updateCCDConfiguration();
         }
