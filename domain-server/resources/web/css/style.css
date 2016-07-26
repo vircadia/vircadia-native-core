@@ -133,7 +133,7 @@ table .headers + .headers td {
     color: #222;
 }
 
-table[name="security.standard_permissions"] .headers td + td, table[name="security.permissions"] .headers td + td, table[name="security.group_permissions"] .headers td + td {
+#security table .headers td + td {
     text-align: center;
 }
 
