@@ -349,12 +349,8 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
     }
 
     QVariant result = DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
-    if (result.isValid()) {
-        // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
-        result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
-        if (ok) {
-            *ok = true;
-        }
+    if (ok && result.isValid()) {
+        *ok = true;
     }
 
     return result;
@@ -386,7 +382,13 @@ QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, c
         return result;
     }
 
-    return waitForInputDialogResult(createCustomInputDialog(icon, title, config));
+    QVariant result = waitForInputDialogResult(createCustomInputDialog(icon, title, config));
+    if (result.isValid()) {
+        // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
+        result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
+    }
+
+    return result;
 }
 
 void OffscreenUi::togglePinned() {
