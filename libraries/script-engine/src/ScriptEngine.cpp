@@ -828,24 +828,42 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
+    qint64 totalSleepFor = 0;
+    std::chrono::microseconds totalUpdates;
+    auto lastLoopStart = clock::now();
+
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
+        auto thisLoopStart = clock::now();
+
         // Throttle to SCRIPT_FPS
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        const std::chrono::microseconds MINIMUM_SLEEP { FRAME_DURATION / 2 };
+
+        auto beforeSleep = clock::now();
         clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
+        auto wouldSleep = (sleepTime - clock::now());
+        auto avgUpdates = totalUpdates / thisFrame;
+
+        if (wouldSleep < avgUpdates) {
+            sleepTime = beforeSleep + avgUpdates;
+        }
+
         std::this_thread::sleep_until(sleepTime);
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
-            auto now = clock::now();
-            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            auto sleptTill = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(sleptTill - startTime).count();
             if (seconds > 0) { // avoid division by zero and time travel
                 uint64_t fps = thisFrame / seconds;
                 // Overreporting artificially reduces the reported rate
                 if (thisFrame % SCRIPT_FPS == 0) {
                     qCDebug(scriptengine) <<
                         "Frame:" << thisFrame <<
-                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(sleptTill - beforeSleep).count() <<
+                        "Avg Updates (us):" << avgUpdates.count() <<
+                        "Last loop time (us):" << std::chrono::duration_cast<std::chrono::microseconds>(thisLoopStart - lastLoopStart).count() <<
                         "FPS:" << fps;
                 }
             }
@@ -874,16 +892,21 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
+        if (_isPhysicsEnabledFunc() && _lastUpdate < now) {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
+                auto preUpdate = clock::now();
                 emit update(deltaTime);
+                auto postUpdate = clock::now();
+                auto elapsed = (postUpdate - preUpdate);
+                totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
             }
         }
         _lastUpdate = now;
 
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);
+        lastLoopStart = thisLoopStart;
     }
 
     qCDebug(scriptengine) << "Script Engine stopping:" << getFilename();
