@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 
@@ -21,6 +22,9 @@ namespace gpu {
     class Context;
     using ContextPointer = std::shared_ptr<Context>;
     class GPUObject;
+    class Frame;
+    using FramePointer = std::shared_ptr<Frame>;
+    using FrameHandler = std::function<void(Frame& frame)>;
 
     using Stamp = int;
     using uint32 = uint32_t;
