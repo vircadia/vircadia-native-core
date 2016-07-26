@@ -140,7 +140,6 @@ ScrollingWindow {
             }
         }
 
-<<<<<<< ab02d16eb7656ea0a37785a398716fad62dff045
         Rectangle {
             id:permissionsContainer
             visible:false
@@ -197,8 +196,6 @@ ScrollingWindow {
                 }
             }
         }
-=======
->>>>>>> Zip download works
 
         WebEngineView {
             id: webview
@@ -221,15 +218,11 @@ ScrollingWindow {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
-
 			Component.onCompleted: {
 				desktop.initWebviewProfileHandlers(webview.profile)
 			}
 			
 
-			
-		
-            
             //profile: desktop.browserProfile
         }
 

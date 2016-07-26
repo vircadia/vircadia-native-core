@@ -25,7 +25,7 @@ WebEngineView {
         });
     }
 
-	
+
 
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
     Timer {
@@ -51,7 +51,7 @@ WebEngineView {
 
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
-		console.log("loading change requested url");
+        console.log("loading change requested url");
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {
             var url = loadRequest.url.toString();
             if (urlHandler.canHandleUrl(url)) {
@@ -62,26 +62,44 @@ WebEngineView {
         }
     }
 
-    onNewViewRequested: {
-        console.log("new view requested url");
-		//console.log("new view requested url" + request.url.toString());
-		var component = Qt.createComponent("../Browser.qml");
-        var newWindow = component.createObject(desktop);
-        request.openIn(newWindow.webView);
+    Timer {
+        id: zipTimer
+        running: false
+        repeat: false
+        interval: 1000
+        property var handler;
+        onTriggered: handler();
     }
 
-	property var myScript: 'var element = $("a.download-file");
-					element.removeClass("download-file");
-					element.removeAttr("download _target");'
+    property var autoCancel: 'var element = $("a.btn.cancel");
+                              element.click();'
 
-	onLinkHovered: {
-		desktop.currentUrl = hoveredUrl
-		console.log("my url in WebView: " + desktop.currentUrl)
-		if (File.testUrl(desktop.currentUrl)) {
-			runJavaScript(myScript, function() {console.log("ran the JS"); });
-		}
+    onNewViewRequested: {
+        console.log("new view requested url");
+        var component = Qt.createComponent("../Browser.qml");
+        var newWindow = component.createObject(desktop);
+        request.openIn(newWindow.webView);
+        if (File.testUrl(desktop.currentUrl)) {
+            zipTimer.handler = function() {
+                newWindow.destroy();
+                runJavaScript(autoCancel);
+            }
+            zipTimer.start();
+        }
+    }
 
-	}
+    property var simpleDownload: 'var element = $("a.download-file");
+                                  element.removeClass("download-file");
+                                  element.removeAttr("download");'
+
+    onLinkHovered: {
+        desktop.currentUrl = hoveredUrl
+        console.log("my url in WebView: " + desktop.currentUrl)
+        if (File.testUrl(desktop.currentUrl)) {
+            runJavaScript(simpleDownload, function(){console.log("ran the JS");});
+        }
+
+    }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521

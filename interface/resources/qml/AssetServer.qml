@@ -320,7 +320,7 @@ ScrollingWindow {
         id: timer
     }
     function uploadClicked(fileUrl) {
-		console.log("Upload clicked url: " + fileUrl);
+        console.log("Upload clicked url: " + fileUrl);
         if (uploadOpen) {
             return;
         }

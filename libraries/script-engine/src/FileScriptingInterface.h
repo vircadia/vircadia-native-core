@@ -22,24 +22,24 @@ class FileScriptingInterface : public QObject {
 public:
     FileScriptingInterface(QObject* parent);
 
-	//void runUnzip(QString path, QString importURL);
-	QString getTempDir();
+    //void runUnzip(QString path, QString importURL);
+    QString getTempDir();
 
 
 public slots:
-	//void unzipFile(QString path);
-	bool testUrl(QUrl url);
-	QString convertUrlToPath(QUrl url);
-	void runUnzip(QString path, QUrl url);
+    //void unzipFile(QString path);
+    bool testUrl(QUrl url);
+    QString convertUrlToPath(QUrl url);
+    void runUnzip(QString path, QUrl url);
 
 signals:
-	void unzipSuccess(QString url);
+    void unzipSuccess(QString url);
 
 private:
-	//void downloadZip();
-	QString unzipFile(QString path);
-	void recursiveFileScan(QFileInfo file, QString* dirName);
-	void downloadZip(QString path, const QString link);
+    //void downloadZip();
+    QString unzipFile(QString path);
+    void recursiveFileScan(QFileInfo file, QString* dirName);
+    void downloadZip(QString path, const QString link);
 
 };
 

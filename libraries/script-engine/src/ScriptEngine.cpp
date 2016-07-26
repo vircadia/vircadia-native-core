@@ -503,7 +503,6 @@ void ScriptEngine::init() {
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
 
-    // unzip project
     registerGlobalObject("File", new FileScriptingInterface(this));
     
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);

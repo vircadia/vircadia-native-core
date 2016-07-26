@@ -78,20 +78,17 @@ class UrlHandler : public QObject {
     Q_OBJECT
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
-		qDebug() << Q_FUNC_INFO;
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
         return handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
-		qDebug() << Q_FUNC_INFO;
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
         return handler->acceptURL(url);
     }
     
     // FIXME hack for authentication, remove when we migrate to Qt 5.6
     Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-		qDebug() << Q_FUNC_INFO;
         return fixupHifiUrl(originalUrl);
     }
 };

@@ -355,7 +355,6 @@ public:
 
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
-				qDebug() << "os windows url for some reason";
                 QUrl url = QUrl((const char*)(pcds->lpData));
                 if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
                     DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
@@ -1543,10 +1542,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-	//rootContext->setContextProperty("File", new FileScriptingInterface(engine));
-	FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
-	rootContext->setContextProperty("File", fileDownload);
-	connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::toggleAssetServerWidget);
+    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", fileDownload);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::toggleAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2020,14 +2018,6 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
-// attempt to start ZIP download project
-bool Application::importZIPFromURL(const QString& urlString) {
-	qDebug() << "zip import request has been emitted";
-    emit zipImportRequested(urlString);
-    return true;
-}
-// end attempt
-
 bool Application::event(QEvent* event) {
 
     if (!Menu::getInstance()) {
@@ -2147,25 +2137,20 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-		qDebug() << "we have received one url!: ";
 		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
-			qDebug() << "we got a url!: " + urlString;
+
             if (canAcceptURL(urlString)) {
-				qDebug() << "we got an ACCEPTED url!: " + urlString;
+
                 return acceptURL(urlString);
             }
         }
         return false;
     }
-
-	if (event->type() == QEvent::None) {
-		qDebug() << "this url just didn't click";
-	}
 
     if (HFActionEvent::types().contains(event->type())) {
         _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
@@ -3190,7 +3175,6 @@ void Application::saveSettings() const {
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {
-	qDebug() << "import entities url";
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
@@ -4800,7 +4784,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
-	qDebug() << "stepping through 'canAcceptURL'";
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
@@ -4817,7 +4800,6 @@ bool Application::canAcceptURL(const QString& urlString) const {
 }
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
-	qDebug() << "stepping through 'acceptURL'";
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
@@ -4847,7 +4829,6 @@ void Application::setSessionUUID(const QUuid& sessionUUID) const {
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
-	qDebug() << "setting avatar url";
     QUrl realUrl(url);
     if (realUrl.isLocalFile()) {
         OffscreenUi::warning("", "You can not use local files for avatar components.");
@@ -4904,7 +4885,6 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
 
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
-	qDebug() << "setting script url";
     QMessageBox::StandardButton reply;
 
     QString shortName = scriptFilenameOrURL;
@@ -4929,7 +4909,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
-	qDebug() << "setting avatar attachment url";
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -5011,7 +4990,6 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() const {
-	qDebug() << "toggle running scripts url";
     static const QUrl url("hifi/dialogs/RunningScripts.qml");
     DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     //if (_runningScriptsWidget->isVisible()) {
@@ -5029,16 +5007,16 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::toggleAssetServerWidget(QString filePath) {
-	qDebug() << "toggle asset before if";
+    qDebug() << "toggle asset before if: " + filePath;
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-	qDebug() << "toggle asset after if";
+    qDebug() << "toggle asset after if";
     static const QUrl url { "AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
         if (!filePath.isEmpty()) {
-			qDebug() << "file in toggle: " + filePath;
+            qDebug() << "file in toggle: " + filePath;
             emit uploadRequest(filePath);
         }
     };
@@ -5051,7 +5029,6 @@ void Application::packageModel() {
 }
 
 void Application::openUrl(const QUrl& url) const {
-	qDebug() << "open url";
     if (!url.isEmpty()) {
         if (url.scheme() == HIFI_URL_SCHEME) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
@@ -5082,7 +5059,6 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-	qDebug() << "load script url dialog";
     auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
     if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);

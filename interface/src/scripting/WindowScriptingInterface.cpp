@@ -59,20 +59,6 @@ WindowScriptingInterface::WindowScriptingInterface() {
             OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
         }
     });
-    // attempt to start ZIP download project
-    connect(qApp, &Application::zipImportRequested, [this](const QString& urlString) {
-		qDebug() << "zip import has been requested";
-        static const QMetaMethod zipImportRequestedSignal = 
-            QMetaMethod::fromSignal(&WindowScriptingInterface::zipImportRequested);
-
-        if (isSignalConnected(zipImportRequestedSignal)) {
-            QUrl url(urlString);
-            emit zipImportRequested(url.url());
-        } else {
-            OffscreenUi::warning("Import ZIP Error", "You need to be running edit.js to import entities.");
-        }
-    // end attempt
-    });
 }
 
 WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {

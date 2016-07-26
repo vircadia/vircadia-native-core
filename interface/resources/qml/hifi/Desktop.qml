@@ -19,7 +19,7 @@ OriginalDesktop.Desktop {
         scrollGestureEnabled: false // we don't need/want these
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
-        acceptedButtons: Qt.NoButtonMouseArea
+        acceptedButtons: Qt.NoButton
 		
 
     }
@@ -73,44 +73,39 @@ OriginalDesktop.Desktop {
         });
     }
 
-	// Accept a download through the webview
-	property bool webViewProfileSetup: false
-	property string currentUrl: ""
-	property string adaptedPath: ""
-	function initWebviewProfileHandlers(profile) {
-		console.log("the webview url in desktop is: " + currentUrl)
-		if (webViewProfileSetup) return;
-		webViewProfileSetup = true;
+    // Accept a download through the webview
+    property bool webViewProfileSetup: false
+    property string currentUrl: ""
+    property string adaptedPath: ""
 
-		profile.downloadRequested.connect(function(download){
-			console.log("Download start: " + download.state)
-			//if (!File.testUrl(currentUrl)) {
-				//console.log("This file type is not accepted. Look for a zip file")
-				//download.cancel()
-				//return
-			//}
-			adaptedPath = File.convertUrlToPath(currentUrl)
-			download.path = "C:/Users/elisa/Downloads/" + adaptedPath
-			console.log("Path where it should download: " + download.path)
-			download.accept()
-			console.log("Download accept: " + download.state)
-			if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-				console.log("Download? " + download.state)
-				console.log("download failed to complete")
-			}
-		})
+    function initWebviewProfileHandlers(profile) {
+        console.log("the webview url in desktop is: " + currentUrl);
+        if (webViewProfileSetup) return;
+        webViewProfileSetup = true;
 
-		profile.downloadFinished.connect(function(download){
-			if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-				console.log("Download Finished: " + download.state)
-				console.log("File object is: " + File)
-				File.runUnzip(download.path, currentUrl)
-				//download.cancel()
-			} else {
-				console.log("The download was corrupted, state: " + download.state)
-			}
-		})
-	}
+        profile.downloadRequested.connect(function(download){
+            console.log("Download start: " + download.state);
+            adaptedPath = File.convertUrlToPath(currentUrl);
+            download.path = "C:/Users/elisa/Downloads/" + adaptedPath;
+            console.log("Path where it should download: " + download.path);
+            download.accept();
+            console.log("Download accept: " + download.state);
+            if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
+                console.log("Download? " + download.state);
+                console.log("download failed to complete");
+            }
+        })
+
+        profile.downloadFinished.connect(function(download){
+            if (download.state === WebEngineDownloadItem.DownloadCompleted) {
+                console.log("Download Finished: " + download.state);
+                console.log("File object is: " + File);
+                File.runUnzip(download.path, currentUrl);
+            } else {
+                console.log("The download was corrupted, state: " + download.state);
+            }
+        })
+    }
 
     // Create or fetch a toolbar with the given name
     function getToolbar(name) {

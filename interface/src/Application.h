@@ -250,7 +250,6 @@ public:
 
 signals:
     void svoImportRequested(const QString& url);
-	void zipImportRequested(const QString& url);
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -386,7 +385,6 @@ private:
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
-	bool importZIPFromURL(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
