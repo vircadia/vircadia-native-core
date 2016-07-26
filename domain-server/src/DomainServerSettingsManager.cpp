@@ -613,6 +613,65 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
     return changed;
 }
 
+
+void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    // before we do any processing on this packet make sure it comes from a node that is allowed to kick
+    if (sendingNode->getCanKick()) {
+        // pull the UUID being kicked from the packet
+        QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        if (!nodeUUID.isNull() && nodeUUID != sendingNode->getUUID()) {
+            // make sure we actually have a node with this UUID
+            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+            auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
+
+            if (matchingNode) {
+                // we have a matching node, time to decide how to store updated permissions for this node
+
+                NodePermissionsPointer destinationPermissions;
+
+                auto verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+
+                if (!verifiedUsername.isEmpty()) {
+                    // if we have a verified user name for this user, we apply the kick to the username
+
+                    // grab or create permissions for the given username
+                    destinationPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
+                } else {
+                    // otherwise we apply the kick to the IP from active socket for this node
+                    // (falling back to the public socket if not yet active)
+                    auto& kickAddress = matchingNode->getActiveSocket()
+                        ? matchingNode->getActiveSocket()->getAddress()
+                        : matchingNode->getPublicSocket().getAddress();
+
+                    // grab or create permissions for the given IP address
+                    NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
+                    destinationPermissions = _ipPermissions[ipAddressKey];
+                }
+
+                // ensure that the connect permission is clear
+                destinationPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+
+                // we've changed permissions, time to store them to disk and emit our signal to say they have changed
+                packPermissions();
+
+                emit updateNodePermissions();
+
+            } else {
+                qWarning() << "Node kick request received for unknown node. Refusing to process.";
+            }
+        } else {
+            // this isn't a UUID we can use
+            qWarning() << "Node kick request received for invalid node ID or from node being kicked. Refusing to process.";
+        }
+
+    } else {
+        qWarning() << "Refusing to process a kick packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
+        << "that does not have kick permissions.";
+    }
+}
+
 QStringList DomainServerSettingsManager::getAllNames() const {
     QStringList result;
     foreach (auto key, _agentPermissions.keys()) {
