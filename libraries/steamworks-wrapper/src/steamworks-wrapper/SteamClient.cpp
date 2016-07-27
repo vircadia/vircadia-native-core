@@ -13,7 +13,12 @@
 
 #include <atomic>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
+#include <QtCore/QMimeData>
+#include <QtCore/QString>
+#include <QtCore/QUrl>
+#include <QtGui/QEvent.h>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -41,9 +46,6 @@ public:
     STEAM_CALLBACK(SteamTicketRequests, onGetAuthSessionTicketResponse,
                    GetAuthSessionTicketResponse_t, _getAuthSessionTicketResponse);
 
-    STEAM_CALLBACK(SteamTicketRequests, onGameRichPresenceJoinRequested,
-                   GameRichPresenceJoinRequested_t, _gameRichPresenceJoinRequestedResponse);
-
 private:
     struct PendingTicket {
         HAuthTicket authTicket;
@@ -55,8 +57,7 @@ private:
 };
 
 SteamTicketRequests::SteamTicketRequests() :
-    _getAuthSessionTicketResponse(this, &SteamTicketRequests::onGetAuthSessionTicketResponse),
-    _gameRichPresenceJoinRequestedResponse(this, &SteamTicketRequests::onGameRichPresenceJoinRequested)
+    _getAuthSessionTicketResponse(this, &SteamTicketRequests::onGetAuthSessionTicketResponse)
 {
 }
 
@@ -130,24 +131,37 @@ void SteamTicketRequests::onGetAuthSessionTicketResponse(GetAuthSessionTicketRes
     }
 }
 
-#include <QString>
-#include <QCoreApplication>
-#include <QtGui/QEvent.h>
-#include <QMimeData>
-#include <QUrl>
-const QString PREFIX = "--url \"";
-const QString SUFFIX = "\"";
 
+const QString CONNECT_PREFIX = "--url \"";
+const QString CONNECT_SUFFIX = "\"";
 
-void SteamTicketRequests::onGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pCallback) {
+class SteamCallbackManager {
+public:
+    SteamCallbackManager();
+
+    STEAM_CALLBACK(SteamCallbackManager, onGameRichPresenceJoinRequested,
+                   GameRichPresenceJoinRequested_t, _gameRichPresenceJoinRequestedResponse);
+
+    SteamTicketRequests& getTicketRequests() { return _steamTicketRequests; }
+
+private:
+    SteamTicketRequests _steamTicketRequests;
+};
+
+SteamCallbackManager::SteamCallbackManager() :
+_gameRichPresenceJoinRequestedResponse(this, &SteamCallbackManager::onGameRichPresenceJoinRequested)
+{
+}
+
+void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pCallback) {
     auto url = QString::fromLocal8Bit(pCallback->m_rgchConnect);
 
-    if (url.startsWith(PREFIX) && url.endsWith(SUFFIX)) {
-        url.remove(0, PREFIX.size());
-        url.remove(-SUFFIX.size(), SUFFIX.size());
+    if (url.startsWith(CONNECT_PREFIX) && url.endsWith(CONNECT_SUFFIX)) {
+        url.remove(0, CONNECT_PREFIX.size());
+        url.remove(-CONNECT_SUFFIX.size(), CONNECT_SUFFIX.size());
     }
 
-    qDebug() << "Joining:" << url;
+    qDebug() << "Joining Steam Friends at:" << url;
     auto mimeData = new QMimeData();
     mimeData->setUrls(QList<QUrl>() << QUrl(url));
     auto event = new QDropEvent(QPointF(0,0), Qt::MoveAction, mimeData, Qt::LeftButton, Qt::NoModifier);
@@ -156,9 +170,8 @@ void SteamTicketRequests::onGameRichPresenceJoinRequested(GameRichPresenceJoinRe
 }
 
 
-
 static std::atomic_bool initialized { false };
-static SteamTicketRequests steamTicketRequests;
+static SteamCallbackManager steamCallbackManager;
 
 
 bool SteamClient::isRunning() {
@@ -171,11 +184,6 @@ bool SteamClient::isRunning() {
 bool SteamClient::init() {
     if (SteamAPI_IsSteamRunning() && !initialized) {
         initialized = SteamAPI_Init();
-
-        if (initialized) {
-            SteamFriends()->SetRichPresence("status", "Localhost");
-            SteamFriends()->SetRichPresence("connect", "--url \"hifi://10.0.0.185:40117/10,10,10\"");
-        }
     }
     return initialized;
 }
@@ -185,7 +193,7 @@ void SteamClient::shutdown() {
         SteamAPI_Shutdown();
     }
 
-    steamTicketRequests.stopAll();
+    steamCallbackManager.getTicketRequests().stopAll();
 }
 
 void SteamClient::runCallbacks() {
@@ -218,7 +226,16 @@ void SteamClient::requestTicket(TicketRequestCallback callback) {
         return;
     }
 
-    steamTicketRequests.startRequest(callback);
+    steamCallbackManager.getTicketRequests().startRequest(callback);
 }
 
+void SteamClient::updateLocation(QString status, QUrl locationUrl) {
+    if (!initialized) {
+        return;
+    }
 
+    auto connectStr = locationUrl.isEmpty() ? "" : CONNECT_PREFIX + locationUrl.toString() + CONNECT_SUFFIX;
+
+    SteamFriends()->SetRichPresence("status", status.toLocal8Bit().data());
+    SteamFriends()->SetRichPresence("connect", connectStr.toLocal8Bit().data());
+}

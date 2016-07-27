@@ -20,6 +20,8 @@
 using Ticket = QByteArray;
 using TicketRequestCallback = std::function<void(Ticket)>;
 
+class QUrl;
+
 class SteamClient {
 public:
     static bool isRunning();
@@ -30,6 +32,7 @@ public:
     static void runCallbacks();
 
     static void requestTicket(TicketRequestCallback callback);
+    static void updateLocation(QString status, QUrl locationUrl);
 
 };
 
