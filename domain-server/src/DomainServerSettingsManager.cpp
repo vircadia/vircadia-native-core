@@ -495,7 +495,17 @@ void DomainServerSettingsManager::unpackPermissions() {
 
     needPack |= unpackPermissionsForKeypath(AGENT_PERMISSIONS_KEYPATH, &_agentPermissions);
 
-    needPack |= unpackPermissionsForKeypath(IP_PERMISSIONS_KEYPATH, &_ipPermissions);
+    needPack |= unpackPermissionsForKeypath(IP_PERMISSIONS_KEYPATH, &_ipPermissions,
+        [&](NodePermissionsPointer perms){
+            // make sure that this permission row is for a valid IP address
+            if (QHostAddress(perms->getKey().first).isNull()) {
+                _ipPermissions.remove(perms->getKey());
+
+                // we removed a row from the IP permissions, we'll need a re-pack
+                needPack = true;
+            }
+    });
+
 
     needPack |= unpackPermissionsForKeypath(GROUP_PERMISSIONS_KEYPATH, &_groupPermissions,
         [&](NodePermissionsPointer perms){
