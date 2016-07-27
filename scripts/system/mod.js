@@ -1,5 +1,5 @@
 //
-//  ignore.js
+//  mod.js
 //  scripts/system/
 //
 //  Created by Stephen Birarda on 07/11/2016
@@ -16,9 +16,9 @@ function buttonImageURL() {
     return Script.resolvePath("assets/images/tools/" + (Users.canKick ? 'kick.svg' : 'ignore.svg'));
 }
 
-// setup the ignore button and add it to the toolbar
+// setup the mod button and add it to the toolbar
 var button = toolbar.addButton({
-    objectName: 'ignore',
+    objectName: 'mod',
     imageURL: buttonImageURL(),
     visible: true,
     buttonState: 1,
@@ -33,18 +33,18 @@ Users.canKickChanged.connect(function(canKick){
 });
 
 var isShowingOverlays = false;
-var ignoreOverlays = {};
+var modOverlays = {};
 
 function removeOverlays() {
     // enumerate the overlays and remove them
-    var ignoreOverlayKeys = Object.keys(ignoreOverlays);
+    var modOverlayKeys = Object.keys(modOverlays);
 
-    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
-        var avatarID = ignoreOverlayKeys[i];
-        Overlays.deleteOverlay(ignoreOverlays[avatarID]);
+    for (i = 0; i < modOverlayKeys.length; ++i) {
+        var avatarID = modOverlayKeys[i];
+        Overlays.deleteOverlay(modOverlays[avatarID]);
     }
 
-    ignoreOverlays = {};
+    modOverlays = {};
 }
 
 // handle clicks on the toolbar button
@@ -93,9 +93,9 @@ function updateOverlays() {
             var overlayPosition = avatar.getJointPosition("Head");
             overlayPosition.y += 0.45;
 
-            if (avatarID in ignoreOverlays) {
+            if (avatarID in modOverlays) {
                 // keep the overlay above the current position of this avatar
-                Overlays.editOverlay(ignoreOverlays[avatarID], {
+                Overlays.editOverlay(modOverlays[avatarID], {
                     position: overlayPosition,
                     url: overlayURL()
                 });
@@ -114,7 +114,7 @@ function updateOverlays() {
                 });
 
                 // push this overlay to our array of overlays
-                ignoreOverlays[avatarID] = newOverlay;
+                modOverlays[avatarID] = newOverlay;
             }
         }
     }
@@ -127,23 +127,23 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
         // we are currently showing overlays and an avatar just went away
 
         // first remove the rendered overlay
-        Overlays.deleteOverlay(ignoreOverlays[avatarID]);
+        Overlays.deleteOverlay(modOverlays[avatarID]);
 
-        // delete the saved ID of the overlay from our ignored overlays object
-        delete ignoreOverlays[avatarID];
+        // delete the saved ID of the overlay from our mod overlays object
+        delete modOverlays[avatarID];
     }
 });
 
 function handleSelectedOverlay(clickedOverlay) {
-    // see this is one of our ignore overlays
+    // see this is one of our mod overlays
 
-    var ignoreOverlayKeys = Object.keys(ignoreOverlays)
-    for (i = 0; i < ignoreOverlayKeys.length; ++i) {
-        var avatarID = ignoreOverlayKeys[i];
-        var ignoreOverlay = ignoreOverlays[avatarID];
+    var modOverlayKeys = Object.keys(modOverlays)
+    for (i = 0; i < modOverlayKeys.length; ++i) {
+        var avatarID = modOverlayKeys[i];
+        var modOverlay = modOverlays[avatarID];
 
-        if (clickedOverlay.overlayID == ignoreOverlay) {
-            // matched to an overlay, ask for the matching avatar to be ignored
+        if (clickedOverlay.overlayID == modOverlay) {
+            // matched to an overlay, ask for the matching avatar to be kicked or ignored
             if (Users.canKick) {
                 Users.kick(avatarID);
             } else {
@@ -210,7 +210,7 @@ triggerMapping.enable();
 
 // cleanup the toolbar button and overlays when script is stopped
 Script.scriptEnding.connect(function() {
-    toolbar.removeButton('ignore');
+    toolbar.removeButton('mod');
     removeOverlays();
     triggerMapping.disable();
 });
