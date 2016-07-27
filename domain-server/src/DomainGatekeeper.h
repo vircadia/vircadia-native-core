@@ -106,7 +106,7 @@ private:
     QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
     QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
 
-    NodePermissions applyPermissionsForUser(bool isLocalUser, NodePermissions userPerms, QString verifiedUsername);
+    NodePermissions setPermissionsForUser(bool isLocalUser, QString verifiedUsername);
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();

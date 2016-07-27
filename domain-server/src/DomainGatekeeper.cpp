@@ -120,8 +120,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
-NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
-                                                          NodePermissions userPerms, QString verifiedUsername) {
+NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QString verifiedUsername) {
+    NodePermissions userPerms;
     userPerms.setAll(false);
 
     if (isLocalUser) {
@@ -208,9 +208,9 @@ void DomainGatekeeper::updateNodePermissions() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
         // the id and the username in NodePermissions will often be the same, but id is set before
-        // authentication and username is only set once they user's key has been confirmed.
-        QString username = node->getPermissions().getVerifiedUserName();
-        NodePermissions userPerms(NodePermissionsKey(username, 0));
+        // authentication and verifiedUsername is only set once they user's key has been confirmed.
+        QString verifiedUsername = node->getPermissions().getVerifiedUserName();
+        NodePermissions userPerms(NodePermissionsKey(verifiedUsername, 0));
 
         if (node->getPermissions().isAssignment) {
             // this node is an assignment-client
@@ -224,7 +224,7 @@ void DomainGatekeeper::updateNodePermissions() {
             const QHostAddress& addr = node->getLocalSocket().getAddress();
             bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
                                 addr == QHostAddress::LocalHost);
-            userPerms = applyPermissionsForUser(isLocalUser, userPerms, username);
+            userPerms = setPermissionsForUser(isLocalUser, verifiedUsername);
         }
 
         node->setPermissions(userPerms);
@@ -330,7 +330,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         return SharedNodePointer();
     }
 
-    userPerms = applyPermissionsForUser(isLocalUser, userPerms, verifiedUsername);
+    userPerms = setPermissionsForUser(isLocalUser, verifiedUsername);
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
