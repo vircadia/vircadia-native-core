@@ -203,8 +203,8 @@ bool AudioInjector::injectLocally() {
     }
 
     if (!success) {
-        // we never started so we are finished, call our stop method
-        stop();
+        // we never started so we are finished with local injection
+        finishLocalInjection();
     }
 
     return success;
@@ -217,8 +217,15 @@ static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 qint64 writeStringToStream(const QString& string, QDataStream& stream) {
     QByteArray data = string.toUtf8();
     uint32_t length = data.length();
-    stream << static_cast<quint32>(length);
-    stream << data;
+    if (length == 0) {
+        stream << static_cast<quint32>(length);
+    } else {
+        // http://doc.qt.io/qt-5/datastreamformat.html
+        // QDataStream << QByteArray - 
+        //   If the byte array is null : 0xFFFFFFFF (quint32)
+        //   Otherwise : the array size(quint32) followed by the array bytes, i.e.size bytes
+        stream << data;
+    }
     return length + sizeof(uint32_t);
 }
 
@@ -232,7 +239,7 @@ int64_t AudioInjector::injectNextFrame() {
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
-
+    
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
             _currentSendOffset >= _audioData.size()) {
@@ -270,7 +277,7 @@ int64_t AudioInjector::injectNextFrame() {
 
             // current injectors don't use codecs, so pack in the unknown codec name
             QString noCodecForInjectors("");
-            writeStringToStream(noCodecForInjectors, audioPacketStream);
+            writeStringToStream(noCodecForInjectors, audioPacketStream); 
 
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();
@@ -301,7 +308,6 @@ int64_t AudioInjector::injectNextFrame() {
             volumeOptionOffset = _currentPacket->pos();
             quint8 volume = MAX_INJECTOR_VOLUME;
             audioPacketStream << volume;
-
             audioPacketStream << _options.ignorePenumbra;
 
             audioDataOffset = _currentPacket->pos();
@@ -312,7 +318,6 @@ int64_t AudioInjector::injectNextFrame() {
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
-
     if (!_frameTimer->isValid()) {
         // in the case where we have been restarted, the frame timer will be invalid and we need to start it back over here
         _frameTimer->restart();
@@ -418,7 +423,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
         return;
     }
 
-    if (_state == AudioInjectorState::Finished) {
+    if (stateHas(AudioInjectorState::Finished)) {
         stopAndDeleteLater();
     } else {
         _state |= AudioInjectorState::PendingDelete;
@@ -484,23 +489,17 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
     // setup parameters required for injection
     injector->setupInjection();
 
-    // we always inject locally
-    //
-    if (!injector->injectLocally()) {
-        // failed, so don't bother sending to server
-        qDebug() << "AudioInjector::playSound failed to inject locally";
-        return nullptr;
-    }
+    // we always inject locally, except when there is no localInterface
+    injector->injectLocally();
+    
     // if localOnly, we are done, just return injector.
-    if (options.localOnly) {
-        return injector;
-    }
+    if (!options.localOnly) {
 
-    // send off to server for everyone else
-    if (!injectorManager->threadInjector(injector)) {
-        // we failed to thread the new injector (we are at the max number of injector threads)
-        qDebug() << "AudioInjector::playSound failed to thread injector";
+        // send off to server for everyone else
+        if (!injectorManager->threadInjector(injector)) {
+            // we failed to thread the new injector (we are at the max number of injector threads)
+            qDebug() << "AudioInjector::playSound failed to thread injector";
+        }
     }
     return injector;
-
 }
