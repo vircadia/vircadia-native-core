@@ -126,37 +126,37 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
 
     if (isLocalUser) {
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-        #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
         qDebug() << "|  user-permissions: is local user, so:" << userPerms;
-        #endif
+#endif
     }
 
     if (verifiedUsername.isEmpty()) {
         userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-        #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
         qDebug() << "|  user-permissions: unverified or no username for" << userPerms.getID() << ", so:" << userPerms;
-        #endif
+#endif
     } else {
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
             userPerms.setVerifiedUserName(verifiedUsername);
-            #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
             qDebug() << "|  user-permissions: specific user matches, so:" << userPerms;
-            #endif
+#endif
         } else {
             userPerms.setVerifiedUserName(verifiedUsername);
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-            #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
             qDebug() << "|  user-permissions: user is logged-into metaverse, so:" << userPerms;
-            #endif
+#endif
 
             // if this user is a friend of the domain-owner, give them friend's permissions
             if (_domainOwnerFriends.contains(verifiedUsername)) {
                 userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
-                #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
                 qDebug() << "|  user-permissions: user is friends with domain-owner, so:" << userPerms;
-                #endif
+#endif
             }
 
             // if this user is a known member of a group, give them the implied permissions
@@ -166,10 +166,10 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
                     userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID, rankID);
 
                     GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
-                    #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
                     qDebug() << "|  user-permissions: user is in group:" << groupID << " rank:"
                              << rank.name << "so:" << userPerms;
-                    #endif
+#endif
                 }
             }
 
@@ -182,19 +182,19 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
                         userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID, rankID);
 
                         GroupRank rank = _server->_settingsManager.getGroupRank(groupID, rankID);
-                        #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
                         qDebug() << "|  user-permissions: user is in blacklist group:" << groupID << " rank:" << rank.name
                                  << "so:" << userPerms;
-                        #endif
+#endif
                     }
                 }
             }
         }
     }
 
-    #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
     qDebug() << "|  user-permissions: final:" << userPerms;
-    #endif
+#endif
     return userPerms;
 }
 
@@ -529,7 +529,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
         // public-key request for this username is already flight, not rerequesting
         return;
     }
-    _inFlightPublicKeyRequests[lowerUsername] = true;
+    _inFlightPublicKeyRequests += lowerUsername;
 
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
@@ -721,35 +721,6 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage>
     }
 }
 
-// void DomainGatekeeper::getGroupMemberships(const QString& username) {
-//     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
-//     // will be received asynchronously and permissions will be updated as the answers come in.
-//     QList<QUuid> groupIDs = _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs();
-//     // TODO -- use alternative that allows checking entire group list in one call
-//     foreach (QUuid groupID, groupIDs) {
-//         if (groupID.isNull()) {
-//             continue;
-//         }
-//         getIsGroupMember(username, groupID);
-//     }
-// }
-
-// void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid groupID) {
-//     JSONCallbackParameters callbackParams;
-//     callbackParams.jsonCallbackReceiver = this;
-//     callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
-//     callbackParams.errorCallbackReceiver = this;
-//     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
-
-//     const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/members/%2";
-//     QString groupIDStr = groupID.toString().mid(1,36);
-//     DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
-//                                                           AccountManagerAuth::Required,
-//                                                           QNetworkAccessManager::GetOperation, callbackParams);
-// }
-
-
-
 void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
@@ -839,7 +810,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requ
         QJsonArray friends = jsonObject["data"].toObject()["users"].toArray();
         for (int i = 0; i < friends.size(); i++) {
             QString friendUserName = friends.at(i).toObject()["username"].toString();
-            _domainOwnerFriends[friendUserName] = true;
+            _domainOwnerFriends += friendUserName;
         }
     } else {
         qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
@@ -859,8 +830,8 @@ void DomainGatekeeper::refreshGroupsCache() {
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
-            QString verifiedUserName = node->getPermissions().getVerifiedUserName();
-            if (verifiedUserName != "") {
+            const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();
+            if (verifiedUserName.isEmpty()) {
                 getGroupMemberships(verifiedUserName);
             }
             agentCount++;
@@ -873,7 +844,7 @@ void DomainGatekeeper::refreshGroupsCache() {
 
     updateNodePermissions();
 
-    #if WANT_DEBUG
+#if WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
-    #endif
+#endif
 }

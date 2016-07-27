@@ -102,8 +102,8 @@ private:
     
     QHash<QString, QUuid> _connectionTokenHash;
     QHash<QString, QByteArray> _userPublicKeys;
-    QHash<QString, bool> _inFlightPublicKeyRequests; // keep track of which we've already asked for
-    QHash<QString, bool> _domainOwnerFriends; // keep track of friends of the domain owner
+    QSet<QString> _inFlightPublicKeyRequests; // keep track of which we've already asked for
+    QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
 
     NodePermissions applyPermissionsForUser(bool isLocalUser, NodePermissions userPerms, QString verifiedUsername);
     void getGroupMemberships(const QString& username);

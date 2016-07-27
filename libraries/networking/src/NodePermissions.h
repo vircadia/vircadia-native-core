@@ -33,17 +33,17 @@ public:
     NodePermissions(const NodePermissionsKey& key) { _id = key.first.toLower(); _rankID = key.second; }
     NodePermissions(QMap<QString, QVariant> perms);
 
-    QString getID() const { return _id; } // a user-name or a group-name, not verified
+    const QString& getID() const { return _id; } // a user-name or a group-name, not verified
     void setRankID(QUuid& rankID) { _rankID = rankID; }
-    QUuid getRankID() const { return _rankID; }
+    const QUuid& getRankID() const { return _rankID; }
     NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rankID); }
 
     // the _id member isn't authenticated/verified and _username is.
     void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
-    QString getVerifiedUserName() const { return _verifiedUserName; }
+    const QString& getVerifiedUserName() const { return _verifiedUserName; }
 
     void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
-    QUuid getGroupID() const { return _groupID; }
+    const QUuid& getGroupID() const { return _groupID; }
     bool isGroup() const { return _groupIDSet; }
 
     bool isAssignment { false };
