@@ -282,8 +282,8 @@ ShapeType ModelEntityItem::computeTrueShapeType() const {
         type = SHAPE_TYPE_COMPOUND;
     }
     if (type == SHAPE_TYPE_COMPOUND && !hasCompoundShapeURL()) {
-        // no compoundURL set --> fall back to NONE
-        type = SHAPE_TYPE_NONE;
+        // no compoundURL set --> fall back to SIMPLE_COMPOUND
+        type = SHAPE_TYPE_SIMPLE_COMPOUND;
     }
     return type;
 }
