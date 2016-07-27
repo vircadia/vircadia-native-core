@@ -19,17 +19,19 @@
 #include <ShapeInfo.h> // for MAX_HULL_POINTS
 
 const int32_t MAX_HULL_INDICES = 6 * MAX_HULL_POINTS;
-float tempVertexBuffer[3 * MAX_HULL_POINTS];
+const int32_t MAX_HULL_NORMALS = MAX_HULL_INDICES;
+float tempVertices[MAX_HULL_NORMALS];
 model::Index tempIndexBuffer[MAX_HULL_INDICES];
 
-//void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape, model::MeshPointer mesh) {
-void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
-        gpu::BufferView& vertices, gpu::BufferView& indices, gpu::BufferView& parts) {
+bool copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
+        gpu::BufferView& vertices, gpu::BufferView& indices, gpu::BufferView& parts,
+        gpu::BufferView& normals) {
     assert(shape);
 
     btShapeHull hull(shape);
-    const btScalar MARGIN = 0.0f;
-    hull.buildHull(MARGIN);
+    if (!hull.buildHull(shape->getMargin())) {
+        return false;
+    }
 
     int32_t numHullIndices = hull.numIndices();
     assert(numHullIndices <= MAX_HULL_INDICES);
@@ -51,20 +53,8 @@ void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
         parts._size = parts._buffer->getSize();
     }
 
+    const int32_t SIZE_OF_VEC3 = 3 * sizeof(float);
     model::Index indexOffset = vertices.getNumElements();
-    { // new vertices
-        const btVector3* hullVertices = hull.getVertexPointer();
-        assert(numHullVertices <= MAX_HULL_POINTS);
-        for (int32_t i = 0; i < numHullVertices; ++i) {
-            btVector3 transformedPoint = transform * hullVertices[i];
-            memcpy(tempVertexBuffer + 3 * i, transformedPoint.m_floats, 3 * sizeof(float));
-        }
-
-        gpu::BufferView::Size numBytes = sizeof(float) * (3 * numHullVertices);
-        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(tempVertexBuffer);
-        vertices._buffer->append(numBytes, data);
-        vertices._size = vertices._buffer->getSize();
-    }
 
     { // new indices
         const uint32_t* hullIndices = hull.getIndexPointer();
@@ -78,9 +68,37 @@ void copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
         indices._buffer->append(numBytes, data);
         indices._size = indices._buffer->getSize();
     }
+    { // new vertices
+        const btVector3* hullVertices = hull.getVertexPointer();
+        assert(numHullVertices <= MAX_HULL_POINTS);
+        for (int32_t i = 0; i < numHullVertices; ++i) {
+            btVector3 transformedPoint = transform * hullVertices[i];
+            memcpy(tempVertices + 3 * i, transformedPoint.m_floats, SIZE_OF_VEC3);
+        }
+        gpu::BufferView::Size numBytes = sizeof(float) * (3 * numHullVertices);
+        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(tempVertices);
+        vertices._buffer->append(numBytes, data);
+        vertices._size = vertices._buffer->getSize();
+    }
+    { // new normals
+        // compute average point
+        btVector3 avgVertex(0.0f, 0.0f, 0.0f);
+        const btVector3* hullVertices = hull.getVertexPointer();
+        for (int i = 0; i < numHullVertices; ++i) {
+            avgVertex += hullVertices[i];
+        }
+        avgVertex = transform * (avgVertex * (1.0f / (float)numHullVertices));
 
-    gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
-    gpu::Size numParts = parts.getNumElements();
+        for (int i = 0; i < numHullVertices; ++i) {
+            btVector3 norm = (transform * hullVertices[i] - avgVertex).normalize();
+            memcpy(tempVertices + 3 * i, norm.m_floats, SIZE_OF_VEC3);
+        }
+        gpu::BufferView::Size numBytes = sizeof(float) * (3 * numHullVertices);
+        const gpu::Byte* data = reinterpret_cast<const gpu::Byte*>(tempVertices);
+        normals._buffer->append(numBytes, data);
+        normals._size = vertices._buffer->getSize();
+    }
+    return true;
 }
 
 model::MeshPointer createMeshFromShape(const void* pointer) {
@@ -96,12 +114,13 @@ model::MeshPointer createMeshFromShape(const void* pointer) {
 
     int32_t shapeType = shape->getShapeType();
     if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE || shape->isConvex()) {
-        // create the mesh and allocate buffers for it
-        mesh = std::make_shared<model::Mesh>();
-        gpu::BufferView vertices(new gpu::Buffer(), mesh->getVertexBuffer()._element);
-        gpu::BufferView indices(new gpu::Buffer(), mesh->getIndexBuffer()._element);
-        gpu::BufferView parts(new gpu::Buffer(), mesh->getPartBuffer()._element);
+        // allocate buffers for it
+        gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        gpu::BufferView indices(new gpu::Buffer(), gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
+        gpu::BufferView parts(new gpu::Buffer(), gpu::Element(gpu::VEC4, gpu::UINT32, gpu::PART));
+        gpu::BufferView normals(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
 
+        int32_t numSuccesses = 0;
         if (shapeType == (int32_t)COMPOUND_SHAPE_PROXYTYPE) {
             const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
             int32_t numSubShapes = compoundShape->getNumChildShapes();
@@ -109,7 +128,9 @@ model::MeshPointer createMeshFromShape(const void* pointer) {
                 const btCollisionShape* childShape = compoundShape->getChildShape(i);
                 if (childShape->isConvex()) {
                     const btConvexShape* convexShape = static_cast<const btConvexShape*>(childShape);
-                    copyShapeToMesh(compoundShape->getChildTransform(i), convexShape, vertices, indices, parts);
+                    if (copyShapeToMesh(compoundShape->getChildTransform(i), convexShape, vertices, indices, parts, normals)) {
+                        numSuccesses++;
+                    }
                 }
             }
         } else {
@@ -117,11 +138,19 @@ model::MeshPointer createMeshFromShape(const void* pointer) {
             const btConvexShape* convexShape = static_cast<const btConvexShape*>(shape);
             btTransform transform;
             transform.setIdentity();
-            copyShapeToMesh(transform, convexShape, vertices, indices, parts);
+            if (copyShapeToMesh(transform, convexShape, vertices, indices, parts, normals)) {
+                numSuccesses++;
+            }
         }
-        mesh->setVertexBuffer(vertices);
-        mesh->setIndexBuffer(indices);
-        mesh->setPartBuffer(parts);
+        if (numSuccesses > 0) {
+            mesh = std::make_shared<model::Mesh>();
+            mesh->setVertexBuffer(vertices);
+            mesh->setIndexBuffer(indices);
+            mesh->setPartBuffer(parts);
+            mesh->addAttribute(gpu::Stream::NORMAL, normals);
+        } else {
+            // TODO: log failure message here
+        }
     }
     return mesh;
 }
