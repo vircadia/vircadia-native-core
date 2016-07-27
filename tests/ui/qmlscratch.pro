@@ -16,6 +16,8 @@ QML_IMPORT_PATH = ../../interface/resources/qml
 
 DISTFILES += \
     qml/*.qml \
+    ../../interface/resources/QtWebEngine/UIDelegates/original/*.qml \
+    ../../interface/resources/QtWebEngine/UIDelegates/*.qml \
     ../../interface/resources/qml/*.qml \
     ../../interface/resources/qml/controls/*.qml \
     ../../interface/resources/qml/controls-uit/*.qml \

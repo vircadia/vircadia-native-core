@@ -462,7 +462,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QVector<ExtractedBlendshape> blendshapes;
 
     QHash<QString, FBXModel> models;
-    QHash<QString, Cluster> clusters;
+    QHash<QString, Cluster> clusters; 
     QHash<QString, AnimationCurve> animationCurves;
 
     QHash<QString, QString> typeFlags;
@@ -1366,7 +1366,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     geometry.meshExtents.reset();
 
     // Create the Material Library
-    consolidateFBXMaterials();
+    consolidateFBXMaterials(mapping);
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children

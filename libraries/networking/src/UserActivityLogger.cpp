@@ -53,7 +53,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qCDebug(networking) << "Logging activity" << action;
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
@@ -179,7 +178,7 @@ void UserActivityLogger::wentTo(AddressManager::LookupTrigger lookupTrigger, QSt
             trigger = "StartupFromSettings";
             break;
         case AddressManager::Suggestions:
-            trigger = "Suggesions";
+            trigger = "Suggestions";
             break;
         default:
             return;

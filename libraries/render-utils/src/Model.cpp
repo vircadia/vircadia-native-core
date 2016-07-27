@@ -1192,6 +1192,8 @@ void Model::deleteGeometry() {
     _meshStates.clear();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
+    _renderGeometry.reset();
+    _collisionGeometry.reset();
 }
 
 AABox Model::getRenderableMeshBound() const {

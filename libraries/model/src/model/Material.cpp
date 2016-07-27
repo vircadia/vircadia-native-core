@@ -104,6 +104,13 @@ void Material::setMetallic(float metallic) {
     _schemaBuffer.edit<Schema>()._metallic = metallic;
 }
 
+void Material::setScattering(float scattering) {
+    scattering = glm::clamp(scattering, 0.0f, 1.0f);
+    _key.setMetallic(scattering > 0.0f);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+    _schemaBuffer.edit<Schema>()._scattering = scattering;
+}
+
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));

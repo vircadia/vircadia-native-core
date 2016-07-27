@@ -122,7 +122,9 @@ public:
     static QString getSaveFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
+    Q_INVOKABLE QVariant customInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);
+    QQuickItem* createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QVariant waitForInputDialogResult(QQuickItem* inputDialog);
 
     // Compatibility with QInputDialog::getText
@@ -140,6 +142,7 @@ public:
 
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
+    static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
 
     unsigned int getMenuUserDataId() const;
 

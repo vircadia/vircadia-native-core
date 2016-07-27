@@ -67,6 +67,18 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
+        auto animGraphVariant = mapping.value("animGraphUrl");
+        if (animGraphVariant.isValid()) {
+            QUrl fstUrl(animGraphVariant.toString());
+            if (fstUrl.isValid()) {
+                _animGraphOverrideUrl = _url.resolved(fstUrl);
+            } else {
+                _animGraphOverrideUrl = QUrl();
+            }
+        } else {
+            _animGraphOverrideUrl = QUrl();
+        }
+
         auto modelCache = DependencyManager::get<ModelCache>();
         GeometryExtra extra{ mapping, _textureBaseUrl };
 
@@ -284,6 +296,8 @@ Geometry::Geometry(const Geometry& geometry) {
     for (const auto& material : geometry._materials) {
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
+
+    _animGraphOverrideUrl = geometry._animGraphOverrideUrl;
 }
 
 void Geometry::setTextures(const QVariantMap& textureMap) {
@@ -499,6 +513,11 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
         setTextureMap(MapChannel::EMISSIVE_MAP, map);
     }
 
+    if (!material.scatteringTexture.filename.isEmpty()) {
+        auto map = fetchTextureMap(textureBaseUrl, material.scatteringTexture, NetworkTexture::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
+        setTextureMap(MapChannel::SCATTERING_MAP, map);
+    }
+
     if (!material.lightmapTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, NetworkTexture::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
         _lightmapTransform = material.lightmapTexture.transform;
@@ -519,6 +538,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
     const auto& occlusionName = getTextureName(MapChannel::OCCLUSION_MAP);
     const auto& emissiveName = getTextureName(MapChannel::EMISSIVE_MAP);
     const auto& lightmapName = getTextureName(MapChannel::LIGHTMAP_MAP);
+    const auto& scatteringName = getTextureName(MapChannel::SCATTERING_MAP);
 
     if (!albedoName.isEmpty()) {
         auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
@@ -559,6 +579,12 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
         auto url = textureMap.contains(emissiveName) ? textureMap[emissiveName].toUrl() : QUrl();
         auto map = fetchTextureMap(url, NetworkTexture::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
         setTextureMap(MapChannel::EMISSIVE_MAP, map);
+    }
+
+    if (!scatteringName.isEmpty()) {
+        auto url = textureMap.contains(scatteringName) ? textureMap[scatteringName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, NetworkTexture::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
+        setTextureMap(MapChannel::SCATTERING_MAP, map);
     }
 
     if (!lightmapName.isEmpty()) {

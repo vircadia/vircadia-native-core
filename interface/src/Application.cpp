@@ -305,6 +305,8 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
+
+
                     deadlockDetectionCrash();
                 #endif
             }
@@ -1690,7 +1692,6 @@ void Application::paintGL() {
     auto inputs = AvatarInputs::getInstance();
     if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
@@ -3404,6 +3405,10 @@ void Application::setOverlaysVisible(bool visible) {
     menu->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
+void Application::centerUI() {
+    _overlayConductor.centerUI();
+}
+
 void Application::cycleCamera() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -4710,6 +4715,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    qScriptRegisterMetaType(scriptEngine, CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.

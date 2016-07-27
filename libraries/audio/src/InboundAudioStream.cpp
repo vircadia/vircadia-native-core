@@ -542,4 +542,5 @@ void InboundAudioStream::cleanupCodec() {
             _decoder = nullptr;
         }
     }
+    _selectedCodecName = "";
 }

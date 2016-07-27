@@ -18,6 +18,7 @@ struct TransformCamera {
     mat4 _projection;
     mat4 _projectionInverse;
     vec4 _viewport;
+    vec4 _stereoInfo;
 };
 
 layout(std140) uniform transformCameraBuffer {
@@ -31,6 +32,16 @@ TransformCamera getTransformCamera() {
 vec3 getEyeWorldPos() {
     return _camera._viewInverse[3].xyz;
 }
+
+
+bool cam_isStereo() {
+    return _camera._stereoInfo.x > 0.0;
+}
+
+float cam_getStereoSide() {
+    return _camera._stereoInfo.y;
+}
+
 <@endfunc@>
 
 

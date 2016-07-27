@@ -234,6 +234,29 @@ bool Overlays::editOverlay(unsigned int id, const QVariant& properties) {
     return false;
 }
 
+bool Overlays::editOverlays(const QVariant& propertiesById) {
+    QVariantMap map = propertiesById.toMap();
+    bool success = true;
+    QWriteLocker lock(&_lock);
+    for (const auto& key : map.keys()) {
+        bool convertSuccess;
+        unsigned int id = key.toUInt(&convertSuccess);
+        if (!convertSuccess) {
+            success = false;
+            continue;
+        }
+
+        Overlay::Pointer thisOverlay = getOverlay(id);
+        if (!thisOverlay) {
+            success = false;
+            continue;
+        }
+        QVariant properties = map[key];
+        thisOverlay->setProperties(properties.toMap());
+    }
+    return success;
+}
+
 void Overlays::deleteOverlay(unsigned int id) {
     Overlay::Pointer overlayToDelete;
 

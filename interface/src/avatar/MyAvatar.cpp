@@ -231,12 +231,45 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
-
+void MyAvatar::centerBody() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter), Q_ARG(bool, andReload), Q_ARG(bool, andHead));
+        QMetaObject::invokeMethod(this, "centerBody");
         return;
     }
+
+    // derive the desired body orientation from the current hmd orientation, before the sensor reset.
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+
+    // transform this body into world space
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    auto worldBodyPos = extractTranslation(worldBodyMatrix);
+    auto worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+
+    // this will become our new position.
+    setPosition(worldBodyPos);
+    setOrientation(worldBodyRot);
+
+    // reset the body in sensor space
+    _bodySensorMatrix = newBodySensorMatrix;
+
+    // rebuild the sensor to world matrix
+    updateSensorToWorldMatrix();
+}
+
+void MyAvatar::clearIKJointLimitHistory() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearIKJointLimitHistory");
+        return;
+    }
+
+    if (_rig) {
+        _rig->clearIKJointLimitHistory();
+    }
+}
+
+void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
+
+    assert(QThread::currentThread() == thread());
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
@@ -687,7 +720,9 @@ void MyAvatar::saveData() {
                       _fullAvatarURLFromPreferences.toString());
 
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
-    settings.setValue("animGraphURL", _animGraphUrl);
+
+    QUrl animGraphUrl = _prefOverrideAnimGraphUrl.get();
+    settings.setValue("animGraphURL", animGraphUrl);
 
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
@@ -800,7 +835,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(glm::vec3(_targetScale));
 
-    _animGraphUrl = settings.value("animGraphURL", "").toString();
+    _prefOverrideAnimGraphUrl.set(QUrl(settings.value("animGraphURL", "").toString()));
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
@@ -1379,21 +1414,55 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+QUrl MyAvatar::getAnimGraphOverrideUrl() const {
+    return _prefOverrideAnimGraphUrl.get();
+}
+
+void MyAvatar::setAnimGraphOverrideUrl(QUrl value) {
+    _prefOverrideAnimGraphUrl.set(value);
+    if (!value.isEmpty()) {
+        setAnimGraphUrl(value);
+    } else {
+        initAnimGraph();
+    }
+}
+
+QUrl MyAvatar::getAnimGraphUrl() const {
+    return _currentAnimGraphUrl.get();
+}
+
 void MyAvatar::setAnimGraphUrl(const QUrl& url) {
-    if (_animGraphUrl == url) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAnimGraphUrl", Q_ARG(QUrl, url));
+        return;
+    }
+
+    if (_currentAnimGraphUrl.get() == url) {
         return;
     }
     destroyAnimGraph();
     _skeletonModel->reset(); // Why is this necessary? Without this, we crash in the next render.
-    _animGraphUrl = url;
-    initAnimGraph();
+
+    _currentAnimGraphUrl.set(url);
+    _rig->initAnimGraph(url);
+
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 }
 
 void MyAvatar::initAnimGraph() {
-    auto graphUrl =_animGraphUrl.isEmpty() ?
-        QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json") :
-        QUrl(_animGraphUrl);
+    QUrl graphUrl;
+    if (!_prefOverrideAnimGraphUrl.get().isEmpty()) {
+        graphUrl = _prefOverrideAnimGraphUrl.get();
+    } else if (!_fstAnimGraphOverrideUrl.isEmpty()) {
+        graphUrl = _fstAnimGraphOverrideUrl;
+    } else {
+        graphUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json");
+    }
+
     _rig->initAnimGraph(graphUrl);
+    _currentAnimGraphUrl.set(graphUrl);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
     updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
@@ -1411,6 +1480,7 @@ void MyAvatar::postUpdate(float deltaTime) {
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+        _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
     }
 

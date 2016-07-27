@@ -35,8 +35,6 @@
 
     var tiltMazePath = Script.resolvePath("atp:/tiltMaze/wrapper.js")
 
-    var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
-
     var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
@@ -51,7 +49,6 @@
 
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
-    Script.include(whiteboardPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
     Script.include(transformerPath);
@@ -201,6 +198,7 @@
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
                     _this.createScriptedEntities();
+                    _this.createWhiteboard();
                     _this.setupDressingRoom();
                     _this.createMilkPailBalls();
                     _this.createTarget();
@@ -296,6 +294,21 @@
             print('HOME after deleting home entities');
         },
 
+        createWhiteboard: function() {
+            var WHITEBOARD_URL = "atp:/whiteboard/whiteboardWithSwiper.json"
+            var success = Clipboard.importEntities(WHITEBOARD_URL);
+            if (success === true) {
+                created = Clipboard.pasteEntities({
+                    x: 1105.0955,
+                    y: 460.5000,
+                    z: -77.4409
+                })
+                print('created ' + created);
+            } else {
+                print('failed to import whiteboard');
+            }
+        },
+
         createScriptedEntities: function() {
             var fishTank = new FishTank({
                 x: 1099.2200,
@@ -311,16 +324,6 @@
                 x: 1105.5768,
                 y: 460.3298,
                 z: -80.4891
-            });
-
-            var whiteboard = new Whiteboard({
-                x: 1105.0955,
-                y: 460.5000,
-                z: -77.4409
-            }, {
-                x: -0.0013,
-                y: -133.0056,
-                z: -0.0013
             });
 
             var pingPongGun = new HomePingPongGun({

@@ -1552,6 +1552,12 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
 
 void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
     const glm::vec4& color, float glowIntensity, float glowWidth, int id) {
+
+    // Disable glow lines on OSX
+#ifndef Q_OS_WIN
+    glowIntensity = 0.0f;
+#endif
+
     if (glowIntensity <= 0) {
         renderLine(batch, p1, p2, color, id);
         return;

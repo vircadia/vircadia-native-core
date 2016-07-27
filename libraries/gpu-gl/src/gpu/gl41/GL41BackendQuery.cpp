@@ -25,7 +25,7 @@ public:
     }
 
     GL41Query(const Query& query) 
-        : Parent(query, allocateQuery()) { }
+        : Parent(query, allocateQuery(), allocateQuery()) { }
 };
 
 gl::GLQuery* GL41Backend::syncGPUObject(const Query& query) {

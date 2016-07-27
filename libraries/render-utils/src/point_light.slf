@@ -5,7 +5,7 @@
 //  point_light.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/18/14.
+//  Created by Sam Gateau on 9/18/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -15,28 +15,35 @@
 // Everything about deferred buffer
 <@include DeferredBufferRead.slh@>
 
-//Everything about deferred lighting
-<@include DeferredLighting.slh@>
+<$declareDeferredCurvature()$>
 
 // Everything about light
 <@include model/Light.slh@>
 
+<@include LightingModel.slh@>
+
+<@include LightPoint.slh@>
+<$declareLightingPoint(supportScattering)$>
+
+
+uniform vec4 texcoordFrameTransform;
 
 in vec4 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
 
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
+    texCoord *= texcoordFrameTransform.zw;
+    texCoord += texcoordFrameTransform.xy;
+
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
 
     if (frag.mode == FRAG_MODE_UNLIT) {
         discard;
     }
-
-    mat4 invViewMat = deferredTransform.viewInverse;
 
     // Kill if in front of the light volume
     float depth = frag.depthVal;
@@ -47,38 +54,33 @@ void main(void) {
     // Need the light now
     Light light = getLight();
 
-    // Make the Light vector going from fragment to light center in world space
+    // Frag pos in world
+    mat4 invViewMat = getViewInverse();
     vec4 fragPos = invViewMat * frag.position;
-    vec3 fragLightVec = getLightPosition(light) - fragPos.xyz;
 
-    // Kill if too far from the light center
-    if (dot(fragLightVec, fragLightVec) > getLightCutoffSquareRadius(light)) {
+    // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
+    vec4 fragLightVecLen2;
+    if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
         discard;
     }
 
-    // Allright we re valid in the volume
-    float fragLightDistance = length(fragLightVec);
-    vec3 fragLightDir = fragLightVec / fragLightDistance;
-
-    // Eval shading
-    vec3 fragNormal = vec3(frag.normal);
+    // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
-    vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.metallic, frag.specular, frag.roughness);
 
-    // Eval attenuation  
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
 
-    // Final Lighting color
-    vec3 fragColor = (shading.w * frag.diffuse + shading.xyz);
-    _fragColor = vec4(fragColor * radialAttenuation * getLightColor(light) * getLightIntensity(light) * frag.obscurance, 0.0);
-
-    if (getLightShowContour(light) > 0.0) {
-        // Show edge
-        float edge =  abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
-        if (edge < 1) {
-            float edgeCoord = exp2(-8.0*edge*edge);
-            _fragColor = vec4(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light), 0.0);
-        }
+    vec3 diffuse;
+    vec3 specular;
+    vec4 midNormalCurvature;
+    vec4 lowNormalCurvature;
+    if (frag.mode == FRAG_MODE_SCATTERING) {
+        unpackMidLowNormalCurvature(texCoord, midNormalCurvature, lowNormalCurvature);
     }
+    evalLightingPoint(diffuse, specular, light,
+        fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
+        frag.metallic, frag.fresnel, frag.albedo, 1.0,
+        frag.scattering, midNormalCurvature, lowNormalCurvature);
+
+    _fragColor.rgb += diffuse;
+    _fragColor.rgb += specular;
 }
