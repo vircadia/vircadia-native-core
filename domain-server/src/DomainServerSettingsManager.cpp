@@ -701,19 +701,17 @@ NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QString
     if (_groupForbiddens.contains(groupRankKey)) {
         return *(_groupForbiddens[groupRankKey].get());
     }
-    NodePermissions nullForbiddens;
-    // XXX should this be setAll(true) ?
-    nullForbiddens.setAll(false);
-    return nullForbiddens;
+    NodePermissions allForbiddens;
+    allForbiddens.setAll(true);
+    return allForbiddens;
 }
 
 NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& groupID, QUuid rankID) const {
     GroupByUUIDKey byUUIDKey = GroupByUUIDKey(groupID, rankID);
     if (!_groupForbiddensByUUID.contains(byUUIDKey)) {
-        NodePermissions nullForbiddens;
-        // XXX should this be setAll(true) ?
-        nullForbiddens.setAll(false);
-        return nullForbiddens;
+        NodePermissions allForbiddens;
+        allForbiddens.setAll(true);
+        return allForbiddens;
     }
 
     NodePermissionsKey groupKey = _groupForbiddensByUUID[byUUIDKey]->getKey();
@@ -1103,11 +1101,6 @@ bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
         !m2.contains("permissions_id")) {
         return v1.toString() < v2.toString();
     }
-
-    // if (m1.contains("rank_name") && m2.contains("rank_name") &&
-    //     m1["permissions_id"].toString() == m2["permissions_id"].toString()) {
-    //     return m1["rank_name"].toString() < m2["rank_name"].toString();
-    // }
 
     if (m1.contains("rank_order") && m2.contains("rank_order") &&
         m1["permissions_id"].toString() == m2["permissions_id"].toString()) {
