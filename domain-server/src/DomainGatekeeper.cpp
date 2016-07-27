@@ -310,24 +310,30 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
 
-    if (!username.isEmpty() && usernameSignature.isEmpty()) {
-        // user is attempting to prove their identity to us, but we don't have enough information
-        sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
-        // ask for their public key right now to make sure we have it
-        requestUserPublicKey(username);
-        getGroupMemberships(username); // optimistically get started on group memberships
-        return SharedNodePointer();
-    }
-
-    QString verifiedUsername;
-    if (!username.isEmpty() && verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
-        // they sent us a username and the signature verifies it
-        verifiedUsername = username;
-        getGroupMemberships(username);
-    } else if (!username.isEmpty()) {
-        // they sent us a username, but it didn't check out
-        requestUserPublicKey(username);
-        return SharedNodePointer();
+    QString verifiedUsername; // if this remains empty, consider this an anonymous connection attempt
+    if (!username.isEmpty()) {
+        if (usernameSignature.isEmpty()) {
+            // user is attempting to prove their identity to us, but we don't have enough information
+            sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+            // ask for their public key right now to make sure we have it
+            requestUserPublicKey(username);
+            getGroupMemberships(username); // optimistically get started on group memberships
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because we have no username-signature:" << username;
+#endif
+            return SharedNodePointer();
+        } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
+            // they sent us a username and the signature verifies it
+            getGroupMemberships(username);
+            verifiedUsername = username;
+        } else {
+            // they sent us a username, but it didn't check out
+            requestUserPublicKey(username);
+#ifdef WANT_DEBUG
+            qDebug() << "stalling login because signature verification failed:" << username;
+#endif
+            return SharedNodePointer();
+        }
     }
 
     userPerms = setPermissionsForUser(isLocalUser, verifiedUsername);
@@ -335,6 +341,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                                    nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::TooManyUsers);
+#ifdef WANT_DEBUG
+        qDebug() << "stalling login due to permissions:" << username;
+#endif
         return SharedNodePointer();
     }
 
@@ -342,6 +351,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         // we can't allow this user to connect because we are at max capacity
         sendConnectionDeniedPacket("Too many connected users.", nodeConnection.senderSockAddr,
                                    DomainHandler::ConnectionRefusedReason::TooManyUsers);
+#ifdef WANT_DEBUG
+        qDebug() << "stalling login due to max capacity:" << username;
+#endif
         return SharedNodePointer();
     }
 
@@ -355,10 +367,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             // we have a node that already has these exact sockets - this occurs if a node
             // is unable to connect to the domain
             hintNodeID = node->getUUID();
-
             return false;
         }
-
         return true;
     });
 
@@ -377,6 +387,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats
     nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
                                 uuidStringWithoutCurlyBraces(newNode->getUUID()), username);
+
+#ifdef WANT_DEBUG
+    qDebug() << "accepting login:" << username;
+#endif
 
     return newNode;
 }
@@ -417,7 +431,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const HifiSockAddr& senderSockAddr) {
 
     // it's possible this user can be allowed to connect, but we need to check their username signature
-    QByteArray publicKeyArray = _userPublicKeys.value(username);
+    QByteArray publicKeyArray = _userPublicKeys.value(username.toLower());
 
     const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
 
@@ -568,7 +582,7 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
         const QString JSON_DATA_KEY = "data";
         const QString JSON_PUBLIC_KEY_KEY = "public_key";
 
-        _userPublicKeys[username] =
+        _userPublicKeys[username.toLower()] =
             QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
     }
 
