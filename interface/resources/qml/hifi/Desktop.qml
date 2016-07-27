@@ -77,6 +77,7 @@ OriginalDesktop.Desktop {
     property bool webViewProfileSetup: false
     property string currentUrl: ""
     property string adaptedPath: ""
+    property string tempDir: ""
 
     function initWebviewProfileHandlers(profile) {
         console.log("the webview url in desktop is: " + currentUrl);
@@ -86,12 +87,12 @@ OriginalDesktop.Desktop {
         profile.downloadRequested.connect(function(download){
             console.log("Download start: " + download.state);
             adaptedPath = File.convertUrlToPath(currentUrl);
-            download.path = "C:/Users/elisa/Downloads/" + adaptedPath;
+            tempDir = File.getTempDir();
+            download.path = tempDir + "/" + adaptedPath;
             console.log("Path where it should download: " + download.path);
             download.accept();
             console.log("Download accept: " + download.state);
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-                console.log("Download? " + download.state);
                 console.log("download failed to complete");
             }
         })
@@ -100,7 +101,7 @@ OriginalDesktop.Desktop {
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
                 console.log("Download Finished: " + download.state);
                 console.log("File object is: " + File);
-                File.runUnzip(download.path, currentUrl);
+                File.runUnzip(download.path, tempDir, currentUrl);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }

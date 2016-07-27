@@ -66,7 +66,7 @@ WebEngineView {
         id: zipTimer
         running: false
         repeat: false
-        interval: 1000
+        interval: 1500
         property var handler;
         onTriggered: handler();
     }

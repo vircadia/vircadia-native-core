@@ -31,10 +31,10 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url) {
+void FileScriptingInterface::runUnzip(QString path, QString tempDir, QUrl url) {
     qDebug() << "Url that was downloaded: " + url.toString();
     qDebug() << "Path where download is saved: " + path;
-    QString file = unzipFile(path);
+    QString file = unzipFile(path, tempDir);
     if (file != "") {
         qDebug() << "file to upload: " + file;
         QUrl url = QUrl::fromLocalFile(file);
@@ -43,6 +43,8 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     } else {
         qDebug() << "unzip failed";
     }
+    qDebug() << "Removing temporary directory at: " + tempDir;
+    QDir(tempDir).removeRecursively();
 }
 
 bool FileScriptingInterface::testUrl(QUrl url) {
@@ -72,20 +74,20 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
     QUrl url = QUrl(link);
     auto request = ResourceManager::createResourceRequest(nullptr, url);
     connect(request, &ResourceRequest::finished, this, [this, path]{
-        unzipFile(path);
+        unzipFile(path, ""); // so intellisense isn't mad
     });
     request->send();
 }
 
 
-QString FileScriptingInterface::unzipFile(QString path) {
+QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 
     QDir dir(path);
     QString dirName = dir.path();
     qDebug() << "Zip directory is stored at: " + dirName;
-    QString target = path.section("/", -1) + "/model_repo";
+    QString target = tempDir + "/model_repo";
     qDebug() << "Target path: " + target;
-    QStringList list = JlCompress::extractDir(dirName, "C:/Users/elisa/Downloads/test");
+    QStringList list = JlCompress::extractDir(dirName, target);
 
     qDebug() << list;
 
