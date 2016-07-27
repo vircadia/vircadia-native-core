@@ -12,7 +12,6 @@
 #include "SteamClient.h"
 
 #include <atomic>
-#include <memory>
 
 #include <QtCore/QDebug>
 
@@ -37,13 +36,15 @@ public:
 
     HAuthTicket startRequest(TicketRequestCallback callback);
     void stopRequest(HAuthTicket authTicket);
+    void stopAll();
 
     STEAM_CALLBACK(SteamTicketRequests, onGetAuthSessionTicketResponse,
                    GetAuthSessionTicketResponse_t, _getAuthSessionTicketResponse);
 
-private:
-    void stopAll();
+    STEAM_CALLBACK(SteamTicketRequests, onGameRichPresenceJoinRequested,
+                   GameRichPresenceJoinRequested_t, _gameRichPresenceJoinRequestedResponse);
 
+private:
     struct PendingTicket {
         HAuthTicket authTicket;
         Ticket ticket;
@@ -54,7 +55,8 @@ private:
 };
 
 SteamTicketRequests::SteamTicketRequests() :
-    _getAuthSessionTicketResponse(this, &SteamTicketRequests::onGetAuthSessionTicketResponse)
+    _getAuthSessionTicketResponse(this, &SteamTicketRequests::onGetAuthSessionTicketResponse),
+    _gameRichPresenceJoinRequestedResponse(this, &SteamTicketRequests::onGameRichPresenceJoinRequested)
 {
 }
 
@@ -128,10 +130,35 @@ void SteamTicketRequests::onGetAuthSessionTicketResponse(GetAuthSessionTicketRes
     }
 }
 
+#include <QString>
+#include <QCoreApplication>
+#include <QtGui/QEvent.h>
+#include <QMimeData>
+#include <QUrl>
+const QString PREFIX = "--url \"";
+const QString SUFFIX = "\"";
+
+
+void SteamTicketRequests::onGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pCallback) {
+    auto url = QString::fromLocal8Bit(pCallback->m_rgchConnect);
+
+    if (url.startsWith(PREFIX) && url.endsWith(SUFFIX)) {
+        url.remove(0, PREFIX.size());
+        url.remove(-SUFFIX.size(), SUFFIX.size());
+    }
+
+    qDebug() << "Joining:" << url;
+    auto mimeData = new QMimeData();
+    mimeData->setUrls(QList<QUrl>() << QUrl(url));
+    auto event = new QDropEvent(QPointF(0,0), Qt::MoveAction, mimeData, Qt::LeftButton, Qt::NoModifier);
+
+    QCoreApplication::postEvent(qApp, event);
+}
+
 
 
 static std::atomic_bool initialized { false };
-static std::unique_ptr<SteamTicketRequests> steamTicketRequests;
+static SteamTicketRequests steamTicketRequests;
 
 
 bool SteamClient::isRunning() {
@@ -144,12 +171,12 @@ bool SteamClient::isRunning() {
 bool SteamClient::init() {
     if (SteamAPI_IsSteamRunning() && !initialized) {
         initialized = SteamAPI_Init();
-    }
 
-    if (!steamTicketRequests && initialized) {
-        steamTicketRequests.reset(new SteamTicketRequests());
+        if (initialized) {
+            SteamFriends()->SetRichPresence("status", "Localhost");
+            SteamFriends()->SetRichPresence("connect", "--url \"hifi://10.0.0.185:40117/10,10,10\"");
+        }
     }
-
     return initialized;
 }
 
@@ -158,9 +185,7 @@ void SteamClient::shutdown() {
         SteamAPI_Shutdown();
     }
 
-    if (steamTicketRequests) {
-        steamTicketRequests.reset();
-    }
+    steamTicketRequests.stopAll();
 }
 
 void SteamClient::runCallbacks() {
@@ -193,7 +218,7 @@ void SteamClient::requestTicket(TicketRequestCallback callback) {
         return;
     }
 
-    steamTicketRequests->startRequest(callback);
+    steamTicketRequests.startRequest(callback);
 }
 
 
