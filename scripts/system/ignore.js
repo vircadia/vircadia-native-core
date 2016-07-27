@@ -64,7 +64,7 @@ function buttonClicked(){
 button.clicked.connect(buttonClicked);
 
 function overlayURL() {
-    return Script.resolvePath("assets/images/" + (Users.canKick ? "kick-target.svg" : "ignore-target.svg"));
+    return Script.resolvePath("assets/images/" + (Users.canKick ? "kick-target.png" : "ignore-target.png"));
 }
 
 function updateOverlays() {
@@ -104,7 +104,7 @@ function updateOverlays() {
                 var newOverlay = Overlays.addOverlay("image3d", {
                     url: overlayURL(),
                     position: overlayPosition,
-                    size: 0.4,
+                    size: 1,
                     scale: 0.4,
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
@@ -179,14 +179,8 @@ Controller.mousePressEvent.connect(function(event){
 // But we dont' get mousePressEvents.
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 
-var TRIGGER_GRAB_VALUE = 0.85;  //  From handControllerGrab/Pointer.js. Should refactor.
-var TRIGGER_ON_VALUE = 0.4;
-var TRIGGER_OFF_VALUE = 0.15;
-var triggered = false;
-var activeHand = Controller.Standard.RightHand;
-
-function controllerComputePickRay() {
-    var controllerPose = Controller.getPoseValue(activeHand);
+function controllerComputePickRay(hand) {
+    var controllerPose = Controller.getPoseValue(hand);
     if (controllerPose.valid && triggered) {
         var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                           MyAvatar.position);
@@ -196,31 +190,21 @@ function controllerComputePickRay() {
     }
 }
 
-function makeTriggerHandler(hand) {
+function makeClickHandler(hand) {
     return function (value) {
         if (isShowingOverlays) {
-            if (!triggered && (value > TRIGGER_GRAB_VALUE)) { // should we smooth?
-                triggered = true;
-                if (activeHand !== hand) {
-                    // No switching while the other is already triggered, so no need to release.
-                    activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+            var pickRay = controllerComputePickRay(hand);
+            if (pickRay) {
+                var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                if (overlayIntersection.intersects) {
+                    handleSelectedOverlay(overlayIntersection);
                 }
-
-                var pickRay = controllerComputePickRay();
-                if (pickRay) {
-                    var overlayIntersection = Overlays.findRayIntersection(pickRay);
-                    if (overlayIntersection.intersects) {
-                        handleSelectedOverlay(overlayIntersection);
-                    }
-                }
-            } else if (triggered && (value < TRIGGER_OFF_VALUE)) {
-                triggered = false;
             }
         }
     };
 }
-triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
-triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 
 triggerMapping.enable();
 
