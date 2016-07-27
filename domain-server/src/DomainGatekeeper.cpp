@@ -315,6 +315,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
+        getGroupMemberships(username); // optimistically get started on group memberships
         return SharedNodePointer();
     }
 
@@ -847,7 +848,7 @@ void DomainGatekeeper::refreshGroupsCache() {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
             const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();
-            if (verifiedUserName.isEmpty()) {
+            if (!verifiedUserName.isEmpty()) {
                 getGroupMemberships(verifiedUserName);
             }
         }
