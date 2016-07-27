@@ -96,7 +96,8 @@ function updateOverlays() {
             if (avatarID in ignoreOverlays) {
                 // keep the overlay above the current position of this avatar
                 Overlays.editOverlay(ignoreOverlays[avatarID], {
-                    position: overlayPosition
+                    position: overlayPosition,
+                    url: overlayURL()
                 });
             } else {
                 // add the overlay above this avatar
