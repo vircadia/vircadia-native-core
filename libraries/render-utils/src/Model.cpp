@@ -1411,6 +1411,7 @@ void Model::setCollisionMesh(model::MeshPointer mesh) {
     _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
 
     if (_showCollisionHull) {
+        _needsFixupInScene = true;
         // TODO: need to trigger:
         // (a) reconstruction of RenderItems
         // (b) and reinsertion into scene if we are showing collision geometry
