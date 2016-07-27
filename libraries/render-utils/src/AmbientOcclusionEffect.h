@@ -16,6 +16,47 @@
 
 #include "render/DrawTask.h"
 
+#include "DeferredFrameTransform.h"
+#include "DeferredFramebuffer.h"
+#include "SurfaceGeometryPass.h"
+
+class AmbientOcclusionFramebuffer {
+public:
+    AmbientOcclusionFramebuffer();
+
+    gpu::FramebufferPointer getOcclusionFramebuffer();
+    gpu::TexturePointer getOcclusionTexture();
+    
+    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
+    gpu::TexturePointer getOcclusionBlurredTexture();
+    
+    // Update the source framebuffer size which will drive the allocation of all the other resources.
+    void updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
+    gpu::TexturePointer getLinearDepthTexture();
+    const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
+    
+    void setResolutionLevel(int level);
+    int getResolutionLevel() const { return _resolutionLevel; }
+    
+protected:
+    void clear();
+    void allocate();
+    
+    gpu::TexturePointer _linearDepthTexture;
+    
+    gpu::FramebufferPointer _occlusionFramebuffer;
+    gpu::TexturePointer _occlusionTexture;
+    
+    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
+    gpu::TexturePointer _occlusionBlurredTexture;
+    
+    
+    glm::ivec2 _frameSize;
+    int _resolutionLevel{ 0 };
+};
+
+using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFramebuffer>;
+
 class AmbientOcclusionEffectConfig : public render::Job::Config::Persistent {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
@@ -67,13 +108,15 @@ signals:
 
 class AmbientOcclusionEffect {
 public:
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
+    using Outputs = AmbientOcclusionFramebufferPointer;
     using Config = AmbientOcclusionEffectConfig;
-    using JobModel = render::Job::Model<AmbientOcclusionEffect, Config>;
+    using JobModel = render::Job::ModelIO<AmbientOcclusionEffect, Inputs, Outputs, Config>;
 
     AmbientOcclusionEffect();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
     
     float getRadius() const { return _parametersBuffer.get<Parameters>().radiusInfo.x; }
     float getObscuranceLevel() const { return _parametersBuffer.get<Parameters>().radiusInfo.w; }
@@ -131,16 +174,16 @@ private:
     };
     gpu::BufferView _parametersBuffer;
 
-    const gpu::PipelinePointer& getPyramidPipeline();
     const gpu::PipelinePointer& getOcclusionPipeline();
     const gpu::PipelinePointer& getHBlurPipeline(); // first
     const gpu::PipelinePointer& getVBlurPipeline(); // second
 
-    gpu::PipelinePointer _pyramidPipeline;
     gpu::PipelinePointer _occlusionPipeline;
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
 
+    AmbientOcclusionFramebufferPointer _framebuffer;
+    
     gpu::RangeTimer _gpuTimer;
 };
 

@@ -141,13 +141,14 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
 
     // AO job
-    addJob<AmbientOcclusionEffect>("AmbientOcclusion");
+    const auto ambientOcclusionInputs = AmbientOcclusionEffect::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
+    const auto ambientOcclusionFramebuffer = addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, scatteringResource).hasVarying();
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
@@ -178,7 +179,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job

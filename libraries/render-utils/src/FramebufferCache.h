@@ -30,12 +30,6 @@ public:
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
-    void setAmbientOcclusionResolutionLevel(int level);
-    gpu::FramebufferPointer getOcclusionFramebuffer();
-    gpu::TexturePointer getOcclusionTexture();
-    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
-    gpu::TexturePointer getOcclusionBlurredTexture();
-
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
 
@@ -56,18 +50,7 @@ private:
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
-    gpu::FramebufferPointer _occlusionFramebuffer;
-    gpu::TexturePointer _occlusionTexture;
-    
-    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
-    gpu::TexturePointer _occlusionBlurredTexture;
-
     QSize _frameBufferSize{ 100, 100 };
-    int _AOResolutionLevel = 1; // AO perform at half res
-
-    // Resize/reallocate the buffers used for AO
-    // the size of the AO buffers is scaled by the AOResolutionScale;
-    void resizeAmbientOcclusionBuffers();
 };
 
 #endif // hifi_FramebufferCache_h

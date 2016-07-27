@@ -76,6 +76,9 @@ bool isStereo() {
 float getStereoSideWidth() {
     return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
 }
+float getStereoSideHeight() {
+    return float(int(frameTransform._pixelInfo.w) >>  getResolutionLevel());
+}
 
 ivec3 getStereoSideInfo(int xPos) {
     int sideWidth = int(getStereoSideWidth());

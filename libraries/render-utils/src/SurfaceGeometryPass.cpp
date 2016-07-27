@@ -193,7 +193,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
         batch.setResourceTexture(DepthLinearPass_NormalMapSlot, normalTexture);
         batch.setPipeline(downsamplePipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+        
         _gpuTimer.end(batch);
     });
 
