@@ -78,7 +78,7 @@ const float AllocationDebugger::K = 1024.0f;
 
 static AllocationDebugger allocationDebugger;
 
-Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
+Size Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
     allocationDebugger += size;
     if ( !dataAllocated ) { 
         qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
@@ -102,40 +102,40 @@ Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size)
     return newSize;
 }
 
-void Resource::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
+void Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
     allocationDebugger -= size;
     if (dataAllocated) {
         delete[] dataAllocated;
     }
 }
 
-Resource::Sysmem::Sysmem() {}
+Sysmem::Sysmem() {}
 
-Resource::Sysmem::Sysmem(Size size, const Byte* bytes) {
+Sysmem::Sysmem(Size size, const Byte* bytes) {
     if (size > 0 && bytes) {
         setData(_size, bytes);
     }
 }
 
-Resource::Sysmem::Sysmem(const Sysmem& sysmem) {
+Sysmem::Sysmem(const Sysmem& sysmem) {
     if (sysmem.getSize() > 0) {
         allocate(sysmem._size);
         setData(_size, sysmem._data);
     }
 }
 
-Resource::Sysmem& Resource::Sysmem::operator=(const Sysmem& sysmem) {
+Sysmem& Sysmem::operator=(const Sysmem& sysmem) {
     setData(sysmem.getSize(), sysmem.readData());
     return (*this);
 }
 
-Resource::Sysmem::~Sysmem() {
+Sysmem::~Sysmem() {
     deallocateMemory( _data, _size );
     _data = NULL;
     _size = 0;
 }
 
-Resource::Size Resource::Sysmem::allocate(Size size) {
+Size Sysmem::allocate(Size size) {
     if (size != _size) {
         Byte* newData = NULL;
         Size newSize = 0;
@@ -156,7 +156,7 @@ Resource::Size Resource::Sysmem::allocate(Size size) {
     return _size;
 }
 
-Resource::Size Resource::Sysmem::resize(Size size) {
+Size Sysmem::resize(Size size) {
     if (size != _size) {
         Byte* newData = NULL;
         Size newSize = 0;
@@ -182,7 +182,7 @@ Resource::Size Resource::Sysmem::resize(Size size) {
     return _size;
 }
 
-Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
+Size Sysmem::setData( Size size, const Byte* bytes ) {
     if (allocate(size) == size) {
         if (size && bytes) {
             memcpy( _data, bytes, _size );
@@ -191,7 +191,7 @@ Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
     return _size;
 }
 
-Resource::Size Resource::Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
+Size Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
     if (size && ((offset + size) <= getSize()) && bytes) {
         memcpy( _data + offset, bytes, size );
         return size;
@@ -199,7 +199,7 @@ Resource::Size Resource::Sysmem::setSubData( Size offset, Size size, const Byte*
     return 0;
 }
 
-Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
+Size Sysmem::append(Size size, const Byte* bytes) {
     if (size > 0) {
         Size oldSize = getSize();
         Size totalSize = oldSize + size;
@@ -241,7 +241,7 @@ Buffer::Size Buffer::getBufferGPUMemoryUsage() {
 }
 
 Buffer::Buffer(Size pageSize) :
-    _pageSize(pageSize) {
+    _pages(pageSize) {
     _bufferCPUCount++;
 }
 
@@ -249,12 +249,12 @@ Buffer::Buffer(Size size, const Byte* bytes, Size pageSize) : Buffer(pageSize) {
     setData(size, bytes);
 }
 
-Buffer::Buffer(const Buffer& buf) : Buffer(buf._pageSize) {
+Buffer::Buffer(const Buffer& buf) : Buffer(buf._pages._pageSize) {
     setData(buf.getSize(), buf.getData());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
-    const_cast<Size&>(_pageSize) = buf._pageSize;
+    const_cast<Size&>(_pages._pageSize) = buf._pages._pageSize;
     setData(buf.getSize(), buf.getData());
     return (*this);
 }
@@ -266,14 +266,10 @@ Buffer::~Buffer() {
 
 Buffer::Size Buffer::resize(Size size) {
     _end = size;
-    auto prevSize = editSysmem().getSize();
+    auto prevSize = _sysmem.getSize();
     if (prevSize < size) {
-        auto newPages = getRequiredPageCount();
-        auto newSize = newPages * _pageSize;
-        editSysmem().resize(newSize);
-        // All new pages start off as clean, because they haven't been populated by data
-        _pages.resize(newPages, 0);
-        Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+        _sysmem.resize(_pages.accommodate(_end));
+        Buffer::updateBufferCPUMemoryUsage(prevSize, _sysmem.getSize());
     }
     return _end;
 }
@@ -282,28 +278,45 @@ void Buffer::markDirty(Size offset, Size bytes) {
     if (!bytes) {
         return;
     }
-    _flags |= DIRTY;
-    // Find the starting page
-    Size startPage = (offset / _pageSize);
-    // Non-zero byte count, so at least one page is dirty
-    Size pageCount = 1;
-    // How much of the page is after the offset?
-    Size remainder = _pageSize - (offset % _pageSize);
-    //  If there are more bytes than page space remaining, we need to increase the page count
-    if (bytes > remainder) {
-        // Get rid of the amount that will fit in the current page
-        bytes -= remainder;
 
-        pageCount += (bytes / _pageSize);
-        if (bytes % _pageSize) {
-            ++pageCount;
+    _pages.markRegion(offset, bytes);
+}
+
+void Buffer::applyUpdate(const Update& update) {
+    _renderSysmem.resize(update.size);
+    _renderPages = update.pages;
+     update.updateOperator(_renderSysmem);
+ }
+
+Buffer::Update Buffer::getUpdate() const {
+    static Update EMPTY_UPDATE;
+    if (!_pages) {
+        return EMPTY_UPDATE;
+    }
+
+    Update result;
+    result.pages = _pages;
+    result.size = _sysmem.getSize();
+    Size pageSize = _pages._pageSize;
+    PageManager::Pages dirtyPages = _pages.getMarkedPages();
+    std::vector<uint8> dirtyPageData;
+    dirtyPageData.resize(dirtyPages.size() * pageSize);
+    for (Size i = 0; i < dirtyPages.size(); ++i) {
+        Size page = dirtyPages[i];
+        Size sourceOffset = page * pageSize;
+        Size destOffset = i * pageSize;
+        memcpy(dirtyPageData.data() + destOffset, _sysmem.readData() + sourceOffset, pageSize);
+    }
+
+    result.updateOperator = [pageSize, dirtyPages, dirtyPageData](Sysmem& dest){
+        for (Size i = 0; i < dirtyPages.size(); ++i) {
+            Size page = dirtyPages[i];
+            Size sourceOffset = i * pageSize;
+            Size destOffset = page * pageSize;
+            memcpy(dest.editData() + destOffset, dirtyPageData.data() + sourceOffset, pageSize);
         }
-    }
-
-    // Mark the pages dirty
-    for (Size i = 0; i < pageCount; ++i) {
-        _pages[i + startPage] |= DIRTY;
-    }
+    };
+    return result;
 }
 
 
@@ -331,14 +344,6 @@ Buffer::Size Buffer::append(Size size, const Byte* data) {
 Buffer::Size Buffer::getSize() const { 
     Q_ASSERT(getSysmem().getSize() >= _end);
     return _end;
-}
-
-Buffer::Size Buffer::getRequiredPageCount() const {
-    Size result = _end / _pageSize;
-    if (_end % _pageSize) {
-        ++result;
-    }
-    return result;
 }
 
 const Element BufferView::DEFAULT_ELEMENT = Element( gpu::SCALAR, gpu::UINT8, gpu::RAW );

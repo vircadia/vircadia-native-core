@@ -11,20 +11,23 @@
 
 #include <stdint.h>
 #include <memory>
+#include <mutex>
 #include <vector>
-#include <functional>
 
 #include <glm/glm.hpp>
 
 namespace gpu {
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
     class Batch;
     class Backend;
+    using BackendPointer = std::shared_ptr<Backend>;
     class Context;
     using ContextPointer = std::shared_ptr<Context>;
     class GPUObject;
     class Frame;
     using FramePointer = std::shared_ptr<Frame>;
-    using FrameHandler = std::function<void(Frame& frame)>;
 
     using Stamp = int;
     using uint32 = uint32_t;

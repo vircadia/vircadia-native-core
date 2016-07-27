@@ -6,12 +6,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#version 410 core
+struct OverlayData {
+    mat4 mvp;
+    vec4 glowPoints;
+    vec4 glowColors[2];
+    vec4 resolutionRadiusAlpha;
+};
 
-uniform mat4 mvp = mat4(1);
+layout(std140) uniform overlayBuffer {
+    OverlayData overlay;
+};
 
-in vec3 Position;
-in vec2 TexCoord;
+mat4 mvp = overlay.mvp;
+
+layout(location = 0) in vec3 Position;
+layout(location = 3) in vec2 TexCoord;
 
 out vec3 vPosition;
 out vec2 vTexCoord;

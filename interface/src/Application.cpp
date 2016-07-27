@@ -779,16 +779,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
 
-    _chromiumShareContext = new OffscreenGLCanvas();
-    _chromiumShareContext->create(_glWidget->context()->contextHandle());
-    _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->create(_glWidget->context()->contextHandle());
-    _offscreenContext->makeCurrent();
     initializeGL();
-    _offscreenContext->makeCurrent();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1498,11 +1489,18 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    _glWidget->makeCurrent();
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
+    _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1521,7 +1519,8 @@ void Application::initializeGL() {
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
+
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
@@ -1537,8 +1536,13 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
+    _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->makeCurrent();
+
     // update before the first render
     update(0);
+
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -1555,7 +1559,7 @@ void Application::initializeUi() {
 
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_offscreenContext->getContext());
+    offscreenUi->create(_glWidget->context()->contextHandle());
 
     auto rootContext = offscreenUi->getRootContext();
 
@@ -1726,17 +1730,7 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
-    // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
-    {
-        PerformanceTimer perfTimer("syncCache");
-        renderArgs._context->syncCache();
-    }
-
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    // Final framebuffer that will be handled to the display-plugin
-    auto finalFramebuffer = framebufferCache->getFramebuffer();
-
-    _gpuContext->beginFrame(finalFramebuffer, getHMDSensorPose());
+    _gpuContext->beginFrame(getHMDSensorPose());
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
     gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
@@ -1866,7 +1860,10 @@ void Application::paintGL() {
     getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
 
     // Primary rendering pass
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
+    // Final framebuffer that will be handled to the display-plugin
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
@@ -1907,13 +1904,6 @@ void Application::paintGL() {
                 // Apply IPD scaling
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
-
-                // Tell the plugin what pose we're using to render.  In this case we're just using the
-                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-                // for rotational timewarp.  If we move to support positonal timewarp, we need to
-                // ensure this contains the full pose composed with the eye offsets.
-                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
-
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
@@ -1921,35 +1911,25 @@ void Application::paintGL() {
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
-
-        renderArgs._blitFramebuffer.reset();
-        renderArgs._context->enableStereo(false);
     }
 
-    _gpuContext->endFrame();
-
-    gpu::TexturePointer overlayTexture = _applicationOverlay.acquireOverlay();
-    if (overlayTexture) {
-        displayPlugin->submitOverlayTexture(overlayTexture);
-    }
-
-    // deliver final composited scene to the display plugin
+    auto frame = _gpuContext->endFrame();
+    frame->frameIndex = _frameCount;
+    frame->framebuffer = finalFramebuffer;
+    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
+        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+    };
+    frame->overlay = _applicationOverlay.getOverlayTexture();
+    // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-
-        auto finalTexture = finalFramebuffer->getRenderBuffer(0);
-        Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
-        _lockedFramebufferMap[finalTexture] = finalFramebuffer;
-
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
-        {
-            PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
-            PerformanceTimer perfTimer("pluginSubmitScene");
-            displayPlugin->submitSceneTexture(_frameCount, finalTexture);
-        }
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
+        displayPlugin->submitFrame(frame);
     }
+
+    // Reset the framebuffer and stereo state
+    renderArgs._blitFramebuffer.reset();
+    renderArgs._context->enableStereo(false);
 
     {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
@@ -5405,6 +5385,7 @@ void Application::updateDisplayMode() {
         DisplayPluginList advanced;
         DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
+            displayPlugin->setBackend(_gpuContext->getBackend());
             auto grouping = displayPlugin->getGrouping();
             switch (grouping) {
                 case Plugin::ADVANCED:
@@ -5473,9 +5454,6 @@ void Application::updateDisplayMode() {
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
-
-        // FIXME probably excessive and useless context switching
-        _offscreenContext->makeCurrent();
 
         bool active = newDisplayPlugin->activate();
 
@@ -5619,20 +5597,6 @@ QOpenGLContext* Application::getPrimaryContext() {
 
 bool Application::makeRenderingContextCurrent() {
     return _offscreenContext->makeCurrent();
-}
-
-void Application::releaseSceneTexture(const gpu::TexturePointer& texture) {
-    Q_ASSERT(QThread::currentThread() == thread());
-    auto& framebufferMap = _lockedFramebufferMap;
-    Q_ASSERT(framebufferMap.contains(texture));
-    auto framebufferPointer = framebufferMap[texture];
-    framebufferMap.remove(texture);
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    framebufferCache->releaseFramebuffer(framebufferPointer);
-}
-
-void Application::releaseOverlayTexture(const gpu::TexturePointer& texture) {
-    _applicationOverlay.releaseOverlay(texture);
 }
 
 bool Application::isForeground() const { 

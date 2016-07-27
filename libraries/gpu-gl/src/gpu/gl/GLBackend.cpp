@@ -120,24 +120,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
-extern std::function<uint32(const Texture& texture)> TEXTURE_ID_RESOLVER;
-
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
-
-        TEXTURE_ID_RESOLVER = [](const Texture& texture)->uint32 {
-            auto object = Backend::getGPUObject<GLTexture>(texture);
-            if (!object) {
-                return 0;
-            }
-            
-            if (object->getSyncState() != GLSyncState::Idle) {
-                return object->_downsampleSource._texture;
-            }
-            return object->_texture;
-        };
-
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
         qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));

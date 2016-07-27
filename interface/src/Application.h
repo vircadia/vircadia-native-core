@@ -112,8 +112,6 @@ public:
     virtual MainWindow* getPrimaryWindow() override;
     virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool makeRenderingContextCurrent() override;
-    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
-    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
     virtual bool isForeground() const override;
 
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
@@ -434,7 +432,6 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;

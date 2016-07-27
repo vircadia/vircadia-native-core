@@ -51,8 +51,9 @@ class Backend {
 public:
     virtual~ Backend() {};
 
-    virtual void render(Batch& batch) = 0;
+    void setStereoState(const StereoState& stereo) { _stereo = stereo; }
 
+    virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
@@ -139,10 +140,11 @@ public:
     Context();
     ~Context();
 
-    void setFrameHandler(FrameHandler handler);
-    void beginFrame(const FramebufferPointer& outputFramebuffer, const glm::mat4& renderPose = glm::mat4());
+    void beginFrame(const glm::mat4& renderPose = glm::mat4());
     void append(Batch& batch);
-    void endFrame();
+    FramePointer endFrame();
+
+    const BackendPointer& getBackend() const { return _backend; }
 
     void enableStereo(bool enable = true);
     bool isStereo();
@@ -150,7 +152,6 @@ public:
     void setStereoViews(const mat4 eyeViews[2]);
     void getStereoProjections(mat4* eyeProjections) const;
     void getStereoViews(mat4* eyeViews) const;
-    void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
@@ -171,10 +172,9 @@ public:
 protected:
     Context(const Context& context);
 
-    std::unique_ptr<Backend> _backend;
+    std::shared_ptr<Backend> _backend;
     bool _frameActive { false };
-    Frame _currentFrame;
-    FrameHandler _frameHandler;
+    FramePointer _currentFrame;
     StereoState  _stereo;
 
     // This function can only be called by "static Shader::makeProgram()"

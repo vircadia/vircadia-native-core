@@ -23,7 +23,7 @@ public:
             object = new GLBufferType(buffer, object);
         }
 
-        if (0 != (buffer._flags & Buffer::DIRTY)) {
+        if (0 != (buffer._renderPages._flags & PageManager::DIRTY)) {
             object->transfer();
         }
 

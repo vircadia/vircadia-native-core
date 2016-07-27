@@ -8,20 +8,44 @@
 #ifndef hifi_gpu_Frame_h
 #define hifi_gpu_Frame_h
 
+#include <functional>
+
 #include "Forward.h"
+#include "Batch.h"
+#include "Resource.h"
 
 namespace gpu {
 
-class Frame {
-public:
-    /// The sensor pose used for rendering the frame, only applicable for HMDs
-    glm::mat4 pose;
-    /// The collection of batches which make up the frame
-    std::vector<Batch> batches;
-    std::vector<StereoState> stereoStates;
-    /// The destination framebuffer in which the results will be placed
-    FramebufferPointer framebuffer;
-};
+    class Frame {
+    public:
+        using Batches = std::vector<Batch>;
+        using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
+        using OverlayRecycler = std::function<void(const TexturePointer&)>;
+        using BufferUpdate = std::pair<BufferPointer, Buffer::Update>;
+        using BufferUpdates = std::vector<BufferUpdate>;
+
+        virtual ~Frame();
+        void finish();
+        void preRender();
+
+        StereoState stereoState;
+        uint32_t frameIndex{ 0 };
+        /// The sensor pose used for rendering the frame, only applicable for HMDs
+        Mat4 pose;
+        /// The collection of batches which make up the frame
+        Batches batches;
+        /// The destination framebuffer in which the results will be placed
+        FramebufferPointer framebuffer;
+        /// The destination texture containing the 2D overlay
+        TexturePointer overlay;
+
+        /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
+        FramebufferRecycler framebufferRecycler;
+        /// How to process the overlay texture when the frame dies.  MUST BE THREAD SAFE
+        OverlayRecycler overlayRecycler;
+        BufferUpdates bufferUpdates;
+
+    };
 
 };
 

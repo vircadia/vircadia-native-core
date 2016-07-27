@@ -11,6 +11,7 @@
 
 #include <QtGui/QImage>
 #include <ui-plugins/PluginContainer.h>
+#include <FramebufferCache.h>
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
@@ -22,12 +23,7 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-void NullDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
-    _container->releaseSceneTexture(sceneTexture);
-}
-
-void NullDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overlayTexture) {
-    _container->releaseOverlayTexture(overlayTexture);
+void NullDisplayPlugin::submitFrame(const gpu::FramePointer& resultFramebuffer) {
 }
 
 QImage NullDisplayPlugin::getScreenshot() const {

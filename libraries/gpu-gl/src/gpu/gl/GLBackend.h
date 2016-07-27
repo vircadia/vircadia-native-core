@@ -35,12 +35,13 @@ class GLBackend : public Backend {
     friend class gpu::Context;
     static void init();
     static Backend* createBackend();
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings);
 
 protected:
     explicit GLBackend(bool syncCache);
     GLBackend();
 public:
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet());
+
     ~GLBackend();
 
     void render(Batch& batch) final;
@@ -159,9 +160,10 @@ public:
     virtual void do_setStateBlendFactor(Batch& batch, size_t paramOffset) final;
     virtual void do_setStateScissorRect(Batch& batch, size_t paramOffset) final;
 
+    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
+
 protected:
 
-    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
 
     virtual GLuint getBufferID(const Buffer& buffer) = 0;

@@ -9,18 +9,21 @@
 
 #include <ThreadSafeValueCache.h>
 
+#include <array>
+
 #include <QtGlobal>
 #include <Transform.h>
 
-#include "../OpenGLDisplayPlugin.h"
+#include <gpu/Format.h>
+#include <gpu/Stream.h>
 
-#ifdef Q_OS_WIN
-#define HMD_HAND_LASER_SUPPORT
-#endif
+#include "../CompositorHelper.h"
+#include "../OpenGLDisplayPlugin.h"
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
+    HmdDisplayPlugin() : _overlay( *this ) {}
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
@@ -28,7 +31,6 @@ public:
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
     glm::uvec2 getRecommendedUiSize() const override final;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
-    void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
     QRect getRecommendedOverlayRect() const override final;
@@ -65,6 +67,9 @@ protected:
         }
     };
 
+
+
+
     Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
     std::array<glm::mat4, 2> _handPoses;
@@ -96,10 +101,7 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
-    void updateOverlayProgram();
-#ifdef HMD_HAND_LASER_SUPPORT
     void updateLaserProgram();
-#endif
     void updateReprojectionProgram();
 
     bool _enablePreview { false };
@@ -107,25 +109,52 @@ private:
     bool _enableReprojection { true };
     bool _firstPreview { true };
 
-    ProgramPtr _overlayProgram;
-    struct OverlayUniforms {
-        int32_t mvp { -1 };
-        int32_t alpha { -1 };
-        int32_t glowColors { -1 };
-        int32_t glowPoints { -1 };
-        int32_t resolution { -1 };
-        int32_t radius { -1 };
-    } _overlayUniforms;
+    float _previewAspect { 0 };
+    glm::uvec2 _prevWindowSize { 0, 0 };
+    qreal _prevDevicePixelRatio { 0 };
 
+
+    struct OverlayRender {
+        OverlayRender(HmdDisplayPlugin& plugin) : plugin(plugin) {};
+        HmdDisplayPlugin& plugin;
+        gpu::Stream::FormatPointer format;
+        gpu::BufferPointer vertices;
+        gpu::BufferPointer indices;
+        uint32_t indexCount { 0 };
+        gpu::PipelinePointer pipeline;
+        int32_t uniformsLocation { -1 };
+
+        // FIXME this is stupid, use the built in transformation pipeline
+        std::array<gpu::BufferPointer, 2> uniformBuffers;
+        std::array<mat4, 2> mvps;
+
+        struct Uniforms {
+            mat4 mvp;
+            vec4 glowPoints { -1 };
+            vec4 glowColors[2];
+            vec2 resolution { CompositorHelper::VIRTUAL_SCREEN_SIZE };
+            float radius { 0.005f };
+            float alpha { 1.0f };
+        } uniforms;
+        
+        struct Vertex {
+            vec3 pos;
+            vec2 uv;
+        } vertex;
+
+        static const size_t VERTEX_OFFSET { offsetof(Vertex, pos) };
+        static const size_t TEXTURE_OFFSET { offsetof(Vertex, uv) };
+        static const int VERTEX_STRIDE { sizeof(Vertex) };
+
+        void build();
+        void updatePipeline();
+        void render();
+    } _overlay;
+#if 0
     ProgramPtr _previewProgram;
     struct PreviewUniforms {
         int32_t previewTexture { -1 };
     } _previewUniforms;
-
-    float _previewAspect { 0 };
-    GLuint _previewTextureID { 0 };
-    glm::uvec2 _prevWindowSize { 0, 0 };
-    qreal _prevDevicePixelRatio { 0 };
 
     ProgramPtr _reprojectionProgram;
     struct ReprojectionUniforms {
@@ -134,9 +163,6 @@ private:
         int32_t projectionMatrix { -1 };
     } _reprojectionUniforms;
 
-    ShapeWrapperPtr _sphereSection;
-
-#ifdef HMD_HAND_LASER_SUPPORT
     ProgramPtr _laserProgram;
     struct LaserUniforms {
         int32_t mvp { -1 };
@@ -145,4 +171,3 @@ private:
     ShapeWrapperPtr _laserGeometry;
 #endif
 };
-

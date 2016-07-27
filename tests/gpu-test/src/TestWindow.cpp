@@ -93,7 +93,6 @@ void TestWindow::resizeWindow(const QSize& size) {
 }
 
 void TestWindow::beginFrame() {
-    _renderArgs->_context->syncCache();
 
 #ifdef DEFERRED_LIGHTING
 

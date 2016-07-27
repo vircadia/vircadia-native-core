@@ -33,9 +33,9 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
+void Basic2DWindowOpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
     _wantVsync = true; // always
-    Parent::submitSceneTexture(frameIndex, sceneTexture);
+    Parent::submitFrame(newFrame);
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {

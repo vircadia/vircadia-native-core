@@ -8,6 +8,8 @@
 
 #  Windows doesn't need this, and building it currently make Linux unstable.
 #  if (NOT WIN32)
+
+if (FALSE)
 if (APPLE)
 
     set(TARGET_NAME oculusLegacy)
@@ -25,4 +27,5 @@ if (APPLE)
 
 
 
+endif()
 endif()

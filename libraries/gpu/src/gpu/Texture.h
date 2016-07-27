@@ -449,8 +449,6 @@ public:
 
     const GPUObjectPointer gpuObject {};
 
-    uint32 getHardwareId() const;
-
 protected:
     std::unique_ptr< Storage > _storage;
 

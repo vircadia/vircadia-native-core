@@ -6,6 +6,7 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
+if (FALSE)
 if (WIN32)
 
     # we're using static GLEW, so define GLEW_STATIC
@@ -23,4 +24,5 @@ if (WIN32)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
     target_link_libraries(${TARGET_NAME} Winmm.lib)
 
+endif()
 endif()

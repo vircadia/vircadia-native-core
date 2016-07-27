@@ -14,6 +14,7 @@
 
 #include <ui/Menu.h>
 #include <MainWindow.h>
+#include <plugins/DisplayPlugin.h>
 
 static PluginContainer* INSTANCE{ nullptr };
 
@@ -158,4 +159,9 @@ bool PluginContainer::getBoolSetting(const QString& settingName, bool defaultVal
 void PluginContainer::setBoolSetting(const QString& settingName, bool value) {
     Setting::Handle<bool> settingValue(settingName, value);
     return settingValue.set(value);
+}
+
+bool isRenderThread() {
+    auto displayPlugin = PluginContainer::getInstance().getActiveDisplayPlugin();
+    return displayPlugin && displayPlugin->isRenderThread();
 }

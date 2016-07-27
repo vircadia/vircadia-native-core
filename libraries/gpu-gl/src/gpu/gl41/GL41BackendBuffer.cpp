@@ -42,14 +42,14 @@ public:
         Size offset;
         Size size;
         Size currentPage { 0 };
-        auto data = _gpuObject.getSysmem().readData();
-        while (_gpuObject.getNextTransferBlock(offset, size, currentPage)) {
+        auto data = _gpuObject._renderSysmem.readData();
+        while (_gpuObject._renderPages.getNextTransferBlock(offset, size, currentPage)) {
             glBufferSubData(GL_ARRAY_BUFFER, offset, size, data + offset);
             (void)CHECK_GL_ERROR();
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         (void)CHECK_GL_ERROR();
-        _gpuObject._flags &= ~Buffer::DIRTY;
+        _gpuObject._renderPages._flags &= ~PageManager::DIRTY;
     }
 };
 

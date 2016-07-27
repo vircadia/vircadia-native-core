@@ -20,6 +20,8 @@
 #include <SharedUtil.h>
 #include <NumericalConstants.h>
 
+#include "Config.h"
+
 // The GLEscrow class provides a simple mechanism for producer GL contexts to provide
 // content to a consumer where the consumer is assumed to be connected to a display and
 // therefore must never be blocked.

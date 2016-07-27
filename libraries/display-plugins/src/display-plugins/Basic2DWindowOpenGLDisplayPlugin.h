@@ -24,7 +24,7 @@ public:
 
     virtual bool internalActivate() override;
 
-    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
+    void submitFrame(const gpu::FramePointer& newFrame) override;
 
     virtual void internalPresent() override;
 

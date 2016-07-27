@@ -67,7 +67,9 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     // Execute the batch into our framebuffer
     doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "ApplicationOverlayRender");
         renderArgs->_batch = &batch;
+        batch.enableStereo(false);
 
         int width = _overlayFramebuffer->getWidth();
         int height = _overlayFramebuffer->getHeight();
@@ -246,10 +248,6 @@ static const auto COLOR_FORMAT = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA)
 static const auto DEFAULT_SAMPLER = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
 static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
 
-std::mutex _textureGuard;
-using Lock = std::unique_lock<std::mutex>;
-std::queue<gpu::TexturePointer> _availableTextures;
-
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
@@ -266,42 +264,15 @@ void ApplicationOverlay::buildFramebufferObject() {
     }
 
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
-        gpu::TexturePointer newColorAttachment;
-        {
-            Lock lock(_textureGuard);
-            if (!_availableTextures.empty()) {
-                newColorAttachment = _availableTextures.front();
-                _availableTextures.pop();
-            }
-        }
-        if (newColorAttachment) {
-            newColorAttachment->resize2D(width, height, newColorAttachment->getNumSamples());
-            _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
-        }
-    }
-
-    // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
-    if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
         _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
     }
 }
 
-gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
+gpu::TexturePointer ApplicationOverlay::getOverlayTexture() {
     if (!_overlayFramebuffer) {
         return gpu::TexturePointer();
     }
-    auto result = _overlayFramebuffer->getRenderBuffer(0);
-    _overlayFramebuffer->setRenderBuffer(0, gpu::TexturePointer());
-    return result;
-}
-
-void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
-    if (texture) {
-        Lock lock(_textureGuard);
-        _availableTextures.push(texture);
-    } else {
-        qWarning() << "Attempted to release null texture";
-    }
+    return _overlayFramebuffer->getRenderBuffer(0);
 }

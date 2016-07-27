@@ -11,12 +11,23 @@
 #ifdef _WIN32
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
+#include <QtCore/QCoreApplication>
+#include <QtCore/QThread>
+
+extern bool isRenderThread();
 
 ProfileRange::ProfileRange(const char *name) {
+    if (!isRenderThread()) {
+        return;
+    }
+
     nvtxRangePush(name);
 }
 
 ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payload) {
+    if (!isRenderThread()) {
+        return;
+    }
 
     nvtxEventAttributes_t eventAttrib = {0};
     eventAttrib.version = NVTX_VERSION;
@@ -32,6 +43,9 @@ ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payloa
 }
 
 ProfileRange::~ProfileRange() {
+    if (!isRenderThread()) {
+        return;
+    }
     nvtxRangePop();
 }
 

@@ -880,11 +880,3 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
-std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
-
-uint32 Texture::getHardwareId() const {
-    if (TEXTURE_ID_RESOLVER) {
-        return TEXTURE_ID_RESOLVER(*this);
-    }
-    return 0;
-}

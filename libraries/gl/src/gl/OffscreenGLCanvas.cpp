@@ -18,6 +18,7 @@
 #include <QtGui/QOpenGLContext>
 
 #include "GLHelpers.h"
+#include "QOpenGLDebugLoggerWrapper.h"
 
 #ifdef DEBUG
 static bool enableDebugLogger = true;
@@ -80,7 +81,7 @@ bool OffscreenGLCanvas::makeCurrent() {
         _logger = new QOpenGLDebugLogger(this);
         if (_logger->initialize()) {
             connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-                qDebug() << message;
+                OpenGLDebug::log(message);
             });
             _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
             _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);

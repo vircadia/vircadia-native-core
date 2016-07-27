@@ -25,11 +25,69 @@
 
 namespace gpu {
 
+// Sysmem is the underneath cache for the data in ram of a resource.
+class Sysmem {
+public:
+    static const Size NOT_ALLOCATED = (Size)-1;
+
+    Sysmem();
+    Sysmem(Size size, const Byte* bytes);
+    Sysmem(const Sysmem& sysmem); // deep copy of the sysmem buffer
+    Sysmem& operator=(const Sysmem& sysmem); // deep copy of the sysmem buffer
+    ~Sysmem();
+
+    Size getSize() const { return _size; }
+
+    // Allocate the byte array
+    // \param pSize The nb of bytes to allocate, if already exist, content is lost.
+    // \return The nb of bytes allocated, nothing if allready the appropriate size.
+    Size allocate(Size pSize);
+
+    // Resize the byte array
+    // Keep previous data [0 to min(pSize, mSize)]
+    Size resize(Size pSize);
+
+    // Assign data bytes and size (allocate for size, then copy bytes if exists)
+    Size setData(Size size, const Byte* bytes);
+
+    // Update Sub data, 
+    // doesn't allocate and only copy size * bytes at the offset location
+    // only if all fits in the existing allocated buffer
+    Size setSubData(Size offset, Size size, const Byte* bytes);
+
+    // Append new data at the end of the current buffer
+    // do a resize( size + getSIze) and copy the new data
+    // \return the number of bytes copied
+    Size append(Size size, const Byte* data);
+
+    // Access the byte array.
+    // The edit version allow to map data.
+    const Byte* readData() const { return _data; }
+    Byte* editData() { return _data; }
+
+    template< typename T > const T* read() const { return reinterpret_cast< T* > (_data); }
+    template< typename T > T* edit() { return reinterpret_cast< T* > (_data); }
+
+    // Access the current version of the sysmem, used to compare if copies are in sync
+    Stamp getStamp() const { return _stamp; }
+
+    static Size allocateMemory(Byte** memAllocated, Size size);
+    static void deallocateMemory(Byte* memDeallocated, Size size);
+
+    bool isAvailable() const { return (_data != 0); }
+
+    using Operator = std::function<void(Sysmem& sysmem)>;
+private:
+    Stamp _stamp{ 0 };
+    Size  _size{ 0 };
+    Byte* _data{ nullptr };
+}; // Sysmem
+
 class Resource {
 public:
     typedef size_t Size;
 
-    static const Size NOT_ALLOCATED = (Size)-1;
+    static const Size NOT_ALLOCATED = Sysmem::NOT_ALLOCATED;
 
     // The size in bytes of data stored in the resource
     virtual Size getSize() const = 0;
@@ -47,67 +105,156 @@ public:
     };
 
 protected:
+    using Sysmem = gpu::Sysmem;
 
     Resource() {}
     virtual ~Resource() {}
 
-    // Sysmem is the underneath cache for the data in ram of a resource.
-    class Sysmem {
-    public:
+}; // Resource
 
-        Sysmem();
-        Sysmem(Size size, const Byte* bytes);
-        Sysmem(const Sysmem& sysmem); // deep copy of the sysmem buffer
-        Sysmem& operator=(const Sysmem& sysmem); // deep copy of the sysmem buffer
-        ~Sysmem();
 
-        Size getSize() const { return _size; }
+struct PageManager {
+    static const Size DEFAULT_PAGE_SIZE = 4096;
 
-        // Allocate the byte array
-        // \param pSize The nb of bytes to allocate, if already exist, content is lost.
-        // \return The nb of bytes allocated, nothing if allready the appropriate size.
-        Size allocate(Size pSize);
-
-        // Resize the byte array
-        // Keep previous data [0 to min(pSize, mSize)]
-        Size resize(Size pSize);
-
-        // Assign data bytes and size (allocate for size, then copy bytes if exists)
-        Size setData(Size size, const Byte* bytes );
-
-        // Update Sub data, 
-        // doesn't allocate and only copy size * bytes at the offset location
-        // only if all fits in the existing allocated buffer
-        Size setSubData(Size offset, Size size, const Byte* bytes);
-
-        // Append new data at the end of the current buffer
-        // do a resize( size + getSIze) and copy the new data
-        // \return the number of bytes copied
-        Size append(Size size, const Byte* data);
-
-        // Access the byte array.
-        // The edit version allow to map data.
-        const Byte* readData() const { return _data; } 
-        Byte* editData() { return _data; }
-
-        template< typename T > const T* read() const { return reinterpret_cast< T* > ( _data ); } 
-        template< typename T > T* edit() { return reinterpret_cast< T* > ( _data ); } 
-
-        // Access the current version of the sysmem, used to compare if copies are in sync
-        Stamp getStamp() const { return _stamp; }
-
-        static Size allocateMemory(Byte** memAllocated, Size size);
-        static void deallocateMemory(Byte* memDeallocated, Size size);
-
-        bool isAvailable() const { return (_data != 0); }
-
-    private:
-        Stamp _stamp { 0 };
-        Size  _size { 0 };
-        Byte* _data { nullptr };
+    enum Flag {
+        DIRTY = 0x01,
     };
 
+    PageManager(Size pageSize = DEFAULT_PAGE_SIZE) : _pageSize(pageSize) {}
+    PageManager& operator=(const PageManager& other) {
+        assert(other._pageSize == _pageSize);
+        _pages = other._pages;
+        _flags = other._flags;
+        return *this;
+    }
+
+    using Vector = std::vector<uint8_t>;
+    using Pages = std::vector<Size>;
+    Vector _pages;
+
+    uint8 _flags{ 0 };
+    const Size _pageSize;
+
+    operator bool const() {
+        return (*this)(DIRTY);
+    }
+
+    bool operator()(uint8 desiredFlags) const {
+        return (desiredFlags == (_flags & desiredFlags));
+    }
+
+    void markPage(Size index, uint8 markFlags = DIRTY) {
+        assert(_pages.size() > index);
+        _pages[index] |= markFlags;
+        _flags |= markFlags;
+    }
+
+    void markRegion(Size offset, Size bytes, uint8 markFlags = DIRTY) {
+        if (!bytes) {
+            return;
+        }
+        _flags |= markFlags;
+        // Find the starting page
+        Size startPage = (offset / _pageSize);
+        // Non-zero byte count, so at least one page is dirty
+        Size pageCount = 1;
+        // How much of the page is after the offset?
+        Size remainder = _pageSize - (offset % _pageSize);
+        //  If there are more bytes than page space remaining, we need to increase the page count
+        if (bytes > remainder) {
+            // Get rid of the amount that will fit in the current page
+            bytes -= remainder;
+
+            pageCount += (bytes / _pageSize);
+            if (bytes % _pageSize) {
+                ++pageCount;
+            }
+        }
+
+        // Mark the pages dirty
+        for (Size i = 0; i < pageCount; ++i) {
+            _pages[i + startPage] |= DIRTY;
+        }
+    }
+
+    Size getPageCount(uint8_t desiredFlags = DIRTY) const {
+        Size result = 0;
+        for (auto pageFlags : _pages) {
+            if (desiredFlags == (pageFlags & desiredFlags)) {
+                ++result;
+            }
+        }
+        return result;
+    }
+
+    Size getSize(uint8_t desiredFlags = DIRTY) const {
+        return getPageCount(desiredFlags) * _pageSize;
+    }
+
+    void setPageCount(Size count) {
+        _pages.resize(count);
+    }
+
+    Size getRequiredPageCount(Size size) const {
+        Size result = size / _pageSize;
+        if (size % _pageSize) {
+            ++result;
+        }
+        return result;
+    }
+
+    Size getRequiredSize(Size size) const {
+        return getRequiredPageCount(size) * _pageSize;
+    }
+
+    Size accommodate(Size size) {
+        Size newPageCount = getRequiredPageCount(size);
+        Size newSize = newPageCount * _pageSize;
+        _pages.resize(newPageCount, 0);
+        return newSize;
+    }
+
+    // Get pages with the specified flags, optionally clearing the flags as we go
+    Pages getMarkedPages(uint8_t desiredFlags = DIRTY, bool clear = true) {
+        Pages result;
+        if (desiredFlags == (_flags & desiredFlags)) {
+            _flags &= ~desiredFlags;
+            result.reserve(_pages.size());
+            for (Size i = 0; i < _pages.size(); ++i) {
+                if (desiredFlags == (_pages[i] & desiredFlags)) {
+                    result.push_back(i);
+                    if (clear) {
+                        _pages[i] &= ~desiredFlags;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    bool getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage) {
+        Size pageCount = _pages.size();
+        // Advance to the first dirty page
+        while (currentPage < pageCount && (0 == (DIRTY & _pages[currentPage]))) {
+            ++currentPage;
+        }
+
+        // If we got to the end, we're done
+        if (currentPage >= pageCount) {
+            return false;
+        }
+
+        // Advance to the next clean page
+        outOffset = static_cast<Size>(currentPage * _pageSize);
+        while (currentPage < pageCount && (0 != (DIRTY & _pages[currentPage]))) {
+            _pages[currentPage] &= ~DIRTY;
+            ++currentPage;
+        }
+        outSize = static_cast<Size>((currentPage * _pageSize) - outOffset);
+        return true;
+    }
 };
+
 
 class Buffer : public Resource {
     static std::atomic<uint32_t> _bufferCPUCount;
@@ -115,20 +262,21 @@ class Buffer : public Resource {
     static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
-    enum Flag {
-        DIRTY = 0x01,
+    using Flag = PageManager::Flag;
+    struct Update {
+        Size size;
+        PageManager pages;
+        Sysmem::Operator updateOperator;
     };
 
     // Currently only one flag... 'dirty'
-    using PageFlags = std::vector<uint8_t>;
-    static const Size DEFAULT_PAGE_SIZE = 4096;
     static uint32_t getBufferCPUCount();
     static Size getBufferCPUMemoryUsage();
     static uint32_t getBufferGPUCount();
     static Size getBufferGPUMemoryUsage();
 
-    Buffer(Size pageSize = DEFAULT_PAGE_SIZE);
-    Buffer(Size size, const Byte* bytes, Size pageSize = DEFAULT_PAGE_SIZE);
+    Buffer(Size pageSize = PageManager::DEFAULT_PAGE_SIZE);
+    Buffer(Size size, const Byte* bytes, Size pageSize = PageManager::DEFAULT_PAGE_SIZE);
     Buffer(const Buffer& buf); // deep copy of the sysmem buffer
     Buffer& operator=(const Buffer& buf); // deep copy of the sysmem buffer
     ~Buffer();
@@ -184,34 +332,24 @@ public:
         return append(sizeof(T) * t.size(), reinterpret_cast<const Byte*>(&t[0]));
     }
 
-    bool getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage) const {
-        Size pageCount = _pages.size();
-        // Advance to the first dirty page
-        while (currentPage < pageCount && (0 == (Buffer::DIRTY & _pages[currentPage]))) {
-            ++currentPage;
-        }
-
-        // If we got to the end, we're done
-        if (currentPage >= pageCount) {
-            return false;
-        }
-
-        // Advance to the next clean page
-        outOffset = static_cast<Size>(currentPage * _pageSize);
-        while (currentPage < pageCount && (0 != (Buffer::DIRTY & _pages[currentPage]))) {
-            _pages[currentPage] &= ~Buffer::DIRTY;
-            ++currentPage;
-        }
-        outSize = static_cast<Size>((currentPage * _pageSize) - outOffset);
-        return true;
-    }
 
     const GPUObjectPointer gpuObject {};
     
     // Access the sysmem object, limited to ourselves and GPUObject derived classes
     const Sysmem& getSysmem() const { return _sysmem; }
-    // FIXME find a better access mechanism for clearing this
-    mutable uint8_t _flags;
+    
+    bool isDirty() const {
+        return _pages(PageManager::DIRTY);
+    }
+
+    void applyUpdate(const Update& update);
+
+    // Main thread operation to say that the buffer is ready to be used as a frame
+    Update getUpdate() const;
+
+    mutable PageManager _renderPages;
+    Sysmem _renderSysmem;
+
 protected:
     void markDirty(Size offset, Size bytes);
 
@@ -223,16 +361,15 @@ protected:
     Sysmem& editSysmem() { return _sysmem; }
     Byte* editData() { return editSysmem().editData(); }
 
-    Size getRequiredPageCount() const;
-
-    Size _end { 0 };
-    mutable PageFlags _pages;
-    const Size _pageSize;
+    mutable PageManager _pages;
+    Size _end{ 0 };
     Sysmem _sysmem;
+
 
     // FIXME find a more generic way to do this.
     friend class gl::GLBuffer;
     friend class BufferView;
+    friend class Frame;
 };
 
 typedef std::shared_ptr<Buffer> BufferPointer;
