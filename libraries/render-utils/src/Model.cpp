@@ -37,9 +37,9 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
 const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<model::MaterialPointer> _collisionHullMaterials;
+std::vector<model::MaterialPointer> _collisionMaterials;
 
-void initCollisionHullMaterials() {
+void initCollisionMaterials() {
     // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
     // (no browns, greys, or dark shades)
     float component[NUM_COLLISION_HULL_COLORS] = {
@@ -50,7 +50,7 @@ void initCollisionHullMaterials() {
         1.0f, 1.0f, 1.0f, 1.0f,
         0.8f, 0.6f, 0.4f, 0.2f
     };
-    _collisionHullMaterials.reserve(NUM_COLLISION_HULL_COLORS);
+    _collisionMaterials.reserve(NUM_COLLISION_HULL_COLORS);
 
     // each component gets the same cuve
     // but offset by a multiple of one third the full width
@@ -72,7 +72,7 @@ void initCollisionHullMaterials() {
             material->setAlbedo(glm::vec3(red, green, blue));
             material->setMetallic(0.02f);
             material->setRoughness(0.5f);
-            _collisionHullMaterials.push_back(material);
+            _collisionMaterials.push_back(material);
         }
     }
 }
@@ -121,15 +121,15 @@ Model::~Model() {
 AbstractViewStateInterface* Model::_viewState = NULL;
 
 void Model::setShowCollisionMesh(bool value) {
-    if (_showCollisionHull != value) {
-        _showCollisionHull = value;
+    if (_showCollisionGeometry != value) {
+        _showCollisionGeometry = value;
         _needsFixupInScene = true;
     }
 }
 
 bool Model::needsFixupInScene() const {
     if ((_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded()) {
-        if (_showCollisionHull && _collisionGeometry) {
+        if (_showCollisionGeometry && _collisionGeometry) {
             return true;
         }
         if (!_meshStates.isEmpty() || (_renderGeometry && _renderGeometry->getMeshes().empty())) {
@@ -614,13 +614,13 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = (_showCollisionHull && _collisionGeometry) || isLoaded();
+    bool readyToRender = (_showCollisionGeometry && _collisionGeometry) || isLoaded();
     if (!_addedToScene && readyToRender) {
         createRenderItemSet();
     }
 
     bool somethingAdded = false;
-    if (_showCollisionHull && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItems.empty()) {
             foreach (auto renderItem, _collisionRenderItemsSet) {
                 auto item = scene->allocateID();
@@ -1258,7 +1258,7 @@ AABox Model::getRenderableMeshBound() const {
 }
 
 void Model::createRenderItemSet() {
-    if (_showCollisionHull && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItemsSet.empty()) {
             createCollisionRenderItemSet();
         }
@@ -1312,8 +1312,8 @@ void Model::createVisibleRenderItemSet() {
 
 void Model::createCollisionRenderItemSet() {
     assert((bool)_collisionGeometry);
-    if (_collisionHullMaterials.empty()) {
-        initCollisionHullMaterials();
+    if (_collisionMaterials.empty()) {
+        initCollisionMaterials();
     }
 
     const auto& meshes = _collisionGeometry->getMeshes();
@@ -1344,7 +1344,7 @@ void Model::createCollisionRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            model::MaterialPointer& material = _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
+            model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
             _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, material, transform, offset);
         }
     }
@@ -1365,7 +1365,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
     render::PendingChanges pendingChanges;
 
     bool addedPendingChanges = false;
-    if (_showCollisionHull && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -1410,7 +1410,7 @@ void Model::setCollisionMesh(model::MeshPointer mesh) {
     _collisionWatcher.stopWatching();
     _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
 
-    if (_showCollisionHull) {
+    if (_showCollisionGeometry) {
         _needsFixupInScene = true;
         // TODO: need to trigger:
         // (a) reconstruction of RenderItems
