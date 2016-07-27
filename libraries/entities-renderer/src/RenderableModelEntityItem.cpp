@@ -436,9 +436,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
             // update whether the model should be showing collision mesh
             // (this may flag for fixupInScene)
-            bool shouldShowCollisionHull = getShapeType() != SHAPE_TYPE_STATIC_MESH &&
+            bool shouldShowCollisionMesh = getShapeType() != SHAPE_TYPE_STATIC_MESH &&
                 (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
-            _model->setShowCollisionMesh(shouldShowCollisionHull);
+            _model->setShowCollisionMesh(shouldShowCollisionMesh);
 
             if (_model->needsFixupInScene()) {
                 render::PendingChanges pendingChanges;
