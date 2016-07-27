@@ -404,6 +404,7 @@ protected:
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
     bool _showCollisionGeometry { false };
+    bool _readyToShowCollisionGeometry { false };
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;

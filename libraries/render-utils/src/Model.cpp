@@ -121,15 +121,17 @@ Model::~Model() {
 AbstractViewStateInterface* Model::_viewState = NULL;
 
 void Model::setShowCollisionMesh(bool value) {
-    if (_showCollisionGeometry != value) {
-        _showCollisionGeometry = value;
-        _needsFixupInScene = true;
+    if (_readyToShowCollisionGeometry) {
+        if (_showCollisionGeometry != value) {
+            _showCollisionGeometry = value;
+            _needsFixupInScene = true;
+        }
     }
 }
 
 bool Model::needsFixupInScene() const {
     if ((_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded()) {
-        if (_showCollisionGeometry && _collisionGeometry) {
+        if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
             return true;
         }
         if (!_meshStates.isEmpty() || (_renderGeometry && _renderGeometry->getMeshes().empty())) {
@@ -241,8 +243,6 @@ void Model::updateRenderItems() {
 
         // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
-        // adebug FIXME: recover correct behavior for collisionURL shapes
-        //collisionMeshOffset.postTranslate(self->_offset);
         collisionMeshOffset.setIdentity();
         foreach (auto itemID, self->_collisionRenderItems.keys()) {
             pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
@@ -614,13 +614,13 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = (_showCollisionGeometry && _collisionGeometry) || isLoaded();
+    bool readyToRender = (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) || isLoaded();
     if (!_addedToScene && readyToRender) {
         createRenderItemSet();
     }
 
     bool somethingAdded = false;
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItems.empty()) {
             foreach (auto renderItem, _collisionRenderItemsSet) {
                 auto item = scene->allocateID();
@@ -1258,7 +1258,7 @@ AABox Model::getRenderableMeshBound() const {
 }
 
 void Model::createRenderItemSet() {
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItemsSet.empty()) {
             createCollisionRenderItemSet();
         }
@@ -1321,18 +1321,6 @@ void Model::createCollisionRenderItemSet() {
     // We should not have any existing renderItems if we enter this section of code
     Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
-    Transform transform;
-    transform.setIdentity();
-    // adebug FIXME: recover correct behavior for collisionURL
-    //transform.setTranslation(_translation);
-    //transform.setRotation(_rotation);
-
-    Transform offset;
-    // adebug FIXME: recover correct behavior for collisionURL
-    offset.setIdentity();
-    //offset.setScale(_scale);
-    //offset.postTranslate(_offset);
-
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     uint32_t numMeshes = (uint32_t)meshes.size();
     for (uint32_t i = 0; i < numMeshes; i++) {
@@ -1345,7 +1333,7 @@ void Model::createCollisionRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
-            _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, material, transform, offset);
+            _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, material);
         }
     }
 }
@@ -1365,7 +1353,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
     render::PendingChanges pendingChanges;
 
     bool addedPendingChanges = false;
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -1387,7 +1375,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         scene->enqueuePendingChanges(pendingChanges);
         // NOTE: updateRender items enqueues identical pendingChanges (using a lambda)
         // so it looks like we're doing double work here, but I don't want to remove the call
-        // for fear there is some sideeffect we'll miss. -- Andrew 2016.07.21
+        // for fear there is some side effect we'll miss. -- Andrew 2016.07.21
         // TODO: figure out if we really need this call to updateRenderItems() or not.
         updateRenderItems();
     }
@@ -1410,11 +1398,15 @@ void Model::setCollisionMesh(model::MeshPointer mesh) {
     _collisionWatcher.stopWatching();
     _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
 
+    // HACK: we don't want to show the _collisionGeometry until we're ready (e.g. it has been created)
+    // hence we track whether it has been created using _readyToShowCollisionGeoemtry, because there
+    // is an ambiguous case where _collisionGeometry is valid (from CompoundURL) but has not yet been
+    // properly computed (zeroed offset transform) using the CollisionRenderMeshCache.
+    //
+    // TODO: At the moment we create the collision mesh for every model that has a collision shape
+    // as soon as we know the shape, but we SHOULD only ever create the render mesh when we need it.
     if (_showCollisionGeometry) {
         _needsFixupInScene = true;
-        // TODO: need to trigger:
-        // (a) reconstruction of RenderItems
-        // (b) and reinsertion into scene if we are showing collision geometry
     }
 }
 

@@ -46,11 +46,9 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
-
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
-    updateTransform(transform, offsetTransform);
 }
 
 void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
