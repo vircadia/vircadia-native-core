@@ -20,9 +20,19 @@ class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    Q_PROPERTY(bool canKick READ getCanKick)
+
+public:
+    UsersScriptingInterface();
+
 public slots:
     void ignore(const QUuid& nodeID);
     void kick(const QUuid& nodeID);
+
+    bool getCanKick();
+
+signals:
+    void canKickChanged(bool canKick);
 };
 
 

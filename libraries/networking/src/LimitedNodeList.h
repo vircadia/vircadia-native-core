@@ -259,6 +259,7 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRezTmp);
     void canWriteAssetsChanged(bool canWriteAssets);
+    void canKickChanged(bool canKick);
 
 protected slots:
     void connectedForLocalSocketTest();
