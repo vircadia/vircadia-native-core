@@ -12,15 +12,24 @@
 // grab the toolbar
 var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
+function buttonImageURL() {
+    return Script.resolvePath("assets/images/tools/" + (Users.canKick ? 'kick.svg' : 'ignore.svg'));
+}
+
 // setup the ignore button and add it to the toolbar
 var button = toolbar.addButton({
     objectName: 'ignore',
-    imageURL: Script.resolvePath("assets/images/tools/ignore.svg"),
+    imageURL: buttonImageURL(),
     visible: true,
     buttonState: 1,
     defaultState: 2,
     hoverState: 3,
     alpha: 0.9
+});
+
+// if this user's kick permissions change, change the state of the button in the HUD
+Users.canKickChanged.connect(function(canKick){
+    button.writeProperty('imageURL', buttonImageURL());
 });
 
 var isShowingOverlays = false;
@@ -53,6 +62,10 @@ function buttonClicked(){
 }
 
 button.clicked.connect(buttonClicked);
+
+function overlayURL() {
+    return Script.resolvePath("assets/images/" + (Users.canKick ? "kick-target.svg" : "ignore-target.svg"));
+}
 
 function updateOverlays() {
     if (isShowingOverlays) {
@@ -88,7 +101,7 @@ function updateOverlays() {
             } else {
                 // add the overlay above this avatar
                 var newOverlay = Overlays.addOverlay("image3d", {
-                    url: Script.resolvePath("assets/images/ignore-target-01.svg"),
+                    url: overlayURL(),
                     position: overlayPosition,
                     size: 0.4,
                     scale: 0.4,
@@ -130,7 +143,11 @@ function handleSelectedOverlay(clickedOverlay) {
 
         if (clickedOverlay.overlayID == ignoreOverlay) {
             // matched to an overlay, ask for the matching avatar to be ignored
-            Users.ignore(avatarID);
+            if (Users.canKick) {
+                Users.kick(avatarID);
+            } else {
+                Users.ignore(avatarID);
+            }
 
             // cleanup of the overlay is handled by the connection to avatarRemovedEvent
         }
