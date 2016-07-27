@@ -322,7 +322,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QString verifiedUsername;
     if (!username.isEmpty() && verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they sent us a username and the signature verifies it
-        userPerms.setVerifiedUserName(username);
         verifiedUsername = username;
         getGroupMemberships(username);
     } else if (!username.isEmpty()) {
