@@ -7,10 +7,13 @@ var Settings = {
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
+  DATA_CATEGORY_CLASS: 'value-category',
   ADD_ROW_BUTTON_CLASS: 'add-row',
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   DEL_ROW_BUTTON_CLASS: 'del-row',
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  DEL_CATEGORY_BUTTON_CLASS: 'del-category',
+  DEL_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-remove del-category',
   MOVE_UP_BUTTON_CLASS: 'move-up',
   MOVE_UP_SPAN_CLASSES: 'glyphicon glyphicon-chevron-up move-up',
   MOVE_DOWN_BUTTON_CLASS: 'move-down',
@@ -164,19 +167,23 @@ $(document).ready(function(){
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
-    addTableRow(this);
+    addTableRow($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
-    deleteTableRow(this);
+    deleteTableRow($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_CATEGORY_BUTTON_CLASS, function(){
+    deleteTableCategory($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
-    moveTableRow(this, true);
+    moveTableRow($(this).closest('tr'), true);
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
-    moveTableRow(this, false);
+    moveTableRow($(this).closest('tr'), false);
   });
 
   $('#' + Settings.FORM_ID).on('keyup', function(e){
@@ -924,7 +931,6 @@ $('body').on('click', '.save-button', function(e){
 
 function makeTable(setting, keypath, setting_value, isLocked) {
   var isArray = !_.has(setting, 'key');
-  var isHash = !isArray;
 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
@@ -974,25 +980,60 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
   }
 
+  var numVisibleColumns = 0;
   _.each(setting.columns, function(col) {
+    if (!col.hidden) numVisibleColumns++;
     html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='data " +
       (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
   if (!isLocked && !setting.read_only) {
     if (setting.can_order) {
+      numVisibleColumns++;
       html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
               "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
-    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    numVisibleColumns++;
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>";
   }
 
   // populate rows in the table from existing values
   var row_num = 1;
 
   if (keypath.length > 0 && _.size(setting_value) > 0) {
+    var rowIsObject = setting.columns.length > 1;
+
     _.each(setting_value, function(row, rowIndexOrName) {
-      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
+      var categoryKey = setting.categorize_by_key;
+      var isCategorized = !!categoryKey;
+      var categoryData = "";
+      if (isCategorized && isArray) {
+        var predicate = {};
+        var categoryValue = row[categoryKey];
+        predicate[categoryKey] = categoryValue;
+        categoryValue = rowIsObject ? row[categoryKey] : row;
+        categoryData = "data-category='" + categoryValue + "'";
+
+        if (_.findIndex(setting_value, predicate) === rowIndexOrName) {
+          html +=
+            "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' " + categoryData + ">" +
+              "<td colspan='" + (numVisibleColumns - 1) + "'>" +
+                categoryValue +
+              "</td>" +
+              ((setting.can_add_new_categories) ? (
+                "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+                  "<a href='javascript:void(0);' class='" + Settings.DEL_CATEGORY_SPAN_CLASSES + "'></a>" +
+                "</td>"
+              ) : (
+                "<td></td>"
+              )) +
+            "</tr>";
+        }
+      }
+
+      html +=
+        "<tr class='" + Settings.DATA_ROW_CLASS + "' " + categoryData + " " +
+             (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
@@ -1006,8 +1047,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
       _.each(setting.columns, function(col) {
 
+        var colValue, colName;
         if (isArray) {
-          rowIsObject = setting.columns.length > 1;
           colValue = rowIsObject ? row[col.name] : row;
           colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
         } else {
@@ -1019,18 +1060,25 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           || (nonDeletableRowKey === col.name && nonDeletableRowValues.indexOf(colValue) !== -1);
 
         if (isArray && col.type === "checkbox" && col.editable) {
-          html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='checkbox' class='form-control table-checkbox' "
-                  + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='checkbox' class='form-control table-checkbox' " +
+                     "name='" + colName + "'" + (colValue ? " checked" : "") + "/>" +
+            "</td>";
         } else if (isArray && col.type === "time" && col.editable) {
-          html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='time' class='form-control table-time' "
-                  + "name='" + colName + "' value='" + (colValue || col.default || "00:00") + "' /></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='time' class='form-control table-time' name='" + colName + "' " +
+                     "value='" + (colValue || col.default || "00:00") + "'/>" +
+            "</td>";
         } else {
           // Use a hidden input so that the values are posted.
-          html += "<td " + (col.hidden ? "style='display: none;'" : "") + "class='" + Settings.DATA_COL_CLASS +
-            "' name='" + colName + "'>" + colValue + "<input type='hidden' name='" + colName +
-            "' value='" + colValue + "'/></td>";
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "' " + (col.hidden ? "style='display: none;'" : "") +
+                "name='" + colName + "'>" +
+              colValue +
+              "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>" +
+            "</td>";
         }
 
       })
@@ -1138,9 +1186,7 @@ function badgeSidebarForDifferences(changedElement) {
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
 }
 
-function addTableRow(add_glyphicon) {
-  var row = $(add_glyphicon).closest('tr')
-
+function addTableRow(row) {
   var table = row.parents('table')
   var isArray = table.data('setting-type') === 'array'
 
@@ -1279,9 +1325,7 @@ function addTableRow(add_glyphicon) {
   row.parent().append(input_clone)
 }
 
-function deleteTableRow(delete_glyphicon) {
-  var row = $(delete_glyphicon).closest('tr')
-
+function deleteTableRow(row) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
 
@@ -1298,12 +1342,13 @@ function deleteTableRow(delete_glyphicon) {
       row.remove()
     } else {
       // this is the last row, we can't remove it completely since we need to post an empty array
-
-      row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
-      row.addClass('empty-array-row')
-
-      row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '')
-        + "' data-changed='true' value=''>");
+      row
+        .removeClass(Settings.DATA_ROW_CLASS)
+        .removeClass(Settings.NEW_ROW_CLASS)
+        .removeAttr("data-category")
+        .addClass('empty-array-row')
+        .html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') + "' " +
+              "data-changed='true' value=''>");
     }
   }
 
@@ -1311,9 +1356,18 @@ function deleteTableRow(delete_glyphicon) {
   badgeSidebarForDifferences($(table))
 }
 
-function moveTableRow(move_glyphicon, move_up) {
-  var row = $(move_glyphicon).closest('tr')
+function deleteTableCategory(categoryHeaderRow) {
+  var categoryName = categoryHeaderRow.data("category");
 
+  categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .each(function () {
+      deleteTableRow($(this));
+    });
+}
+
+function moveTableRow(row, move_up) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
   if (!isArray) {

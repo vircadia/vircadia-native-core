@@ -20,7 +20,9 @@ body {
   top: 40px;
 }
 
-.table .value-row td, .table .inputs td {
+.table .value-row td,
+.table .value-category td,
+.table .inputs td {
     vertical-align: middle;
 }
 
