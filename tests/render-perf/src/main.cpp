@@ -403,7 +403,12 @@ private:
             renderArgs._blitFramebuffer = finalFramebuffer;
         }
 
+        _gpuContext->beginFrame(renderArgs._blitFramebuffer);
+        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
+            batch.resetStages();
+        });
         render(&renderArgs);
+        _gpuContext->endFrame();
         GLuint glTex;
         {
             auto gpuTex = renderArgs._blitFramebuffer->getRenderBuffer(0);
@@ -428,9 +433,6 @@ private:
         _offscreenContext->makeCurrent();
         framebufferCache->releaseFramebuffer(renderArgs._blitFramebuffer);
         renderArgs._blitFramebuffer.reset();
-        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
-            batch.resetStages();
-        });
         _fpsCounter.increment();
         static size_t _frameCount { 0 };
         ++_frameCount;
