@@ -77,61 +77,16 @@ NodePermissions& NodePermissions::operator|=(const NodePermissions& rhs) {
     permissions |= rhs.permissions;
     return *this;
 }
-NodePermissions& NodePermissions::operator|=(const NodePermissionsPointer& rhs) {
-    if (rhs) {
-        *this |= *rhs.get();
-    }
-    return *this;
-}
-NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs) {
-    if (lhs && rhs) {
-        *lhs.get() |= rhs;
-    }
-    return lhs;
-}
-NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs) {
-    if (lhs) {
-        lhs.get()->permissions |= rhs;
-    }
-    return lhs;
-}
 
 NodePermissions& NodePermissions::operator&=(const NodePermissions& rhs) {
     permissions &= rhs.permissions;
     return *this;
-}
-NodePermissions& NodePermissions::operator&=(const NodePermissionsPointer& rhs) {
-    if (rhs) {
-        *this &= *rhs.get();
-    }
-    return *this;
-}
-NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs) {
-    if (lhs && rhs) {
-        *lhs.get() &= rhs;
-    }
-    return lhs;
-}
-NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs) {
-    if (lhs) {
-        lhs.get()->permissions &= rhs;
-    }
-    return lhs;
 }
 
 NodePermissions NodePermissions::operator~() {
     NodePermissions result = *this;
     result.permissions = ~permissions;
     return result;
-}
-
-NodePermissionsPointer operator~(NodePermissionsPointer& lhs) {
-    if (lhs) {
-        NodePermissionsPointer result { new NodePermissions };
-        (*result.get()) = ~(*lhs.get());
-        return result;
-    }
-    return lhs;
 }
 
 QDataStream& operator<<(QDataStream& out, const NodePermissions& perms) {

@@ -346,7 +346,7 @@ void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap&
             continue;
         }
         permissionsRows[nameKey]->setAll(false);
-        permissionsRows[nameKey] |= perms;
+        *(permissionsRows[nameKey]) |= *perms;
     }
 }
 
@@ -480,7 +480,7 @@ void DomainServerSettingsManager::unpackPermissions() {
         foundFriends |= (idKey == NodePermissions::standardNameFriends);
         if (_standardAgentPermissions.contains(idKey)) {
             qDebug() << "duplicate name in standard permissions table: " << id;
-            _standardAgentPermissions[idKey] |= perms;
+            *(_standardAgentPermissions[idKey]) |= *perms;
             needPack = true;
         } else {
             _standardAgentPermissions[idKey] = perms;
@@ -494,7 +494,7 @@ void DomainServerSettingsManager::unpackPermissions() {
         NodePermissionsKey idKey = NodePermissionsKey(id, 0);
         if (_agentPermissions.contains(idKey)) {
             qDebug() << "duplicate name in permissions table: " << id;
-            _agentPermissions[idKey] |= perms;
+            *(_agentPermissions[idKey]) |= *perms;
             needPack = true;
         } else {
             _agentPermissions[idKey] = perms;
@@ -508,10 +508,10 @@ void DomainServerSettingsManager::unpackPermissions() {
         NodePermissionsKey idKey = perms->getKey();
         if (_groupPermissions.contains(idKey)) {
             qDebug() << "duplicate name in group permissions table: " << id;
-            _groupPermissions[idKey] |= perms;
+            *(_groupPermissions[idKey]) |= *perms;
             needPack = true;
         } else {
-            _groupPermissions[idKey] = perms;
+            *(_groupPermissions[idKey]) = *perms;
         }
         if (perms->isGroup()) {
             // the group-id was cached.  hook-up the uuid in the uuid->group hash
@@ -527,7 +527,7 @@ void DomainServerSettingsManager::unpackPermissions() {
         NodePermissionsKey idKey = perms->getKey();
         if (_groupForbiddens.contains(idKey)) {
             qDebug() << "duplicate name in group forbiddens table: " << id;
-            _groupForbiddens[idKey] |= perms;
+            *(_groupForbiddens[idKey]) |= *perms;
             needPack = true;
         } else {
             _groupForbiddens[idKey] = perms;
@@ -1367,7 +1367,7 @@ void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& re
             QHash<QUuid, bool> idsFromThisUpdate;
 
             for (int rankIndex = 0; rankIndex < ranks.size(); rankIndex++) {
-                QJsonObject rank = ranks.at(rankIndex).toObject();
+                QJsonObject rank = ranks[rankIndex].toObject();
 
                 QUuid rankID = QUuid(rank["id"].toString());
                 int rankOrder = rank["order"].toInt();

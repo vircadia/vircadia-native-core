@@ -315,8 +315,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
-        getGroupMemberships(username); // optimistically get started on group memberships
-        getDomainOwnerFriendsList();
         return SharedNodePointer();
     }
 
@@ -326,7 +324,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         userPerms.setVerifiedUserName(username);
         verifiedUsername = username;
         getGroupMemberships(username);
-        getDomainOwnerFriendsList();
     } else if (!username.isEmpty()) {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
@@ -725,6 +722,14 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
 
+    // if we've already asked, wait for the answer before asking again
+    QString lowerUsername = username.toLower();
+    if (_inFlightGroupMembershipsRequests.contains(lowerUsername)) {
+        // public-key request for this username is already flight, not rerequesting
+        return;
+    }
+    _inFlightGroupMembershipsRequests += lowerUsername;
+
     QJsonObject json;
     QSet<QString> groupIDSet;
     foreach (QUuid groupID, _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs()) {
@@ -747,7 +752,16 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
 
 }
 
-
+QString extractUsernameFromGroupMembershipsReply(QNetworkReply& requestReply) {
+    // extract the username from the request url
+    QString username;
+    const QString GROUP_MEMBERSHIPS_URL_REGEX_STRING = "api\\/v1\\/groups\\/members\\/([A-Za-z0-9_\\.]+)";
+    QRegExp usernameRegex(GROUP_MEMBERSHIPS_URL_REGEX_STRING);
+    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+        username = usernameRegex.cap(1);
+    }
+    return username.toLower();
+}
 
 void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
     // {
@@ -781,10 +795,13 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     } else {
         qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
     }
+
+    _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
 }
 
 void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "getIsGroupMember api call failed:" << requestReply.error();
+    _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
 }
 
 void DomainGatekeeper::getDomainOwnerFriendsList() {
@@ -825,7 +842,6 @@ void DomainGatekeeper::refreshGroupsCache() {
     // if agents are connected to this domain, refresh our cached information about groups and memberships in such.
     getDomainOwnerFriendsList();
 
-    int agentCount = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
@@ -834,13 +850,10 @@ void DomainGatekeeper::refreshGroupsCache() {
             if (verifiedUserName.isEmpty()) {
                 getGroupMemberships(verifiedUserName);
             }
-            agentCount++;
         }
     });
 
-    if (agentCount > 0) {
-        _server->_settingsManager.apiRefreshGroupInformation();
-    }
+    _server->_settingsManager.apiRefreshGroupInformation();
 
     updateNodePermissions();
 

@@ -14,14 +14,14 @@
 
 class GroupRank {
 public:
-    GroupRank() : id(QUuid()), order(-1), name(""), membersCount(-1) {}
+    GroupRank() {}
     GroupRank(QUuid id, unsigned int order, QString name, unsigned int membersCount) :
         id(id), order(order), name(name), membersCount(membersCount) {}
 
     QUuid id;
-    int order;
+    int order { -1 };
     QString name;
-    int membersCount;
+    int membersCount { -1 };
 };
 
 inline bool operator==(const GroupRank& lhs, const GroupRank& rhs) {
