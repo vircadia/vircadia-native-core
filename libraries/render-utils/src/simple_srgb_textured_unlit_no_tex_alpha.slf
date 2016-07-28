@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  simple_srgb_texture_unlit_no_tex_alpha.frag
 //  fragment shader
 //
 //  Created by Anthony Thibault on 7/25/16.

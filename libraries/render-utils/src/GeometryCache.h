@@ -158,8 +158,8 @@ public:
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
 
-    void bindSimpleSRGBTexturedUnlitNoDstAlphaProgram(gpu::Batch& batch);
-    gpu::PipelinePointer getSimpleSRGBTexturedUnlitNoDstAlphaPipeline();
+    void bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getSimpleSRGBTexturedUnlitNoTexAlphaPipeline();
 
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
     render::ShapePipelinePointer getWireShapePipeline() { return GeometryCache::_simpleWirePipeline; }
@@ -421,8 +421,8 @@ private:
     gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
-    gpu::ShaderPointer _simpleSRGBTexturedUnlitNoDstAlphaShader;
-    gpu::PipelinePointer _simpleSRGBTexturedUnlitNoDstAlphaPipeline;
+    gpu::ShaderPointer _simpleSRGBTexturedUnlitNoTexAlphaShader;
+    gpu::PipelinePointer _simpleSRGBTexturedUnlitNoTexAlphaPipeline;
 
 };
 

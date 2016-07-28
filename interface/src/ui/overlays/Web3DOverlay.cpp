@@ -101,7 +101,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->bindSimpleSRGBTexturedUnlitNoDstAlphaProgram(batch);
+    geometryCache->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
