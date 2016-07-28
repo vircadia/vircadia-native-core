@@ -64,7 +64,7 @@ function buttonClicked(){
 button.clicked.connect(buttonClicked);
 
 function overlayURL() {
-    return Script.resolvePath("assets/images/" + (Users.canKick ? "kick-target.png" : "ignore-target.png"));
+    return Script.resolvePath("assets") + "/images/" + (Users.canKick ? "kick-target.svg" : "ignore-target.svg");
 }
 
 function updateOverlays() {
@@ -181,7 +181,7 @@ var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 
 function controllerComputePickRay(hand) {
     var controllerPose = Controller.getPoseValue(hand);
-    if (controllerPose.valid && triggered) {
+    if (controllerPose.valid) {
         var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                           MyAvatar.position);
         // This gets point direction right, but if you want general quaternion it would be more complicated:
