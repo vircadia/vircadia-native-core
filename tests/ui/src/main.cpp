@@ -33,6 +33,28 @@ protected:
     const QString _name;
 };
 
+class Reticle : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QPoint position READ getPosition CONSTANT)
+public:
+
+    Reticle(QObject* parent) : QObject(parent) {
+    }
+
+    QPoint getPosition() {
+        if (!_window) {
+            return QPoint(0, 0);
+        }
+        return _window->mapFromGlobal(QCursor::pos());
+    }
+
+    void setWindow(QWindow* window) {
+        _window = window;
+    }
+
+private:
+    QWindow* _window{nullptr};
+};
 
 QString getRelativeDir(const QString& relativePath = ".") {
     QDir path(__FILE__); path.cdUp();
@@ -61,10 +83,8 @@ void setChild(QQmlApplicationEngine& engine, const char* name) {
   qWarning() << "Could not find object named " << name;
 }
 
-void addImportPath(QQmlApplicationEngine& engine, const QString& relativePath) {
-    QString resolvedPath = getRelativeDir("../qml");
-    QUrl resolvedUrl = QUrl::fromLocalFile(resolvedPath);
-    resolvedPath = resolvedUrl.toString();
+void addImportPath(QQmlApplicationEngine& engine, const QString& relativePath, bool insert = false) {
+    QString resolvedPath = getRelativeDir(relativePath);
     engine.addImportPath(resolvedPath);
 }
 
@@ -79,8 +99,9 @@ int main(int argc, char *argv[]) {
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     QQmlApplicationEngine engine;
-    addImportPath(engine, "../qml");
-    addImportPath(engine, "../../../interface/resources/qml");
+    addImportPath(engine, "qml");
+    addImportPath(engine, "../../interface/resources/qml");
+    addImportPath(engine, "../../interface/resources");
     engine.load(QUrl(QStringLiteral("qml/Stubs.qml")));
 
     setChild(engine, "offscreenFlags");
@@ -99,6 +120,15 @@ int main(int argc, char *argv[]) {
 
     //engine.load(QUrl(QStringLiteral("qrc:/qml/gallery/main.qml")));
     engine.load(QUrl(QStringLiteral("qml/main.qml")));
+    for (QObject* rootObject : engine.rootObjects()) {
+        if (rootObject->objectName() == "MainWindow") {
+            Reticle* reticle = new Reticle(rootObject);
+            reticle->setWindow((QWindow*)rootObject);
+            engine.rootContext()->setContextProperty("Reticle", reticle);
+            engine.rootContext()->setContextProperty("Window", rootObject);
+            break;
+        }
+    }
     return app.exec();
 }
 

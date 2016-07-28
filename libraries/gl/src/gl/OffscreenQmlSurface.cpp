@@ -24,6 +24,7 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <Finally.h>
+#include <PathUtils.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
@@ -400,6 +401,10 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
+
+    auto importList = _qmlEngine->importPathList();
+    importList.insert(importList.begin(), PathUtils::resourcesPath());
+    _qmlEngine->setImportPathList(importList);
     if (!_qmlEngine->incubationController()) {
         _qmlEngine->setIncubationController(_renderer->_quickWindow->incubationController());
     }

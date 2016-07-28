@@ -161,8 +161,8 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->QString { return myAvatar->getAnimGraphUrl().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->setAnimGraphUrl(value); };
+        auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
+        auto setter = [=](const QString& value) { myAvatar->setAnimGraphOverrideUrl(QUrl(value)); };
         auto preference = new EditPreference(AVATAR_TUNING, "Avatar animation JSON", getter, setter);
         preference->setPlaceholderText("default");
         preferences->addPreference(preference);

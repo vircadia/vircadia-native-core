@@ -39,6 +39,7 @@
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
 
+#include <WebEntityItem.h>
 #include <OctreeUtils.h>
 #include <render/Engine.h>
 #include <Model.h>
@@ -143,6 +144,19 @@ public:
     }
 };
 
+static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<size_t>::max()) {
+    static const std::vector<QString> SUFFIXES{ { "B", "KB", "MB", "GB", "TB", "PB" } };
+    const size_t maxIndex = std::min(maxUnit, SUFFIXES.size() - 1);
+    size_t suffixIndex = 0;
+
+    while (suffixIndex < maxIndex && size > 1024) {
+        size >>= 10;
+        ++suffixIndex;
+    }
+
+    return QString("%1 %2").arg(size).arg(SUFFIXES[suffixIndex]);
+}
+
 
 
 // Create a simple OpenGL window that renders text in various ways
@@ -211,6 +225,9 @@ public:
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
+        // Prevent web entities from rendering
+        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory)
+
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -296,6 +313,10 @@ protected:
             reloadScene();
             return;
 
+        case Qt::Key_F4:
+            toggleStereo();
+            return;
+
         case Qt::Key_F5:
             goTo();
             return;
@@ -365,13 +386,29 @@ private:
 
         renderArgs.setViewFrustum(_viewFrustum);
 
+        renderArgs._context->enableStereo(_stereoEnabled);
+        if (_stereoEnabled) {
+            mat4 eyeOffsets[2];
+            mat4 eyeProjections[2];
+            for (size_t i = 0; i < 2; ++i) {
+                eyeProjections[i] = _viewFrustum.getProjection();
+            }
+            renderArgs._context->setStereoProjections(eyeProjections);
+            renderArgs._context->setStereoViews(eyeOffsets);
+        }
+
         // Final framebuffer that will be handled to the display-plugin
         {
             auto finalFramebuffer = framebufferCache->getFramebuffer();
             renderArgs._blitFramebuffer = finalFramebuffer;
         }
 
+        _gpuContext->beginFrame(renderArgs._blitFramebuffer);
+        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
+            batch.resetStages();
+        });
         render(&renderArgs);
+        _gpuContext->endFrame();
         GLuint glTex;
         {
             auto gpuTex = renderArgs._blitFramebuffer->getRenderBuffer(0);
@@ -388,7 +425,7 @@ private:
         }
 
         {
-            _textOverlay->render();
+            //_textOverlay->render();
         }
 
         _context.swapBuffers(this);
@@ -396,9 +433,6 @@ private:
         _offscreenContext->makeCurrent();
         framebufferCache->releaseFramebuffer(renderArgs._blitFramebuffer);
         renderArgs._blitFramebuffer.reset();
-        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
-            batch.resetStages();
-        });
         _fpsCounter.increment();
         static size_t _frameCount { 0 };
         ++_frameCount;
@@ -429,6 +463,9 @@ private:
         const qint64& now;
     };
 
+
+
+
     void updateText() {
         //qDebug() << "FPS " << fps.rate();
         {
@@ -438,6 +475,11 @@ private:
             infoTextBlock.push_back({ vec2(100, 10), std::to_string((uint32_t)_fps), TextOverlay::alignLeft });
             infoTextBlock.push_back({ vec2(98, 30), "Culling: ", TextOverlay::alignRight });
             infoTextBlock.push_back({ vec2(100, 30), _cullingEnabled ? "Enabled" : "Disabled", TextOverlay::alignLeft });
+
+            setTitle(QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
+                .arg(_fps).arg(_cullingEnabled)
+                .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
+                .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2)));
         }
 
         _textOverlay->beginTextUpdate();
@@ -561,14 +603,29 @@ private:
     void importScene(const QString& fileName) {
         auto assetClient = DependencyManager::get<AssetClient>();
         QFileInfo fileInfo(fileName);
-        //assetClient->loadLocalMappings(fileInfo.absolutePath() + "/" + fileInfo.baseName() + ".atp");
+        QString atpPath = fileInfo.absolutePath() + "/" + fileInfo.baseName() + ".atp";
+        qDebug() << atpPath;
+        QFileInfo atpPathInfo(atpPath);
+        if (atpPathInfo.exists()) {
+            QString atpUrl = QUrl::fromLocalFile(atpPath).toString();
+            ResourceManager::setUrlPrefixOverride("atp:/", atpUrl + "/");
+        }
         _settings.setValue(LAST_SCENE_KEY, fileName);
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);
     }
 
     void importScene() {
-        QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), "/home", tr("Hifi Exports (*.json *.svo)"));
+        auto lastScene = _settings.value(LAST_SCENE_KEY);
+        QString openDir;
+        if (lastScene.isValid()) {
+            QFileInfo lastSceneInfo(lastScene.toString());
+            if (lastSceneInfo.absoluteDir().exists()) {
+                openDir = lastSceneInfo.absolutePath();
+            }
+        }
+
+        QString fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), openDir, tr("Hifi Exports (*.json *.svo)"));
         if (fileName.isNull()) {
             return;
         }
@@ -615,6 +672,10 @@ private:
 
     void toggleCulling() {
         _cullingEnabled = !_cullingEnabled;
+    }
+
+    void toggleStereo() {
+        _stereoEnabled = !_stereoEnabled;
     }
 
     QSharedPointer<EntityTreeRenderer> getEntities() {
@@ -665,6 +726,7 @@ private:
     float _fps { 0 };
     TextOverlay* _textOverlay;
     bool _cullingEnabled { true };
+    bool _stereoEnabled { false };
     QSharedPointer<EntityTreeRenderer> _octree;
 };
 
