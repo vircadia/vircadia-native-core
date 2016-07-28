@@ -158,9 +158,8 @@ public:
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
 
-
     void bindSimpleSRGBTexturedUnlitNoDstAlphaProgram(gpu::Batch& batch);
-    gpu::PipelinePointer GeometryCache::getSimpleSRGBTexturedUnlitNoDstAlphaPipeline();
+    gpu::PipelinePointer getSimpleSRGBTexturedUnlitNoDstAlphaPipeline();
 
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
     render::ShapePipelinePointer getWireShapePipeline() { return GeometryCache::_simpleWirePipeline; }
