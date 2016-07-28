@@ -4685,7 +4685,8 @@ void Application::packetSent(quint64 length) {
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
-        return isPhysicsEnabled();
+        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
+        return !entityServerNode || isPhysicsEnabled();
     });
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
