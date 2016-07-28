@@ -18,18 +18,6 @@
 
 #include <model/Geometry.h>
 
-/*
-class btCollisionShape;
-
-namespace std {
-    template <>
-    struct hash<btCollisionShape*> {
-        std::size_t operator()(btCollisionShape* shape) const {
-            return (hash<void*>()((void*)shape));
-        }
-    };
-}
-*/
 
 class CollisionRenderMeshCache {
 public:
