@@ -100,9 +100,11 @@
     var maxSeen = 0;
     var bestRawProgress = 0;
     var wasActive = false;
+    var cooldown = 1000;
     function onDownloadInfoChanged(info) {
         var i;
 
+        print("PROGRESS: DOwnload info changed ", info.downloading.length, info.pending, maxSeen);
         // Update raw progress value
         if (info.downloading.length + info.pending === 0) {
             wasActive = false;
@@ -112,26 +114,33 @@
             var count = info.downloading.length + info.pending;
             if (!wasActive) {
                 wasActive = true;
-                if (count > maxSeen) {
-                    maxSeen = count;
-                }
+                maxSeen = count;
                 bestRawProgress = 0;
+                rawProgress = 0;
+                cooldown = 2000;
+                displayProgress = 0;
             }
-            //for (i = 0; i < info.downloading.length; i += 1) {
-                //rawProgress += info.downloading[i];
-            //}
-            //rawProgress = rawProgress / (info.downloading.length + info.pending);
-            rawProgress = ((maxSeen - count) / maxSeen) * 100;
-            //rawProgress += 1;
-            //if (rawProgress > 90) {
-                //rawProgress = 20
-            //}
+            if (count > maxSeen) {
+                maxSeen = count;
+            }
+            if (cooldown < 0) {
+                print("PROGRESS: OUT OF COOLDOWN");
+                //for (i = 0; i < info.downloading.length; i += 1) {
+                    //rawProgress += info.downloading[i];
+                //}
+                //rawProgress = rawProgress / (info.downloading.length + info.pending);
+                rawProgress = ((maxSeen - count) / maxSeen) * 100;
+                //rawProgress += 1;
+                //if (rawProgress > 90) {
+                    //rawProgress = 20
+                //}
 
-            if (rawProgress > bestRawProgress) {
-                bestRawProgress = rawProgress;
+                if (rawProgress > bestRawProgress) {
+                    bestRawProgress = rawProgress;
+                }
             }
         }
-        //print(rawProgress, bestRawProgress, maxSeen);
+        print("PROGRESS:", rawProgress, bestRawProgress, maxSeen);
     }
 
     function createOverlays() {
@@ -193,6 +202,7 @@
 
     var b = 0;
     function update() {
+        cooldown -= 16;
         /*
         maxSeen = 100;
         b++;
@@ -216,6 +226,7 @@
             //createOverlays();
         //}
 
+        /*
         // Calculate progress value to display
         if (rawProgress === 0 && displayProgress <= DISPLAY_PROGRESS_MINOR_MAXIMUM) {
             displayProgress = Math.min(displayProgress + DISPLAY_PROGRESS_MINOR_INCREMENT, DISPLAY_PROGRESS_MINOR_MAXIMUM);
@@ -224,7 +235,18 @@
         } else if (rawProgress > displayProgress) {
             displayProgress = Math.min(rawProgress, displayProgress + DISPLAY_PROGRESS_MAJOR_INCREMENT);
         } // else (rawProgress === displayProgress); do nothing.
-        displayProgress = bestRawProgress;
+        //displayProgress = bestRawProgress;
+        //*/
+        if (displayProgress < rawProgress) {
+            var diff = rawProgress - displayProgress;
+            if (diff < 0.1) {
+                displayProgress = rawProgress;
+            } else {
+                displayProgress += diff * 0.2;
+            }
+        }
+        print('PROGRESS:', displayProgress);
+
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
@@ -235,7 +257,7 @@
             }
         } else if (alphaDelta !== 0.0) { // Fading in or out
             if (alphaDelta > 0) {
-                if (displayProgress === 100) { // Was downloading but now have finished so fade out
+                if (rawProgress === 100) { // Was downloading but now have finished so fade out
                     alphaDelta = ALPHA_DELTA_OUT;
                 }
             } else {
@@ -245,7 +267,7 @@
             }
         } else { // Fully visible because downloading or recently so
             if (fadeWaitTimer === null) {
-                if (displayProgress === 100) { // Was downloading but have finished so fade out soon
+                if (rawProgress === 100) { // Was downloading but have finished so fade out soon
                     fadeWaitTimer = Script.setTimeout(function() {
                         alphaDelta = ALPHA_DELTA_OUT;
                         fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
