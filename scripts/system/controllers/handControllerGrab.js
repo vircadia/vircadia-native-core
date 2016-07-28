@@ -1965,6 +1965,9 @@ function MyController(hand) {
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
 
+            //  Make a small release haptic pulse if we really were holding something
+            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+
             // If this looks like the release after adjusting something still held in the other hand, print the position
             // and rotation of the held thing to help content creators set the userData.
             var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
@@ -2001,8 +2004,6 @@ function MyController(hand) {
             grabbedEntity: this.grabbedEntity,
             joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
         }));
-
-        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         this.grabbedEntity = null;
         this.grabbedHotspot = null;
