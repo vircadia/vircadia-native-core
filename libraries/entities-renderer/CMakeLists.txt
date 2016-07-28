@@ -1,7 +1,7 @@
 set(TARGET_NAME entities-renderer)
 AUTOSCRIBE_SHADER_LIB(gpu model procedural render render-utils)
 setup_hifi_library(Widgets Network Script)
-link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils physics)
+link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils)
 
 target_bullet()
 
