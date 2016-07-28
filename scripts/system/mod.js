@@ -191,8 +191,8 @@ function controllerComputePickRay(hand) {
 }
 
 function makeClickHandler(hand) {
-    return function (value) {
-        if (isShowingOverlays) {
+    return function(clicked) {
+        if (clicked && isShowingOverlays) {
             var pickRay = controllerComputePickRay(hand);
             if (pickRay) {
                 var overlayIntersection = Overlays.findRayIntersection(pickRay);
