@@ -66,6 +66,7 @@ Window {
             width: (3 * cardWidth) + (2 * hifi.layout.spacing);
             height: cardHeight;
             spacing: hifi.layout.spacing;
+            clip: true;
             anchors {
                 bottom: backgroundImage.top;
                 bottomMargin: 2 * hifi.layout.spacing;
@@ -245,7 +246,7 @@ Window {
         if (!domainsBaseUrl) {
             var domainsOptions = [
                 'open', // published hours handle now
-                'active', // has at least one person connected. FIXME: really want any place that is verified accessible.
+                // fixme hrs restore 'active', // has at least one person connected. FIXME: really want any place that is verified accessible.
                 // FIXME: really want places I'm allowed in, not just open ones.
                 'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
                 // FIXME add maturity
@@ -276,7 +277,8 @@ Window {
     }
 
     function filterChoicesByText() {
-        function fill1(targetIndex, data) {
+        function fill1(targetIndex) {
+            var data = filtered[targetIndex];
             if (!data) {
                 if (targetIndex < suggestions.count) {
                     suggestions.remove(targetIndex);
@@ -301,9 +303,7 @@ Window {
                 return text.indexOf(word) >= 0;
             });
         });
-        fill1(0, filtered[0]);
-        fill1(1, filtered[1]);
-        fill1(2, filtered[2]);
+        for (var index in filtered) { fill1(index); }
     }
 
     function fillDestinations() {
@@ -316,13 +316,13 @@ Window {
             var here = AddressManager.hostname; // don't show where we are now.
             allDomains = domains.filter(function (domain) { return domain.name !== here; });
             // Whittle down suggestions to those that have at least one user, and try to get pictures.
-            suggestionChoices = allDomains.filter(function (domain) { return domain.online_users; });
+            suggestionChoices = allDomains.filter(function (domain) { return true/*fixme hrs restore domain.online_users*/; });
             asyncEach(domains, addPictureToDomain, function (error) {
                 if (error) {
                     console.log('place picture query failed:', error);
                 }
                 // Whittle down more by requiring a picture.
-                suggestionChoices = suggestionChoices.filter(function (domain) { return domain.lobby; });
+                // fixme hrs restore suggestionChoices = suggestionChoices.filter(function (domain) { return domain.lobby; });
                 filterChoicesByText();
             });
         });
