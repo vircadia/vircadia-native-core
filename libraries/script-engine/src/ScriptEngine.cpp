@@ -855,13 +855,18 @@ void ScriptEngine::run() {
         // We don't want to actually sleep for too long, because it causes our scripts to hang 
         // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
         // purgatory, constantly checking to see if our script was asked to end
+        bool firstTime = true;
         while (!_isFinished && clock::now() < sleepUntil) {
+            if (!firstTime) {
+                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            }
             auto wouldSleepSlice = (sleepUntil - clock::now());
             auto thisSleepUntil = sleepUntil;
             if (wouldSleepSlice > FRAME_DURATION) {
                 thisSleepUntil = clock::now() + FRAME_DURATION;
             }
             std::this_thread::sleep_until(thisSleepUntil);
+            firstTime = false;
         }
 
 #ifdef SCRIPT_DELAY_DEBUG
