@@ -828,7 +828,6 @@ void Model::setURL(const QUrl& url) {
 
     auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
     resource->setLoadPriority(this, priority);
-    qDebug() << "Setting priority to: " << priority;
     _renderWatcher.setResource(resource);
     onInvalidate();
 }

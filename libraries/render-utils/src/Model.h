@@ -238,7 +238,7 @@ public:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    float priority { 0 };
+    float setLoadingPriority(float priority) { _loadingPriority = priority; }
 
 public slots:
     void loadURLFinished(bool success);
@@ -407,6 +407,10 @@ protected:
 
     bool _visualGeometryRequestFailed { false };
     bool _collisionGeometryRequestFailed { false };
+
+private:
+    float _loadingPriority { 0 };
+
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

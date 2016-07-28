@@ -46,8 +46,6 @@ public:
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void setTree(OctreePointer newTree);
 
-    glm::vec3 cameraPosition {};
-
     void shutdown();
     void update();
 
@@ -68,7 +66,7 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float priority = 0);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
