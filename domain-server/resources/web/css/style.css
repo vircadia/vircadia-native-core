@@ -41,8 +41,13 @@ body {
   font-weight: bold;
 }
 
-.table .value-category .message {
+.table .value-category [message]::after {
+  content: attr(message);
   font-style: italic;
+  font-weight: normal;
+}
+
+.table .value-category.inputs {
   font-weight: normal;
 }
 

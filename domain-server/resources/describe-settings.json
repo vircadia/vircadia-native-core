@@ -457,8 +457,9 @@
           "caption": "Permissions for Users in Groups",
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
+          "can_add_new_rows": false,
           "new_category_placeholder": "Add Group",
-          "new_category_needs_reload": true,
+          "new_category_message": "Reload to see ranks",
 
           "groups": [
             {
@@ -548,8 +549,12 @@
         {
           "name": "group_forbiddens",
           "type": "table",
-          "caption": "Permissions denied to Users in Groups",
-          "can_add_new_rows": true,
+          "caption": "Permissions Denied to Users in Groups",
+          "categorize_by_key": "permissions_id",
+          "can_add_new_categories": true,
+          "can_add_new_rows": false,
+          "new_category_placeholder": "Add Blacklist Group",
+          "new_category_message": "Reload to see ranks",
 
           "groups": [
             {
