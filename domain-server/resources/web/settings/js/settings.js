@@ -1412,6 +1412,17 @@ function deleteTableRow($row) {
 
 function addTableCategory($categoryInputRow) {
   var $input = $categoryInputRow.find("input").first();
+  var categoryValue = $input.prop("value");
+  if (!categoryValue || $categoryInputRow.closest("table").find("tr[data-category='" + categoryValue + "']").length !== 0) {
+    $categoryInputRow.addClass("has-warning");
+
+    setTimeout(function () {
+      $categoryInputRow.removeClass("has-warning");
+    }, 1000);
+
+    return;
+  }
+
   var $rowInput = $categoryInputRow.next(".inputs").clone();
   if (!$rowInput) {
     console.error("Error cloning inputs");
@@ -1420,7 +1431,6 @@ function addTableCategory($categoryInputRow) {
   var canAddRows = $categoryInputRow.data("can-add-rows");
   var message = $categoryInputRow.data("message");
   var categoryKey = $categoryInputRow.data("key");
-  var categoryValue = $input.prop("value");
   var width = 0;
   $categoryInputRow
     .children("td")
@@ -1437,8 +1447,6 @@ function addTableCategory($categoryInputRow) {
   $rowInput
     .attr("data-category", categoryValue)
     .addClass(Settings.NEW_ROW_CLASS);
-
-  // TODO: create inputs on initial template load
 
   var $newCategoryRow = $(makeTableCategoryHeader(categoryKey, categoryValue, width, true, " - " + message));
   $newCategoryRow.addClass(Settings.NEW_ROW_CLASS);
