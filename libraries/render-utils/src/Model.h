@@ -238,7 +238,7 @@ public:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    float setLoadingPriority(float priority) { _loadingPriority = priority; }
+    void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
 public slots:
     void loadURLFinished(bool success);

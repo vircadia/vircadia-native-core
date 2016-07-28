@@ -46,6 +46,8 @@ public:
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void setTree(OctreePointer newTree);
 
+    glm::vec3 cameraPosition {};
+
     void shutdown();
     void update();
 

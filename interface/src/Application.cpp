@@ -1635,6 +1635,8 @@ void Application::paintGL() {
         return;
     }
 
+    DependencyManager::get<EntityTreeRenderer>()->cameraPosition = getMyAvatar()->getPosition();
+
     _inPaint = true;
     Finally clearFlag([this] { _inPaint = false; });
 
