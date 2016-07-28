@@ -46,7 +46,7 @@ Window {
     }
 
     function goCard(card) {
-        addressLine.text = card.userStory.name;
+        addressLine.text = card.path;
         toggleOrGo(true);
     }
     property var allDomains: [];
@@ -60,32 +60,27 @@ Window {
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
 
-        Row {
-            width: backgroundImage.width;
+        ListModel { id: suggestions }
+
+        ListView {
+            width: (3 * cardWidth) + (2 * hifi.layout.spacing);
+            height: cardHeight;
+            spacing: hifi.layout.spacing;
             anchors {
                 bottom: backgroundImage.top;
                 bottomMargin: 2 * hifi.layout.spacing;
                 right: backgroundImage.right;
-                rightMargin: -104; // FIXME
             }
-            spacing: hifi.layout.spacing;
-            Card {
-                id: s0;
+            model: suggestions;
+            orientation: ListView.Horizontal;
+            delegate: Card {
                 width: cardWidth;
                 height: cardHeight;
-                goFunction: goCard
-            }
-            Card {
-                id: s1;
-                width: cardWidth;
-                height: cardHeight;
-                goFunction: goCard
-            }
-            Card {
-                id: s2;
-                width: cardWidth;
-                height: cardHeight;
-                goFunction: goCard
+                goFunction: goCard;
+                path: model.name;
+                thumbnail: model.thumbnail;
+                placeText: model.name;
+                usersText: model.online_users + ((model.online_users === 1) ? ' user' : ' users')
             }
         }
 
@@ -225,6 +220,7 @@ Window {
     function addPictureToDomain(domainInfo, cb) { // asynchronously add thumbnail and lobby to domainInfo, if available, and cb(error)
         // This requests data for all the names at once, and just uses the first one to come back.
         // We might change this to check one at a time, which would be less requests and more latency.
+        domainInfo.thumbnail = ''; // Regardless of whether we fill it in later, qt models must start with the all values they will have.
         asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(identity), function (name, icb) {
             var url = "https://metaverse.highfidelity.com/api/v1/places/" + name;
             getRequest(url, function (error, json) {
@@ -280,17 +276,19 @@ Window {
     }
 
     function filterChoicesByText() {
-        function fill1(target, data) {
+        function fill1(targetIndex, data) {
             if (!data) {
-                target.visible = false;
+                if (targetIndex < suggestions.count) {
+                    suggestions.remove(targetIndex);
+                }
                 return;
             }
             console.log('suggestion:', JSON.stringify(data));
-            target.userStory = data;
-            target.image.source = data.lobby || target.defaultPicture;
-            target.placeText = data.name;
-            target.usersText = data.online_users + ((data.online_users === 1) ? ' user' : ' users');
-            target.visible = true;
+            if (suggestions.count <= targetIndex) {
+                suggestions.append(data);
+            } else {
+                suggestions.set(targetIndex, data);
+            }
         }
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity);
         var filtered = !words.length ? suggestionChoices : allDomains.filter(function (domain) {
@@ -303,9 +301,9 @@ Window {
                 return text.indexOf(word) >= 0;
             });
         });
-        fill1(s0, filtered[0]);
-        fill1(s1, filtered[1]);
-        fill1(s2, filtered[2]);
+        fill1(0, filtered[0]);
+        fill1(1, filtered[1]);
+        fill1(2, filtered[2]);
     }
 
     function fillDestinations() {
