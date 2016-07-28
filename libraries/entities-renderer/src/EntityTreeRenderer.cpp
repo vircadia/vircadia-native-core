@@ -503,15 +503,14 @@ void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const Sha
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority) {
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, loadingPriority) {
     ModelPointer model = nullptr;
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(ModelPointer, model),
-                Q_ARG(const QString&, url),
-                Q_ARG(const QString&, collisionUrl));
+                Q_ARG(const QString&, url));
 
         return model;
     }

@@ -491,14 +491,13 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL(), renderer->getEntityLoadingPriority(*this));
+            _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this));
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
             QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
                 Q_ARG(ModelPointer, _model),
-                Q_ARG(const QString&, getModelURL()),
-                Q_ARG(const QString&, getCompoundShapeURL()));
+                Q_ARG(const QString&, getModelURL()));
             _needsInitialSimulation = true;
         }
         // Else we can just return the _model
