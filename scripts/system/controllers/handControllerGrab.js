@@ -38,6 +38,15 @@ var BUMPER_ON_VALUE = 0.5;
 
 var THUMB_ON_VALUE = 0.5;
 
+var HAPTIC_PULSE_STRENGTH = 1.0;
+var HAPTIC_PULSE_DURATION = 13.0;
+var HAPTIC_TEXTURE_STRENGTH = 0.1;
+var HAPTIC_TEXTURE_DURATION = 3.0;
+var HAPTIC_TEXTURE_DISTANCE = 0.002;
+var HAPTIC_DEQUIP_STRENGTH = 0.75;
+var HAPTIC_DEQUIP_DURATION = 50.0;
+
+
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 var PICK_WITH_HAND_RAY = true;
@@ -934,7 +943,7 @@ function MyController(hand) {
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
-            this.updateEquipHaptics(potentialEquipHotspot);
+            this.updateEquipHaptics(potentialEquipHotspot, this.getHandPosition());
         }
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
@@ -948,11 +957,15 @@ function MyController(hand) {
         this.prevPotentialEquipHotspot = null;
     };
 
-    this.updateEquipHaptics = function(potentialEquipHotspot) {
+    this.updateEquipHaptics = function(potentialEquipHotspot, currentLocation) {
         if (potentialEquipHotspot && !this.prevPotentialEquipHotspot ||
             !potentialEquipHotspot && this.prevPotentialEquipHotspot) {
-            Controller.triggerShortHapticPulse(0.5, this.hand);
-        }
+            Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
+            this.lastHapticPulseLocation = currentLocation;
+        } else if (potentialEquipHotspot && Vec3.distance(this.lastHapticPulseLocation, currentLocation) > HAPTIC_TEXTURE_DISTANCE) {
+            Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
+            this.lastHapticPulseLocation = currentLocation;
+        }       
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
@@ -1337,7 +1350,7 @@ function MyController(hand) {
             }
         }
 
-        this.updateEquipHaptics(potentialEquipHotspot);
+        this.updateEquipHaptics(potentialEquipHotspot, handPosition);
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
         equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
@@ -1421,6 +1434,8 @@ function MyController(hand) {
             this.activateEntity(this.grabbedEntity, grabbedProperties, false);
             this.callEntityMethodOnGrabbed("startDistanceGrab");
         }
+
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         this.turnOffVisualizations();
 
@@ -1611,7 +1626,7 @@ function MyController(hand) {
 
         if (handIsUpsideDown != this.prevHandIsUpsideDown) {
             this.prevHandIsUpsideDown = handIsUpsideDown;
-            Controller.triggerShortHapticPulse(0.5, this.hand);
+            Controller.triggerHapticPulse(HAPTIC_DEQUIP_STRENGTH, HAPTIC_DEQUIP_DURATION, this.hand);
         }
 
         return handIsUpsideDown;
@@ -1625,7 +1640,7 @@ function MyController(hand) {
         this.dropGestureReset();
         this.clearEquipHaptics();
 
-        Controller.triggerShortHapticPulse(1.0, this.hand);
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         if (this.entityActivated) {
             var saveGrabbedID = this.grabbedEntity;
@@ -1986,6 +2001,8 @@ function MyController(hand) {
             grabbedEntity: this.grabbedEntity,
             joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
         }));
+
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         this.grabbedEntity = null;
         this.grabbedHotspot = null;
