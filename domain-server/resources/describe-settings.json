@@ -457,6 +457,8 @@
           "caption": "Permissions for Users in Groups",
           "categorize_by_key": "permissions_id",
           "can_add_new_categories": true,
+          "new_category_placeholder": "Add Group",
+          "new_category_needs_reload": true,
 
           "groups": [
             {

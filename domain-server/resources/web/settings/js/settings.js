@@ -12,6 +12,8 @@ var Settings = {
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   DEL_ROW_BUTTON_CLASS: 'del-row',
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  ADD_CATEGORY_BUTTON_CLASS: 'add-category',
+  ADD_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-plus add-category',
   DEL_CATEGORY_BUTTON_CLASS: 'del-category',
   DEL_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-remove del-category',
   MOVE_UP_BUTTON_CLASS: 'move-up',
@@ -174,6 +176,10 @@ $(document).ready(function(){
     deleteTableRow($(this).closest('tr'));
   });
 
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_CATEGORY_BUTTON_CLASS, function(){
+    addTableCategory($(this).closest('tr'));
+  });
+
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_CATEGORY_BUTTON_CLASS, function(){
     deleteTableCategory($(this).closest('tr'));
   });
@@ -205,10 +211,11 @@ $(document).ready(function(){
           }
 
           if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click();
+            sibling.find("." + Settings.ADD_CATEGORY_BUTTON_CLASS).click();
 
             // set focus to the first input in the new row
-            $target.closest('table').find('tr.inputs input:first').focus()
+            $target.closest('table').find('tr.inputs input:first').focus();
           }
         }
 
@@ -1013,21 +1020,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
         predicate[categoryKey] = categoryValue;
         categoryValue = rowIsObject ? row[categoryKey] : row;
         categoryData = "data-category='" + categoryValue + "'";
-
         if (_.findIndex(setting_value, predicate) === rowIndexOrName) {
-          html +=
-            "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' " + categoryData + ">" +
-              "<td colspan='" + (numVisibleColumns - 1) + "'>" +
-                categoryValue +
-              "</td>" +
-              ((setting.can_add_new_categories) ? (
-                "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
-                  "<a href='javascript:void(0);' class='" + Settings.DEL_CATEGORY_SPAN_CLASSES + "'></a>" +
-                "</td>"
-              ) : (
-                "<td></td>"
-              )) +
-            "</tr>";
+          html += makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, setting.can_add_new_categories, false);
         }
       }
 
@@ -1043,7 +1037,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
-      var isNonDeletableRow = !setting.can_add_new_rows;
+      var isNonDeletableRow = !setting.can_add_new_rows && !setting.can_add_new_categories || setting.new_category_needs_reload;
 
       _.each(setting.columns, function(col) {
 
@@ -1104,19 +1098,47 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   // populate inputs in the table for new values
-  if (!isLocked && !setting.read_only && setting.can_add_new_rows) {
-     html += makeTableInputs(setting)
+  if (!isLocked && !setting.read_only) {
+    if (setting.can_add_new_categories) {
+      html += makeTableCategoryInput(setting, numVisibleColumns);
+    }
+    if (setting.can_add_new_rows || setting.can_add_new_categories) {
+      html += makeTableInputs(setting);
+    }
   }
   html += "</table>"
 
   return html;
 }
 
+function makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, canRemove, needsReload) {
+  var html =
+    "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' data-key='" + categoryKey + "' data-category='" + categoryValue + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "'>" +
+        "<span>" + categoryValue + "</span>" +
+        ((needsReload) ? (
+          "<span class='message'> - Reload to see contents.</span>"
+        ) : (
+          ""
+        )) +
+      "</td>" +
+      ((canRemove) ? (
+        "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+          "<a href='javascript:void(0);' class='" + Settings.DEL_CATEGORY_SPAN_CLASSES + "'></a>" +
+        "</td>"
+      ) : (
+        "<td></td>"
+      )) +
+    "</tr>";
+  return html;
+}
+
 function makeTableInputs(setting) {
-  var html = "<tr class='inputs'>"
+  var html = "<tr class='inputs'" + (setting.can_add_new_categories ? " hidden" : "") +
+                  (setting.categorize_by_key ? (" data-keep-field='" + setting.categorize_by_key + "'") : "") + ">";
 
   if (setting.numbered === true) {
-    html += "<td class='numbered'></td>"
+    html += "<td class='numbered'></td>";
   }
 
   if (setting.key) {
@@ -1142,10 +1164,26 @@ function makeTableInputs(setting) {
     html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
   html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-    "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
+    "'><a href='javascript:void(0);' class='" + Settings.ADD_ROW_SPAN_CLASSES + "'></a></td>"
   html += "</tr>"
 
   return html
+}
+
+function makeTableCategoryInput(setting, numVisibleColumns) {
+  var needsReload = setting.new_category_needs_reload;
+  var categoryKey = setting.categorize_by_key;
+  var placeholder = setting.new_category_placeholder ? setting.new_category_placeholder : "";
+  var html =
+    "<tr class='category-input inputs' data-needs-reload='" + needsReload + "' data-key='" + categoryKey + "'>" +
+      "<td class='" + Settings.DATA_CATEGORY_CLASS + "' colspan='" + (numVisibleColumns - 1) + "'>" +
+        "<input type='text' class='form-control' placeholder='" + placeholder + "'/>" +
+      "</td>" +
+      "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'>" +
+        "<a href='javascript:void(0);' class='" + Settings.ADD_CATEGORY_SPAN_CLASSES + "'></a>" +
+      "</td>" +
+    "</tr>";
+  return html;
 }
 
 function badgeSidebarForDifferences(changedElement) {
@@ -1187,10 +1225,11 @@ function badgeSidebarForDifferences(changedElement) {
 }
 
 function addTableRow(row) {
-  var table = row.parents('table')
-  var isArray = table.data('setting-type') === 'array'
+  var table = row.parents('table');
+  var isArray = table.data('setting-type') === 'array';
+  var keepField = row.data("keep-field");
 
-  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS);
 
   if (!isArray) {
     // Check key spaces
@@ -1307,10 +1346,12 @@ function addTableRow(row) {
     } else {
       console.log("Unknown table element")
     }
-  })
+  });
 
-  input_clone.find('input').each(function(){
-    $(this).val($(this).attr('data-default'));
+  input_clone.children('td').each(function () {
+    if ($(this).attr("name") !== keepField) {
+      $(this).find("input").val($(this).attr('data-default'));
+    }
   });
 
   if (isArray) {
@@ -1322,7 +1363,7 @@ function addTableRow(row) {
 
   badgeSidebarForDifferences($(table))
 
-  row.parent().append(input_clone)
+  row.after(input_clone)
 }
 
 function deleteTableRow(row) {
@@ -1354,6 +1395,49 @@ function deleteTableRow(row) {
 
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
   badgeSidebarForDifferences($(table))
+}
+
+function addTableCategory($categoryInputRow) {
+  var $input = $categoryInputRow.find("input").first();
+  var $rowInput = $categoryInputRow.next(".inputs").clone();
+  if (!$rowInput) {
+    console.error("Error cloning inputs");
+  }
+
+  var needsReload = $categoryInputRow.data("needs-reload");
+  var categoryKey = $categoryInputRow.data("key");
+  var categoryValue = $input.prop("value");
+  var width = 0;
+  $categoryInputRow
+    .children("td")
+    .each(function () {
+      width += $(this).prop("colSpan") || 1;
+    });
+
+  $input
+    .prop("value", "")
+    .focus();
+
+  $rowInput.find("td[name='" + categoryKey + "'] > input").first()
+    .prop("value", categoryValue);
+  $rowInput
+    .attr("data-category", categoryValue)
+    .addClass(Settings.NEW_ROW_CLASS);
+
+  // TODO: create inputs on initial template load
+
+  var $newCategoryRow = $(makeTableCategoryHeader(categoryKey, categoryValue, width, true, needsReload));
+  $newCategoryRow.addClass(Settings.NEW_ROW_CLASS);
+
+  $categoryInputRow
+    .before($newCategoryRow)
+    .before($rowInput);
+
+  if (!needsReload) {
+    $rowInput.removeAttr("hidden");
+  } else {
+    addTableRow($rowInput);
+  }
 }
 
 function deleteTableCategory(categoryHeaderRow) {
