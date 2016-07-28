@@ -453,11 +453,11 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const QByteArray& usernameSignature,
                                            const HifiSockAddr& senderSockAddr) {
-
     // it's possible this user can be allowed to connect, but we need to check their username signature
-    QByteArray publicKeyArray = _userPublicKeys.value(username.toLower());
+    auto lowerUsername = username.toLower();
+    QByteArray publicKeyArray = _userPublicKeys.value(lowerUsername);
 
-    const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+    const QUuid& connectionToken = _connectionTokenHash.value(lowerUsername);
 
     if (!publicKeyArray.isEmpty() && !connectionToken.isNull()) {
         // if we do have a public key for the user, check for a signature match
@@ -467,8 +467,8 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
         // first load up the public key into an RSA struct
         RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
 
-        QByteArray lowercaseUsername = username.toLower().toUtf8();
-        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
+        QByteArray lowercaseUsernameUTF8 = lowerUsername.toUtf8();
+        QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsernameUTF8.append(connectionToken.toRfc4122()),
                                                                 QCryptographicHash::Sha256);
 
         if (rsaPublicKey) {
@@ -598,10 +598,7 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
-    if (jsonObject["status"].toString() == "success" && username != "") {
-        // figure out which user this is for
-        const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
-        qDebug() << "Storing a public key for user" << username;
+    if (jsonObject["status"].toString() == "success" && !username.isEmpty()) {
         // pull the public key as a QByteArray from this response
         const QString JSON_DATA_KEY = "data";
         const QString JSON_PUBLIC_KEY_KEY = "public_key";
