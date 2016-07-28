@@ -18,7 +18,7 @@
 #include <QtCore/QMimeData>
 #include <QtCore/QString>
 #include <QtCore/QUrl>
-#include <QtGui/QEvent.h>
+#include <QtGui/qevent.h>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
