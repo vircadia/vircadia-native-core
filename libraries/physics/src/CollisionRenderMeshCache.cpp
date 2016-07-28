@@ -41,7 +41,7 @@ bool copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
 
     { // new part
         model::Mesh::Part part;
-        part._startIndex = indices.getNumElements();
+        part._startIndex = (model::Index)indices.getNumElements();
         part._numIndices = (model::Index)numHullIndices;
         // FIXME: the render code cannot handle the case where part._baseVertex != 0
         //part._baseVertex = vertices.getNumElements(); // DOES NOT WORK
@@ -54,7 +54,7 @@ bool copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
     }
 
     const int32_t SIZE_OF_VEC3 = 3 * sizeof(float);
-    model::Index indexOffset = vertices.getNumElements();
+    model::Index indexOffset = (model::Index)vertices.getNumElements();
 
     { // new indices
         const uint32_t* hullIndices = hull.getIndexPointer();
@@ -201,7 +201,7 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
 }
 
 void CollisionRenderMeshCache::collectGarbage() {
-    uint32_t numShapes = _pendingGarbage.size();
+    uint32_t numShapes = (uint32_t)_pendingGarbage.size();
     for (uint32_t i = 0; i < numShapes; ++i) {
         CollisionRenderMeshCache::Key key = _pendingGarbage[i];
         CollisionMeshMap::const_iterator itr = _meshMap.find(key);
