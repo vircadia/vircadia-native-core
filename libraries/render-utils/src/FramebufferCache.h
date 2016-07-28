@@ -11,12 +11,9 @@
 
 #include <QSize>
 
-#include <gpu/Framebuffer.h>
+#include <mutex>
+#include <gpu/Forward.h>
 #include <DependencyManager.h>
-
-namespace gpu {
-class Batch;
-}
 
 /// Stores cached textures, including render-to-texture targets.
 class FramebufferCache : public Dependency {
@@ -47,9 +44,6 @@ public:
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
 
 private:
-    FramebufferCache();
-    virtual ~FramebufferCache();
-
     void createPrimaryFramebuffer();
 
     gpu::FramebufferPointer _shadowFramebuffer;
@@ -64,6 +58,9 @@ private:
 
     QSize _frameBufferSize{ 100, 100 };
     int _AOResolutionLevel = 1; // AO perform at half res
+
+    std::mutex _mutex;
+    std::list<gpu::FramebufferPointer> _cachedFramebuffers;
 
     // Resize/reallocate the buffers used for AO
     // the size of the AO buffers is scaled by the AOResolutionScale;

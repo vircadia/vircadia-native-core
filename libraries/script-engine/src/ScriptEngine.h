@@ -168,6 +168,8 @@ public:
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
+    void setEmitScriptUpdatesFunction(std::function<bool()> func) { _emitScriptUpdates = func; }
+
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
@@ -236,6 +238,9 @@ protected:
     QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+
+    std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
+
 };
 
 #endif // hifi_ScriptEngine_h

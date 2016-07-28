@@ -198,12 +198,16 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
+                                               bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
     properties.setModelURL(modelUrl);
+    properties.setShapeTypeFromString(shapeType);
+    properties.setDynamic(dynamic);
     properties.setPosition(position);
+    properties.setGravity(gravity);
     return addEntity(properties);
 }
 
