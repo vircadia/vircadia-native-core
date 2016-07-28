@@ -438,13 +438,11 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             remapTextures();
 
             // update whether the model should be showing collision mesh (this may flag for fixupInScene)
-            ShapeType type = getShapeType();
-            bool shouldShowCollisionGeometry = type != SHAPE_TYPE_STATIC_MESH &&
-                type != SHAPE_TYPE_NONE &&
-                (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
-            if (shouldShowCollisionGeometry != _showCollisionGeometry) {
-                _showCollisionGeometry = shouldShowCollisionGeometry;
-                if (_showCollisionGeometry) {
+            bool showingCollisionGeometry = (bool)(args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS);
+            if (showingCollisionGeometry != _showCollisionGeometry) {
+                ShapeType type = getShapeType();
+                _showCollisionGeometry = showingCollisionGeometry;
+                if (_showCollisionGeometry && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
                     // NOTE: it is OK if _collisionMeshKey is nullptr
                     model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
                     // NOTE: the model will render the collisionGeometry if it has one
