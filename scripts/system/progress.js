@@ -39,6 +39,7 @@
         background2D = {},
         bar2D = {},
         SCALE_2D = 0.35, // Scale the SVGs for 2D display.
+        //SCALE_2D = 1.0, // Scale the SVGs for 2D display.
         background3D = {},
         bar3D = {},
         PROGRESS_3D_DIRECTION = 0.0, // Degrees from avatar orientation.
@@ -96,19 +97,41 @@
         });
     }
 
+    var maxSeen = 0;
+    var bestRawProgress = 0;
+    var wasActive = false;
     function onDownloadInfoChanged(info) {
         var i;
 
         // Update raw progress value
         if (info.downloading.length + info.pending === 0) {
+            wasActive = false;
             rawProgress = 100;
+            bestRawProgress = 100;
         } else {
-            rawProgress = 0;
-            for (i = 0; i < info.downloading.length; i += 1) {
-                rawProgress += info.downloading[i];
+            var count = info.downloading.length + info.pending;
+            if (!wasActive) {
+                wasActive = true;
+                if (count > maxSeen) {
+                    maxSeen = count;
+                }
+                bestRawProgress = 0;
             }
-            rawProgress = rawProgress / (info.downloading.length + info.pending);
+            //for (i = 0; i < info.downloading.length; i += 1) {
+                //rawProgress += info.downloading[i];
+            //}
+            //rawProgress = rawProgress / (info.downloading.length + info.pending);
+            rawProgress = ((maxSeen - count) / maxSeen) * 100;
+            //rawProgress += 1;
+            //if (rawProgress > 90) {
+                //rawProgress = 20
+            //}
+
+            if (rawProgress > bestRawProgress) {
+                bestRawProgress = rawProgress;
+            }
         }
+        //print(rawProgress, bestRawProgress, maxSeen);
     }
 
     function createOverlays() {
@@ -126,9 +149,9 @@
             bar3D.overlay = Overlays.addOverlay("image3d", {
                 url: BAR_URL,
                 subImage: {
-                    x: BAR_WIDTH,
+                    x: 0,
                     y: 0,
-                    width: BAR_WIDTH,
+                    width: 480,
                     height: BAR_HEIGHT
                 },
                 scale: SCALE_3D * BAR_WIDTH,
@@ -150,7 +173,7 @@
             bar2D.overlay = Overlays.addOverlay("image", {
                 imageURL: BAR_URL,
                 subImage: {
-                    x: BAR_WIDTH,
+                    x: 0,
                     y: 0,
                     width: BAR_WIDTH,
                     height: BAR_HEIGHT
@@ -168,16 +191,30 @@
         Overlays.deleteOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay);
     }
 
+    var b = 0;
     function update() {
+        /*
+        maxSeen = 100;
+        b++;
+        rawProgress = b;
+        if (rawProgress == 100) {
+            b = 0
+        }
+        bestRawProgress = rawProgress;
+        print(rawProgress, bestRawProgress);
+        */
+
+        //print(rawProgress, bestRawProgress, maxSeen);
         var viewport,
             eyePosition,
             avatarOrientation;
 
-        if (isOnHMD !== HMD.active) {
-            deleteOverlays();
-            isOnHMD = !isOnHMD;
-            createOverlays();
-        }
+        hmdActive = HMD.active;
+        //if (isOnHMD !== HMD.active) {
+            //deleteOverlays();
+            //isOnHMD = !isOnHMD;
+            //createOverlays();
+        //}
 
         // Calculate progress value to display
         if (rawProgress === 0 && displayProgress <= DISPLAY_PROGRESS_MINOR_MAXIMUM) {
@@ -187,6 +224,7 @@
         } else if (rawProgress > displayProgress) {
             displayProgress = Math.min(rawProgress, displayProgress + DISPLAY_PROGRESS_MAJOR_INCREMENT);
         } // else (rawProgress === displayProgress); do nothing.
+        displayProgress = bestRawProgress;
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
@@ -232,7 +270,7 @@
                     y: 0,
                     width: BAR_WIDTH,
                     height: BAR_HEIGHT
-                }
+                },
             });
 
             // Update position
@@ -258,18 +296,23 @@
                     windowWidth = viewport.x;
                     windowHeight = viewport.y;
 
+                    var yOffset = hmdActive ? -300 : 0;
+
                     Overlays.editOverlay(background2D.overlay, {
                         x: windowWidth / 2 - background2D.width / 2,
-                        y: windowHeight - background2D.height - bar2D.height
+                        y: windowHeight - background2D.height - bar2D.height + yOffset
                     });
 
                     Overlays.editOverlay(bar2D.overlay, {
                         x: windowWidth / 2 - bar2D.width / 2,
-                        y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2
+                        y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
                     });
                 }
             }
         }
+    }
+
+    function setProgressBar(progress) {
     }
 
     function setUp() {
@@ -302,6 +345,7 @@
     setUp();
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
-    Script.update.connect(update);
+    //Script.update.connect(update);
+    Script.setInterval(update, 16);
     Script.scriptEnding.connect(tearDown);
 }());
