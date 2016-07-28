@@ -1443,7 +1443,8 @@ function MyController(hand) {
     };
 
     this.distanceHolding = function(deltaTime, timestamp) {
-        if (this.triggerSmoothedReleased()) {
+        
+        if (!this.triggerClicked) {    
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -1761,7 +1762,7 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
 
-        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+        if (this.state == STATE_NEAR_GRABBING && !this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
