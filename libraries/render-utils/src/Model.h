@@ -82,8 +82,6 @@ public:
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
 
-    void setShowCollisionMesh(bool value);
-
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
         return !_needsReload && isRenderable() && isActive();
     }
@@ -395,7 +393,6 @@ protected:
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    bool _showCollisionGeometry { false };
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;

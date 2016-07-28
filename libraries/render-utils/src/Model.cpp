@@ -118,29 +118,8 @@ Model::~Model() {
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
-void Model::setShowCollisionMesh(bool value) {
-    if (_showCollisionGeometry != value) {
-        _showCollisionGeometry = value;
-        _needsFixupInScene = true;
-    }
-}
-
 bool Model::needsFixupInScene() const {
-    if ((_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded()) {
-        if (_showCollisionGeometry && _collisionGeometry) {
-            return true;
-        }
-        if (!_meshStates.isEmpty() || (_renderGeometry && _renderGeometry->getMeshes().empty())) {
-            if (_needsUpdateTextures) {
-                if (!_renderGeometry->areTexturesLoaded()) {
-                    return false;
-                }
-                _needsUpdateTextures = false;
-            }
-            return true;
-        }
-    }
-    return false;
+    return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
 // TODO?: should we combine translation and rotation into single method to avoid double-work?
@@ -610,13 +589,13 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = (_showCollisionGeometry && _collisionGeometry) || isLoaded();
+    bool readyToRender = _collisionGeometry || isLoaded();
     if (!_addedToScene && readyToRender) {
         createRenderItemSet();
     }
 
     bool somethingAdded = false;
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_collisionGeometry) {
         if (_collisionRenderItems.empty()) {
             foreach (auto renderItem, _collisionRenderItemsSet) {
                 auto item = scene->allocateID();
@@ -1237,7 +1216,7 @@ AABox Model::getRenderableMeshBound() const {
 }
 
 void Model::createRenderItemSet() {
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_collisionGeometry) {
         if (_collisionRenderItemsSet.empty()) {
             createCollisionRenderItemSet();
         }
@@ -1332,7 +1311,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
     render::PendingChanges pendingChanges;
 
     bool addedPendingChanges = false;
-    if (_showCollisionGeometry && _collisionGeometry) {
+    if (_collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -1374,13 +1353,12 @@ public:
 };
 
 void Model::setCollisionMesh(model::MeshPointer mesh) {
-    _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
-
-    // TODO: At the moment we create the collision mesh for every model that has a collision shape
-    // as soon as we know the shape, but we SHOULD only ever create the render mesh when we need it.
-    if (_showCollisionGeometry) {
-        _needsFixupInScene = true;
+    if (mesh) {
+        _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
+    } else {
+        _collisionGeometry.reset();
     }
+    _needsFixupInScene = true;
 }
 
 ModelBlender::ModelBlender() :

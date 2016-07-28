@@ -29,6 +29,9 @@
 #include "RenderableModelEntityItem.h"
 #include "RenderableEntityItem.h"
 
+static CollisionRenderMeshCache collisionMeshCache;
+
+
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()) };
     entity->setProperties(properties);
@@ -434,11 +437,28 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             // Remap textures for the next frame to avoid flicker
             remapTextures();
 
-            // update whether the model should be showing collision mesh
-            // (this may flag for fixupInScene)
-            bool shouldShowCollisionMesh = getShapeType() != SHAPE_TYPE_STATIC_MESH &&
+            // update whether the model should be showing collision mesh (this may flag for fixupInScene)
+            ShapeType type = getShapeType();
+            bool shouldShowCollisionGeometry = type != SHAPE_TYPE_STATIC_MESH &&
+                type != SHAPE_TYPE_NONE &&
                 (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
-            _model->setShowCollisionMesh(shouldShowCollisionMesh);
+            if (shouldShowCollisionGeometry != _showCollisionGeometry) {
+                _showCollisionGeometry = shouldShowCollisionGeometry;
+                if (_showCollisionGeometry) {
+                    // NOTE: it is OK if _collisionMeshKey is nullptr
+                    model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
+                    // NOTE: the model will render the collisionGeometry if it has one
+                    _model->setCollisionMesh(mesh);
+                } else {
+                    // release mesh
+                    if (_collisionMeshKey) {
+                        collisionMeshCache.releaseMesh(_collisionMeshKey);
+                    }
+                    // clear model's collision geometry
+                    model::MeshPointer mesh = nullptr;
+                    _model->setCollisionMesh(mesh);
+                }
+            }
 
             if (_model->needsFixupInScene()) {
                 render::PendingChanges pendingChanges;
@@ -954,21 +974,15 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 }
 
-static CollisionRenderMeshCache collisionMeshCache;
-
 void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape) {
     const void* key = static_cast<const void*>(shape);
     if (_collisionMeshKey != key) {
         if (_collisionMeshKey) {
-            // releasing the shape is not strictly necessary, but
-            // we do it as hint to the cache's garbage collection system
             collisionMeshCache.releaseMesh(_collisionMeshKey);
         }
         _collisionMeshKey = key;
-        model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
-        if (_model) {
-            _model->setCollisionMesh(mesh);
-        }
+        // toggle _showCollisionGeometry forces re-evaluation later
+        _showCollisionGeometry = !_showCollisionGeometry;
     }
 }
 
