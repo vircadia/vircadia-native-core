@@ -215,6 +215,7 @@ public:
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
     bool isAboutToQuit() const { return _aboutToQuit; }
+    bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that

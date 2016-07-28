@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 
@@ -21,6 +22,9 @@ namespace gpu {
     class Context;
     using ContextPointer = std::shared_ptr<Context>;
     class GPUObject;
+    class Frame;
+    using FramePointer = std::shared_ptr<Frame>;
+    using FrameHandler = std::function<void(Frame& frame)>;
 
     using Stamp = int;
     using uint32 = uint32_t;
@@ -81,6 +85,15 @@ namespace gpu {
     using Textures = std::vector<TexturePointer>;
     class TextureView;
     using TextureViews = std::vector<TextureView>;
+
+    struct StereoState {
+        bool _enable{ false };
+        bool _skybox{ false };
+        // 0 for left eye, 1 for right eye
+        uint8 _pass{ 0 };
+        Mat4 _eyeViews[2];
+        Mat4 _eyeProjections[2];
+    };
 
     namespace gl {
         class GLBuffer;
