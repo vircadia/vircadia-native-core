@@ -15,6 +15,7 @@
 
 #include <functional>
 
+#include <QtCore/QObject>
 #include <QtCore/QByteArray>
 
 using Ticket = QByteArray;
@@ -33,6 +34,21 @@ public:
 
     static void requestTicket(TicketRequestCallback callback);
     static void updateLocation(QString status, QUrl locationUrl);
+    static void openInviteOverlay();
+
+};
+
+class SteamScriptingInterface : public QObject {
+    Q_OBJECT
+
+    Q_PROPERTY(bool isRunning READ isRunning)
+
+public:
+    SteamScriptingInterface(QObject* parent) : QObject(parent) {}
+
+public slots:
+    bool isRunning() const { return SteamClient::isRunning(); }
+    void openInviteOverlay() const { SteamClient::openInviteOverlay(); }
 
 };
 

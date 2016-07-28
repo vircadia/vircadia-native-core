@@ -149,7 +149,7 @@ private:
 };
 
 SteamCallbackManager::SteamCallbackManager() :
-_gameRichPresenceJoinRequestedResponse(this, &SteamCallbackManager::onGameRichPresenceJoinRequested)
+    _gameRichPresenceJoinRequestedResponse(this, &SteamCallbackManager::onGameRichPresenceJoinRequested)
 {
 }
 
@@ -161,14 +161,13 @@ void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinR
         url.remove(-CONNECT_SUFFIX.size(), CONNECT_SUFFIX.size());
     }
 
-    qDebug() << "Joining Steam Friends at:" << url;
+    qDebug() << "Joining Steam Friend at:" << url;
     auto mimeData = new QMimeData();
     mimeData->setUrls(QList<QUrl>() << QUrl(url));
     auto event = new QDropEvent(QPointF(0,0), Qt::MoveAction, mimeData, Qt::LeftButton, Qt::NoModifier);
 
     QCoreApplication::postEvent(qApp, event);
 }
-
 
 static std::atomic_bool initialized { false };
 static SteamCallbackManager steamCallbackManager;
@@ -238,4 +237,13 @@ void SteamClient::updateLocation(QString status, QUrl locationUrl) {
 
     SteamFriends()->SetRichPresence("status", status.toLocal8Bit().data());
     SteamFriends()->SetRichPresence("connect", connectStr.toLocal8Bit().data());
+}
+
+void SteamClient::openInviteOverlay() {
+    if (!initialized) {
+        return;
+    }
+
+    qDebug() << "Inviting steam friends";
+    SteamFriends()->ActivateGameOverlayInviteDialog(CSteamID());
 }

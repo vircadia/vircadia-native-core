@@ -1599,6 +1599,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+
+    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
     
 
     _glWidget->installEventFilter(offscreenUi.data());
@@ -4799,6 +4801,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
