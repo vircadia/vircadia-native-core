@@ -115,7 +115,6 @@ public:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
     bool isLoaded() const { return (bool)_renderGeometry; }
-    bool isCollisionLoaded() const { return (bool)_collisionGeometry; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
@@ -142,13 +141,9 @@ public:
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
     const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
-    /// Provided as a convenience, will crash if !isCollisionLoaded()
-    const FBXGeometry& getCollisionFBXGeometry() const { assert(isCollisionLoaded()); return _collisionGeometry->getFBXGeometry(); }
 
     // Set the model to use for collisions.
     // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
-    const QUrl& getCollisionURL() const { return _collisionUrl; }
 
     bool isActive() const { return isLoaded(); }
 
@@ -246,7 +241,6 @@ public:
 
 public slots:
     void loadURLFinished(bool success);
-    void loadCollisionModelURLFinished(bool success);
 
 signals:
     void setURLFinished(bool success);
@@ -288,7 +282,6 @@ protected:
     Geometry::Pointer _collisionGeometry;
 
     GeometryResourceWatcher _renderWatcher;
-    GeometryResourceWatcher _collisionWatcher;
 
     glm::vec3 _translation;
     glm::quat _rotation;
@@ -356,7 +349,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    QUrl _collisionUrl;
     bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
@@ -404,7 +396,6 @@ protected:
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
     bool _showCollisionGeometry { false };
-    bool _readyToShowCollisionGeometry { false };
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;

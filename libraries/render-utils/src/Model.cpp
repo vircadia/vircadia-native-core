@@ -82,7 +82,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _renderGeometry(),
     _collisionGeometry(),
     _renderWatcher(_renderGeometry),
-    _collisionWatcher(_collisionGeometry),
     _translation(0.0f),
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
@@ -111,7 +110,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 
     connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
-    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadCollisionModelURLFinished);
 }
 
 Model::~Model() {
@@ -121,17 +119,15 @@ Model::~Model() {
 AbstractViewStateInterface* Model::_viewState = NULL;
 
 void Model::setShowCollisionMesh(bool value) {
-    if (_readyToShowCollisionGeometry) {
-        if (_showCollisionGeometry != value) {
-            _showCollisionGeometry = value;
-            _needsFixupInScene = true;
-        }
+    if (_showCollisionGeometry != value) {
+        _showCollisionGeometry = value;
+        _needsFixupInScene = true;
     }
 }
 
 bool Model::needsFixupInScene() const {
     if ((_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded()) {
-        if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
+        if (_showCollisionGeometry && _collisionGeometry) {
             return true;
         }
         if (!_meshStates.isEmpty() || (_renderGeometry && _renderGeometry->getMeshes().empty())) {
@@ -614,13 +610,13 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) || isLoaded();
+    bool readyToRender = (_showCollisionGeometry && _collisionGeometry) || isLoaded();
     if (!_addedToScene && readyToRender) {
         createRenderItemSet();
     }
 
     bool somethingAdded = false;
-    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItems.empty()) {
             foreach (auto renderItem, _collisionRenderItemsSet) {
                 auto item = scene->allocateID();
@@ -862,23 +858,6 @@ void Model::loadURLFinished(bool success) {
         _visualGeometryRequestFailed = true;
     }
     emit setURLFinished(success);
-}
-
-void Model::setCollisionModelURL(const QUrl& url) {
-    if (_collisionUrl == url && _collisionWatcher.getURL() == url) {
-        return;
-    }
-    _collisionUrl = url;
-    _collisionGeometryRequestFailed = false;
-    _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
-}
-
-void Model::loadCollisionModelURLFinished(bool success) {
-    if (!success) {
-        _collisionGeometryRequestFailed  = true;
-    }
-
-    emit setCollisionModelURLFinished(success);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -1258,7 +1237,7 @@ AABox Model::getRenderableMeshBound() const {
 }
 
 void Model::createRenderItemSet() {
-    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         if (_collisionRenderItemsSet.empty()) {
             createCollisionRenderItemSet();
         }
@@ -1353,7 +1332,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
     render::PendingChanges pendingChanges;
 
     bool addedPendingChanges = false;
-    if (_showCollisionGeometry && _readyToShowCollisionGeometry && _collisionGeometry) {
+    if (_showCollisionGeometry && _collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -1395,14 +1374,8 @@ public:
 };
 
 void Model::setCollisionMesh(model::MeshPointer mesh) {
-    _collisionWatcher.stopWatching();
     _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
 
-    // HACK: we don't want to show the _collisionGeometry until we're ready (e.g. it has been created)
-    // hence we track whether it has been created using _readyToShowCollisionGeoemtry, because there
-    // is an ambiguous case where _collisionGeometry is valid (from CompoundURL) but has not yet been
-    // properly computed (zeroed offset transform) using the CollisionRenderMeshCache.
-    //
     // TODO: At the moment we create the collision mesh for every model that has a collision shape
     // as soon as we know the shape, but we SHOULD only ever create the render mesh when we need it.
     if (_showCollisionGeometry) {

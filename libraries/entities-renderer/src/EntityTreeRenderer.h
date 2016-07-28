@@ -65,7 +65,6 @@ public:
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
     virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) override;
 
     /// clears the tree
     virtual void clear() override;

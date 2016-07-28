@@ -494,7 +494,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL(), renderer->getEntityLoadingPriority(*this));
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
-        } else if ((QUrl(getModelURL()) != _model->getURL() || QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
+        } else if (QUrl(getModelURL()) != _model->getURL()) {
             QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
                 Q_ARG(ModelPointer, _model),
                 Q_ARG(const QString&, getModelURL()),
@@ -566,6 +566,18 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::setShapeType(ShapeType type) {
+    ModelEntityItem::setShapeType(type);
+    if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        if (!_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+        }
+    } else if (_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+        // the compoundURL has been set but the shapeType does not agree
+        _compoundShapeResource.reset();
+    }
+}
+
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
@@ -575,6 +587,9 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
+        if (_shapeType == SHAPE_TYPE_COMPOUND) {
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+        }
     }
 }
 
@@ -582,7 +597,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model || _model->getCollisionURL().isEmpty()) {
+        if (!_model || _compoundShapeURL.isEmpty()) {
             EntityTreePointer tree = getTree();
             if (tree) {
                 QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -595,15 +610,18 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             return false;
         }
 
-        if (_model->isLoaded() && _model->isCollisionLoaded()) {
-            // we have both URLs AND both geometries AND they are both fully loaded.
-            if (_needsInitialSimulation) {
-                // the _model's offset will be wrong until _needsInitialSimulation is false
-                PerformanceTimer perfTimer("_model->simulate");
-                doInitialModelSimulation();
+        if (_model->isLoaded()) {
+            if (_compoundShapeResource && _compoundShapeResource->isLoaded()) {
+                // we have both URLs AND both geometries AND they are both fully loaded.
+                if (_needsInitialSimulation) {
+                    // the _model's offset will be wrong until _needsInitialSimulation is false
+                    PerformanceTimer perfTimer("_model->simulate");
+                    doInitialModelSimulation();
+                }
+                return true;
+            } else if (!_compoundShapeURL.isEmpty()) {
+                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(_compoundShapeURL);
             }
-
-            return true;
         }
 
         // the model is still being downloaded.
@@ -625,8 +643,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert that all geometries exist and are loaded
-        assert(_model && _model->isLoaded() && _model->isCollisionLoaded());
-        const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
+        assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
+        const FBXGeometry& collisionGeometry = _compoundShapeResource->getFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
         pointCollection.clear();
@@ -956,8 +974,8 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
-    if (EntityItem::contains(point) && _model && _model->isCollisionLoaded()) {
-        return _model->getCollisionFBXGeometry().convexHullContains(worldToEntity(point));
+    if (EntityItem::contains(point) && _model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
+        return _compoundShapeResource->getFBXGeometry().convexHullContains(worldToEntity(point));
     }
 
     return false;
