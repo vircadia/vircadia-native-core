@@ -23,6 +23,7 @@ Rectangle {
     property alias usersText: users.text;
     property int textPadding: 20;
     property int textSize: 24;
+    property int textSizeSmall: 18;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property string thumbnail: defaultThumbnail;
     property string path: "";
@@ -80,7 +81,7 @@ Rectangle {
     }
     RalewayRegular {
         id: users;
-        size: textSize;
+        size: textSizeSmall;
         color: hifi.colors.white;
         anchors {
             bottom: parent.bottom;

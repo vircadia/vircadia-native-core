@@ -81,7 +81,7 @@ Window {
                 path: model.name;
                 thumbnail: model.thumbnail;
                 placeText: model.name;
-                usersText: model.online_users + ((model.online_users === 1) ? ' user' : ' users')
+                usersText: model.online_users + ((model.online_users === 1) ? ' person' : ' people');
             }
         }
 
