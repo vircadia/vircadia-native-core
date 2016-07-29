@@ -28,10 +28,10 @@
         FADE_OUT_WAIT = 1000, // Wait before starting to fade out after progress 100%.
         visible = false,
         BAR_WIDTH = 480, // Dimension of SVG in pixels of visible portion (half) of the bar.
-        BAR_HEIGHT = 30,
+        BAR_HEIGHT = 10,
         BAR_URL = Script.resolvePath("assets/images/progress-bar.svg"),
-        BACKGROUND_WIDTH = 540,
-        BACKGROUND_HEIGHT = 90,
+        BACKGROUND_WIDTH = 520,
+        BACKGROUND_HEIGHT = 50,
         BACKGROUND_URL = Script.resolvePath("assets/images/progress-bar-background.svg"),
         isOnHMD = false,
         windowWidth = 0,
@@ -45,8 +45,9 @@
         PROGRESS_3D_DIRECTION = 0.0, // Degrees from avatar orientation.
         PROGRESS_3D_DISTANCE = 0.602, // Horizontal distance from avatar position.
         PROGRESS_3D_ELEVATION = -0.8, // Height of top middle of top notification relative to avatar eyes.
+        PROGRESS_3D_ELEVATION = -0.0, // Height of top middle of top notification relative to avatar eyes.
         PROGRESS_3D_YAW = 0.0, // Degrees relative to notifications direction.
-        PROGRESS_3D_PITCH = -60.0, // Degrees from vertical.
+        PROGRESS_3D_PITCH = -0.0, // Degrees from vertical.
         SCALE_3D = 0.0011, // Scale the bar SVG for 3D display.
         BACKGROUND_3D_SIZE = {
             x: 0.76,
@@ -57,7 +58,7 @@
             green: 2,
             blue: 2
         },
-        BACKGROUND_3D_ALPHA = 0.7;
+        BACKGROUND_3D_ALPHA = 1.0;
 
     function fade() {
 
@@ -119,6 +120,7 @@
             wasActive = false;
             rawProgress = 100;
             bestRawProgress = 100;
+            cooldown = 0;
         } else {
             var count = info.downloading.length + info.pending;
             if (!wasActive) {
@@ -128,17 +130,8 @@
             if (count > maxSeen) {
                 maxSeen = count;
             }
-            if (cooldown < 0) {
-                print("PROGRESS: OUT OF COOLDOWN");
-                //for (i = 0; i < info.downloading.length; i += 1) {
-                    //rawProgress += info.downloading[i];
-                //}
-                //rawProgress = rawProgress / (info.downloading.length + info.pending);
+            if (cooldown <= 0) {
                 rawProgress = ((maxSeen - count) / maxSeen) * 100;
-                //rawProgress += 1;
-                //if (rawProgress > 90) {
-                    //rawProgress = 20
-                //}
 
                 if (rawProgress > bestRawProgress) {
                     bestRawProgress = rawProgress;
@@ -208,46 +201,23 @@
     var b = 0;
     function update() {
         cooldown -= 16;
-        /*
-        maxSeen = 100;
-        b++;
-        rawProgress = b;
-        if (rawProgress == 100) {
-            b = 0
-        }
-        bestRawProgress = rawProgress;
-        print(rawProgress, bestRawProgress);
-        */
-
-        //print(rawProgress, bestRawProgress, maxSeen);
         var viewport,
             eyePosition,
             avatarOrientation;
 
         hmdActive = HMD.active;
-        //if (isOnHMD !== HMD.active) {
-            //deleteOverlays();
-            //isOnHMD = !isOnHMD;
-            //createOverlays();
-        //}
+        // if (isOnHMD !== HMD.active) {
+        //     deleteOverlays();
+        //     isOnHMD = !isOnHMD;
+        //     createOverlays();
+        // }
 
-        /*
-        // Calculate progress value to display
-        if (rawProgress === 0 && displayProgress <= DISPLAY_PROGRESS_MINOR_MAXIMUM) {
-            displayProgress = Math.min(displayProgress + DISPLAY_PROGRESS_MINOR_INCREMENT, DISPLAY_PROGRESS_MINOR_MAXIMUM);
-        } else if (rawProgress < displayProgress) {
-            displayProgress = rawProgress;
-        } else if (rawProgress > displayProgress) {
-            displayProgress = Math.min(rawProgress, displayProgress + DISPLAY_PROGRESS_MAJOR_INCREMENT);
-        } // else (rawProgress === displayProgress); do nothing.
-        //displayProgress = bestRawProgress;
-        //*/
         if (displayProgress < rawProgress) {
             var diff = rawProgress - displayProgress;
             if (diff < 0.1) {
                 displayProgress = rawProgress;
             } else {
-                displayProgress += diff * 0.1;
+                displayProgress += diff * 0.05;
             }
         }
         //print('PROGRESS:', displayProgress);
@@ -323,7 +293,7 @@
                     windowWidth = viewport.x;
                     windowHeight = viewport.y;
 
-                    var yOffset = hmdActive ? -300 : 0;
+                    var yOffset = hmdActive ? -300 : -10;
 
                     Overlays.editOverlay(background2D.overlay, {
                         x: windowWidth / 2 - background2D.width / 2,
