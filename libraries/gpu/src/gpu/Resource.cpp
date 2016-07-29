@@ -282,11 +282,6 @@ void Buffer::markDirty(Size offset, Size bytes) {
     _pages.markRegion(offset, bytes);
 }
 
-void Buffer::applyUpdate(const Update& update) {
-    _renderPages = update.pages;
-     update.updateOperator(_renderSysmem);
- }
-
 Buffer::Update Buffer::getUpdate() const {
     static Update EMPTY_UPDATE;
     if (!_pages) {
@@ -317,6 +312,21 @@ Buffer::Update Buffer::getUpdate() const {
         }
     };
     return result;
+}
+
+void Buffer::applyUpdate(const Update& update) {
+    _renderPages = update.pages;
+    update.updateOperator(_renderSysmem);
+}
+
+void Buffer::flush() {
+    _renderPages = _pages;
+    _renderSysmem.resize(_sysmem.getSize());
+    auto dirtyPages = _pages.getMarkedPages();
+    for (Size page : dirtyPages) {
+        Size offset = page * _pages._pageSize;
+        memcpy(_renderSysmem.editData() + offset, _sysmem.readData() + offset, _pages._pageSize);
+    }
 }
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {

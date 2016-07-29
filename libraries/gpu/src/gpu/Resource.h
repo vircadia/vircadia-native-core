@@ -105,8 +105,6 @@ public:
     };
 
 protected:
-    using Sysmem = gpu::Sysmem;
-
     Resource() {}
     virtual ~Resource() {}
 
@@ -135,7 +133,7 @@ struct PageManager {
     uint8 _flags{ 0 };
     const Size _pageSize;
 
-    operator bool const() {
+    operator bool() const {
         return (*this)(DIRTY);
     }
 
@@ -346,6 +344,11 @@ public:
     // Main thread operation to say that the buffer is ready to be used as a frame
     Update getUpdate() const;
 
+    // For use by the render thread to avoid the intermediate step of getUpdate/applyUpdate
+    void flush();
+
+    // FIXME don't maintain a second buffer continuously.  We should be able to apply updates 
+    // directly to the GL object and discard _renderSysmem and _renderPages
     mutable PageManager _renderPages;
     Sysmem _renderSysmem;
 
