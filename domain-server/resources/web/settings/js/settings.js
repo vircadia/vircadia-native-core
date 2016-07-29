@@ -14,6 +14,11 @@ var Settings = {
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
   ADD_CATEGORY_BUTTON_CLASS: 'add-category',
   ADD_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-plus add-category',
+  TOGGLE_CATEGORY_COLUMN_CLASS: 'toggle-category',
+  TOGGLE_CATEGORY_SPAN_CLASS: 'toggle-category-icon',
+  TOGGLE_CATEGORY_SPAN_CLASSES: 'glyphicon toggle-category-icon',
+  TOGGLE_CATEGORY_EXPANDED_CLASS: 'glyphicon-triangle-bottom',
+  TOGGLE_CATEGORY_CONTRACTED_CLASS: 'glyphicon-triangle-right',
   DEL_CATEGORY_BUTTON_CLASS: 'del-category',
   DEL_CATEGORY_SPAN_CLASSES: 'glyphicon glyphicon-remove del-category',
   MOVE_UP_BUTTON_CLASS: 'move-up',
@@ -182,6 +187,10 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_CATEGORY_BUTTON_CLASS, function(){
     deleteTableCategory($(this).closest('tr'));
+  });
+
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.TOGGLE_CATEGORY_COLUMN_CLASS, function(){
+    toggleTableCategory($(this).closest('tr'));
   });
 
   $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
@@ -937,9 +946,10 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, keypath, setting_value, isLocked) {
-  // TODO: enforce category sorting
   var isArray = !_.has(setting, 'key');
-
+  var categoryKey = setting.categorize_by_key;
+  var isCategorized = !!categoryKey && isArray;
+ 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
   }
@@ -1013,8 +1023,6 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     var rowIsObject = setting.columns.length > 1;
 
     _.each(setting_value, function(row, rowIndexOrName) {
-      var categoryKey = setting.categorize_by_key;
-      var isCategorized = !!categoryKey && isArray;
       var categoryPair = {};
       var categoryValue = "";
       if (isCategorized) {
@@ -1118,7 +1126,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 function makeTableCategoryHeader(categoryKey, categoryValue, numVisibleColumns, canRemove, message) {
   var html =
     "<tr class='" + Settings.DATA_CATEGORY_CLASS + "' data-key='" + categoryKey + "' data-category='" + categoryValue + "'>" +
-      "<td colspan='" + (numVisibleColumns - 1) + "'>" +
+      "<td colspan='" + (numVisibleColumns - 1) + "' class='" + Settings.TOGGLE_CATEGORY_COLUMN_CLASS + "'>" +
+        "<span class='" + Settings.TOGGLE_CATEGORY_SPAN_CLASSES + " " + Settings.TOGGLE_CATEGORY_EXPANDED_CLASS + "'></span>" +
         "<span message='" + message + "'>" + categoryValue + "</span>" +
       "</td>" +
       ((canRemove) ? (
@@ -1418,7 +1427,7 @@ function addTableCategory($categoryInputRow) {
 
     setTimeout(function () {
       $categoryInputRow.removeClass("has-warning");
-    }, 1000);
+    }, 400);
 
     return;
   }
@@ -1475,6 +1484,25 @@ function deleteTableCategory($categoryHeaderRow) {
         $(this).remove();
       }
     });
+}
+
+function toggleTableCategory($categoryHeaderRow) {
+  var $icon = $categoryHeaderRow.find("." + Settings.TOGGLE_CATEGORY_SPAN_CLASS).first();
+  var categoryName = $categoryHeaderRow.data("category");
+  var wasExpanded = $icon.hasClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  if (wasExpanded) {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS);
+  } else {
+    $icon
+      .addClass(Settings.TOGGLE_CATEGORY_EXPANDED_CLASS)
+      .removeClass(Settings.TOGGLE_CATEGORY_CONTRACTED_CLASS);
+  }
+  $categoryHeaderRow
+    .closest("table")
+    .find("tr[data-category='" + categoryName + "']")
+    .toggleClass("contracted", wasExpanded);
 }
 
 function moveTableRow(row, move_up) {

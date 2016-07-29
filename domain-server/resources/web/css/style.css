@@ -37,8 +37,9 @@ body {
     margin-right: auto;
 }
 
-.table .value-category {
+.value-category:not(.inputs) {
   font-weight: bold;
+  background: #f5f5f5;
 }
 
 .table .value-category [message]::after {
@@ -47,8 +48,18 @@ body {
   font-weight: normal;
 }
 
-.table .value-category.inputs {
-  font-weight: normal;
+.table .value-row.contracted,
+.table .inputs.contracted {
+  display: none;
+}
+
+.toggle-category {
+  cursor: pointer;
+}
+
+.toggle-category-icon {
+  padding: 4px;
+  margin-right: 8px;
 }
 
 .glyphicon-remove {
