@@ -250,7 +250,7 @@
                 displayProgress += diff * 0.1;
             }
         }
-        print('PROGRESS:', displayProgress);
+        //print('PROGRESS:', displayProgress);
 
 
         // Update state
