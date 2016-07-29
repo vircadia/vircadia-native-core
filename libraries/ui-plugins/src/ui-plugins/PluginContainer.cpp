@@ -8,6 +8,7 @@
 #include "PluginContainer.h"
 
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
@@ -162,6 +163,8 @@ void PluginContainer::setBoolSetting(const QString& settingName, bool value) {
 }
 
 bool isRenderThread() {
+    return QThread::currentThread() != qApp->thread();
+    // FIXME causes a deadlock on switching display plugins
     auto displayPlugin = PluginContainer::getInstance().getActiveDisplayPlugin();
     return displayPlugin && displayPlugin->isRenderThread();
 }
