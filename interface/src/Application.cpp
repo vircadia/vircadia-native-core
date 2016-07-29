@@ -164,6 +164,13 @@ extern "C" {
 }
 #endif
 
+#include <procedural/ProceduralSkybox.h>
+#include <model/Skybox.h>
+
+static model::Skybox* skybox{ new ProceduralSkybox() } ;
+static NetworkTexturePointer skyboxTexture;
+static bool skyboxTextureLoaded = false;
+
 using namespace std;
 
 static QTimer locationUpdateTimer;
@@ -1211,6 +1218,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
+
+	auto textureCache = DependencyManager::get<TextureCache>();
+	skyboxTexture = textureCache->getTexture(QUrl("https://hifi-public.s3.amazonaws.com/images/SkyboxTextures/FullMoon1024Compressed.jpg"), NetworkTexture::CUBE_TEXTURE);
 
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
@@ -4241,6 +4251,7 @@ namespace render {
 
             // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
+				/*
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -4250,6 +4261,25 @@ namespace render {
                     static const float alpha = 1.0f;
                     background->_stars.render(args, alpha);
                 }
+				*/
+
+				if (!skyboxTextureLoaded && skyboxTexture && skyboxTexture->isLoaded()) {
+					skybox->setColor({ 1.0, 1.0, 1.0 });
+					skyboxTextureLoaded = true;
+					auto texture = skyboxTexture->getGPUTexture();
+					if (texture) {
+						skybox->setCubemap(texture);
+						auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+						auto sceneKeyLight = scene->getKeyLight();
+						sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+						sceneKeyLight->setAmbientMap(texture);
+					} else {
+						skybox->setCubemap(nullptr);
+					}
+				}
+				if (skyboxTextureLoaded) {
+					skybox->render(batch, args->getViewFrustum());
+				}
             }
                 break;
 
@@ -4443,7 +4473,6 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 }
-
 void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
@@ -4469,6 +4498,7 @@ void Application::clearDomainOctreeDetails() {
     getEntities()->clear();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
 
     _recentlyClearedDomain = true;
