@@ -137,6 +137,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         qDebug() << "|  user-permissions: unverified or no username for" << userPerms.getID() << ", so:" << userPerms;
 #endif
     } else {
+        userPerms.setID(verifiedUsername);
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
             userPerms.setVerifiedUserName(verifiedUsername);
