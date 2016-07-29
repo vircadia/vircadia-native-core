@@ -459,7 +459,7 @@
           "can_add_new_categories": true,
           "can_add_new_rows": false,
           "new_category_placeholder": "Add Group",
-          "new_category_message": "Reload to see ranks",
+          "new_category_message": "Save and reload to see ranks",
 
           "groups": [
             {
@@ -554,7 +554,7 @@
           "can_add_new_categories": true,
           "can_add_new_rows": false,
           "new_category_placeholder": "Add Blacklist Group",
-          "new_category_message": "Reload to see ranks",
+          "new_category_message": "Save and reload to see ranks",
 
           "groups": [
             {
