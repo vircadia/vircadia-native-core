@@ -3224,6 +3224,14 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
+    // when +connect_lobby in command line, join steam lobby
+    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+    if (lobbyIndex != -1) {
+        QString lobbyId = arguments().value(lobbyIndex + 1);
+        SteamClient::joinLobby(lobbyId);
+    }
+
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (addressLookupString.isEmpty() && firstRun.get()) {
         qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";

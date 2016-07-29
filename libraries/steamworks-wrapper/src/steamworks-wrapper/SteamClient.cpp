@@ -165,9 +165,7 @@ SteamCallbackManager::SteamCallbackManager() :
 {
 }
 
-void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pCallback) {
-    auto url = QString::fromLocal8Bit(pCallback->m_rgchConnect);
-
+void parseUrlAndGo(QString url) {
     if (url.startsWith(CONNECT_PREFIX) && url.endsWith(CONNECT_SUFFIX)) {
         url.remove(0, CONNECT_PREFIX.size());
         url.remove(-CONNECT_SUFFIX.size(), CONNECT_SUFFIX.size());
@@ -176,40 +174,50 @@ void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinR
     qDebug() << "Joining Steam Friend at:" << url;
     auto mimeData = new QMimeData();
     mimeData->setUrls(QList<QUrl>() << QUrl(url));
-    auto event = new QDropEvent(QPointF(0,0), Qt::MoveAction, mimeData, Qt::LeftButton, Qt::NoModifier);
+    auto event = new QDropEvent(QPointF(0, 0), Qt::MoveAction, mimeData, Qt::LeftButton, Qt::NoModifier);
 
     QCoreApplication::postEvent(qApp, event);
 }
+
+void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pCallback) {
+    auto url = QString::fromLocal8Bit(pCallback->m_rgchConnect);
+
+    parseUrlAndGo(url);
+}
+
+
 
 void SteamCallbackManager::onLobbyCreated(LobbyCreated_t* pCallback) {
     qDebug() << pCallback->m_eResult << pCallback->m_ulSteamIDLobby;
     if (pCallback->m_eResult == k_EResultOK) {
         qDebug() << "Inviting steam friends";
 
-        SteamMatchmaking()->SetLobbyData(pCallback->m_ulSteamIDLobby, "connect",
-                                         SteamFriends()->GetFriendRichPresence(SteamUser()->GetSteamID(), "connect"));
-        SteamMatchmaking()->SetLobbyMemberData(pCallback->m_ulSteamIDLobby,
-                                               "Creator", "true");
+        auto url = SteamFriends()->GetFriendRichPresence(SteamUser()->GetSteamID(), "connect");
+        SteamMatchmaking()->SetLobbyData(pCallback->m_ulSteamIDLobby, "connect", url);
+        SteamMatchmaking()->SetLobbyMemberData(pCallback->m_ulSteamIDLobby, "creator", "true");
         SteamFriends()->ActivateGameOverlayInviteDialog(pCallback->m_ulSteamIDLobby);
     }
 }
 
 void SteamCallbackManager::onGameLobbyJoinRequested(GameLobbyJoinRequested_t* pCallback) {
-    qDebug() << "onGameLobbyJoinRequested";
+    qDebug() << "Joining Steam lobby";
     SteamMatchmaking()->JoinLobby(pCallback->m_steamIDLobby);
 }
 
 void SteamCallbackManager::onLobbyEnter(LobbyEnter_t* pCallback) {
-    qDebug() << "onLobbyEnter";
-    auto creator = SteamMatchmaking()->GetLobbyMemberData(pCallback->m_ulSteamIDLobby, SteamUser()->GetSteamID(), "creator");
-    if (strcmp(creator, "true") == 0) {
-        qDebug() << "Created lobby";
-        SteamMatchmaking()->LeaveLobby(pCallback->m_ulSteamIDLobby);
-    } else if (pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess) {
-        qDebug() << "Success";
-        auto connectValue = SteamMatchmaking()->GetLobbyData(pCallback->m_ulSteamIDLobby, "connect");
-        qDebug() << connectValue;
+    if (pCallback->m_EChatRoomEnterResponse != k_EChatRoomEnterResponseSuccess) {
+        qWarning() << "An error occured while joing the Steam lobby:" << pCallback->m_EChatRoomEnterResponse;
+        return;
     }
+
+    auto creator = SteamMatchmaking()->GetLobbyMemberData(pCallback->m_ulSteamIDLobby,
+                                                          SteamUser()->GetSteamID(), "creator");
+    if (strcmp(creator, "true") != 0) {
+        auto url = SteamMatchmaking()->GetLobbyData(pCallback->m_ulSteamIDLobby, "connect");
+        parseUrlAndGo(url);
+    }
+
+    SteamMatchmaking()->LeaveLobby(pCallback->m_ulSteamIDLobby);
 }
 
 
@@ -218,9 +226,6 @@ static SteamCallbackManager steamCallbackManager;
 
 
 bool SteamClient::isRunning() {
-    if (!initialized) {
-        init();
-    }
     return initialized;
 }
 
@@ -291,4 +296,11 @@ void SteamClient::openInviteOverlay() {
     qDebug() << "Creating steam lobby";
     static const int MAX_LOBBY_SIZE = 20;
     SteamMatchmaking()->CreateLobby(k_ELobbyTypePrivate, MAX_LOBBY_SIZE);
+}
+
+
+void SteamClient::joinLobby(QString lobbyIdStr) {
+    qDebug() << "Trying to join Steam lobby:" << lobbyIdStr;
+    CSteamID lobbyId(lobbyIdStr.toULongLong());
+    SteamMatchmaking()->JoinLobby(lobbyId);
 }

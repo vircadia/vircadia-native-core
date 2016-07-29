@@ -35,6 +35,7 @@ public:
     static void requestTicket(TicketRequestCallback callback);
     static void updateLocation(QString status, QUrl locationUrl);
     static void openInviteOverlay();
+    static void joinLobby(QString lobbyId);
 
 };
 
