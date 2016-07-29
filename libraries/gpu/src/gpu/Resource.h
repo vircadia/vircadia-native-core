@@ -264,7 +264,6 @@ class Buffer : public Resource {
 public:
     using Flag = PageManager::Flag;
     struct Update {
-        Size size;
         PageManager pages;
         Sysmem::Operator updateOperator;
     };

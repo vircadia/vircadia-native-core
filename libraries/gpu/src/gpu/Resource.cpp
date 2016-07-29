@@ -283,7 +283,6 @@ void Buffer::markDirty(Size offset, Size bytes) {
 }
 
 void Buffer::applyUpdate(const Update& update) {
-    _renderSysmem.resize(update.size);
     _renderPages = update.pages;
      update.updateOperator(_renderSysmem);
  }
@@ -296,7 +295,7 @@ Buffer::Update Buffer::getUpdate() const {
 
     Update result;
     result.pages = _pages;
-    result.size = _sysmem.getSize();
+    Size bufferSize = _sysmem.getSize();
     Size pageSize = _pages._pageSize;
     PageManager::Pages dirtyPages = _pages.getMarkedPages();
     std::vector<uint8> dirtyPageData;
@@ -308,7 +307,8 @@ Buffer::Update Buffer::getUpdate() const {
         memcpy(dirtyPageData.data() + destOffset, _sysmem.readData() + sourceOffset, pageSize);
     }
 
-    result.updateOperator = [pageSize, dirtyPages, dirtyPageData](Sysmem& dest){
+    result.updateOperator = [bufferSize, pageSize, dirtyPages, dirtyPageData](Sysmem& dest){
+        dest.resize(bufferSize);
         for (Size i = 0; i < dirtyPages.size(); ++i) {
             Size page = dirtyPages[i];
             Size sourceOffset = i * pageSize;
@@ -318,7 +318,6 @@ Buffer::Update Buffer::getUpdate() const {
     };
     return result;
 }
-
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
     resize(size);
