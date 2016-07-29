@@ -15,6 +15,8 @@
 #include "GLMHelpers.h"
 #include "DebugDraw.h"
 
+#include <qmath.h>
+
 #include "AnimDebugDraw.h"
 
 struct Vertex {

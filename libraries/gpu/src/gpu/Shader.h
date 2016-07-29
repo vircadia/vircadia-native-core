@@ -53,19 +53,22 @@ public:
         int32 _location{INVALID_LOCATION};
         Element _element;
         uint16 _resourceType{Resource::BUFFER};
+        uint32 _size { 0 };
  
-        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-        Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
-             _name(name), _location(location), _element(element), _resourceType(resourceType) {}
+        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType), _size(s._size) {}
+        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType), _size(s._size) {}
+        Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER, uint32 size = 0) :
+        _name(name), _location(location), _element(element), _resourceType(resourceType), _size(size) {}
         Slot(const std::string& name) : _name(name) {}
-        
+
         Slot& operator= (const Slot& s) {
             _name = s._name;
             _location = s._location;
             _element = s._element;
             _resourceType = s._resourceType;
-            return (*this); }
+            _size = s._size;
+            return (*this);
+        }
     };
 
     class Binding {
