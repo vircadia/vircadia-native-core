@@ -82,7 +82,10 @@ Window {
                 thumbnail: model.thumbnail;
                 placeText: model.name;
                 usersText: model.online_users + ((model.online_users === 1) ? ' person' : ' people');
+                hoverThunk: function () { ListView.view.currentIndex = index; }
+                unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
+            highlight: Rectangle { color: "transparent"; border.width: 2; border.color: "#1FA5E8"; z: 1; }
         }
 
         Image {

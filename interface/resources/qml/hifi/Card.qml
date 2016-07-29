@@ -89,10 +89,15 @@ Rectangle {
             margins: textPadding;
         }
     }
+    property var hoverThunk: function () { };
+    property var unhoverThunk: function () { };
     MouseArea {
+        id: zmouseArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction(parent);
         hoverEnabled: true;
+        onEntered: hoverThunk();
+        onExited: unhoverThunk();
     }
 }
