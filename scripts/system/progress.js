@@ -96,6 +96,15 @@
             visible: visible
         });
     }
+    function resetProgress() {
+        wasActive = true;
+        bestRawProgress = 0;
+        rawProgress = 0;
+        cooldown = 1000;
+        displayProgress = 0;
+    }
+
+    Window.domainChanged.connect(resetProgress);
 
     var maxSeen = 0;
     var bestRawProgress = 0;
@@ -113,12 +122,8 @@
         } else {
             var count = info.downloading.length + info.pending;
             if (!wasActive) {
-                wasActive = true;
+                resetProgress();
                 maxSeen = count;
-                bestRawProgress = 0;
-                rawProgress = 0;
-                cooldown = 2000;
-                displayProgress = 0;
             }
             if (count > maxSeen) {
                 maxSeen = count;
@@ -242,7 +247,7 @@
             if (diff < 0.1) {
                 displayProgress = rawProgress;
             } else {
-                displayProgress += diff * 0.2;
+                displayProgress += diff * 0.1;
             }
         }
         print('PROGRESS:', displayProgress);
