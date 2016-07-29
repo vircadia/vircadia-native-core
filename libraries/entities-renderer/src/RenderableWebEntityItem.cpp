@@ -203,10 +203,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     if (!success) {
         return;
     }
-    bool textured = false, culled = false, emissive = false;
     if (_texture) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-        textured = emissive = true;
     }
 
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
