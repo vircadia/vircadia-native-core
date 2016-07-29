@@ -142,6 +142,15 @@ public:
     STEAM_CALLBACK(SteamCallbackManager, onGameRichPresenceJoinRequested,
                    GameRichPresenceJoinRequested_t, _gameRichPresenceJoinRequestedResponse);
 
+    STEAM_CALLBACK(SteamCallbackManager, onLobbyCreated,
+                   LobbyCreated_t, _lobbyCreatedResponse);
+
+    STEAM_CALLBACK(SteamCallbackManager, onGameLobbyJoinRequested,
+                   GameLobbyJoinRequested_t, _gameLobbyJoinRequestedResponse);
+
+    STEAM_CALLBACK(SteamCallbackManager, onLobbyEnter,
+                   LobbyEnter_t, _lobbyEnterResponse);
+
     SteamTicketRequests& getTicketRequests() { return _steamTicketRequests; }
 
 private:
@@ -149,7 +158,10 @@ private:
 };
 
 SteamCallbackManager::SteamCallbackManager() :
-    _gameRichPresenceJoinRequestedResponse(this, &SteamCallbackManager::onGameRichPresenceJoinRequested)
+    _gameRichPresenceJoinRequestedResponse(this, &SteamCallbackManager::onGameRichPresenceJoinRequested),
+    _lobbyCreatedResponse(this, &SteamCallbackManager::onLobbyCreated),
+    _gameLobbyJoinRequestedResponse(this, &SteamCallbackManager::onGameLobbyJoinRequested),
+    _lobbyEnterResponse(this, &SteamCallbackManager::onLobbyEnter)
 {
 }
 
@@ -168,6 +180,38 @@ void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinR
 
     QCoreApplication::postEvent(qApp, event);
 }
+
+void SteamCallbackManager::onLobbyCreated(LobbyCreated_t* pCallback) {
+    qDebug() << pCallback->m_eResult << pCallback->m_ulSteamIDLobby;
+    if (pCallback->m_eResult == k_EResultOK) {
+        qDebug() << "Inviting steam friends";
+
+        SteamMatchmaking()->SetLobbyData(pCallback->m_ulSteamIDLobby, "connect",
+                                         SteamFriends()->GetFriendRichPresence(SteamUser()->GetSteamID(), "connect"));
+        SteamMatchmaking()->SetLobbyMemberData(pCallback->m_ulSteamIDLobby,
+                                               "Creator", "true");
+        SteamFriends()->ActivateGameOverlayInviteDialog(pCallback->m_ulSteamIDLobby);
+    }
+}
+
+void SteamCallbackManager::onGameLobbyJoinRequested(GameLobbyJoinRequested_t* pCallback) {
+    qDebug() << "onGameLobbyJoinRequested";
+    SteamMatchmaking()->JoinLobby(pCallback->m_steamIDLobby);
+}
+
+void SteamCallbackManager::onLobbyEnter(LobbyEnter_t* pCallback) {
+    qDebug() << "onLobbyEnter";
+    auto creator = SteamMatchmaking()->GetLobbyMemberData(pCallback->m_ulSteamIDLobby, SteamUser()->GetSteamID(), "creator");
+    if (strcmp(creator, "true") == 0) {
+        qDebug() << "Created lobby";
+        SteamMatchmaking()->LeaveLobby(pCallback->m_ulSteamIDLobby);
+    } else if (pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess) {
+        qDebug() << "Success";
+        auto connectValue = SteamMatchmaking()->GetLobbyData(pCallback->m_ulSteamIDLobby, "connect");
+        qDebug() << connectValue;
+    }
+}
+
 
 static std::atomic_bool initialized { false };
 static SteamCallbackManager steamCallbackManager;
@@ -244,6 +288,7 @@ void SteamClient::openInviteOverlay() {
         return;
     }
 
-    qDebug() << "Inviting steam friends";
-    SteamFriends()->ActivateGameOverlayInviteDialog(CSteamID());
+    qDebug() << "Creating steam lobby";
+    static const int MAX_LOBBY_SIZE = 20;
+    SteamMatchmaking()->CreateLobby(k_ELobbyTypePrivate, MAX_LOBBY_SIZE);
 }
