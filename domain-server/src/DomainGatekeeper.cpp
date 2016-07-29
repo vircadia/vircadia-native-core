@@ -826,20 +826,33 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
 
-    const QString GET_FRIENDS_LIST_PATH = "api/v1/users";
-    QUrlQuery query;
-    query.addQueryItem("filter", "friends");
-
+    const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";
     DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
-                                                          NULL, QVariantMap(), query);
+                                                          NULL, QVariantMap());
 }
 
 void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     status: "success",
+    //     data: {
+    //         friends: [
+    //             "chris",
+    //             "freidrica",
+    //             "G",
+    //             "huffman",
+    //             "leo",
+    //             "philip",
+    //             "ryan",
+    //             "sam",
+    //             "ZappoMan"
+    //         ]
+    //     }
+    // }
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         _domainOwnerFriends.clear();
-        QJsonArray friends = jsonObject["data"].toObject()["users"].toArray();
+        QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
         for (int i = 0; i < friends.size(); i++) {
             QString friendUserName = friends.at(i).toObject()["username"].toString();
             _domainOwnerFriends += friendUserName;
