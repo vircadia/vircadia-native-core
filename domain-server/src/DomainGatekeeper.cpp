@@ -147,7 +147,6 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #endif
         }
     } else {
-        userPerms.setID(verifiedUsername);
         if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
             userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
 #ifdef WANT_DEBUG
@@ -161,7 +160,6 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
             qDebug() << "|  user-permissions: specific IP matches, so:" << userPerms;
 #endif
         } else {
-
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
 #ifdef WANT_DEBUG
@@ -208,6 +206,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
             }
         }
 
+        userPerms.setID(verifiedUsername);
         userPerms.setVerifiedUserName(verifiedUsername);
     }
 
