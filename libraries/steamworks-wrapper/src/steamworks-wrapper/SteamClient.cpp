@@ -188,19 +188,17 @@ void SteamCallbackManager::onGameRichPresenceJoinRequested(GameRichPresenceJoinR
 
 
 void SteamCallbackManager::onLobbyCreated(LobbyCreated_t* pCallback) {
-    qDebug() << pCallback->m_eResult << pCallback->m_ulSteamIDLobby;
     if (pCallback->m_eResult == k_EResultOK) {
-        qDebug() << "Inviting steam friends";
+        qDebug() << "Inviting steam friends" << pCallback->m_ulSteamIDLobby;
 
         auto url = SteamFriends()->GetFriendRichPresence(SteamUser()->GetSteamID(), "connect");
         SteamMatchmaking()->SetLobbyData(pCallback->m_ulSteamIDLobby, "connect", url);
-        SteamMatchmaking()->SetLobbyMemberData(pCallback->m_ulSteamIDLobby, "creator", "true");
         SteamFriends()->ActivateGameOverlayInviteDialog(pCallback->m_ulSteamIDLobby);
     }
 }
 
 void SteamCallbackManager::onGameLobbyJoinRequested(GameLobbyJoinRequested_t* pCallback) {
-    qDebug() << "Joining Steam lobby";
+    qDebug() << "Joining Steam lobby" << pCallback->m_steamIDLobby.ConvertToUint64();
     SteamMatchmaking()->JoinLobby(pCallback->m_steamIDLobby);
 }
 
@@ -210,14 +208,14 @@ void SteamCallbackManager::onLobbyEnter(LobbyEnter_t* pCallback) {
         return;
     }
 
-    auto creator = SteamMatchmaking()->GetLobbyMemberData(pCallback->m_ulSteamIDLobby,
-                                                          SteamUser()->GetSteamID(), "creator");
-    if (strcmp(creator, "true") != 0) {
-        auto url = SteamMatchmaking()->GetLobbyData(pCallback->m_ulSteamIDLobby, "connect");
-        parseUrlAndGo(url);
-    }
+    qDebug() << "Entered Steam lobby" << pCallback->m_ulSteamIDLobby;
 
-    SteamMatchmaking()->LeaveLobby(pCallback->m_ulSteamIDLobby);
+    if (SteamMatchmaking()->GetLobbyOwner(pCallback->m_ulSteamIDLobby) != SteamUser()->GetSteamID()) {
+        auto url = SteamMatchmaking()->GetLobbyData(pCallback->m_ulSteamIDLobby, "connect");
+        qDebug() << "Jumping to" << url;
+        parseUrlAndGo(url);
+        SteamMatchmaking()->LeaveLobby(pCallback->m_ulSteamIDLobby);
+    }
 }
 
 
@@ -293,13 +291,23 @@ void SteamClient::openInviteOverlay() {
         return;
     }
 
-    qDebug() << "Creating steam lobby";
+    qDebug() << "Creating Steam lobby";
     static const int MAX_LOBBY_SIZE = 20;
     SteamMatchmaking()->CreateLobby(k_ELobbyTypePrivate, MAX_LOBBY_SIZE);
 }
 
 
 void SteamClient::joinLobby(QString lobbyIdStr) {
+    if (!initialized) {
+        if (SteamAPI_IsSteamRunning()) {
+            init();
+        }
+        else {
+            qWarning() << "Steam is not running";
+            return;
+        }
+    }
+
     qDebug() << "Trying to join Steam lobby:" << lobbyIdStr;
     CSteamID lobbyId(lobbyIdStr.toULongLong());
     SteamMatchmaking()->JoinLobby(lobbyId);
