@@ -10,6 +10,7 @@
 #define hifi_RenderableWebEntityItem_h
 
 #include <QSharedPointer>
+#include <QMouseEvent>
 
 #include <WebEntityItem.h>
 
@@ -28,9 +29,11 @@ public:
 
     virtual void render(RenderArgs* args) override;
     virtual void setSourceUrl(const QString& value) override;
-    
+
     void setProxyWindow(QWindow* proxyWindow);
     QObject* getEventHandler();
+
+    void handleMouseEvent(QMouseEvent event, glm::vec3 intersectionPoint);
 
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }

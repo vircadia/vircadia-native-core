@@ -1019,7 +1019,8 @@ function MyController(hand) {
                 entityID: intersection.entityID,
                 overlayID: intersection.overlayID,
                 searchRay: pickRay,
-                distance: Vec3.distance(pickRay.origin, intersection.intersection)
+                distance: Vec3.distance(pickRay.origin, intersection.intersection),
+                intersection: intersection.intersection
             };
         } else {
             return result;
@@ -1259,105 +1260,131 @@ function MyController(hand) {
 
         var handPosition = this.getHandPosition();
 
-        var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
-        entityPropertiesCache.addEntities(candidateEntities);
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-        var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
-        if (potentialEquipHotspot) {
-            if (this.triggerSmoothedGrab()) {
-                this.grabbedHotspot = potentialEquipHotspot;
-                this.grabbedEntity = potentialEquipHotspot.entityID;
-                this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
-                return;
-            }
+        if (rayPickInfo.entityID) {
+            entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        var grabbableEntities = candidateEntities.filter(function(entity) {
-            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
-        });
+        // if the line probe hits a non-grabbable web entity or a web entity that is grabbed by the other hand.
+        // route simulated mouse events to that entity.
+        if (rayPickInfo.entityID && entityPropertiesCache.getProps(rayPickInfo.entityID).type === "Web" &&
+            (!this.entityIsGrabbable(rayPickInfo.entityID) || this.getOtherHandController().grabbedEntity == rayPickInfo.entityID)) {
 
-        var rayPickInfo = this.calcRayPickInfo(this.hand);
-        if (rayPickInfo.entityID) {
-            this.intersectionDistance = rayPickInfo.distance;
-            entityPropertiesCache.addEntity(rayPickInfo.entityID);
-            if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
-                grabbableEntities.push(rayPickInfo.entityID);
+            if (Reticle.keyboardFocusEntity != rayPickInfo.entityID) {
+                Reticle.keyboardFocusEntity = rayPickInfo.entityID;
             }
-        } else if (rayPickInfo.overlayID) {
+            Reticle.sendEntityMouseMoveEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+            if (this.triggerSmoothedGrab() && !this.lastTriggerSmoothedGrab) {
+                print("AJT: mouse down");
+                Reticle.sendEntityLeftMouseDownEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+            }
+            if (!this.triggerSmoothedGrab() && this.lastTriggerSmoothedGrab) {
+                print("AJT: mouse up");
+                Reticle.sendEntityLeftMouseUpEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+            }
+            this.lastTriggerSmoothedGrab = this.triggerSmoothedGrab();
+            equipHotspotBuddy.updateHotspots([], timestamp);
             this.intersectionDistance = rayPickInfo.distance;
         } else {
-            this.intersectionDistance = 0;
-        }
 
-        var entity;
-        if (grabbableEntities.length > 0) {
-            // sort by distance
-            grabbableEntities.sort(function(a, b) {
-                var aDistance = Vec3.distance(entityPropertiesCache.getProps(a).position, handPosition);
-                var bDistance = Vec3.distance(entityPropertiesCache.getProps(b).position, handPosition);
-                return aDistance - bDistance;
+            var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
+            entityPropertiesCache.addEntities(candidateEntities);
+
+            var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
+            if (potentialEquipHotspot) {
+                if (this.triggerSmoothedGrab()) {
+                    this.grabbedHotspot = potentialEquipHotspot;
+                    this.grabbedEntity = potentialEquipHotspot.entityID;
+                    this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
+                    return;
+                }
+            }
+
+            var grabbableEntities = candidateEntities.filter(function(entity) {
+                return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
             });
-            entity = grabbableEntities[0];
-            name = entityPropertiesCache.getProps(entity).name;
-            this.grabbedEntity = entity;
-            if (this.entityWantsTrigger(entity)) {
-                if (this.triggerSmoothedGrab()) {
-                    this.setState(STATE_NEAR_TRIGGER, "near trigger '" + name + "'");
-                    return;
-                } else {
-                    // potentialNearTriggerEntity = entity;
+
+            if (rayPickInfo.entityID) {
+                this.intersectionDistance = rayPickInfo.distance;
+                if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
+                    grabbableEntities.push(rayPickInfo.entityID);
                 }
+            } else if (rayPickInfo.overlayID) {
+                this.intersectionDistance = rayPickInfo.distance;
             } else {
-                if (this.triggerSmoothedGrab()) {
-                    var props = entityPropertiesCache.getProps(entity);
-                    var grabProps = entityPropertiesCache.getGrabProps(entity);
-                    var refCount = grabProps.refCount ? grabProps.refCount : 0;
-                    if (refCount >= 1) {
-                        // if another person is holding the object, remember to restore the
-                        // parent info, when we are finished grabbing it.
-                        this.shouldResetParentOnRelease = true;
-                        this.previousParentID = props.parentID;
-                        this.previousParentJointIndex = props.parentJointIndex;
+                this.intersectionDistance = 0;
+            }
+
+            var entity;
+            if (grabbableEntities.length > 0) {
+                // sort by distance
+                grabbableEntities.sort(function(a, b) {
+                    var aDistance = Vec3.distance(entityPropertiesCache.getProps(a).position, handPosition);
+                    var bDistance = Vec3.distance(entityPropertiesCache.getProps(b).position, handPosition);
+                    return aDistance - bDistance;
+                });
+                entity = grabbableEntities[0];
+                name = entityPropertiesCache.getProps(entity).name;
+                this.grabbedEntity = entity;
+                if (this.entityWantsTrigger(entity)) {
+                    if (this.triggerSmoothedGrab()) {
+                        this.setState(STATE_NEAR_TRIGGER, "near trigger '" + name + "'");
+                        return;
+                    } else {
+                        // potentialNearTriggerEntity = entity;
                     }
-
-                    this.setState(STATE_NEAR_GRABBING, "near grab '" + name + "'");
-                    return;
                 } else {
-                    // potentialNearGrabEntity = entity;
+                    if (this.triggerSmoothedGrab()) {
+                        var props = entityPropertiesCache.getProps(entity);
+                        var grabProps = entityPropertiesCache.getGrabProps(entity);
+                        var refCount = grabProps.refCount ? grabProps.refCount : 0;
+                        if (refCount >= 1) {
+                            // if another person is holding the object, remember to restore the
+                            // parent info, when we are finished grabbing it.
+                            this.shouldResetParentOnRelease = true;
+                            this.previousParentID = props.parentID;
+                            this.previousParentJointIndex = props.parentJointIndex;
+                        }
+
+                        this.setState(STATE_NEAR_GRABBING, "near grab '" + name + "'");
+                        return;
+                    } else {
+                        // potentialNearGrabEntity = entity;
+                    }
                 }
             }
-        }
 
-        if (rayPickInfo.entityID) {
-            entity = rayPickInfo.entityID;
-            name = entityPropertiesCache.getProps(entity).name;
-            if (this.entityWantsTrigger(entity)) {
-                if (this.triggerSmoothedGrab()) {
-                    this.grabbedEntity = entity;
-                    this.setState(STATE_FAR_TRIGGER, "far trigger '" + name + "'");
-                    return;
-                } else {
-                    // potentialFarTriggerEntity = entity;
-                }
-            } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab() && !isEditing()) {
-                    this.grabbedEntity = entity;
-                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
-                    return;
-                } else {
-                    // potentialFarGrabEntity = entity;
+            if (rayPickInfo.entityID) {
+                entity = rayPickInfo.entityID;
+                name = entityPropertiesCache.getProps(entity).name;
+                if (this.entityWantsTrigger(entity)) {
+                    if (this.triggerSmoothedGrab()) {
+                        this.grabbedEntity = entity;
+                        this.setState(STATE_FAR_TRIGGER, "far trigger '" + name + "'");
+                        return;
+                    } else {
+                        // potentialFarTriggerEntity = entity;
+                    }
+                } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
+                    if (this.triggerSmoothedGrab() && !isEditing()) {
+                        this.grabbedEntity = entity;
+                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                        return;
+                    } else {
+                        // potentialFarGrabEntity = entity;
+                    }
                 }
             }
+
+            this.updateEquipHaptics(potentialEquipHotspot, handPosition);
+
+            var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
+            equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
+            if (potentialEquipHotspot) {
+                equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+            }
         }
-
-        this.updateEquipHaptics(potentialEquipHotspot, handPosition);
-
-        var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
-        equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
-        if (potentialEquipHotspot) {
-            equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
-        }
-
 
         this.searchIndicatorOn(rayPickInfo.searchRay);
         Reticle.setVisible(false);

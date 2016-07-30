@@ -74,77 +74,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     currentContext->makeCurrent(currentSurface);
 
     auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
-        // Ignore mouse interaction if we're locked
-        if (this->getLocked()) {
-            return;
-        }
-
-        if (event->button() == Qt::MouseButton::RightButton) {
-            if (event->type() == QEvent::MouseButtonPress) {
-                const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
-                _lastPress = toGlm(mouseEvent->pos());
-            }
-        }
-
         if (intersection.entityID == getID()) {
-            if (event->button() == Qt::MouseButton::RightButton) {
-                if (event->type() == QEvent::MouseButtonRelease) {
-                    const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
-                    ivec2 dist = glm::abs(toGlm(mouseEvent->pos()) - _lastPress);
-                    if (!glm::any(glm::greaterThan(dist, ivec2(1)))) {
-                        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                            QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
-                        });
-                    }
-                    _lastPress = ivec2(INT_MIN);
-                }
-                return;
-            }
-
-            // FIXME doesn't work... double click events not received
-            if (event->type() == QEvent::MouseButtonDblClick) {
-                AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                    _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-                });
-            }
-
-            if (event->button() == Qt::MouseButton::MiddleButton) {
-                if (event->type() == QEvent::MouseButtonRelease) {
-                    AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                        _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-                    });
-                }
-                return;
-            }
-
-            // Map the intersection point to an actual offscreen pixel
-            glm::vec3 point = intersection.intersection;
-            glm::vec3 dimensions = getDimensions();
-            point -= getPosition();
-            point = glm::inverse(getRotation()) * point;
-            point /= dimensions;
-            point += 0.5f;
-            point.y = 1.0f - point.y;
-            point *= dimensions * (METERS_TO_INCHES * DPI);
-
-            if (event->button() == Qt::MouseButton::LeftButton) {
-                if (event->type() == QEvent::MouseButtonPress) {
-                    this->_pressed = true;
-                    this->_lastMove = ivec2((int)point.x, (int)point.y);
-                } else if (event->type() == QEvent::MouseButtonRelease) {
-                    this->_pressed = false;
-                }
-            }
-            if (event->type() == QEvent::MouseMove) {
-                this->_lastMove = ivec2((int)point.x, (int)point.y);
-            }
-
-            // Forward the mouse event.  
-            QMouseEvent mappedEvent(event->type(),
-                QPoint((int)point.x, (int)point.y),
-                event->screenPos(), event->button(),
-                event->buttons(), event->modifiers());
-            QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+            handleMouseEvent(*event, intersection.intersection);
         }
     };
     _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
@@ -234,6 +165,77 @@ QObject* RenderableWebEntityItem::getEventHandler() {
         return nullptr;
     }
     return _webSurface->getEventHandler();
+}
+
+void RenderableWebEntityItem::handleMouseEvent(QMouseEvent event, glm::vec3 intersectionPoint) {
+    // Ignore mouse interaction if we're locked
+    if (getLocked()) {
+        return;
+    }
+
+    if (event.button() == Qt::MouseButton::RightButton) {
+        if (event.type() == QEvent::MouseButtonPress) {
+            _lastPress = toGlm(event.pos());
+        }
+    }
+
+    if (event.button() == Qt::MouseButton::RightButton) {
+        if (event.type() == QEvent::MouseButtonRelease) {
+            ivec2 dist = glm::abs(toGlm(event.pos()) - _lastPress);
+            if (!glm::any(glm::greaterThan(dist, ivec2(1)))) {
+                AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                    QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
+                });
+            }
+            _lastPress = ivec2(INT_MIN);
+        }
+        return;
+    }
+
+    // FIXME doesn't work... double click events not received
+    if (event.type() == QEvent::MouseButtonDblClick) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+            _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+        });
+    }
+
+    if (event.button() == Qt::MouseButton::MiddleButton) {
+        if (event.type() == QEvent::MouseButtonRelease) {
+            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+            });
+        }
+        return;
+    }
+
+    // Map the intersection point to an actual offscreen pixel
+    glm::vec3 point = intersectionPoint;
+    glm::vec3 dimensions = getDimensions();
+    point -= getPosition();
+    point = glm::inverse(getRotation()) * point;
+    point /= dimensions;
+    point += 0.5f;
+    point.y = 1.0f - point.y;
+    point *= dimensions * (METERS_TO_INCHES * DPI);
+
+    if (event.button() == Qt::MouseButton::LeftButton) {
+        if (event.type() == QEvent::MouseButtonPress) {
+            _pressed = true;
+            _lastMove = ivec2((int)point.x, (int)point.y);
+        } else if (event.type() == QEvent::MouseButtonRelease) {
+            _pressed = false;
+        }
+    }
+    if (event.type() == QEvent::MouseMove) {
+        _lastMove = ivec2((int)point.x, (int)point.y);
+    }
+
+    // Forward the mouse event.
+    QMouseEvent mappedEvent(event.type(),
+                            QPoint((int)point.x, (int)point.y),
+                            event.screenPos(), event.button(),
+                            event.buttons(), event.modifiers());
+    QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
 }
 
 void RenderableWebEntityItem::destroyWebSurface() {

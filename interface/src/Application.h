@@ -43,6 +43,7 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
+#include <ThreadSafeValueCache.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
@@ -313,6 +314,16 @@ public slots:
 
     static void runTests();
 
+    QUuid getKeyboardFocusEntity() const;  // thread-safe
+    void setKeyboardFocusEntity(QUuid id);
+    void setKeyboardFocusEntity(EntityItemID entityItemID);
+    void sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint);
+    void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
+    void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
+
+private:
+    void sendEntityMouseEvent(const QUuid& id, const QMouseEvent& mouseEvent, const glm::vec3& intersectionPoint);
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
@@ -526,7 +537,7 @@ private:
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
-    EntityItemID _keyboardFocusedItem;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
