@@ -854,7 +854,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requ
         _domainOwnerFriends.clear();
         QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
         for (int i = 0; i < friends.size(); i++) {
-            _domainOwnerFriends += friends.at(i).toString()
+            _domainOwnerFriends += friends.at(i).toString();
         }
     } else {
         qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
