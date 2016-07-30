@@ -22,9 +22,8 @@ Item {
     width: root.pane.width
     height: root.pane.height
 
-    property bool existingEmail: false
-
     function login() {
+        mainTextContainer.visible = false
         loginDialog.login(usernameField.text, passwordField.text)
     }
 
@@ -36,8 +35,8 @@ Item {
         readonly property int maxHeight: 720
 
         function resize() {
-            var targetWidth = Math.max(titleWidth, mainTextContainer.visible ? mainTextContainer.contentWidth : 0)
-            var targetHeight = (mainTextContainer.visible ? mainTextContainer.height : 0) +
+            var targetWidth = Math.max(titleWidth, form.contentWidth)
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
                                4 * hifi.dimensions.contentSpacing.y + form.height +
                                4 * hifi.dimensions.contentSpacing.y + buttons.height
 
@@ -46,29 +45,29 @@ Item {
         }
     }
 
-    MenuItem {
+    ShortcutText {
         id: mainTextContainer
         anchors {
             top: parent.top
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
             margins: 0
             topMargin: hifi.dimensions.contentSpacing.y
         }
-        visible: existingEmail
 
-        text: qsTr("Your Steam account's email matches an existing High Fidelity Profile")
+        visible: false
+
+        text: qsTr("Username or password incorrect.")
         wrapMode: Text.WordWrap
         color: hifi.colors.redAccent
-        lineHeight: 2
+        lineHeight: 1
         lineHeightMode: Text.ProportionalHeight
         horizontalAlignment: Text.AlignHCenter
     }
 
-
     Column {
         id: form
         anchors {
-            top: mainTextContainer.visible ? mainTextContainer.bottom : parent.top
+            top: mainTextContainer.bottom
             left: parent.left
             margins: 0
             topMargin: 2 * hifi.dimensions.contentSpacing.y
@@ -93,22 +92,12 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
 
-                text: "Need help?"
-
-                color: hifi.colors.blueAccent
-                font.underline: true
+                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        bodyLoader.source = "RecoverPasswordBody.qml"
-                        bodyLoader.item.width = root.pane.width
-                        bodyLoader.item.height = root.pane.height
-                    }
-                }
+                onLinkActivated: loginDialog.openUrl(link)
             }
         }
         Row {
@@ -130,22 +119,12 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
 
-                text: "Need help?"
-
-                color: hifi.colors.blueAccent
-                font.underline: true
+                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        bodyLoader.source = "RecoverPasswordBody.qml"
-                        bodyLoader.item.width = root.pane.width
-                        bodyLoader.item.height = root.pane.height
-                    }
-                }
+                onLinkActivated: loginDialog.openUrl(link)
             }
         }
 
@@ -205,7 +184,7 @@ Item {
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
-
+            mainTextContainer.visible = true
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")

@@ -22,6 +22,11 @@ Item {
     width: root.pane.width
     height: root.pane.height
 
+    function create() {
+        mainTextContainer.visible = false
+        loginDialog.createAccountFromStream(textField.text)
+    }
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -82,12 +87,14 @@ Item {
             topMargin: 3 * hifi.dimensions.contentSpacing.y
         }
 
-        text: qsTr("By creating this user profile, you agree to <a href=\"https://highfidelity.com/terms\">High Fidelity's Terms of Service</a>")
+        text: qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
         wrapMode: Text.WordWrap
         color: hifi.colors.baseGrayHighlight
         lineHeight: 1
         lineHeightMode: Text.ProportionalHeight
         horizontalAlignment: Text.AlignHCenter
+
+        onLinkActivated: loginDialog.openUrl(link)
     }
 
     Row {
@@ -108,9 +115,7 @@ Item {
             text: qsTr("Create your profile")
             color: hifi.buttons.blue
 
-            onClicked: {
-                loginDialog.createAccountFromStream(textField.text)
-            }
+            onClicked: usernameCollisionBody.create()
         }
 
         Button {
@@ -136,6 +141,9 @@ Item {
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
+
+            mainTextContainer.visible = true
+            mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.")
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")
@@ -146,6 +154,20 @@ Item {
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
+        }
+    }
+
+    Keys.onPressed: {
+        if (!visible) {
+            return
+        }
+
+        switch (event.key) {
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                event.accepted = true
+                usernameCollisionBody.create()
+                break
         }
     }
 }

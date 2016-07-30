@@ -77,22 +77,17 @@ Item {
             topMargin: hifi.dimensions.contentSpacing.y
         }
 
-        text: "Already have a High Fidelity profile? Link to an existing profile here."
+        text: "<a href='https://fake.link'>Already have a High Fidelity profile? Link to an existing profile here.</a>"
 
-        font.underline: true
         wrapMode: Text.WordWrap
-        color: hifi.colors.blueAccent
         lineHeight: 2
         lineHeightMode: Text.ProportionalHeight
         horizontalAlignment: Text.AlignHCenter
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                bodyLoader.source = "LinkAccountBody.qml"
-                bodyLoader.item.width = root.pane.width
-                bodyLoader.item.height = root.pane.height
-            }
+        onLinkActivated: {
+            bodyLoader.source = "LinkAccountBody.qml"
+            bodyLoader.item.width = root.pane.width
+            bodyLoader.item.height = root.pane.height
         }
     }
 

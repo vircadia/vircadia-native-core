@@ -132,7 +132,9 @@ void LoginDialog::createAccountFromStream(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) {
-    QDesktopServices::openUrl(url);
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto browser = offscreenUi->load("Browser.qml");
+    browser->setProperty("url", url);
 }
 
 void LoginDialog::sendRecoveryEmail(const QString& email) {
