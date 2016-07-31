@@ -39,7 +39,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform = _transform;
+        Transform transform = getTransform();
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         batch->setModelTransform(transform);
 

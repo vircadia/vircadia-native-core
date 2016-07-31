@@ -35,8 +35,8 @@ AABox Line3DOverlay::getBounds() const {
     auto extents = Extents{};
     extents.addPoint(_start);
     extents.addPoint(_end);
-    extents.transform(_transform);
-    
+    extents.transform(getTransform());
+
     return AABox(extents);
 }
 
@@ -52,7 +52,7 @@ void Line3DOverlay::render(RenderArgs* args) {
 
     auto batch = args->_batch;
     if (batch) {
-        batch->setModelTransform(_transform);
+        batch->setModelTransform(getTransform());
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         if (getIsDashedLine()) {

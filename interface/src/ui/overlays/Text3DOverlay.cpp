@@ -65,44 +65,47 @@ xColor Text3DOverlay::getBackgroundColor() {
 }
 
 void Text3DOverlay::update(float deltatime) {
-    applyTransformTo(_transform);
+    Transform transform = getTransform();
+    applyTransformTo(transform);
+    setTransform(transform);
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
     if (!_visible || !getParentVisible()) {
         return; // do nothing if we're not visible
     }
-    
+
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
-    
-    applyTransformTo(_transform, true);
-    batch.setModelTransform(_transform);
+
+    Transform transform = getTransform();
+    applyTransformTo(transform, true);
+    setTransform(transform);
+    batch.setModelTransform(transform);
 
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
     glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR,
                         backgroundColor.blue / MAX_COLOR, getBackgroundAlpha());
-    
+
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
-    
+
     const float SLIGHTLY_BEHIND = -0.001f;
-    
+
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
-    
+
     // Same font properties as textSize()
     float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
-    
+
     float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
-    
+
     glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
-    Transform transform = _transform;
     transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin),
                                       halfDimensions.y - _topMargin, 0.001f));
     transform.setScale(scaleFactor);
@@ -222,6 +225,8 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 
 bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, 
                                             BoxFace &face, glm::vec3& surfaceNormal) {
-    applyTransformTo(_transform, true);
+    Transform transform = getTransform();
+    applyTransformTo(transform, true);
+    setTransform(transform);
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 }

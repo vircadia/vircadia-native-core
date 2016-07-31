@@ -513,6 +513,15 @@ const Transform SpatiallyNestable::getTransform(bool& success, int depth) const 
     return result;
 }
 
+const Transform SpatiallyNestable::getTransform() const {
+    bool success;
+    Transform result = getTransform(success);
+    if (!success) {
+        qDebug() << "getTransform failed for" << getID();
+    }
+    return result;
+}
+
 const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, int depth) const {
     // this returns the world-space transform for this object.  It finds its parent's transform (which may
     // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
@@ -558,6 +567,12 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
     }
 }
 
+bool SpatiallyNestable::setTransform(const Transform& transform) {
+    bool success;
+    setTransform(transform, success);
+    return success;
+}
+
 glm::vec3 SpatiallyNestable::getScale() const {
     // TODO: scale
     glm::vec3 result;
@@ -575,12 +590,25 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
     if (isNaN(scale)) {
-        qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
+        qDebug() << "SpatiallyNestable::setScale -- scale contains NaN";
         return;
     }
     // TODO: scale
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
+    });
+    dimensionsChanged();
+}
+
+void SpatiallyNestable::setScale(float value) {
+    // guard against introducing NaN into the transform
+    if (value <= 0.0f) {
+        qDebug() << "SpatiallyNestable::setScale -- scale is zero or negative value";
+        return;
+    }
+    // TODO: scale
+    _transformLock.withWriteLock([&] {
+        _transform.setScale(value);
     });
     dimensionsChanged();
 }
