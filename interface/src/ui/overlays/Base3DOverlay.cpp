@@ -42,34 +42,14 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     setTransform(base3DOverlay->getTransform());
 }
 
-QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties,
-                                                      const QUuid& currentParentID,
-                                                      int currentParentJointIndex) {
+QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties) {
     // the position and rotation in _transform are relative to the parent (aka local).  The versions coming from
     // scripts are in world-frame, unless localPosition or localRotation are used.  Patch up the properties
     // so that "position" and "rotation" are relative-to-parent values.
     QVariantMap result = properties;
-    QUuid parentID = result["parentID"].isValid() ? QUuid(result["parentID"].toString()) : currentParentID;
-    int parentJointIndex =
-        result["parentJointIndex"].isValid() ? result["parentJointIndex"].toInt() : currentParentJointIndex;
+    QUuid parentID = result["parentID"].isValid() ? QUuid(result["parentID"].toString()) : QUuid();
+    int parentJointIndex = result["parentJointIndex"].isValid() ? result["parentJointIndex"].toInt() : -1;
     bool success;
-
-    // carry over some legacy keys
-    if (!result["position"].isValid() && !result["localPosition"].isValid()) {
-        if (result["p1"].isValid()) {
-            result["position"] = result["p1"];
-        } else if (result["point"].isValid()) {
-            result["position"] = result["point"];
-        } else if (result["start"].isValid()) {
-            result["position"] = result["start"];
-        }
-    }
-    if (!result["orientation"].isValid() && result["rotation"].isValid()) {
-        result["orientation"] = result["rotation"];
-    }
-    if (!result["localOrientation"].isValid() && result["localRotation"].isValid()) {
-        result["localOrientation"] = result["localRotation"];
-    }
 
     // make "position" and "orientation" be relative-to-parent
     if (result["localPosition"].isValid()) {
@@ -92,8 +72,45 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
 }
 
 void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
-    QVariantMap properties =
-        convertOverlayLocationFromScriptSemantics(originalProperties, getParentID(), getParentJointIndex());
+    QVariantMap properties = originalProperties;
+
+    // carry over some legacy keys
+    if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
+        if (properties["p1"].isValid()) {
+            properties["position"] = properties["p1"];
+        } else if (properties["point"].isValid()) {
+            properties["position"] = properties["point"];
+        } else if (properties["start"].isValid()) {
+            properties["position"] = properties["start"];
+        }
+    }
+    if (!properties["orientation"].isValid() && properties["rotation"].isValid()) {
+        properties["orientation"] = properties["rotation"];
+    }
+    if (!properties["localOrientation"].isValid() && properties["localRotation"].isValid()) {
+        properties["localOrientation"] = properties["localRotation"];
+    }
+
+    // All of parentID, parentJointIndex, position, orientation are needed to make sense of any of them.
+    // If any of these changed, pull any missing properties from the overlay.
+    if (properties["parentID"].isValid() || properties["parentJointIndex"].isValid() ||
+        properties["position"].isValid() || properties["localPosition"].isValid() ||
+        properties["orientation"].isValid() || properties["localOrientation"].isValid()) {
+        if (!properties["parentID"].isValid()) {
+            properties["parentID"] = getParentID();
+        }
+        if (!properties["parentJointIndex"].isValid()) {
+            properties["parentJointIndex"] = getParentJointIndex();
+        }
+        if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
+            properties["position"] = vec3toVariant(getPosition());
+        }
+        if (!properties["orientation"].isValid() || !properties["localOrientation"].isValid()) {
+            properties["orientation"] = quatToVariant(getOrientation());
+        }
+    }
+
+    properties = convertOverlayLocationFromScriptSemantics(properties);
     Overlay::setProperties(properties);
 
     bool needRenderItemUpdate = false;
