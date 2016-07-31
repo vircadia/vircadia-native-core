@@ -30,6 +30,7 @@
 
 #include "ssao_makePyramid_frag.h"
 #include "ssao_makeOcclusion_frag.h"
+#include "ssao_debugOcclusion_frag.h"
 #include "ssao_makeHorizontalBlur_frag.h"
 #include "ssao_makeVerticalBlur_frag.h"
 
@@ -179,10 +180,6 @@ const int AmbientOcclusionEffect_LinearDepthMapSlot = 0;
 const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
 
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
-    FrameTransform frameTransform;
-    _frameTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(FrameTransform), (const gpu::Byte*) &frameTransform));
-    Parameters parameters;
-    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
 void AmbientOcclusionEffect::configure(const Config& config) {
@@ -192,41 +189,41 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
-    if (radius != getRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+    if (radius != _parametersBuffer->getRadius()) {
+        auto& current = _parametersBuffer->radiusInfo;
         current.x = radius;
         current.y = radius * radius;
         current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
     }
 
-    if (config.obscuranceLevel != getObscuranceLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+    if (config.obscuranceLevel != _parametersBuffer->getObscuranceLevel()) {
+        auto& current = _parametersBuffer->radiusInfo;
         current.w = config.obscuranceLevel;
     }
 
-    if (config.falloffBias != getFalloffBias()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.falloffBias != _parametersBuffer->getFalloffBias()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.z = config.falloffBias;
     }
 
-    if (config.edgeSharpness != getEdgeSharpness()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (config.edgeSharpness != _parametersBuffer->getEdgeSharpness()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.x = config.edgeSharpness;
     }
 
-    if (config.blurDeviation != getBlurDeviation()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (config.blurDeviation != _parametersBuffer->getBlurDeviation()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.z = config.blurDeviation;
         shouldUpdateGaussian = true;
     }
 
-    if (config.numSpiralTurns != getNumSpiralTurns()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+    if (config.numSpiralTurns != _parametersBuffer->getNumSpiralTurns()) {
+        auto& current = _parametersBuffer->sampleInfo;
         current.z = config.numSpiralTurns;
     }
 
-    if (config.numSamples != getNumSamples()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+    if (config.numSamples != _parametersBuffer->getNumSamples()) {
+        auto& current = _parametersBuffer->sampleInfo;
         current.x = config.numSamples;
         current.y = 1.0f / config.numSamples;
     }
@@ -235,33 +232,36 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
     
+    if (config.perspectiveScale != _parametersBuffer->getPerspectiveScale()) {
+        _parametersBuffer->resolutionInfo.z = config.perspectiveScale;
+    }
     _framebuffer->setResolutionLevel(config.resolutionLevel);
-    if (config.resolutionLevel != getResolutionLevel()) {
-        _parametersBuffer.edit<Parameters>().resolutionInfo.w = config.resolutionLevel;
+    if (config.resolutionLevel != _parametersBuffer->getResolutionLevel()) {
+        _parametersBuffer->resolutionInfo.w = config.resolutionLevel;
     }
  
     const auto& resolutionLevel = config.resolutionLevel;
-    if (resolutionLevel != getResolutionLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
+    if (resolutionLevel != _parametersBuffer->getResolutionLevel()) {
+        auto& current = _parametersBuffer->resolutionInfo;
         current.x = (float)resolutionLevel;
 
         // Communicate the change to the Framebuffer cache
        // DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(resolutionLevel);
     }
 
-    if (config.blurRadius != getBlurRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (config.blurRadius != _parametersBuffer->getBlurRadius()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.y = (float)config.blurRadius;
         shouldUpdateGaussian = true;
     }
 
-    if (config.ditheringEnabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.ditheringEnabled != _parametersBuffer->isDitheringEnabled()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.x = (float)config.ditheringEnabled;
     }
 
-    if (config.borderingEnabled != isBorderingEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.borderingEnabled != _parametersBuffer->isBorderingEnabled()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.w = (float)config.borderingEnabled;
     }
 
@@ -277,7 +277,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -339,14 +339,9 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     return _vBlurPipeline;
 }
 
-
-void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
-    _frameTransformBuffer.edit<FrameTransform>().depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
-}
-
 void AmbientOcclusionEffect::updateGaussianDistribution() {
-    auto coefs = _parametersBuffer.edit<Parameters>()._gaussianCoefs;
-    GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, getBlurRadius(), getBlurDeviation());
+    auto coefs = _parametersBuffer->_gaussianCoefs;
+    GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, _parametersBuffer->getBlurRadius(), _parametersBuffer->getBlurDeviation());
 }
 
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
@@ -356,9 +351,9 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     RenderArgs* args = renderContext->args;
 
     // FIXME: Different render modes should have different tasks
-    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
-        return;
-    }
+//    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
+//        return;
+//    }
 
     const auto frameTransform = inputs.get0();
     const auto deferredFramebuffer = inputs.get1();
@@ -385,7 +380,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto occlusionFBO = _framebuffer->getOcclusionFramebuffer();
     auto occlusionBlurredFBO = _framebuffer->getOcclusionBlurredFramebuffer();
     
-    outputs = _framebuffer;
+    outputs.edit0() = _framebuffer;
+    outputs.edit1() = _parametersBuffer;
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
     
@@ -394,39 +390,13 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     float tMin = args->_viewport.y / (float)framebufferSize.y;
     float tHeight = args->_viewport.w / (float)framebufferSize.y;
 
-    auto resolutionLevel = getResolutionLevel();
+    auto resolutionLevel = _parametersBuffer->getResolutionLevel();
 
-    // Update the depth info with near and far (same for stereo)
-    setDepthInfo(args->getViewFrustum().getNearClip(), args->getViewFrustum().getFarClip());
 
-    _frameTransformBuffer.edit<FrameTransform>().pixelInfo = args->_viewport;
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
     // Running in stero ?
     bool isStereo = args->_context->isStereo();
-    if (!isStereo) {
-        // Eval the mono projection
-        mat4 monoProjMat;
-        args->getViewFrustum().evalProjectionMatrix(monoProjMat);
-        _frameTransformBuffer.edit<FrameTransform>().projection[0] = monoProjMat;
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
-
-    } else {
-
-        mat4 projMats[2];
-        mat4 eyeViews[2];
-        args->_context->getStereoProjections(projMats);
-        args->_context->getStereoViews(eyeViews);
-
-        for (int i = 0; i < 2; i++) {
-            // Compose the mono Eye space to Stereo clip space Projection Matrix
-            auto sideViewMat = projMats[i] * eyeViews[i];
-            _frameTransformBuffer.edit<FrameTransform>().projection[i] = sideViewMat;
-        }
-
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-
-    }
 
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
@@ -446,11 +416,12 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
-        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, _frameTransformBuffer);
+        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, _parametersBuffer);
 
-        
-      //  batch.generateTextureMips(linearDepthTexture);
+      
+        // We need this with the mips levels  
+        batch.generateTextureMips(linearDepthTexture);
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
@@ -460,7 +431,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
-     /*   if (getBlurRadius() > 0) {
+        if (_parametersBuffer->getBlurRadius() > 0) {
             // Blur 1st pass
             batch.setFramebuffer(occlusionBlurredFBO);
             batch.setPipeline(firstHBlurPipeline);
@@ -472,7 +443,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
             batch.setPipeline(lastVBlurPipeline);
             batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        }*/
+        }
         
         
         batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
@@ -484,3 +455,115 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     // Update the timer
     std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
+
+
+
+DebugAmbientOcclusion::DebugAmbientOcclusion() {
+}
+
+void DebugAmbientOcclusion::configure(const Config& config) {
+
+    _showCursorPixel = config.showCursorPixel;
+
+    auto cursorPos = glm::vec2(_parametersBuffer->pixelInfo);
+    if (cursorPos != config.debugCursorTexcoord) {
+        _parametersBuffer->pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
+    }
+}
+
+const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
+    if (!_debugPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(ssao_debugOcclusion_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setColorWriteMask(true, true, true, false);
+
+        // Good to go add the brand new pipeline
+        _debugPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _debugPipeline;
+}
+
+void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+
+    RenderArgs* args = renderContext->args;
+
+    // FIXME: Different render modes should have different tasks
+//    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
+//        return;
+//    }
+
+    const auto frameTransform = inputs.get0();
+    const auto deferredFramebuffer = inputs.get1();
+    const auto linearDepthFramebuffer = inputs.get2();
+    const auto ambientOcclusionUniforms = inputs.get3();
+    
+    auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
+    auto sourceViewport = args->_viewport;
+    auto occlusionViewport = sourceViewport;
+
+    auto resolutionLevel = ambientOcclusionUniforms->getResolutionLevel();
+    
+    if (resolutionLevel > 0) {
+        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+        normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
+        occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
+    }
+        
+
+    auto framebufferSize = glm::ivec2(linearDepthTexture->getDimensions());
+    
+    float sMin = args->_viewport.x / (float)framebufferSize.x;
+    float sWidth = args->_viewport.z / (float)framebufferSize.x;
+    float tMin = args->_viewport.y / (float)framebufferSize.y;
+    float tHeight = args->_viewport.w / (float)framebufferSize.y;
+
+
+    // Running in stero ?
+    bool isStereo = args->_context->isStereo();
+
+    auto debugPipeline = getDebugPipeline();
+    
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.enableStereo(false);
+
+        batch.setViewportTransform(sourceViewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.setViewTransform(Transform());
+
+        Transform model;
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
+        batch.setModelTransform(model);
+
+        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, ambientOcclusionUniforms);
+
+      
+        // We need this with the mips levels  
+        batch.generateTextureMips(linearDepthTexture);
+        
+        batch.setPipeline(debugPipeline);
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, linearDepthTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
+        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
+        
+    });
+
+}
+ 

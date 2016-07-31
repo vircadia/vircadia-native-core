@@ -30,13 +30,8 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 <@endfunc@>
 
 <@func declareAmbientOcclusion()@>
-
-struct AmbientOcclusionFrameTransform {
-    vec4 _pixelInfo;
-    vec4 _depthInfo;
-    vec4 _stereoInfo;
-    mat4 _projection[2];
-};
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
 
 struct AmbientOcclusionParams {
     vec4 _resolutionInfo;
@@ -47,54 +42,19 @@ struct AmbientOcclusionParams {
     float _gaussianCoefs[8];
 };
 
-uniform ambientOcclusionFrameTransformBuffer {
-    AmbientOcclusionFrameTransform frameTransform;
-};
 uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
 
+float getPerspectiveScale() {
+    
+    return (params._resolutionInfo.z);
+}
 int getResolutionLevel() {
+    
     return int(params._resolutionInfo.x);
 }
-
-vec2 getWidthHeight() {
-    return vec2(ivec2(frameTransform._pixelInfo.zw) >> getResolutionLevel());
-}
-float getProjScale() {
-    return getWidthHeight().y * frameTransform._projection[0][1][1] * 0.5;
-}
-mat4 getProjection(int side) {
-    return frameTransform._projection[side];
-}
-
-bool isStereo() {
-    return frameTransform._stereoInfo.x > 0.0f;
-}
-
-float getStereoSideWidth() {
-    return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
-}
-float getStereoSideHeight() {
-    return float(int(frameTransform._pixelInfo.w) >>  getResolutionLevel());
-}
-
-ivec3 getStereoSideInfo(int xPos) {
-    int sideWidth = int(getStereoSideWidth());
-    return ivec3(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth);
-}
-
-
-float evalZeyeFromZdb(float depth) {
-    return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
-}
-
-vec3 evalEyeNormal(vec3 C) {
-    //return normalize(cross(dFdy(C), dFdx(C)));
-    return normalize(cross(dFdx(C), dFdy(C)));
-}
-
 
 float getRadius() {
     return params._radiusInfo.x;
@@ -191,7 +151,7 @@ vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
     ivec2 ssP = (ssC + tapOffset);
 
-    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight().y))) {
+    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight(getResolutionLevel()).y))) {
         return vec2(0.0);
     }
     vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
@@ -209,7 +169,7 @@ vec3 getBlurredOcclusion(vec2 coord) {
     ivec2 ssC = ivec2(coord);
 
     // Stereo side info
-    ivec3 side = getStereoSideInfo(ssC.x);
+    ivec4 side = getStereoSideInfo(ssC.x, getResolutionLevel());
 
     vec3 rawSample;
     vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
@@ -223,11 +183,11 @@ vec3 getBlurredOcclusion(vec2 coord) {
     int blurRadius = getBlurRadius();
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
     }
     // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
     }
 
     // Final normalization
