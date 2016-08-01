@@ -1642,8 +1642,6 @@ void Application::paintGL() {
         return;
     }
 
-    DependencyManager::get<EntityTreeRenderer>()->cameraPosition = getMyAvatar()->getPosition();
-
     _inPaint = true;
     Finally clearFlag([this] { _inPaint = false; });
 
@@ -3248,6 +3246,13 @@ void Application::init() {
         QMutexLocker viewLocker(&_viewMutex);
         getEntities()->setViewFrustum(_viewFrustum);
     }
+
+    getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
+        auto dims = item.getDimensions();
+        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+        auto distance = glm::distance(getMyAvatar()->getPosition(), item.getPosition());
+        return atan2(maxSize, distance);
+    });
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();

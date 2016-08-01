@@ -28,10 +28,13 @@ class AbstractViewStateInterface;
 class Model;
 class ScriptEngine;
 class ZoneEntityItem;
+class EntityItem;
 
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
+
+using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
@@ -46,7 +49,9 @@ public:
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void setTree(OctreePointer newTree);
 
-    glm::vec3 cameraPosition {};
+    // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
+    float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
+    void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { this->_calculateEntityLoadingPriorityFunc = fn; }
 
     void shutdown();
     void update();
@@ -204,6 +209,10 @@ private:
     QList<EntityItemID> _entityIDsLastInScene;
 
     static int _entitiesScriptEngineCount;
+
+    CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc = [](const EntityItem& item) -> float {
+        return 0.0f;
+    };
 };
 
 
