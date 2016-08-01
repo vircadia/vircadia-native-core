@@ -124,11 +124,11 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
 
     if (properties["position"].isValid()) {
-        setPosition(vec3FromVariant(properties["position"]));
+        setLocalPosition(vec3FromVariant(properties["position"]));
         needRenderItemUpdate = true;
     }
     if (properties["orientation"].isValid()) {
-        setOrientation(quatFromVariant(properties["orientation"]));
+        setLocalOrientation(quatFromVariant(properties["orientation"]));
         needRenderItemUpdate = true;
     }
 
