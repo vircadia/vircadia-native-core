@@ -438,7 +438,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
         drawMaterialKey = _drawMaterial->getKey();
     }
 
-    bool isTranslucent = drawMaterialKey.isTranslucent() || calcFadeRatio() < 1.0f;
+    bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
@@ -452,7 +452,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent) {
+    if (isTranslucent || calcFadeRatio() < 0.9f) {
         builder.withTranslucent();
     }
     if (hasTangents) {
