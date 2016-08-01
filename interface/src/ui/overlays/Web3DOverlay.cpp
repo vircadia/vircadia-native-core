@@ -57,9 +57,11 @@ Web3DOverlay::~Web3DOverlay() {
 }
 
 void Web3DOverlay::update(float deltatime) {
-    Transform transform = getTransform();
-    applyTransformTo(transform);
-    setTransform(transform);
+    if (usecTimestampNow() > _transformExpiry) {
+        Transform transform = getTransform();
+        applyTransformTo(transform);
+        setTransform(transform);
+    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {

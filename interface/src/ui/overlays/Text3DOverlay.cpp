@@ -65,9 +65,11 @@ xColor Text3DOverlay::getBackgroundColor() {
 }
 
 void Text3DOverlay::update(float deltatime) {
-    Transform transform = getTransform();
-    applyTransformTo(transform);
-    setTransform(transform);
+    if (usecTimestampNow() > _transformExpiry) {
+        Transform transform = getTransform();
+        applyTransformTo(transform);
+        setTransform(transform);
+    }
 }
 
 void Text3DOverlay::render(RenderArgs* args) {

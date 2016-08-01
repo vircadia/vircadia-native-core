@@ -37,9 +37,11 @@ Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
 }
 
 void Image3DOverlay::update(float deltatime) {
-    Transform transform = getTransform();
-    applyTransformTo(transform);
-    setTransform(transform);
+    if (usecTimestampNow() > _transformExpiry) {
+        Transform transform = getTransform();
+        applyTransformTo(transform);
+        setTransform(transform);
+    }
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
@@ -191,8 +193,9 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
         Transform transform = getTransform();
-        applyTransformTo(transform, true);
-        setTransform(transform);
+        // XXX this code runs too often for this...
+        // applyTransformTo(transform, true);
+        // setTransform(transform);
 
         // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
