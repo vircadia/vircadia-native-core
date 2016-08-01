@@ -49,9 +49,7 @@ Window {
         addressLine.text = card.path;
         toggleOrGo(true);
     }
-    property var allDomains: [];
-    property var suggestionChoices: [];
-    property var domainsBaseUrl: null;
+    property var allPlaces: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
 
@@ -78,7 +76,7 @@ Window {
                 width: cardWidth;
                 height: cardHeight;
                 goFunction: goCard;
-                path: model.name;
+                path: model.name + model.path;
                 thumbnail: model.thumbnail;
                 placeText: model.name;
                 usersText: model.online_users + ((model.online_users === 1) ? ' person' : ' people');
@@ -199,135 +197,156 @@ Window {
         request.open("GET", url, true);
         request.send();
     }
-    // call iterator(element, icb) once for each element of array, and then cb(error) when icb(error) has been called by each iterator.
-    // short-circuits if error. Note that iterator MUST be an asynchronous function. (Use setTimeout if necessary.)
-    function asyncEach(array, iterator, cb) {
-        var count = array.length;
-        function icb(error) {
-            if (!--count || error) {
-                count = -1; // don't cb multiple times (e.g., if error)
-                cb(error);
-            }
-        }
+    function asyncMap(array, iterator, cb) {
+        // call iterator(element, icb) once for each element of array, and then cb(error, mappedResult)
+        // when icb(error, mappedElement) has been called by each iterator.
+        // Calls to iterator are overlapped and map call icb in any order, but the mappedResults are collected in the same
+        // order as the elements of the array.
+        // short-circuits if error. Note that iterator MUST be an asynchronous function. (Use setTimeout if necessary.)
+        var count = array.length, results = [];
         if (!count) {
-            return cb();
+            return cb(null, results);
         }
-        array.forEach(function (element) {
-            iterator(element, icb);
+        array.forEach(function (element, index) {
+            if (count < 0) { // don't keep iterating after we short-circuit
+                return;
+            }
+            iterator(element, function (error, mapped) {
+                results[index] = mapped;
+                if (error || !--count) {
+                    count = 1; // don't cb multiple times if error
+                    cb(error, results);
+                }
+            });
         });
     }
+    // Example:
+    /*asyncMap([0, 1, 2, 3, 4, 5, 6], function (elt, icb) {
+        console.log('called', elt);
+        setTimeout(function () {
+            console.log('answering', elt);
+            icb(null, elt);
+        }, Math.random() * 1000);
+    }, console.log); */
 
     function identity(x) {
         return x;
     }
 
-    function addPictureToDomain(domainInfo, cb) { // asynchronously add thumbnail and lobby to domainInfo, if available, and cb(error)
-        // This requests data for all the names at once, and just uses the first one to come back.
-        // We might change this to check one at a time, which would be less requests and more latency.
-        domainInfo.thumbnail = ''; // Regardless of whether we fill it in later, qt models must start with the all values they will have.
-        asyncEach([domainInfo.name].concat(domainInfo.names || null).filter(identity), function (name, icb) {
-            var url = "https://metaverse.highfidelity.com/api/v1/places/" + name;
-            getRequest(url, function (error, json) {
-                var previews = !error && json.data.place.previews;
-                if (previews) {
-                    if (!domainInfo.thumbnail) { // just grab the first one
-                        domainInfo.thumbnail = previews.thumbnail;
-                    }
-                    if (!domainInfo.lobby) {
-                        domainInfo.lobby = previews.lobby;
-                    }
-                }
-                icb(error);
-            });
-        }, cb);
+    function handleError(error, data, cb) { // cb(error) and answer truthy if needed, else falsey
+        if (!error && (data.status === 'success')) {
+            return;
+        }
+        cb(error || new Error(data.status + ': ' + data.error));
+        return true;
     }
 
-    function getDomains(options, cb) { // cb(error, arrayOfData)
-        if (!options.page) {
-            options.page = 1;
-        }
-        if (!domainsBaseUrl) {
-            var domainsOptions = [
-                'open', // published hours handle now
-                // fixme hrs restore 'active', // has at least one person connected. FIXME: really want any place that is verified accessible.
-                // FIXME: really want places I'm allowed in, not just open ones.
-                'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
-                // FIXME add maturity
-                'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
-                'sort_by=users',
-                'sort_order=desc',
-            ];
-            domainsBaseUrl = "https://metaverse.highfidelity.com/api/v1/domains/all?" + domainsOptions.join('&');
-        }
-        var url = domainsBaseUrl + "&page=" + options.page + "&users=" + options.minUsers + "-" + options.maxUsers;
-        getRequest(url, function (error, json) {
-            if (!error && (json.status !== 'success')) {
-                error = new Error("Bad response: " + JSON.stringify(json));
-            }
-            if (error) {
-                error.message += ' for ' + url;
-                return cb(error);
-            }
-            var domains = json.data.domains;
-            if (json.current_page < json.total_pages) {
-                options.page++;
-                return getDomains(options, function (error, others) {
-                    cb(error, domains.concat(others));
-                });
-            }
-            cb(null, domains);
-        });
-    }
-
-    function filterChoicesByText() {
-        function fill1(targetIndex) {
-            var data = filtered[targetIndex];
-            if (!data) {
-                if (targetIndex < suggestions.count) {
-                    suggestions.remove(targetIndex);
-                }
+    function getPlace(placeData, cb) { // cb(error, side-effected-placeData), after adding path, thumbnails, and description
+        getRequest('https://metaverse.highfidelity.com/api/v1/places/' + placeData.name, function (error, data) {
+            if (handleError(error, data, cb)) {
                 return;
             }
-            console.log('suggestion:', JSON.stringify(data));
-            if (suggestions.count <= targetIndex) {
-                suggestions.append(data);
-            } else {
-                suggestions.set(targetIndex, data);
+            var place = data.data.place, previews = place.previews;
+            placeData.path = place.path;
+            if (previews && previews.thumbnail) {
+                placeData.thumbnail = previews.thumbnail;
             }
+            if (place.description) {
+                placeData.description = place.description;
+                placeData.searchText += ' ' + place.description.toUpperCase();
+            }
+            cb(error, placeData);
+        });
+    }
+    function mapDomainPlaces(domain, cb) { // cb(error, arrayOfDomainPlaceData)
+        function addPlace(name, icb) {
+            getPlace({
+                name: name,
+                tags: domain.tags,
+                thumbnail: "",
+                description: "",
+                path: "",
+                searchText: [name].concat(domain.tags).join(' ').toUpperCase(),
+                online_users: domain.online_users
+            }, icb);
         }
-        var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity);
-        var filtered = !words.length ? suggestionChoices : allDomains.filter(function (domain) {
-            var text = domain.names.concat(domain.tags).join(' ');
-            if (domain.description) {
-                text += domain.description;
+        // IWBNI we could get these results in order with most-recent-entered first.
+        // In any case, we don't really need to preserve the domain.names order in the results.
+        asyncMap(domain.names, addPlace, cb);
+    }
+
+    function suggestable(place) {
+        return (place.name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
+            && place.thumbnail
+            && place.online_users; // at least one present means it's actually online
+    }
+    function getDomainPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
+        // Each page of results is processed completely before we start on the next page.
+        // For each page of domains, we process each domain in parallel, and for each domain, process each place name in parallel.
+        // This gives us minimum latency within the page, but we do preserve the order within the page by using asyncMap and
+        // only appending the collected results.
+        var params = [
+            'open', // published hours handle now
+            // FIXME: should determine if place is actually running
+            'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
+            // FIXME add maturity
+            'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
+            'sort_by=users',
+            'sort_order=desc',
+            'page=' + pageNumber
+        ];
+        getRequest('https://metaverse.highfidelity.com/api/v1/domains/all?' + params.join('&'), function (error, data) {
+            if (handleError(error, data, cb)) {
+                return;
             }
-            text = text.toUpperCase();
-            return words.every(function (word) {
-                return text.indexOf(word) >= 0;
+            asyncMap(data.data.domains, mapDomainPlaces, function (error, pageResults) {
+                if (error) {
+                    return cb(error);
+                }
+                // pageResults is now [ [ placeDataOneForDomainOne, placeDataTwoForDomainOne, ...], [ placeDataTwoForDomainTwo...] ]
+                pageResults.forEach(function (domainResults) {
+                    allPlaces = allPlaces.concat(domainResults);
+                    if (!addressLine.text) { // Don't add if the user is already filtering
+                        domainResults.forEach(function (place) {
+                            if (suggestable(place)) {
+                                suggestions.append(place);
+                            }
+                        });
+                    }
+                });
+                if (data.current_page < data.total_pages) {
+                    return getDomainPage(pageNumber + 1, cb);
+                }
+                cb();
             });
         });
-        for (var index in filtered) { fill1(index); }
+    }
+    function filterChoicesByText() {
+        suggestions.clear();
+        var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity);
+        function matches(place) {
+            if (!words.length) {
+                return suggestable(place);
+            }
+            return words.every(function (word) {
+                return place.searchText.indexOf(word) >= 0;
+            });
+        }
+        allPlaces.forEach(function (place) {
+            if (matches(place)) {
+                suggestions.append(place);
+            }
+        });
     }
 
     function fillDestinations() {
-        allDomains = suggestionChoices = [];
-        getDomains({minUsers: 0, maxUsers: 20}, function (error, domains) {
+        allPlaces = [];
+        suggestions.clear();
+        getDomainPage(1, function (error) {
             if (error) {
                 console.log('domain query failed:', error);
-                return filterChoicesByText();
             }
-            var here = AddressManager.hostname; // don't show where we are now.
-            allDomains = domains.filter(function (domain) { return domain.name !== here; });
-            // Whittle down suggestions to those that have at least one user, and try to get pictures.
-            suggestionChoices = allDomains.filter(function (domain) { return true/*fixme hrs restore domain.online_users*/; });
-            asyncEach(domains, addPictureToDomain, function (error) {
-                if (error) {
-                    console.log('place picture query failed:', error);
-                }
-                // Whittle down more by requiring a picture.
-                // fixme hrs restore suggestionChoices = suggestionChoices.filter(function (domain) { return domain.lobby; });
-                filterChoicesByText();
-            });
+            console.log('domain query finished', allPlaces.length);
         });
     }
 
