@@ -190,7 +190,7 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
                                             float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
-        Transform transform;
+        Transform transform = getTransform();
         applyTransformTo(transform, true);
         setTransform(transform);
 
@@ -202,7 +202,10 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
         glm::vec2 dimensions = _dimensions * glm::vec2(width / maxSize, height / maxSize);
 
         // FIXME - face and surfaceNormal not being set
-        return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
+        return findRayRectangleIntersection(origin, direction,
+                                            transform.getRotation(),
+                                            transform.getTranslation(),
+                                            dimensions, distance);
     }
 
     return false;
