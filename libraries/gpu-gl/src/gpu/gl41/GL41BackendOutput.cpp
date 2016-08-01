@@ -119,11 +119,11 @@ public:
         : Parent(framebuffer, allocate()) { }
 };
 
-gl::GLFramebuffer* GL41Backend::syncGPUObject(const Framebuffer& framebuffer) {
+gl::GLFramebuffer* GL41Backend::syncGPUObject(const Framebuffer& framebuffer) const {
     return GL41Framebuffer::sync<GL41Framebuffer>(framebuffer);
 }
 
-GLuint GL41Backend::getFramebufferID(const FramebufferPointer& framebuffer) {
+GLuint GL41Backend::getFramebufferID(const FramebufferPointer& framebuffer) const {
     return framebuffer ? GL41Framebuffer::getId<GL41Framebuffer>(*framebuffer) : 0;
 }
 

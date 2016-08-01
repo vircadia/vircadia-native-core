@@ -24,37 +24,8 @@ Frame::~Frame() {
 }
 
 void Frame::finish() {
-    std::unordered_set<Buffer*> seenBuffers;
     for (Batch& batch : batches) {
-        for (auto& namedCallData : batch._namedData) {
-            for (auto& buffer : namedCallData.second.buffers) {
-                if (!buffer) {
-                    continue;
-                }
-                if (!buffer->isDirty()) {
-                    continue;
-                }
-                if (seenBuffers.count(buffer.get())) {
-                    continue;
-                }
-                seenBuffers.insert(buffer.get());
-                bufferUpdates.push_back({ buffer, buffer->getUpdate() });
-            }
-        }
-        for (auto& bufferCacheItem : batch._buffers._items) {
-            const BufferPointer& buffer = bufferCacheItem._data;
-            if (!buffer) {
-                continue;
-            }
-            if (!buffer->isDirty()) {
-                continue;
-            }
-            if (seenBuffers.count(buffer.get())) {
-                continue;
-            }
-            seenBuffers.insert(buffer.get());
-            bufferUpdates.push_back({ buffer, buffer->getUpdate() });
-        }
+        batch.finish(bufferUpdates);
     }
 }
 

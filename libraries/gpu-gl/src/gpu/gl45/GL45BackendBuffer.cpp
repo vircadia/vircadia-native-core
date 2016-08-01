@@ -41,10 +41,10 @@ public:
     }
 };
 
-GLuint GL45Backend::getBufferID(const Buffer& buffer) {
+GLuint GL45Backend::getBufferID(const Buffer& buffer) const {
     return GL45Buffer::getId<GL45Buffer>(buffer);
 }
 
-gl::GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) {
+gl::GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) const {
     return GL45Buffer::sync<GL45Buffer>(buffer);
 }

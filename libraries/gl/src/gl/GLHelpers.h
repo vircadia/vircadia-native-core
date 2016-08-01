@@ -29,4 +29,6 @@ const QGLFormat& getDefaultGLFormat();
 QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);
 
+bool isRenderThread();
+
 #endif

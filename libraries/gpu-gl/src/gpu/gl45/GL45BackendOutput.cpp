@@ -111,11 +111,11 @@ public:
         : Parent(framebuffer, allocate()) { }
 };
 
-gl::GLFramebuffer* GL45Backend::syncGPUObject(const Framebuffer& framebuffer) {
+gl::GLFramebuffer* GL45Backend::syncGPUObject(const Framebuffer& framebuffer) const {
     return gl::GLFramebuffer::sync<GL45Framebuffer>(framebuffer);
 }
 
-GLuint GL45Backend::getFramebufferID(const FramebufferPointer& framebuffer) {
+GLuint GL45Backend::getFramebufferID(const FramebufferPointer& framebuffer) const {
     return framebuffer ? gl::GLFramebuffer::getId<GL45Framebuffer>(*framebuffer) : 0;
 }
 

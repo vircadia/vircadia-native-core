@@ -75,7 +75,7 @@ public:
         Function function;
         DrawCallInfoBuffer drawCallInfos;
 
-        size_t count() const { return drawCallInfos.size();  }
+        size_t count() const { return drawCallInfos.size(); }
 
         void process(Batch& batch) {
             if (function) {
@@ -102,6 +102,8 @@ public:
     ~Batch();
 
     void clear();
+    // Call on the main thread to prepare for passing to the render thread
+    void finish(BufferUpdates& updates);
     
     void preExecute();
 
@@ -449,10 +451,9 @@ public:
         Mat4 _modelInverse;
     };
 
-    using TransformObjects = std::vector<TransformObject>;
     bool _invalidModel { true };
     Transform _currentModel;
-    TransformObjects _objects;
+    BufferPointer _objectsBuffer;
     static size_t _objectsMax;
 
     BufferCaches _buffers;

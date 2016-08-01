@@ -9,15 +9,8 @@
 #ifndef hifi_gl_NsightHelpers_h
 #define hifi_gl_NsightHelpers_h
 
-class QThread;
-// FIXME find a better place for this, probably in the GL library
-extern QThread* RENDER_THREAD;
-extern bool isRenderThread();
-
 #ifdef _WIN32
 #include <stdint.h>
-
-#include <QtCore/QThread>
 
 class ProfileRange {
 public:

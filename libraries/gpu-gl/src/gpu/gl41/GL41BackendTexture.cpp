@@ -29,11 +29,11 @@ GLuint GL41Texture::allocate() {
     return result;
 }
 
-GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) {
+GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) const {
     return GL41Texture::getId<GL41Texture>(texture, transfer);
 }
 
-gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
+gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) const {
     return GL41Texture::sync<GL41Texture>(texture, transfer);
 }
 

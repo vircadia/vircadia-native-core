@@ -33,22 +33,19 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
             memcpy(bufferData.data() + (_transform._cameraUboSize * i), &_transform._cameras[i], sizeof(TransformStageState::CameraBufferElement));
         }
         glBindBuffer(GL_UNIFORM_BUFFER, _transform._cameraBuffer);
-        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    if (!batch._objects.empty()) {
-        auto byteSize = batch._objects.size() * sizeof(Batch::TransformObject);
-        bufferData.resize(byteSize);
-        memcpy(bufferData.data(), batch._objects.data(), byteSize);
-
+    if (batch._objectsBuffer) {
+        const auto& sysmem = batch._objectsBuffer->_renderSysmem;
 #ifdef GPU_SSBO_DRAW_CALL_INFO
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 #else
         glBindBuffer(GL_TEXTURE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_TEXTURE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_TEXTURE_BUFFER, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
 #endif
     }
@@ -64,7 +61,7 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-        glBufferData(GL_ARRAY_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 

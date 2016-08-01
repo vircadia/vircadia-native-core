@@ -21,8 +21,6 @@ namespace gpu {
         using Batches = std::vector<Batch>;
         using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
         using OverlayRecycler = std::function<void(const TexturePointer&)>;
-        using BufferUpdate = std::pair<BufferPointer, Buffer::Update>;
-        using BufferUpdates = std::vector<BufferUpdate>;
 
         virtual ~Frame();
         void finish();

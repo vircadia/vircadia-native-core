@@ -8,13 +8,7 @@
 
 #include "NsightHelpers.h"
 
-#include <QtCore/QThread>
-
-QThread* RENDER_THREAD = nullptr;
-
-bool isRenderThread() {
-    return QThread::currentThread() == RENDER_THREAD;
-}
+#include "../gl/src/gl/GLHelpers.h"
 
 #ifdef _WIN32
 #if defined(NSIGHT_FOUND)

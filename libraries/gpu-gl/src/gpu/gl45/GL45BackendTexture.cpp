@@ -29,11 +29,11 @@ GLuint GL45Texture::allocate(const Texture& texture) {
     return result;
 }
 
-GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
+GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) const {
     return GL45Texture::getId<GL45Texture>(texture, transfer);
 }
 
-gl::GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
+gl::GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) const {
     return GL45Texture::sync<GL45Texture>(texture, transfer);
 }
 

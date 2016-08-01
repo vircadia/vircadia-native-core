@@ -37,11 +37,9 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
         glNamedBufferData(_transform._cameraBuffer, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
     }
 
-    if (!batch._objects.empty()) {
-        auto byteSize = batch._objects.size() * sizeof(Batch::TransformObject);
-        bufferData.resize(byteSize);
-        memcpy(bufferData.data(), batch._objects.data(), byteSize);
-        glNamedBufferData(_transform._objectBuffer, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
+    if (batch._objectsBuffer) {
+        const auto& sysmem = batch._objectsBuffer->_renderSysmem;
+        glNamedBufferData(_transform._objectBuffer, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
     }
 
     if (!batch._namedData.empty()) {

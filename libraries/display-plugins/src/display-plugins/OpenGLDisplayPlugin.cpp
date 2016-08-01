@@ -218,6 +218,8 @@ private:
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
 }
 
+extern QThread* RENDER_THREAD;
+
 bool OpenGLDisplayPlugin::activate() {
     if (!_cursorsData.size()) {
         auto& cursorManager = Cursor::Manager::instance();

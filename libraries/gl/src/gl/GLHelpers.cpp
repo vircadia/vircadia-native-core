@@ -2,11 +2,13 @@
 
 #include <mutex>
 
+#include <QtCore/QThread>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QProcessEnvironment>
 #include <QtGui/QSurfaceFormat>
 #include <QtOpenGL/QGL>
 #include <QOpenGLContext>
-#include <QtCore/QRegularExpression>
-#include <QtCore/QProcessEnvironment>
+
 #ifdef DEBUG
 static bool enableDebug = true;
 #else
@@ -72,3 +74,10 @@ QJsonObject getGLContextData() {
         { "renderer", glRenderer },
     };
 }
+
+QThread* RENDER_THREAD = nullptr;
+
+bool isRenderThread() {
+    return QThread::currentThread() == RENDER_THREAD;
+}
+

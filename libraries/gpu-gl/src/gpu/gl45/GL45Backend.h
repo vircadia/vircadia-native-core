@@ -44,14 +44,14 @@ public:
 
 
 protected:
-    GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
-    gl::GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
+    GLuint getFramebufferID(const FramebufferPointer& framebuffer) const override;
+    gl::GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) const override;
 
-    GLuint getBufferID(const Buffer& buffer) override;
-    gl::GLBuffer* syncGPUObject(const Buffer& buffer) override;
+    GLuint getBufferID(const Buffer& buffer) const override;
+    gl::GLBuffer* syncGPUObject(const Buffer& buffer) const override;
 
-    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) override;
-    gl::GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) override;
+    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const override;
+    gl::GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) const override;
 
     GLuint getQueryID(const QueryPointer& query) override;
     gl::GLQuery* syncGPUObject(const Query& query) override;

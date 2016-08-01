@@ -280,6 +280,9 @@ public:
 
     // The size in bytes of data stored in the buffer
     Size getSize() const;
+    template <typename T>
+    Size getTypedSize() const { return getSize() / sizeof(T); };
+
     const Byte* getData() const { return getSysmem().readData(); }
     
     // Resize the buffer
@@ -373,6 +376,9 @@ protected:
     friend class BufferView;
     friend class Frame;
 };
+
+using BufferUpdate = std::pair<BufferPointer, Buffer::Update>;
+using BufferUpdates = std::vector<BufferUpdate>;
 
 typedef std::shared_ptr<Buffer> BufferPointer;
 typedef std::vector< BufferPointer > Buffers;
