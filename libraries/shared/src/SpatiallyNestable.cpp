@@ -26,6 +26,12 @@ SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _transform.setRotation(glm::quat());
 }
 
+SpatiallyNestable::~SpatiallyNestable() {
+    forEachChild([&](SpatiallyNestablePointer object) {
+        object->parentDeleted();
+    });
+}
+
 const QUuid SpatiallyNestable::getID() const {
     QUuid result;
     _idLock.withReadLock([&] {

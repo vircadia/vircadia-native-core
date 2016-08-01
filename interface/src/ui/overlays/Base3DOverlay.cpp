@@ -244,3 +244,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     // Overlays can't currently have children.
     // SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }
+
+void Base3DOverlay::parentDeleted() {
+    qApp->getOverlays().deleteOverlay(getOverlayID());
+}

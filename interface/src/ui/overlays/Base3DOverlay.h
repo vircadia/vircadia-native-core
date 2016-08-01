@@ -57,6 +57,7 @@ public:
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void parentDeleted() override;
 
     float _lineWidth;
     bool _isSolid;

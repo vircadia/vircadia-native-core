@@ -35,7 +35,7 @@ enum class NestableType {
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
-    virtual ~SpatiallyNestable() { }
+    virtual ~SpatiallyNestable();
 
     virtual const QUuid getID() const;
     virtual void setID(const QUuid& id);
@@ -178,6 +178,7 @@ protected:
 
     virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
+    virtual void parentDeleted() { } // called on children of a deleted parent
 
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;
