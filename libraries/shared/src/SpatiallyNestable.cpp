@@ -313,17 +313,20 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bo
         success = false;
         return;
     }
+
+    bool changed = false;
     Transform parentTransform = getParentTransform(success);
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
         Transform::mult(myWorldTransform, parentTransform, _transform);
-        myWorldTransform.setTranslation(position);
-        Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+        if (myWorldTransform.getTranslation() != position) {
+            changed = true;
+            myWorldTransform.setTranslation(position);
+            Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+        }
     });
-    if (success) {
+    if (success && changed) {
         locationChanged(tellPhysics);
-    } else {
-        qDebug() << "setPosition failed for" << getID();
     }
 }
 
@@ -363,14 +366,18 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
         return;
     }
 
+    bool changed = false;
     Transform parentTransform = getParentTransform(success);
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
         Transform::mult(myWorldTransform, parentTransform, _transform);
-        myWorldTransform.setRotation(orientation);
-        Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+        if (myWorldTransform.getRotation() != orientation) {
+            changed = true;
+            myWorldTransform.setRotation(orientation);
+            Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+        }
     });
-    if (success) {
+    if (success && changed) {
         locationChanged(tellPhysics);
     }
 }
@@ -558,11 +565,17 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
         success = false;
         return;
     }
+
+    bool changed = false;
     Transform parentTransform = getParentTransform(success);
     _transformLock.withWriteLock([&] {
+        Transform beforeTransform = _transform;
         Transform::inverseMult(_transform, parentTransform, transform);
+        if (_transform != beforeTransform) {
+            changed = true;
+        }
     });
-    if (success) {
+    if (success && changed) {
         locationChanged();
     }
 }
@@ -593,11 +606,18 @@ void SpatiallyNestable::setScale(const glm::vec3& scale) {
         qDebug() << "SpatiallyNestable::setScale -- scale contains NaN";
         return;
     }
+
+    bool changed = false;
     // TODO: scale
     _transformLock.withWriteLock([&] {
-        _transform.setScale(scale);
+        if (_transform.getScale() != scale) {
+            _transform.setScale(scale);
+            changed = true;
+        }
     });
-    dimensionsChanged();
+    if (changed) {
+        dimensionsChanged();
+    }
 }
 
 void SpatiallyNestable::setScale(float value) {
@@ -606,11 +626,20 @@ void SpatiallyNestable::setScale(float value) {
         qDebug() << "SpatiallyNestable::setScale -- scale is zero or negative value";
         return;
     }
+
+    bool changed = false;
     // TODO: scale
     _transformLock.withWriteLock([&] {
+        glm::vec3 beforeScale = _transform.getScale();
         _transform.setScale(value);
+        if (_transform.getScale() != beforeScale) {
+            changed = true;
+        }
     });
-    dimensionsChanged();
+
+    if (changed) {
+        dimensionsChanged();
+    }
 }
 
 const Transform SpatiallyNestable::getLocalTransform() const {
@@ -627,10 +656,18 @@ void SpatiallyNestable::setLocalTransform(const Transform& transform) {
         qDebug() << "SpatiallyNestable::setLocalTransform -- transform contains NaN";
         return;
     }
+
+    bool changed = false;
     _transformLock.withWriteLock([&] {
-        _transform = transform;
+        if (_transform != transform) {
+            _transform = transform;
+            changed = true;
+        }
     });
-    locationChanged();
+
+    if (changed) {
+        locationChanged();
+    }
 }
 
 glm::vec3 SpatiallyNestable::getLocalPosition() const {
@@ -647,10 +684,16 @@ void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhy
         qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
         return;
     }
+    bool changed = false;
     _transformLock.withWriteLock([&] {
-        _transform.setTranslation(position);
+        if (_transform.getTranslation() != position) {
+            _transform.setTranslation(position);
+            changed = true;
+        }
     });
-    locationChanged(tellPhysics);
+    if (changed) {
+        locationChanged(tellPhysics);
+    }
 }
 
 glm::quat SpatiallyNestable::getLocalOrientation() const {
@@ -667,10 +710,16 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
         qDebug() << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
         return;
     }
+    bool changed = false;
     _transformLock.withWriteLock([&] {
-        _transform.setRotation(orientation);
+        if (_transform.getRotation() != orientation) {
+            _transform.setRotation(orientation);
+            changed = true;
+        }
     });
-    locationChanged();
+    if (changed) {
+        locationChanged();
+    }
 }
 
 glm::vec3 SpatiallyNestable::getLocalVelocity() const {
@@ -716,9 +765,14 @@ void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
         qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }
+
+    bool changed = false;
     // TODO: scale
     _transformLock.withWriteLock([&] {
-        _transform.setScale(scale);
+        if (_transform.getScale() != scale) {
+            _transform.setScale(scale);
+            changed = true;
+        }
     });
     dimensionsChanged();
 }
@@ -914,12 +968,18 @@ void SpatiallyNestable::getLocalTransformAndVelocities(
 }
 
 void SpatiallyNestable::setLocalTransformAndVelocities(
-        const Transform& localTransform,
-        const glm::vec3& localVelocity,
-        const glm::vec3& localAngularVelocity) {
+    const Transform& localTransform,
+    const glm::vec3& localVelocity,
+    const glm::vec3& localAngularVelocity) {
+
+    bool changed = false;
+
     // transform
     _transformLock.withWriteLock([&] {
-        _transform = localTransform;
+        if (_transform != localTransform) {
+            _transform = localTransform;
+            changed = true;
+        }
     });
     // linear velocity
     _velocityLock.withWriteLock([&] {
@@ -929,5 +989,8 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
     _angularVelocityLock.withWriteLock([&] {
         _angularVelocity = localAngularVelocity;
     });
-    locationChanged(false);
+
+    if (changed) {
+        locationChanged(false);
+    }
 }
