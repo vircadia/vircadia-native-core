@@ -329,6 +329,8 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
 
     updateTransform(transform, offsetTransform);
     initCache();
+
+    _fadeStartTime = usecTimestampNow();
 }
 
 void ModelMeshPartPayload::initCache() {
@@ -352,6 +354,11 @@ void ModelMeshPartPayload::initCache() {
 
 }
 
+float ModelMeshPartPayload::calcFadeRatio() const {
+    const float FADE_TIME = 0.5f;
+    float t =  std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
+    return -0.5f * (cosf(M_PI*t) - 1.0f);
+}
 
 void ModelMeshPartPayload::notifyLocationChanged() {
 
@@ -392,6 +399,10 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
+    if (calcFadeRatio() < 1.0f) {
+        builder.withTransparent();
+    }
+
     return builder.build();
 }
 
@@ -429,7 +440,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
         drawMaterialKey = _drawMaterial->getKey();
     }
 
-    bool isTranslucent = drawMaterialKey.isTranslucent();
+    bool isTranslucent = drawMaterialKey.isTranslucent() || calcFadeRatio() < 1.0f;
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
@@ -540,6 +551,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     // apply material properties
     bindMaterial(batch, locations);
+
+    // model fading
+    batch._glColor4f(1.0f, 1.0f, 1.0f, calcFadeRatio());
 
     if (args) {
         args->_details._materialSwitches++;
