@@ -93,8 +93,6 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
-    gpu::FramebufferPointer _compositeFramebuffer;
-    gpu::TexturePointer _compositeTexture;
 
 private:
     void updateLaserProgram();

@@ -107,7 +107,10 @@ protected:
     RateCounter<> _droppedFrameRate;
     RateCounter<> _newFrameRate;
     RateCounter<> _presentRate;
+
     gpu::FramePointer _currentFrame;
+    gpu::FramebufferPointer _compositeFramebuffer;
+    gpu::TexturePointer _compositeTexture;
     gpu::PipelinePointer _overlayPipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;

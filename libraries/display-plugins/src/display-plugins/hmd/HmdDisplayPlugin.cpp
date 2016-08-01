@@ -118,18 +118,12 @@ void HmdDisplayPlugin::customizeContext() {
     updateLaserProgram();
     _laserGeometry = loadLaser(_laserProgram);
 #endif
-
-    _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
-    _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
+    _overlay = OverlayRenderer();
 #if 0
-    _overlayProgram.reset();
-    _sphereSection.reset();
-    _compositeFramebuffer.reset();
     _previewProgram.reset();
-    _reprojectionProgram.reset();
     _laserProgram.reset();
     _laserGeometry.reset();
 #endif

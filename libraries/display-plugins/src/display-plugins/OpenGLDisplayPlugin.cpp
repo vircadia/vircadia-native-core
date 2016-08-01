@@ -368,11 +368,22 @@ void OpenGLDisplayPlugin::customizeContext() {
             _cursorPipeline = gpu::Pipeline::create(program, state);
         }
     }
+    auto renderSize = getRecommendedRenderSize();
+    _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
+    _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
 
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
     _presentPipeline.reset();
+    _cursorPipeline.reset();
+    _overlayPipeline.reset();
+    _compositeFramebuffer.reset();
+    _compositeTexture.reset();
+    withPresentThreadLock([&] {
+        _currentFrame.reset();
+        _newFrameQueue.swap(std::queue<gpu::FramePointer>());
+    });
 }
 
 
