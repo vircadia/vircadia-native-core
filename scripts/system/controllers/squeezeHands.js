@@ -19,6 +19,8 @@ var CONTROLLER_DEAD_SPOT = 0.25;
 var TRIGGER_SMOOTH_TIMESCALE = 0.1;
 var OVERLAY_RAMP_RATE = 8.0;
 
+var animStateHandlerID;
+
 function clamp(val, min, max) {
     return Math.min(Math.max(val, min), max);
 }
@@ -33,8 +35,10 @@ function lerp(a, b, alpha) {
 
 function init() {
     Script.update.connect(update);
-    MyAvatar.addAnimationStateHandler(animStateHandler, ["leftHandOverlayAlpha", "rightHandOverlayAlpha",
-                                                         "leftHandGraspAlpha", "rightHandGraspAlpha"]);
+    animStateHandlerID = MyAvatar.addAnimationStateHandler(
+        animStateHandler,
+        ["leftHandOverlayAlpha", "rightHandOverlayAlpha", "leftHandGraspAlpha", "rightHandGraspAlpha"]
+    );
 }
 
 function animStateHandler(props) {
@@ -72,7 +76,7 @@ function update(dt) {
 
 function shutdown() {
     Script.update.disconnect(update);
-    MyAvatar.removeAnimationStateHandler(animStateHandler);
+    MyAvatar.removeAnimationStateHandler(animStateHandlerID);
 }
 
 Script.scriptEnding.connect(shutdown);

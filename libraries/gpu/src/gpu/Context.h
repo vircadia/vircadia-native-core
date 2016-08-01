@@ -16,12 +16,13 @@
 
 #include <GLMHelpers.h>
 
+#include "Forward.h"
 #include "Batch.h"
-
 #include "Resource.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Framebuffer.h"
+#include "Frame.h"
 
 class QImage;
 
@@ -46,51 +47,11 @@ public:
     ContextStats(const ContextStats& stats) = default;
 };
 
-struct StereoState {
-    bool _enable{ false };
-    bool _skybox{ false };
-    // 0 for left eye, 1 for right eye
-    uint8_t _pass{ 0 };
-    mat4 _eyeViews[2];
-    mat4 _eyeProjections[2];
-};
-
 class Backend {
 public:
     virtual~ Backend() {};
 
     virtual void render(Batch& batch) = 0;
-    virtual void enableStereo(bool enable) {
-        _stereo._enable = enable;
-    }
-
-    virtual bool isStereo() {
-        return _stereo._enable;
-    }
-
-    void setStereoProjections(const mat4 eyeProjections[2]) {
-        for (int i = 0; i < 2; ++i) {
-            _stereo._eyeProjections[i] = eyeProjections[i];
-        }
-    }
-
-    void setStereoViews(const mat4 views[2]) {
-        for (int i = 0; i < 2; ++i) {
-            _stereo._eyeViews[i] = views[i];
-        }
-    }
-
-    void getStereoProjections(mat4* eyeProjections) const {
-        for (int i = 0; i < 2; ++i) {
-            eyeProjections[i] = _stereo._eyeProjections[i];
-        }
-    }
-
-    void getStereoViews(mat4* eyeViews) const {
-        for (int i = 0; i < 2; ++i) {
-            eyeViews[i] = _stereo._eyeViews[i];
-        }
-    }
 
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
@@ -137,8 +98,25 @@ public:
     static void decrementTextureGPUTransferCount();
 
 protected:
-    StereoState  _stereo;
+    virtual bool isStereo() {
+        return _stereo._enable;
+    }
+
+    void getStereoProjections(mat4* eyeProjections) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeProjections[i] = _stereo._eyeProjections[i];
+        }
+    }
+
+    void getStereoViews(mat4* eyeViews) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeViews[i] = _stereo._eyeViews[i];
+        }
+    }
+
+    friend class Context;
     ContextStats _stats;
+    StereoState _stereo;
 };
 
 class Context {
@@ -161,7 +139,10 @@ public:
     Context();
     ~Context();
 
-    void render(Batch& batch);
+    void setFrameHandler(FrameHandler handler);
+    void beginFrame(const FramebufferPointer& outputFramebuffer, const glm::mat4& renderPose = glm::mat4());
+    void append(Batch& batch);
+    void endFrame();
 
     void enableStereo(bool enable = true);
     bool isStereo();
@@ -191,6 +172,10 @@ protected:
     Context(const Context& context);
 
     std::unique_ptr<Backend> _backend;
+    bool _frameActive { false };
+    Frame _currentFrame;
+    FrameHandler _frameHandler;
+    StereoState  _stereo;
 
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
@@ -234,7 +219,7 @@ template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
     gpu::Batch batch;
     f(batch);
-    context->render(batch);
+    context->append(batch);
 }
 
 };

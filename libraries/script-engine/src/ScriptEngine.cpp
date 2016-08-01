@@ -828,24 +828,47 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
+    std::chrono::microseconds totalUpdates;
+
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
+        auto beforeSleep = clock::now();
+
         // Throttle to SCRIPT_FPS
+        // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will 
+        // calculate a sleepUntil to be the time from our start time until the original target
+        // sleepUntil for this frame.
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
-        std::this_thread::sleep_until(sleepTime);
+        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+
+        // However, if our sleepUntil is not at least our average update time into the future
+        // it means our script is taking too long in it's updates, and we want to punish the
+        // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
+        // time into the future.
+        auto averageUpdate = totalUpdates / thisFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
+
+        // We don't want to actually sleep for too long, because it causes our scripts to hang 
+        // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
+        // purgatory, constantly checking to see if our script was asked to end
+        while (!_isFinished && clock::now() < sleepUntil) {
+            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
+            std::this_thread::sleep_until(thisSleepUntil);
+        }
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
-            auto now = clock::now();
-            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            auto actuallySleptUntil = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(actuallySleptUntil - startTime).count();
             if (seconds > 0) { // avoid division by zero and time travel
                 uint64_t fps = thisFrame / seconds;
                 // Overreporting artificially reduces the reported rate
                 if (thisFrame % SCRIPT_FPS == 0) {
                     qCDebug(scriptengine) <<
                         "Frame:" << thisFrame <<
-                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(actuallySleptUntil - beforeSleep).count() <<
+                        "Avg Updates (us):" << averageUpdate.count() <<
                         "FPS:" << fps;
                 }
             }
@@ -874,10 +897,14 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
+        if (_emitScriptUpdates() && _lastUpdate < now) {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
+                auto preUpdate = clock::now();
                 emit update(deltaTime);
+                auto postUpdate = clock::now();
+                auto elapsed = (postUpdate - preUpdate);
+                totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
             }
         }
         _lastUpdate = now;

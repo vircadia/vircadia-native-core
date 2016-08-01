@@ -11,12 +11,9 @@
 
 #include <QSize>
 
-#include <gpu/Framebuffer.h>
+#include <mutex>
+#include <gpu/Forward.h>
 #include <DependencyManager.h>
-
-namespace gpu {
-class Batch;
-}
 
 /// Stores cached textures, including render-to-texture targets.
 class FramebufferCache : public Dependency {
@@ -41,9 +38,6 @@ public:
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
 
 private:
-    FramebufferCache();
-    virtual ~FramebufferCache();
-
     void createPrimaryFramebuffer();
 
     gpu::FramebufferPointer _shadowFramebuffer;
@@ -51,6 +45,9 @@ private:
     gpu::FramebufferPointer _selfieFramebuffer;
 
     QSize _frameBufferSize{ 100, 100 };
+
+    std::mutex _mutex;
+    std::list<gpu::FramebufferPointer> _cachedFramebuffers;
 };
 
 #endif // hifi_FramebufferCache_h

@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Context.h"
-
+#include "Frame.h"
 using namespace gpu;
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
@@ -20,6 +20,13 @@ Context::Context() {
     if (_createBackendCallback) {
         _backend.reset(_createBackendCallback());
     }
+
+    _frameHandler = [this](Frame& frame){
+        for (size_t i = 0; i < frame.batches.size(); ++i) {
+            _backend->_stereo = frame.stereoStates[i];
+            _backend->render(frame.batches[i]);
+        }
+    };
 }
 
 Context::Context(const Context& context) {
@@ -28,6 +35,43 @@ Context::Context(const Context& context) {
 Context::~Context() {
 }
 
+void Context::setFrameHandler(FrameHandler handler) {
+    _frameHandler = handler;
+}
+
+#define DEFERRED_RENDERING
+
+void Context::beginFrame(const FramebufferPointer& outputFramebuffer, const glm::mat4& renderPose) {
+    _currentFrame = Frame();
+    _currentFrame.framebuffer = outputFramebuffer;
+    _currentFrame.pose = renderPose;
+    _frameActive = true;
+}
+
+void Context::append(Batch& batch) {
+    if (!_frameActive) {
+        qWarning() << "Batch executed outside of frame boundaries";
+    }
+#ifdef DEFERRED_RENDERING
+    _currentFrame.batches.emplace_back(batch);
+    _currentFrame.stereoStates.emplace_back(_stereo);
+#else
+    _backend->_stereo = _stereo;
+    _backend->render(batch);
+#endif
+}
+
+void Context::endFrame() {
+#ifdef DEFERRED_RENDERING
+    if (_frameHandler) {
+        _frameHandler(_currentFrame);
+    }
+#endif
+    _currentFrame = Frame();
+    _frameActive = false;
+}
+
+
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
@@ -35,35 +79,37 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     return false;
 }
 
-void Context::render(Batch& batch) {
-    PROFILE_RANGE(__FUNCTION__);
-    _backend->render(batch);
-}
-
 void Context::enableStereo(bool enable) {
-    _backend->enableStereo(enable);
+    _stereo._enable = enable;
 }
 
 bool Context::isStereo() {
-    return _backend->isStereo();
+    return _stereo._enable;
 }
 
 void Context::setStereoProjections(const mat4 eyeProjections[2]) {
-    _backend->setStereoProjections(eyeProjections);
+    for (int i = 0; i < 2; ++i) {
+        _stereo._eyeProjections[i] = eyeProjections[i];
+    }
 }
 
-void Context::setStereoViews(const mat4 eyeViews[2]) {
-    _backend->setStereoViews(eyeViews);
+void Context::setStereoViews(const mat4 views[2]) {
+    for (int i = 0; i < 2; ++i) {
+        _stereo._eyeViews[i] = views[i];
+    }
 }
 
 void Context::getStereoProjections(mat4* eyeProjections) const {
-    _backend->getStereoProjections(eyeProjections);
+    for (int i = 0; i < 2; ++i) {
+        eyeProjections[i] = _stereo._eyeProjections[i];
+    }
 }
 
 void Context::getStereoViews(mat4* eyeViews) const {
-    _backend->getStereoViews(eyeViews);
+    for (int i = 0; i < 2; ++i) {
+        eyeViews[i] = _stereo._eyeViews[i];
+    }
 }
-
 
 void Context::syncCache() {
     PROFILE_RANGE(__FUNCTION__);
@@ -103,12 +149,12 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
     if (!_stereo._skybox) {
         offsetTransform.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
     } else {
-       // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
+        // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
     result.recomputeDerived(offsetTransform);
 
-    result._stereoInfo = Vec4(1.0f, (float) eye, 0.0f, 0.0f);
+    result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
 
     return result;
 }
@@ -125,7 +171,7 @@ std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
 void Context::incrementBufferGPUCount() {
     _bufferGPUCount++;
 }
-void Context::decrementBufferGPUCount() { 
+void Context::decrementBufferGPUCount() {
     _bufferGPUCount--;
 }
 void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {

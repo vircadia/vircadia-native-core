@@ -141,18 +141,88 @@ ScrollingWindow {
     }
 
     function addToWorld() {
-        var url = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
+        var defaultURL = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
 
-        if (!url || !canAddToWorld(url)) {
+        if (!defaultURL || !canAddToWorld(defaultURL)) {
             return;
         }
 
-        var name = assetProxyModel.data(treeView.selection.currentIndex);
+        var SHAPE_TYPE_NONE = 0;
+        var SHAPE_TYPE_SIMPLE_HULL = 1;
+        var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
+        var SHAPE_TYPE_STATIC_MESH = 3;
 
-        console.log("Asset browser - adding asset " + url + " (" + name + ") to world.");
+        var SHAPE_TYPES = [];
+        SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
+        SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
+        SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
+        SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
 
-        var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
-        Entities.addModelEntity(name, url, addPosition);
+        var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
+        var DYNAMIC_DEFAULT = false;
+        var prompt = desktop.customInputDialog({
+            textInput: {
+                label: "Model URL",
+                text: defaultURL
+            },
+            comboBox: {
+                label: "Automatic Collisions",
+                index: SHAPE_TYPE_DEFAULT,
+                items: SHAPE_TYPES
+            },
+            checkBox: {
+                label: "Dynamic",
+                checked: DYNAMIC_DEFAULT,
+                disableForItems: [
+                    SHAPE_TYPE_STATIC_MESH
+                ],
+                checkStateOnDisable: false,
+                warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
+            }
+        });
+
+        prompt.selected.connect(function (jsonResult) {
+            if (jsonResult) {
+                var result = JSON.parse(jsonResult);
+                var url = result.textInput;
+                var shapeType;
+                switch (result.comboBox) {
+                    case SHAPE_TYPE_SIMPLE_HULL:
+                        shapeType = "simple-hull";
+                        break;
+                    case SHAPE_TYPE_SIMPLE_COMPOUND:
+                        shapeType = "simple-compound";
+                        break;
+                    case SHAPE_TYPE_STATIC_MESH:
+                        shapeType = "static-mesh";
+                        break;
+                    default:
+                        shapeType = "none";
+                }
+
+                var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+                if (shapeType === "static-mesh" && dynamic) {
+                    // The prompt should prevent this case
+                    print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
+                } else if (url) {
+                    var name = assetProxyModel.data(treeView.selection.currentIndex);
+                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+                    var gravity;
+                    if (dynamic) {
+                        // Create a vector <0, -10, 0>.  { x: 0, y: -10, z: 0 } won't work because Qt is dumb and this is a
+                        // different scripting engine from QTScript.
+                        gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 10);
+                    } else {
+                        gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
+                    }
+
+                    print("Asset browser - adding asset " + url + " (" + name + ") to world.");
+
+                    // Entities.addEntity doesn't work from QML, so we use this.
+                    Entities.addModelEntity(name, url, shapeType, dynamic, addPosition, gravity);
+                }
+            }
+        });
     }
 
     function copyURLToClipboard(index) {
