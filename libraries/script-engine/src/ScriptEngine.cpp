@@ -839,20 +839,23 @@ void ScriptEngine::run() {
         // calculate a sleepUntil to be the time from our start time until the original target
         // sleepUntil for this frame.
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point sleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
 
         // However, if our sleepUntil is not at least our average update time into the future
         // it means our script is taking too long in it's updates, and we want to punish the
         // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
         // time into the future.
-        auto wouldSleep = (sleepUntil - clock::now());
-        auto avgerageUpdate = totalUpdates / thisFrame;
+        auto averageUpdate = totalUpdates / thisFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
 
-        if (wouldSleep < avgerageUpdate) {
-            sleepUntil = beforeSleep + avgerageUpdate;
+        // We don't want to actually sleep for too long, because it causes our scripts to hang 
+        // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
+        // purgatory, constantly checking to see if our script was asked to end
+        while (!_isFinished && clock::now() < sleepUntil) {
+            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
+            std::this_thread::sleep_until(thisSleepUntil);
         }
-
-        std::this_thread::sleep_until(sleepUntil);
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
@@ -865,7 +868,7 @@ void ScriptEngine::run() {
                     qCDebug(scriptengine) <<
                         "Frame:" << thisFrame <<
                         "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(actuallySleptUntil - beforeSleep).count() <<
-                        "Avg Updates (us):" << avgerageUpdate.count() <<
+                        "Avg Updates (us):" << averageUpdate.count() <<
                         "FPS:" << fps;
                 }
             }
