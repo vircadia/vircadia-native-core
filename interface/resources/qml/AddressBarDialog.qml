@@ -278,7 +278,8 @@ Window {
     function suggestable(place) {
         return (place.name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
             && place.thumbnail
-            && place.online_users; // at least one present means it's actually online
+            && place.online_users // at least one present means it's actually online
+            && place.online_users <= 20;
     }
     function getDomainPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         // Each page of results is processed completely before we start on the next page.
