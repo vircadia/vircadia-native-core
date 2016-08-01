@@ -2281,7 +2281,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
-                    takeSnapshot();
+                    takeSnapshot(true);
                 }
                 break;
 
@@ -5070,7 +5070,7 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot() {
+void Application::takeSnapshot(bool notify) {
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
@@ -5078,7 +5078,7 @@ void Application::takeSnapshot() {
 
     QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
 }
 
 float Application::getRenderResolutionScale() const {
