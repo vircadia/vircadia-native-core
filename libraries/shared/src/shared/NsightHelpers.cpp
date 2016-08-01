@@ -14,7 +14,11 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 
-extern bool isRenderThread();
+QThread* RENDER_THREAD = nullptr;
+
+bool isRenderThread() {
+    return QThread::currentThread() == RENDER_THREAD;
+}
 
 ProfileRange::ProfileRange(const char *name) {
     if (!isRenderThread()) {

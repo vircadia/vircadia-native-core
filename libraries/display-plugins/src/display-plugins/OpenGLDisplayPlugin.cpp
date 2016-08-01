@@ -33,6 +33,7 @@
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
 #include <gpu/gl/GLShared.h>
+#include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
 
 #include <FramebufferCache.h>
@@ -213,9 +214,6 @@ private:
     QGLContext* _context { nullptr };
 };
 
-bool OpenGLDisplayPlugin::isRenderThread() const {
-    return QThread::currentThread() == DependencyManager::get<PresentThread>()->thread();
-}
 
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
 }
@@ -253,6 +251,9 @@ bool OpenGLDisplayPlugin::activate() {
         presentThread->start();
     }
     _presentThread = presentThread.data();
+    if (!RENDER_THREAD) {
+        RENDER_THREAD = _presentThread;
+    }
     
     // Child classes may override this in order to do things like initialize
     // libraries, etc
@@ -676,4 +677,11 @@ ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
         vpPos.x = vpSize.x;
     }
     return ivec4(vpPos, vpSize);
+}
+
+gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
+    if (!_backend) {
+        return nullptr;
+    }
+    return dynamic_cast<gpu::gl::GLBackend*>(_backend.get());
 }

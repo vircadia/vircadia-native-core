@@ -23,7 +23,6 @@
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
-    HmdDisplayPlugin() : _overlay( *this ) {}
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
@@ -67,9 +66,6 @@ protected:
         }
     };
 
-
-
-
     Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
     std::array<glm::mat4, 2> _handPoses;
@@ -87,9 +83,7 @@ protected:
     float _ipd { 0.064f };
 
     struct FrameInfo {
-        glm::mat4 rawRenderPose;
         glm::mat4 renderPose;
-        glm::mat4 rawPresentPose;
         glm::mat4 presentPose;
         double sensorSampleTime { 0 };
         double predictedDisplayTime { 0 };
@@ -99,6 +93,8 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
+    gpu::FramebufferPointer _compositeFramebuffer;
+    gpu::TexturePointer _compositeTexture;
 
 private:
     void updateLaserProgram();
@@ -113,10 +109,24 @@ private:
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
 
+    struct SceneRenderer {
+        int32_t uniformsLocation{ -1 };
+        uint32_t vertexCount;
+        struct Uniforms {
+            mat4 rotation;
+        } uniforms;
+
+        gpu::Stream::FormatPointer format;
+        gpu::BufferPointer vertices;
+        gpu::PipelinePointer pipeline;
+        gpu::BufferPointer uniformBuffer;
+
+        void build();
+        void update(const glm::mat4& rotation);
+        void render(gpu::Batch& batch);
+    } _sceneRenderer;
 
     struct OverlayRender {
-        OverlayRender(HmdDisplayPlugin& plugin) : plugin(plugin) {};
-        HmdDisplayPlugin& plugin;
         gpu::Stream::FormatPointer format;
         gpu::BufferPointer vertices;
         gpu::BufferPointer indices;
@@ -148,7 +158,7 @@ private:
 
         void build();
         void updatePipeline();
-        void render();
+        void render(HmdDisplayPlugin& plugin);
     } _overlay;
 #if 0
     ProgramPtr _previewProgram;

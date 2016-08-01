@@ -21,6 +21,12 @@
 #include <gl/GLEscrow.h>
 #include <shared/RateCounter.h>
 
+namespace gpu {
+    namespace gl {
+        class GLBackend;
+    }
+}
+
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
     Q_PROPERTY(float overlayAlpha MEMBER _overlayAlpha)
@@ -37,8 +43,6 @@ public:
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
-    bool isRenderThread() const override final;
-
     bool eventFilter(QObject* receiver, QEvent* event) override;
     bool isDisplayVisible() const override { return true; }
 
@@ -139,6 +143,7 @@ protected:
         f();
     }
 
+    gpu::gl::GLBackend* getGLBackend();
 private:
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex

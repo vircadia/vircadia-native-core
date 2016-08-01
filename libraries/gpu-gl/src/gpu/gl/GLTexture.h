@@ -92,11 +92,13 @@ public:
         GLuint result = object->_id;
 
         // Don't return textures that are in transfer state
-        if ((object->getSyncState() != GLSyncState::Idle) || 
-            // Don't return transferrable textures that have never completed transfer
-            (!object->_transferrable || 0 != object->_transferCount)) {
-            // Will be either 0 or the original texture being downsampled.
-            result = object->_downsampleSource._texture;
+        if (shouldSync) {
+            if ((object->getSyncState() != GLSyncState::Idle) ||
+                // Don't return transferrable textures that have never completed transfer
+                (!object->_transferrable || 0 != object->_transferCount)) {
+                // Will be either 0 or the original texture being downsampled.
+                result = object->_downsampleSource._texture;
+            }
         }
         
         return result;

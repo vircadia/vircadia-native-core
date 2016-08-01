@@ -110,8 +110,7 @@ void OculusDisplayPlugin::hmdPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     // Manually bind the texture to the FBO
-    auto& glBackend = dynamic_cast<gpu::gl::GLBackend&>(*_backend);
-    auto fbo = glBackend.getFramebufferID(_outputFramebuffer);
+    auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
     {
         int curIndex;
         ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);

@@ -6,12 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-uniform sampler2D sampler;
-
-in vec2 varTexCoord0;
-
-out vec4 FragColor;
+in vec3 Position;
 
 void main() {
-    FragColor = texture(sampler, varTexCoord0);
+  gl_Position = mvp * vec4(Position, 1);
 }

@@ -12,6 +12,11 @@
 #ifdef _WIN32
 #include <stdint.h>
 
+#include <QtCore/QThread>
+
+extern QThread* RENDER_THREAD;
+extern bool isRenderThread();
+
 class ProfileRange {
 public:
     ProfileRange(const char *name);

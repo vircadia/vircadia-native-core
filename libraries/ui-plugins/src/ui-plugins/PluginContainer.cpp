@@ -161,10 +161,3 @@ void PluginContainer::setBoolSetting(const QString& settingName, bool value) {
     Setting::Handle<bool> settingValue(settingName, value);
     return settingValue.set(value);
 }
-
-bool isRenderThread() {
-    return QThread::currentThread() != qApp->thread();
-    // FIXME causes a deadlock on switching display plugins
-    auto displayPlugin = PluginContainer::getInstance().getActiveDisplayPlugin();
-    return displayPlugin && displayPlugin->isRenderThread();
-}
