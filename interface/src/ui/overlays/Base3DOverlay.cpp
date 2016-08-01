@@ -105,7 +105,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
             properties["position"] = vec3toVariant(getPosition());
         }
-        if (!properties["orientation"].isValid() || !properties["localOrientation"].isValid()) {
+        if (!properties["orientation"].isValid() && !properties["localOrientation"].isValid()) {
             properties["orientation"] = quatToVariant(getOrientation());
         }
     }
@@ -168,9 +168,11 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     if (properties["parentID"].isValid()) {
         setParentID(QUuid(properties["parentID"].toString()));
+        needRenderItemUpdate = true;
     }
     if (properties["parentJointIndex"].isValid()) {
         setParentJointIndex(properties["parentJointIndex"].toInt());
+        needRenderItemUpdate = true;
     }
 
     // Communicate changes to the renderItem if needed
