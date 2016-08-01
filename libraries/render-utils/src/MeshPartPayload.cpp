@@ -329,8 +329,6 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
 
     updateTransform(transform, offsetTransform);
     initCache();
-
-    _fadeStartTime = usecTimestampNow();
 }
 
 void ModelMeshPartPayload::initCache() {
@@ -357,7 +355,7 @@ void ModelMeshPartPayload::initCache() {
 float ModelMeshPartPayload::calcFadeRatio() const {
     const float FADE_TIME = 0.5f;
     float t =  std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
-    return -0.5f * (cosf(M_PI*t) - 1.0f);
+    return -(cosf(M_PI_2*t) - 1.0f);
 }
 
 void ModelMeshPartPayload::notifyLocationChanged() {
@@ -495,9 +493,9 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    float fadeRatio = calcFadeRatio();
+    if (!_hasColorAttrib || fadeRatio < 1.0f) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
 }
 
@@ -528,7 +526,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible) {
+    if (!_model->_readyWhenAdded || !_model->_isVisible || !_hasStartedFade) {
         return; // bail asap
     }
 
@@ -551,9 +549,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     // apply material properties
     bindMaterial(batch, locations);
-
-    // model fading
-    batch._glColor4f(1.0f, 1.0f, 1.0f, calcFadeRatio());
 
     if (args) {
         args->_details._materialSwitches++;

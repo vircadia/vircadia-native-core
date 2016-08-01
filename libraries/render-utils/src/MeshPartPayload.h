@@ -83,6 +83,9 @@ public:
 
     // Entity fade in
     float calcFadeRatio() const;
+    void startFade() { _fadeStartTime = usecTimestampNow(); }
+    bool hasStartedFade() { return _hasStartedFade; }
+    void setHasStartedFade(bool hasStartedFade) { _hasStartedFade = hasStartedFade; }
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -104,8 +107,8 @@ public:
     bool _isBlendShaped{ false };
 
 private:
-    quint64 _fadeStartTime { usecTimestampNow() };
-    bool _hasFadeStarted { false };
+    quint64 _fadeStartTime { 0 };
+    bool _hasStartedFade { false };
 };
 
 namespace render {

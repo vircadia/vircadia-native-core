@@ -207,6 +207,10 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
+                    data.startFade();
+                    data.setHasStartedFade(true);
+                }
                 // Ensure the model geometry was not reset between frames
                 if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                     // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
