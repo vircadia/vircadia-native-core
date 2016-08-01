@@ -562,7 +562,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
 
         batch.setProjectionTransform(monoProjMat);
-        batch.setViewTransform(monoViewTransform);
+        batch.setViewTransform(monoViewTransform, true);
 
         // Splat Point lights
         if (points && !deferredLightingEffect->_pointLights.empty()) {

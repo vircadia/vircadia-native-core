@@ -279,7 +279,8 @@ void GLBackend::render(Batch& batch) {
     // Finalize the batch by moving all the instanced rendering into the command buffer
     batch.preExecute();
 
-    _stereo._skybox = batch.isSkyboxEnabled();
+    _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
+
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
     bool savedStereo = _stereo._enable;

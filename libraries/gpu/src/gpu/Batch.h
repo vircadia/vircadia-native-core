@@ -172,7 +172,8 @@ public:
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
     // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
-    void setViewTransform(const Transform& view);
+    void clearViewTransform() { setViewTransform(Transform(), false); }
+    void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);

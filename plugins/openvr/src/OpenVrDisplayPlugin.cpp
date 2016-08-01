@@ -43,7 +43,6 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 bool _openVrDisplayActive { false };
 
-
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
@@ -253,17 +252,19 @@ void OpenVrDisplayPlugin::postPreview() {
 
     // Flush and wait for swap.
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
-    PoseData nextRender;
+    PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
-    vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+    vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
 
     glm::mat4 resetMat;
     withPresentThreadLock([&] {
         resetMat = _sensorResetMat;
     });
     nextRender.update(resetMat);
+    nextSim.update(resetMat);
+
     withPresentThreadLock([&] {
-        _nextSimPoseData = nextRender;
+        _nextSimPoseData = nextSim;
     });
     _nextRenderPoseData = nextRender;
     _hmdActivityLevel = vr::k_EDeviceActivityLevel_UserInteraction; // _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
@@ -275,7 +276,6 @@ bool OpenVrDisplayPlugin::isHmdMounted() const {
 
 void OpenVrDisplayPlugin::updatePresentPose() {
     _currentPresentFrameInfo.presentPose = _nextRenderPoseData.poses[vr::k_unTrackedDeviceIndex_Hmd];
-    //_currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }
 
 bool OpenVrDisplayPlugin::suppressKeyboard() { 

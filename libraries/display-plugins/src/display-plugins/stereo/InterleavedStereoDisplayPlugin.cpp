@@ -71,7 +71,7 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
 void InterleavedStereoDisplayPlugin::internalPresent() {
     gpu::Batch presentBatch;
     presentBatch.enableStereo(false);
-    presentBatch.setViewTransform(Transform());
+    presentBatch.clearViewTransform();
     presentBatch.setFramebuffer(gpu::FramebufferPointer());
     presentBatch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
     presentBatch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));

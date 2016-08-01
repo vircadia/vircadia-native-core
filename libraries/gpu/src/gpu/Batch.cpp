@@ -232,10 +232,11 @@ void Batch::setModelTransform(const Transform& model) {
     _invalidModel = true;
 }
 
-void Batch::setViewTransform(const Transform& view) {
+void Batch::setViewTransform(const Transform& view, bool camera) {
     ADD_COMMAND(setViewTransform);
-
+    uint cameraFlag = camera ? 1 : 0;
     _params.emplace_back(_transforms.cache(view));
+    _params.emplace_back(cameraFlag);
 }
 
 void Batch::setProjectionTransform(const Mat4& proj) {

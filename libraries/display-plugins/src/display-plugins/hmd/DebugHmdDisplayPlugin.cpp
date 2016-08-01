@@ -42,7 +42,7 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void DebugHmdDisplayPlugin::customizeContext() {
     glewExperimental = true;
-    GLenum err = glewInit();
+    glewInit();
     glGetError(); // clear the potential error from glewExperimental
     Parent::customizeContext();
 }

@@ -44,6 +44,7 @@ public:
 
     ~GLBackend();
 
+    void setCameraCorrection(const Mat4& correction);
     void render(Batch& batch) final;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -245,7 +246,10 @@ protected:
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
         size_t _cameraUboSize { 0 };
+        bool _viewIsCamera{ false };
+        bool _skybox { false };
         Transform _view;
+        Mat4 _correction;
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };

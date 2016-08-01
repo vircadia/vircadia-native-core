@@ -109,24 +109,7 @@ private:
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
 
-    struct SceneRenderer {
-        int32_t uniformsLocation{ -1 };
-        uint32_t vertexCount;
-        struct Uniforms {
-            mat4 rotation;
-        } uniforms;
-
-        gpu::Stream::FormatPointer format;
-        gpu::BufferPointer vertices;
-        gpu::PipelinePointer pipeline;
-        gpu::BufferPointer uniformBuffer;
-
-        void build();
-        void update(const glm::mat4& rotation);
-        void render(gpu::Batch& batch);
-    } _sceneRenderer;
-
-    struct OverlayRender {
+    struct OverlayRenderer {
         gpu::Stream::FormatPointer format;
         gpu::BufferPointer vertices;
         gpu::BufferPointer indices;
@@ -160,6 +143,7 @@ private:
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
     } _overlay;
+
 #if 0
     ProgramPtr _previewProgram;
     struct PreviewUniforms {

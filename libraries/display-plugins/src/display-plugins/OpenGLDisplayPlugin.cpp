@@ -475,7 +475,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     batch.setFramebuffer(_currentFrame->framebuffer);
     batch.setPipeline(_cursorPipeline);
     batch.setResourceTexture(0, cursorData.texture);
-    batch.setViewTransform(Transform());
+    batch.clearViewTransform();
     batch.setModelTransform(cursorTransform);
     if (isStereo()) {
         for_each_eye([&](Eye eye) {
@@ -515,7 +515,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 void OpenGLDisplayPlugin::internalPresent() {
     gpu::Batch presentBatch;
     presentBatch.enableStereo(false);
-    presentBatch.setViewTransform(Transform());
+    presentBatch.clearViewTransform();
     presentBatch.setFramebuffer(gpu::FramebufferPointer());
     presentBatch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
     presentBatch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));

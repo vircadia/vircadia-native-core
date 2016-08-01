@@ -241,7 +241,7 @@ public:
             {
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
-                presentBatch.setViewTransform(Transform());
+                presentBatch.clearViewTransform();
                 presentBatch.setFramebuffer(gpu::FramebufferPointer());
                 presentBatch.setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
                 presentBatch.setPipeline(_presentPipeline);

@@ -13,12 +13,17 @@
 using namespace gpu;
 using namespace gpu::gl;
 
+void GLBackend::setCameraCorrection(const Mat4& correction) {
+    _transform._correction = correction;
+}
+
 // Transform Stage
 void GLBackend::do_setModelTransform(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setViewTransform(Batch& batch, size_t paramOffset) {
     _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
 }
 
@@ -82,6 +87,16 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     }
 
     if (_invalidView) {
+        // Apply the correction
+        if (_viewIsCamera && _correction != glm::mat4()) {
+            PROFILE_RANGE_EX("Correct Camera!", 0xFFFF0000, 1);
+            Transform result;
+            _view.mult(result, _view, _correction);
+            if (_skybox) {
+                result.setTranslation(vec3());
+            }
+            _view = result;
+        }
         // This is when the _view matrix gets assigned
         _view.getInverseMatrix(_camera._view);
     }

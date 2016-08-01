@@ -8,10 +8,6 @@
 
 #include "NsightHelpers.h"
 
-#ifdef _WIN32
-#if defined(NSIGHT_FOUND)
-#include "nvToolsExt.h"
-#include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 
 QThread* RENDER_THREAD = nullptr;
@@ -19,6 +15,10 @@ QThread* RENDER_THREAD = nullptr;
 bool isRenderThread() {
     return QThread::currentThread() == RENDER_THREAD;
 }
+
+#ifdef _WIN32
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
 
 ProfileRange::ProfileRange(const char *name) {
     if (!isRenderThread()) {

@@ -173,7 +173,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
 
         batch.setViewportTransform(depthViewport);
         batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
+        batch.clearViewTransform();
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize(), depthViewport));
 
         batch.setUniformBuffer(DepthLinearPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
@@ -459,7 +459,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.enableStereo(false);
 
         batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
+        batch.clearViewTransform();
 
         batch.setViewportTransform(curvatureViewport);
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getSourceFrameSize(), curvatureViewport));
