@@ -157,6 +157,10 @@ public:
     // Get the pipeline to render static geometry
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
+
+    void bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getSimpleSRGBTexturedUnlitNoTexAlphaPipeline();
+
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
     render::ShapePipelinePointer getWireShapePipeline() { return GeometryCache::_simpleWirePipeline; }
 
@@ -416,6 +420,10 @@ private:
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
+
+    gpu::ShaderPointer _simpleSRGBTexturedUnlitNoTexAlphaShader;
+    gpu::PipelinePointer _simpleSRGBTexturedUnlitNoTexAlphaPipeline;
+
 };
 
 #endif // hifi_GeometryCache_h
