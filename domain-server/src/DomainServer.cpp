@@ -45,9 +45,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-// const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
-// const QString ICE_SERVER_DEFAULT_HOSTNAME = "localhost";
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "devdataweb.highfidelity.com";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
