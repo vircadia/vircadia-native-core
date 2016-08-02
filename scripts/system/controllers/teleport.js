@@ -65,8 +65,11 @@ function ThumbPad(hand) {
     this.buttonPress = function(value) {
         _thisPad.buttonValue = value;
         if (value === 0) {
-            Script.clearTimeout(activationTimeout);
-            activationTimeout = null;
+            if (activationTimeout !== null) {
+                Script.clearTimeout(activationTimeout);
+                activationTimeout = null;
+            }
+
         }
     };
 
