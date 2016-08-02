@@ -236,6 +236,14 @@ public:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
+public slots:
+    void loadURLFinished(bool success);
+    void loadCollisionModelURLFinished(bool success);
+
+signals:
+    void setURLFinished(bool success);
+    void setCollisionModelURLFinished(bool success);
+
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }

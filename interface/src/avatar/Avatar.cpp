@@ -98,6 +98,7 @@ Avatar::Avatar(RigPointer rig) :
     _headData = static_cast<HeadData*>(new Head(this));
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
 }
 
 Avatar::~Avatar() {
@@ -915,6 +916,15 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
 }
+
+void Avatar::setModelURLFinished(bool success) {
+    if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        QMetaObject::invokeMethod(this, "setSkeletonModelURL",
+                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+    }
+}
+
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {

@@ -109,6 +109,9 @@ Model::Model(RigPointer rig, QObject* parent) :
     }
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
+
+    connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
+    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
 }
 
 Model::~Model() {
@@ -825,12 +828,20 @@ void Model::setURL(const QUrl& url) {
     onInvalidate();
 }
 
+void Model::loadURLFinished(bool success) {
+    emit setURLFinished(success);
+}
+
 void Model::setCollisionModelURL(const QUrl& url) {
     if (_collisionUrl == url && _collisionWatcher.getURL() == url) {
         return;
     }
     _collisionUrl = url;
     _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+}
+
+void Model::loadCollisionModelURLFinished(bool success) {
+    emit setCollisionModelURLFinished(success);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
