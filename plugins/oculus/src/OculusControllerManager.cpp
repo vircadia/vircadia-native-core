@@ -179,6 +179,13 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
 }
 
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    ovrSessionStatus status;
+    if (OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) &&
+        (ovrFalse == status.HmdMounted)) {
+        // if the HMD isn't on someone's head, don't take input from the controllers
+        return;
+    }
+
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
