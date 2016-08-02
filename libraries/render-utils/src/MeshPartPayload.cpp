@@ -354,7 +354,7 @@ void ModelMeshPartPayload::initCache() {
 
 float ModelMeshPartPayload::calculateFadeRatio() const {
     const float FADE_TIME = 1.0f;
-    float t =  2.0f * std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
+    float t = 2.0f * std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
     float fadeRatio = (t < 1.0f) ? 0.5f * powf(2.0f, 10.0f * (t - 1.0f)) : 0.5f * (-pow(2.0f, -10.0f * (t - 1.0f)) + 2.0f);
 
     // The easing function isn't exactly 1 at t = 2, so we need to scale the whole function up slightly
