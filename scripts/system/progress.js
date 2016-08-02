@@ -38,31 +38,11 @@
         BACKGROUND_WIDTH = 520,
         BACKGROUND_HEIGHT = 50,
         BACKGROUND_URL = Script.resolvePath("assets/images/progress-bar-background.svg"),
-        use3DOverlay = false,
         windowWidth = 0,
         windowHeight = 0,
         background2D = {},
         bar2D = {},
-        SCALE_2D = 0.35, // Scale the SVGs for 2D display.
-        background3D = {},
-        bar3D = {},
-        PROGRESS_3D_DIRECTION = 0.0, // Degrees from avatar orientation.
-        PROGRESS_3D_DISTANCE = 0.602, // Horizontal distance from avatar position.
-        PROGRESS_3D_ELEVATION = -0.8, // Height of top middle of top notification relative to avatar eyes.
-        PROGRESS_3D_ELEVATION = -0.2, // Height of top middle of top notification relative to avatar eyes.
-        PROGRESS_3D_YAW = 0.0, // Degrees relative to notifications direction.
-        PROGRESS_3D_PITCH = -0.0, // Degrees from vertical.
-        SCALE_3D = 0.0004, // Scale the bar SVG for 3D display.
-        BACKGROUND_3D_SIZE = {
-            x: 0.76,
-            y: 0.08
-        }, // Match up with the 3D background with those of notifications.js notices.
-        BACKGROUND_3D_COLOR = {
-            red: 2,
-            green: 2,
-            blue: 2
-        },
-        BACKGROUND_3D_ALPHA = 1.0;
+        SCALE_2D = 0.35; // Scale the SVGs for 2D display.
 
     function fade() {
 
@@ -83,32 +63,21 @@
             visible = false;
         }
 
-        if (use3DOverlay) {
-            Overlays.editOverlay(background3D.overlay, {
-                alpha: alpha,
-                visible: visible
-            });
-        } else {
-            Overlays.editOverlay(background2D.overlay, {
-                alpha: alpha,
-                visible: visible
-            });
-        }
-        Overlays.editOverlay(use3DOverlay ? bar3D.overlay : bar2D.overlay, {
+        Overlays.editOverlay(background2D.overlay, {
+            alpha: alpha,
+            visible: visible
+        });
+        Overlays.editOverlay(bar2D.overlay, {
             alpha: alpha,
             visible: visible
         });
     }
-    function resetProgress() {
-        isDownloading = true;
-        bestRawProgress = 0;
-        rawProgress = 0;
-        initialDelayCooldown = INITIAL_DELAY_COOLDOWN_TIME;
-        displayProgress = 0;
-    }
 
     Window.domainChanged.connect(function() {
-        resetProgress();
+        isDownloading = false;
+        bestRawProgress = 100;
+        rawProgress = 100;
+        displayProgress = 100;
     });
 
     // Max seen since downloads started. This is reset when all downloads have completed.
@@ -145,7 +114,11 @@
         } else {
             var count = info.downloading.length + info.pending;
             if (!isDownloading) {
-                resetProgress();
+                isDownloading = true;
+                bestRawProgress = 0;
+                rawProgress = 0;
+                initialDelayCooldown = INITIAL_DELAY_COOLDOWN_TIME;
+                displayProgress = 0;
                 maxSeen = count;
             }
             if (count > maxSeen) {
@@ -163,41 +136,6 @@
     }
 
     function createOverlays() {
-        background3D.overlay = Overlays.addOverlay("image3d", {
-            url: BACKGROUND_URL,
-            subImage: {
-                x: 0,
-                y: 0,
-                width: BACKGROUND_WIDTH,
-                height: BACKGROUND_HEIGHT
-            },
-            scale: SCALE_3D * BACKGROUND_WIDTH,
-            isFacingAvatar: false,
-            visible: false,
-            alpha: 1.0,
-            ignoreRayIntersection: true,
-            emissive: true,
-            isFacingAvatar: true,
-            drawInFront: true
-        });
-        bar3D.overlay = Overlays.addOverlay("image3d", {
-            url: BAR_URL,
-            subImage: {
-                x: 0,
-                y: 0,
-                width: BAR_WIDTH,
-                height: BAR_HEIGHT
-            },
-            scale: SCALE_3D * BAR_WIDTH,
-            isFacingAvatar: false,
-            visible: false,
-            alpha: 1.0,
-            ignoreRayIntersection: true,
-            emissive: true,
-            isFacingAvatar: true,
-            drawInFront: true
-        });
-
         background2D.overlay = Overlays.addOverlay("image", {
             imageURL: BACKGROUND_URL,
             width: background2D.width,
@@ -221,25 +159,17 @@
     }
 
     function deleteOverlays() {
-        Overlays.deleteOverlay(background3D.overlay);
-        Overlays.deleteOverlay(bar3D.overlay);
-
         Overlays.deleteOverlay(background2D.overlay);
         Overlays.deleteOverlay(bar2D.overlay);
     }
 
     var b = 0;
-    var worldOverlayOn = false;
     var currentOrientation = null;
     function update() {
         initialDelayCooldown -= 30;
         var viewport,
             eyePosition,
             avatarOrientation;
-
-        if (use3DOverlay !== worldOverlayOn) {
-            use3DOverlay = !use3DOverlay;
-        }
 
         if (displayProgress < rawProgress) {
             var diff = rawProgress - displayProgress;
@@ -284,18 +214,10 @@
             }
         }
 
-        if (use3DOverlay) {
-            Overlays.editOverlay(background2D.overlay, { visible: false });
-            Overlays.editOverlay(bar2D.overlay, { visible: false });
-        } else {
-            Overlays.editOverlay(background3D.overlay, { visible: false });
-            Overlays.editOverlay(bar3D.overlay, { visible: false });
-        }
-
         if (visible) {
 
             // Update progress bar
-            Overlays.editOverlay(use3DOverlay ? bar3D.overlay : bar2D.overlay, {
+            Overlays.editOverlay(bar2D.overlay, {
                 visible: true,
                 subImage: {
                     x: BAR_WIDTH * (1 - displayProgress / 100),
@@ -305,36 +227,15 @@
                 },
             });
 
-            Overlays.editOverlay(use3DOverlay ? background3D.overlay : background2D.overlay, {
+            Overlays.editOverlay(background2D.overlay, {
                 visible: true,
             });
 
-            // Update position
-            if (use3DOverlay) {
-                print("HERE");
-                // Update 3D overlays to maintain positions relative to avatar
-                eyePosition = MyAvatar.getDefaultEyePosition();
-                avatarOrientation = Camera.orientation;
+            // Update 2D overlays to maintain positions at bottom middle of window
+            viewport = Controller.getViewportDimensions();
 
-                currentOrientation = Quat.slerp(currentOrientation, avatarOrientation, 0.10);
-                avatarOrientation = currentOrientation;
-
-                Overlays.editOverlay(background3D.overlay, {
-                    position: Vec3.sum(eyePosition, Vec3.multiplyQbyV(avatarOrientation, background3D.offset)),
-                    //rotation: Quat.multiply(avatarOrientation, background3D.orientation)
-                });
-                Overlays.editOverlay(bar3D.overlay, {
-                    position: Vec3.sum(eyePosition, Vec3.multiplyQbyV(avatarOrientation, bar3D.offset)),
-                    //rotation: Quat.multiply(avatarOrientation, bar3D.orientation)
-                });
-
-            } else {
-                // Update 2D overlays to maintain positions at bottom middle of window
-                viewport = Controller.getViewportDimensions();
-
-                if (viewport.x !== windowWidth || viewport.y !== windowHeight) {
-                    updateProgressBarLocation();
-                }
+            if (viewport.x !== windowWidth || viewport.y !== windowHeight) {
+                updateProgressBarLocation();
             }
         }
     }
@@ -367,20 +268,6 @@
         background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
         bar2D.width = SCALE_2D * BAR_WIDTH;
         bar2D.height = SCALE_2D * BAR_HEIGHT;
-
-        background3D.offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, PROGRESS_3D_DIRECTION, 0), {
-            x: 0,
-            y: 0,
-            z: -PROGRESS_3D_DISTANCE
-        });
-        background3D.offset.y += PROGRESS_3D_ELEVATION;
-        background3D.orientation = Quat.fromPitchYawRollDegrees(PROGRESS_3D_PITCH, PROGRESS_3D_DIRECTION + PROGRESS_3D_YAW, 0);
-        bar3D.offset = Vec3.sum(background3D.offset, {
-            x: 0,
-            y: 0,
-            z: 0.001
-        }); // Just in front of background
-        bar3D.orientation = background3D.orientation;
 
         createOverlays();
     }
