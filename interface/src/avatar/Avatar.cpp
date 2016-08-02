@@ -309,6 +309,7 @@ void Avatar::simulate(float deltaTime) {
         }
     } else {
         // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+        getHead()->setPosition(getPosition());
         _skeletonModel->simulate(deltaTime, false);
     }
 
