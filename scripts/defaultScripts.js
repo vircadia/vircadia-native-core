@@ -27,3 +27,4 @@ Script.load("system/controllers/grab.js");
 Script.load("system/controllers/teleport.js");
 Script.load("system/dialTone.js");
 Script.load("system/firstPersonHMD.js");
+Script.load("system/snapshot.js");
