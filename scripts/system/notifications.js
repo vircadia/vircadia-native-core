@@ -527,12 +527,14 @@ function onDomainConnectionRefused(reason) {
     createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
 }
 
-function onSnapshotTaken(path) {
-    var imageProperties = {
-        path: Script.resolvePath("file:///" + path),
-        aspectRatio: Window.innerWidth / Window.innerHeight
+function onSnapshotTaken(path, notify) {
+    if (notify) {
+        var imageProperties = {
+            path: Script.resolvePath("file:///" + path),
+            aspectRatio: Window.innerWidth / Window.innerHeight
+        }
+        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
     }
-    createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
 }
 
 //  handles mouse clicks on buttons

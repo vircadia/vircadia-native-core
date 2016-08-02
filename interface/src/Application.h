@@ -247,6 +247,8 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    
+    void takeSnapshot(bool notify);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -372,8 +374,6 @@ private:
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
-
-    void takeSnapshot();
 
     MyAvatar* getMyAvatar() const;
 
