@@ -239,19 +239,22 @@ function Teleporter() {
 
 
     this.update = function() {
+        if (isDisabled) {
+            return;
+        }
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
-
-            if ((leftPad.buttonValue === 0 || leftTrigger.buttonValue === 0) && inTeleportMode === true) {
+            //|| leftTrigger.buttonValue === 0
+            if ((leftPad.buttonValue === 0 ) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
 
         } else {
             teleporter.rightRay();
-
-            if ((rightPad.buttonValue === 0 || rightTrigger.buttonValue === 0) && inTeleportMode === true) {
+            //|| rightTrigger.buttonValue === 0
+            if ((rightPad.buttonValue === 0 ) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
@@ -570,8 +573,8 @@ var rightTrigger = new Trigger('right');
 
 var mappingName, teleportMapping;
 
-var TELEPORT_DELAY = 100;
-
+var activationTimeout = null;
+var TELEPORT_DELAY = 800;
 
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
@@ -582,22 +585,63 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
-    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).when(leftTrigger.down).to(function(value) {
-        teleporter.enterTeleportMode('left')
+    teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
+    // .when(leftTrigger.down)
+    .to(function(value) {
+        if (isDisabled === true) {
+            return;
+        }
+        if (activationTimeout !== null) {
+            return
+        }
+        activationTimeout = Script.setTimeout(function() {
+            teleporter.enterTeleportMode('left')
+            Script.clearTimeout(activationTimeout);
+            activationTimeout = null;
+        }, TELEPORT_DELAY)
         return;
     });
-    teleportMapping.from(Controller.Standard.RightPrimaryThumb).when(rightTrigger.down).to(function(value) {
-        teleporter.enterTeleportMode('right')
+    teleportMapping.from(Controller.Standard.RightPrimaryThumb)
+    // .when(rightTrigger.down)
+    .to(function(value) {
+        if (isDisabled === true) {
+            return;
+        }
+        if (activationTimeout !== null) {
+            return
+        }
+        activationTimeout = Script.setTimeout(function() {
+            teleporter.enterTeleportMode('right')
+            Script.clearTimeout(activationTimeout);
+            activationTimeout = null;
+        }, TELEPORT_DELAY)
         return;
     });
-    teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
-        teleporter.enterTeleportMode('right')
-        return;
-    });
-    teleportMapping.from(Controller.Standard.LT).when(Controller.Standard.LeftPrimaryThumb).to(function(value) {
-        teleporter.enterTeleportMode('left')
-        return;
-    });
+    // teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
+    //     if (isDisabled === true) {
+    //         return;
+    //     }
+    //     if (activationTimeout !== null) {
+    //         return
+    //     }
+    //     activationTimeout = Script.setTimeout(function() {
+    //         teleporter.enterTeleportMode('right')
+    //         Script.clearTimeout(activationTimeout);
+    //         activationTimeout = null;
+    //     }, TELEPORT_DELAY)
+    //     return;
+    // });
+    // teleportMapping.from(Controller.Standard.LT).when(Controller.Standard.LeftPrimaryThumb).to(function(value) {
+    //     if (isDisabled === true) {
+    //         return;
+    //     }
+    //     activationTimeout = Script.setTimeout(function() {
+    //         teleporter.enterTeleportMode('left')
+    //         Script.clearTimeout(activationTimeout);
+    //         activationTimeout = null;
+    //     }, TELEPORT_DELAY)
+    //     return;
+    // });
 
 }
 
@@ -619,3 +663,24 @@ function cleanup() {
         Script.update.disconnect(teleporter.update);
     }
 }
+
+var isDisabled = false;
+var handleHandMessages = function(channel, message, sender) {
+    var data;
+    print('its a message')
+    if (sender === MyAvatar.sessionUUID) {
+        if (channel === 'Hifi-Teleport-Disabler') {
+            print('got teleport disabler message' + message)
+            if (message === 'disable') {
+                isDisabled = true;
+            }
+            if (message === 'enable') {
+                isDisabled = false;
+            }
+
+        }
+    }
+}
+
+Messages.subscribe('Hifi-Teleport-Disabler');
+Messages.messageReceived.connect(handleHandMessages);

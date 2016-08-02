@@ -3,8 +3,8 @@
     "channels": [
         { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb" },
         { "from": "OculusTouch.B", "to": "Standard.RightSecondaryThumb" },
-        { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb" },
-        { "from": "OculusTouch.Y", "to": "Standard.LeftSecondaryThumb" },
+        // { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb" },
+        // { "from": "OculusTouch.Y", "to": "Standard.LeftSecondaryThumb" },
 
         { "from": "OculusTouch.LY", "filters": "invert", "to": "Standard.LY" },
         { "from": "OculusTouch.LX", "to": "Standard.LX" },
