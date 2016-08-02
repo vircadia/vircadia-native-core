@@ -57,7 +57,7 @@ void main(void) {
 }
 )SCRIBE";
 
-QOpenGLContext* mainContext;
+extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
     using Mutex = std::mutex;
@@ -107,7 +107,6 @@ public:
     virtual void run() override {
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
-        mainContext = _context->contextHandle();
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 {
@@ -214,12 +213,6 @@ private:
     QGLContext* _context { nullptr };
 };
 
-
-OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
-}
-
-extern QThread* RENDER_THREAD;
-
 bool OpenGLDisplayPlugin::activate() {
     if (!_cursorsData.size()) {
         auto& cursorManager = Cursor::Manager::instance();
@@ -285,7 +278,6 @@ bool OpenGLDisplayPlugin::activate() {
 }
 
 void OpenGLDisplayPlugin::deactivate() {
-    
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     disconnect(compositorHelper.data());
 
@@ -304,7 +296,6 @@ void OpenGLDisplayPlugin::deactivate() {
     }
     Parent::deactivate();
 }
-
 
 void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
@@ -341,6 +332,7 @@ void OpenGLDisplayPlugin::customizeContext() {
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setScissorEnable(true);
             _presentPipeline = gpu::Pipeline::create(program, state);
         }
 
@@ -384,7 +376,8 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _compositeTexture.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
-        _newFrameQueue.swap(std::queue<gpu::FramePointer>());
+        std::queue<gpu::FramePointer> empty;
+        _newFrameQueue.swap(empty);
     });
 }
 
@@ -431,7 +424,6 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     return false;
 }
 
-
 void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
     if (_lockCurrentTexture) {
         return;
@@ -461,45 +453,45 @@ void OpenGLDisplayPlugin::updateFrameData() {
 }
 
 void OpenGLDisplayPlugin::compositeOverlay() {
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setFramebuffer(_currentFrame->framebuffer);
-    batch.setPipeline(_overlayPipeline);
-    batch.setResourceTexture(0, _currentFrame->overlay);
-    if (isStereo()) {
-        for_each_eye([&](Eye eye) {
-            batch.setViewportTransform(eyeViewport(eye));
+    render([&](gpu::Batch& batch){
+        batch.enableStereo(false);
+        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setPipeline(_overlayPipeline);
+        batch.setResourceTexture(0, _currentFrame->overlay);
+        if (isStereo()) {
+            for_each_eye([&](Eye eye) {
+                batch.setViewportTransform(eyeViewport(eye));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+        } else {
+            batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-    } else {
-        batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    }
-    _backend->render(batch);
+        }
+    });
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setProjectionTransform(mat4());
-    batch.setFramebuffer(_currentFrame->framebuffer);
-    batch.setPipeline(_cursorPipeline);
-    batch.setResourceTexture(0, cursorData.texture);
-    batch.clearViewTransform();
-    batch.setModelTransform(cursorTransform);
-    if (isStereo()) {
-        for_each_eye([&](Eye eye) {
-            batch.setViewportTransform(eyeViewport(eye));
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setProjectionTransform(mat4());
+        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setPipeline(_cursorPipeline);
+        batch.setResourceTexture(0, cursorData.texture);
+        batch.clearViewTransform();
+        batch.setModelTransform(cursorTransform);
+        if (isStereo()) {
+            for_each_eye([&](Eye eye) {
+                batch.setViewportTransform(eyeViewport(eye));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+        } else {
+            batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-    } else {
-        batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    }
-    _backend->render(batch);
+        }
+    });
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
@@ -526,15 +518,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
 }
 
 void OpenGLDisplayPlugin::internalPresent() {
-    gpu::Batch presentBatch;
-    presentBatch.enableStereo(false);
-    presentBatch.clearViewTransform();
-    presentBatch.setFramebuffer(gpu::FramebufferPointer());
-    presentBatch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-    presentBatch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
-    presentBatch.setPipeline(_presentPipeline);
-    presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
-    _backend->render(presentBatch);
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.clearViewTransform();
+        batch.setFramebuffer(gpu::FramebufferPointer());
+        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.setPipeline(_presentPipeline);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
     swapBuffers();
 }
 
@@ -586,7 +578,6 @@ float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
 }
 
-
 void OpenGLDisplayPlugin::enableVsync(bool enable) {
     if (!_vsyncSupported) {
         return;
@@ -601,7 +592,6 @@ void OpenGLDisplayPlugin::enableVsync(bool enable) {
     return;
 #endif
 }
-
 
 bool OpenGLDisplayPlugin::isVsyncEnabled() {
     if (!_vsyncSupported) {
@@ -697,4 +687,11 @@ gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
         return nullptr;
     }
     return dynamic_cast<gpu::gl::GLBackend*>(_backend.get());
+}
+
+void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
+    gpu::Batch batch;
+    f(batch);
+    batch.flush();
+    _backend->render(batch);
 }

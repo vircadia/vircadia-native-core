@@ -661,3 +661,32 @@ void Batch::finish(BufferUpdates& updates) {
         updates.push_back({ buffer, buffer->getUpdate() });
     }
 }
+
+void Batch::flush() {
+    if (_objectsBuffer && _objectsBuffer->isDirty()) {
+        _objectsBuffer->flush();
+    }
+
+    for (auto& namedCallData : _namedData) {
+        for (auto& buffer : namedCallData.second.buffers) {
+            if (!buffer) {
+                continue;
+            }
+            if (!buffer->isDirty()) {
+                continue;
+            }
+            buffer->flush();
+        }
+    }
+
+    for (auto& bufferCacheItem : _buffers._items) {
+        const BufferPointer& buffer = bufferCacheItem._data;
+        if (!buffer) {
+            continue;
+        }
+        if (!buffer->isDirty()) {
+            continue;
+        }
+        buffer->flush();
+    }
+}

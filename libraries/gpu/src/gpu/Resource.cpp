@@ -283,6 +283,7 @@ void Buffer::markDirty(Size offset, Size bytes) {
 }
 
 Buffer::Update Buffer::getUpdate() const {
+    ++_getUpdateCount;
     static Update EMPTY_UPDATE;
     if (!_pages) {
         return EMPTY_UPDATE;
@@ -315,11 +316,14 @@ Buffer::Update Buffer::getUpdate() const {
 }
 
 void Buffer::applyUpdate(const Update& update) {
+    ++_applyUpdateCount;
     _renderPages = update.pages;
     update.updateOperator(_renderSysmem);
 }
 
 void Buffer::flush() {
+    ++_getUpdateCount;
+    ++_applyUpdateCount;
     _renderPages = _pages;
     _renderSysmem.resize(_sysmem.getSize());
     auto dirtyPages = _pages.getMarkedPages();

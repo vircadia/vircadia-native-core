@@ -102,9 +102,13 @@ public:
     ~Batch();
 
     void clear();
+
     // Call on the main thread to prepare for passing to the render thread
     void finish(BufferUpdates& updates);
-    
+
+    // Call on the rendering thread for batches that only exist there
+    void flush();
+
     void preExecute();
 
     // Batches may need to override the context level stereo settings

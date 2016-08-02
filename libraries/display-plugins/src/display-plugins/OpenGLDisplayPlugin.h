@@ -37,8 +37,6 @@ protected:
     using Condition = std::condition_variable;
     using TextureEscrow = GLEscrow<gpu::TexturePointer>;
 public:
-    OpenGLDisplayPlugin();
-
     // These must be final to ensure proper ordering of operations 
     // between the main thread and the presentation thread
     bool activate() override final;
@@ -101,6 +99,8 @@ protected:
     void present();
     void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
+
+    void render(std::function<void(gpu::Batch& batch)> f);
 
     QThread* _presentThread{ nullptr };
     std::queue<gpu::FramePointer> _newFrameQueue;

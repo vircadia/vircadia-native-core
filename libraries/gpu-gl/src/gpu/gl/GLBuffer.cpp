@@ -19,8 +19,8 @@ GLBuffer::~GLBuffer() {
 
 GLBuffer::GLBuffer(const Buffer& buffer, GLuint id) :
     GLObject(buffer, id),
-    _size((GLuint)buffer._sysmem.getSize()),
-    _stamp(buffer._sysmem.getStamp())
+    _size((GLuint)buffer._renderSysmem.getSize()),
+    _stamp(buffer._renderSysmem.getStamp())
 {
     Backend::incrementBufferGPUCount();
     Backend::updateBufferGPUMemoryUsage(0, _size);

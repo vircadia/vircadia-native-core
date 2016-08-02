@@ -39,6 +39,7 @@ static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
 static const glm::mat4 IDENTITY_MATRIX;
+static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
@@ -230,28 +231,29 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
 }
 
 void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
+    updatePipeline();
     for_each_eye([&](Eye eye){
         uniforms.mvp = mvps[eye];
         uniformBuffers[eye]->setSubData(0, uniforms);
         uniformBuffers[eye]->flush();
     });
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setResourceTexture(0, plugin._currentFrame->overlay);
-    batch.setPipeline(pipeline);
-    batch.setInputFormat(format);
-    gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
-    batch.setInputBuffer(gpu::Stream::POSITION, posView);
-    batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
-    batch.setIndexBuffer(gpu::UINT16, indices, 0);
-    for_each_eye([&](Eye eye){
-        batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
-        batch.setViewportTransform(plugin.eyeViewport(eye));
-        batch.drawIndexed(gpu::TRIANGLES, indexCount);
+    plugin.render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setResourceTexture(0, plugin._currentFrame->overlay);
+        batch.setPipeline(pipeline);
+        batch.setInputFormat(format);
+        gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
+        gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+        batch.setInputBuffer(gpu::Stream::POSITION, posView);
+        batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
+        batch.setIndexBuffer(gpu::UINT16, indices, 0);
+        // FIXME use stereo information input to set both MVPs in the uniforms
+        for_each_eye([&](Eye eye) {
+            batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
+            batch.setViewportTransform(plugin.eyeViewport(eye));
+            batch.drawIndexed(gpu::TRIANGLES, indexCount);
+        });
     });
-    // FIXME use stereo information input to set both MVPs in the uniforms
-    plugin._backend->render(batch);
 }
 
 void HmdDisplayPlugin::updateLaserProgram() {
@@ -303,38 +305,152 @@ void HmdDisplayPlugin::updatePresentPose() {
 }
 
 void HmdDisplayPlugin::compositeScene() {
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setFramebuffer(_compositeFramebuffer);
-
-    batch.setViewportTransform(ivec4(uvec2(), _renderTargetSize));
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1, 1, 0, 1));
-    batch.clearViewTransform();
-    batch.setProjectionTransform(mat4());
-
-    batch.setPipeline(_presentPipeline);
-    batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
-    batch.draw(gpu::TRIANGLE_STRIP, 4);
-    _backend->render(batch);
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setViewportTransform(ivec4(uvec2(), _renderTargetSize));
+        batch.setStateScissorRect(ivec4(uvec2(), _renderTargetSize));
+        batch.clearViewTransform();
+        batch.setProjectionTransform(mat4());
+        batch.setPipeline(_presentPipeline);
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
 }
 
 void HmdDisplayPlugin::compositeOverlay() {
-#if 0
-    if (!_currentFrame) {
+    if (!_currentFrame || !_currentFrame->overlay) {
         return;
     }
 
+    _overlay.render(*this);
+}
+
+void HmdDisplayPlugin::compositePointer() {
+    auto& cursorManager = Cursor::Manager::instance();
+    const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
+    // Reconstruct the headpose from the eye poses
+    auto headPosition = vec3(_currentPresentFrameInfo.presentPose[3]);
+    gpu::Batch batch;
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setProjectionTransform(mat4());
+        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setPipeline(_cursorPipeline);
+        batch.setResourceTexture(0, cursorData.texture);
+        batch.clearViewTransform();
+        for_each_eye([&](Eye eye) {
+            auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
+            auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
+            batch.setViewportTransform(eyeViewport(eye));
+            batch.setModelTransform(reticleTransform);
+            batch.setProjectionTransform(_eyeProjections[eye]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+    });
+}
+
+void HmdDisplayPlugin::internalPresent() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
+
+    if (_enablePreview) {
+        // screen preview mirroring
+        auto window = _container->getPrimaryWidget();
+        auto devicePixelRatio = window->devicePixelRatio();
+        auto windowSize = toGlm(window->size());
+        windowSize *= devicePixelRatio;
+        float windowAspect = aspect(windowSize);
+        float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
+        if (_enablePreview && _monoPreview) {
+            sceneAspect /= 2.0f;
+        }
+        float aspectRatio = sceneAspect / windowAspect;
+
+        uvec2 targetViewportSize = windowSize;
+        if (aspectRatio < 1.0f) {
+            targetViewportSize.x *= aspectRatio;
+        } else {
+            targetViewportSize.y /= aspectRatio;
+        }
+
+        uvec2 targetViewportPosition;
+        if (targetViewportSize.x < windowSize.x) {
+            targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
+        } else if (targetViewportSize.y < windowSize.y) {
+            targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
+        }
+
+        gpu::Batch presentBatch;
+        presentBatch.enableStereo(false);
+        presentBatch.clearViewTransform();
+        presentBatch.setFramebuffer(gpu::FramebufferPointer());
+        presentBatch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+        presentBatch.setViewportTransform(ivec4(uvec2(0), windowSize));
+        if (_monoPreview) {
+            presentBatch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+            targetViewportSize.x *= 2;
+            presentBatch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+        } else {
+            presentBatch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+            presentBatch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+        }
+        presentBatch.setResourceTexture(0, _compositeTexture);
+        presentBatch.setPipeline(_presentPipeline);
+        presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
+        _backend->render(presentBatch);
+        swapBuffers();
+    } 
+
+    postPreview();
+}
+
+void HmdDisplayPlugin::updateFrameData() {
+    // Check if we have old frame data to discard
+    static const uint32_t INVALID_FRAME = (uint32_t)(~0);
+    uint32_t oldFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
+
+    Parent::updateFrameData();
+    uint32_t newFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
+
+    if (oldFrameIndex != newFrameIndex) {
+        withPresentThreadLock([&] {
+            if (oldFrameIndex != INVALID_FRAME) {
+                auto itr = _frameInfos.find(oldFrameIndex);
+                if (itr != _frameInfos.end()) {
+                    _frameInfos.erase(itr);
+                }
+            }
+            if (newFrameIndex != INVALID_FRAME) {
+                _currentPresentFrameInfo = _frameInfos[newFrameIndex];
+            }
+        });
+    }
+
+    updatePresentPose();
+
+    if (_currentFrame) {
+        auto batchPose = _currentFrame->pose;
+        auto currentPose = _currentPresentFrameInfo.presentPose;
+        auto correction = glm::inverse(batchPose) * currentPose;
+        getGLBackend()->setCameraCorrection(correction);
+    }
+
     withPresentThreadLock([&] {
         _presentHandLasers = _handLasers;
         _presentHandPoses = _handPoses;
         _presentUiModelTransform = _uiModelTransform;
     });
 
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
+
     std::array<vec2, NUMBER_OF_HANDS> handGlowPoints{ { vec2(-1), vec2(-1) } };
     // compute the glow point interesections
-    for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
+    for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
         if (_presentHandPoses[i] == IDENTITY_MATRIX) {
             continue;
         }
@@ -382,133 +498,20 @@ void HmdDisplayPlugin::compositeOverlay() {
         handGlowPoints[i] = yawPitch;
     }
 
-    if (!_currentFrame->overlay) {
-        return;
-    }
 
-    for_each_eye([&](Eye eye){
+    for_each_eye([&](Eye eye) {
         auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
         _overlay.mvps[eye] = _eyeProjections[eye] * modelView;
     });
 
     // Setup the uniforms
     {
-        _overlay.uniforms.alpha = _compositeOverlayAlpha;
-        _overlay.uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
-        _overlay.uniforms.glowColors[0] = _presentHandLasers[0].color;
-        _overlay.uniforms.glowColors[1] = _presentHandLasers[1].color;
+        auto& uniforms = _overlay.uniforms;
+        uniforms.alpha = _compositeOverlayAlpha;
+        uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
+        uniforms.glowColors[0] = _presentHandLasers[0].color;
+        uniforms.glowColors[1] = _presentHandLasers[1].color;
     }
-    _overlay.render();
-#endif
-}
-
-void HmdDisplayPlugin::compositePointer() {
-#if 0
-    auto& cursorManager = Cursor::Manager::instance();
-    const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    // Reconstruct the headpose from the eye poses
-    auto headPosition = vec3(_currentPresentFrameInfo.presentPose[3]);
-    gpu::Batch batch;
-    batch.enableStereo(false);
-    batch.setProjectionTransform(mat4());
-    batch.setFramebuffer(_currentFrame->framebuffer);
-    batch.setPipeline(_cursorPipeline);
-    batch.setResourceTexture(0, cursorData.texture);
-    batch.clearViewTransform();
-    for_each_eye([&](Eye eye) {
-        auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
-        auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
-        batch.setViewportTransform(eyeViewport(eye));
-        batch.setModelTransform(reticleTransform);
-        batch.setProjectionTransform(_eyeProjections[eye]);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-    _backend->render(batch);
-#endif
-}
-
-void HmdDisplayPlugin::internalPresent() {
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
-
-    // Composite together the scene, overlay and mouse cursor
-    hmdPresent();
-
-    /*
-    // screen preview mirroring
-    auto window = _container->getPrimaryWidget();
-    auto devicePixelRatio = window->devicePixelRatio();
-    auto windowSize = toGlm(window->size());
-    windowSize *= devicePixelRatio;
-    float windowAspect = aspect(windowSize);
-    float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
-    if (_enablePreview && _monoPreview) {
-        sceneAspect /= 2.0f;
-    }
-    float aspectRatio = sceneAspect / windowAspect;
-
-    uvec2 targetViewportSize = windowSize;
-    if (aspectRatio < 1.0f) {
-        targetViewportSize.x *= aspectRatio;
-    } else {
-        targetViewportSize.y /= aspectRatio;
-    }
-
-    uvec2 targetViewportPosition;
-    if (targetViewportSize.x < windowSize.x) {
-        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-    } else if (targetViewportSize.y < windowSize.y) {
-        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-    }
-    */
-
-    if (_enablePreview) {
-        gpu::Batch presentBatch;
-        presentBatch.enableStereo(false);
-        presentBatch.clearViewTransform();
-        presentBatch.setFramebuffer(gpu::FramebufferPointer());
-        presentBatch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-        presentBatch.setResourceTexture(0, _compositeTexture);
-        presentBatch.setPipeline(_presentPipeline);
-        presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
-        _backend->render(presentBatch);
-        swapBuffers();
-    } 
-
-    postPreview();
-}
-
-void HmdDisplayPlugin::updateFrameData() {
-    // Check if we have old frame data to discard
-    static const uint32_t INVALID_FRAME = (uint32_t)(~0);
-    uint32_t oldFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
-
-    Parent::updateFrameData();
-    uint32_t newFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
-
-    if (oldFrameIndex != newFrameIndex) {
-        withPresentThreadLock([&] {
-            if (oldFrameIndex != INVALID_FRAME) {
-                auto itr = _frameInfos.find(oldFrameIndex);
-                if (itr != _frameInfos.end()) {
-                    _frameInfos.erase(itr);
-                }
-            }
-            if (newFrameIndex != INVALID_FRAME) {
-                _currentPresentFrameInfo = _frameInfos[newFrameIndex];
-            }
-        });
-    }
-
-    updatePresentPose();
-
-    if (_currentFrame) {
-        auto batchPose = _currentFrame->pose;
-        auto currentPose = _currentPresentFrameInfo.presentPose;
-        auto correction = glm::inverse(batchPose) * currentPose;
-        getGLBackend()->setCameraCorrection(correction);
-    }
-
 }
 
 glm::mat4 HmdDisplayPlugin::getHeadPose() const {

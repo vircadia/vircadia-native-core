@@ -19,7 +19,7 @@ public:
         GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
 
         // Has the storage size changed?
-        if (!object || object->_stamp != buffer.getSysmem().getStamp()) {
+        if (!object || object->_stamp != buffer._renderSysmem.getStamp()) {
             object = new GLBufferType(buffer, object);
         }
 
