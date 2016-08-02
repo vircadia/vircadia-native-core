@@ -64,6 +64,10 @@ function ThumbPad(hand) {
 
     this.buttonPress = function(value) {
         _thisPad.buttonValue = value;
+        if (value === 0) {
+            Script.clearTimeout(activationTimeout);
+            activationTimeout = null;
+        }
     };
 
 }
@@ -128,12 +132,18 @@ function Teleporter() {
         if (inTeleportMode === true) {
             return;
         }
+        if (isDisabled === 'both') {
+            return;
+        }
         inTeleportMode = true;
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
         }
         if (fadeSphereInterval !== null) {
             Script.clearInterval(fadeSphereInterval);
+        }
+        if (activationTimeout !== null) {
+            Script.clearInterval(activationTimeout);
         }
         this.teleportHand = hand;
         this.initialize();
@@ -221,14 +231,16 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
-        if(activationTimeout!==null){
+        if (activationTimeout !== null) {
             Script.clearTimeout(activationTimeout);
+            activationTimeout = null;
         }
         if (this.updateConnected === true) {
             Script.update.disconnect(this.update);
         }
         this.disableMappings();
         this.turnOffOverlayBeams();
+
 
         this.updateConnected = null;
 
@@ -594,7 +606,6 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
-        // .when(leftTrigger.down)
         .to(function(value) {
             if (isDisabled === 'left' || isDisabled === 'both') {
                 return;
@@ -602,21 +613,27 @@ function registerMappings() {
             if (activationTimeout !== null) {
                 return
             }
+            if (leftTrigger.down()) {
+                return;
+            }
             activationTimeout = Script.setTimeout(function() {
-                teleporter.enterTeleportMode('left')
+
                 Script.clearTimeout(activationTimeout);
                 activationTimeout = null;
+                teleporter.enterTeleportMode('left')
             }, TELEPORT_DELAY)
             return;
         });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
-        // .when(rightTrigger.down)
         .to(function(value) {
             if (isDisabled === 'right' || isDisabled === 'both') {
                 return;
             }
             if (activationTimeout !== null) {
                 return
+            }
+            if (rightTrigger.down()) {
+                return;
             }
             activationTimeout = Script.setTimeout(function() {
                 teleporter.enterTeleportMode('right')
@@ -625,31 +642,6 @@ function registerMappings() {
             }, TELEPORT_DELAY)
             return;
         });
-    // teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
-    //     if (isDisabled === true) {
-    //         return;
-    //     }
-    //     if (activationTimeout !== null) {
-    //         return
-    //     }
-    //     activationTimeout = Script.setTimeout(function() {
-    //         teleporter.enterTeleportMode('right')
-    //         Script.clearTimeout(activationTimeout);
-    //         activationTimeout = null;
-    //     }, TELEPORT_DELAY)
-    //     return;
-    // });
-    // teleportMapping.from(Controller.Standard.LT).when(Controller.Standard.LeftPrimaryThumb).to(function(value) {
-    //     if (isDisabled === true) {
-    //         return;
-    //     }
-    //     activationTimeout = Script.setTimeout(function() {
-    //         teleporter.enterTeleportMode('left')
-    //         Script.clearTimeout(activationTimeout);
-    //         activationTimeout = null;
-    //     }, TELEPORT_DELAY)
-    //     return;
-    // });
 
 }
 
