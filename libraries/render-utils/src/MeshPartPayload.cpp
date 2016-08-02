@@ -352,7 +352,7 @@ void ModelMeshPartPayload::initCache() {
 
 }
 
-float ModelMeshPartPayload::calcFadeRatio() const {
+float ModelMeshPartPayload::calculateFadeRatio() const {
     const float FADE_TIME = 0.5f;
     float t =  std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
     return -(cosf((float)M_PI_2 * t) - 1.0f);
@@ -397,7 +397,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
-    if (calcFadeRatio() < 1.0f) {
+    if (calculateFadeRatio() < 1.0f) {
         builder.withTransparent();
     }
 
@@ -452,7 +452,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || calcFadeRatio() < 0.9f) {
+    if (isTranslucent || calculateFadeRatio() < 0.9f) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -493,7 +493,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    float fadeRatio = calcFadeRatio();
+    float fadeRatio = calculateFadeRatio();
     if (!_hasColorAttrib || fadeRatio < 1.0f) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
