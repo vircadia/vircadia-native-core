@@ -239,11 +239,14 @@ function Teleporter() {
 
 
     this.update = function() {
-        if (isDisabled) {
+        if (isDisabled === 'both') {
             return;
         }
 
         if (teleporter.teleportHand === 'left') {
+            if (isDisabled === 'left') {
+                return;
+            }
             teleporter.leftRay();
             //|| leftTrigger.buttonValue === 0
             if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
@@ -252,6 +255,9 @@ function Teleporter() {
             }
 
         } else {
+            if (isDisabled === 'right') {
+                return;
+            }
             teleporter.rightRay();
             //|| rightTrigger.buttonValue === 0
             if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
@@ -588,7 +594,7 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
         // .when(leftTrigger.down)
         .to(function(value) {
-            if (isDisabled === true) {
+            if (isDisabled === 'left' || isDisabled === 'both') {
                 return;
             }
             if (activationTimeout !== null) {
@@ -604,7 +610,7 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
         // .when(rightTrigger.down)
         .to(function(value) {
-            if (isDisabled === true) {
+            if (isDisabled === 'right' || isDisabled === 'both') {
                 return;
             }
             if (activationTimeout !== null) {
@@ -669,10 +675,16 @@ var handleHandMessages = function(channel, message, sender) {
     var data;
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Teleport-Disabler') {
-            if (message === 'disable') {
-                isDisabled = true;
+            if (message === 'both') {
+                isDisabled = 'both';
             }
-            if (message === 'enable') {
+            if (message === 'left') {
+                isDisabled = 'left';
+            }
+            if (message === 'right') {
+                isDisabled = 'right'
+            }
+            if (message === 'none') {
                 isDisabled = false;
             }
 

@@ -1378,7 +1378,7 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler','disable');
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','both');
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
@@ -1636,8 +1636,14 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler','disable');
+        if (this.hand === 0) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
 
+        }
+        if (this.hand === 1) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
+
+        }
         this.lineOff();
         this.overlayLineOff();
 
@@ -1964,7 +1970,7 @@ function MyController(hand) {
     };
 
     this.release = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler','enable');
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
