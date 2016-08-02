@@ -353,9 +353,13 @@ void ModelMeshPartPayload::initCache() {
 }
 
 float ModelMeshPartPayload::calculateFadeRatio() const {
-    const float FADE_TIME = 0.5f;
-    float t =  std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
-    return -(cosf((float)M_PI_2 * t) - 1.0f);
+    const float FADE_TIME = 1.0f;
+    float t =  2.0f * std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
+    float fadeRatio = (t < 1.0f) ? 0.5f * powf(2.0f, 10.0f * (t - 1.0f)) : 0.5f * (-pow(2.0f, -10.0f * (t - 1.0f)) + 2.0f);
+
+    // The easing function isn't exactly 1 at t = 2, so we need to scale the whole function up slightly
+    const float EASING_SCALE = 1.001f;
+    return std::min(EASING_SCALE * fadeRatio, 1.0f);
 }
 
 void ModelMeshPartPayload::notifyLocationChanged() {
