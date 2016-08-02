@@ -245,12 +245,6 @@ target_link_libraries(
   Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets 
 )
 
-# Issue causes build failure unless we add this directory.
-# See https://bugreports.qt.io/browse/QTBUG-43351
-if (WIN32)
-  add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
-endif()
-
 if (UNIX)
     target_link_libraries(${TARGET_NAME} pthread)
 endif(UNIX)
