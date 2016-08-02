@@ -34,6 +34,7 @@ public:
     QObject* getEventHandler();
 
     void handleMouseEvent(QMouseEvent event, glm::vec3 intersectionPoint);
+    void handleTouchEvent(QTouchEvent event, glm::vec3 intersectionPoint);
 
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }

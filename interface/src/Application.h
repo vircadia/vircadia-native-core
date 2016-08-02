@@ -321,7 +321,12 @@ public slots:
     void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
     void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
 
+    void sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    void sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    void sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+
 private:
+    void sendEntityTouchEvent(const QUuid& id, const QTouchEvent& touchEvent, const glm::vec3& intersectionPoint);
     void sendEntityMouseEvent(const QUuid& id, const QMouseEvent& mouseEvent, const glm::vec3& intersectionPoint);
 
 private slots:

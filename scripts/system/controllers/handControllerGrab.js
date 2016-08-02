@@ -192,6 +192,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
+    enterMethod: "searchEnter",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -219,6 +220,18 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
 };
+
+function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
+    var rayDirectionDotPlaneNormal = Vec3.dot(rayDirection, planeNormal);
+    if (rayDirectionDotPlaneNormal > 0.00001 || rayDirectionDotPlaneNormal < -0.00001) {
+        var rayStartDotPlaneNormal = Vec3.dot(Vec3.subtract(planePosition, rayStart), planeNormal);
+        var distance = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return {hit: true, distance: distance};
+    } else {
+        // ray is parallel to the plane
+        return {hit: false, distance: 0};
+    }
+}
 
 function stateToName(state) {
     return CONTROLLER_STATE_MACHINE[state] ? CONTROLLER_STATE_MACHINE[state].name : "???";
@@ -965,7 +978,7 @@ function MyController(hand) {
         } else if (potentialEquipHotspot && Vec3.distance(this.lastHapticPulseLocation, currentLocation) > HAPTIC_TEXTURE_DISTANCE) {
             Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
             this.lastHapticPulseLocation = currentLocation;
-        }       
+        }
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
@@ -1243,6 +1256,10 @@ function MyController(hand) {
         }
     };
 
+    this.searchEnter = function() {
+        this.capturedWebEntity = null;
+    };
+
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
@@ -1266,26 +1283,51 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        // if the line probe hits a non-grabbable web entity or a web entity that is grabbed by the other hand.
-        // route simulated mouse events to that entity.
-        if (rayPickInfo.entityID && entityPropertiesCache.getProps(rayPickInfo.entityID).type === "Web" &&
-            (!this.entityIsGrabbable(rayPickInfo.entityID) || this.getOtherHandController().grabbedEntity == rayPickInfo.entityID)) {
+        // route simulated touch events to a webEntity.
+        if (this.capturedWebEntity ||
+            (rayPickInfo.entityID && entityPropertiesCache.getProps(rayPickInfo.entityID).type === "Web" &&
+             (!this.entityIsGrabbable(rayPickInfo.entityID) || this.getOtherHandController().grabbedEntity == rayPickInfo.entityID))) {
 
-            if (Reticle.keyboardFocusEntity != rayPickInfo.entityID) {
-                Reticle.keyboardFocusEntity = rayPickInfo.entityID;
+            var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+            var pose = Controller.getPoseValue(standardControllerValue);
+            var worldHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
+            var worldHandRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);
+
+            var focusedEntity = this.capturedWebEntity || rayPickInfo.entityID;
+            entityPropertiesCache.addEntity(focusedEntity);
+
+            var props = entityPropertiesCache.getProps(focusedEntity);
+            var planePosition = props.position
+            var planeNormal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1.0});
+            var rayStart = worldHandPosition;
+            var rayDirection = Quat.getUp(worldHandRotation);
+            var intersectionInfo = rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection);
+
+            var intersectionPoint = planePosition;
+            if (intersectionInfo.hit && intersectionInfo.distance > 0) {
+                intersectionPoint = Vec3.sum(rayStart, Vec3.multiply(intersectionInfo.distance, rayDirection));
+            } else {
+                intersectionPoint = planePosition;
             }
-            Reticle.sendEntityMouseMoveEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+
+            if (Reticle.keyboardFocusEntity != focusedEntity) {
+                Reticle.keyboardFocusEntity = focusedEntity;
+            }
+
+            Reticle.sendEntityTouchUpdateEvent(focusedEntity, this.hand, intersectionPoint);
+
             if (this.triggerSmoothedGrab() && !this.lastTriggerSmoothedGrab) {
-                print("AJT: mouse down");
-                Reticle.sendEntityLeftMouseDownEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+                Reticle.sendEntityTouchBeginEvent(focusedEntity, this.hand, intersectionPoint);
+                this.capturedWebEntity = focusedEntity;
             }
             if (!this.triggerSmoothedGrab() && this.lastTriggerSmoothedGrab) {
-                print("AJT: mouse up");
-                Reticle.sendEntityLeftMouseUpEvent(rayPickInfo.entityID, rayPickInfo.intersection);
+                Reticle.sendEntityTouchEndEvent(focusedEntity, this.hand, intersectionPoint);
+                this.capturedWebEntity = null;
             }
             this.lastTriggerSmoothedGrab = this.triggerSmoothedGrab();
+
             equipHotspotBuddy.updateHotspots([], timestamp);
-            this.intersectionDistance = rayPickInfo.distance;
+            this.intersectionDistance = intersectionInfo.distance;
         } else {
 
             var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);

@@ -209,7 +209,10 @@ public:
     Q_INVOKABLE void sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
-    // TODO: right mouse + double click
+
+    Q_INVOKABLE void sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
 
 private:
     CompositorHelper* _compositor;

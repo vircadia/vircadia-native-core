@@ -238,6 +238,38 @@ void RenderableWebEntityItem::handleMouseEvent(QMouseEvent event, glm::vec3 inte
     QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
 }
 
+void RenderableWebEntityItem::handleTouchEvent(QTouchEvent event, glm::vec3 intersectionPoint) {
+    // Ignore mouse interaction if we're locked
+    if (getLocked()) {
+        return;
+    }
+
+    // Map the intersection point to an actual offscreen pixel
+    glm::vec3 point = intersectionPoint;
+    glm::vec3 dimensions = getDimensions();
+    point -= getPosition();
+    point = glm::inverse(getRotation()) * point;
+    point /= dimensions;
+    point += 0.5f;
+    point.y = 1.0f - point.y;
+    point *= dimensions * (METERS_TO_INCHES * DPI);
+
+    QList<QTouchEvent::TouchPoint> touchPoints = event.touchPoints();
+    for (auto& touchPoint : touchPoints) {
+        touchPoint.setPos(QPointF(point.x, point.y));
+        touchPoint.setScreenPos(QPointF(point.x, point.y));
+    }
+
+    // Forward the touch event.
+    QTouchEvent mappedEvent(event.type(),
+                            event.device(),
+                            event.modifiers(),
+                            event.touchPointStates(),
+                            touchPoints);
+    QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+}
+
+
 void RenderableWebEntityItem::destroyWebSurface() {
     if (_webSurface) {
         --_currentWebCount;

@@ -473,3 +473,15 @@ void ReticleInterface::sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersec
 void ReticleInterface::sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint) {
     QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseUpEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
 }
+
+void ReticleInterface::sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
+    QMetaObject::invokeMethod(qApp, "sendEntityTouchUpdateEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+}
+
+void ReticleInterface::sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
+    QMetaObject::invokeMethod(qApp, "sendEntityTouchBeginEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+}
+
+void ReticleInterface::sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
+    QMetaObject::invokeMethod(qApp, "sendEntityTouchEndEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+}
