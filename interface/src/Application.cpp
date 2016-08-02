@@ -2879,6 +2879,20 @@ void Application::idle(float nsecsElapsed) {
 
     PerformanceTimer perfTimer("idle");
 
+    // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
+    // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
+    // details normally.
+    bool showWarnings = getLogger()->extraDebugging();
+    PerformanceWarning warn(showWarnings, "idle()");
+
+    {
+        PerformanceTimer perfTimer("update");
+        PerformanceWarning warn(showWarnings, "Application::idle()... update()");
+        static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+        update(glm::clamp(secondsSinceLastUpdate, 0.0f, BIGGEST_DELTA_TIME_SECS));
+    }
+
+
     // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
     {
         if (!_keyboardFocusedItem.get().isInvalidID()) {
@@ -2899,18 +2913,6 @@ void Application::idle(float nsecsElapsed) {
         }
     }
 
-    // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
-    // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
-    // details normally.
-    bool showWarnings = getLogger()->extraDebugging();
-    PerformanceWarning warn(showWarnings, "idle()");
-
-    {
-        PerformanceTimer perfTimer("update");
-        PerformanceWarning warn(showWarnings, "Application::idle()... update()");
-        static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-        update(glm::clamp(secondsSinceLastUpdate, 0.0f, BIGGEST_DELTA_TIME_SECS));
-    }
     {
         PerformanceTimer perfTimer("pluginIdle");
         PerformanceWarning warn(showWarnings, "Application::idle()... pluginIdle()");
@@ -3509,7 +3511,7 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                     _keyboardFocusHighlight->setPulseMax(1.0);
                     _keyboardFocusHighlight->setColorPulse(1.0);
                     _keyboardFocusHighlight->setIgnoreRayIntersection(true);
-                    _keyboardFocusHighlight->setDrawInFront(true);
+                    _keyboardFocusHighlight->setDrawInFront(false);
                 }
                 _keyboardFocusHighlight->setRotation(webEntity->getRotation());
                 _keyboardFocusHighlight->setPosition(webEntity->getPosition());
