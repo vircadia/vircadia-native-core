@@ -509,3 +509,27 @@ Script.scriptEnding.connect(function () {
     OffscreenFlags.navigationFocusDisabled = false;
 });
 
+var isDisabled = false;
+var handleHandMessages = function(channel, message, sender) {
+    var data;
+    if (sender === MyAvatar.sessionUUID) {
+        if (channel === 'Hifi-Hand-Pointer-Disabler') {
+            if (message === 'both') {
+                isDisabled = 'both';
+            }
+            if (message === 'left') {
+                isDisabled = 'left';
+            }
+            if (message === 'right') {
+                isDisabled = 'right'
+            }
+            if (message === 'none') {
+                isDisabled = false;
+            }
+
+        }
+    }
+}
+
+Messages.subscribe('Hifi-Hand-Pointer-Disabler');
+Messages.messageReceived.connect(handleHandMessages);

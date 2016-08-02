@@ -221,12 +221,14 @@ function Teleporter() {
     }
 
     this.exitTeleportMode = function(value) {
+        if(activationTimeout!==null){
+            Script.clearTimeout(activationTimeout);
+        }
         if (this.updateConnected === true) {
             Script.update.disconnect(this.update);
         }
         this.disableMappings();
         this.turnOffOverlayBeams();
-
 
         this.updateConnected = null;
 
