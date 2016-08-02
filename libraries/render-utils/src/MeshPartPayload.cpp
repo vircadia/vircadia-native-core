@@ -456,7 +456,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || calculateFadeRatio() < 0.9f) {
+    if (isTranslucent || calculateFadeRatio() < 1.0f) {
         builder.withTranslucent();
     }
     if (hasTangents) {
