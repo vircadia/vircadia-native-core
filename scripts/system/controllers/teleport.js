@@ -246,7 +246,7 @@ function Teleporter() {
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
             //|| leftTrigger.buttonValue === 0
-            if ((leftPad.buttonValue === 0 ) && inTeleportMode === true) {
+            if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
@@ -254,7 +254,7 @@ function Teleporter() {
         } else {
             teleporter.rightRay();
             //|| rightTrigger.buttonValue === 0
-            if ((rightPad.buttonValue === 0 ) && inTeleportMode === true) {
+            if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
             }
@@ -586,37 +586,37 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
-    // .when(leftTrigger.down)
-    .to(function(value) {
-        if (isDisabled === true) {
+        // .when(leftTrigger.down)
+        .to(function(value) {
+            if (isDisabled === true) {
+                return;
+            }
+            if (activationTimeout !== null) {
+                return
+            }
+            activationTimeout = Script.setTimeout(function() {
+                teleporter.enterTeleportMode('left')
+                Script.clearTimeout(activationTimeout);
+                activationTimeout = null;
+            }, TELEPORT_DELAY)
             return;
-        }
-        if (activationTimeout !== null) {
-            return
-        }
-        activationTimeout = Script.setTimeout(function() {
-            teleporter.enterTeleportMode('left')
-            Script.clearTimeout(activationTimeout);
-            activationTimeout = null;
-        }, TELEPORT_DELAY)
-        return;
-    });
+        });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
-    // .when(rightTrigger.down)
-    .to(function(value) {
-        if (isDisabled === true) {
+        // .when(rightTrigger.down)
+        .to(function(value) {
+            if (isDisabled === true) {
+                return;
+            }
+            if (activationTimeout !== null) {
+                return
+            }
+            activationTimeout = Script.setTimeout(function() {
+                teleporter.enterTeleportMode('right')
+                Script.clearTimeout(activationTimeout);
+                activationTimeout = null;
+            }, TELEPORT_DELAY)
             return;
-        }
-        if (activationTimeout !== null) {
-            return
-        }
-        activationTimeout = Script.setTimeout(function() {
-            teleporter.enterTeleportMode('right')
-            Script.clearTimeout(activationTimeout);
-            activationTimeout = null;
-        }, TELEPORT_DELAY)
-        return;
-    });
+        });
     // teleportMapping.from(Controller.Standard.RT).when(Controller.Standard.RightPrimaryThumb).to(function(value) {
     //     if (isDisabled === true) {
     //         return;
@@ -667,10 +667,8 @@ function cleanup() {
 var isDisabled = false;
 var handleHandMessages = function(channel, message, sender) {
     var data;
-    print('its a message')
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Teleport-Disabler') {
-            print('got teleport disabler message' + message)
             if (message === 'disable') {
                 isDisabled = true;
             }

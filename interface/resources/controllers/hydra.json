@@ -26,8 +26,8 @@
 
         { "from": [ "Hydra.L1", "Hydra.L3" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": [ "Hydra.R1", "Hydra.R3" ], "to": "Standard.RightPrimaryThumb" },
-
-
+        { "from": [ "Hydra.R2", "Hydra.R4" ], "to": "Standard.RightSecondaryThumb" },
+        { "from": [ "Hydra.L2", "Hydra.L4" ], "to": "Standard.LeftSecondaryThumb" },
         { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
         { "from": "Hydra.RightHand", "to": "Standard.RightHand" }
   ]
