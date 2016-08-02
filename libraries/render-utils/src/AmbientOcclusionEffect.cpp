@@ -480,6 +480,7 @@ const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("debugAmbientOcclusionBuffer"), 2));
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -550,6 +551,7 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
 
         batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, ambientOcclusionUniforms);
+        batch.setUniformBuffer(2, _parametersBuffer);
 
       
         // We need this with the mips levels  

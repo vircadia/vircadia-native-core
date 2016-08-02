@@ -17,3 +17,22 @@ var window = new OverlayWindow({
 });
 window.setPosition(Window.innerWidth - 420, 50 + 550 + 50);
 window.closed.connect(function() { Script.stop(); });
+
+
+var moveDebugCursor = false;
+Controller.mousePressEvent.connect(function (e) {
+	if (e.isMiddleButton) {
+      	moveDebugCursor = true;
+        setDebugCursor(e.x, e.y);
+    }
+});
+Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
+Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
+
+
+function setDebugCursor(x, y) {
+    nx = (x / Window.innerWidth);
+    ny = 1.0 - ((y) / (Window.innerHeight - 32));
+
+     Render.getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
+}
