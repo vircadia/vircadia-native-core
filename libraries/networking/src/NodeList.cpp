@@ -283,12 +283,7 @@ void NodeList::sendDomainServerCheckIn() {
         auto accountManager = DependencyManager::get<AccountManager>();
         const QUuid& connectionToken = _domainHandler.getConnectionToken();
 
-        // we assume that we're on the same box as the DS if it has the same local address and
-        // it didn't present us with a connection token to use for username signature
-        bool localhostDomain = _domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
-            || (_domainHandler.getSockAddr().getAddress() == _localSockAddr.getAddress() && connectionToken.isNull());
-
-        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull() && !localhostDomain;
+        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull();
 
         if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "A keypair is required to present a username signature to the domain-server"

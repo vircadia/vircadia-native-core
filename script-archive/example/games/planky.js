@@ -12,7 +12,7 @@
 //
 HIFI_PUBLIC_BUCKET = 'http://s3.amazonaws.com/hifi-public/';
 
-Script.include('../../libraries/toolBars.js');
+Script.include('/~/system/libraries/toolBars.js');
 
 const DEFAULT_NUM_LAYERS = 16;
 const DEFAULT_BASE_DIMENSION = { x: 7, y: 2, z: 7 };
