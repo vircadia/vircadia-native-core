@@ -18,27 +18,29 @@ import "../styles-uit"
 
 Rectangle {
     property var goFunction: null;
-    property var userStory: null;
     property alias image: lobby;
     property alias placeText: place.text;
     property alias usersText: users.text;
     property int textPadding: 20;
     property int textSize: 24;
-    property string defaultPicture: "../../images/default-domain.gif";
+    property int textSizeSmall: 18;
+    property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
+    property string thumbnail: defaultThumbnail;
+    property string path: "";
     HifiConstants { id: hifi }
     Image {
         id: lobby;
         width: parent.width;
         height: parent.height;
-        source: defaultPicture;
+        source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
         // source gets filled in later
         anchors.verticalCenter: parent.verticalCenter;
         anchors.left: parent.left;
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + JSON.stringify(userStory));
-                source = defaultPicture;
+                console.log("source: " + source + ": failed to load " + path);
+                source = defaultThumbnail;
             }
         }
     }
@@ -79,7 +81,7 @@ Rectangle {
     }
     RalewayRegular {
         id: users;
-        size: textSize;
+        size: textSizeSmall;
         color: hifi.colors.white;
         anchors {
             bottom: parent.bottom;
@@ -87,10 +89,15 @@ Rectangle {
             margins: textPadding;
         }
     }
+    property var hoverThunk: function () { };
+    property var unhoverThunk: function () { };
     MouseArea {
+        id: zmouseArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction(parent);
         hoverEnabled: true;
+        onEntered: hoverThunk();
+        onExited: unhoverThunk();
     }
 }
