@@ -83,6 +83,8 @@ Window {
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
+            highlightMoveDuration: -1;
+            highlightMoveVelocity: -1;
             highlight: Rectangle { color: "transparent"; border.width: 2; border.color: "#1FA5E8"; z: 1; }
         }
 
@@ -272,7 +274,7 @@ Window {
         }
         // IWBNI we could get these results in order with most-recent-entered first.
         // In any case, we don't really need to preserve the domain.names order in the results.
-        asyncMap(domain.names, addPlace, cb);
+        asyncMap(domain.names || [], addPlace, cb);
     }
 
     function suggestable(place) {
