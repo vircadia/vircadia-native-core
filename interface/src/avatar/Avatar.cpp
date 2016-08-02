@@ -920,7 +920,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
-        QMetaObject::invokeMethod(this, "setSkeletonModelURL",
+        // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
+        // we don't redo this every time we receive an identity packet from the avatar with the bad url.
+        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                                   Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
     }
 }
