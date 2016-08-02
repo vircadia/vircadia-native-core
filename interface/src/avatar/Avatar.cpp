@@ -299,7 +299,9 @@ void Avatar::simulate(float deltaTime) {
         {
             PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = getPosition();
-            _skeletonModel->getHeadPosition(headPosition);
+            if (!_skeletonModel->getHeadPosition(headPosition)) {
+                headPosition = getPosition();
+            }
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
@@ -922,8 +924,8 @@ void Avatar::setModelURLFinished(bool success) {
         qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
         // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
         // we don't redo this every time we receive an identity packet from the avatar with the bad url.
-        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
-                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+        // QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
+        //                           Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
     }
 }
 
