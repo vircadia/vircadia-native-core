@@ -41,6 +41,10 @@ const QUuid SpatiallyNestable::getID() const {
 }
 
 void SpatiallyNestable::setID(const QUuid& id) {
+    // adjust the parentID of any children
+    forEachChild([&](SpatiallyNestablePointer object) {
+        object->setParentID(id);
+    });
     _idLock.withWriteLock([&] {
         _id = id;
     });
