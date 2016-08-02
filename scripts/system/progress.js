@@ -34,6 +34,8 @@
         visible = false,
         BAR_WIDTH = 480, // Dimension of SVG in pixels of visible portion (half) of the bar.
         BAR_HEIGHT = 10,
+        BAR_Y_OFFSET_2D = -10, // Offset of progress bar while in desktop mode
+        BAR_Y_OFFSET_HMD = -300, // Offset of progress bar while in HMD
         BAR_URL = Script.resolvePath("assets/images/progress-bar.svg"),
         BACKGROUND_WIDTH = 520,
         BACKGROUND_HEIGHT = 50,
@@ -245,7 +247,7 @@
         windowWidth = viewport.x;
         windowHeight = viewport.y;
 
-        var yOffset = HMD.active ? -300 : -10;
+        var yOffset = HMD.active ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
 
         background2D.width = SCALE_2D * BACKGROUND_WIDTH;
         background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
