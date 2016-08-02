@@ -46,6 +46,33 @@ Batch::Batch() {
     _drawCallInfos.reserve(_drawCallInfosMax);
 }
 
+Batch::Batch(const Batch& batch_) {
+    Batch& batch = *const_cast<Batch*>(&batch_);
+    _commands.swap(batch._commands);
+    _commandOffsets.swap(batch._commandOffsets);
+    _params.swap(batch._params);
+    _data.swap(batch._data);
+    _invalidModel = batch._invalidModel;
+    _currentModel = batch._currentModel;
+    _objects.swap(batch._objects);
+    _currentNamedCall = batch._currentNamedCall;
+
+    _buffers._items.swap(batch._buffers._items);
+    _textures._items.swap(batch._textures._items);
+    _streamFormats._items.swap(batch._streamFormats._items);
+    _transforms._items.swap(batch._transforms._items);
+    _pipelines._items.swap(batch._pipelines._items);
+    _framebuffers._items.swap(batch._framebuffers._items);
+    _drawCallInfos.swap(batch._drawCallInfos);
+    _queries._items.swap(batch._queries._items);
+    _lambdas._items.swap(batch._lambdas._items);
+    _profileRanges._items.swap(batch._profileRanges._items);
+    _names._items.swap(batch._names._items);
+    _namedData.swap(batch._namedData);
+    _enableStereo = batch._enableStereo;
+    _enableSkybox = batch._enableSkybox;
+}
+
 Batch::~Batch() {
     _commandsMax = std::max(_commands.size(), _commandsMax);
     _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);

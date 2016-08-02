@@ -18,9 +18,20 @@
         busy: false,
         preload: function(entityID) {
             this.entityID = entityID;
+            Entities.editEntity(entityID, {
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false,
+                        wantsTrigger: true
+                    }
+                })
+            });
             Script.update.connect(this.update);
         },
         clickReleaseOnEntity: function() {
+            this.createSupplies();
+        },
+        startFarTrigger: function() {
             this.createSupplies();
         },
         update: function() {
@@ -45,7 +56,6 @@
                 }, 2000)
             }
         },
-
         createSupplies: function() {
             var myProperties = Entities.getEntityProperties(this.entityID);
 
