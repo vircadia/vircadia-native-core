@@ -40,7 +40,6 @@ static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING { {
     GeometryCache::Cylinder,
 } };
 
-
 RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     Pointer entity = std::make_shared<RenderableShapeEntityItem>(entityID);
     entity->setProperties(properties);
@@ -106,7 +105,13 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
+        float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+        if (fadeRatio < 1.0f) {
+            color = glm::vec4(0.0f, 0.0f, 1.0f, 0.5f);
+            DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
+        }
     }
 
 

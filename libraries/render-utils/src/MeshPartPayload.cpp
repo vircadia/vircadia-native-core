@@ -13,6 +13,8 @@
 
 #include <PerfStat.h>
 
+#include <Interpolate.h>
+
 #include "DeferredLightingEffect.h"
 #include "Model.h"
 
@@ -352,16 +354,6 @@ void ModelMeshPartPayload::initCache() {
 
 }
 
-float ModelMeshPartPayload::calculateFadeRatio() const {
-    const float FADE_TIME = 1.0f;
-    float t = 2.0f * std::min(((float)(usecTimestampNow() - _fadeStartTime)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
-    float fadeRatio = (t < 1.0f) ? 0.5f * powf(2.0f, 10.0f * (t - 1.0f)) : 0.5f * (-powf(2.0f, -10.0f * (t - 1.0f)) + 2.0f);
-
-    // The easing function isn't exactly 1 at t = 2, so we need to scale the whole function up slightly
-    const float EASING_SCALE = 1.001f;
-    return std::min(EASING_SCALE * fadeRatio, 1.0f);
-}
-
 void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
@@ -401,7 +393,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
-    if (calculateFadeRatio() < 1.0f) {
+    if (Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
         builder.withTransparent();
     }
 
@@ -456,7 +448,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || calculateFadeRatio() < 1.0f) {
+    if (isTranslucent || Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -497,7 +489,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    float fadeRatio = calculateFadeRatio();
+    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
     if (!_hasColorAttrib || fadeRatio < 1.0f) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }

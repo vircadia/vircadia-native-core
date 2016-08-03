@@ -435,6 +435,7 @@ public:
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
+    virtual bool isTransparent() { return false; }
 
 protected:
 

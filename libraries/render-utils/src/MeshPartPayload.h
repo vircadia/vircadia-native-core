@@ -82,7 +82,6 @@ public:
     void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
     // Entity fade in
-    float calculateFadeRatio() const;
     void startFade() { _fadeStartTime = usecTimestampNow(); }
     bool hasStartedFade() { return _hasStartedFade; }
     void setHasStartedFade(bool hasStartedFade) { _hasStartedFade = hasStartedFade; }

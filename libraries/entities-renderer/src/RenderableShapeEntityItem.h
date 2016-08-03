@@ -11,6 +11,7 @@
 
 #include <ShapeEntityItem.h>
 #include <procedural/Procedural.h>
+#include <Interpolate.h>
 
 #include "RenderableEntityItem.h"
 
@@ -21,15 +22,18 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
+    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID), _fadeStartTime(usecTimestampNow()) {}
 
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
+
+    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
 
     SIMPLE_RENDERABLE();
 
 private:
     QSharedPointer<Procedural> _procedural;
+    quint64 _fadeStartTime { 0 };
 };
 
 
