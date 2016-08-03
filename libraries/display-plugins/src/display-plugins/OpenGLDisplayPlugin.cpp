@@ -376,8 +376,11 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _compositeTexture.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
-        std::queue<gpu::FramePointer> empty;
-        _newFrameQueue.swap(empty);
+        while (!_newFrameQueue.empty()) {
+            _currentFrame = _newFrameQueue.front();
+            _currentFrame->preRender();
+            _newFrameQueue.pop();
+        }
     });
 }
 
