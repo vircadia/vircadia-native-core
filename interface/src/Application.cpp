@@ -391,6 +391,11 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 }
 
 static const QString STATE_IN_HMD = "InHMD";
+static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
+static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
+static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
+static const QString STATE_CAMERA_ENTITY = "CameraEntity";
+static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
 static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
@@ -470,7 +475,9 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
-    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
+                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
+                    STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -953,6 +960,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _applicationStateDevice->setInputVariant(STATE_IN_HMD, []() -> float {
         return qApp->isHMDMode() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_FULL_SCREEN_MIRROR, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
