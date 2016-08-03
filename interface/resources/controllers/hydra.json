@@ -1,15 +1,26 @@
 {
     "name": "Hydra to Standard",
     "channels": [
-        { "from": "Hydra.LY", "filters": "invert", "to": "Standard.LY" }, 
-        { "from": "Hydra.LX", "to": "Standard.LX" },
+        { "from": "Hydra.LY", "to": "Standard.LY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "Hydra.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
         { "from": "Hydra.LT", "to": "Standard.LTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
         },
-        { "from": "Hydra.LT", "to": "Standard.LT" }, 
-        { "from": "Hydra.RY", "filters": "invert", "to": "Standard.RY" }, 
-        { "from": "Hydra.RX", "to": "Standard.RX" },
+        { "from": "Hydra.LT", "to": "Standard.LT" },
+
+        { "from": "Hydra.RY", "to": "Standard.RY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "Hydra.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
         { "from": "Hydra.RT", "to": "Standard.RTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
