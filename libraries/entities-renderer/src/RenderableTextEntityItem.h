@@ -14,6 +14,7 @@
 
 #include <TextEntityItem.h>
 #include <TextRenderer3D.h>
+#include <Interpolate.h>
 
 #include "RenderableEntityItem.h"
 
@@ -27,10 +28,13 @@ public:
 
     virtual void render(RenderArgs* args) override;
 
+    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+
     SIMPLE_RENDERABLE();
     
 private:
     TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
+    quint64 _fadeStartTime { usecTimestampNow() };
 };
 
 
