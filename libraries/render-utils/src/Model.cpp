@@ -112,7 +112,7 @@ Model::Model(RigPointer rig, QObject* parent) :
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 
     connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
-    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
+    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadCollisionModelURLFinished);
 }
 
 Model::~Model() {
