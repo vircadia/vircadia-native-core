@@ -70,8 +70,8 @@ void Web3DOverlay::render(RenderArgs* args) {
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-        _webSurface->load("WebEntity.qml");
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
+        _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));

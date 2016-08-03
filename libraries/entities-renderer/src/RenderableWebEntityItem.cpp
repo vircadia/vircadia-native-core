@@ -63,8 +63,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     QSurface * currentSurface = currentContext->surface();
     _webSurface = new OffscreenQmlSurface();
     _webSurface->create(currentContext);
-    _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-    _webSurface->load("WebEntity.qml");
+    _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
+    _webSurface->load("WebView.qml");
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
