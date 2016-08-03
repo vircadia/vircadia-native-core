@@ -62,6 +62,7 @@ signals:
     void fromQml(const QVariant& message);
 
 protected slots:
+    void hasMoved(QVector2D);
     void hasClosed();
     void qmlToScript(const QVariant& message);
 
