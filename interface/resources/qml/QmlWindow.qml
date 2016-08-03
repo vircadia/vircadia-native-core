@@ -1,13 +1,16 @@
 
-import QtQuick 2.3
-import QtQuick.Controls 1.2
+import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtWebChannel 1.0
+import QtWebEngine 1.1
 import QtWebSockets 1.0
 import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
 import "windows" as Windows
 import "controls"
+import "controls-uit" as Controls
 import "styles"
+import "styles-uit"
 
 Windows.Window {
     id: root
@@ -23,6 +26,8 @@ Windows.Window {
     property var eventBridge;
     property var component;
     property var dynamicContent;
+
+
     onSourceChanged: {
         if (dynamicContent) {
             dynamicContent.destroy();
@@ -71,5 +76,6 @@ Windows.Window {
     Item {
         id: contentHolder
         anchors.fill: parent
+
     }
 }

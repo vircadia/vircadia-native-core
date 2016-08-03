@@ -11,13 +11,17 @@
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-
-var marketplaceWindow = new OverlayWebWindow({
+var CLARA_URL = "https://clara.io/library";
+var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
     source: "about:blank",
+    //source: MARKETPLACE_URL,
+    //source: "https://s3.amazonaws.com/DreamingContent/qml/content.qml",
+    //source: "C:\Users\elisa\Documents\GitHub\hifi\interface\resources\qml\controls-uit\WebView.qml",
     width: 900,
     height: 700,
-    visible: false
+    toolWindow: false,
+    visible: false,
 });
 
 var toolHeight = 50;
@@ -30,15 +34,15 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
+    //marketplaceWindow.webview.url = url;
 
     UserActivityLogger.openedMarketplace();
 }
 
 function hideMarketplace() {
     marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
+    marketplaceWindow.webview.url = "about:blank";
 }
 
 function toggleMarketplace() {
