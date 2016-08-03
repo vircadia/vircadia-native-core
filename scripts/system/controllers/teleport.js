@@ -603,7 +603,7 @@ var rightTrigger = new Trigger('right');
 var mappingName, teleportMapping;
 
 var activationTimeout = null;
-var TELEPORT_DELAY = 800;
+var TELEPORT_DELAY = 0;
 
 function isMoving() {
 
