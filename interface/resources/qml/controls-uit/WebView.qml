@@ -35,7 +35,6 @@ WebEngineView {
     }
 
     onUrlChanged: {
-        console.log("Url changed to " + url);
         var originalUrl = url.toString();
         newUrl = urlHandler.fixupUrl(originalUrl).toString();
         if (newUrl !== originalUrl) {
