@@ -193,7 +193,24 @@ Window {
                 helperText: "Go to: place, @user, /path, network address"
                 onTextChanged: filterChoicesByText()
             }
-
+            Rectangle {
+                color: "red";
+                height: addressLine.height;
+                width: addressLine.height;
+                anchors {
+                    left: addressLine.right;
+                    bottom: addressLine.bottom;
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {
+                        console.log('fixme hrs toggle');
+                        useFeed = !useFeed;
+                        filterChoicesByText();
+                    }
+                }
+            }
         }
     }
 
@@ -299,7 +316,7 @@ Window {
         return {
             place_name: name,
             path: data.path || "",
-            created_at: data.create_at || "8/3/2016",
+            created_at: data.create_at || "",
             thumbnail_url: data.thumbnail_url || "",
 
             tags: tags,
