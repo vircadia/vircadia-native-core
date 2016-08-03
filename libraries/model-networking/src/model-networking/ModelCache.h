@@ -111,6 +111,9 @@ public:
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
 
+signals:
+    void resourceFailed();
+
 private:
     void startWatching();
     void stopWatching();

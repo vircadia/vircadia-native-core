@@ -916,6 +916,16 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
+bool RenderableModelEntityItem::shouldBePhysical() const {
+    // If we have a model, make sure it hasn't failed to download.
+    // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
+    if (_model && _model->didGeometryRequestFail()) {
+        return false;
+    } else {
+        return ModelEntityItem::shouldBePhysical();
+    }
+}
+
 glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (_model) {
         glm::quat result;
