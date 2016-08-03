@@ -35,6 +35,14 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     withNonPresentThreadLock([&] {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
+        
+        _handPoses[0] = glm::translate(mat4(), vec3(-0.3f, 0.0f, 0.0f));
+        _handLasers[0].color = vec4(1, 0, 0, 1);
+        _handLasers[0].mode = HandLaserMode::Overlay;
+
+        _handPoses[1] = glm::translate(mat4(), vec3(0.3f, 0.0f, 0.0f));
+        _handLasers[1].color = vec4(0, 1, 1, 1);
+        _handLasers[1].mode = HandLaserMode::Overlay;
     });
     return Parent::beginFrameRender(frameIndex);
 }
@@ -70,7 +78,6 @@ bool DebugHmdDisplayPlugin::internalActivate() {
 }
 
 void DebugHmdDisplayPlugin::updatePresentPose() {
-//    if (usecTimestampNow() % 4000000 > 2000000) {
-        _currentPresentFrameInfo.presentPose = glm::mat4_cast(glm::angleAxis(0.5f, Vectors::UP));
-//    }
+    // Simulates head pose latency correction
+    _currentPresentFrameInfo.presentPose = glm::mat4_cast(glm::angleAxis(sin(secTimestampNow()) * 0.25f, Vectors::UP)) * glm::mat4_cast(glm::angleAxis(cos(secTimestampNow()) * 0.25f, Vectors::RIGHT));
 }

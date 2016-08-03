@@ -112,6 +112,7 @@ protected:
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::TexturePointer _compositeTexture;
     gpu::PipelinePointer _overlayPipeline;
+    gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
     float _compositeOverlayAlpha { 1.0f };

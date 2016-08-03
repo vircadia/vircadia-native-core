@@ -46,7 +46,6 @@ protected:
 
     bool internalActivate() override;
     void internalDeactivate() override;
-    void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;
@@ -68,26 +67,27 @@ protected:
 
     Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
-    std::array<glm::mat4, 2> _handPoses;
+    std::array<mat4, 2> _handPoses;
 
     Transform _presentUiModelTransform;
     std::array<HandLaserInfo, 2> _presentHandLasers;
     std::array<mat4, 2> _presentHandPoses;
+    std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
 
-    std::array<glm::mat4, 2> _eyeOffsets;
-    std::array<glm::mat4, 2> _eyeProjections;
-    std::array<glm::mat4, 2> _eyeInverseProjections;
+    std::array<mat4, 2> _eyeOffsets;
+    std::array<mat4, 2> _eyeProjections;
+    std::array<mat4, 2> _eyeInverseProjections;
 
-    glm::mat4 _cullingProjection;
-    glm::uvec2 _renderTargetSize;
+    mat4 _cullingProjection;
+    uvec2 _renderTargetSize;
     float _ipd { 0.064f };
 
     struct FrameInfo {
-        glm::mat4 renderPose;
-        glm::mat4 presentPose;
+        mat4 renderPose;
+        mat4 presentPose;
         double sensorSampleTime { 0 };
         double predictedDisplayTime { 0 };
-        glm::mat3 presentReprojection;
+        mat3 presentReprojection;
     };
 
     QMap<uint32_t, FrameInfo> _frameInfos;
@@ -95,9 +95,6 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
-    void updateLaserProgram();
-    void updateReprojectionProgram();
-
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
@@ -140,26 +137,5 @@ private:
         void build();
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
-    } _overlay;
-
-#if 0
-    ProgramPtr _previewProgram;
-    struct PreviewUniforms {
-        int32_t previewTexture { -1 };
-    } _previewUniforms;
-
-    ProgramPtr _reprojectionProgram;
-    struct ReprojectionUniforms {
-        int32_t reprojectionMatrix { -1 };
-        int32_t inverseProjectionMatrix { -1 };
-        int32_t projectionMatrix { -1 };
-    } _reprojectionUniforms;
-
-    ProgramPtr _laserProgram;
-    struct LaserUniforms {
-        int32_t mvp { -1 };
-        int32_t color { -1 };
-    } _laserUniforms;
-    ShapeWrapperPtr _laserGeometry;
-#endif
+    } _overlayRenderer;
 };

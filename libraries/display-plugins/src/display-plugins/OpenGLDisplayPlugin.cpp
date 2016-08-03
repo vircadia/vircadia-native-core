@@ -327,6 +327,17 @@ void OpenGLDisplayPlugin::customizeContext() {
     if (!_presentPipeline) {
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+            gpu::Shader::makeProgram(*program);
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(gpu::State::DepthTest(false));
+            state->setScissorEnable(true);
+            _simplePipeline = gpu::Pipeline::create(program, state);
+        }
+
+        {
+            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
             auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
@@ -460,7 +471,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 void OpenGLDisplayPlugin::compositeOverlay() {
     render([&](gpu::Batch& batch){
         batch.enableStereo(false);
-        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_overlayPipeline);
         batch.setResourceTexture(0, _currentFrame->overlay);
         if (isStereo()) {
@@ -482,7 +493,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
-        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.clearViewTransform();
@@ -500,6 +511,17 @@ void OpenGLDisplayPlugin::compositePointer() {
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setViewportTransform(ivec4(uvec2(), _compositeFramebuffer->getSize()));
+        batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
+        batch.clearViewTransform();
+        batch.setProjectionTransform(mat4());
+        batch.setPipeline(_simplePipeline);
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
 }
 
 void OpenGLDisplayPlugin::compositeLayers() {
@@ -528,7 +550,7 @@ void OpenGLDisplayPlugin::internalPresent() {
         batch.clearViewTransform();
         batch.setFramebuffer(gpu::FramebufferPointer());
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
         batch.setPipeline(_presentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
