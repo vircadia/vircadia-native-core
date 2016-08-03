@@ -75,15 +75,6 @@ span.port {
   color: #666666;
 }
 
-.locked {
-  color: #428bca;
-}
-
-.locked-table {
-  cursor: not-allowed;
-  background-color: #eee;
-}
-
 .advanced-setting {
   display: none;
 }

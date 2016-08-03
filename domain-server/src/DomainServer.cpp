@@ -411,6 +411,7 @@ void DomainServer::setupNodeListAndAssignments() {
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
+    packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
     
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
