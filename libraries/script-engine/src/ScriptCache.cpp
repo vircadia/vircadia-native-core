@@ -18,6 +18,7 @@
 #include <QNetworkReply>
 #include <QObject>
 #include <QThread>
+#include <QRegularExpression>
 
 #include <assert.h>
 #include <SharedUtil.h>
@@ -109,17 +110,20 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     QUrl unnormalizedURL(scriptOrURL);
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
 
-    // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the entityScript use case)
-    if (unnormalizedURL.scheme().isEmpty() && scriptOrURL.simplified().replace(" ", "").contains("(function(){")) {
+    // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the
+    // entityScript use case)
+    if (unnormalizedURL.scheme().isEmpty() &&
+            scriptOrURL.simplified().replace(" ", "").contains(QRegularExpression(R"(\(function\([a-z]?[\w,]*\){)"))) {
         contentAvailable(scriptOrURL, scriptOrURL, false, true);
         return;
     }
 
     // give a similar treatment to javacript: urls
     if (unnormalizedURL.scheme() == "javascript") {
-        QString contents{ scriptOrURL };
-        contents.replace(QRegExp("^javascript:"), "");
+        QString contents { scriptOrURL };
+        contents.replace(QRegularExpression("^javascript:"), "");
         contentAvailable(scriptOrURL, contents, false, true);
+        return;
     }
 
     Lock lock(_containerLock);
@@ -140,6 +144,7 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
             qCDebug(scriptengine) << "about to call: ResourceManager::createResourceRequest(this, url); on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
             #endif
             auto request = ResourceManager::createResourceRequest(nullptr, url);
+            Q_ASSERT(request);
             request->setCacheEnabled(!forceDownload);
             connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptContentAvailable);
             request->send();
