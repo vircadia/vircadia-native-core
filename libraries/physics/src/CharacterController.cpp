@@ -540,7 +540,8 @@ void CharacterController::preSimulation() {
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
-        const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
+        const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
+        const btScalar GROUND_TO_AUTOFLY_THRESHOLD = 0.5f * _radius;
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
@@ -581,7 +582,7 @@ void CharacterController::preSimulation() {
                 _takeoffJumpButtonID = _jumpButtonDownCount;
                 _takeoffToInAirStartTime = now;
                 SET_STATE(State::Takeoff, "jump pressed");
-            } else if (rayHasHit && !_hasSupport && _floorDistance > JUMP_PROXIMITY_THRESHOLD) {
+            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_AUTOFLY_THRESHOLD) {
                 SET_STATE(State::InAir, "falling");
             }
             break;
@@ -595,7 +596,7 @@ void CharacterController::preSimulation() {
             }
             break;
         case State::InAir: {
-            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
+            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
             } else {
                 btVector3 desiredVelocity = _targetVelocity;
@@ -614,7 +615,7 @@ void CharacterController::preSimulation() {
         case State::Hover:
             if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
-            } else if (((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport) && !flyingFast) {
+            } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");
             }
             break;
