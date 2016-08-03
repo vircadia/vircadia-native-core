@@ -58,6 +58,9 @@ var COLORS_TELEPORT_CANNOT_TELEPORT = {
     blue: 141
 };
 
+
+var MAX_AVATAR_SPEED = 0.25;
+
 function ThumbPad(hand) {
     this.hand = hand;
     var _thisPad = this;
@@ -265,7 +268,6 @@ function Teleporter() {
                 return;
             }
             teleporter.leftRay();
-            //|| leftTrigger.buttonValue === 0
             if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
@@ -276,7 +278,6 @@ function Teleporter() {
                 return;
             }
             teleporter.rightRay();
-            //|| rightTrigger.buttonValue === 0
             if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
                 _this.teleport();
                 return;
@@ -589,6 +590,15 @@ function getJointData() {
     return allJointData;
 };
 
+function getAvatarSpeed() {
+    return Vec3.length(MyAvatar.velocity)
+}
+
+function hasPressedMovementButtonLately() {
+
+    return;
+}
+
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
 var leftTrigger = new Trigger('left');
@@ -599,6 +609,26 @@ var mappingName, teleportMapping;
 var activationTimeout = null;
 var TELEPORT_DELAY = 800;
 
+var lastMovementPress = new Date();
+
+function pressedAMovementButton() {
+    print('PRESSED A MOVEMENT BUTTON!!')
+    lastMovementPress = new Date();
+}
+
+function hasMovedRecently() {
+    var dif = new Date().getTime() - lastMovementPress.getTime();
+
+    var secondsBetween = dif / 1000;
+    secondsBetween = Math.abs(secondsBetween);
+    print('seconds between: '+secondsBetween)
+    if (secondsBetween < 0.5) {
+        return true
+    } else {
+        return false
+    }
+}
+
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
     teleportMapping = Controller.newMapping(mappingName);
@@ -607,6 +637,9 @@ function registerMappings() {
 
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
+
+    teleportMapping.from(Controller.Standard.LY).peek().to(pressedAMovementButton);
+    teleportMapping.from(Controller.Standard.LX).peek().to(pressedAMovementButton);
 
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
         .to(function(value) {
@@ -619,8 +652,13 @@ function registerMappings() {
             if (leftTrigger.down()) {
                 return;
             }
+            if (hasMovedRecently() === true) {
+                return;
+            }
+            // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
+            //     return;
+            // }
             activationTimeout = Script.setTimeout(function() {
-
                 Script.clearTimeout(activationTimeout);
                 activationTimeout = null;
                 teleporter.enterTeleportMode('left')
@@ -638,6 +676,12 @@ function registerMappings() {
             if (rightTrigger.down()) {
                 return;
             }
+            if (hasMovedRecently() === true) {
+                return;
+            }
+            // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
+            //     return;
+            // }
             activationTimeout = Script.setTimeout(function() {
                 teleporter.enterTeleportMode('right')
                 Script.clearTimeout(activationTimeout);
