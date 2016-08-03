@@ -106,10 +106,10 @@ public:
     void setSessionUUID(const QUuid& sessionUUID);
 
     void setPermissions(const NodePermissions& newPermissions);
-    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
-    bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
-    bool getThisNodeCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
-    bool getThisNodeCanWriteAssets() const { return _permissions.canWriteToAssetServer; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getThisNodeCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getThisNodeCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();

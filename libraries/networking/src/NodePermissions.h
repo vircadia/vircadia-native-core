@@ -18,90 +18,108 @@
 #include <QVariant>
 #include <QUuid>
 
+#include "GroupRank.h"
+
 class NodePermissions;
 using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
+using NodePermissionsKey = QPair<QString, QUuid>; // name, rankID
+using NodePermissionsKeyList = QList<QPair<QString, QUuid>>;
+
 
 class NodePermissions {
 public:
-    NodePermissions() { _id = QUuid::createUuid().toString(); }
-    NodePermissions(const QString& name) { _id = name.toLower(); }
-    NodePermissions(QMap<QString, QVariant> perms) {
-        _id = perms["permissions_id"].toString().toLower();
-        canConnectToDomain = perms["id_can_connect"].toBool();
-        canAdjustLocks = perms["id_can_adjust_locks"].toBool();
-        canRezPermanentEntities = perms["id_can_rez"].toBool();
-        canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
-        canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
-        canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
-    }
+    NodePermissions() { _id = QUuid::createUuid().toString(); _rankID = QUuid(); }
+    NodePermissions(const QString& name) { _id = name.toLower(); _rankID = QUuid(); }
+    NodePermissions(const NodePermissionsKey& key) { _id = key.first.toLower(); _rankID = key.second; }
+    NodePermissions(QMap<QString, QVariant> perms);
 
-    QString getID() const { return _id; }
+    const QString& getID() const { return _id; } // a user-name or a group-name, not verified
+    void setID(const QString& id) { _id = id; }
+    void setRankID(QUuid& rankID) { _rankID = rankID; }
+    const QUuid& getRankID() const { return _rankID; }
+    NodePermissionsKey getKey() const { return NodePermissionsKey(_id, _rankID); }
 
-    // the _id member isn't authenticated and _username is.
-    void setUserName(QString userName) { _userName = userName.toLower(); }
-    QString getUserName() { return _userName; }
+    // the _id member isn't authenticated/verified and _username is.
+    void setVerifiedUserName(QString userName) { _verifiedUserName = userName.toLower(); }
+    const QString& getVerifiedUserName() const { return _verifiedUserName; }
+
+    void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; }}
+    const QUuid& getGroupID() const { return _groupID; }
+    bool isGroup() const { return _groupIDSet; }
 
     bool isAssignment { false };
 
     // these 3 names have special meaning.
-    static QString standardNameLocalhost;
-    static QString standardNameLoggedIn;
-    static QString standardNameAnonymous;
+    static NodePermissionsKey standardNameLocalhost;
+    static NodePermissionsKey standardNameLoggedIn;
+    static NodePermissionsKey standardNameAnonymous;
+    static NodePermissionsKey standardNameFriends;
     static QStringList standardNames;
 
-    // the initializations here should match the defaults in describe-settings.json
-    bool canConnectToDomain { true };
-    bool canAdjustLocks { false };
-    bool canRezPermanentEntities { false };
-    bool canRezTemporaryEntities { false };
-    bool canWriteToAssetServer { false };
-    bool canConnectPastMaxCapacity { false };
+    enum class Permission {
+        none = 0,
+        canConnectToDomain = 1,
+        canAdjustLocks = 2,
+        canRezPermanentEntities = 4,
+        canRezTemporaryEntities = 8,
+        canWriteToAssetServer = 16,
+        canConnectPastMaxCapacity = 32
+    };
+    Q_DECLARE_FLAGS(Permissions, Permission)
+    Permissions permissions;
 
-    void setAll(bool value) {
-        canConnectToDomain = value;
-        canAdjustLocks = value;
-        canRezPermanentEntities = value;
-        canRezTemporaryEntities = value;
-        canWriteToAssetServer = value;
-        canConnectPastMaxCapacity = value;
-    }
+    QVariant toVariant(QHash<QUuid, GroupRank> groupRanks = QHash<QUuid, GroupRank>());
 
-    QVariant toVariant() {
-        QMap<QString, QVariant> values;
-        values["permissions_id"] = _id;
-        values["id_can_connect"] = canConnectToDomain;
-        values["id_can_adjust_locks"] = canAdjustLocks;
-        values["id_can_rez"] = canRezPermanentEntities;
-        values["id_can_rez_tmp"] = canRezTemporaryEntities;
-        values["id_can_write_to_asset_server"] = canWriteToAssetServer;
-        values["id_can_connect_past_max_capacity"] = canConnectPastMaxCapacity;
-        return QVariant(values);
-    }
+    void setAll(bool value);
 
     NodePermissions& operator|=(const NodePermissions& rhs);
-    NodePermissions& operator|=(const NodePermissionsPointer& rhs);
+    NodePermissions& operator&=(const NodePermissions& rhs);
+    NodePermissions operator~();
     friend QDataStream& operator<<(QDataStream& out, const NodePermissions& perms);
     friend QDataStream& operator>>(QDataStream& in, NodePermissions& perms);
 
+    void clear(Permission p) { permissions &= (Permission) (~(uint)p); }
+    void set(Permission p) { permissions |= p; }
+    bool can(Permission p) const { return permissions.testFlag(p); }
+
 protected:
     QString _id;
-    QString _userName;
+    QUuid _rankID { QUuid() }; // 0 unless this is for a group
+    QString _verifiedUserName;
+
+    bool _groupIDSet { false };
+    QUuid _groupID;
 };
+Q_DECLARE_OPERATORS_FOR_FLAGS(NodePermissions::Permissions)
 
 
 // wrap QHash in a class that forces all keys to be lowercase
 class NodePermissionsMap {
 public:
     NodePermissionsMap() { }
-    NodePermissionsPointer& operator[](const QString& key) { return _data[key.toLower()]; }
-    NodePermissionsPointer operator[](const QString& key) const { return _data.value(key.toLower()); }
-    bool contains(const QString& key) const { return _data.contains(key.toLower()); }
-    QList<QString> keys() const { return _data.keys(); }
-    QHash<QString, NodePermissionsPointer> get() { return _data; }
+    NodePermissionsPointer& operator[](const NodePermissionsKey& key) {
+        NodePermissionsKey dataKey(key.first.toLower(), key.second);
+        if (!_data.contains(dataKey)) {
+            _data[dataKey] = NodePermissionsPointer(new NodePermissions(key));
+        }
+        return _data[dataKey];
+    }
+    NodePermissionsPointer operator[](const NodePermissionsKey& key) const {
+        return _data.value(NodePermissionsKey(key.first.toLower(), key.second));
+    }
+    bool contains(const NodePermissionsKey& key) const {
+        return _data.contains(NodePermissionsKey(key.first.toLower(), key.second));
+    }
+    bool contains(const QString& keyFirst, QUuid keySecond) const {
+        return _data.contains(NodePermissionsKey(keyFirst.toLower(), keySecond));
+    }
+    QList<NodePermissionsKey> keys() const { return _data.keys(); }
+    QHash<NodePermissionsKey, NodePermissionsPointer> get() { return _data; }
     void clear() { _data.clear(); }
+    void remove(const NodePermissionsKey& key) { _data.remove(key); }
 
 private:
-    QHash<QString, NodePermissionsPointer> _data;
+    QHash<NodePermissionsKey, NodePermissionsPointer> _data;
 };
 
 
@@ -109,6 +127,8 @@ const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 
 QDebug operator<<(QDebug debug, const NodePermissions& perms);
 QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms);
-NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs);
+NodePermissionsPointer operator~(NodePermissionsPointer& lhs);
 
 #endif // hifi_NodePermissions_h

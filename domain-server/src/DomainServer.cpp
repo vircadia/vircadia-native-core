@@ -38,6 +38,7 @@
 #include <UUID.h>
 #include <LogHandler.h>
 #include <ServerPathUtils.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
@@ -106,10 +107,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
+    setupGroupCacheRefresh();
+
     // if we were given a certificate/private key or oauth credentials they must succeed
     if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
         return;
     }
+
+    _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
     setupAutomaticNetworking();
@@ -1098,12 +1103,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-
     // add access level for anonymous connections
     // consider the domain to be "restricted" if anonymous connections are disallowed
     static const QString RESTRICTED_ACCESS_FLAG = "restricted";
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
-    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.can(NodePermissions::Permission::canConnectToDomain);
 
     const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
     if (!temporaryDomainKey.isEmpty()) {
@@ -2326,4 +2330,15 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
 
     // immediately send an update to the metaverse API when our ice-server changes
     sendICEServerAddressToMetaverseAPI();
+}
+
+void DomainServer::setupGroupCacheRefresh() {
+    const int REFRESH_GROUPS_INTERVAL_MSECS = 15 * MSECS_PER_SECOND;
+
+    if (!_metaverseGroupCacheTimer) {
+        // setup a timer to refresh this server's cached group details
+        _metaverseGroupCacheTimer = new QTimer { this };
+        connect(_metaverseGroupCacheTimer, &QTimer::timeout, &_gatekeeper, &DomainGatekeeper::refreshGroupsCache);
+        _metaverseGroupCacheTimer->start(REFRESH_GROUPS_INTERVAL_MSECS);
+    }
 }
