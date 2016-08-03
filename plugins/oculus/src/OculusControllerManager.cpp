@@ -183,8 +183,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     _buttonPressedMap.clear();
 
     ovrSessionStatus status;
-    if (OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) &&
-        (ovrFalse == status.HmdMounted)) {
+    if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
         // if the HMD isn't on someone's head, don't take input from the controllers
         return;
     }
