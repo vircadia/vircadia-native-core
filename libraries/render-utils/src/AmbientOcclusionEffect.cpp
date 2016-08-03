@@ -487,7 +487,7 @@ const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setColorWriteMask(true, true, true, false);
-
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         // Good to go add the brand new pipeline
         _debugPipeline = gpu::Pipeline::create(program, state);
     }

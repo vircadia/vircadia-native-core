@@ -126,6 +126,115 @@ float getBlurCoef(int c) {
 
 <@endfunc@>
 
+<@func declareSamplingDisk()@>
+
+float evalDiskRadius(float Zeye, vec2 imageSize) {
+    // Choose the screen-space sample radius
+    // proportional to the projected area of the sphere
+    float ssDiskRadius = -( getProjScale(getResolutionLevel()) * getRadius() / Zeye ) * getPerspectiveScale();
+
+    // clamp the disk to fit in the image otherwise too many unknown
+    ssDiskRadius = min(ssDiskRadius, imageSize.y * 0.5);
+
+    return ssDiskRadius;
+}
+
+const float TWO_PI = 6.28;
+
+vec3 getUnitTapLocation(int sampleNumber, float spinAngle){
+    // Radius relative to ssR
+    float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
+    float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
+    return vec3(cos(angle), sin(angle), alpha);
+}
+
+vec3 getTapLocation(int sampleNumber, float spinAngle, float outerRadius) {
+    vec3 tap = getUnitTapLocation(sampleNumber, spinAngle);
+    tap.xy *= tap.z;
+    tap *= outerRadius;
+    return tap;
+}
+
+vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius, vec2 pixelPos, vec2 imageSize) {
+    vec3 tap = getTapLocation(sampleNumber, spinAngle, outerRadius);
+    vec2 tapPos = pixelPos + tap.xy;
+
+    if (!(isBorderingEnabled() > 0.0)) {
+        return tap;
+    }
+    bool redoTap = false;
+
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = -tapPos.x;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x -= (imageSize.x - tapPos.x);
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = -tapPos.y;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y -= (imageSize.y - tapPos.y);
+        redoTap = true;
+    }
+    
+    if (redoTap) {
+        tap.xy = tapPos - pixelPos;
+        tap.z = length(tap.xy);
+    }
+/*
+    if ((tapPos.x < 0.0) || (tapPos.x >= imageSize.x)) {
+      //  tapPos.x = pixelPos.x - tapVec.x;
+        tap.x = -tap.x;
+    }
+    if ((tapPos.y < 0.0) || (tapPos.y >= imageSize.y)) {
+       // tapPos.y = pixelPos.y - tapVec.y;
+        tap.y = -tap.y;
+    }*/
+    
+    return tap;
+}
+
+<@endfunc@>
+
+
+<@func declareFetchDepthPyramidMap()@>
+
+const int LOG_MAX_OFFSET = 3;
+const int MAX_MIP_LEVEL = 5;
+
+// the depth pyramid texture
+uniform sampler2D pyramidMap;
+
+float getZEye(ivec2 pixel) {
+    return -texelFetch(pyramidMap, pixel, getResolutionLevel()).x;
+}
+
+vec3 getOffsetPosition(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    // Derivation:
+    //  mipLevel = floor(log(ssR / MAX_OFFSET));
+    int mipLevel = clamp(findMSB(int(tap.z)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+
+    ivec2 ssP = ivec2(tap.xy) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+
+    vec3 P;
+
+    // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
+    // Manually clamp to the texture size because texelFetch bypasses the texture unit
+    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, getResolutionLevel() + mipLevel) - ivec2(1));
+    P.z = -texelFetch(pyramidMap, mipP, getResolutionLevel() + mipLevel).r;
+
+    // Offset to pixel center
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+    P = evalEyePositionFromZeye(side.x, P.z, tapUV);
+    return P;
+}
+
+<@endfunc@>
+
 <@func declareBlurPass(axis)@>
 
 <$declarePackOcclusionDepth()$>

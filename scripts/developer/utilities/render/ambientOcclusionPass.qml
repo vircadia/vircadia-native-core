@@ -22,7 +22,9 @@ Column {
                 model: [
                     "Radius:radius:2.0:false",
                     "Level:obscuranceLevel:1.0:false",
-                    "Scale:perspectiveScale:2.0:false",
+                    "Num Taps:numSamples:32:true",
+                    "Taps Spiral:numSpiralTurns:10.0:false",
+                    "Blur Radius:blurRadius:10.0:false",
                 ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])

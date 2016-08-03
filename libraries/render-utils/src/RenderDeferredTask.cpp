@@ -178,14 +178,16 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
+        // Debugging Deferred buffer job
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+        
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
-        // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+
 
         // Scene Octree Debuging job
         {
