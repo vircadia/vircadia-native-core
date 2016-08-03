@@ -16,7 +16,7 @@ var button = toolBar.addButton({
     visible: true,
     buttonState: 1,
     defaultState: 1,
-    hoverState: 1,
+    hoverState: 2,
     alpha: 0.9,
 });
 
