@@ -34,10 +34,8 @@ void Frame::finish() {
 }
 
 void Frame::preRender() {
-    for (auto& bufferUpdate : bufferUpdates) {
-        const BufferPointer& buffer = bufferUpdate.first;
-        const Buffer::Update& update = bufferUpdate.second;
-        buffer->applyUpdate(update);
+    for (auto& update : bufferUpdates) {
+        update.apply();
     }
     bufferUpdates.clear();
 }

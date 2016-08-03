@@ -410,6 +410,22 @@ void Buffer::markDirty(Size offset, Size bytes) {
     _pages.markRegion(offset, bytes);
 }
 
+extern bool isRenderThread();
+
+Buffer::Update::Update(const Update& other) : 
+    buffer(other.buffer),
+    updateNumber(other.updateNumber),
+    size(other.size),
+    dirtyPages(other.dirtyPages),
+    dirtyData(other.dirtyData) { }
+
+Buffer::Update::Update(Update&& other) : 
+    buffer(other.buffer),
+    updateNumber(other.updateNumber),
+    size(other.size),
+    dirtyPages(std::move(other.dirtyPages)),
+    dirtyData(std::move(other.dirtyData)) { }
+
 Buffer::Update::Update(const Buffer& parent) : buffer(parent) {
     const auto pageSize = buffer._pages._pageSize;
     updateNumber = ++buffer._getUpdateCount;
@@ -425,8 +441,6 @@ Buffer::Update::Update(const Buffer& parent) : buffer(parent) {
         memcpy(dirtyData.data() + destOffset, buffer._sysmem.readData() + sourceOffset, pageSize);
     }
 }
-
-extern bool isRenderThread();
 
 void Buffer::Update::apply() const {
     // Make sure we're loaded in order

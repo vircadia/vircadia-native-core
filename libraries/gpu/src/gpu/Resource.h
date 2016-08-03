@@ -159,12 +159,13 @@ public:
     class Update {
     public:
         Update(const Buffer& buffer);
+        Update(const Update& other);
+        Update(Update&& other);
         void apply() const;
 
     private:
         const Buffer& buffer;
         size_t updateNumber;
-        //PageManager pages;
         Size size;
         PageManager::Pages dirtyPages;
         std::vector<uint8> dirtyData;
@@ -284,8 +285,7 @@ public:
     friend class Frame;
 };
 
-using BufferUpdate = std::pair<BufferPointer, Buffer::Update>;
-using BufferUpdates = std::vector<BufferUpdate>;
+using BufferUpdates = std::vector<Buffer::Update>;
 
 typedef std::shared_ptr<Buffer> BufferPointer;
 typedef std::vector< BufferPointer > Buffers;

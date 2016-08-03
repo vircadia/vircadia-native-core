@@ -636,7 +636,7 @@ void Batch::finish(BufferUpdates& updates) {
             if (!buffer || !buffer->isDirty()) {
                 continue;
             }
-            updates.push_back({ buffer, buffer->getUpdate() });
+            updates.emplace_back(buffer->getUpdate());
         }
     }
 
@@ -645,7 +645,7 @@ void Batch::finish(BufferUpdates& updates) {
         if (!buffer || !buffer->isDirty()) {
             continue;
         }
-        updates.push_back({ buffer, buffer->getUpdate() });
+        updates.emplace_back(buffer->getUpdate());
     }
 }
 
