@@ -594,10 +594,6 @@ function getAvatarSpeed() {
     return Vec3.length(MyAvatar.velocity)
 }
 
-function hasPressedMovementButtonLately() {
-
-    return;
-}
 
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
@@ -609,20 +605,11 @@ var mappingName, teleportMapping;
 var activationTimeout = null;
 var TELEPORT_DELAY = 800;
 
-var lastMovementPress = new Date();
+function isMoving() {
 
-function pressedAMovementButton() {
-    print('PRESSED A MOVEMENT BUTTON!!')
-    lastMovementPress = new Date();
-}
-
-function hasMovedRecently() {
-    var dif = new Date().getTime() - lastMovementPress.getTime();
-
-    var secondsBetween = dif / 1000;
-    secondsBetween = Math.abs(secondsBetween);
-    print('seconds between: '+secondsBetween)
-    if (secondsBetween < 0.5) {
+    var LY = Controller.getValue(Controller.Standard.LY);
+    var LX = Controller.getValue(Controller.Standard.LX);
+    if (LY !== 0 || LX !== 0) {
         return true
     } else {
         return false
@@ -638,9 +625,6 @@ function registerMappings() {
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
-    teleportMapping.from(Controller.Standard.LY).peek().to(pressedAMovementButton);
-    teleportMapping.from(Controller.Standard.LX).peek().to(pressedAMovementButton);
-
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
         .to(function(value) {
             if (isDisabled === 'left' || isDisabled === 'both') {
@@ -652,7 +636,7 @@ function registerMappings() {
             if (leftTrigger.down()) {
                 return;
             }
-            if (hasMovedRecently() === true) {
+            if (isMoving() === true) {
                 return;
             }
             // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
@@ -676,7 +660,7 @@ function registerMappings() {
             if (rightTrigger.down()) {
                 return;
             }
-            if (hasMovedRecently() === true) {
+            if (isMoving() === true) {
                 return;
             }
             // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
