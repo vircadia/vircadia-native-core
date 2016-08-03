@@ -105,15 +105,11 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
-        if (fadeRatio < 1.0f) {
-            color = glm::vec4(0.0f, 0.0f, 1.0f, 0.5f);
-            DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
-        } else {
-            DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
-        }
+        color.a *= Interpolate::calculateFadeRatio(_fadeStartTime);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
     }
-
 
     static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(MAPPING[_shape]);
     args->_details._trianglesRendered += (int)triCount;

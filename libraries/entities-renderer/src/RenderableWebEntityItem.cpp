@@ -208,8 +208,9 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
         textured = emissive = true;
     }
-    
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, textured, culled, emissive);
+    bool transparent = false;
+
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, textured, transparent, culled, emissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
 }
 

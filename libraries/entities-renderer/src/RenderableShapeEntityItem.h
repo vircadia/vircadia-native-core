@@ -22,7 +22,7 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID), _fadeStartTime(usecTimestampNow()) {}
+    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
 
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
@@ -33,7 +33,7 @@ public:
 
 private:
     QSharedPointer<Procedural> _procedural;
-    quint64 _fadeStartTime { 0 };
+    quint64 _fadeStartTime { usecTimestampNow() };
 };
 
 

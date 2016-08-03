@@ -78,7 +78,7 @@ void FloorTextureTest::renderTest(size_t testId, RenderArgs* args) {
         texture->incremementMinMip();
     }
 
-    geometryCache->bindSimpleProgram(batch, true, true, true);
+    geometryCache->bindSimpleProgram(batch, true, false, true, true);
     batch.setInputBuffer(0, vertexBuffer, 0, sizeof(Vertex));
     batch.setInputFormat(vertexFormat);
     batch.setIndexBuffer(gpu::UINT16, indexBuffer, 0);
