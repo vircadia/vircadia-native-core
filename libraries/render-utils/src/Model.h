@@ -147,8 +147,10 @@ public:
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
 
-
     bool isActive() const { return isLoaded(); }
+
+    bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
+    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     bool convexHullContains(glm::vec3 point);
 
@@ -400,6 +402,9 @@ protected:
     RigPointer _rig;
 
     uint32_t _deleteGeometryCounter { 0 };
+
+    bool _visualGeometryRequestFailed { false };
+    bool _collisionGeometryRequestFailed { false };
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
