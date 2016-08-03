@@ -727,7 +727,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
         emit ignoredNode(nodeID);
 
     } else {
-        qWarning() << "UsersScriptingInterface::ignore called with an invalid ID or an ID which matches the current session ID.";
+        qWarning() << "NodeList::ignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
     }
 }
 
@@ -757,5 +757,30 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
             // send this NLPacketList to the new node
             sendPacketList(std::move(ignorePacketList), *newNode);
         }
+    }
+}
+
+void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
+    // send a request to domain-server to kick the node with the given session ID
+    // the domain-server will handle the persistence of the kick (via username or IP)
+
+    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+        if (getThisNodeCanKick()) {
+            // setup the packet
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            kickPacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(kickPacket), _domainHandler.getSockAddr());
+        } else {
+            qWarning() << "You do not have permissions to kick in this domain."
+                << "Request to kick node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    } else {
+        qWarning() << "NodeList::kickNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+
     }
 }
