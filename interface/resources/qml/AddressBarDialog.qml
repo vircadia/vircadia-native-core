@@ -128,7 +128,7 @@ Window {
                 onClicked: addressBarDialog.loadHome();
                 anchors {
                     left: parent.left
-                    leftMargin: parent.height
+                    leftMargin: hifi.layout.spacing * 2
                     verticalCenter: parent.verticalCenter
                 }
             }
@@ -164,10 +164,10 @@ Window {
                 focus: true
                 anchors {
                     top: parent.top
-                    left: parent.left
                     bottom: parent.bottom
+                    left: forwardArrow.right
                     right: placesButton.left
-                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 7
+                    leftMargin: hifi.layout.spacing * 4
                     rightMargin: hifi.layout.spacing
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
@@ -186,6 +186,7 @@ Window {
                 onClicked: useFeed ? toggleFeed() : identity()
                 anchors {
                     right: feedButton.left;
+                    rightMargin: hifi.layout.spacing * 3;
                     bottom: addressLine.bottom;
                 }
             }
@@ -199,7 +200,7 @@ Window {
                 anchors {
                     right: parent.right;
                     bottom: addressLine.bottom;
-                    rightMargin: hifi.layout.spacing;
+                    rightMargin: hifi.layout.spacing * 3;
                 }
             }
         }
