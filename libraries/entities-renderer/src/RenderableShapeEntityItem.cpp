@@ -71,6 +71,14 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
     }
 }
 
+bool RenderableShapeEntityItem::isTransparent() {
+    if (_procedural && _procedural->ready()) {
+        return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
+    } else {
+        return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
+    }
+}
+
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
@@ -101,6 +109,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
+        outColor.a *= Interpolate::calculateFadeRatio(_procedural->getFadeStartTime());
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {

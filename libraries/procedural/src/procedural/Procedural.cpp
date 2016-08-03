@@ -184,6 +184,7 @@ bool Procedural::ready() {
         // Reset dirty flag after reading _proceduralData, but before releasing lock
         // to avoid resetting it after more data is set
         _proceduralDataDirty = false;
+        _fadeStartTime = usecTimestampNow();
     }
 
     if (!_enabled) {

@@ -42,6 +42,7 @@ public:
     const gpu::ShaderPointer& getShader() const { return _shader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
+    quint64 getFadeStartTime() { return _fadeStartTime; }
 
     uint8_t _version { 1 };
 
@@ -106,6 +107,8 @@ private:
 
     void setupUniforms();
     void setupChannels(bool shouldCreate);
+
+    quint64 _fadeStartTime;
 };
 
 #endif

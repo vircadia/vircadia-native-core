@@ -27,7 +27,7 @@ public:
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
 
-    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+    bool isTransparent() override;
 
     SIMPLE_RENDERABLE();
 
