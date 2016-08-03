@@ -78,7 +78,10 @@ Decoration {
                 id: closeClickArea
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: window.shown = false;
+                onClicked: {
+                    window.shown = false;
+                    window.windowClosed();
+                }
             }
         }
     }
