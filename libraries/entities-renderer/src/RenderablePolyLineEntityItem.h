@@ -32,6 +32,8 @@ public:
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override { return true; };
 
+    bool isTransparent() override { return true; }
+
     SIMPLE_RENDERABLE();
 
     NetworkTexturePointer _texture;
