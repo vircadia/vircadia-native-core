@@ -44,6 +44,7 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
     permissions |= perms["id_can_write_to_asset_server"].toBool() ? Permission::canWriteToAssetServer : Permission::none;
     permissions |= perms["id_can_connect_past_max_capacity"].toBool() ?
         Permission::canConnectPastMaxCapacity : Permission::none;
+    permissions |= perms["id_can_kick"].toBool() ? Permission::canKick : Permission::none;
 }
 
 QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
@@ -63,6 +64,7 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_rez_tmp"] = can(Permission::canRezTemporaryEntities);
     values["id_can_write_to_asset_server"] = can(Permission::canWriteToAssetServer);
     values["id_can_connect_past_max_capacity"] = can(Permission::canConnectPastMaxCapacity);
+    values["id_can_kick"] = can(Permission::canKick);
     return QVariant(values);
 }
 
@@ -122,6 +124,9 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     }
     if (perms.can(NodePermissions::Permission::canConnectPastMaxCapacity)) {
         debug << " ignore-max-cap";
+    }
+    if (perms.can(NodePermissions::Permission::canKick)) {
+        debug << " kick";
     }
     debug.nospace() << "]";
     return debug.nospace();

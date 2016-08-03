@@ -41,7 +41,7 @@ var Settings = {
 };
 
 var viewHelpers = {
-  getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
+  getFormGroup: function(keypath, setting, values, isAdvanced) {
     form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "' data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
@@ -54,9 +54,6 @@ var viewHelpers = {
     }
 
     label_class = 'control-label';
-    if (isLocked) {
-      label_class += ' locked';
-    }
 
     function common_attrs(extra_classes) {
       extra_classes = (!_.isUndefined(extra_classes) ? extra_classes : "");
@@ -71,9 +68,8 @@ var viewHelpers = {
         form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       }
 
-      form_group += "<div class='toggle-checkbox-container" + (isLocked ? " disabled" : "") + "'>"
-      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "")
-      form_group += (isLocked ? " disabled" : "") + "/>"
+      form_group += "<div class='toggle-checkbox-container'>"
+      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "") + "/>"
 
       if (setting.help) {
         form_group += "<span class='help-block checkbox-help'>" + setting.help + "</span>";
@@ -88,7 +84,7 @@ var viewHelpers = {
       }
 
       if (input_type === 'table') {
-        form_group += makeTable(setting, keypath, setting_value, isLocked)
+        form_group += makeTable(setting, keypath, setting_value)
       } else {
         if (input_type === 'select') {
           form_group += "<select class='form-control' data-hidden-input='" + keypath + "'>'"
@@ -107,12 +103,10 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
-              + (isLocked ? " disabled" : "")
               + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
-            form_group += "<button " + common_attrs("btn " + setting.classes)
-              + (isLocked ? " disabled" : "") + ">"
+            form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</button>";
           }
 
@@ -124,7 +118,7 @@ var viewHelpers = {
 
           form_group += "<input type='" + input_type + "'" +  common_attrs() +
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
-            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+            "' value='" + setting_value + "'/>"
         }
 
         form_group += "<span class='help-block'>" + setting.help + "</span>"
@@ -459,10 +453,8 @@ function setupHFAccountButton() {
     $("[data-keypath='metaverse.automatic_networking']").hide();
   }
 
-  var tokenLocked = _(Settings.data).valueForKeyPath("locked.metaverse.access_token");
-
   // use the existing getFormGroup helper to ask for a button
-  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, tokenLocked);
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false);
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
@@ -673,7 +665,7 @@ function setupPlacesTable() {
   }
 
   // get a table for the places
-  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false, false);
+  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false);
 
   // append the places table in the right place
   $('#places_paths .panel-body').prepend(placesTableGroup);
@@ -873,10 +865,8 @@ function reloadSettings(callback) {
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
-      // append the domain selection modal, as long as it's not locked
-      appendDomainIDButtons();
-    }
+    // append the domain selection modal
+    appendDomainIDButtons();
 
     // call our method to setup the HF account button
     setupHFAccountButton();
@@ -888,12 +878,6 @@ function reloadSettings(callback) {
     $('.toggle-checkbox').bootstrapSwitch();
 
     $('[data-toggle="tooltip"]').tooltip();
-
-    // add tooltip to locked settings
-    $('label.locked').tooltip({
-      placement: 'right',
-      title: 'This setting is in the master config file and cannot be changed'
-    });
 
     // call the callback now that settings are loaded
     callback(true);
@@ -943,11 +927,11 @@ $('body').on('click', '.save-button', function(e){
   return false;
 });
 
-function makeTable(setting, keypath, setting_value, isLocked) {
+function makeTable(setting, keypath, setting_value) {
   var isArray = !_.has(setting, 'key');
   var categoryKey = setting.categorize_by_key;
   var isCategorized = !!categoryKey && isArray;
- 
+
   if (!isArray && setting.can_order) {
     setting.can_order = false;
   }
@@ -961,7 +945,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   var nonDeletableRowKey = setting["non-deletable-row-key"];
   var nonDeletableRowValues = setting["non-deletable-row-values"];
 
-  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' " +
+  html += "<table class='table table-bordered' " +
                  "data-short-name='" + setting.name + "' name='" + keypath + "' " +
                  "id='" + (!_.isUndefined(setting.html_id) ? setting.html_id : keypath) + "' " +
                  "data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
@@ -976,7 +960,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     _.each(setting.groups, function (group) {
         html += "<td colspan='" + group.span  + "'><strong>" + group.label + "</strong></td>"
     })
-    if (!isLocked && !setting.read_only) {
+    if (!setting.read_only) {
         if (setting.can_order) {
             html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
                     "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
@@ -1004,7 +988,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
       (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
-  if (!isLocked && !setting.read_only) {
+  if (!setting.read_only) {
     if (setting.can_order) {
       numVisibleColumns++;
       html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
@@ -1083,7 +1067,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
       });
 
-      if (!isLocked && !setting.read_only) {
+      if (!setting.read_only) {
         if (setting.can_order) {
           html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
                   "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
@@ -1108,7 +1092,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   // populate inputs in the table for new values
-  if (!isLocked && !setting.read_only) {
+  if (!setting.read_only) {
     if (setting.can_add_new_categories) {
       html += makeTableCategoryInput(setting, numVisibleColumns);
     }

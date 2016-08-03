@@ -63,7 +63,8 @@ public:
         canRezPermanentEntities = 4,
         canRezTemporaryEntities = 8,
         canWriteToAssetServer = 16,
-        canConnectPastMaxCapacity = 32
+        canConnectPastMaxCapacity = 32,
+        canKick = 64
     };
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;

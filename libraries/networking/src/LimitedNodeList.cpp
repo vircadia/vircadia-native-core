@@ -151,6 +151,10 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canWriteToAssetServer)) {
         emit canWriteAssetsChanged(_permissions.can(NodePermissions::Permission::canWriteToAssetServer));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canKick) !=
+        newPermissions.can(NodePermissions::Permission::canKick)) {
+        emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
+    }
 }
 
 QUdpSocket& LimitedNodeList::getDTLSSocket() {
