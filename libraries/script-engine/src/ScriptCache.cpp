@@ -110,9 +110,16 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
 
     // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the entityScript use case)
-    if (url.scheme().isEmpty() && scriptOrURL.simplified().replace(" ", "").contains("(function(){")) {
+    if (unnormalizedURL.scheme().isEmpty() && scriptOrURL.simplified().replace(" ", "").contains("(function(){")) {
         contentAvailable(scriptOrURL, scriptOrURL, false, true);
         return;
+    }
+
+    // give a similar treatment to javacript: urls
+    if (unnormalizedURL.scheme() == "javascript") {
+        QString contents{ scriptOrURL };
+        contents.replace(QRegExp("^javascript:"), "");
+        contentAvailable(scriptOrURL, contents, false, true);
     }
 
     Lock lock(_containerLock);
