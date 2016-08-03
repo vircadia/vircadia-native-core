@@ -14,6 +14,7 @@ import "controls"
 import "styles"
 import "windows"
 import "hifi"
+import "hifi/toolbars"
 
 Window {
     id: root
@@ -118,63 +119,42 @@ Window {
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
-            Image {
+            ToolbarButton {
                 id: homeButton
-                source: "../images/home-button.svg"
-                width: 29
-                height: 26
+                imageURL: "../images/home.svg"
+                buttonState: 1
+                defaultState: 1
+                hoverState: 2
+                onClicked: addressBarDialog.loadHome();
                 anchors {
                     left: parent.left
-                    leftMargin: parent.height + 2 * hifi.layout.spacing
+                    leftMargin: parent.height
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadHome()
-                    }
                 }
             }
 
-            Image {
-                id: backArrow
-                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/left-arrow-disabled.svg"
-                width: 22
-                height: 26
+            ToolbarButton {
+                id: backArrow;
+                imageURL: "../images/backward.svg";
+                hoverState: addressBarDialog.backEnabled ? 2 : 0;
+                defaultState: addressBarDialog.backEnabled ? 1 : 0;
+                buttonState: addressBarDialog.backEnabled ? 1 : 0; // fixme: needs work
+                onClicked: addressBarDialog.loadBack();
                 anchors {
                     left: homeButton.right
-                    leftMargin: 2 * hifi.layout.spacing
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadBack()
-                    }
                 }
             }
-
-            Image {
-                id: forwardArrow
-                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
-                width: 22
-                height: 26
+            ToolbarButton {
+                id: forwardArrow;
+                imageURL: "../images/forward.svg";
+                hoverState: addressBarDialog.forwardEnabled ? 2 : 0;
+                defaultState: addressBarDialog.forwardEnabled ? 1 : 0;
+                buttonState: addressBarDialog.forwardEnabled ? 1 : 0; // fixme: needs work
+                onClicked: addressBarDialog.loadForward();
                 anchors {
                     left: backArrow.right
-                    leftMargin: 2 * hifi.layout.spacing
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadForward()
-                    }
                 }
             }
 
@@ -183,37 +163,54 @@ Window {
                 id: addressLine
                 focus: true
                 anchors {
-                    fill: parent
+                    top: parent.top
+                    left: parent.left
+                    bottom: parent.bottom
+                    right: placesButton.left
                     leftMargin: parent.height + parent.height + hifi.layout.spacing * 7
-                    rightMargin: hifi.layout.spacing * 2
+                    rightMargin: hifi.layout.spacing
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                helperText: "Go to: place, @user, /path, network address"
+                helperText: "Go to: place, @user, /path" //, network address"
                 onTextChanged: filterChoicesByText()
             }
-            Rectangle {
-                color: "red";
-                height: addressLine.height;
-                width: addressLine.height;
+            // These two are radio buttons.
+            ToolbarButton {
+                id: placesButton
+                imageURL: "../images/places.svg"
+                buttonState: 1
+                defaultState: useFeed ? 0 : 1;
+                hoverState: useFeed ? 2 : -1;
+                onClicked: useFeed ? toggleFeed() : identity()
                 anchors {
-                    left: addressLine.right;
+                    right: feedButton.left;
                     bottom: addressLine.bottom;
                 }
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        console.log('fixme hrs toggle');
-                        useFeed = !useFeed;
-                        filterChoicesByText();
-                    }
+            }
+            ToolbarButton {
+                id: feedButton;
+                imageURL: "../images/snap-feed.svg";
+                buttonState: 0
+                defaultState: useFeed ? 1 : 0;
+                hoverState: useFeed ? -1 : 2;
+                onClicked: useFeed ? identity() : toggleFeed();
+                anchors {
+                    right: parent.right;
+                    bottom: addressLine.bottom;
+                    rightMargin: hifi.layout.spacing;
                 }
             }
         }
     }
 
+    function toggleFeed () {
+        useFeed = !useFeed;
+        placesButton.buttonState = useFeed ? 0 : 1;
+        feedButton.buttonState = useFeed ? 1 : 0;
+        filterChoicesByText();
+    }
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
         // TODO: make available to other .qml.
         var request = new XMLHttpRequest();
@@ -393,12 +390,16 @@ Window {
                 return;
             }
             // FIXME: For debugging until we have real data
-            data = {user_stories: [
-                {created_at: "8/3/2016", action: "snapshot", path: "/4257.1,126.084,1335.45/0,-0.857368,0,0.514705", place_name: "SpiritMoving", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/c28/a26/f0-/thumbnail/hifi-place-c28a26f0-6991-4654-9c2b-e64228c06954.jpg?1456878797"},
-                {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
-            ]};
+            if (!data.user_stories.length) {
+                data.user_stories = [
+                    {created_at: "8/3/2016", action: "snapshot", path: "/4257.1,126.084,1335.45/0,-0.857368,0,0.514705", place_name: "SpiritMoving", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/c28/a26/f0-/thumbnail/hifi-place-c28a26f0-6991-4654-9c2b-e64228c06954.jpg?1456878797"},
+                    {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
+                ];
+            }
 
-            var stories = data.user_stories.map(makeModelData);
+            var stories = data.user_stories.map(function (story) { // explicit single-argument function
+                return makeModelData(story);
+            });
             allStories = allStories.concat(stories);
             if (!addressLine.text && useFeed) { // Don't add if the user is already filtering
                 stories.forEach(function (story) {
@@ -435,10 +436,10 @@ Window {
         allStories = [];
         suggestions.clear();
         getDomainPage(1, function (error) {
-            console.log('domain query', error, allPlaces.length);
+            console.log('domain query', error || 'ok', allPlaces.length);
         });
         getUserStoryPage(1, function (error) {
-            console.log('user stories query', error, allStories.length);
+            console.log('user stories query', error || 'ok', allStories.length);
         });
     }
 
