@@ -12,11 +12,7 @@
                 "invert"
             ]
         },
-        { "from": "OculusTouch.LX", "to": "Standard.LX",
-            "filters": [
-                { "type": "deadZone", "min": 0.05 }
-            ]
-        },
+        { "from": "OculusTouch.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
         { "from": "OculusTouch.LT", "to": "Standard.LTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
@@ -32,11 +28,7 @@
                 "invert"
             ]
         },
-        { "from": "OculusTouch.RX", "to": "Standard.RX",
-            "filters": [
-                { "type": "deadZone", "min": 0.05 }
-            ]
-        },
+        { "from": "OculusTouch.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
         { "from": "OculusTouch.RT", "to": "Standard.RTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
