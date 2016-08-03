@@ -1,20 +1,12 @@
 // Created by james b. pollack @imgntn on 7/2/2016
 // Copyright 2016 High Fidelity, Inc.
 //
-//  Creates a beam and target and then teleports you there when you let go of either activation button.
+//  Creates a beam and target and then teleports you there.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 var inTeleportMode = false;
-
-var currentFadeSphereOpacity = 1;
-var fadeSphereInterval = null;
-var fadeSphereUpdateInterval = null;
-//milliseconds between fading one-tenth -- so this is a half second fade total
-var USE_FADE_MODE = false;
-var USE_FADE_OUT = true;
-var FADE_OUT_INTERVAL = 25;
 
 // instant
 // var NUMBER_OF_STEPS = 0;
@@ -36,15 +28,12 @@ var NUMBER_OF_STEPS = 6;
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
-
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport.fbx");
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
     z: 1.15
-
 };
-
 
 var COLORS_TELEPORT_CAN_TELEPORT = {
     red: 97,
@@ -57,7 +46,6 @@ var COLORS_TELEPORT_CANNOT_TELEPORT = {
     green: 121,
     blue: 141
 };
-
 
 var MAX_AVATAR_SPEED = 0.25;
 
@@ -75,7 +63,6 @@ function ThumbPad(hand) {
 
         }
     };
-
 }
 
 function Trigger(hand) {
@@ -101,7 +88,6 @@ function Teleporter() {
     this.targetOverlay = null;
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
-    this.fadeSphere = null;
     this.teleportHand = null;
 
     this.initialize = function() {
@@ -141,86 +127,22 @@ function Teleporter() {
         if (isDisabled === 'both') {
             return;
         }
+
         inTeleportMode = true;
+
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
-        }
-        if (fadeSphereInterval !== null) {
-            Script.clearInterval(fadeSphereInterval);
         }
         if (activationTimeout !== null) {
             Script.clearInterval(activationTimeout);
         }
+
         this.teleportHand = hand;
         this.initialize();
         Script.update.connect(this.update);
         this.updateConnected = true;
     };
 
-    this.createFadeSphere = function(avatarHead) {
-        var sphereProps = {
-            position: avatarHead,
-            size: -1,
-            color: {
-                red: 0,
-                green: 0,
-                blue: 0,
-            },
-            alpha: 1,
-            solid: true,
-            visible: true,
-            ignoreRayIntersection: true,
-            drawInFront: false
-        };
-
-        currentFadeSphereOpacity = 10;
-
-        _this.fadeSphere = Overlays.addOverlay("sphere", sphereProps);
-        Script.clearInterval(fadeSphereInterval)
-        Script.update.connect(_this.updateFadeSphere);
-        if (USE_FADE_OUT === true) {
-            this.fadeSphereOut();
-        }
-
-
-    };
-
-    this.fadeSphereOut = function() {
-
-        fadeSphereInterval = Script.setInterval(function() {
-            if (currentFadeSphereOpacity <= 0) {
-                Script.clearInterval(fadeSphereInterval);
-                _this.deleteFadeSphere();
-                fadeSphereInterval = null;
-                return;
-            }
-            if (currentFadeSphereOpacity > 0) {
-                currentFadeSphereOpacity = currentFadeSphereOpacity - 1;
-            }
-
-            Overlays.editOverlay(_this.fadeSphere, {
-                alpha: currentFadeSphereOpacity / 10
-            })
-
-        }, FADE_OUT_INTERVAL);
-    };
-
-
-    this.updateFadeSphere = function() {
-        var headPosition = MyAvatar.getHeadPosition();
-        Overlays.editOverlay(_this.fadeSphere, {
-            position: headPosition
-        })
-    };
-
-    this.deleteFadeSphere = function() {
-        if (_this.fadeSphere !== null) {
-            Script.update.disconnect(_this.updateFadeSphere);
-            Overlays.deleteOverlay(_this.fadeSphere);
-            _this.fadeSphere = null;
-        }
-
-    };
 
     this.deleteTargetOverlay = function() {
         if (this.targetOverlay === null) {
@@ -288,13 +210,11 @@ function Teleporter() {
 
     this.rightRay = function() {
 
-
         var rightPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).translation), MyAvatar.position);
 
         var rightControllerRotation = Controller.getPoseValue(Controller.Standard.RightHand).rotation;
 
         var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation)
-
 
         var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
             x: 1,
@@ -335,13 +255,11 @@ function Teleporter() {
 
         var leftRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).rotation)
 
-
         var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
             x: 1,
             y: 0,
             z: 0
         }));
-
 
         var leftPickRay = {
             origin: leftPosition,
@@ -364,7 +282,6 @@ function Teleporter() {
                 this.createTargetOverlay();
             }
 
-
         } else {
 
             this.deleteTargetOverlay();
@@ -378,7 +295,7 @@ function Teleporter() {
                 start: closePoint,
                 end: farPoint,
                 color: color,
-                ignoreRayIntersection: true, // always ignore this
+                ignoreRayIntersection: true,
                 visible: true,
                 alpha: 1,
                 solid: true,
@@ -390,14 +307,9 @@ function Teleporter() {
 
         } else {
             var success = Overlays.editOverlay(this.rightOverlayLine, {
-                lineWidth: 50,
                 start: closePoint,
                 end: farPoint,
-                color: color,
-                visible: true,
-                ignoreRayIntersection: true, // always ignore this
-                alpha: 1,
-                glow: 1.0
+                color: color
             });
         }
     };
@@ -405,7 +317,7 @@ function Teleporter() {
     this.leftLineOn = function(closePoint, farPoint, color) {
         if (this.leftOverlayLine === null) {
             var lineProperties = {
-                ignoreRayIntersection: true, // always ignore this
+                ignoreRayIntersection: true,
                 start: closePoint,
                 end: farPoint,
                 color: color,
@@ -422,11 +334,7 @@ function Teleporter() {
             var success = Overlays.editOverlay(this.leftOverlayLine, {
                 start: closePoint,
                 end: farPoint,
-                color: color,
-                visible: true,
-                alpha: 1,
-                solid: true,
-                glow: 1.0
+                color: color
             });
         }
     };
@@ -479,16 +387,11 @@ function Teleporter() {
             this.exitTeleportMode();
         }
         if (this.intersection !== null) {
-            if (USE_FADE_MODE === true) {
-                this.createFadeSphere();
-            }
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
             this.smoothArrival();
-
         }
-
     };
 
 
@@ -498,12 +401,8 @@ function Teleporter() {
         return midpoint
     };
 
-
-
     this.getArrivalPoints = function(startPoint, endPoint) {
         var arrivalPoints = [];
-
-
         var i;
         var lastPoint;
 
@@ -516,9 +415,9 @@ function Teleporter() {
             arrivalPoints.push(newPoint);
         }
 
-        arrivalPoints.push(endPoint)
+        arrivalPoints.push(endPoint);
 
-        return arrivalPoints
+        return arrivalPoints;
     };
 
     this.smoothArrival = function() {
@@ -529,7 +428,6 @@ function Teleporter() {
                 Script.clearInterval(_this.smoothArrivalInterval);
                 return;
             }
-
             var landingPoint = _this.arrivalPoints.shift();
             MyAvatar.position = landingPoint;
 
@@ -537,8 +435,7 @@ function Teleporter() {
                 _this.deleteTargetOverlay();
             }
 
-
-        }, SMOOTH_ARRIVAL_SPACING)
+        }, SMOOTH_ARRIVAL_SPACING);
     }
 }
 
@@ -563,14 +460,14 @@ function getAvatarFootOffset() {
             toe = d.translation.y;
         }
         if (jointName === "RightToe_End") {
-            toeTop = d.translation.y
+            toeTop = d.translation.y;
         }
     })
 
     var myPosition = MyAvatar.position;
     var offset = upperLeg + lowerLeg + foot + toe + toeTop;
     offset = offset / 100;
-    return offset
+    return offset;
 };
 
 function getJointData() {
@@ -590,11 +487,6 @@ function getJointData() {
     return allJointData;
 };
 
-function getAvatarSpeed() {
-    return Vec3.length(MyAvatar.velocity)
-}
-
-
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
 var leftTrigger = new Trigger('left');
@@ -606,13 +498,12 @@ var activationTimeout = null;
 var TELEPORT_DELAY = 0;
 
 function isMoving() {
-
     var LY = Controller.getValue(Controller.Standard.LY);
     var LX = Controller.getValue(Controller.Standard.LX);
     if (LY !== 0 || LX !== 0) {
-        return true
+        return true;
     } else {
-        return false
+        return false;
     }
 }
 
@@ -639,9 +530,6 @@ function registerMappings() {
             if (isMoving() === true) {
                 return;
             }
-            // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
-            //     return;
-            // }
             activationTimeout = Script.setTimeout(function() {
                 Script.clearTimeout(activationTimeout);
                 activationTimeout = null;
@@ -663,9 +551,7 @@ function registerMappings() {
             if (isMoving() === true) {
                 return;
             }
-            // if (getAvatarSpeed() >= MAX_AVATAR_SPEED) {
-            //     return;
-            // }
+
             activationTimeout = Script.setTimeout(function() {
                 teleporter.enterTeleportMode('right')
                 Script.clearTimeout(activationTimeout);
@@ -673,7 +559,6 @@ function registerMappings() {
             }, TELEPORT_DELAY)
             return;
         });
-
 }
 
 registerMappings();
@@ -689,7 +574,6 @@ function cleanup() {
     teleporter.disableMappings();
     teleporter.deleteTargetOverlay();
     teleporter.turnOffOverlayBeams();
-    teleporter.deleteFadeSphere();
     if (teleporter.updateConnected !== null) {
         Script.update.disconnect(teleporter.update);
     }
