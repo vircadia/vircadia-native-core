@@ -7,18 +7,17 @@
 //
 
 #include "GLBuffer.h"
+#include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
 GLBuffer::~GLBuffer() {
-    glDeleteBuffers(1, &_id);
-    Backend::decrementBufferGPUCount();
-    Backend::updateBufferGPUMemoryUsage(_size, 0);
+    _backend.releaseBuffer(_id, _size);
 }
 
-GLBuffer::GLBuffer(const Buffer& buffer, GLuint id) :
-    GLObject(buffer, id),
+GLBuffer::GLBuffer(const GLBackend& backend, const Buffer& buffer, GLuint id) :
+    GLObject(backend, buffer, id),
     _size((GLuint)buffer._renderSysmem.getSize()),
     _stamp(buffer._renderSysmem.getStamp())
 {

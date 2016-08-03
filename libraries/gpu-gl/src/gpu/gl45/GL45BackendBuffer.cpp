@@ -20,7 +20,7 @@ class GL45Buffer : public gl::GLBuffer {
     }
 
 public:
-    GL45Buffer(const Buffer& buffer, GLBuffer* original) : Parent(buffer, allocate()) {
+    GL45Buffer(const gl::GLBackend& backend, const Buffer& buffer, GLBuffer* original) : Parent(backend, buffer, allocate()) {
         glNamedBufferStorage(_buffer, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
         if (original && original->_size) {
             glCopyNamedBufferSubData(original->_buffer, _buffer, 0, 0, std::min(original->_size, _size));
@@ -42,9 +42,9 @@ public:
 };
 
 GLuint GL45Backend::getBufferID(const Buffer& buffer) const {
-    return GL45Buffer::getId<GL45Buffer>(buffer);
+    return GL45Buffer::getId<GL45Buffer>(*this, buffer);
 }
 
 gl::GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) const {
-    return GL45Buffer::sync<GL45Buffer>(buffer);
+    return GL45Buffer::sync<GL45Buffer>(*this, buffer);
 }

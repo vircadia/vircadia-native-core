@@ -231,8 +231,9 @@ public:
     void renderFrame(gpu::FramePointer& frame) {
         ++_presentCount;
         _displayContext->makeCurrent(_displaySurface);
-
+        ((gpu::gl::GLBackend&)(*_backend)).cleanupTrash();
         if (frame && !frame->batches.empty()) {
+            frame->preRender();
             _backend->syncCache();
             _backend->setStereoState(frame->stereoState);
             for (auto& batch : frame->batches) {
@@ -468,7 +469,7 @@ private:
         if (!isVisible()) {
             return;
         }
-        if (_renderCount.load() >= _renderThread._presentCount.load()) {
+        if (_renderCount.load() != 0 && _renderCount.load() >= _renderThread._presentCount.load()) {
             return;
         }
         _renderCount = _renderThread._presentCount.load();
@@ -527,9 +528,6 @@ private:
 
         const qint64& now;
     };
-
-
-
 
     void updateText() {
         setTitle(QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
@@ -623,6 +621,9 @@ private:
             DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
         };
         _renderThread.queueItem(frame);
+        if (!_renderThread.isThreaded()) {
+            _renderThread.process();
+        }
         
 
     }
@@ -805,7 +806,7 @@ private:
     QSharedPointer<EntityTreeRenderer> _octree;
 };
 
-bool QTestWindow::_cullingEnabled = false;
+bool QTestWindow::_cullingEnabled = true;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (!message.isEmpty()) {

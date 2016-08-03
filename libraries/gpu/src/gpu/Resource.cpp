@@ -210,6 +210,134 @@ Size Sysmem::append(Size size, const Byte* bytes) {
     return 0;
 }
 
+PageManager::PageManager(Size pageSize) : _pageSize(pageSize) {}
+
+PageManager& PageManager::operator=(const PageManager& other) {
+    assert(other._pageSize == _pageSize);
+    _pages = other._pages;
+    _flags = other._flags;
+    return *this;
+}
+
+PageManager::operator bool() const {
+    return (*this)(DIRTY);
+}
+
+bool PageManager::operator()(uint8 desiredFlags) const {
+    return (desiredFlags == (_flags & desiredFlags));
+}
+
+void PageManager::markPage(Size index, uint8 markFlags) {
+    assert(_pages.size() > index);
+    _pages[index] |= markFlags;
+    _flags |= markFlags;
+}
+
+void PageManager::markRegion(Size offset, Size bytes, uint8 markFlags) {
+    if (!bytes) {
+        return;
+    }
+    _flags |= markFlags;
+    // Find the starting page
+    Size startPage = (offset / _pageSize);
+    // Non-zero byte count, so at least one page is dirty
+    Size pageCount = 1;
+    // How much of the page is after the offset?
+    Size remainder = _pageSize - (offset % _pageSize);
+    //  If there are more bytes than page space remaining, we need to increase the page count
+    if (bytes > remainder) {
+        // Get rid of the amount that will fit in the current page
+        bytes -= remainder;
+
+        pageCount += (bytes / _pageSize);
+        if (bytes % _pageSize) {
+            ++pageCount;
+        }
+    }
+
+    // Mark the pages dirty
+    for (Size i = 0; i < pageCount; ++i) {
+        _pages[i + startPage] |= markFlags;
+    }
+}
+
+Size PageManager::getPageCount(uint8_t desiredFlags) const {
+    Size result = 0;
+    for (auto pageFlags : _pages) {
+        if (desiredFlags == (pageFlags & desiredFlags)) {
+            ++result;
+        }
+    }
+    return result;
+}
+
+Size PageManager::getSize(uint8_t desiredFlags) const {
+    return getPageCount(desiredFlags) * _pageSize;
+}
+
+void PageManager::setPageCount(Size count) {
+    _pages.resize(count);
+}
+
+Size PageManager::getRequiredPageCount(Size size) const {
+    Size result = size / _pageSize;
+    if (size % _pageSize) {
+        ++result;
+    }
+    return result;
+}
+
+Size PageManager::getRequiredSize(Size size) const {
+    return getRequiredPageCount(size) * _pageSize;
+}
+
+Size PageManager::accommodate(Size size) {
+    Size newPageCount = getRequiredPageCount(size);
+    Size newSize = newPageCount * _pageSize;
+    _pages.resize(newPageCount, 0);
+    return newSize;
+}
+
+// Get pages with the specified flags, optionally clearing the flags as we go
+PageManager::Pages PageManager::getMarkedPages(uint8_t desiredFlags, bool clear) {
+    Pages result;
+    if (desiredFlags == (_flags & desiredFlags)) {
+        _flags &= ~desiredFlags;
+        result.reserve(_pages.size());
+        for (Size i = 0; i < _pages.size(); ++i) {
+            if (desiredFlags == (_pages[i] & desiredFlags)) {
+                result.push_back(i);
+                if (clear) {
+                    _pages[i] &= ~desiredFlags;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+bool PageManager::getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage) {
+    Size pageCount = _pages.size();
+    // Advance to the first dirty page
+    while (currentPage < pageCount && (0 == (DIRTY & _pages[currentPage]))) {
+        ++currentPage;
+    }
+
+    // If we got to the end, we're done
+    if (currentPage >= pageCount) {
+        return false;
+    }
+
+    // Advance to the next clean page
+    outOffset = static_cast<Size>(currentPage * _pageSize);
+    while (currentPage < pageCount && (0 != (DIRTY & _pages[currentPage]))) {
+        _pages[currentPage] &= ~DIRTY;
+        ++currentPage;
+    }
+    outSize = static_cast<Size>((currentPage * _pageSize) - outOffset);
+    return true;
+}
+
 std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
 std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
 
@@ -282,43 +410,49 @@ void Buffer::markDirty(Size offset, Size bytes) {
     _pages.markRegion(offset, bytes);
 }
 
-Buffer::Update Buffer::getUpdate() const {
-    ++_getUpdateCount;
-    static Update EMPTY_UPDATE;
-    if (!_pages) {
-        return EMPTY_UPDATE;
-    }
-
-    Update result;
-    result.pages = _pages;
-    Size bufferSize = _sysmem.getSize();
-    Size pageSize = _pages._pageSize;
-    PageManager::Pages dirtyPages = _pages.getMarkedPages();
-    std::vector<uint8> dirtyPageData;
-    dirtyPageData.resize(dirtyPages.size() * pageSize);
+Buffer::Update::Update(const Buffer& parent) : buffer(parent) {
+    const auto pageSize = buffer._pages._pageSize;
+    updateNumber = ++buffer._getUpdateCount;
+    size = buffer._sysmem.getSize();
+    dirtyPages = buffer._pages.getMarkedPages();
+    dirtyData.resize(dirtyPages.size() * pageSize, 0);
     for (Size i = 0; i < dirtyPages.size(); ++i) {
         Size page = dirtyPages[i];
         Size sourceOffset = page * pageSize;
         Size destOffset = i * pageSize;
-        memcpy(dirtyPageData.data() + destOffset, _sysmem.readData() + sourceOffset, pageSize);
+        assert(dirtyData.size() >= (destOffset + pageSize));
+        assert(buffer._sysmem.getSize() >= (sourceOffset + pageSize));
+        memcpy(dirtyData.data() + destOffset, buffer._sysmem.readData() + sourceOffset, pageSize);
     }
+}
 
-    result.updateOperator = [bufferSize, pageSize, dirtyPages, dirtyPageData](Sysmem& dest){
-        dest.resize(bufferSize);
-        for (Size i = 0; i < dirtyPages.size(); ++i) {
-            Size page = dirtyPages[i];
-            Size sourceOffset = i * pageSize;
-            Size destOffset = page * pageSize;
-            memcpy(dest.editData() + destOffset, dirtyPageData.data() + sourceOffset, pageSize);
-        }
-    };
-    return result;
+extern bool isRenderThread();
+
+void Buffer::Update::apply() const {
+    // Make sure we're loaded in order
+    ++buffer._applyUpdateCount;
+    assert(isRenderThread());
+    assert(buffer._applyUpdateCount.load() == updateNumber);
+    const auto pageSize = buffer._pages._pageSize;
+    buffer._renderSysmem.resize(size);
+    buffer._renderPages.accommodate(size);
+    for (Size i = 0; i < dirtyPages.size(); ++i) {
+        Size page = dirtyPages[i];
+        Size sourceOffset = i * pageSize;
+        assert(dirtyData.size() >= (sourceOffset + pageSize));
+        Size destOffset = page * pageSize;
+        assert(buffer._renderSysmem.getSize() >= (destOffset + pageSize));
+        memcpy(buffer._renderSysmem.editData() + destOffset, dirtyData.data() + sourceOffset, pageSize);
+        buffer._renderPages.markPage(page);
+    }
+}
+
+Buffer::Update Buffer::getUpdate() const {
+    return Update(*this);
 }
 
 void Buffer::applyUpdate(const Update& update) {
-    ++_applyUpdateCount;
-    _renderPages = update.pages;
-    update.updateOperator(_renderSysmem);
+    update.apply();
 }
 
 void Buffer::flush() {

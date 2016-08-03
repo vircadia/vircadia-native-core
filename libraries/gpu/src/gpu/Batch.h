@@ -455,9 +455,10 @@ public:
         Mat4 _modelInverse;
     };
 
+    using TransformObjects = std::vector<TransformObject>;
     bool _invalidModel { true };
     Transform _currentModel;
-    BufferPointer _objectsBuffer;
+    TransformObjects _objects;
     static size_t _objectsMax;
 
     BufferCaches _buffers;

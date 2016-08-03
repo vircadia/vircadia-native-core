@@ -438,14 +438,16 @@ void OpenGLDisplayPlugin::updateFrameData() {
     withPresentThreadLock([&] {
         gpu::FramePointer oldFrame = _currentFrame;
         uint32_t skippedCount = 0;
+        if (!_newFrameQueue.empty()) {
+            // We're changing frames, so we can cleanup any GL resources that might have been used by the old frame
+            getGLBackend()->cleanupTrash();
+        }
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
             _currentFrame->preRender();
             _newFrameQueue.pop();
-
-            _newFrameQueue = std::queue<gpu::FramePointer>();
             if (_currentFrame && oldFrame) {
-                skippedCount = (_currentFrame->frameIndex - oldFrame->frameIndex) - 1;
+                skippedCount += (_currentFrame->frameIndex - oldFrame->frameIndex) - 1;
             }
         }
         _droppedFrameRate.increment(skippedCount);
@@ -532,9 +534,9 @@ void OpenGLDisplayPlugin::internalPresent() {
 
 void OpenGLDisplayPlugin::present() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xffffff00, (uint64_t)presentCount())
-    incrementPresentCount();
-
     updateFrameData();
+
+    incrementPresentCount();
     if (_currentFrame) {
         _backend->syncCache();
         _backend->setStereoState(_currentFrame->stereoState);

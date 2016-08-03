@@ -52,7 +52,7 @@ public:
                 for (auto& b : _gpuObject.getRenderBuffers()) {
                     surface = b._texture;
                     if (surface) {
-                        gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(surface, false); // Grab the gltexture and don't transfer
+                        gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(_backend, surface, false); // Grab the gltexture and don't transfer
                     } else {
                         gltexture = nullptr;
                     }
@@ -79,7 +79,7 @@ public:
         if (_gpuObject.getDepthStamp() != _depthStamp) {
             auto surface = _gpuObject.getDepthStencilBuffer();
             if (_gpuObject.hasDepthStencil() && surface) {
-                gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(surface, false); // Grab the gltexture and don't transfer
+                gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(_backend, surface, false); // Grab the gltexture and don't transfer
             }
 
             if (gltexture) {
@@ -107,16 +107,16 @@ public:
 
 
 public:
-    GL45Framebuffer(const gpu::Framebuffer& framebuffer)
-        : Parent(framebuffer, allocate()) { }
+    GL45Framebuffer(const gl::GLBackend& backend, const gpu::Framebuffer& framebuffer)
+        : Parent(backend, framebuffer, allocate()) { }
 };
 
 gl::GLFramebuffer* GL45Backend::syncGPUObject(const Framebuffer& framebuffer) const {
-    return gl::GLFramebuffer::sync<GL45Framebuffer>(framebuffer);
+    return gl::GLFramebuffer::sync<GL45Framebuffer>(*this, framebuffer);
 }
 
 GLuint GL45Backend::getFramebufferID(const FramebufferPointer& framebuffer) const {
-    return framebuffer ? gl::GLFramebuffer::getId<GL45Framebuffer>(*framebuffer) : 0;
+    return framebuffer ? gl::GLFramebuffer::getId<GL45Framebuffer>(*this, *framebuffer) : 0;
 }
 
 void GL45Backend::do_blit(Batch& batch, size_t paramOffset) {

@@ -118,139 +118,33 @@ struct PageManager {
         DIRTY = 0x01,
     };
 
-    PageManager(Size pageSize = DEFAULT_PAGE_SIZE) : _pageSize(pageSize) {}
-    PageManager& operator=(const PageManager& other) {
-        assert(other._pageSize == _pageSize);
-        _pages = other._pages;
-        _flags = other._flags;
-        return *this;
-    }
+    using FlagType = uint8_t;
 
-    using Vector = std::vector<uint8_t>;
+    // A list of flags
+    using Vector = std::vector<FlagType>;
+    // A list of pages
     using Pages = std::vector<Size>;
-    Vector _pages;
 
+    Vector _pages;
     uint8 _flags{ 0 };
     const Size _pageSize;
 
-    operator bool() const {
-        return (*this)(DIRTY);
-    }
+    PageManager(Size pageSize = DEFAULT_PAGE_SIZE);
+    PageManager& operator=(const PageManager& other);
 
-    bool operator()(uint8 desiredFlags) const {
-        return (desiredFlags == (_flags & desiredFlags));
-    }
-
-    void markPage(Size index, uint8 markFlags = DIRTY) {
-        assert(_pages.size() > index);
-        _pages[index] |= markFlags;
-        _flags |= markFlags;
-    }
-
-    void markRegion(Size offset, Size bytes, uint8 markFlags = DIRTY) {
-        if (!bytes) {
-            return;
-        }
-        _flags |= markFlags;
-        // Find the starting page
-        Size startPage = (offset / _pageSize);
-        // Non-zero byte count, so at least one page is dirty
-        Size pageCount = 1;
-        // How much of the page is after the offset?
-        Size remainder = _pageSize - (offset % _pageSize);
-        //  If there are more bytes than page space remaining, we need to increase the page count
-        if (bytes > remainder) {
-            // Get rid of the amount that will fit in the current page
-            bytes -= remainder;
-
-            pageCount += (bytes / _pageSize);
-            if (bytes % _pageSize) {
-                ++pageCount;
-            }
-        }
-
-        // Mark the pages dirty
-        for (Size i = 0; i < pageCount; ++i) {
-            _pages[i + startPage] |= DIRTY;
-        }
-    }
-
-    Size getPageCount(uint8_t desiredFlags = DIRTY) const {
-        Size result = 0;
-        for (auto pageFlags : _pages) {
-            if (desiredFlags == (pageFlags & desiredFlags)) {
-                ++result;
-            }
-        }
-        return result;
-    }
-
-    Size getSize(uint8_t desiredFlags = DIRTY) const {
-        return getPageCount(desiredFlags) * _pageSize;
-    }
-
-    void setPageCount(Size count) {
-        _pages.resize(count);
-    }
-
-    Size getRequiredPageCount(Size size) const {
-        Size result = size / _pageSize;
-        if (size % _pageSize) {
-            ++result;
-        }
-        return result;
-    }
-
-    Size getRequiredSize(Size size) const {
-        return getRequiredPageCount(size) * _pageSize;
-    }
-
-    Size accommodate(Size size) {
-        Size newPageCount = getRequiredPageCount(size);
-        Size newSize = newPageCount * _pageSize;
-        _pages.resize(newPageCount, 0);
-        return newSize;
-    }
-
+    operator bool() const;
+    bool operator()(uint8 desiredFlags) const;
+    void markPage(Size index, uint8 markFlags = DIRTY);
+    void markRegion(Size offset, Size bytes, uint8 markFlags = DIRTY);
+    Size getPageCount(uint8_t desiredFlags = DIRTY) const;
+    Size getSize(uint8_t desiredFlags = DIRTY) const;
+    void setPageCount(Size count);
+    Size getRequiredPageCount(Size size) const;
+    Size getRequiredSize(Size size) const;
+    Size accommodate(Size size);
     // Get pages with the specified flags, optionally clearing the flags as we go
-    Pages getMarkedPages(uint8_t desiredFlags = DIRTY, bool clear = true) {
-        Pages result;
-        if (desiredFlags == (_flags & desiredFlags)) {
-            _flags &= ~desiredFlags;
-            result.reserve(_pages.size());
-            for (Size i = 0; i < _pages.size(); ++i) {
-                if (desiredFlags == (_pages[i] & desiredFlags)) {
-                    result.push_back(i);
-                    if (clear) {
-                        _pages[i] &= ~desiredFlags;
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    bool getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage) {
-        Size pageCount = _pages.size();
-        // Advance to the first dirty page
-        while (currentPage < pageCount && (0 == (DIRTY & _pages[currentPage]))) {
-            ++currentPage;
-        }
-
-        // If we got to the end, we're done
-        if (currentPage >= pageCount) {
-            return false;
-        }
-
-        // Advance to the next clean page
-        outOffset = static_cast<Size>(currentPage * _pageSize);
-        while (currentPage < pageCount && (0 != (DIRTY & _pages[currentPage]))) {
-            _pages[currentPage] &= ~DIRTY;
-            ++currentPage;
-        }
-        outSize = static_cast<Size>((currentPage * _pageSize) - outOffset);
-        return true;
-    }
+    Pages getMarkedPages(uint8_t desiredFlags = DIRTY, bool clear = true);
+    bool getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage);
 };
 
 
@@ -261,9 +155,19 @@ class Buffer : public Resource {
 
 public:
     using Flag = PageManager::Flag;
-    struct Update {
-        PageManager pages;
-        Sysmem::Operator updateOperator;
+
+    class Update {
+    public:
+        Update(const Buffer& buffer);
+        void apply() const;
+
+    private:
+        const Buffer& buffer;
+        size_t updateNumber;
+        //PageManager pages;
+        Size size;
+        PageManager::Pages dirtyPages;
+        std::vector<uint8> dirtyData;
     };
 
     // Currently only one flag... 'dirty'
@@ -353,11 +257,12 @@ public:
     // FIXME don't maintain a second buffer continuously.  We should be able to apply updates 
     // directly to the GL object and discard _renderSysmem and _renderPages
     mutable PageManager _renderPages;
-    Sysmem _renderSysmem;
+    mutable Sysmem _renderSysmem;
 
     mutable std::atomic<size_t> _getUpdateCount;
     mutable std::atomic<size_t> _applyUpdateCount;
-protected:
+//protected:
+public:
     void markDirty(Size offset, Size bytes);
 
     template <typename T>

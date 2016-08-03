@@ -164,6 +164,14 @@ public:
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) const = 0;
     virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const = 0;
 
+    virtual void releaseBuffer(GLuint id, Size size) const;
+    virtual void releaseTexture(GLuint id, Size size) const;
+    virtual void releaseFramebuffer(GLuint id) const;
+    virtual void releaseShader(GLuint id) const;
+    virtual void releaseProgram(GLuint id) const;
+    virtual void releaseQuery(GLuint id) const;
+    void cleanupTrash() const;
+
 protected:
 
     virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) const = 0;
@@ -173,13 +181,23 @@ protected:
 
     virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) const = 0;
 
-    virtual GLuint getQueryID(const QueryPointer& query) = 0;
-    virtual GLQuery* syncGPUObject(const Query& query) = 0;
+    virtual GLuint getQueryID(const QueryPointer& query) const = 0;
+    virtual GLQuery* syncGPUObject(const Query& query) const = 0;
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass { false };
     int32_t _uboAlignment { 0 };
     int _currentDraw { -1 };
+
+    std::list<std::string> profileRanges;
+    mutable Mutex _trashMutex;
+    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
+    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
+    mutable std::list<GLuint> _framebuffersTrash;
+    mutable std::list<GLuint> _shadersTrash;
+    mutable std::list<GLuint> _programsTrash;
+    mutable std::list<GLuint> _queriesTrash;
+
 
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);

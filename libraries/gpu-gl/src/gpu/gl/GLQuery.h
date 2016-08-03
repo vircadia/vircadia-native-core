@@ -16,13 +16,13 @@ class GLQuery : public GLObject<Query> {
     using Parent = gpu::gl::GLObject<Query>;
 public:
     template <typename GLQueryType>
-    static GLQueryType* sync(const Query& query) {
+    static GLQueryType* sync(const GLBackend& backend, const Query& query) {
         GLQueryType* object = Backend::getGPUObject<GLQueryType>(query);
 
         // need to have a gpu object?
         if (!object) {
             // All is green, assign the gpuobject to the Query
-            object = new GLQueryType(query);
+            object = new GLQueryType(backend, query);
             (void)CHECK_GL_ERROR();
             Backend::setGPUObject(query, object);
         }
@@ -31,12 +31,12 @@ public:
     }
 
     template <typename GLQueryType>
-    static GLuint getId(const QueryPointer& query) {
+    static GLuint getId(const GLBackend& backend, const QueryPointer& query) {
         if (!query) {
             return 0;
         }
 
-        GLQuery* object = sync<GLQueryType>(*query);
+        GLQuery* object = sync<GLQueryType>(backend, *query);
         if (!object) {
             return 0;
         } 
@@ -49,7 +49,7 @@ public:
     GLuint64 _result { (GLuint64)-1 };
 
 protected:
-    GLQuery(const Query& query, GLuint endId, GLuint beginId) : Parent(query, endId), _beginqo(beginId){}
+    GLQuery(const GLBackend& backend, const Query& query, GLuint endId, GLuint beginId) : Parent(backend, query, endId), _beginqo(beginId) {}
     ~GLQuery() {
         if (_id) {
             GLuint ids[2] = { _endqo, _beginqo };

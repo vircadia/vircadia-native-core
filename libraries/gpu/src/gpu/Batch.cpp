@@ -34,7 +34,7 @@ size_t Batch::_commandsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_commandOffsetsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_paramsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
-//size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
 
 Batch::Batch() {
@@ -42,6 +42,7 @@ Batch::Batch() {
     _commandOffsets.reserve(_commandOffsetsMax);
     _params.reserve(_paramsMax);
     _data.reserve(_dataMax);
+    _objects.reserve(_objectsMax);
     _drawCallInfos.reserve(_drawCallInfosMax);
 }
 
@@ -53,7 +54,7 @@ Batch::Batch(const Batch& batch_) {
     _data.swap(batch._data);
     _invalidModel = batch._invalidModel;
     _currentModel = batch._currentModel;
-    _objectsBuffer.swap(batch._objectsBuffer);
+    _objects.swap(batch._objects);
     _currentNamedCall = batch._currentNamedCall;
 
     _buffers._items.swap(batch._buffers._items);
@@ -77,7 +78,7 @@ Batch::~Batch() {
     _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
     _paramsMax = std::max(_params.size(), _paramsMax);
     _dataMax = std::max(_data.size(), _dataMax);
-    //_objectsMax = std::max(_objectsBuffer->getSize(), _objectsMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
     _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
 }
 
@@ -86,7 +87,7 @@ void Batch::clear() {
     _commandOffsetsMax = std::max(_commandOffsets.size(), _commandOffsetsMax);
     _paramsMax = std::max(_params.size(), _paramsMax);
     _dataMax = std::max(_data.size(), _dataMax);
-    //_objectsMax = std::max(_objects.size(), _objectsMax);
+    _objectsMax = std::max(_objects.size(), _objectsMax);
     _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
 
     _commands.clear();
@@ -99,7 +100,7 @@ void Batch::clear() {
     _transforms.clear();
     _pipelines.clear();
     _framebuffers.clear();
-    _objectsBuffer.reset();
+    _objects.clear();
     _drawCallInfos.clear();
 }
 
@@ -466,18 +467,14 @@ void Batch::captureDrawCallInfoImpl() {
         //_model.getInverseMatrix(_object._modelInverse);
         object._modelInverse = glm::inverse(object._model);
 
-        if (!_objectsBuffer) {
-            _objectsBuffer = std::make_shared<Buffer>();
-        }
-
-        _objectsBuffer->append(object);
+        _objects.emplace_back(object);
 
         // Flag is clean
         _invalidModel = false;
     }
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.emplace_back((uint16)(_objectsBuffer->getTypedSize<TransformObject>() - 1));
+    drawCallInfos.emplace_back((uint16)_objects.size() - 1);
 }
 
 void Batch::captureDrawCallInfo() {
@@ -634,16 +631,9 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
 }
 
 void Batch::finish(BufferUpdates& updates) {
-    if (_objectsBuffer && _objectsBuffer->isDirty()) {
-        updates.push_back({ _objectsBuffer, _objectsBuffer->getUpdate() });
-    }
-
     for (auto& namedCallData : _namedData) {
         for (auto& buffer : namedCallData.second.buffers) {
-            if (!buffer) {
-                continue;
-            }
-            if (!buffer->isDirty()) {
+            if (!buffer || !buffer->isDirty()) {
                 continue;
             }
             updates.push_back({ buffer, buffer->getUpdate() });
@@ -652,10 +642,7 @@ void Batch::finish(BufferUpdates& updates) {
 
     for (auto& bufferCacheItem : _buffers._items) {
         const BufferPointer& buffer = bufferCacheItem._data;
-        if (!buffer) {
-            continue;
-        }
-        if (!buffer->isDirty()) {
+        if (!buffer || !buffer->isDirty()) {
             continue;
         }
         updates.push_back({ buffer, buffer->getUpdate() });
@@ -663,10 +650,6 @@ void Batch::finish(BufferUpdates& updates) {
 }
 
 void Batch::flush() {
-    if (_objectsBuffer && _objectsBuffer->isDirty()) {
-        _objectsBuffer->flush();
-    }
-
     for (auto& namedCallData : _namedData) {
         for (auto& buffer : namedCallData.second.buffers) {
             if (!buffer) {

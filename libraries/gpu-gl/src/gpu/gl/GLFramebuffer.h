@@ -15,7 +15,7 @@ namespace gpu { namespace gl {
 class GLFramebuffer : public GLObject<Framebuffer> {
 public:
     template <typename GLFramebufferType>
-    static GLFramebufferType* sync(const Framebuffer& framebuffer) {
+    static GLFramebufferType* sync(const GLBackend& backend, const Framebuffer& framebuffer) {
         GLFramebufferType* object = Backend::getGPUObject<GLFramebufferType>(framebuffer);
 
         bool needsUpate { false };
@@ -36,7 +36,7 @@ public:
         // need to have a gpu object?
         if (!object) {
             // All is green, assign the gpuobject to the Framebuffer
-            object = new GLFramebufferType(framebuffer);
+            object = new GLFramebufferType(backend, framebuffer);
             Backend::setGPUObject(framebuffer, object);
             (void)CHECK_GL_ERROR();
         }
@@ -46,8 +46,8 @@ public:
     }
 
     template <typename GLFramebufferType>
-    static GLuint getId(const Framebuffer& framebuffer) {
-        GLFramebufferType* fbo = sync<GLFramebufferType>(framebuffer);
+    static GLuint getId(const GLBackend& backend, const Framebuffer& framebuffer) {
+        GLFramebufferType* fbo = sync<GLFramebufferType>(backend, framebuffer);
         if (fbo) {
             return fbo->_id;
         } else {
@@ -65,8 +65,8 @@ protected:
     virtual void update() = 0;
     bool checkStatus(GLenum target) const;
 
-    GLFramebuffer(const Framebuffer& framebuffer, GLuint id) : GLObject(framebuffer, id) {}
-    ~GLFramebuffer() { if (_id) { glDeleteFramebuffers(1, &_id); } };
+    GLFramebuffer(const GLBackend& backend, const Framebuffer& framebuffer, GLuint id) : GLObject(backend, framebuffer, id) {}
+    ~GLFramebuffer();
 
 };
 

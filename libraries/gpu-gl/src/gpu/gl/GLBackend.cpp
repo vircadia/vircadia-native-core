@@ -33,7 +33,10 @@ using namespace gpu;
 using namespace gpu::gl;
 
 static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-static bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static bool enableOpenGL45 = true || QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+
+static GLBackend* INSTANCE{ nullptr };
+static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 Backend* GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
@@ -49,13 +52,24 @@ Backend* GLBackend::createBackend() {
     }
     result->initInput();
     result->initTransform();
+
+    INSTANCE = result;
+    void* voidInstance = &(*result);
+    qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
+
     gl::GLTexture::initTextureTransferHelper();
     return result;
 }
 
+GLBackend& getBackend() {
+    if (!INSTANCE) {
+        INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());
+    }
+    return *INSTANCE;
+}
 
 bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
-    return GLShader::makeProgram(shader, slotBindings);
+    return GLShader::makeProgram(getBackend(), shader, slotBindings);
 }
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -304,6 +318,7 @@ void GLBackend::render(Batch& batch) {
 
 
 void GLBackend::syncCache() {
+    cleanupTrash();
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
@@ -352,13 +367,15 @@ void GLBackend::resetStages() {
 
 
 void GLBackend::do_pushProfileRange(Batch& batch, size_t paramOffset) {
-#if defined(NSIGHT_FOUND)
     auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
+    profileRanges.push_back(name);
+#if defined(NSIGHT_FOUND)
     nvtxRangePush(name.c_str());
 #endif
 }
 
 void GLBackend::do_popProfileRange(Batch& batch, size_t paramOffset) {
+    profileRanges.pop_back();
 #if defined(NSIGHT_FOUND)
     nvtxRangePop();
 #endif
@@ -544,4 +561,118 @@ void GLBackend::do_glColor4f(Batch& batch, size_t paramOffset) {
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
     }
     (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::releaseBuffer(GLuint id, Size size) const {
+    Lock lock(_trashMutex);
+    _buffersTrash.push_back({ id, size });
+}
+
+void GLBackend::releaseTexture(GLuint id, Size size) const {
+    Lock lock(_trashMutex);
+    _texturesTrash.push_back({ id, size });
+}
+
+void GLBackend::releaseFramebuffer(GLuint id) const {
+    Lock lock(_trashMutex);
+    _framebuffersTrash.push_back(id);
+}
+
+void GLBackend::releaseShader(GLuint id) const {
+    Lock lock(_trashMutex);
+    _shadersTrash.push_back(id);
+}
+
+void GLBackend::releaseProgram(GLuint id) const {
+    Lock lock(_trashMutex);
+    _shadersTrash.push_back(id);
+}
+
+void GLBackend::releaseQuery(GLuint id) const {
+    Lock lock(_trashMutex);
+    _queriesTrash.push_back(id);
+}
+
+void GLBackend::cleanupTrash() const {
+    {
+        std::vector<GLuint> ids;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_buffersTrash, buffersTrash);
+        }
+        ids.reserve(buffersTrash.size());
+        for (auto pair : buffersTrash) {
+            ids.push_back(pair.first);
+            decrementBufferGPUCount();
+            updateBufferGPUMemoryUsage(pair.second, 0);
+        }
+        glDeleteBuffers((GLsizei)ids.size(), ids.data());
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<GLuint> framebuffersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_framebuffersTrash, framebuffersTrash);
+        }
+        ids.reserve(framebuffersTrash.size());
+        for (auto id : framebuffersTrash) {
+            ids.push_back(id);
+        }
+        glDeleteFramebuffers((GLsizei)ids.size(), ids.data());
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_texturesTrash, texturesTrash);
+        }
+        ids.reserve(texturesTrash.size());
+        for (auto pair : texturesTrash) {
+            ids.push_back(pair.first);
+            decrementTextureGPUCount();
+            updateTextureGPUMemoryUsage(pair.second, 0);
+        }
+        glDeleteTextures((GLsizei)ids.size(), ids.data());
+    }
+
+    {
+        std::list<GLuint> programsTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_programsTrash, programsTrash);
+        }
+        for (auto id : programsTrash) {
+            glDeleteProgram(id);
+        }
+    }
+
+    {
+        std::list<GLuint> shadersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_shadersTrash, shadersTrash);
+        }
+        for (auto id : shadersTrash) {
+            glDeleteShader(id);
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<GLuint> queriesTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_queriesTrash, queriesTrash);
+        }
+        ids.reserve(queriesTrash.size());
+        for (auto id : queriesTrash) {
+            ids.push_back(id);
+        }
+        glDeleteQueries((GLsizei)ids.size(), ids.data());
+    }
 }

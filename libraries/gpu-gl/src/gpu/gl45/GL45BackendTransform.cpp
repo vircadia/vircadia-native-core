@@ -37,9 +37,8 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
         glNamedBufferData(_transform._cameraBuffer, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
     }
 
-    if (batch._objectsBuffer) {
-        const auto& sysmem = batch._objectsBuffer->_renderSysmem;
-        glNamedBufferData(_transform._objectBuffer, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
+    if (!batch._objects.empty()) {
+        glNamedBufferData(_transform._objectBuffer, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
     }
 
     if (!batch._namedData.empty()) {
@@ -57,9 +56,9 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
 #ifdef GPU_SSBO_DRAW_CALL_INFO
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
 #else
-    glTextureBuffer(_transform._objectBufferTexture, GL_RGBA32F, _transform._objectBuffer);
     glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
+    glTextureBuffer(_transform._objectBufferTexture, GL_RGBA32F, _transform._objectBuffer);
 #endif
 
     CHECK_GL_ERROR();

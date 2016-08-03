@@ -40,8 +40,8 @@ public:
         using Parent = gpu::gl::GLTexture;
         GLuint allocate();
     public:
-        GL41Texture(const Texture& buffer, bool transferrable);
-        GL41Texture(const Texture& buffer, GL41Texture* original);
+        GL41Texture(const gl::GLBackend& backend, const Texture& buffer, bool transferrable);
+        GL41Texture(const gl::GLBackend& backend, const Texture& buffer, GL41Texture* original);
 
     protected:
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
@@ -64,8 +64,8 @@ protected:
     GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const override;
     gl::GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) const override;
 
-    GLuint getQueryID(const QueryPointer& query) override;
-    gl::GLQuery* syncGPUObject(const Query& query) override;
+    GLuint getQueryID(const QueryPointer& query) const override;
+    gl::GLQuery* syncGPUObject(const Query& query) const override;
 
     // Draw Stage
     void do_draw(Batch& batch, size_t paramOffset) override;

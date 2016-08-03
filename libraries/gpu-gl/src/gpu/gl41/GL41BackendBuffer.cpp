@@ -20,7 +20,7 @@ class GL41Buffer : public gl::GLBuffer {
     }
 
 public:
-    GL41Buffer(const Buffer& buffer, GL41Buffer* original) : Parent(buffer, allocate()) {
+    GL41Buffer(const gl::GLBackend& backend, const Buffer& buffer, GL41Buffer* original) : Parent(backend, buffer, allocate()) {
         glBindBuffer(GL_ARRAY_BUFFER, _buffer);
         glBufferData(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -54,9 +54,9 @@ public:
 };
 
 GLuint GL41Backend::getBufferID(const Buffer& buffer) const {
-    return GL41Buffer::getId<GL41Buffer>(buffer);
+    return GL41Buffer::getId<GL41Buffer>(*this, buffer);
 }
 
 gl::GLBuffer* GL41Backend::syncGPUObject(const Buffer& buffer) const {
-    return GL41Buffer::sync<GL41Buffer>(buffer);
+    return GL41Buffer::sync<GL41Buffer>(*this, buffer);
 }

@@ -30,18 +30,18 @@ GLuint GL45Texture::allocate(const Texture& texture) {
 }
 
 GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) const {
-    return GL45Texture::getId<GL45Texture>(texture, transfer);
+    return GL45Texture::getId<GL45Texture>(*this, texture, transfer);
 }
 
 gl::GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) const {
-    return GL45Texture::sync<GL45Texture>(texture, transfer);
+    return GL45Texture::sync<GL45Texture>(*this, texture, transfer);
 }
 
-GL45Backend::GL45Texture::GL45Texture(const Texture& texture, bool transferrable) 
-    : gl::GLTexture(texture, allocate(texture), transferrable) {}
+GL45Backend::GL45Texture::GL45Texture(const gl::GLBackend& backend, const Texture& texture, bool transferrable)
+    : gl::GLTexture(backend, texture, allocate(texture), transferrable) {}
 
-GL45Backend::GL45Texture::GL45Texture(const Texture& texture, GLTexture* original) 
-    : gl::GLTexture(texture, allocate(texture), original) {}
+GL45Backend::GL45Texture::GL45Texture(const gl::GLBackend& backend, const Texture& texture, GLTexture* original)
+    : gl::GLTexture(backend, texture, allocate(texture), original) {}
 
 void GL45Backend::GL45Texture::withPreservedTexture(std::function<void()> f) const {
     f();

@@ -40,7 +40,7 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         _pipeline._state = nullptr;
         _pipeline._invalidState = true;
     } else {
-        auto pipelineObject = GLPipeline::sync(*pipeline);
+        auto pipelineObject = GLPipeline::sync(*this, *pipeline);
         if (!pipelineObject) {
             return;
         }

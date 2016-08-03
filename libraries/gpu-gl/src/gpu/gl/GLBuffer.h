@@ -15,12 +15,20 @@ namespace gpu { namespace gl {
 class GLBuffer : public GLObject<Buffer> {
 public:
     template <typename GLBufferType>
-    static GLBufferType* sync(const Buffer& buffer) {
+    static GLBufferType* sync(const GLBackend& backend, const Buffer& buffer) {
+        if (buffer.getSysmem().getSize() != 0) {
+            if (buffer._getUpdateCount == 0) {
+                qDebug() << "QQQ Unsynced buffer";
+            }
+            if (buffer._getUpdateCount < buffer._applyUpdateCount) {
+                qDebug() << "QQQ Unsynced buffer " << buffer._getUpdateCount << " " << buffer._applyUpdateCount;
+            }
+        }
         GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
 
         // Has the storage size changed?
         if (!object || object->_stamp != buffer._renderSysmem.getStamp()) {
-            object = new GLBufferType(buffer, object);
+            object = new GLBufferType(backend, buffer, object);
         }
 
         if (0 != (buffer._renderPages._flags & PageManager::DIRTY)) {
@@ -31,8 +39,8 @@ public:
     }
 
     template <typename GLBufferType>
-    static GLuint getId(const Buffer& buffer) {
-        GLBuffer* bo = sync<GLBufferType>(buffer);
+    static GLuint getId(const GLBackend& backend, const Buffer& buffer) {
+        GLBuffer* bo = sync<GLBufferType>(backend, buffer);
         if (bo) {
             return bo->_buffer;
         } else {
@@ -49,7 +57,7 @@ public:
     virtual void transfer() = 0;
 
 protected:
-    GLBuffer(const Buffer& buffer, GLuint id);
+    GLBuffer(const GLBackend& backend, const Buffer& buffer, GLuint id);
 };
 
 } }
