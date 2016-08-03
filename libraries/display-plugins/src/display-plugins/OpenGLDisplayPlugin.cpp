@@ -374,7 +374,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
     }
     auto renderSize = getRecommendedRenderSize();
-    _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
+    _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
 
 }

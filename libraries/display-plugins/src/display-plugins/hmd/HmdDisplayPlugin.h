@@ -98,11 +98,11 @@ private:
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
-    bool _firstPreview { true };
 
+    // bool _firstPreview { true };
     float _previewAspect { 0 };
-    glm::uvec2 _prevWindowSize { 0, 0 };
-    qreal _prevDevicePixelRatio { 0 };
+    //glm::uvec2 _prevWindowSize { 0, 0 };
+    // qreal _prevDevicePixelRatio { 0 };
 
     struct OverlayRenderer {
         gpu::Stream::FormatPointer format;

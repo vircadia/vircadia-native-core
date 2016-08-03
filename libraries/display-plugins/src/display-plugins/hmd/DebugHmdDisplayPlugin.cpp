@@ -78,6 +78,10 @@ bool DebugHmdDisplayPlugin::internalActivate() {
 }
 
 void DebugHmdDisplayPlugin::updatePresentPose() {
+    float yaw = sinf(secTimestampNow()) * 0.25f;
+    float pitch = cosf(secTimestampNow()) * 0.25f;
     // Simulates head pose latency correction
-    _currentPresentFrameInfo.presentPose = glm::mat4_cast(glm::angleAxis(sin(secTimestampNow()) * 0.25f, Vectors::UP)) * glm::mat4_cast(glm::angleAxis(cos(secTimestampNow()) * 0.25f, Vectors::RIGHT));
+    _currentPresentFrameInfo.presentPose = 
+        glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
+        glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
 }
