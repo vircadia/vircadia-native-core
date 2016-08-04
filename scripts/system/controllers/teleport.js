@@ -414,7 +414,7 @@ function Teleporter() {
         }
 
         if (this.intersection !== null) {
-            if (isTooCloseToTeleport(this.intersection.intersection)) {
+            if (this.tooClose===true) {
                 this.deleteTargetOverlay();
                 this.exitTeleportMode();
                 return;
