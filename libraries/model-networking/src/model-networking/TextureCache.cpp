@@ -171,7 +171,8 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const
 }
 
 
-NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type, const QVariantMap& options = {}) {
+NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type,
+                                                          const QVariantMap& options = QVariantMap()) {
     using Type = NetworkTexture;
 
     switch (type) {

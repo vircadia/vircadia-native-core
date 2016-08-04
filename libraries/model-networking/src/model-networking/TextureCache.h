@@ -122,7 +122,7 @@ public:
     const gpu::TexturePointer& getNormalFittingTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path, Type type = Type::DEFAULT_TEXTURE, QVariantMap options = {});
+    static gpu::TexturePointer getImageTexture(const QString& path, Type type = Type::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
