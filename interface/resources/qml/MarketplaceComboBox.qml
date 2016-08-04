@@ -20,33 +20,42 @@ import "controls-uit" as Controls
 import "styles"
 import "styles-uit"
 
-Item {
+Rectangle {
+    HifiConstants { id: hifi }
     id: marketplaceComboBox
     anchors.fill: parent
+    color: hifi.colors.baseGrayShadow
     property var currentUrl: "https://metaverse.highfidelity.com/marketplace"
     Controls.WebView {
         id: webview
         url: currentUrl
-        anchors.top: parent.top
+        anchors.top: switchMarketView.bottom
         width: parent.width
-        height: parent.height - 50
-        //anchors.bottom: switchMarketView.top
+        height: parent.height - 40
         focus: true
     }
 
     Controls.ComboBox {
         id: switchMarketView
-        anchors.bottom: parent.bottom
-        width: parent.width
-        height: 50
+        anchors.top: parent.top
+        anchors.right: parent.right
+        width: 200
+        height: 40
         visible: true
-        label: "Market View: "
         model: ["Marketplace", "Clara.io"]
         onCurrentIndexChanged: {
             if (currentIndex === 0) { webview.url = "https://metaverse.highfidelity.com/marketplace"; }
             if (currentIndex === 1) { webview.url = "https://clara.io/library"; }
         }
         
+    }
+
+    Controls.Label {
+        id: switchMarketLabel
+        anchors.verticalCenter: switchMarketView.verticalCenter
+        anchors.right: switchMarketView.left
+        color: hifi.colors.white
+        text: "Explore interesting content from: "
     }
 
 }

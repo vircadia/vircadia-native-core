@@ -9,15 +9,17 @@
 //
 
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
+var qml = Script.resolvePath("../../resources/qml/MarketplaceComboBox.qml")
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 
-var marketplaceWindow = new OverlayWebWindow({
+var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
-    source: "about:blank",
+    source: qml,
     width: 900,
     height: 700,
-    visible: false
+    toolWindow: false,
+    visible: false,
 });
 
 var toolHeight = 50;
@@ -30,7 +32,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
 
     UserActivityLogger.openedMarketplace();
@@ -38,7 +39,6 @@ function showMarketplace(marketplaceID) {
 
 function hideMarketplace() {
     marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
 }
 
 function toggleMarketplace() {
