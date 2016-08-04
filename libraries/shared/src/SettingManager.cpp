@@ -53,7 +53,7 @@ namespace Setting {
         const auto& key = handle->getKey();
         withWriteLock([&] {
             QVariant loadedValue;
-            if (_pendingChanges.contains(key)) {
+            if (_pendingChanges.contains(key) && _pendingChanges[key] != UNSET_VALUE) {
                 loadedValue = _pendingChanges[key];
             } else {
                 loadedValue = value(key);
@@ -70,10 +70,11 @@ namespace Setting {
         QVariant handleValue = UNSET_VALUE;
         if (handle->isSet()) {
             handleValue = handle->getVariant();
-            withWriteLock([&] {
-                _pendingChanges[key] = handleValue;
-            });
         }
+
+        withWriteLock([&] {
+            _pendingChanges[key] = handleValue;
+        });
     }
 
     static const int SAVE_INTERVAL_MSEC = 5 * 1000; // 5 sec
