@@ -124,6 +124,10 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             // Forward messages received from QML on to the script
             connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
             connect(_qmlWindow, SIGNAL(visibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
+
+            connect(_qmlWindow, SIGNAL(resized(QSizeF)), this, SIGNAL(resized(QSizeF)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(windowClosed()), this, SLOT(hasClosed()), Qt::QueuedConnection);
         });
     }
     Q_ASSERT(_qmlWindow);
@@ -259,7 +263,12 @@ void QmlWindowClass::close() {
     }
 }
 
+void QmlWindowClass::hasMoved(QVector2D position) {
+    emit moved(glm::vec2(position.x(), position.y()));
+}
+
 void QmlWindowClass::hasClosed() {
+    emit closed();
 }
 
 void QmlWindowClass::raise() {

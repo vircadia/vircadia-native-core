@@ -104,6 +104,7 @@ public:
     };
 
     void negotiateAudioFormat();
+    void selectAudioFormat(const QString& selectedCodecName);
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
@@ -153,6 +154,7 @@ public slots:
     void handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message);
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
+    void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();

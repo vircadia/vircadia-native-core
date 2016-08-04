@@ -65,10 +65,11 @@ public:
 
     void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
     NodePermissions getPermissions() const { return _permissions; }
-    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
-    bool getCanRez() const { return _permissions.canRezPermanentEntities; }
-    bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
-    bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getCanWriteToAssetServer() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
+    bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);

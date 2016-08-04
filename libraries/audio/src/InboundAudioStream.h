@@ -182,7 +182,7 @@ public:
     void cleanupCodec();
 
 signals:
-    void mismatchedAudioCodec(SharedNodePointer sendingNode, const QString& desiredCodec);
+    void mismatchedAudioCodec(SharedNodePointer sendingNode, const QString& currentCodec, const QString& recievedCodec);
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
