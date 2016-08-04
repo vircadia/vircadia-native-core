@@ -94,7 +94,7 @@ Window {
             anchors {
                 bottom: backgroundImage.top;
                 bottomMargin: 2 * hifi.layout.spacing;
-                right: backgroundImage.right;
+                horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
             orientation: ListView.Horizontal;
