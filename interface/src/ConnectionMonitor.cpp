@@ -42,17 +42,13 @@ void ConnectionMonitor::init() {
 }
 
 void ConnectionMonitor::disconnectedFromDomain() {
-    qDebug() << "CM: DISCONNECTED FROM DOMAIN!";
     _timer.start();
 }
 
 void ConnectionMonitor::connectedToDomain(const QString& name) {
-    qDebug() << "CM: CONNECTED FROM DOMAIN! - " << name;
     _timer.stop();
 }
 
 void ConnectionMonitor::hostChanged(const QString& name) {
-    qDebug() << "CM: host changed: " << name;
     _timer.start();
-
 }
