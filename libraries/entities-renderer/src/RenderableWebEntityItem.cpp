@@ -211,7 +211,6 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
 
     float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
-    bool transparent = fadeRatio < 1.0f;
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
