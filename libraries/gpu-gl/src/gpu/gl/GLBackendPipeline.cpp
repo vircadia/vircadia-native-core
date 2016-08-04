@@ -34,6 +34,7 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;
+        _pipeline._cameraCorrectionLocation = -1;
         _pipeline._programShader = nullptr;
         _pipeline._invalidProgram = true;
 
@@ -53,6 +54,7 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
             _pipeline._program = glprogram;
             _pipeline._programShader = pipelineObject->_program;
             _pipeline._invalidProgram = true;
+            _pipeline._cameraCorrectionLocation = pipelineObject->_cameraCorrection;
         }
 
         // Now for the state
@@ -68,6 +70,10 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
     // THis should be done on Pipeline::update...
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
+        if (_pipeline._cameraCorrectionLocation != -1) {
+            auto cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
+            glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._cameraCorrectionLocation, cameraCorrectionBuffer->_id, 0, sizeof(CameraCorrection));
+        }
         (void) CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
     }

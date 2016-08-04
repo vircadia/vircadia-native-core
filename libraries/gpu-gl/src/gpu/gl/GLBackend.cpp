@@ -676,3 +676,10 @@ void GLBackend::cleanupTrash() const {
         glDeleteQueries((GLsizei)ids.size(), ids.data());
     }
 }
+
+void GLBackend::setCameraCorrection(const Mat4& correction) {
+    _transform._correction._correction = correction;
+    _transform._correction._correctionInverse = glm::inverse(correction);
+    _pipeline._cameraCorrectionBuffer.edit<CameraCorrection>() = _transform._correction;
+    _pipeline._cameraCorrectionBuffer._buffer->flush();
+}

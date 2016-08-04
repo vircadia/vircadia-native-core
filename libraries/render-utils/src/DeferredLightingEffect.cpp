@@ -67,6 +67,7 @@ enum DeferredShader_MapSlot {
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    CAMERA_CORRECTION_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
@@ -181,10 +182,12 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
 
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    
 
     gpu::Shader::makeProgram(*program, slotBindings);
 

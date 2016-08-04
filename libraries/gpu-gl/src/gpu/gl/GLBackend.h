@@ -250,6 +250,11 @@ protected:
     void updateTransform(const Batch& batch);
     void resetTransformStage();
 
+    struct CameraCorrection {
+        Mat4 _correction;
+        Mat4 _correctionInverse;
+    };
+
     struct TransformStageState {
         using CameraBufferElement = TransformCamera;
         using TransformCameras = std::vector<CameraBufferElement>;
@@ -267,7 +272,8 @@ protected:
         bool _viewIsCamera{ false };
         bool _skybox { false };
         Transform _view;
-        Mat4 _correction;
+        CameraCorrection _correction;
+
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
@@ -321,10 +327,13 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program { 0 };
+        GLint _cameraCorrectionLocation { -1 };
         GLShader* _programShader { nullptr };
         bool _invalidProgram { false };
 
-        State::Data _stateCache { State::DEFAULT };
+        BufferView _cameraCorrectionBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
+
+        State::Data _stateCache{ State::DEFAULT };
         State::Signature _stateSignatureCache { 0 };
 
         GLState* _state { nullptr };
