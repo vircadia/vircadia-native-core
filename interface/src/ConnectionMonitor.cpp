@@ -35,10 +35,8 @@ void ConnectionMonitor::init() {
     _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
     _timer.start();
 
-    connect(&_timer, &QTimer::timeout, this, []() {
-        qDebug() << "CM: Showing address bar!";
-        DependencyManager::get<DialogsManager>()->showAddressBar();
-    });
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
+    connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::showAddressBar);
 }
 
 void ConnectionMonitor::disconnectedFromDomain() {
