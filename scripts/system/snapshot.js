@@ -20,6 +20,13 @@ var button = toolBar.addButton({
     alpha: 0.9,
 });
 
+function confirmShare(data) {
+    if (!Window.confirm("Share snapshot " + data.localPath + "?")) { // This dialog will be more elaborate...
+        return;
+    }
+    Window.alert("Pretending to upload. That code will go here.");
+}
+
 function onClicked() {
     // update button states
     resetOverlays = Menu.isOptionChecked("Overlays");
@@ -56,7 +63,8 @@ function resetButtons(path, notify) {
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
-}
+    confirmShare({localPath: path});
+ }
 
 button.clicked.connect(onClicked);
 
