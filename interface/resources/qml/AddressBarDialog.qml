@@ -317,7 +317,7 @@ Window {
         return {
             place_name: name,
             path: data.path || "",
-            created_at: data.create_at || "",
+            created_at: data.created_at || "",
             thumbnail_url: data.thumbnail_url || "",
 
             tags: tags,
