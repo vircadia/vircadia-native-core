@@ -4264,13 +4264,18 @@ namespace render {
                 }
 				*/
 
+                static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
+                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 3.5f };
+                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
+
                 auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                 auto sceneKeyLight = scene->getKeyLight();
                 scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(glm::vec3(255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f) * 0.2f);
-                sceneKeyLight->setIntensity(0.2f);
-                sceneKeyLight->setAmbientIntensity(3.5f);
-                sceneKeyLight->setDirection({ 0.0f, 0.0f, -1.0f });
+                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
 
                 auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
                 sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
