@@ -97,7 +97,7 @@ function Teleporter() {
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
-    this.tooClose=false;
+    this.tooClose = false;
 
     this.initialize = function() {
         this.createMappings();
@@ -244,7 +244,7 @@ function Teleporter() {
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            if (this.tooClose===true) {
+            if (this.tooClose === true) {
                 this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
             } else {
                 this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
@@ -289,7 +289,7 @@ function Teleporter() {
 
         if (leftIntersection.intersects) {
 
-            if (this.tooClose===true) {
+            if (this.tooClose === true) {
                 this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
 
             } else {
@@ -385,7 +385,7 @@ function Teleporter() {
         }
 
         var tooClose = isTooCloseToTeleport(position);
-        this.tooClose=tooClose;
+        this.tooClose = tooClose;
         if (tooClose === false) {
             Overlays.editOverlay(this.targetOverlay, {
                 url: TARGET_MODEL_URL,
@@ -549,12 +549,7 @@ function isMoving() {
 }
 
 function isTooCloseToTeleport(position) {
-    var distance = Vec3.distance(MyAvatar.position, position);
-    if (distance <= TELEPORT_CANCEL_RANGE) {
-        return true
-    } else {
-        return false
-    }
+    return Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 }
 
 function registerMappings() {
