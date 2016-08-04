@@ -811,6 +811,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     }
     UserActivityLogger::getInstance().logAction("launch", properties);
 
+    _connectionMonitor.init();
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
