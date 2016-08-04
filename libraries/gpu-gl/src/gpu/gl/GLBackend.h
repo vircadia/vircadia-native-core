@@ -338,6 +338,11 @@ protected:
 
         GLState* _state { nullptr };
         bool _invalidState { false };
+
+        PipelineStageState() {
+            _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
+            _cameraCorrectionBuffer._buffer->flush();
+        }
     } _pipeline;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context

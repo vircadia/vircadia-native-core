@@ -118,7 +118,6 @@ void HmdDisplayPlugin::customizeContext() {
 
 void HmdDisplayPlugin::uncustomizeContext() {
     _overlayRenderer = OverlayRenderer();
-    getGLBackend()->setCameraCorrection(mat4());
     Parent::uncustomizeContext();
 }
 

@@ -105,6 +105,12 @@ public:
 
 
     virtual void run() override {
+        // FIXME determine the best priority balance between this and the main thread...
+        // It may be dependent on the display plugin being used, since VR plugins should 
+        // have higher priority on rendering (although we could say that the Oculus plugin
+        // doesn't need that since it has async timewarp).
+        // A higher priority here 
+        setPriority(QThread::HighPriority);
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         while (!_shutdown) {
@@ -301,6 +307,8 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
     enableVsync();
+
+    getGLBackend()->setCameraCorrection(mat4());
 
     for (auto& cursorValue : _cursorsData) {
         auto& cursorData = cursorValue.second;
