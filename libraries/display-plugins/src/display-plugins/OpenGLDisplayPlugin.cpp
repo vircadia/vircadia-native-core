@@ -525,6 +525,12 @@ void OpenGLDisplayPlugin::compositeScene() {
 }
 
 void OpenGLDisplayPlugin::compositeLayers() {
+    auto renderSize = getRecommendedRenderSize();
+    if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+        _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
+    }
+
     {
         PROFILE_RANGE_EX("compositeScene", 0xff0077ff, (uint64_t)presentCount())
         compositeScene();
