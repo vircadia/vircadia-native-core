@@ -80,6 +80,9 @@ Window {
         id: addressBarDialog
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
+        // The buttons have their button state changed on hover, so we have to manually fix them up here
+        onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
+        onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
 
         ListModel { id: suggestions }
 
@@ -138,7 +141,7 @@ Window {
                 imageURL: "../images/backward.svg";
                 hoverState: addressBarDialog.backEnabled ? 2 : 0;
                 defaultState: addressBarDialog.backEnabled ? 1 : 0;
-                buttonState: addressBarDialog.backEnabled ? 1 : 0; // fixme: needs work
+                buttonState: addressBarDialog.backEnabled ? 1 : 0;
                 onClicked: addressBarDialog.loadBack();
                 anchors {
                     left: homeButton.right
@@ -150,7 +153,7 @@ Window {
                 imageURL: "../images/forward.svg";
                 hoverState: addressBarDialog.forwardEnabled ? 2 : 0;
                 defaultState: addressBarDialog.forwardEnabled ? 1 : 0;
-                buttonState: addressBarDialog.forwardEnabled ? 1 : 0; // fixme: needs work
+                buttonState: addressBarDialog.forwardEnabled ? 1 : 0;
                 onClicked: addressBarDialog.loadForward();
                 anchors {
                     left: backArrow.right
