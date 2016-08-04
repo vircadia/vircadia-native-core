@@ -62,8 +62,10 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
     auto request = assetClient->createGetMappingRequest(path);
 
     connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+        auto hash = request->getHash();
+
         if (callback.isCallable()) {
-            QJSValueList args { request->getErrorString() };
+            QJSValueList args { request->getErrorString(), hash };
             callback.call(args);
         }
 

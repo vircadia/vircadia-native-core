@@ -206,17 +206,15 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     if (!success) {
         return;
     }
-    bool textured = false, culled = false, emissive = false;
     if (_texture) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-        textured = emissive = true;
     }
 
     float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
     bool transparent = fadeRatio < 1.0f;
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, textured, transparent, culled, emissive);
+    DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
