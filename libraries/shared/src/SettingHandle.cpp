@@ -89,11 +89,7 @@ void Settings::setValue(const QString& name, const QVariant& value) {
 }
 
 QVariant Settings::value(const QString& name, const QVariant& defaultValue) const {
-    QVariant result = _manager->value(name, defaultValue);
-    if (result == _manager->unsetValue()) {
-        return defaultValue;
-    }
-    return result;
+    return _manager->value(name, defaultValue);
 }
 
 

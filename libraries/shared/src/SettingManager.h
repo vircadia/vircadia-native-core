@@ -28,7 +28,6 @@ namespace Setting {
 
     public:
         void customDeleter() override;
-        const QVariant& unsetValue() { return UNSET_VALUE; }
 
     protected:
         ~Manager();
