@@ -104,8 +104,8 @@ Window {
                 goFunction: goCard;
                 path: model.place_name + model.path;
                 thumbnail: model.thumbnail_url;
-                placeText: model.place_name;
-                usersText: (model.created_at ? pastTime(model.created_at) : (model.online_users + ((model.online_users === 1) ? ' person' : ' people')));
+                placeText: model.created_at ? "" : model.place_name;
+                usersText: model.created_at ? pastTime(model.created_at) : (model.online_users + ((model.online_users === 1) ? ' person' : ' people'));
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
