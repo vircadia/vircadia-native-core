@@ -176,7 +176,9 @@ Window {
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                helperText: "Go to: place, @user, /path" //, network address"
+                helperText: "Go to: place, @user, /path, network address"
+                helperPixelSize: font.pixelSize * 0.75
+                helperItalic: true
                 onTextChanged: filterChoicesByText()
             }
             // These two are radio buttons.
