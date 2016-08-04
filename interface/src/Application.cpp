@@ -4252,17 +4252,15 @@ namespace render {
 
             // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
-				/*
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                    PerformanceTimer perfTimer("stars");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
-                    // should be the first rendering pass - w/o depth buffer / lighting
-
-                    static const float alpha = 1.0f;
-                    background->_stars.render(args, alpha);
-                }
-				*/
+//                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+//                    PerformanceTimer perfTimer("stars");
+//                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+//                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
+//                    // should be the first rendering pass - w/o depth buffer / lighting
+//
+//                    static const float alpha = 1.0f;
+//                    background->_stars.render(args, alpha);
+//                }
 
                 static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
                 static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
