@@ -411,7 +411,7 @@ Window {
                     suggestions.append(story);
                 });
             }
-            if (data.current_page < data.total_pages) {
+            if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
                 return getUserStoryPage(pageNumber + 1, cb);
             }
             cb();
