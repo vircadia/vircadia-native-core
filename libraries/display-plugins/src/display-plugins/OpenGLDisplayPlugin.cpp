@@ -113,10 +113,14 @@ public:
         setPriority(QThread::HighPriority);
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
+        _context->makeCurrent();
+        Q_ASSERT(isCurrentContext(_context->contextHandle()));
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
+                PROFILE_RANGE("MainThreadOp") 
                 {
                     Lock lock(_mutex);
+                    _context->doneCurrent();
                     // Move the context to the main thread
                     _context->moveToThread(qApp->thread());
                     _pendingMainThreadOperation = false;
@@ -129,13 +133,14 @@ public:
                     // Main thread does it's thing while we wait on the lock to release
                     Lock lock(_mutex);
                     _condition.wait(lock, [&] { return _finishedMainThreadOperation; });
+                    _context->makeCurrent();
+                    Q_ASSERT(isCurrentContext(_context->contextHandle()));
                 }
             }
 
             // Check for a new display plugin
             {
                 Lock lock(_mutex);
-                _context->makeCurrent();
                 // Check if we have a new plugin to activate
                 while (!_newPluginQueue.empty()) {
                     auto newPlugin = _newPluginQueue.front();
@@ -155,7 +160,6 @@ public:
                         _condition.notify_one();
                     }
                 }
-                _context->doneCurrent();
             }
 
             // If there's no active plugin, just sleep
@@ -165,16 +169,14 @@ public:
                 continue;
             }
 
-            // take the latest texture and present it
-            _context->makeCurrent();
-            if (isCurrentContext(_context->contextHandle())) {
+            // Execute the frame and present it to the display device.
+            {
+                PROFILE_RANGE("PluginPresent")
                 currentPlugin->present();
                 CHECK_GL_ERROR();
-                _context->doneCurrent();
-            } else {
-                qWarning() << "Makecurrent failed";
             }
         }
+        _context->doneCurrent();
 
         Lock lock(_mutex);
         _context->moveToThread(qApp->thread());
