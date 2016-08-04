@@ -18,6 +18,7 @@
 #include <PolyLineEntityItem.h>
 #include "RenderableEntityItem.h"
 #include <TextureCache.h>
+#include <Interpolate.h>
 
 #include <QReadWriteLock>
 
@@ -30,9 +31,9 @@ public:
 
     virtual void render(RenderArgs* args) override;
     virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override { return true; };
+    virtual bool needsToCallUpdate() const override { return true; }
 
-    bool isTransparent() override { return true; }
+    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
 
     SIMPLE_RENDERABLE();
 
@@ -49,7 +50,7 @@ protected:
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     QVector<glm::vec3> _vertices;
-
+    quint64 _fadeStartTime { usecTimestampNow() };
 };
 
 

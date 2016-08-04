@@ -204,5 +204,7 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 
+    batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
+
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
 };
