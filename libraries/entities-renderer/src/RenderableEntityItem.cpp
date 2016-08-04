@@ -1,4 +1,4 @@
- //
+//
 //  RenderableEntityItem.cpp
 //  interface/src
 //

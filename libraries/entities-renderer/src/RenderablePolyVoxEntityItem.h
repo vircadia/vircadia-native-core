@@ -131,6 +131,8 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; }); }
 
+    bool isTransparent() override { return true; }
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.

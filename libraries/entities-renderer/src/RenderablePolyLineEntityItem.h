@@ -33,7 +33,7 @@ public:
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override { return true; }
 
-    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+    bool isTransparent() override { return true; }
 
     SIMPLE_RENDERABLE();
 
