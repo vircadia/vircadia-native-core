@@ -164,6 +164,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
+    checkTransparency();
+
     #ifdef WANT_EXTRA_DEBUGGING
     {
         gpu::Batch& batch = *args->_batch;

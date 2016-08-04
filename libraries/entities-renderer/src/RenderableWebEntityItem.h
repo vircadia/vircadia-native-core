@@ -12,7 +12,6 @@
 #include <QSharedPointer>
 
 #include <WebEntityItem.h>
-#include <Interpolate.h>
 
 #include "RenderableEntityItem.h"
 
@@ -36,8 +35,6 @@ public:
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
-    bool isTransparent() override { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
-
     SIMPLE_RENDERABLE();
 
 private:
@@ -56,8 +53,6 @@ private:
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
-
-    quint64 _fadeStartTime;
 };
 
 

@@ -71,18 +71,19 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
     }
 }
 
-bool RenderableShapeEntityItem::isTransparent() {
+/*bool RenderableShapeEntityItem::isTransparent() {
     if (_procedural && _procedural->ready()) {
         return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
     } else {
-        return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
+        return EntityItem::isTransparent();
     }
-}
+}*/
 
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
+    checkTransparency();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));

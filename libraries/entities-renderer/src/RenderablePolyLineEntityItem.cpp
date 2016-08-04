@@ -167,6 +167,8 @@ void RenderablePolyLineEntityItem::update(const quint64& now) {
 }
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
+    checkTransparency();
+
     QWriteLocker lock(&_quadReadWriteLock);
     if (_points.size() < 2 || _normals.size () < 2 || _strokeWidths.size() < 2) {
         return;

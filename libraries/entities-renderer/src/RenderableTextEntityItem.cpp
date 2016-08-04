@@ -27,6 +27,7 @@ EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
+    checkTransparency();
     
     static const float SLIGHTLY_BEHIND = -0.005f;
     float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);

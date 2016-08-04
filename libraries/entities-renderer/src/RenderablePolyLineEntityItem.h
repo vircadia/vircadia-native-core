@@ -18,7 +18,6 @@
 #include <PolyLineEntityItem.h>
 #include "RenderableEntityItem.h"
 #include <TextureCache.h>
-#include <Interpolate.h>
 
 #include <QReadWriteLock>
 
@@ -50,7 +49,6 @@ protected:
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     QVector<glm::vec3> _vertices;
-    quint64 _fadeStartTime { usecTimestampNow() };
 };
 
 
