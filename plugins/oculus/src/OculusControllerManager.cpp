@@ -182,6 +182,12 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
+    ovrSessionStatus status;
+    if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
+        // if the HMD isn't on someone's head, don't take input from the controllers
+        return;
+    }
+
     int numTrackedControllers = 0;
     static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
     auto tracking = ovr_GetTrackingState(_parent._session, 0, false);

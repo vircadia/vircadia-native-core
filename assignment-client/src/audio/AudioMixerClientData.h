@@ -84,6 +84,7 @@ signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
 public slots:
+    void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
