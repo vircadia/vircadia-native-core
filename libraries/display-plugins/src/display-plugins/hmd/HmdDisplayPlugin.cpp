@@ -124,10 +124,10 @@ void HmdDisplayPlugin::uncustomizeContext() {
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
-        // Composite together the scene, overlay and mouse cursor
-        hmdPresent();
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
 
-    if (_enablePreview) {
+    if (false && _enablePreview) {
         // screen preview mirroring
         auto window = _container->getPrimaryWidget();
         auto devicePixelRatio = window->devicePixelRatio();
@@ -154,24 +154,24 @@ void HmdDisplayPlugin::internalPresent() {
             targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
         }
 
-        gpu::Batch presentBatch;
-        presentBatch.enableStereo(false);
-        presentBatch.clearViewTransform();
-        presentBatch.setFramebuffer(gpu::FramebufferPointer());
-        presentBatch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-        presentBatch.setViewportTransform(ivec4(uvec2(0), windowSize));
-        if (_monoPreview) {
-            presentBatch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-            targetViewportSize.x *= 2;
-            presentBatch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-        } else {
-            presentBatch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-            presentBatch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-        }
-        presentBatch.setResourceTexture(0, _compositeTexture);
-        presentBatch.setPipeline(_presentPipeline);
-        presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
-        _backend->render(presentBatch);
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.clearViewTransform();
+            batch.setFramebuffer(gpu::FramebufferPointer());
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+            batch.setViewportTransform(ivec4(uvec2(0), windowSize));
+            if (_monoPreview) {
+                batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+                targetViewportSize.x *= 2;
+                batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+            } else {
+                batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+                batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+            }
+            batch.setResourceTexture(0, _compositeTexture);
+            batch.setPipeline(_presentPipeline);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
         swapBuffers();
     }
 
