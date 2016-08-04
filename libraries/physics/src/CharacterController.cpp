@@ -541,7 +541,7 @@ void CharacterController::preSimulation() {
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
         const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
-        const btScalar GROUND_TO_AUTOFLY_THRESHOLD = 0.5f * _radius;
+        const btScalar GROUND_TO_AUTOFLY_THRESHOLD = 1.2f * _radius;
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
