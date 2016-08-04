@@ -76,6 +76,5 @@ Windows.Window {
     Item {
         id: contentHolder
         anchors.fill: parent
-
     }
 }

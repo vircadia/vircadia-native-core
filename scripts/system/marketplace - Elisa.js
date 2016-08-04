@@ -9,15 +9,14 @@
 //
 
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
+var qml = Script.resolvePath("../../interface/resources/qml/MarketplaceComboBox.qml")
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var CLARA_URL = "https://clara.io/library";
 var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
-    source: "about:blank",
-    //source: MARKETPLACE_URL,
-    //source: "https://s3.amazonaws.com/DreamingContent/qml/content.qml",
-    //source: "C:\Users\elisa\Documents\GitHub\hifi\interface\resources\qml\controls-uit\WebView.qml",
+    //source: "about:blank",
+    source: qml,
     width: 900,
     height: 700,
     toolWindow: false,
@@ -42,7 +41,7 @@ function showMarketplace(marketplaceID) {
 
 function hideMarketplace() {
     marketplaceWindow.setVisible(false);
-    marketplaceWindow.webview.url = "about:blank";
+    //marketplaceWindow.webview.url = "about:blank";
 }
 
 function toggleMarketplace() {
