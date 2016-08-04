@@ -534,14 +534,14 @@ void CharacterController::preSimulation() {
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
-        btVector3 rayStart = _characterBodyTransform.getOrigin() - _halfHeight * _currentUp;
+        btVector3 rayStart = _characterBodyTransform.getOrigin();
 
         // rayEnd is straight down MAX_FALL_HEIGHT
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
         const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
-        const btScalar GROUND_TO_AUTOFLY_THRESHOLD = 1.2f * _radius;
+        const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
@@ -554,7 +554,7 @@ void CharacterController::preSimulation() {
         bool rayHasHit = rayCallback.hasHit();
         if (rayHasHit) {
             _rayHitStartTime = now;
-            _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
+            _floorDistance = rayLength * rayCallback.m_closestHitFraction - (_radius + _halfHeight);
         } else if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
             rayHasHit = true;
         } else {
@@ -582,7 +582,7 @@ void CharacterController::preSimulation() {
                 _takeoffJumpButtonID = _jumpButtonDownCount;
                 _takeoffToInAirStartTime = now;
                 SET_STATE(State::Takeoff, "jump pressed");
-            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_AUTOFLY_THRESHOLD) {
+            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
                 SET_STATE(State::InAir, "falling");
             }
             break;
