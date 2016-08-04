@@ -1267,7 +1267,7 @@ function MyController(hand) {
             if (this.triggerSmoothedGrab()) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
-                this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
+                this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
                 return;
             }
         }
@@ -2364,9 +2364,20 @@ var handleHandMessages = function(channel, message, sender) {
             try {
                 data = JSON.parse(message);
                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                var hotspotIndex = data.hotspotIndex !== undefined ? parseInt(data.hotspotIndex) : 0;
                 selectedController.release();
+                var wearableEntity = data.entityID;
+                entityPropertiesCache.addEntity(wearableEntity);
+                selectedController.grabbedEntity = wearableEntity;
+                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedEntity);
+                if (hotspots.length > 0) {
+                    if (hotspotIndex >= hotspots.length) {
+                        hotspotIndex = 0;
+                    }
+                    selectedController.grabbedHotspot = hotspots[hotspotIndex];
+                }
                 selectedController.setState(STATE_HOLD, "Hifi-Hand-Grab msg received");
-                selectedController.grabbedEntity = data.entityID;
+                selectedController.nearGrabbingEnter();
 
             } catch (e) {
                 print("WARNING: error parsing Hifi-Hand-Grab message");
