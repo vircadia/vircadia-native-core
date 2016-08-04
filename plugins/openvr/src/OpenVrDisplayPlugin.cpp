@@ -159,6 +159,7 @@ static bool isBadPose(vr::HmdMatrix34_t* mat) {
 }
 
 bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff7fff00, frameIndex)
     handleOpenVrEvents();
     if (openVrQuitRequested()) {
         QMetaObject::invokeMethod(qApp, "quit");
@@ -243,6 +244,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
 void OpenVrDisplayPlugin::postPreview() {
     // Clear
     {
+        PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
         // We want to make sure the glFinish waits for the entire present to complete, not just the submission
         // of the command. So, we do a clear here right here so the glFinish will wait fully for the swap.
         glClearColor(0, 0, 0, 1);
