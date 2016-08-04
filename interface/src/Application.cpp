@@ -164,13 +164,6 @@ extern "C" {
 }
 #endif
 
-#include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
-
-static model::Skybox* skybox{ new ProceduralSkybox() } ;
-static NetworkTexturePointer skyboxTexture;
-static bool skyboxTextureLoaded = false;
-
 using namespace std;
 
 static QTimer locationUpdateTimer;
@@ -1219,8 +1212,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
-	auto textureCache = DependencyManager::get<TextureCache>();
-	skyboxTexture = textureCache->getTexture(QUrl("https://hifi-public.s3.amazonaws.com/images/SkyboxTextures/FullMoon1024Compressed.jpg"), NetworkTexture::CUBE_TEXTURE);
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
+    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+
+    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
 
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
@@ -4263,23 +4264,19 @@ namespace render {
                 }
 				*/
 
-				if (!skyboxTextureLoaded && skyboxTexture && skyboxTexture->isLoaded()) {
-					skybox->setColor({ 1.0, 1.0, 1.0 });
-					skyboxTextureLoaded = true;
-					auto texture = skyboxTexture->getGPUTexture();
-					if (texture) {
-						skybox->setCubemap(texture);
-						auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-						auto sceneKeyLight = scene->getKeyLight();
-						sceneKeyLight->setAmbientSphere(texture->getIrradiance());
-						sceneKeyLight->setAmbientMap(texture);
-					} else {
-						skybox->setCubemap(nullptr);
-					}
-				}
-				if (skyboxTextureLoaded) {
-					skybox->render(batch, args->getViewFrustum());
-				}
+                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                auto sceneKeyLight = scene->getKeyLight();
+                scene->setSunModelEnable(false);
+                sceneKeyLight->setColor(glm::vec3(255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f) * 0.2f);
+                sceneKeyLight->setIntensity(0.2f);
+                sceneKeyLight->setAmbientIntensity(3.5f);
+                sceneKeyLight->setDirection({ 0.0f, 0.0f, -1.0f });
+
+                auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+
+                qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
             }
                 break;
 
