@@ -384,22 +384,13 @@ function Teleporter() {
             z: intersection.intersection.z
         }
 
-        var tooClose = isTooCloseToTeleport(position);
-        this.tooClose = tooClose;
-        if (tooClose === false) {
-            Overlays.editOverlay(this.targetOverlay, {
-                url: TARGET_MODEL_URL,
-                position: position,
-                rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
-            });
-        }
-        if (tooClose === true) {
-            Overlays.editOverlay(this.targetOverlay, {
-                url: TOO_CLOSE_MODEL_URL,
-                position: position,
-                rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
-            });
-        }
+        this.tooClose = isTooCloseToTeleport(position);
+
+        Overlays.editOverlay(this.targetOverlay, {
+            url: this.tooClose ? TOO_CLOSE_MODEL_URL : TARGET_MODEL_URL,
+            position: position,
+            rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
+        });
 
     };
 
