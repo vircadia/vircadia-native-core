@@ -12,7 +12,7 @@ var inTeleportMode = false;
 // var NUMBER_OF_STEPS = 0;
 // var SMOOTH_ARRIVAL_SPACING = 0;
 
-// // slow  n
+// // slow
 // var SMOOTH_ARRIVAL_SPACING = 150;
 // var NUMBER_OF_STEPS = 2;
 
