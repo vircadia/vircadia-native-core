@@ -117,9 +117,18 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
+
+    if (_type == MetaverseDomain) {
+        // if we have a metaverse domain, we'll need an access token to heartbeat handle auto-networking
+        resetAccountManagerAccessToken();
+    }
+
     setupAutomaticNetworking();
-    if (!getID().isNull()) {
+
+    if (!getID().isNull() && _type != NonMetaverse) {
+        // setup periodic heartbeats to metaverse API
         setupHeartbeatToMetaverse();
+
         // send the first heartbeat immediately
         sendHeartbeatToMetaverse();
     }
@@ -301,16 +310,22 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
         // store the new ID and auto networking setting on disk
         _settingsManager.persistToFile();
 
-        // change our domain ID immediately
-        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
-
         // store the new token to the account info
         auto accountManager = DependencyManager::get<AccountManager>();
         accountManager->setTemporaryDomain(id, key);
 
+        // change our domain ID immediately
+        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
+
+        // change our type to reflect that we are a temporary domain now
+        _type = MetaverseTemporaryDomain;
+
         // update our heartbeats to use the correct id
         setupICEHeartbeatForFullNetworking();
         setupHeartbeatToMetaverse();
+
+        // if we have a current ICE server address, update it in the API for the new temporary domain
+        sendICEServerAddressToMetaverseAPI();
     } else {
         qWarning() << "There were problems parsing the API response containing a temporary domain name. Please try again"
             << "via domain-server relaunch or from the domain-server settings.";
@@ -394,6 +409,16 @@ void DomainServer::setupNodeListAndAssignments() {
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
         nodeList->setSessionUUID(idValueVariant->toString());
+
+        // if we have an ID, we'll assume we're a metaverse domain
+        // now see if we think we're a temp domain (we have an API key) or a full domain
+        const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+        if (temporaryDomainKey.isEmpty()) {
+            _type = MetaverseDomain;
+        } else {
+            _type = MetaverseTemporaryDomain;
+        }
+
     } else {
         nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
     }
@@ -477,42 +502,46 @@ bool DomainServer::resetAccountManagerAccessToken() {
 }
 
 void DomainServer::setupAutomaticNetworking() {
-    qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
-
-    resetAccountManagerAccessToken();
 
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-    const QUuid& domainID = getID();
+    qDebug() << "Configuring automatic networking in domain-server as" << _automaticNetworkingSetting;
 
-    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        setupICEHeartbeatForFullNetworking();
-    }
+    if (_automaticNetworkingSetting != DISABLED_AUTOMATIC_NETWORKING_VALUE) {
+        const QUuid& domainID = getID();
 
-    if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
-        _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+            setupICEHeartbeatForFullNetworking();
+        }
 
-        if (!domainID.isNull()) {
-            qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
-                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+        if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+            _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
 
-            if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
-                // send any public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                        this, &DomainServer::performIPAddressUpdate);
+            if (!domainID.isNull()) {
+                qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
+                    << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
 
-                // have the LNL enable public socket updating via STUN
-                nodeList->startSTUNPublicSocketUpdate();
+                if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+
+                    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+                    // send any public socket changes to the data server so nodes can find us at our new IP
+                    connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                            this, &DomainServer::performIPAddressUpdate);
+
+                    // have the LNL enable public socket updating via STUN
+                    nodeList->startSTUNPublicSocketUpdate();
+                }
+            } else {
+                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                << "Please add an ID to your config file or via the web interface.";
+                
+                return;
             }
-        } else {
-            qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
-            << "Please add an ID to your config file or via the web interface.";
-
-            return;
         }
     }
+
 }
 
 void DomainServer::setupHeartbeatToMetaverse() {
