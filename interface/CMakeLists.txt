@@ -274,6 +274,9 @@ if (APPLE)
     $<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts
   )
 
+  # call the fixup_interface macro to add required bundling commands for installation
+  fixup_interface()
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
