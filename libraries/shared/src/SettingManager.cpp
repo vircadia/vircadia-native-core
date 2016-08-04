@@ -70,11 +70,10 @@ namespace Setting {
         QVariant handleValue = UNSET_VALUE;
         if (handle->isSet()) {
             handleValue = handle->getVariant();
+            withWriteLock([&] {
+                _pendingChanges[key] = handleValue;
+            });
         }
-
-        withWriteLock([&] {
-            _pendingChanges[key] = handleValue;
-        });
     }
 
     static const int SAVE_INTERVAL_MSEC = 5 * 1000; // 5 sec
