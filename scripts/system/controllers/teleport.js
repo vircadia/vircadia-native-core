@@ -12,7 +12,7 @@ var inTeleportMode = false;
 // var NUMBER_OF_STEPS = 0;
 // var SMOOTH_ARRIVAL_SPACING = 0;
 
-// // slow
+// // slow  n
 // var SMOOTH_ARRIVAL_SPACING = 150;
 // var NUMBER_OF_STEPS = 2;
 
@@ -28,7 +28,8 @@ var NUMBER_OF_STEPS = 6;
 // var SMOOTH_ARRIVAL_SPACING = 10;
 // var NUMBER_OF_STEPS = 20;
 
-var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport.fbx");
+var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
+var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
@@ -47,7 +48,14 @@ var COLORS_TELEPORT_CANNOT_TELEPORT = {
     blue: 141
 };
 
-var MAX_AVATAR_SPEED = 0.25;
+var COLORS_TELEPORT_TOO_CLOSE = {
+    red: 255,
+    green: 184,
+    blue: 73
+};
+
+
+var TELEPORT_CANCEL_RANGE = 1.25;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -89,6 +97,7 @@ function Teleporter() {
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
+    this.tooClose=false;
 
     this.initialize = function() {
         this.createMappings();
@@ -235,7 +244,12 @@ function Teleporter() {
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+            if (this.tooClose===true) {
+                this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+            } else {
+                this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+            }
+
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(rightIntersection);
             } else {
@@ -275,7 +289,14 @@ function Teleporter() {
 
         if (leftIntersection.intersects) {
 
-            this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+            if (this.tooClose===true) {
+                this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+
+            } else {
+                this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+            }
+
+
             if (this.targetOverlay !== null) {
                 this.updateTargetOverlay(leftIntersection);
             } else {
@@ -362,10 +383,23 @@ function Teleporter() {
             y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
             z: intersection.intersection.z
         }
-        Overlays.editOverlay(this.targetOverlay, {
-            position: position,
-            rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
-        });
+
+        var tooClose = isTooCloseToTeleport(position);
+        this.tooClose=tooClose;
+        if (tooClose === false) {
+            Overlays.editOverlay(this.targetOverlay, {
+                url: TARGET_MODEL_URL,
+                position: position,
+                rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
+            });
+        }
+        if (tooClose === true) {
+            Overlays.editOverlay(this.targetOverlay, {
+                url: TOO_CLOSE_MODEL_URL,
+                position: position,
+                rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
+            });
+        }
 
     };
 
@@ -383,10 +417,17 @@ function Teleporter() {
     };
 
     this.teleport = function(value) {
+
         if (value === undefined) {
             this.exitTeleportMode();
         }
+
         if (this.intersection !== null) {
+            if (isTooCloseToTeleport(this.intersection.intersection)) {
+                this.deleteTargetOverlay();
+                this.exitTeleportMode();
+                return;
+            }
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
@@ -504,6 +545,15 @@ function isMoving() {
         return true;
     } else {
         return false;
+    }
+}
+
+function isTooCloseToTeleport(position) {
+    var distance = Vec3.distance(MyAvatar.position, position);
+    if (distance <= TELEPORT_CANCEL_RANGE) {
+        return true
+    } else {
+        return false
     }
 }
 
