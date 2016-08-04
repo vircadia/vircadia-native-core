@@ -96,8 +96,16 @@ public: \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); _renderHelper.notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); _renderHelper.notifyChanged(); } \
+    void checkTransparency() { \
+        bool transparent = isTransparent(); \
+        if (transparent != prevIsTransparent) { \
+            _renderHelper.notifyChanged(); \
+            prevIsTransparent = transparent; \
+        } \
+    } \
 private: \
-    SimpleRenderableEntityItem _renderHelper;
+    SimpleRenderableEntityItem _renderHelper; \
+    bool prevIsTransparent { isTransparent() };
 
 
 #endif // hifi_RenderableEntityItem_h

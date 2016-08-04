@@ -81,6 +81,11 @@ public:
     void notifyLocationChanged() override;
     void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
+    // Entity fade in
+    void startFade() { _fadeStartTime = usecTimestampNow(); }
+    bool hasStartedFade() { return _hasStartedFade; }
+    void setHasStartedFade(bool hasStartedFade) { _hasStartedFade = hasStartedFade; }
+
     // Render Item interface
     render::ItemKey getKey() const override;
     render::ShapeKey getShapeKey() const override; // shape interface
@@ -99,6 +104,10 @@ public:
 
     bool _isSkinned{ false };
     bool _isBlendShaped{ false };
+
+private:
+    quint64 _fadeStartTime { 0 };
+    bool _hasStartedFade { false };
 };
 
 namespace render {

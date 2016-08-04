@@ -50,7 +50,7 @@ public:
 
     void initializePolyVox();
 
-    virtual void somethingChangedNotification() {
+    virtual void somethingChangedNotification() override {
         // This gets called from EnityItem::readEntityDataFromBuffer every time a packet describing
         // this entity comes from the entity-server.  It gets called even if nothing has actually changed
         // (see the comment in EntityItem.cpp).  If that gets fixed, this could be used to know if we
@@ -58,19 +58,19 @@ public:
         // _needsModelReload = true;
     }
 
-    virtual uint8_t getVoxel(int x, int y, int z);
-    virtual bool setVoxel(int x, int y, int z, uint8_t toValue);
+    virtual uint8_t getVoxel(int x, int y, int z) override;
+    virtual bool setVoxel(int x, int y, int z, uint8_t toValue) override;
 
-    void render(RenderArgs* args);
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    void render(RenderArgs* args) override;
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
                         BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const;
+                        void** intersectedObject, bool precisionPicking) const override;
 
-    virtual void setVoxelData(QByteArray voxelData);
-    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+    virtual void setVoxelData(QByteArray voxelData) override;
+    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) override;
+    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) override;
 
     glm::vec3 getSurfacePositionAdjustment() const;
     glm::mat4 voxelToWorldMatrix() const;
@@ -78,45 +78,45 @@ public:
     glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 localToVoxelMatrix() const;
 
-    virtual ShapeType getShapeType() const;
-    virtual bool shouldBePhysical() const { return !isDead(); }
-    virtual bool isReadyToComputeShape();
-    virtual void computeShapeInfo(ShapeInfo& info);
+    virtual ShapeType getShapeType() const override;
+    virtual bool shouldBePhysical() const override { return !isDead(); }
+    virtual bool isReadyToComputeShape() override;
+    virtual void computeShapeInfo(ShapeInfo& info) override;
 
-    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const;
-    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const;
-    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const;
-    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const;
+    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const override;
+    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const override;
+    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const override;
+    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const override;
 
     // coords are in voxel-volume space
-    virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
-    virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue);
+    virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) override;
+    virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue) override;
 
     // coords are in world-space
-    virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue);
-    virtual bool setAll(uint8_t toValue);
-    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue);
+    virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) override;
+    virtual bool setAll(uint8_t toValue) override;
+    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue) override;
 
-    virtual void setXTextureURL(QString xTextureURL);
-    virtual void setYTextureURL(QString yTextureURL);
-    virtual void setZTextureURL(QString zTextureURL);
+    virtual void setXTextureURL(QString xTextureURL) override;
+    virtual void setYTextureURL(QString yTextureURL) override;
+    virtual void setZTextureURL(QString zTextureURL) override;
 
     virtual bool addToScene(EntityItemPointer self,
                             std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges);
+                            render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self,
                                  std::shared_ptr<render::Scene> scene,
-                                 render::PendingChanges& pendingChanges);
+                                 render::PendingChanges& pendingChanges) override;
 
-    virtual void setXNNeighborID(const EntityItemID& xNNeighborID);
-    virtual void setYNNeighborID(const EntityItemID& yNNeighborID);
-    virtual void setZNNeighborID(const EntityItemID& zNNeighborID);
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID) override;
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID) override;
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID) override;
 
-    virtual void setXPNeighborID(const EntityItemID& xPNeighborID);
-    virtual void setYPNeighborID(const EntityItemID& yPNeighborID);
-    virtual void setZPNeighborID(const EntityItemID& zPNeighborID);
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID) override;
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID) override;
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID) override;
 
-    virtual void updateRegistrationPoint(const glm::vec3& value);
+    virtual void updateRegistrationPoint(const glm::vec3& value) override;
 
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
     void forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
@@ -130,6 +130,8 @@ public:
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; }); }
+
+    bool isTransparent() override { return true; }
 
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
@@ -161,7 +163,7 @@ private:
     // these are run off the main thread
     void decompressVolumeData();
     void compressVolumeDataAndSendEditPacket();
-    virtual void getMesh(); // recompute mesh
+    virtual void getMesh() override; // recompute mesh
     void computeShapeInfoWorker();
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID

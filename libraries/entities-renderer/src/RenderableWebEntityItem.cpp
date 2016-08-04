@@ -164,6 +164,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
+    checkTransparency();
+
     #ifdef WANT_EXTRA_DEBUGGING
     {
         gpu::Batch& batch = *args->_batch;
@@ -181,6 +183,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
             return;
         }
+        _fadeStartTime = usecTimestampNow();
         #endif
     }
 
@@ -206,6 +209,9 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     if (_texture) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
     }
+
+    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+    batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));

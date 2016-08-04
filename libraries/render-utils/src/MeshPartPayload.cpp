@@ -13,6 +13,8 @@
 
 #include <PerfStat.h>
 
+#include <Interpolate.h>
+
 #include "DeferredLightingEffect.h"
 #include "Model.h"
 
@@ -352,7 +354,6 @@ void ModelMeshPartPayload::initCache() {
 
 }
 
-
 void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
@@ -390,6 +391,10 @@ ItemKey ModelMeshPartPayload::getKey() const {
         if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
+    }
+
+    if (Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
+        builder.withTransparent();
     }
 
     return builder.build();
@@ -443,7 +448,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent) {
+    if (isTranslucent || Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -484,9 +489,9 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+    if (!_hasColorAttrib || fadeRatio < 1.0f) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
 }
 
@@ -517,7 +522,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible) {
+    if (!_model->_readyWhenAdded || !_model->_isVisible || !_hasStartedFade) {
         return; // bail asap
     }
 

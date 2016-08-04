@@ -21,10 +21,12 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
+    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) { _procedural.reset(nullptr); }
 
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
+
+//    bool isTransparent() override;
 
     SIMPLE_RENDERABLE();
 

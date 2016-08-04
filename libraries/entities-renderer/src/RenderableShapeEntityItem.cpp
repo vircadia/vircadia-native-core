@@ -40,7 +40,6 @@ static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING { {
     GeometryCache::Cylinder,
 } };
 
-
 RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     Pointer entity = std::make_shared<RenderableShapeEntityItem>(entityID);
     entity->setProperties(properties);
@@ -72,10 +71,19 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
     }
 }
 
+/*bool RenderableShapeEntityItem::isTransparent() {
+    if (_procedural && _procedural->ready()) {
+        return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
+    } else {
+        return EntityItem::isTransparent();
+    }
+}*/
+
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
+    checkTransparency();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
@@ -102,13 +110,16 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
+        outColor.a *= Interpolate::calculateFadeRatio(_procedural->getFadeStartTime());
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
+        color.a *= Interpolate::calculateFadeRatio(_fadeStartTime);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
     }
-
 
     static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(MAPPING[_shape]);
     args->_details._trianglesRendered += (int)triCount;

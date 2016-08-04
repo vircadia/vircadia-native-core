@@ -27,8 +27,18 @@ void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     texel = colorToLinearRGBA(texel);
 
-    packDeferredFragmentUnlit(
-         normalize(_normal),
-         1.0,
-         _color.rgb * texel.rgb);
+    const float ALPHA_THRESHOLD = 0.999;
+    if (_color.a * texel.a < ALPHA_THRESHOLD) {
+        packDeferredFragmentTranslucent(
+            normalize(_normal),
+            _color.a * texel.a,
+            _color.rgb * texel.rgb,
+            DEFAULT_FRESNEL,
+            DEFAULT_ROUGHNESS);
+    } else {
+        packDeferredFragmentUnlit(
+            normalize(_normal),
+            1.0,
+            _color.rgb * texel.rgb);
+    }
 }

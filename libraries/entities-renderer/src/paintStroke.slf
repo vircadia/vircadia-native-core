@@ -39,7 +39,7 @@ void main(void) {
     vec3 color = varColor.rgb;
     packDeferredFragmentTranslucent(
         interpolatedNormal * frontCondition,
-        texel.a,
+        texel.a * varColor.a,
         polyline.color * texel.rgb,
         vec3(0.01, 0.01, 0.01),
         10.0);

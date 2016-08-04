@@ -596,6 +596,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         _pipeline = gpu::Pipeline::create(program, state);
     }
@@ -641,6 +644,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
     int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
+
+    int alphaLocation = _pipeline->getProgram()->getUniforms().findLocation("alpha");
+    batch._glUniform1f(alphaLocation, 0.5f);
 
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }

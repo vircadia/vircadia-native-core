@@ -49,11 +49,44 @@ void main(void) {
 
 #endif
 
-    if (emissiveAmount > 0.0) {
-        packDeferredFragmentLightmap(
-            normal, 1.0, diffuse, max(0, 1.0 - shininess / 128.0), DEFAULT_METALLIC, specular, specular);
+    const float ALPHA_THRESHOLD = 0.999;
+    if (_color.a < ALPHA_THRESHOLD) {
+        if (emissiveAmount > 0.0) {
+            // TODO: transparent emissive?
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                diffuse,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        } else {
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                diffuse,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        }
     } else {
-        packDeferredFragment(
-            normal, 1.0, diffuse, max(0, 1.0 - shininess / 128.0), length(specular), DEFAULT_EMISSIVE, DEFAULT_OCCLUSION, DEFAULT_SCATTERING);
+        if (emissiveAmount > 0.0) {
+            packDeferredFragmentLightmap(
+                normal,
+                1.0,
+                diffuse,
+                max(0, 1.0 - shininess / 128.0),
+                DEFAULT_METALLIC,
+                specular,
+                specular);
+        } else {
+            packDeferredFragment(
+                normal,
+                1.0,
+                diffuse,
+                max(0, 1.0 - shininess / 128.0),
+                length(specular),
+                DEFAULT_EMISSIVE,
+                DEFAULT_OCCLUSION,
+                DEFAULT_SCATTERING);
+        }
     }
 }
