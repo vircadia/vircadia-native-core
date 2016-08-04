@@ -1168,42 +1168,45 @@ void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
         return;
     }
 
-    // check if we need to force a new temporary domain name
-    switch (requestReply.error()) {
-        // if we have a temporary domain with a bad token, we get a 401
-        case QNetworkReply::NetworkError::AuthenticationRequiredError: {
-            static const QString DATA_KEY = "data";
-            static const QString TOKEN_KEY = "api_key";
+    // only attempt to grab a new temporary name if we're already a temporary domain server
+    if (_type == MetaverseTemporaryDomain) {
+        // check if we need to force a new temporary domain name
+        switch (requestReply.error()) {
+                // if we have a temporary domain with a bad token, we get a 401
+            case QNetworkReply::NetworkError::AuthenticationRequiredError: {
+                static const QString DATA_KEY = "data";
+                static const QString TOKEN_KEY = "api_key";
 
-            QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-            auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
+                QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+                auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
 
-            if (!tokenFailure.isNull()) {
-                qWarning() << "Temporary domain name lacks a valid API key, and is being reset.";
+                if (!tokenFailure.isNull()) {
+                    qWarning() << "Temporary domain name lacks a valid API key, and is being reset.";
+                }
+                break;
             }
-            break;
+                // if the domain does not (or no longer) exists, we get a 404
+            case QNetworkReply::NetworkError::ContentNotFoundError:
+                qWarning() << "Domain not found, getting a new temporary domain.";
+                break;
+                // otherwise, we erred on something else, and should not force a temporary domain
+            default:
+                return;
         }
-        // if the domain does not (or no longer) exists, we get a 404
-        case QNetworkReply::NetworkError::ContentNotFoundError:
-            qWarning() << "Domain not found, getting a new temporary domain.";
-            break;
-        // otherwise, we erred on something else, and should not force a temporary domain
-        default:
-            return;
-    }
 
-    // halt heartbeats until we have a token
-    _metaverseHeartbeatTimer->deleteLater();
-    _metaverseHeartbeatTimer = nullptr;
+        // halt heartbeats until we have a token
+        _metaverseHeartbeatTimer->deleteLater();
+        _metaverseHeartbeatTimer = nullptr;
 
-    // give up eventually to avoid flooding traffic
-    static const int MAX_ATTEMPTS = 5;
-    static int attempt = 0;
-    if (++attempt < MAX_ATTEMPTS) {
-        // get a new temporary name and token
-        getTemporaryName(true);
-    } else {
-        qWarning() << "Already attempted too many temporary domain requests. Please set a domain ID manually or restart.";
+        // give up eventually to avoid flooding traffic
+        static const int MAX_ATTEMPTS = 5;
+        static int attempt = 0;
+        if (++attempt < MAX_ATTEMPTS) {
+            // get a new temporary name and token
+            getTemporaryName(true);
+        } else {
+            qWarning() << "Already attempted too many temporary domain requests. Please set a domain ID manually or restart.";
+        }
     }
 }
 
