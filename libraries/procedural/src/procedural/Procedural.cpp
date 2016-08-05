@@ -175,6 +175,10 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 }
 
 bool Procedural::ready() {
+    if (!_hasStartedFade) {
+        _fadeStartTime = usecTimestampNow();
+    }
+
     // Load any changes to the procedural
     // Check for changes atomically, in case they are currently being made
     if (_proceduralDataDirty) {
@@ -184,7 +188,6 @@ bool Procedural::ready() {
         // Reset dirty flag after reading _proceduralData, but before releasing lock
         // to avoid resetting it after more data is set
         _proceduralDataDirty = false;
-        _fadeStartTime = usecTimestampNow();
     }
 
     if (!_enabled) {
@@ -203,6 +206,9 @@ bool Procedural::ready() {
         }
     }
 
+    if (!_hasStartedFade) {
+        _hasStartedFade = true;
+    }
     return true;
 }
 

@@ -52,11 +52,10 @@ void main(void) {
     const float ALPHA_THRESHOLD = 0.999;
     if (_color.a < ALPHA_THRESHOLD) {
         if (emissiveAmount > 0.0) {
-            // TODO: transparent emissive?
             packDeferredFragmentTranslucent(
                 normal,
                 _color.a,
-                diffuse,
+                specular,
                 DEFAULT_FRESNEL,
                 DEFAULT_ROUGHNESS);
         } else {
