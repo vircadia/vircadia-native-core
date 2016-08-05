@@ -62,8 +62,8 @@ class AmbientOcclusionEffectConfig : public render::Job::Config::Persistent {
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
+    Q_PROPERTY(bool fetchMipsEnabled MEMBER fetchMipsEnabled NOTIFY dirty)
     Q_PROPERTY(float radius MEMBER radius WRITE setRadius)
-    Q_PROPERTY(float perspectiveScale MEMBER perspectiveScale WRITE setPerspectiveScale)
     Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel)
     Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias)
     Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness)
@@ -80,7 +80,6 @@ public:
     const int MAX_BLUR_RADIUS = 6;
 
     void setRadius(float newRadius) { radius = std::max(0.01f, newRadius); emit dirty(); }
-    void setPerspectiveScale(float scale) { perspectiveScale = scale; emit dirty(); }
     void setObscuranceLevel(float level) { obscuranceLevel = std::max(0.01f, level); emit dirty(); }
     void setFalloffBias(float bias) { falloffBias = std::max(0.0f, std::min(bias, 0.2f)); emit dirty(); }
     void setEdgeSharpness(float sharpness) { edgeSharpness = std::max(0.0f, (float)sharpness); emit dirty(); }
@@ -101,8 +100,9 @@ public:
     int numSamples{ 11 };
     int resolutionLevel{ 0 };
     int blurRadius{ 3 }; // 0 means no blurring
-    bool ditheringEnabled{ true }; // randomize the distribution of rays per pixel, should always be true
+    bool ditheringEnabled{ true }; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true
+    bool fetchMipsEnabled{ true }; // fetch taps in sub mips to otpimize cache, should always be true
     double gpuTime{ 0.0 };
 
 signals:
@@ -163,8 +163,11 @@ public:
         float getFalloffBias() const { return (float)ditheringInfo.z; }
         float getEdgeSharpness() const { return (float)blurInfo.x; }
         float getBlurDeviation() const { return blurInfo.z; }
+        
         float getNumSpiralTurns() const { return sampleInfo.z; }
         int getNumSamples() const { return (int)sampleInfo.x; }
+        bool isFetchMipsEnabled() const { return sampleInfo.w; }
+
         int getBlurRadius() const { return (int)blurInfo.y; }
         bool isDitheringEnabled() const { return ditheringInfo.x; }
         bool isBorderingEnabled() const { return ditheringInfo.w; }

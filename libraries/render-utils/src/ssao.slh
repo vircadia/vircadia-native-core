@@ -93,6 +93,10 @@ float getNumSpiralTurns() {
     return params._sampleInfo.z;
 }
 
+int doFetchMips() {
+    return int(params._sampleInfo.w);
+}
+
 float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
@@ -127,6 +131,19 @@ float getBlurCoef(int c) {
 <@endfunc@>
 
 <@func declareSamplingDisk()@>
+
+float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
+    vec3 worldPosFract = fract(pixelWorldPos * 0.2);
+
+    ivec3 pixelPos = ivec3(worldPosFract * 256);
+
+    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+}
+
+float getAngleDithering(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+}
 
 float evalDiskRadius(float Zeye, vec2 imageSize) {
     // Choose the screen-space sample radius
@@ -179,20 +196,28 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
         tapPos.y -= (imageSize.y - tapPos.y);
         redoTap = true;
     }
-    
+/*
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = 0.5;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x = imageSize.x - 0.5;
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = 0.5;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y = imageSize.y - 0.5;
+        redoTap = true;
+    }
+*/
+   
     if (redoTap) {
         tap.xy = tapPos - pixelPos;
         tap.z = length(tap.xy);
     }
-/*
-    if ((tapPos.x < 0.0) || (tapPos.x >= imageSize.x)) {
-      //  tapPos.x = pixelPos.x - tapVec.x;
-        tap.x = -tap.x;
-    }
-    if ((tapPos.y < 0.0) || (tapPos.y >= imageSize.y)) {
-       // tapPos.y = pixelPos.y - tapVec.y;
-        tap.y = -tap.y;
-    }*/
     
     return tap;
 }
@@ -202,8 +227,6 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
 
 <@func declareFetchDepthPyramidMap()@>
 
-const int LOG_MAX_OFFSET = 3;
-const int MAX_MIP_LEVEL = 5;
 
 // the depth pyramid texture
 uniform sampler2D pyramidMap;
@@ -212,23 +235,34 @@ float getZEye(ivec2 pixel) {
     return -texelFetch(pyramidMap, pixel, getResolutionLevel()).x;
 }
 
-vec3 getOffsetPosition(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
-    // Derivation:
+const int LOG_MAX_OFFSET = 3;
+const int MAX_MIP_LEVEL = 5;
+int evalMipFromRadius(float radius) {
     //  mipLevel = floor(log(ssR / MAX_OFFSET));
-    int mipLevel = clamp(findMSB(int(tap.z)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+    return doFetchMips() * clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+}
+
+vec3 getOffsetPosition(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    int mipLevel = evalMipFromRadius(tap.z);
 
     ivec2 ssP = ivec2(tap.xy) + ssC;
     ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
 
-    vec3 P;
-
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
-    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, getResolutionLevel() + mipLevel) - ivec2(1));
-    P.z = -texelFetch(pyramidMap, mipP, getResolutionLevel() + mipLevel).r;
+  //  ivec2 mipSize = textureSize(pyramidMap, mipLevel);
+  //  ivec2 mipSize = max(ivec2(imageSize) >> mipLevel, ivec2(1));
+
+  //  ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
+   
+     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+  //  vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
+
+    vec3 P;
+   // P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
+    P.z = -textureLod(pyramidMap, tapUV, float(mipLevel)).r;
 
     // Offset to pixel center
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
     P = evalEyePositionFromZeye(side.x, P.z, tapUV);
     return P;
 }

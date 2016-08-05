@@ -228,6 +228,11 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.y = 1.0f / config.numSamples;
     }
 
+    if (config.fetchMipsEnabled != _parametersBuffer->isFetchMipsEnabled()) {
+        auto& current = _parametersBuffer->sampleInfo;
+        current.w = (float)config.fetchMipsEnabled;
+    }
+
     if (!_framebuffer) {
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
@@ -510,6 +515,11 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
     const auto linearDepthFramebuffer = inputs.get2();
     const auto ambientOcclusionUniforms = inputs.get3();
     
+	// Skip if AO is not started yet
+	if (!ambientOcclusionUniforms._buffer) {
+		return;
+	}
+
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
     auto sourceViewport = args->_viewport;

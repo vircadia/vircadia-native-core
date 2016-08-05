@@ -13,7 +13,7 @@ var qml = Script.resolvePath('ambientOcclusionPass.qml');
 var window = new OverlayWindow({
     title: 'Ambient Occlusion Pass',
     source: qml,
-    width: 400, height: 170,
+    width: 400, height: 200,
 });
 window.setPosition(Window.innerWidth - 420, 50 + 550 + 50);
 window.closed.connect(function() { Script.stop(); });

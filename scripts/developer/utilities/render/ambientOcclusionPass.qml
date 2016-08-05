@@ -10,6 +10,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "configSlider"
+import "../lib/plotperf"
 
 Column {
     spacing: 8
@@ -35,11 +36,15 @@ Column {
                     min: 0.0
                 }
             }
+        }
+
+        Column {
             Repeater {
                 model: [
                     "resolutionLevel:resolutionLevel",
                     "ditheringEnabled:ditheringEnabled",
                     "borderingEnabled:borderingEnabled",
+                    "fetchMipsEnabled:fetchMipsEnabled",
                 ]
                 CheckBox {
                     text: qsTr(modelData.split(":")[0])
@@ -47,6 +52,22 @@ Column {
                     onCheckedChanged: { Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]] = checked }
                 }
             }
+        }
+
+        PlotPerf {
+            title: "Timing"
+            height: 50
+            object: Render.getConfig("AmbientOcclusion")
+            valueUnit: "ms"
+            valueScale: 1
+            valueNumDigits: "4"
+            plots: [
+            {
+                   prop: "gpuTime",
+                   label: "gpu",
+                   color: "#FFFFFF"
+               }
+            ]
         }
     }
 }

@@ -16,6 +16,9 @@
 
 <$declarePackOcclusionDepth()$>
 
+<@include gpu/color.slh@>
+<$declareColorWheel()$>
+
 struct DebugParams{
     vec4 pixelInfo;
 };
@@ -32,10 +35,6 @@ out vec4 outFragColor;
 
 uniform sampler2D normalMap;
 
-float getAngleDithering(in ivec2 pixelPos) {
-    // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
-}
 
 float evalAO(in vec3 C, in vec3 n_C, vec3 Q) {
     vec3 v = Q - C;
@@ -81,18 +80,23 @@ void main(void) {
     }
 
     // Let's make noise 
-    float randomPatternRotationAngle = getAngleDithering(ssC);
+   // float randomPatternRotationAngle = getAngleDithering(ssC);
+    float randomPatternRotationAngle = getAngleDitheringWorldPos(Cp);
+    
 
     // Accumulate the Obscurance for each samples
     float sum = 0.0;
-    float keepTapRadius = 2.0;
-    bool keep = (dot(fragToCursor,fragToCursor) < keepTapRadius);
+    float keepTapRadius = 1.0;
+    int keepedMip = -1;
+    bool keep = false;
+
     for (int i = 0; i < getNumSamples(); ++i) {
         vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, cursorPixelPos, imageSize);
         // The occluding point in camera space
         vec2 fragToTap = vec2(ssC) + tap.xy - gl_FragCoord.xy;
         if (dot(fragToTap,fragToTap) < keepTapRadius) {
             keep = true;
+            keepedMip = evalMipFromRadius(tap.z);
         } 
 
         vec3 Q = getOffsetPosition(side.xyz, ssC, tap, imageSize);
@@ -130,8 +134,14 @@ void main(void) {
    // outFragColor = vec4((Cn + vec3(1.0))* 0.5, 1.0);
    //outFragColor = vec4(vec3(ssDiskRadius / 100.0), 1.0);
 
-   
+   if ((dot(fragToCursor,fragToCursor) < (4.0 * keepTapRadius * keepTapRadius) )) {
+        outFragColor = vec4(vec3(A), 1.0); 
+        return;
+   }
+
    if (!keep) {
      outFragColor = vec4(0.1);
+   } else {
+    outFragColor.rgb = colorWheel(float(keepedMip)/float(MAX_MIP_LEVEL));
    }
 }

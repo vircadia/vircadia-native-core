@@ -21,37 +21,6 @@ out vec4 outFragColor;
 
 uniform sampler2D normalMap;
 
-float getAngleDithering(in ivec2 pixelPos) {
-    // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
-}
-/*
-vec3 getOffsetPosition(ivec3 side, ivec2 ssC, vec2 unitOffset, float ssR) {
-    // Derivation:
-    //  mipLevel = floor(log(ssR / MAX_OFFSET));
-    int mipLevel = clamp(findMSB(int(ssR)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
-
-    ivec2 ssOffset = ivec2(ssR * unitOffset);
-    ivec2 ssP = ssOffset + ssC;
-    if (bool(isBorderingEnabled())) {
-        ssP.x = ((ssP.x < 0 || ssP.x >= side.z) ? ssC.x - ssOffset.x : ssP.x);
-        ssP.y = ((ssP.y < 0 || ssP.y >= int(getWidthHeight(getResolutionLevel()).y)) ? ssC.y - ssOffset.y : ssP.y);
-    }
-
-    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
-
-    vec3 P;
-
-    // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
-    // Manually clamp to the texture size because texelFetch bypasses the texture unit
-    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, getResolutionLevel() + mipLevel) - ivec2(1));
-    P.z = -texelFetch(pyramidMap, mipP, getResolutionLevel() + mipLevel).r;
-
-    // Offset to pixel center
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / float(side.z);
-    P = evalEyePositionFromZeye(side.x, P.z, tapUV);
-    return P;
-}*/
 
 float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
     vec3 v = Q - C;
@@ -88,7 +57,8 @@ void main(void) {
     float ssDiskRadius = evalDiskRadius(Cp.z, imageSize);
 
     // Let's make noise 
-    float randomPatternRotationAngle = getAngleDithering(ssC);
+   // float randomPatternRotationAngle = getAngleDithering(ssC);
+    float randomPatternRotationAngle = getAngleDitheringWorldPos(Cp);
 
     // Accumulate the Obscurance for each samples
     float sum = 0.0;
