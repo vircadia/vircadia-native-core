@@ -1314,7 +1314,13 @@ function MyController(hand) {
                 Reticle.keyboardFocusEntity = focusedEntity;
             }
 
-            Reticle.sendEntityTouchUpdateEvent(focusedEntity, this.hand, intersectionPoint);
+            if (!this.triggerSmoothedGrab()) {
+                // send mouse events for button highlights and tooltips
+                Reticle.sendEntityMouseMoveEvent(focusedEntity, intersectionPoint);
+            } else {
+                // but send touch updates when grab is pressed.
+                Reticle.sendEntityTouchUpdateEvent(focusedEntity, this.hand, intersectionPoint);
+            }
 
             if (this.triggerSmoothedGrab() && !this.lastTriggerSmoothedGrab) {
                 Reticle.sendEntityTouchBeginEvent(focusedEntity, this.hand, intersectionPoint);
