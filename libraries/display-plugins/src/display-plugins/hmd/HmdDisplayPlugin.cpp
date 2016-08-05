@@ -177,7 +177,6 @@ void HmdDisplayPlugin::internalPresent() {
     hmdPresent();
 
     if (_enablePreview) {
-        glFinish();
         auto startSwapTime = usecTimestampNow();
         swapBuffers();
         auto swapTime = usecTimestampNow() - startSwapTime;
