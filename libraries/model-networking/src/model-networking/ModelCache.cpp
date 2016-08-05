@@ -403,6 +403,8 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
 void GeometryResourceWatcher::resourceFinished(bool success) {
     if (success) {
         _geometryRef = std::make_shared<Geometry>(*_resource);
+    } else {
+        emit resourceFailed();
     }
 }
 

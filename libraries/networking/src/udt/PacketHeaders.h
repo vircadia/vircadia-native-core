@@ -98,7 +98,8 @@ public:
         NegotiateAudioFormat,
         SelectedAudioFormat,
         MoreEntityShapes,
-        LAST_PACKET_TYPE = MoreEntityShapes
+        NodeKickRequest,
+        LAST_PACKET_TYPE = NodeKickRequest
     };
 };
 

@@ -102,13 +102,17 @@ Model::Model(RigPointer rig, QObject* parent) :
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
     _isWireframe(false),
-    _rig(rig) {
+    _rig(rig)
+{
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
     }
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
+
+    // handle download failure reported by the GeometryResourceWatcher
+    connect(&_renderWatcher, &GeometryResourceWatcher::resourceFailed, this, &Model::handleGeometryResourceFailure);
 }
 
 Model::~Model() {
@@ -818,6 +822,7 @@ void Model::setURL(const QUrl& url) {
     _needsReload = true;
     _needsUpdateTextures = true;
     _meshGroupsKnown = false;
+    _geometryRequestFailed = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
