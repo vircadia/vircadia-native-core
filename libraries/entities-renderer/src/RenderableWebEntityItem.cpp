@@ -214,7 +214,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio));
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
