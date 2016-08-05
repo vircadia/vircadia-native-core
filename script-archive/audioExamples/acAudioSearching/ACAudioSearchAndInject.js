@@ -40,7 +40,7 @@ var DEFAULT_SOUND_DATA = {
 
 Script.include("../../libraries/utils.js");
 Agent.isAvatar = true; // This puts a robot at 0,0,0, but is currently necessary in order to use AvatarList.
-Avatar.skeletonModelURL = "http://invalid-url";
+Avatar.skeletonModelURL = "http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/invisible_avatar/invisible_avatar.fst";
 function ignore() {}
 function debug() { // Display the arguments not just [Object object].
     //print.apply(null, [].map.call(arguments, JSON.stringify));

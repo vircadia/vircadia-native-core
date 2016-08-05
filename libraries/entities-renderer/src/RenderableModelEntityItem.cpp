@@ -919,7 +919,9 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
 bool RenderableModelEntityItem::shouldBePhysical() const {
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (_model && _model->didGeometryRequestFail()) {
+    if (_model && getShapeType() == SHAPE_TYPE_COMPOUND && _model->didCollisionGeometryRequestFail()) {
+        return false;
+    } else if (_model && getShapeType() != SHAPE_TYPE_NONE && _model->didVisualGeometryRequestFail()) {
         return false;
     } else {
         return ModelEntityItem::shouldBePhysical();
