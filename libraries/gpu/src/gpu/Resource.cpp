@@ -20,66 +20,7 @@
 
 using namespace gpu;
 
-class AllocationDebugger {
-public:
-    void operator+=(size_t size) {
-        _allocatedMemory += size;
-        maybeReport();
-    }
-
-    void operator-=(size_t size) {
-        _allocatedMemory -= size;
-        maybeReport();
-    }
-
-private:
-    QString formatSize(size_t size) {
-        float num = size;
-        QStringList list;
-        list << "KB" << "MB" << "GB" << "TB";
-
-        QStringListIterator i(list);
-        QString unit("bytes");
-
-        while (num >= K && i.hasNext()) {
-            unit = i.next();
-            num /= K;
-        }
-        return QString().setNum(num, 'f', 2) + " " + unit;
-    }
-
-    void maybeReport() {
-        auto now = usecTimestampNow();
-        if (now - _lastReportTime < MAX_REPORT_FREQUENCY) {
-            return;
-        }
-        size_t current = _allocatedMemory;
-        size_t last = _lastReportedMemory;
-        size_t delta = (current > last) ? (current - last) : (last - current);
-        if (delta > MIN_REPORT_DELTA) {
-            _lastReportTime = now;
-            _lastReportedMemory = current;
-            qDebug() << "Total allocation " << formatSize(current);
-        }
-    }
-
-    std::atomic<size_t> _allocatedMemory;
-    std::atomic<size_t> _lastReportedMemory;
-    std::atomic<uint64_t> _lastReportTime;
-
-    static const float K;
-    // Report changes of 5 megabytes
-    static const size_t MIN_REPORT_DELTA = 1024 * 1024 * 5;
-    // Report changes no more frequently than every 15 seconds
-    static const uint64_t MAX_REPORT_FREQUENCY = USECS_PER_SECOND * 15;
-};
-
-const float AllocationDebugger::K = 1024.0f;
-
-static AllocationDebugger allocationDebugger;
-
 Size Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
-    allocationDebugger += size;
     if ( !dataAllocated ) { 
         qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
         return NOT_ALLOCATED;
@@ -103,7 +44,6 @@ Size Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
 }
 
 void Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
-    allocationDebugger -= size;
     if (dataAllocated) {
         delete[] dataAllocated;
     }
