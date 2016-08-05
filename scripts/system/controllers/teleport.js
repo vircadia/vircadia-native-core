@@ -94,6 +94,7 @@ function Teleporter() {
     this.rightOverlayLine = null;
     this.leftOverlayLine = null;
     this.targetOverlay = null;
+    this.cancelOverlay = null;
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
@@ -104,19 +105,6 @@ function Teleporter() {
         this.disableGrab();
     };
 
-    this.createTargetOverlay = function() {
-
-        if (_this.targetOverlay !== null) {
-            return;
-        }
-        var targetOverlayProps = {
-            url: TARGET_MODEL_URL,
-            dimensions: TARGET_MODEL_DIMENSIONS,
-            visible: true
-        };
-
-        _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
-    };
 
     this.createMappings = function() {
         teleporter.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
@@ -152,6 +140,50 @@ function Teleporter() {
         this.updateConnected = true;
     };
 
+
+    this.createTargetOverlay = function() {
+
+        if (_this.targetOverlay !== null) {
+            return;
+        }
+        var targetOverlayProps = {
+            url: TARGET_MODEL_URL,
+            dimensions: TARGET_MODEL_DIMENSIONS,
+            visible: true
+        };
+
+        var cancelOverlayProps = {
+            url: TOO_CLOSE_MODEL_URL,
+            dimensions: TARGET_MODEL_DIMENSIONS,
+            visible: true
+        };
+
+        _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
+
+    };
+
+    this.createCancelOverlay = function() {
+
+        if (_this.cancelOverlay !== null) {
+            return;
+        }
+
+        var cancelOverlayProps = {
+            url: TOO_CLOSE_MODEL_URL,
+            dimensions: TARGET_MODEL_DIMENSIONS,
+            visible: true
+        };
+
+        _this.cancelOverlay = Overlays.addOverlay("model", cancelOverlayProps);
+    };
+
+    this.deleteCancelOverlay = function() {
+        if (this.cancelOverlay === null) {
+            return;
+        }
+        Overlays.deleteOverlay(this.cancelOverlay);
+        this.cancelOverlay = null;
+    }
 
     this.deleteTargetOverlay = function() {
         if (this.targetOverlay === null) {
@@ -245,16 +277,26 @@ function Teleporter() {
 
         if (rightIntersection.intersects) {
             if (this.tooClose === true) {
+                this.deleteTargetOverlay();
+
                 this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                if (this.cancelOverlay !== null) {
+                    this.updateCancelOverlay(rightIntersection);
+                } else {
+                    this.createCancelOverlay();
+                }
             } else {
+                this.deleteCancelOverlay();
+
                 this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+                if (this.targetOverlay !== null) {
+                    this.updateTargetOverlay(rightIntersection);
+                } else {
+                    this.createTargetOverlay();
+                }
+
             }
 
-            if (this.targetOverlay !== null) {
-                this.updateTargetOverlay(rightIntersection);
-            } else {
-                this.createTargetOverlay();
-            }
 
         } else {
 
@@ -290,18 +332,25 @@ function Teleporter() {
         if (leftIntersection.intersects) {
 
             if (this.tooClose === true) {
+                this.deleteTargetOverlay();
                 this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
-
+                if (this.cancelOverlay !== null) {
+                    this.updateCancelOverlay(leftIntersection);
+                } else {
+                    this.createCancelOverlay();
+                }
             } else {
+                this.deleteCancelOverlay();
                 this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+
+                if (this.targetOverlay !== null) {
+                    this.updateTargetOverlay(leftIntersection);
+                } else {
+                    this.createTargetOverlay();
+                }
+
             }
 
-
-            if (this.targetOverlay !== null) {
-                this.updateTargetOverlay(leftIntersection);
-            } else {
-                this.createTargetOverlay();
-            }
 
         } else {
 
@@ -385,13 +434,39 @@ function Teleporter() {
         }
 
         this.tooClose = isTooCloseToTeleport(position);
+        var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
+
 
         Overlays.editOverlay(this.targetOverlay, {
-            url: this.tooClose ? TOO_CLOSE_MODEL_URL : TARGET_MODEL_URL,
             position: position,
-            rotation: Quat.fromPitchYawRollDegrees(0, euler.y, 0),
+            rotation: towardUs,
         });
 
+
+
+    };
+
+
+    this.updateCancelOverlay = function(intersection) {
+        _this.intersection = intersection;
+
+        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP)
+        var euler = Quat.safeEulerAngles(rotation)
+        var position = {
+            x: intersection.intersection.x,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
+            z: intersection.intersection.z
+        }
+
+        this.tooClose = isTooCloseToTeleport(position);
+        var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
+
+
+
+        Overlays.editOverlay(this.cancelOverlay, {
+            position: position,
+            rotation: towardUs,
+        });
     };
 
     this.disableGrab = function() {
@@ -414,9 +489,9 @@ function Teleporter() {
         }
 
         if (this.intersection !== null) {
-            if (this.tooClose===true) {
-                this.deleteTargetOverlay();
+            if (this.tooClose === true) {
                 this.exitTeleportMode();
+                this.deleteCancelOverlay();
                 return;
             }
             var offset = getAvatarFootOffset();
@@ -465,6 +540,7 @@ function Teleporter() {
 
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
                 _this.deleteTargetOverlay();
+                _this.deleteCancelOverlay();
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
@@ -609,6 +685,7 @@ function cleanup() {
     teleportMapping.disable();
     teleporter.disableMappings();
     teleporter.deleteTargetOverlay();
+    teleporter.deleteCancelOverlay();
     teleporter.turnOffOverlayBeams();
     if (teleporter.updateConnected !== null) {
         Script.update.disconnect(teleporter.update);
