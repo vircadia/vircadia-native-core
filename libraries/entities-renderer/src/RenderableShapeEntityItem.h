@@ -21,17 +21,17 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) { _procedural.reset(nullptr); }
+    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
 
     void render(RenderArgs* args) override;
     void setUserData(const QString& value) override;
 
-//    bool isTransparent() override;
-
-    SIMPLE_RENDERABLE();
+    bool isTransparent() override;
 
 private:
-    QSharedPointer<Procedural> _procedural;
+    std::unique_ptr<Procedural> _procedural { nullptr };
+
+    SIMPLE_RENDERABLE();
 };
 
 

@@ -71,13 +71,13 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
     }
 }
 
-/*bool RenderableShapeEntityItem::isTransparent() {
+bool RenderableShapeEntityItem::isTransparent() {
     if (_procedural && _procedural->ready()) {
         return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
     } else {
         return EntityItem::isTransparent();
     }
-}*/
+}
 
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
@@ -91,7 +91,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         _procedural->_fragmentSource = simple_frag;
         _procedural->_state->setCullMode(gpu::State::CULL_NONE);
         _procedural->_state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        _procedural->_state->setBlendFunction(false,
+        _procedural->_state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }

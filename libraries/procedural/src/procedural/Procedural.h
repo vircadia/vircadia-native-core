@@ -109,6 +109,7 @@ private:
     void setupChannels(bool shouldCreate);
 
     quint64 _fadeStartTime;
+    bool _hasStartedFade { false };
 };
 
 #endif
