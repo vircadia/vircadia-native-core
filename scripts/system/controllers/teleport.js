@@ -55,7 +55,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 };
 
 
-var TELEPORT_CANCEL_RANGE = 1.25;
+var TELEPORT_CANCEL_RANGE = 1.5;
 
 function ThumbPad(hand) {
     this.hand = hand;
