@@ -386,7 +386,6 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto renderSize = getRecommendedRenderSize();
     _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
-
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
@@ -545,6 +544,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         PROFILE_RANGE_EX("compositeScene", 0xff0077ff, (uint64_t)presentCount())
         compositeScene();
     }
+
     {
         PROFILE_RANGE_EX("compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
         compositeOverlay();
@@ -554,6 +554,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         PROFILE_RANGE_EX("compositePointer", 0xff0077ff, (uint64_t)presentCount())
         compositePointer();
     }
+
     {
         PROFILE_RANGE_EX("compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
@@ -579,7 +580,6 @@ void OpenGLDisplayPlugin::present() {
 
     incrementPresentCount();
     if (_currentFrame) {
-        _backend->syncCache();
         _backend->setStereoState(_currentFrame->stereoState);
         {
             PROFILE_RANGE_EX("execute", 0xff00ff00, (uint64_t)presentCount())
@@ -587,7 +587,6 @@ void OpenGLDisplayPlugin::present() {
             for (auto& batch : _currentFrame->batches) {
                 _backend->render(batch);
             }
-
         }
 
         // Write all layers to a local framebuffer

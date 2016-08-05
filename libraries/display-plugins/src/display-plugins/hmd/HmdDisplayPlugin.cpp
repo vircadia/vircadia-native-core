@@ -1,4 +1,4 @@
-//
+﻿//
 //  Created by Bradley Austin Davis on 2016/02/15
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -124,10 +124,7 @@ void HmdDisplayPlugin::uncustomizeContext() {
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
-    // Composite together the scene, overlay and mouse cursor
-    hmdPresent();
-
-    if (false && _enablePreview) {
+    if (_enablePreview) {
         // screen preview mirroring
         auto window = _container->getPrimaryWidget();
         auto devicePixelRatio = window->devicePixelRatio();
@@ -154,25 +151,39 @@ void HmdDisplayPlugin::internalPresent() {
             targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
         }
 
-        render([&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.clearViewTransform();
-            batch.setFramebuffer(gpu::FramebufferPointer());
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setViewportTransform(ivec4(uvec2(0), windowSize));
-            if (_monoPreview) {
-                batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-                targetViewportSize.x *= 2;
-                batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-            } else {
-                batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-                batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-            }
-            batch.setResourceTexture(0, _compositeTexture);
-            batch.setPipeline(_presentPipeline);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
+        if (_currentFrame && _currentFrame->framebuffer) {
+            render([&](gpu::Batch& batch) {
+                batch.enableStereo(false);
+                batch.clearViewTransform();
+                batch.setFramebuffer(gpu::FramebufferPointer());
+                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+                batch.setViewportTransform(ivec4(uvec2(0), windowSize));
+                if (_monoPreview) {
+                    batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+                    targetViewportSize.x *= 2;
+                    batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+                } else {
+                    batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
+                    batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
+                }
+                batch.setResourceTexture(0, _compositeTexture);
+                batch.setPipeline(_presentPipeline);
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+        }
+    }
+
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
+
+    if (_enablePreview) {
+        glFinish();
+        auto startSwapTime = usecTimestampNow();
         swapBuffers();
+        auto swapTime = usecTimestampNow() - startSwapTime;
+        if (swapTime > USECS_PER_MSEC) {
+            qDebug() << "Swap took " << swapTime << " us";
+        }
     }
 
     postPreview();
