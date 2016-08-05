@@ -24,7 +24,18 @@ function confirmShare(data) {
     if (!Window.confirm("Share snapshot " + data.localPath + "?")) { // This dialog will be more elaborate...
         return;
     }
-    Window.alert("Pretending to upload. That code will go here.");
+    Window.snapshotShared.connect(snapshotShared);
+    Window.shareSnapshot(data.localPath); 
+}
+
+function snapshotShared(success) {
+    if(success) {
+        // for now just print status
+        print('snapshot uploaded and shared');
+    } else {
+        // for now just print an error.
+        print('snapshot upload/share failed');
+    } 
 }
 
 function onClicked() {

@@ -55,12 +55,14 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify);
+    void shareSnapshot(const QString& path);
 
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
     void snapshotTaken(const QString& path, bool notify);
+    void snapshotShared(bool success);
 
 private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);

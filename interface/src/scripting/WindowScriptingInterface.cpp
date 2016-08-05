@@ -202,7 +202,13 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
 
 void WindowScriptingInterface::takeSnapshot(bool notify) {
     // only evil-doers call takeSnapshot from a random thread
-    qApp->postLambdaEvent([&] {
+    qApp->postLambdaEvent([notify] {
         qApp->takeSnapshot(notify);
+    });
+}
+
+void WindowScriptingInterface::shareSnapshot(const QString& path) {
+    qApp->postLambdaEvent([path] {
+        qApp->shareSnapshot(path);
     });
 }
