@@ -526,6 +526,13 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return; // bail asap
     }
 
+    // When an individual mesh parts like this finishes its fade, we will mark the Model as 
+    // having render items that need updating
+    if (_wasFading && !isStillFading()) {
+        _model->setRenderItemsNeedUpdate();
+    }
+    _wasFading = isStillFading();
+
     gpu::Batch& batch = *(args->_batch);
 
     if (!getShapeKey().isValid()) {

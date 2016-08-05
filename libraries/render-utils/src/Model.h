@@ -103,6 +103,8 @@ public:
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
+    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
 
     bool maybeStartBlender();
@@ -395,6 +397,8 @@ protected:
     uint32_t _deleteGeometryCounter { 0 };
 
     bool _geometryRequestFailed { false };
+
+    bool _renderItemsNeedUpdate { false };
 
 private slots:
     void handleGeometryResourceFailure() { _geometryRequestFailed = true; }
