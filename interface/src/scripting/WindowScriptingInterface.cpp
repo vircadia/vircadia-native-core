@@ -96,7 +96,7 @@ void WindowScriptingInterface::alert(const QString& message) {
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message)));
+    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No)));
 }
 
 /// Display a prompt with a text box
