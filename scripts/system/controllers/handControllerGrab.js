@@ -107,7 +107,10 @@ var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for ne
 
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
-var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
+
+// if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
+var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
+var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimention of held item, > this means drop
 
 //
 // other constants
@@ -219,6 +222,17 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
 };
+
+function getMaxDimensions(props) {
+    var maxDimension = props.dimensions.x;
+    if (props.dimensions.y > maxDimension) {
+        maxDimension = props.dimensions.y;
+    }
+    if (props.dimensions.z > maxDimension) {
+        maxDimension = props.dimensions.z;
+    }
+    return maxDimension;
+}
 
 function stateToName(state) {
     return CONTROLLER_STATE_MACHINE[state] ? CONTROLLER_STATE_MACHINE[state].name : "???";
@@ -1818,7 +1832,8 @@ function MyController(hand) {
 
         this.heartBeat(this.grabbedEntity);
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
+                                                                      "position", "rotation", "dimensions"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1830,10 +1845,11 @@ function MyController(hand) {
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
+            var maxDimension = getMaxDimensions(props);
             if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > NEAR_GRAB_MAX_DISTANCE) {
+                Vec3.length(props.localPosition) > maxDimension * AUTO_UNEQUIP_DISTANCE_FACTOR) {
                 var handPosition = this.getHandPosition();
-                // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
+                // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
                 var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
