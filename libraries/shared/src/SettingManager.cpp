@@ -53,7 +53,7 @@ namespace Setting {
         const auto& key = handle->getKey();
         withWriteLock([&] {
             QVariant loadedValue;
-            if (_pendingChanges.contains(key)) {
+            if (_pendingChanges.contains(key) && _pendingChanges[key] != UNSET_VALUE) {
                 loadedValue = _pendingChanges[key];
             } else {
                 loadedValue = value(key);

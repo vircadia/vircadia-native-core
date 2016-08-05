@@ -314,6 +314,14 @@ ScrollingWindow {
         });
     }
 
+    Timer {
+        id: doUploadTimer
+        property var url
+        property bool isConnected: false
+        interval: 5
+        repeat: false
+        running: false
+    }
 
     property var uploadOpen: false;
     Timer {
@@ -366,6 +374,10 @@ ScrollingWindow {
             }, dropping);
         }
 
+        function initiateUpload(url) {
+            doUpload(doUploadTimer.url, false);
+        }
+
         if (fileUrl) {
             doUpload(fileUrl, true);
         } else {
@@ -373,12 +385,21 @@ ScrollingWindow {
                 selectDirectory: false,
                 dir: currentDirectory
             });
+
             browser.canceled.connect(function() {
                 uploadOpen = false;
             });
+
             browser.selectedFile.connect(function(url) {
                 currentDirectory = browser.dir;
-                doUpload(url, false);
+
+                // Initiate upload from a timer so that file browser dialog can close beforehand.
+                doUploadTimer.url = url;
+                if (!doUploadTimer.isConnected) {
+                    doUploadTimer.triggered.connect(function() { initiateUpload(); });
+                    doUploadTimer.isConnected = true;
+                }
+                doUploadTimer.start();
             });
         }
     }
