@@ -2,12 +2,15 @@
     "name": "Oculus Touch to Standard",
     "channels": [
         { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb" },
-        { "from": "OculusTouch.B", "to": "Standard.RightSecondaryThumb" },
         { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb" },
-        { "from": "OculusTouch.Y", "to": "Standard.LeftSecondaryThumb" },
 
-        { "from": "OculusTouch.LY", "filters": "invert", "to": "Standard.LY" },
-        { "from": "OculusTouch.LX", "to": "Standard.LX" },
+        { "from": "OculusTouch.LY", "to": "Standard.LY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "OculusTouch.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
         { "from": "OculusTouch.LT", "to": "Standard.LTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
@@ -17,8 +20,13 @@
         { "from": "OculusTouch.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "OculusTouch.LeftHand", "to": "Standard.LeftHand" },
 
-        { "from": "OculusTouch.RY", "filters": "invert", "to": "Standard.RY" },
-        { "from": "OculusTouch.RX", "to": "Standard.RX" },
+        { "from": "OculusTouch.RY", "to": "Standard.RY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "OculusTouch.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
         { "from": "OculusTouch.RT", "to": "Standard.RTClick",  
             "peek": true,
             "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
