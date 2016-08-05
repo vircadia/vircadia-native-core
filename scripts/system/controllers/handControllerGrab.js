@@ -110,7 +110,7 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 
 // if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
-var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimention of held item, > this means drop
+var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimension of held item, > this means drop
 
 //
 // other constants
