@@ -35,7 +35,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 
     glm::vec3 color = toGlm(getXColor());
 
-    float intensity = getIntensity();
+    float intensity = getIntensity() * Interpolate::calculateFadeRatio(_fadeStartTime);
     float falloffRadius = getFalloffRadius();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
