@@ -70,15 +70,15 @@ var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance 
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 
 var COLORS_GRAB_SEARCHING_HALF_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 10,
+    green: 10,
+    blue: 255
 };
 
 var COLORS_GRAB_SEARCHING_FULL_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 250,
+    green: 10,
+    blue: 10
 };
 
 var COLORS_GRAB_DISTANCE_HOLD = {
@@ -1338,7 +1338,7 @@ function MyController(hand) {
                 if (this.triggerSmoothedGrab()) {
                     this.grabbedHotspot = potentialEquipHotspot;
                     this.grabbedEntity = potentialEquipHotspot.entityID;
-                    this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
+                    this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
                     return;
                 }
             }
@@ -1447,7 +1447,7 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','both');
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
@@ -1603,7 +1603,9 @@ function MyController(hand) {
 
         // visualizations
 
-        this.overlayLineOn(handPosition, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+         var rayPickInfo = this.calcRayPickInfo(this.hand);
+
+       this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -1703,7 +1705,14 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
+        if (this.hand === 0) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
 
+        }
+        if (this.hand === 1) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
+
+        }
         this.lineOff();
         this.overlayLineOff();
 
@@ -2030,6 +2039,7 @@ function MyController(hand) {
     };
 
     this.release = function() {
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2423,9 +2433,20 @@ var handleHandMessages = function(channel, message, sender) {
             try {
                 data = JSON.parse(message);
                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                var hotspotIndex = data.hotspotIndex !== undefined ? parseInt(data.hotspotIndex) : 0;
                 selectedController.release();
+                var wearableEntity = data.entityID;
+                entityPropertiesCache.addEntity(wearableEntity);
+                selectedController.grabbedEntity = wearableEntity;
+                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedEntity);
+                if (hotspots.length > 0) {
+                    if (hotspotIndex >= hotspots.length) {
+                        hotspotIndex = 0;
+                    }
+                    selectedController.grabbedHotspot = hotspots[hotspotIndex];
+                }
                 selectedController.setState(STATE_HOLD, "Hifi-Hand-Grab msg received");
-                selectedController.grabbedEntity = data.entityID;
+                selectedController.nearGrabbingEnter();
 
             } catch (e) {
                 print("WARNING: error parsing Hifi-Hand-Grab message");

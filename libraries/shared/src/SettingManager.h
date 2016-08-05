@@ -46,7 +46,7 @@ namespace Setting {
     private:
         QHash<QString, Interface*> _handles;
         QPointer<QTimer> _saveTimer = nullptr;
-        const QVariant UNSET_VALUE { QUuid::createUuid().variant() };
+        const QVariant UNSET_VALUE { QUuid::createUuid() };
         QHash<QString, QVariant> _pendingChanges;
 
         friend class Interface;
