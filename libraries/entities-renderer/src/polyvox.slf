@@ -23,7 +23,6 @@ uniform sampler2D xMap;
 uniform sampler2D yMap;
 uniform sampler2D zMap;
 uniform vec3 voxelVolumeSize;
-uniform float alpha;
 
 void main(void) {
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
@@ -42,23 +41,13 @@ void main(void) {
     vec3 yzDiffuseScaled = yzDiffuse.rgb * abs(worldNormal.x);
     vec4 diffuse = vec4(xyDiffuseScaled + xzDiffuseScaled + yzDiffuseScaled, 1.0);
 
-    const float ALPHA_THRESHOLD = 0.999;
-    if (alpha < ALPHA_THRESHOLD) {
-        packDeferredFragmentTranslucent(
-            _normal,
-            alpha,
-            vec3(diffuse),
-            DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
-    } else {
-        packDeferredFragment(
-            _normal,
-            1.0,
-            vec3(diffuse),
-            DEFAULT_ROUGHNESS,
-            DEFAULT_METALLIC,
-            DEFAULT_EMISSIVE,
-            DEFAULT_OCCLUSION,
-            DEFAULT_SCATTERING);
-    }
+    packDeferredFragment(
+        _normal,
+        1.0,
+        vec3(diffuse),
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
 }
