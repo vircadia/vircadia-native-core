@@ -84,7 +84,7 @@ public:
     QList<QUuid> getBlacklistGroupIDs();
 
     // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
-    void clearGroupMemberships(const QString& name) { _groupMembership[name].clear(); }
+    void clearGroupMemberships(const QString& name) { _groupMembership[name.toLower()].clear(); }
     void recordGroupMembership(const QString& name, const QUuid groupID, QUuid rankID);
     QUuid isGroupMember(const QString& name, const QUuid& groupID); // returns rank or -1 if not a member
 
