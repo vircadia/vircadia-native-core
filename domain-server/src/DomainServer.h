@@ -42,6 +42,12 @@ public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
 
+    enum DomainType {
+        NonMetaverse,
+        MetaverseDomain,
+        MetaverseTemporaryDomain
+    };
+
     static int const EXIT_CODE_REBOOT;
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
@@ -194,6 +200,8 @@ private:
     int _noReplyICEHeartbeats { 0 };
     int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
+
+    DomainType _type { DomainType::NonMetaverse };
 
     friend class DomainGatekeeper;
     friend class DomainMetadata;
