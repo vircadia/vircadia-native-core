@@ -18,6 +18,8 @@
 // but GL implementations usually just come with buffer sizes in multiples of 8)
 #define DEFAULT_GL_STENCIL_BUFFER_BITS 8
 
+class QObject;
+class QOpenGLDebugMessage;
 class QSurfaceFormat;
 class QGLFormat;
 
@@ -30,5 +32,14 @@ QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);
 
 bool isRenderThread();
+
+
+class GLDebug {
+public:
+    static bool enabled();
+    static void log(const QOpenGLDebugMessage& debugMessage);
+    static void setupLogger(QObject* window = nullptr);
+};
+
 
 #endif
