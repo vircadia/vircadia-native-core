@@ -231,6 +231,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 void OpenVrDisplayPlugin::hmdPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
+    glFlush();
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds { 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds { 0.5f, 0, 1, 1 };
@@ -239,20 +240,10 @@ void OpenVrDisplayPlugin::hmdPresent() {
 
     _compositor->Submit(vr::Eye_Left, &vrTexture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, &vrTexture, &rightBounds);
+    _compositor->PostPresentHandoff();
 }
 
 void OpenVrDisplayPlugin::postPreview() {
-    // Clear
-    {
-        PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
-        // We want to make sure the glFinish waits for the entire present to complete, not just the submission
-        // of the command. So, we do a clear here right here so the glFinish will wait fully for the swap.
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glFlush();
-    }
-
-    // Flush and wait for swap.
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
