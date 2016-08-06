@@ -59,29 +59,27 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
     const uint8 OPAQUE_ALPHA = 255;
     const uint8 TRANSPARENT_ALPHA = 0;
     if (image.hasAlphaChannel()) {
-        std::map<uint8, uint32> alphaHistogram;
-
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-
-        // Actual alpha channel? create the histogram
-        for (int y = 0; y < image.height(); ++y) {
+        // Count the opaque and transparent pixels
+        int numOpaques = 0;
+        int numTransparents = 0;
+        int height = image.height();
+        int width = image.width();
+        for (int y = 0; y < height; ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
-            for (int x = 0; x < image.width(); ++x) {
+            for (int x = 0; x < width; ++x) {
                 auto alpha = qAlpha(data[x]);
-                alphaHistogram[alpha] ++;
-                validAlpha = validAlpha || (alpha != OPAQUE_ALPHA);
+                numOpaques += (int)(alpha == OPAQUE_ALPHA);
+                numTransparents += (int)(alpha == TRANSPARENT_ALPHA);
             }
         }
 
         // If alpha was meaningfull refine
-        if (validAlpha && (alphaHistogram.size() > 1)) {
-            auto totalNumPixels = image.height() * image.width();
-            auto numOpaques = alphaHistogram[OPAQUE_ALPHA];
-            auto numTransparents = alphaHistogram[TRANSPARENT_ALPHA];
+        auto totalNumPixels = height * width;
+        if (numOpaques != totalNumPixels) {
             auto numTranslucents = totalNumPixels - numOpaques - numTransparents;
-
             alphaAsMask = ((numTranslucents / (double)totalNumPixels) < 0.05);
         }
     }
