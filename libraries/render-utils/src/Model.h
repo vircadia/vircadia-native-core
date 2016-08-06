@@ -103,6 +103,8 @@ public:
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
+    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
 
     bool maybeStartBlender();
@@ -405,6 +407,12 @@ protected:
 
     bool _visualGeometryRequestFailed { false };
     bool _collisionGeometryRequestFailed { false };
+    bool _geometryRequestFailed { false };
+
+    bool _renderItemsNeedUpdate { false };
+
+private slots:
+    void handleGeometryResourceFailure() { _geometryRequestFailed = true; }
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

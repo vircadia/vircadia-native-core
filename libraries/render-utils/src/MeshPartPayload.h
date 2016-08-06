@@ -12,6 +12,8 @@
 #ifndef hifi_MeshPartPayload_h
 #define hifi_MeshPartPayload_h
 
+#include <Interpolate.h>
+
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
@@ -85,6 +87,7 @@ public:
     void startFade() { _fadeStartTime = usecTimestampNow(); }
     bool hasStartedFade() { return _hasStartedFade; }
     void setHasStartedFade(bool hasStartedFade) { _hasStartedFade = hasStartedFade; }
+    bool isStillFading() const { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -108,6 +111,7 @@ public:
 private:
     quint64 _fadeStartTime { 0 };
     bool _hasStartedFade { false };
+    mutable bool _wasFading { false };
 };
 
 namespace render {
