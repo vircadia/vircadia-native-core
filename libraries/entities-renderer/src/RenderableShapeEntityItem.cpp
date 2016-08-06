@@ -75,7 +75,7 @@ bool RenderableShapeEntityItem::isTransparent() {
     if (_procedural && _procedural->ready()) {
         return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
     } else {
-        return EntityItem::isTransparent();
+        return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
     }
 }
 
