@@ -223,17 +223,6 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     updateMethod: "farTrigger"
 };
 
-function getMaxDimensions(props) {
-    var maxDimension = props.dimensions.x;
-    if (props.dimensions.y > maxDimension) {
-        maxDimension = props.dimensions.y;
-    }
-    if (props.dimensions.z > maxDimension) {
-        maxDimension = props.dimensions.z;
-    }
-    return maxDimension;
-}
-
 function stateToName(state) {
     return CONTROLLER_STATE_MACHINE[state] ? CONTROLLER_STATE_MACHINE[state].name : "???";
 }
@@ -1845,9 +1834,7 @@ function MyController(hand) {
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
-            var maxDimension = getMaxDimensions(props);
-            if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > maxDimension * AUTO_UNEQUIP_DISTANCE_FACTOR) {
+            if (props.parentID == MyAvatar.sessionUUID) {
                 var handPosition = this.getHandPosition();
                 // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
