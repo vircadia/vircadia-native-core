@@ -14,6 +14,13 @@
 using namespace gpu;
 using namespace gpu::gl;
 
+bool GLBackend::isTextureReady(const TexturePointer& texture) const {
+    // DO not transfer the texture, this call is expected for rendering texture
+    GLTexture* object = syncGPUObject(texture, true);
+    return object && object->isReady();
+}
+
+
 void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
     if (!resourceTexture) {

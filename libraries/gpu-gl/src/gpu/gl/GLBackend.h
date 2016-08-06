@@ -163,6 +163,7 @@ public:
 
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) const = 0;
     virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const = 0;
+    virtual bool isTextureReady(const TexturePointer& texture) const;
 
     virtual void releaseBuffer(GLuint id, Size size) const;
     virtual void releaseTexture(GLuint id, Size size) const;
