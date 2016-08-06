@@ -34,10 +34,7 @@ public:
     void updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
-    
-    void setResolutionLevel(int level);
-    int getResolutionLevel() const { return _resolutionLevel; }
-    
+        
 protected:
     void clear();
     void allocate();
@@ -52,7 +49,6 @@ protected:
     
     
     glm::ivec2 _frameSize;
-    int _resolutionLevel{ 0 };
 };
 
 using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFramebuffer>;
@@ -98,7 +94,7 @@ public:
     float blurDeviation{ 2.5f };
     float numSpiralTurns{ 7.0f }; // defining an angle span to distribute the samples ray directions
     int numSamples{ 11 };
-    int resolutionLevel{ 0 };
+    int resolutionLevel{ 1 };
     int blurRadius{ 3 }; // 0 means no blurring
     bool ditheringEnabled{ true }; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true

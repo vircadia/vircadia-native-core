@@ -25,6 +25,7 @@ Column {
                     "Level:obscuranceLevel:1.0:false",
                     "Num Taps:numSamples:32:true",
                     "Taps Spiral:numSpiralTurns:10.0:false",
+                    "Falloff Bias:falloffBias:0.2:false",
                     "Blur Radius:blurRadius:10.0:false",
                 ]
                 ConfigSlider {

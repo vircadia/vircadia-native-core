@@ -133,11 +133,11 @@ float getBlurCoef(int c) {
 <@func declareSamplingDisk()@>
 
 float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
-    vec3 worldPosFract = fract(pixelWorldPos * 0.2);
+    vec3 worldPosFract = fract(pixelWorldPos * 0.4);
 
     ivec3 pixelPos = ivec3(worldPosFract * 256);
 
-    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+    return isDitheringEnabled() * ((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10 + getFrameDithering();
 }
 
 float getAngleDithering(in ivec2 pixelPos) {
@@ -217,7 +217,8 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
     if (redoTap) {
         tap.xy = tapPos - pixelPos;
         tap.z = length(tap.xy);
-    }
+        tap.z = 0;  
+	}
     
     return tap;
 }
@@ -231,8 +232,8 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
 // the depth pyramid texture
 uniform sampler2D pyramidMap;
 
-float getZEye(ivec2 pixel) {
-    return -texelFetch(pyramidMap, pixel, getResolutionLevel()).x;
+float getZEye(ivec2 pixel, int level) {
+    return -texelFetch(pyramidMap, pixel, level).x;
 }
 
 const int LOG_MAX_OFFSET = 3;
@@ -265,6 +266,22 @@ vec3 getOffsetPosition(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     // Offset to pixel center
     P = evalEyePositionFromZeye(side.x, P.z, tapUV);
     return P;
+}
+
+<@endfunc@>
+
+
+<@func declareEvalObscurance()@>
+
+float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
+    vec3 v = Q - C;
+    float vv = dot(v, v);
+    float vn = dot(v, n_C);
+
+    // Fall off function as recommended in SAO paper
+    const float epsilon = 0.01;
+    float f = max(getRadius2() - vv, 0.0);
+    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
 }
 
 <@endfunc@>

@@ -111,13 +111,6 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionBlurredTexture() {
     return _occlusionBlurredTexture;
 }
 
-void AmbientOcclusionFramebuffer::setResolutionLevel(int resolutionLevel) {
-    if (resolutionLevel != getResolutionLevel()) {
-        clear();
-        _resolutionLevel = resolutionLevel;
-    }
-}
-
 
 class GaussianDistribution {
 public:
@@ -240,20 +233,11 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.perspectiveScale != _parametersBuffer->getPerspectiveScale()) {
         _parametersBuffer->resolutionInfo.z = config.perspectiveScale;
     }
-    _framebuffer->setResolutionLevel(config.resolutionLevel);
     if (config.resolutionLevel != _parametersBuffer->getResolutionLevel()) {
-        _parametersBuffer->resolutionInfo.w = config.resolutionLevel;
+		auto& current = _parametersBuffer->resolutionInfo;
+		current.x = (float) config.resolutionLevel;
     }
  
-    const auto& resolutionLevel = config.resolutionLevel;
-    if (resolutionLevel != _parametersBuffer->getResolutionLevel()) {
-        auto& current = _parametersBuffer->resolutionInfo;
-        current.x = (float)resolutionLevel;
-
-        // Communicate the change to the Framebuffer cache
-       // DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(resolutionLevel);
-    }
-
     if (config.blurRadius != _parametersBuffer->getBlurRadius()) {
         auto& current = _parametersBuffer->blurInfo;
         current.y = (float)config.blurRadius;
@@ -355,17 +339,11 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     RenderArgs* args = renderContext->args;
 
-    // FIXME: Different render modes should have different tasks
-//    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
-//        return;
-//    }
-
     const auto frameTransform = inputs.get0();
     const auto deferredFramebuffer = inputs.get1();
     const auto linearDepthFramebuffer = inputs.get2();
     
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
-    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
     auto sourceViewport = args->_viewport;
     auto occlusionViewport = sourceViewport;
 
@@ -373,10 +351,9 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
     
-    if (_framebuffer->getResolutionLevel() > 0) {
+	if (_parametersBuffer->getResolutionLevel() > 0) {
         linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
-        normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
-        occlusionViewport = occlusionViewport >> _framebuffer->getResolutionLevel();
+		occlusionViewport = occlusionViewport >> _parametersBuffer->getResolutionLevel();
     }
 
     _framebuffer->updateLinearDepth(linearDepthTexture);
@@ -390,10 +367,10 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
     
-    float sMin = args->_viewport.x / (float)framebufferSize.x;
-    float sWidth = args->_viewport.z / (float)framebufferSize.x;
-    float tMin = args->_viewport.y / (float)framebufferSize.y;
-    float tHeight = args->_viewport.w / (float)framebufferSize.y;
+	float sMin = occlusionViewport.x / (float)framebufferSize.x;
+	float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+	float tMin = occlusionViewport.y / (float)framebufferSize.y;
+	float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
     auto resolutionLevel = _parametersBuffer->getResolutionLevel();
 
@@ -536,10 +513,10 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
 
     auto framebufferSize = glm::ivec2(linearDepthTexture->getDimensions());
     
-    float sMin = args->_viewport.x / (float)framebufferSize.x;
-    float sWidth = args->_viewport.z / (float)framebufferSize.x;
-    float tMin = args->_viewport.y / (float)framebufferSize.y;
-    float tHeight = args->_viewport.w / (float)framebufferSize.y;
+	float sMin = occlusionViewport.x / (float)framebufferSize.x;
+	float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+	float tMin = occlusionViewport.y / (float)framebufferSize.y;
+	float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
 
     // Running in stero ?
@@ -562,19 +539,13 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
         batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, ambientOcclusionUniforms);
         batch.setUniformBuffer(2, _parametersBuffer);
-
-      
-        // We need this with the mips levels  
-        batch.generateTextureMips(linearDepthTexture);
         
         batch.setPipeline(debugPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, linearDepthTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
-        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
-        
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);    
     });
 
 }
