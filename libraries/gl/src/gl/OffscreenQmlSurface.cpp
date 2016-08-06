@@ -25,6 +25,7 @@
 #include <NumericalConstants.h>
 #include <Finally.h>
 #include <PathUtils.h>
+#include <QmlNetworkAccessManager.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
@@ -401,6 +402,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
+
+    _qmlEngine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
 
     auto importList = _qmlEngine->importPathList();
     importList.insert(importList.begin(), PathUtils::resourcesPath());
