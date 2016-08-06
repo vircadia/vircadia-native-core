@@ -34,10 +34,11 @@
 #include "../CompositorHelper.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
-static const QString REPROJECTION = "Allow Reprojection";
+static const QString DISABLE_PREVIEW = "Disable Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
+static const bool DEFAULT_DISABLE_PREVIEW = false;
 static const glm::mat4 IDENTITY_MATRIX;
 static const size_t NUMBER_OF_HANDS = 2;
 
@@ -62,41 +63,31 @@ QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
 
 bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
-
+    _clearPreviewFlag = true;
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
         _monoPreview = clicked;
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
+
+    _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || !_vsyncSupported);
+    if (_vsyncSupported) {
+        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
+            [this](bool clicked) {
+            _disablePreview = clicked;
+            _container->setBoolSetting("disableHmdPreview", _disablePreview);
+            if (_disablePreview) {
+                _clearPreviewFlag = true;
+            }
+        }, true, _disablePreview);
+    }
+
     _container->removeMenu(FRAMERATE);
-    _container->addMenu(DEVELOPER_MENU_PATH);
-    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, DEVELOPER_MENU_PATH, REPROJECTION,
-        [this](bool clicked) {
-            _enableReprojection = clicked;
-            _container->setBoolSetting("enableReprojection", _enableReprojection);
-    }, true, _enableReprojection);
-    
     for_each_eye([&](Eye eye) {
         _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
     });
 
-#if 0
-    if (_previewTextureID == 0) {
-        QImage previewTexture(PathUtils::resourcesPath() + "images/preview.png");
-        if (!previewTexture.isNull()) {
-            glGenTextures(1, &_previewTextureID);
-            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.mirrored(false, true).bits());
-            using namespace oglplus;
-            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
-            _firstPreview = true;
-        }
-    }
-#endif
+    _clearPreviewFlag = true;
 
     return Parent::internalActivate();
 }
@@ -112,7 +103,6 @@ void HmdDisplayPlugin::customizeContext() {
 #if !defined(Q_OS_MAC)
     enableVsync(false);
 #endif
-    _enablePreview = !isVsyncEnabled();
     _overlayRenderer.build();
 }
 
@@ -121,70 +111,90 @@ void HmdDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
+    // screen preview mirroring
+    auto window = _container->getPrimaryWidget();
+    auto devicePixelRatio = window->devicePixelRatio();
+    auto windowSize = toGlm(window->size());
+    windowSize *= devicePixelRatio;
+    float windowAspect = aspect(windowSize);
+    float sceneAspect = aspect(size);
+    float aspectRatio = sceneAspect / windowAspect;
+    uvec2 targetViewportSize = windowSize;
+    if (aspectRatio < 1.0f) {
+        targetViewportSize.x *= aspectRatio;
+    } else {
+        targetViewportSize.y /= aspectRatio;
+    }
+    uvec2 targetViewportPosition;
+    if (targetViewportSize.x < windowSize.x) {
+        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
+    } else if (targetViewportSize.y < windowSize.y) {
+        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
+    }
+    return ivec4(targetViewportPosition, targetViewportSize);
+}
+
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
-    if (_enablePreview) {
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
+
+    if (!_disablePreview) {
         // screen preview mirroring
-        auto window = _container->getPrimaryWidget();
-        auto devicePixelRatio = window->devicePixelRatio();
-        auto windowSize = toGlm(window->size());
-        windowSize *= devicePixelRatio;
-        float windowAspect = aspect(windowSize);
-        float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
-        if (_enablePreview && _monoPreview) {
-            sceneAspect /= 2.0f;
+        auto sourceSize = _renderTargetSize;
+        if (_monoPreview) {
+            sourceSize.x >>= 1;
         }
-        float aspectRatio = sceneAspect / windowAspect;
-
-        uvec2 targetViewportSize = windowSize;
-        if (aspectRatio < 1.0f) {
-            targetViewportSize.x *= aspectRatio;
-        } else {
-            targetViewportSize.y /= aspectRatio;
+        auto viewport = getViewportForSourceSize(sourceSize);
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.clearViewTransform();
+            batch.setFramebuffer(gpu::FramebufferPointer());
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+            batch.setStateScissorRect(viewport);
+            if (_monoPreview) { 
+                viewport.z *= 2; 
+            } 
+            batch.setViewportTransform(viewport);
+            batch.setResourceTexture(0, _compositeTexture);
+            batch.setPipeline(_presentPipeline);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+        swapBuffers();
+    } else if (_clearPreviewFlag) {
+        auto image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        image = image.mirrored();
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+        if (!_previewTexture) {
+            _previewTexture.reset(
+                gpu::Texture::create2D(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
+            _previewTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), image.byteCount(), image.constBits());
+            _previewTexture->autoGenerateMips(-1);
         }
-
-        uvec2 targetViewportPosition;
-        if (targetViewportSize.x < windowSize.x) {
-            targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-        } else if (targetViewportSize.y < windowSize.y) {
-            targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-        }
-
-        if (_currentFrame && _currentFrame->framebuffer) {
+        
+        if (getGLBackend()->isTextureReady(_previewTexture)) {
+            auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
             render([&](gpu::Batch& batch) {
                 batch.enableStereo(false);
                 batch.clearViewTransform();
                 batch.setFramebuffer(gpu::FramebufferPointer());
                 batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-                batch.setViewportTransform(ivec4(uvec2(0), windowSize));
-                if (_monoPreview) {
-                    batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-                    targetViewportSize.x *= 2;
-                    batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-                } else {
-                    batch.setStateScissorRect(ivec4(targetViewportPosition, targetViewportSize));
-                    batch.setViewportTransform(ivec4(targetViewportPosition, targetViewportSize));
-                }
-                batch.setResourceTexture(0, _compositeTexture);
+                batch.setStateScissorRect(viewport);
+                batch.setViewportTransform(viewport);
+                batch.setResourceTexture(0, _previewTexture);
                 batch.setPipeline(_presentPipeline);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
+            _clearPreviewFlag = false;
+            swapBuffers();
         }
     }
-
-    // Composite together the scene, overlay and mouse cursor
-    hmdPresent();
-
-    if (_enablePreview) {
-        auto startSwapTime = usecTimestampNow();
-        swapBuffers();
-        auto swapTime = usecTimestampNow() - startSwapTime;
-        if (swapTime > USECS_PER_MSEC) {
-            qDebug() << "Swap took " << swapTime << " us";
-        }
-    }
-
     postPreview();
 }
 
@@ -374,7 +384,7 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
     static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
     static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.frag";
 
-#if 1
+#if LIVE_SHADER_RELOAD
     static qint64 vsBuiltAge = 0;
     static qint64 fsBuiltAge = 0;
     QFileInfo vsInfo(vsFile);
@@ -414,7 +424,7 @@ void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
     });
     plugin.render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.setResourceTexture(0, plugin._currentFrame->overlay);
+        batch.setFramebuffer(plugin._compositeFramebuffer);
         batch.setPipeline(pipeline);
         batch.setInputFormat(format);
         gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -422,6 +432,7 @@ void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
         batch.setInputBuffer(gpu::Stream::POSITION, posView);
         batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
         batch.setIndexBuffer(gpu::UINT16, indices, 0);
+        batch.setResourceTexture(0, plugin._currentFrame->overlay);
         // FIXME use stereo information input to set both MVPs in the uniforms
         for_each_eye([&](Eye eye) {
             batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
@@ -437,20 +448,19 @@ void HmdDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     // Reconstruct the headpose from the eye poses
     auto headPosition = vec3(_currentPresentFrameInfo.presentPose[3]);
-    gpu::Batch batch;
     render([&](gpu::Batch& batch) {
+        // FIXME use standard gpu stereo rendering for this.
         batch.enableStereo(false);
-        batch.setProjectionTransform(mat4());
-        batch.setFramebuffer(_currentFrame->framebuffer);
+        batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.clearViewTransform();
         for_each_eye([&](Eye eye) {
+            batch.setViewportTransform(eyeViewport(eye));
+            batch.setProjectionTransform(_eyeProjections[eye]);
             auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
             auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
-            batch.setViewportTransform(eyeViewport(eye));
             batch.setModelTransform(reticleTransform);
-            batch.setProjectionTransform(_eyeProjections[eye]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
     });

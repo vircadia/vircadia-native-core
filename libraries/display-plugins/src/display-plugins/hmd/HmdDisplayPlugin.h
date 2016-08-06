@@ -95,14 +95,13 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 private:
-    bool _enablePreview { false };
-    bool _monoPreview { true };
-    bool _enableReprojection { true };
+    ivec4 getViewportForSourceSize(const uvec2& size) const;
 
-    // bool _firstPreview { true };
+    bool _disablePreview{ true };
+    bool _monoPreview { true };
+    bool _clearPreviewFlag { false };
     float _previewAspect { 0 };
-    //glm::uvec2 _prevWindowSize { 0, 0 };
-    // qreal _prevDevicePixelRatio { 0 };
+    gpu::TexturePointer _previewTexture;
 
     struct OverlayRenderer {
         gpu::Stream::FormatPointer format;
