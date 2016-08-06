@@ -100,7 +100,6 @@ private:
     bool _disablePreview{ true };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
-    float _previewAspect { 0 };
     gpu::TexturePointer _previewTexture;
 
     struct OverlayRenderer {

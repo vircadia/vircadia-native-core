@@ -32,7 +32,6 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
 #include <gl/QOpenGLContextWrapper.h>
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
@@ -365,7 +364,7 @@ public:
         glewExperimental = true;
         glewInit();
         glGetError();
-        setupDebugLogger(this);
+        GLDebug::setupLogger(this);
 #ifdef Q_OS_WIN
         wglSwapIntervalEXT(0);
 #endif

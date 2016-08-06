@@ -9,12 +9,11 @@
 #  Windows doesn't need this, and building it currently make Linux unstable.
 #  if (NOT WIN32)
 
-if (FALSE)
 if (APPLE)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()
-    link_hifi_libraries(shared gl gpu plugins ui ui-plugins display-plugins input-plugins)
+    link_hifi_libraries(shared gl gpu gpu-gl plugins ui ui-plugins display-plugins input-plugins)
     
     include_hifi_library_headers(octree)
     
@@ -27,5 +26,4 @@ if (APPLE)
 
 
 
-endif()
 endif()
