@@ -39,6 +39,7 @@ Rectangle {
         id: switchMarketView
         anchors.top: parent.top
         anchors.right: parent.right
+        colorScheme: hifi.colorSchemes.dark
         width: 200
         height: 40
         visible: true
