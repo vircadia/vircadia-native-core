@@ -21,7 +21,7 @@ class GL45Buffer : public gl::GLBuffer {
 
 public:
     GL45Buffer(const std::weak_ptr<gl::GLBackend>& backend, const Buffer& buffer, GLBuffer* original) : Parent(backend, buffer, allocate()) {
-        glNamedBufferStorage(_buffer, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(_buffer, _size == 0 ? 256 : _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
         if (original && original->_size) {
             glCopyNamedBufferSubData(original->_buffer, _buffer, 0, 0, std::min(original->_size, _size));
         }
