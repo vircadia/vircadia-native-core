@@ -8,9 +8,18 @@
 
 #include "NsightHelpers.h"
 
-#ifdef _WIN32
-#if defined(NSIGHT_FOUND)
+
+#if defined(_WIN32) && defined(NSIGHT_FOUND)
+
+#include <QtCore/QProcessEnvironment>
 #include "nvToolsExt.h"
+
+static const QString NSIGHT_FLAG("NSIGHT_LAUNCHED");
+static const bool nsightLaunched = QProcessEnvironment::systemEnvironment().contains(NSIGHT_FLAG);
+
+bool nsightActive() {
+    return nsightLaunched;
+}
 
 ProfileRange::ProfileRange(const char *name) {
     _rangeId = nvtxRangeStart(name);
@@ -35,8 +44,9 @@ ProfileRange::~ProfileRange() {
 }
 
 #else
-ProfileRange::ProfileRange(const char *name) {}
-ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payload) {}
-ProfileRange::~ProfileRange() {}
-#endif
+
+bool nsightActive() {
+    return false;
+}
+
 #endif // _WIN32

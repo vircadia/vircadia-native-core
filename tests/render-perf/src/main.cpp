@@ -277,7 +277,9 @@ public:
         auto duration = usecTimestampNow() - start;
         float frameTime = (float)duration / (float)USECS_PER_SECOND;
         float averageFrameTime = 1.0f / _fps;
-        if ((abs(frameTime - averageFrameTime) - 1.0f) > 2.0f) {
+        float diff = frameTime - averageFrameTime;
+        diff = std::max(diff, -diff);
+        if ((diff - 1.0f) > 2.0f) {
             qDebug() << "Long frame " << frameTime * MSECS_PER_SECOND;
         }
         return true;
@@ -402,9 +404,7 @@ public:
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
-        // Prevent web entities from rendering
-        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
-
+        
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
