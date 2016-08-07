@@ -8,25 +8,15 @@
 
 #include "NsightHelpers.h"
 
-#include "../gl/src/gl/GLHelpers.h"
-
 #ifdef _WIN32
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
 ProfileRange::ProfileRange(const char *name) {
-    if (!isRenderThread()) {
-        return;
-    }
-
-    nvtxRangePush(name);
+    _rangeId = nvtxRangeStart(name);
 }
 
 ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payload) {
-    if (!isRenderThread()) {
-        return;
-    }
-
     nvtxEventAttributes_t eventAttrib = {0};
     eventAttrib.version = NVTX_VERSION;
     eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
@@ -37,14 +27,11 @@ ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payloa
     eventAttrib.payload.llValue = payload;
     eventAttrib.payloadType = NVTX_PAYLOAD_TYPE_UNSIGNED_INT64;
 
-    nvtxRangePushEx(&eventAttrib);
+    _rangeId = nvtxRangeStartEx(&eventAttrib);
 }
 
 ProfileRange::~ProfileRange() {
-    if (!isRenderThread()) {
-        return;
-    }
-    nvtxRangePop();
+    nvtxRangeEnd(_rangeId);
 }
 
 #else

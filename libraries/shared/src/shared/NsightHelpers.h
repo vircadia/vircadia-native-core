@@ -17,6 +17,10 @@ public:
     ProfileRange(const char *name);
     ProfileRange(const char *name, uint32_t argbColor, uint64_t payload);
     ~ProfileRange();
+private:
+#if defined(NSIGHT_FOUND)
+    uint64_t _rangeId{ 0 };
+#endif
 };
 
 #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
