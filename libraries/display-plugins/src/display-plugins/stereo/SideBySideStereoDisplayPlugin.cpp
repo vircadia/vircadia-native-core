@@ -12,6 +12,6 @@ const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo")
 
 glm::uvec2 SideBySideStereoDisplayPlugin::getRecommendedRenderSize() const {
     uvec2 result = Parent::getRecommendedRenderSize();
-    //result.x *= 2;
+    result.x *= 2;
     return result;
 }

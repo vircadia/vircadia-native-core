@@ -7,6 +7,8 @@
 //
 #include "DebugHmdDisplayPlugin.h"
 
+#include <QtCore/QProcessEnvironment>
+
 #include <ViewFrustum.h>
 #include <controllers/Pose.h>
 #include <gpu/Frame.h>
@@ -14,10 +16,11 @@
 const QString DebugHmdDisplayPlugin::NAME("HMD Simulator");
 
 static const QString DEBUG_FLAG("HIFI_DEBUG_HMD");
+static bool enableDebugHmd = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+
 
 bool DebugHmdDisplayPlugin::isSupported() const {
-    // FIXME use the env variable
-    return true;
+    return enableDebugHmd;
 }
 
 void DebugHmdDisplayPlugin::resetSensors() {

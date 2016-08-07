@@ -170,6 +170,7 @@ public:
             }
 
             // Execute the frame and present it to the display device.
+            _context->makeCurrent();
             {
                 PROFILE_RANGE("PluginPresent")
                 currentPlugin->present();
@@ -580,6 +581,7 @@ void OpenGLDisplayPlugin::present() {
 
     incrementPresentCount();
     if (_currentFrame) {
+        _backend->cleanupTrash();
         _backend->setStereoState(_currentFrame->stereoState);
         {
             PROFILE_RANGE_EX("execute", 0xff00ff00, (uint64_t)presentCount())
