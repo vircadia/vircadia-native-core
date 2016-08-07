@@ -62,26 +62,27 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-        // Count the opaque and transparent pixels
+
+        // Figure out if we can use a mask for alpha or not
         int numOpaques = 0;
         int numTransparents = 0;
         int height = image.height();
         int width = image.width();
+        const int MAX_TRANSPARENT_PIXELS_FOR_ALPHAMASK = (int)(0.05f * (float)(width * height));
         for (int y = 0; y < height; ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
             for (int x = 0; x < width; ++x) {
                 auto alpha = qAlpha(data[x]);
                 numOpaques += (int)(alpha == OPAQUE_ALPHA);
-                numTransparents += (int)(alpha == TRANSPARENT_ALPHA);
+                if (alpha == TRANSPARENT_ALPHA) {
+                    if (++numTransparents > MAX_TRANSPARENT_PIXELS_FOR_ALPHAMASK) {
+                        alphaAsMask = false;
+                        break;
+                    }
+                }
             }
         }
-
-        // If alpha was meaningfull refine
-        auto totalNumPixels = height * width;
-        if (numOpaques != totalNumPixels) {
-            auto numTranslucents = totalNumPixels - numOpaques - numTransparents;
-            alphaAsMask = ((numTranslucents / (double)totalNumPixels) < 0.05);
-        }
+        validAlpha = (numOpaques != width * height);
     }
 
     if (!validAlpha && image.format() != QImage::Format_RGB888) {
@@ -658,13 +659,12 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
-
-    bool validAlpha = false;
-    bool alphaAsMask = true;
-    QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);
-
     gpu::Texture* theTexture = nullptr;
-    if ((image.width() > 0) && (image.height() > 0)) {
+    if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
+        QImage image = srcImage;
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
 
         gpu::Element formatGPU;
         gpu::Element formatMip;
@@ -672,7 +672,7 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
 
         // Find the layout of the cubemap in the 2D image
         int foundLayout = CubeLayout::findLayout(image.width(), image.height());
-        
+
         std::vector<QImage> faces;
         // If found, go extract the faces as separate images
         if (foundLayout >= 0) {
