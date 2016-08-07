@@ -10,6 +10,7 @@
 
 #include "GLShared.h"
 #include "GLTextureTransfer.h"
+#include "GLBackend.h"
 
 namespace gpu { namespace gl {
 

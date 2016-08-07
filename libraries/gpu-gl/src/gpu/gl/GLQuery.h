@@ -9,6 +9,7 @@
 #define hifi_gpu_gl_GLQuery_h
 
 #include "GLShared.h"
+#include "GLBackend.h"
 
 namespace gpu { namespace gl {
 

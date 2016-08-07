@@ -16,6 +16,7 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QThreadPool>
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>
@@ -169,6 +170,7 @@ void main(void) {
 }
 )SCRIBE";
 
+extern QThread* RENDER_THREAD;
 
 class RenderThread : public GenericQueueThread<gpu::FramePointer> {
     using Parent = GenericQueueThread<gpu::FramePointer>;
@@ -204,6 +206,7 @@ public:
     }
 
     void setup() override {
+        RENDER_THREAD = QThread::currentThread();
         _displayContext->makeCurrent(_displaySurface);
         glewExperimental = true;
         glewInit();
@@ -225,6 +228,8 @@ public:
     }
 
     void shutdown() override {
+        _presentPipeline.reset();
+        _gpuContext.reset();
     }
 
     void renderFrame(gpu::FramePointer& frame) {
@@ -241,6 +246,7 @@ public:
             {
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
+                presentBatch.enableStereo(false);
                 presentBatch.clearViewTransform();
                 presentBatch.setFramebuffer(gpu::FramebufferPointer());
                 presentBatch.setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
@@ -265,10 +271,66 @@ public:
 
     bool processQueueItems(const Queue& items) override {
         auto frame = items.last();
+
+        auto start = usecTimestampNow();
         renderFrame(frame);
+        auto duration = usecTimestampNow() - start;
+        float frameTime = (float)duration / (float)USECS_PER_SECOND;
+        float averageFrameTime = 1.0f / _fps;
+        if ((abs(frameTime - averageFrameTime) - 1.0f) > 2.0f) {
+            qDebug() << "Long frame " << frameTime * MSECS_PER_SECOND;
+        }
         return true;
     }
 };
+
+
+// Background Render Data & rendering functions
+class BackgroundRenderData {
+public:
+    typedef render::Payload<BackgroundRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID BackgroundRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+        return ItemKey::Builder::background();
+    }
+
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+        return Item::Bound();
+    }
+
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+
+        // Background rendering decision
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        auto backgroundMode = skyStage->getBackgroundMode();
+
+        switch (backgroundMode) {
+        case model::SunSkyStage::SKY_BOX: {
+            auto skybox = skyStage->getSkybox();
+            if (skybox) {
+                PerformanceTimer perfTimer("skybox");
+                skybox->render(batch, args->getViewFrustum());
+                break;
+            }
+        }
+
+                                          // Fall through: if no skybox is available, render the SKY_DOME
+        case model::SunSkyStage::SKY_DOME:  
+        case model::SunSkyStage::NO_BACKGROUND:
+        default:
+            // this line intentionally left blank
+            break;
+        }
+    }
+}
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
@@ -335,6 +397,7 @@ public:
 
     QTestWindow() {
         _camera.movementSpeed = 50.0f;
+        QThreadPool::globalInstance()->setMaxThreadCount(2);
         QThread::currentThread()->setPriority(QThread::HighestPriority);
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
@@ -396,7 +459,21 @@ public:
     }
 
     virtual ~QTestWindow() {
+        _renderThread.terminate();
+        getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+        _renderEngine.reset();
+        _main3DScene.reset();
+        EntityTreePointer tree = getEntities()->getTree();
+        tree->setSimulation(nullptr);
+        DependencyManager::destroy<AnimationCache>();
+        DependencyManager::destroy<FramebufferCache>();
+        DependencyManager::destroy<TextureCache>();
+        DependencyManager::destroy<ModelCache>();
+        DependencyManager::destroy<GeometryCache>();
+        DependencyManager::destroy<ScriptCache>();
         ResourceManager::cleanup();
+        // remove the NodeList from the DependencyManager
+        DependencyManager::destroy<NodeList>();
     }
 
 protected:
@@ -500,7 +577,6 @@ private:
         }
 
         // Final framebuffer that will be handled to the display-plugin
-
         render(&renderArgs);
 
         if (_fps != _renderThread._fps) {
@@ -587,6 +663,33 @@ private:
         }
 
         last = now;
+
+        getEntities()->update();
+
+        // The pending changes collecting the changes here
+        render::PendingChanges pendingChanges;
+
+        // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
+        // Background rendering decision
+        if (!render::Item::isValidID(BackgroundRenderData::_item)) {
+            auto backgroundRenderData = std::make_shared<BackgroundRenderData>();
+            auto backgroundRenderPayload = std::make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
+            BackgroundRenderData::_item = _main3DScene->allocateID();
+            pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
+        }
+        // Setup the current Zone Entity lighting
+        {
+            auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+            DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
+        }
+
+        {
+            PerformanceTimer perfTimer("SceneProcessPendingChanges");
+            _main3DScene->enqueuePendingChanges(pendingChanges);
+
+            _main3DScene->processPendingChangesQueue();
+        }
+
     }
 
     void render(RenderArgs* renderArgs) {
