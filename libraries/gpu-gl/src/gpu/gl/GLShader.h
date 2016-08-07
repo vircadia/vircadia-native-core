@@ -14,8 +14,8 @@ namespace gpu { namespace gl {
 
 class GLShader : public GPUObject {
 public:
-    static GLShader* sync(const GLBackend& backend, const Shader& shader);
-    static bool makeProgram(const GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings);
+    static GLShader* sync(GLBackend& backend, const Shader& shader);
+    static bool makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings);
 
     enum Version {
         Mono = 0,
@@ -28,7 +28,7 @@ public:
     using UniformMapping = std::map<GLint, GLint>;
     using UniformMappingVersions = std::vector<UniformMapping>;
 
-    GLShader(const GLBackend& backend);
+    GLShader(const std::weak_ptr<GLBackend>& backend);
     ~GLShader();
 
     ShaderObjects _shaderObjects;
@@ -44,7 +44,7 @@ public:
         return srcLoc;
     }
 
-    const GLBackend& _backend;
+    const std::weak_ptr<GLBackend> _backend;
 };
 
 } }

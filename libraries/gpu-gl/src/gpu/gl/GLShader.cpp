@@ -11,16 +11,19 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-GLShader::GLShader(const GLBackend& backend) : _backend(backend) {
+GLShader::GLShader(const std::weak_ptr<GLBackend>& backend) : _backend(backend) {
 }
 
 GLShader::~GLShader() {
     for (auto& so : _shaderObjects) {
-        if (so.glshader != 0) {
-            _backend.releaseShader(so.glshader);
-        }
-        if (so.glprogram != 0) {
-            _backend.releaseProgram(so.glprogram);
+        auto backend = _backend.lock();
+        if (backend) {
+            if (so.glshader != 0) {
+                backend->releaseShader(so.glshader);
+            }
+            if (so.glprogram != 0) {
+                backend->releaseProgram(so.glprogram);
+            }
         }
     }
 }
@@ -54,7 +57,7 @@ static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     ""
 } };
 
-GLShader* compileBackendShader(const GLBackend& backend, const Shader& shader) {
+GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
@@ -72,13 +75,13 @@ GLShader* compileBackendShader(const GLBackend& backend, const Shader& shader) {
     }
 
     // So far so good, the shader is created successfully
-    GLShader* object = new GLShader(backend);
+    GLShader* object = new GLShader(backend.shared_from_this());
     object->_shaderObjects = shaderObjects;
 
     return object;
 }
 
-GLShader* compileBackendProgram(const GLBackend& backend, const Shader& program) {
+GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
     if (!program.isProgram()) {
         return nullptr;
     }
@@ -111,13 +114,13 @@ GLShader* compileBackendProgram(const GLBackend& backend, const Shader& program)
     }
 
     // So far so good, the program versions have all been created successfully
-    GLShader* object = new GLShader(backend);
+    GLShader* object = new GLShader(backend.shared_from_this());
     object->_shaderObjects = programObjects;
 
     return object;
 }
 
-GLShader* GLShader::sync(const GLBackend& backend, const Shader& shader) {
+GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
 
     // If GPU object already created then good
@@ -143,7 +146,7 @@ GLShader* GLShader::sync(const GLBackend& backend, const Shader& shader) {
     return object;
 }
 
-bool GLShader::makeProgram(const GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings) {
+bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings) {
 
     // First make sure the Shader has been compiled
     GLShader* object = sync(backend, shader);

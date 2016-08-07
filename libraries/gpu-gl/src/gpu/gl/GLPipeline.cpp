@@ -14,7 +14,7 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-GLPipeline* GLPipeline::sync(const GLBackend& backend, const Pipeline& pipeline) {
+GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     GLPipeline* object = Backend::getGPUObject<GLPipeline>(pipeline);
 
     // If GPU object already created then good

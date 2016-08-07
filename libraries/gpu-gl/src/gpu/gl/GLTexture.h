@@ -24,7 +24,7 @@ public:
     static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
 
     template <typename GLTextureType>
-    static GLTextureType* sync(const GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
+    static GLTextureType* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
         const Texture& texture = *texturePointer;
         if (!texture.isDefined()) {
             // NO texture definition yet so let's avoid thinking
@@ -38,7 +38,7 @@ public:
         // for easier use of immutable storage)
         if (!object || object->isInvalid()) {
             // This automatically any previous texture
-            object = new GLTextureType(backend, texture, needTransfer);
+            object = new GLTextureType(backend.shared_from_this(), texture, needTransfer);
             if (!object->_transferrable) {
                 object->createTexture();
                 object->_contentStamp = texture.getDataStamp();
@@ -62,7 +62,7 @@ public:
             if (object->isOverMaxMemory() && texturePointer->incremementMinMip()) {
                 // WARNING, this code path will essentially `delete this`, 
                 // so no dereferencing of this instance should be done past this point
-                object = new GLTextureType(backend, texture, object);
+                object = new GLTextureType(backend.shared_from_this(), texture, object);
                 _textureTransferHelper->transferTexture(texturePointer);
             }
         } else if (object->isOutdated()) {
@@ -75,7 +75,7 @@ public:
     }
 
     template <typename GLTextureType> 
-    static GLuint getId(const GLBackend& backend, const TexturePointer& texture, bool shouldSync) {
+    static GLuint getId(GLBackend& backend, const TexturePointer& texture, bool shouldSync) {
         if (!texture) {
             return 0;
         }
@@ -125,11 +125,11 @@ public:
 
     struct DownsampleSource {
         using Pointer = std::shared_ptr<DownsampleSource>;
-        DownsampleSource(const GLBackend& backend) : _backend(backend), _size(0), _texture(0), _minMip(0), _maxMip(0) {}
-        DownsampleSource(const GLBackend& backend, GLTexture* originalTexture);
+        DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend) : _backend(backend), _size(0), _texture(0), _minMip(0), _maxMip(0) {}
+        DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend, GLTexture* originalTexture);
         ~DownsampleSource();
         void reset() const { const_cast<GLuint&>(_texture) = 0; }
-        const GLBackend& _backend;
+        const std::weak_ptr<gl::GLBackend>& _backend;
         const GLuint _size { 0 };
         const GLuint _texture { 0 };
         const uint16 _minMip { 0 };
@@ -172,8 +172,8 @@ protected:
     const GLuint _size { 0 }; // true size as reported by the gl api
     std::atomic<GLSyncState> _syncState { GLSyncState::Idle };
 
-    GLTexture(const GLBackend& backend, const Texture& texture, GLuint id, bool transferrable);
-    GLTexture(const GLBackend& backend, const Texture& texture, GLuint id, GLTexture* originalTexture);
+    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable);
+    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, GLTexture* originalTexture);
 
     void setSyncState(GLSyncState syncState) { _syncState = syncState; }
     uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
@@ -192,7 +192,7 @@ protected:
 
 private:
 
-    GLTexture(const GLBackend& backend, const gpu::Texture& gpuTexture, GLuint id, GLTexture* originalTexture, bool transferrable);
+    GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& gpuTexture, GLuint id, GLTexture* originalTexture, bool transferrable);
 
     friend class GLTextureTransferHelper;
     friend class GLBackend;

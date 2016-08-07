@@ -18,7 +18,7 @@ std::once_flag Context::_initialized;
 
 Context::Context() {
     if (_createBackendCallback) {
-        _backend.reset(_createBackendCallback());
+        _backend = _createBackendCallback();
     }
 }
 

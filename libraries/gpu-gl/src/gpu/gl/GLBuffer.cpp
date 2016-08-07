@@ -13,10 +13,15 @@ using namespace gpu;
 using namespace gpu::gl;
 
 GLBuffer::~GLBuffer() {
-    _backend.releaseBuffer(_id, _size);
+    if (_id) {
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseBuffer(_id, _size);
+        }
+    }
 }
 
-GLBuffer::GLBuffer(const GLBackend& backend, const Buffer& buffer, GLuint id) :
+GLBuffer::GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id) :
     GLObject(backend, buffer, id),
     _size((GLuint)buffer._renderSysmem.getSize()),
     _stamp(buffer._renderSysmem.getStamp())

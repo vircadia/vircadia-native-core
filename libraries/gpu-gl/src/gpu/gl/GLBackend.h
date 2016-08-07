@@ -13,6 +13,7 @@
 
 #include <assert.h>
 #include <functional>
+#include <memory>
 #include <bitset>
 #include <queue>
 #include <utility>
@@ -30,11 +31,11 @@
 
 namespace gpu { namespace gl {
 
-class GLBackend : public Backend {
+class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
     // Context Backend static interface required
     friend class gpu::Context;
     static void init();
-    static Backend* createBackend();
+    static BackendPointer createBackend();
 
 protected:
     explicit GLBackend(bool syncCache);
@@ -161,9 +162,11 @@ public:
     virtual void do_setStateBlendFactor(Batch& batch, size_t paramOffset) final;
     virtual void do_setStateScissorRect(Batch& batch, size_t paramOffset) final;
 
-    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) const = 0;
-    virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const = 0;
-    virtual bool isTextureReady(const TexturePointer& texture) const;
+    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
+    virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) = 0;
+    virtual GLuint getBufferID(const Buffer& buffer) = 0;
+    virtual GLuint getQueryID(const QueryPointer& query) = 0;
+    virtual bool isTextureReady(const TexturePointer& texture);
 
     virtual void releaseBuffer(GLuint id, Size size) const;
     virtual void releaseTexture(GLuint id, Size size) const;
@@ -171,19 +174,14 @@ public:
     virtual void releaseShader(GLuint id) const;
     virtual void releaseProgram(GLuint id) const;
     virtual void releaseQuery(GLuint id) const;
-    void cleanupTrash() const;
+    virtual void cleanupTrash() const;
 
 protected:
 
-    virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) const = 0;
-
-    virtual GLuint getBufferID(const Buffer& buffer) const = 0;
-    virtual GLBuffer* syncGPUObject(const Buffer& buffer) const = 0;
-
-    virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) const = 0;
-
-    virtual GLuint getQueryID(const QueryPointer& query) const = 0;
-    virtual GLQuery* syncGPUObject(const Query& query) const = 0;
+    virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
+    virtual GLBuffer* syncGPUObject(const Buffer& buffer) = 0;
+    virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) = 0;
+    virtual GLQuery* syncGPUObject(const Query& query) = 0;
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass { false };
@@ -198,7 +196,6 @@ protected:
     mutable std::list<GLuint> _shadersTrash;
     mutable std::list<GLuint> _programsTrash;
     mutable std::list<GLuint> _queriesTrash;
-
 
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
@@ -251,9 +248,12 @@ protected:
     void updateTransform(const Batch& batch);
     void resetTransformStage();
 
+    // Allows for correction of the camera pose to account for changes
+    // between the time when a was recorded and the time(s) when it is 
+    // executed
     struct CameraCorrection {
-        Mat4 _correction;
-        Mat4 _correctionInverse;
+        Mat4 correction;
+        Mat4 correctionInverse;
     };
 
     struct TransformStageState {

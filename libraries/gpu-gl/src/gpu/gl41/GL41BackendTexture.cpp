@@ -29,17 +29,17 @@ GLuint GL41Texture::allocate() {
     return result;
 }
 
-GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) const {
+GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) {
     return GL41Texture::getId<GL41Texture>(*this, texture, transfer);
 }
 
-gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) const {
+gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
     return GL41Texture::sync<GL41Texture>(*this, texture, transfer);
 }
 
-GL41Texture::GL41Texture(const gl::GLBackend& backend, const Texture& texture, bool transferrable) : gl::GLTexture(backend, texture, allocate(), transferrable) {}
+GL41Texture::GL41Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, bool transferrable) : gl::GLTexture(backend, texture, allocate(), transferrable) {}
 
-GL41Texture::GL41Texture(const gl::GLBackend& backend, const Texture& texture, GL41Texture* original) : gl::GLTexture(backend, texture, allocate(), original) {}
+GL41Texture::GL41Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GL41Texture* original) : gl::GLTexture(backend, texture, allocate(), original) {}
 
 void GL41Backend::GL41Texture::withPreservedTexture(std::function<void()> f) const  {
     GLint boundTex = -1;

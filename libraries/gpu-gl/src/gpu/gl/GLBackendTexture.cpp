@@ -14,7 +14,7 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-bool GLBackend::isTextureReady(const TexturePointer& texture) const {
+bool GLBackend::isTextureReady(const TexturePointer& texture) {
     // DO not transfer the texture, this call is expected for rendering texture
     GLTexture* object = syncGPUObject(texture, true);
     return object && object->isReady();

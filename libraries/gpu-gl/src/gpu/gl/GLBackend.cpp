@@ -32,28 +32,28 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-static bool enableOpenGL45 = true || QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
+static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 static GLBackend* INSTANCE{ nullptr };
 static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
-Backend* GLBackend::createBackend() {
+BackendPointer GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
-    GLBackend* result; 
-    if (enableOpenGL45 && version >= 0x0405) {
+    std::shared_ptr<GLBackend> result;
+    if (!disableOpenGL45 && version >= 0x0405) {
         qDebug() << "Using OpenGL 4.5 backend";
-        result = new gpu::gl45::GL45Backend();
+        result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
         qDebug() << "Using OpenGL 4.1 backend";
-        result = new gpu::gl41::GL41Backend();
+        result = std::make_shared<gpu::gl41::GL41Backend>();
     }
     result->initInput();
     result->initTransform();
 
-    INSTANCE = result;
+    INSTANCE = result.get();
     void* voidInstance = &(*result);
     qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
 
@@ -294,7 +294,6 @@ void GLBackend::render(Batch& batch) {
     batch.preExecute();
 
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
-
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
     bool savedStereo = _stereo._enable;
@@ -678,8 +677,8 @@ void GLBackend::cleanupTrash() const {
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
-    _transform._correction._correction = correction;
-    _transform._correction._correctionInverse = glm::inverse(correction);
-    _pipeline._cameraCorrectionBuffer.edit<CameraCorrection>() = _transform._correction;
+    _transform._correction.correction = correction;
+    _transform._correction.correctionInverse = glm::inverse(correction);
+    _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
     _pipeline._cameraCorrectionBuffer._buffer->flush();
 }

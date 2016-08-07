@@ -118,7 +118,7 @@ float GLTexture::getMemoryPressure() {
     return (float)consumedGpuMemory / (float)availableTextureMemory;
 }
 
-GLTexture::DownsampleSource::DownsampleSource(const GLBackend& backend, GLTexture* oldTexture) : 
+GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend, GLTexture* oldTexture) :
     _backend(backend),
     _size(oldTexture ? oldTexture->_size : 0),
     _texture(oldTexture ? oldTexture->takeOwnership() : 0),
@@ -129,11 +129,14 @@ GLTexture::DownsampleSource::DownsampleSource(const GLBackend& backend, GLTextur
 
 GLTexture::DownsampleSource::~DownsampleSource() {
     if (_texture) {
-        _backend.releaseTexture(_texture, _size);
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseTexture(_texture, _size);
+        }
     }
 }
 
-GLTexture::GLTexture(const GLBackend& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
     GLObject(backend, texture, id),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
@@ -158,7 +161,7 @@ GLTexture::GLTexture(const GLBackend& backend, const gpu::Texture& texture, GLui
 
 
 // Create the texture and allocate storage
-GLTexture::GLTexture(const GLBackend& backend, const Texture& texture, GLuint id, bool transferrable) :
+GLTexture::GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLTexture(backend, texture, id, nullptr, transferrable)
 {
     // FIXME, do during allocation
@@ -167,7 +170,7 @@ GLTexture::GLTexture(const GLBackend& backend, const Texture& texture, GLuint id
 }
 
 // Create the texture and copy from the original higher resolution version
-GLTexture::GLTexture(const GLBackend& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
+GLTexture::GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
     GLTexture(backend, texture, id, originalTexture, originalTexture->_transferrable)
 {
     Q_ASSERT(_minMip >= originalTexture->_minMip);
@@ -189,7 +192,12 @@ GLTexture::~GLTexture() {
         }
     }
 
-    _backend.releaseTexture(_id, _size);
+    if (_id) {
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseTexture(_id, _size);
+        }
+    }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }
 

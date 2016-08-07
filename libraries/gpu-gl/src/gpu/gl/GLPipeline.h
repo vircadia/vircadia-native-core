@@ -14,7 +14,7 @@ namespace gpu { namespace gl {
 
 class GLPipeline : public GPUObject {
 public:
-    static GLPipeline* sync(const GLBackend& backend, const Pipeline& pipeline);
+    static GLPipeline* sync(GLBackend& backend, const Pipeline& pipeline);
 
     GLShader* _program { nullptr };
     GLState* _state { nullptr };

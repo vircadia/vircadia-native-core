@@ -12,7 +12,14 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-GLFramebuffer::~GLFramebuffer() { if (_id) { _backend.releaseFramebuffer(_id); } };
+GLFramebuffer::~GLFramebuffer() { 
+    if (_id) { 
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseFramebuffer(_id);
+        }
+    } 
+}
 
 bool GLFramebuffer::checkStatus(GLenum target) const {
     bool result = false;

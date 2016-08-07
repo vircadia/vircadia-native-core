@@ -29,8 +29,8 @@ public:
         using Parent = gpu::gl::GLTexture;
         GLuint allocate(const Texture& texture);
     public:
-        GL45Texture(const gl::GLBackend& backend, const Texture& texture, bool transferrable);
-        GL45Texture(const gl::GLBackend& backend, const Texture& texture, GLTexture* original);
+        GL45Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, bool transferrable);
+        GL45Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLTexture* original);
 
     protected:
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
@@ -44,17 +44,17 @@ public:
 
 
 protected:
-    GLuint getFramebufferID(const FramebufferPointer& framebuffer) const override;
-    gl::GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) const override;
+    GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
+    gl::GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
-    GLuint getBufferID(const Buffer& buffer) const override;
-    gl::GLBuffer* syncGPUObject(const Buffer& buffer) const override;
+    GLuint getBufferID(const Buffer& buffer) override;
+    gl::GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
-    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) const override;
-    gl::GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) const override;
+    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) override;
+    gl::GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) override;
 
-    GLuint getQueryID(const QueryPointer& query) const override;
-    gl::GLQuery* syncGPUObject(const Query& query) const override;
+    GLuint getQueryID(const QueryPointer& query) override;
+    gl::GLQuery* syncGPUObject(const Query& query) override;
 
     // Draw Stage
     void do_draw(Batch& batch, size_t paramOffset) override;

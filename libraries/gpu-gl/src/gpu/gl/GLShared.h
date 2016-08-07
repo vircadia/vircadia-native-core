@@ -126,14 +126,14 @@ class GLBackend;
 template <typename GPUType>
 struct GLObject : public GPUObject {
 public:
-    GLObject(const GLBackend& backend, const GPUType& gpuObject, GLuint id) : _gpuObject(gpuObject), _id(id), _backend(backend) {}
+    GLObject(const std::weak_ptr<GLBackend>& backend, const GPUType& gpuObject, GLuint id) : _gpuObject(gpuObject), _id(id), _backend(backend) {}
 
     virtual ~GLObject() { }
 
     const GPUType& _gpuObject;
     const GLuint _id;
 protected:
-    const GLBackend& _backend;
+    const std::weak_ptr<GLBackend> _backend;
 };
 
 class GlBuffer;

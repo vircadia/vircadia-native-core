@@ -55,6 +55,7 @@ public:
 
     virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void cleanupTrash() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
     // UBO class... layout MUST match the layout in Transform.slh
@@ -123,7 +124,7 @@ protected:
 class Context {
 public:
     using Size = Resource::Size;
-    typedef Backend* (*CreateBackend)();
+    typedef BackendPointer (*CreateBackend)();
     typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
 
 

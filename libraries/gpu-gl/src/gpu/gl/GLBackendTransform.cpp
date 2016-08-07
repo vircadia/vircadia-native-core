@@ -84,10 +84,10 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView) {
         // Apply the correction
-        if (_viewIsCamera && _correction._correction != glm::mat4()) {
+        if (_viewIsCamera && _correction.correction != glm::mat4()) {
             // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
             Transform result;
-            _view.mult(result, _view, _correction._correction);
+            _view.mult(result, _view, _correction.correction);
             if (_skybox) {
                 result.setTranslation(vec3());
             }
