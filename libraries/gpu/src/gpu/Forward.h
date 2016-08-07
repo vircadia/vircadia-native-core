@@ -39,6 +39,8 @@ namespace gpu {
 
     using Byte = uint8;
     using Size = size_t;
+    static const Size INVALID_SIZE = (Size)-1;
+
     using Offset = size_t;
     using Offsets = std::vector<Offset>;
 
@@ -96,6 +98,23 @@ namespace gpu {
         uint8 _pass{ 0 };
         Mat4 _eyeViews[2];
         Mat4 _eyeProjections[2];
+    };
+
+    class GPUObject {
+    public:
+        virtual ~GPUObject() = default;
+    };
+
+    class GPUObjectPointer {
+    private:
+        using GPUObjectUniquePointer = std::unique_ptr<GPUObject>;
+
+        // This shouldn't be used by anything else than the Backend class with the proper casting.
+        mutable GPUObjectUniquePointer _gpuObject;
+        void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
+        GPUObject* getGPUObject() const { return _gpuObject.get(); }
+
+        friend class Backend;
     };
 
     namespace gl {
