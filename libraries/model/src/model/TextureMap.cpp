@@ -65,24 +65,22 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
 
         // Figure out if we can use a mask for alpha or not
         int numOpaques = 0;
-        int numTransparents = 0;
-        int height = image.height();
-        int width = image.width();
-        const int MAX_TRANSPARENT_PIXELS_FOR_ALPHAMASK = (int)(0.05f * (float)(width * height));
-        for (int y = 0; y < height; ++y) {
-            const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
-            for (int x = 0; x < width; ++x) {
-                auto alpha = qAlpha(data[x]);
-                numOpaques += (int)(alpha == OPAQUE_ALPHA);
-                if (alpha == TRANSPARENT_ALPHA) {
-                    if (++numTransparents > MAX_TRANSPARENT_PIXELS_FOR_ALPHAMASK) {
-                        alphaAsMask = false;
-                        break;
-                    }
+        int numTranslucents = 0;
+        const int NUM_PIXELS = image.width() * image.height();
+        const int MAX_TRANSLUCENT_PIXELS_FOR_ALPHAMASK = (int)(0.05f * (float)(NUM_PIXELS));
+        const QRgb* data = reinterpret_cast<const QRgb*>(image.constBits());
+        for (int i = 0; i < NUM_PIXELS; ++i) {
+            auto alpha = qAlpha(data[i]);
+            if (alpha == OPAQUE_ALPHA) {
+                numOpaques++;
+            } else if (alpha != TRANSPARENT_ALPHA) {
+                if (++numTranslucents > MAX_TRANSLUCENT_PIXELS_FOR_ALPHAMASK) {
+                    alphaAsMask = false;
+                    break;
                 }
             }
         }
-        validAlpha = (numOpaques != width * height);
+        validAlpha = (numOpaques != NUM_PIXELS);
     }
 
     if (!validAlpha && image.format() != QImage::Format_RGB888) {
