@@ -107,7 +107,7 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton question(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton warning(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,

@@ -119,6 +119,9 @@ AudioClient::AudioClient() :
             this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
     connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
 
+    connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
+
+
     _inputDevices = getDeviceNames(QAudio::AudioInput);
     _outputDevices = getDeviceNames(QAudio::AudioOutput);
 
@@ -146,6 +149,12 @@ AudioClient::~AudioClient() {
         _encoder = nullptr;
     }
 }
+
+void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
+    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    selectAudioFormat(recievedCodec);
+}
+
 
 void AudioClient::reset() {
     _receivedAudioStream.reset();
@@ -532,7 +541,13 @@ void AudioClient::negotiateAudioFormat() {
 }
 
 void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
-    _selectedCodecName = message->readString();
+    QString selectedCodecName = message->readString();
+    selectAudioFormat(selectedCodecName);
+}
+
+void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
+    
+    _selectedCodecName = selectedCodecName;
 
     qDebug() << "Selected Codec:" << _selectedCodecName;
 

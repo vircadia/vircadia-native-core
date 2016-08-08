@@ -13,6 +13,11 @@
 
 (function() {
 
+    function debug() {
+        return;
+        print.apply(null, arguments);
+    }
+
     var rawProgress = 100, // % raw value.
         displayProgress = 100, // % smoothed value to display.
         DISPLAY_PROGRESS_MINOR_MAXIMUM = 8, // % displayed progress bar goes up to while 0% raw progress.
@@ -28,35 +33,18 @@
         FADE_OUT_WAIT = 1000, // Wait before starting to fade out after progress 100%.
         visible = false,
         BAR_WIDTH = 480, // Dimension of SVG in pixels of visible portion (half) of the bar.
-        BAR_HEIGHT = 30,
+        BAR_HEIGHT = 10,
+        BAR_Y_OFFSET_2D = -10, // Offset of progress bar while in desktop mode
+        BAR_Y_OFFSET_HMD = -300, // Offset of progress bar while in HMD
         BAR_URL = Script.resolvePath("assets/images/progress-bar.svg"),
-        BACKGROUND_WIDTH = 540,
-        BACKGROUND_HEIGHT = 90,
+        BACKGROUND_WIDTH = 520,
+        BACKGROUND_HEIGHT = 50,
         BACKGROUND_URL = Script.resolvePath("assets/images/progress-bar-background.svg"),
-        isOnHMD = false,
         windowWidth = 0,
         windowHeight = 0,
         background2D = {},
         bar2D = {},
-        SCALE_2D = 0.35, // Scale the SVGs for 2D display.
-        background3D = {},
-        bar3D = {},
-        PROGRESS_3D_DIRECTION = 0.0, // Degrees from avatar orientation.
-        PROGRESS_3D_DISTANCE = 0.602, // Horizontal distance from avatar position.
-        PROGRESS_3D_ELEVATION = -0.8, // Height of top middle of top notification relative to avatar eyes.
-        PROGRESS_3D_YAW = 0.0, // Degrees relative to notifications direction.
-        PROGRESS_3D_PITCH = -60.0, // Degrees from vertical.
-        SCALE_3D = 0.0011, // Scale the bar SVG for 3D display.
-        BACKGROUND_3D_SIZE = {
-            x: 0.76,
-            y: 0.08
-        }, // Match up with the 3D background with those of notifications.js notices.
-        BACKGROUND_3D_COLOR = {
-            red: 2,
-            green: 2,
-            blue: 2
-        },
-        BACKGROUND_3D_ALPHA = 0.7;
+        SCALE_2D = 0.35; // Scale the SVGs for 2D display.
 
     function fade() {
 
@@ -64,9 +52,7 @@
 
         if (alpha < 0) {
             alpha = 0;
-        }
-
-        if (alpha > 1) {
+        } else if (alpha > 1) {
             alpha = 1;
         }
 
@@ -79,114 +65,122 @@
             visible = false;
         }
 
-        if (isOnHMD) {
-            Overlays.editOverlay(background3D.overlay, {
-                backgroundAlpha: alpha * BACKGROUND_3D_ALPHA,
-                visible: visible
-            });
-        } else {
-            Overlays.editOverlay(background2D.overlay, {
-                alpha: alpha,
-                visible: visible
-            });
-        }
-        Overlays.editOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay, {
+        Overlays.editOverlay(background2D.overlay, {
+            alpha: alpha,
+            visible: visible
+        });
+        Overlays.editOverlay(bar2D.overlay, {
             alpha: alpha,
             visible: visible
         });
     }
 
+    Window.domainChanged.connect(function() {
+        isDownloading = false;
+        bestRawProgress = 100;
+        rawProgress = 100;
+        displayProgress = 100;
+    });
+
+    // Max seen since downloads started. This is reset when all downloads have completed.
+    var maxSeen = 0;
+
+    // Progress is defined as: (pending_downloads + active_downloads) / max_seen
+    // We keep track of both the current progress (rawProgress) and the
+    // best progress we've seen (bestRawProgress). As you are downloading, you may
+    // encounter new assets that require downloads, increasing the number of
+    // pending downloads and thus decreasing your overall progress.
+    var bestRawProgress = 0;
+
+    // True if we have known active downloads
+    var isDownloading = false;
+
+    // Entities are streamed to users, so you don't receive them all at once; instead, you
+    // receive them over a period of time. In many cases we end up in a situation where
+    //
+    // The initial delay cooldown keeps us from tracking progress before the allotted time
+    // has passed.
+    var INITIAL_DELAY_COOLDOWN_TIME = 1000;
+    var initialDelayCooldown = 0;
     function onDownloadInfoChanged(info) {
         var i;
 
+        debug("PROGRESS: Download info changed ", info.downloading.length, info.pending, maxSeen);
+
         // Update raw progress value
         if (info.downloading.length + info.pending === 0) {
+            isDownloading = false;
             rawProgress = 100;
+            bestRawProgress = 100;
+            initialDelayCooldown = INITIAL_DELAY_COOLDOWN_TIME;
         } else {
-            rawProgress = 0;
-            for (i = 0; i < info.downloading.length; i += 1) {
-                rawProgress += info.downloading[i];
+            var count = info.downloading.length + info.pending;
+            if (!isDownloading) {
+                isDownloading = true;
+                bestRawProgress = 0;
+                rawProgress = 0;
+                initialDelayCooldown = INITIAL_DELAY_COOLDOWN_TIME;
+                displayProgress = 0;
+                maxSeen = count;
             }
-            rawProgress = rawProgress / (info.downloading.length + info.pending);
+            if (count > maxSeen) {
+                maxSeen = count;
+            }
+            if (initialDelayCooldown <= 0) {
+                rawProgress = ((maxSeen - count) / maxSeen) * 100;
+
+                if (rawProgress > bestRawProgress) {
+                    bestRawProgress = rawProgress;
+                }
+            }
         }
+        debug("PROGRESS:", rawProgress, bestRawProgress, maxSeen);
     }
 
     function createOverlays() {
-        if (isOnHMD) {
-
-            background3D.overlay = Overlays.addOverlay("rectangle3d", {
-                size: BACKGROUND_3D_SIZE,
-                color: BACKGROUND_3D_COLOR,
-                alpha: BACKGROUND_3D_ALPHA,
-                solid: true,
-                isFacingAvatar: false,
-                visible: false,
-                ignoreRayIntersection: true
-            });
-            bar3D.overlay = Overlays.addOverlay("image3d", {
-                url: BAR_URL,
-                subImage: {
-                    x: BAR_WIDTH,
-                    y: 0,
-                    width: BAR_WIDTH,
-                    height: BAR_HEIGHT
-                },
-                scale: SCALE_3D * BAR_WIDTH,
-                isFacingAvatar: false,
-                visible: false,
-                alpha: 0.0,
-                ignoreRayIntersection: true
-            });
-
-        } else {
-
-            background2D.overlay = Overlays.addOverlay("image", {
-                imageURL: BACKGROUND_URL,
-                width: background2D.width,
-                height: background2D.height,
-                visible: false,
-                alpha: 0.0
-            });
-            bar2D.overlay = Overlays.addOverlay("image", {
-                imageURL: BAR_URL,
-                subImage: {
-                    x: BAR_WIDTH,
-                    y: 0,
-                    width: BAR_WIDTH,
-                    height: BAR_HEIGHT
-                },
-                width: bar2D.width,
-                height: bar2D.height,
-                visible: false,
-                alpha: 0.0
-            });
-        }
+        background2D.overlay = Overlays.addOverlay("image", {
+            imageURL: BACKGROUND_URL,
+            width: background2D.width,
+            height: background2D.height,
+            visible: false,
+            alpha: 0.0
+        });
+        bar2D.overlay = Overlays.addOverlay("image", {
+            imageURL: BAR_URL,
+            subImage: {
+                x: 0,
+                y: 0,
+                width: BAR_WIDTH,
+                height: BAR_HEIGHT
+            },
+            width: bar2D.width,
+            height: bar2D.height,
+            visible: false,
+            alpha: 0.0
+        });
     }
 
     function deleteOverlays() {
-        Overlays.deleteOverlay(isOnHMD ? background3D.overlay : background2D.overlay);
-        Overlays.deleteOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay);
+        Overlays.deleteOverlay(background2D.overlay);
+        Overlays.deleteOverlay(bar2D.overlay);
     }
 
+    var b = 0;
+    var currentOrientation = null;
     function update() {
+        initialDelayCooldown -= 30;
         var viewport,
             eyePosition,
             avatarOrientation;
 
-        if (isOnHMD !== HMD.active) {
-            deleteOverlays();
-            isOnHMD = !isOnHMD;
-            createOverlays();
+        if (displayProgress < rawProgress) {
+            var diff = rawProgress - displayProgress;
+            if (diff < 0.5) {
+                displayProgress = rawProgress;
+            } else {
+                displayProgress += diff * 0.05;
+            }
         }
-
-        // Calculate progress value to display
-        if (rawProgress === 0 && displayProgress <= DISPLAY_PROGRESS_MINOR_MAXIMUM) {
-            displayProgress = Math.min(displayProgress + DISPLAY_PROGRESS_MINOR_INCREMENT, DISPLAY_PROGRESS_MINOR_MAXIMUM);
-        } else if (rawProgress < displayProgress) {
-            displayProgress = rawProgress;
-        } else if (rawProgress > displayProgress) {
-            displayProgress = Math.min(rawProgress, displayProgress + DISPLAY_PROGRESS_MAJOR_INCREMENT);
-        } // else (rawProgress === displayProgress); do nothing.
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
@@ -197,7 +191,7 @@
             }
         } else if (alphaDelta !== 0.0) { // Fading in or out
             if (alphaDelta > 0) {
-                if (displayProgress === 100) { // Was downloading but now have finished so fade out
+                if (rawProgress === 100) { // Was downloading but now have finished so fade out
                     alphaDelta = ALPHA_DELTA_OUT;
                 }
             } else {
@@ -207,7 +201,7 @@
             }
         } else { // Fully visible because downloading or recently so
             if (fadeWaitTimer === null) {
-                if (displayProgress === 100) { // Was downloading but have finished so fade out soon
+                if (rawProgress === 100) { // Was downloading but have finished so fade out soon
                     fadeWaitTimer = Script.setTimeout(function() {
                         alphaDelta = ALPHA_DELTA_OUT;
                         fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
@@ -225,51 +219,50 @@
         if (visible) {
 
             // Update progress bar
-            Overlays.editOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay, {
-                visible: visible,
+            Overlays.editOverlay(bar2D.overlay, {
+                visible: true,
                 subImage: {
                     x: BAR_WIDTH * (1 - displayProgress / 100),
                     y: 0,
                     width: BAR_WIDTH,
                     height: BAR_HEIGHT
-                }
+                },
             });
 
-            // Update position
-            if (isOnHMD) {
-                // Update 3D overlays to maintain positions relative to avatar
-                eyePosition = MyAvatar.getDefaultEyePosition();
-                avatarOrientation = MyAvatar.orientation;
+            Overlays.editOverlay(background2D.overlay, {
+                visible: true,
+            });
 
-                Overlays.editOverlay(background3D.overlay, {
-                    position: Vec3.sum(eyePosition, Vec3.multiplyQbyV(avatarOrientation, background3D.offset)),
-                    rotation: Quat.multiply(avatarOrientation, background3D.orientation)
-                });
-                Overlays.editOverlay(bar3D.overlay, {
-                    position: Vec3.sum(eyePosition, Vec3.multiplyQbyV(avatarOrientation, bar3D.offset)),
-                    rotation: Quat.multiply(avatarOrientation, bar3D.orientation)
-                });
+            // Update 2D overlays to maintain positions at bottom middle of window
+            viewport = Controller.getViewportDimensions();
 
-            } else {
-                // Update 2D overlays to maintain positions at bottom middle of window
-                viewport = Controller.getViewportDimensions();
-
-                if (viewport.x !== windowWidth || viewport.y !== windowHeight) {
-                    windowWidth = viewport.x;
-                    windowHeight = viewport.y;
-
-                    Overlays.editOverlay(background2D.overlay, {
-                        x: windowWidth / 2 - background2D.width / 2,
-                        y: windowHeight - background2D.height - bar2D.height
-                    });
-
-                    Overlays.editOverlay(bar2D.overlay, {
-                        x: windowWidth / 2 - bar2D.width / 2,
-                        y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2
-                    });
-                }
+            if (viewport.x !== windowWidth || viewport.y !== windowHeight) {
+                updateProgressBarLocation();
             }
         }
+    }
+
+    function updateProgressBarLocation() {
+        viewport = Controller.getViewportDimensions();
+        windowWidth = viewport.x;
+        windowHeight = viewport.y;
+
+        var yOffset = HMD.active ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
+
+        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
+        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
+        bar2D.width = SCALE_2D * BAR_WIDTH;
+        bar2D.height = SCALE_2D * BAR_HEIGHT;
+
+        Overlays.editOverlay(background2D.overlay, {
+            x: windowWidth / 2 - background2D.width / 2,
+            y: windowHeight - background2D.height - bar2D.height + yOffset
+        });
+
+        Overlays.editOverlay(bar2D.overlay, {
+            x: windowWidth / 2 - bar2D.width / 2,
+            y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
+        });
     }
 
     function setUp() {
@@ -277,20 +270,6 @@
         background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
         bar2D.width = SCALE_2D * BAR_WIDTH;
         bar2D.height = SCALE_2D * BAR_HEIGHT;
-
-        background3D.offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, PROGRESS_3D_DIRECTION, 0), {
-            x: 0,
-            y: 0,
-            z: -PROGRESS_3D_DISTANCE
-        });
-        background3D.offset.y += PROGRESS_3D_ELEVATION;
-        background3D.orientation = Quat.fromPitchYawRollDegrees(PROGRESS_3D_PITCH, PROGRESS_3D_DIRECTION + PROGRESS_3D_YAW, 0);
-        bar3D.offset = Vec3.sum(background3D.offset, {
-            x: 0,
-            y: 0,
-            z: 0.001
-        }); // Just in front of background
-        bar3D.orientation = background3D.orientation;
 
         createOverlays();
     }
@@ -302,6 +281,6 @@
     setUp();
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
-    Script.update.connect(update);
+    Script.setInterval(update, 1000/60);
     Script.scriptEnding.connect(tearDown);
 }());

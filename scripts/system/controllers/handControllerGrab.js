@@ -38,6 +38,15 @@ var BUMPER_ON_VALUE = 0.5;
 
 var THUMB_ON_VALUE = 0.5;
 
+var HAPTIC_PULSE_STRENGTH = 1.0;
+var HAPTIC_PULSE_DURATION = 13.0;
+var HAPTIC_TEXTURE_STRENGTH = 0.1;
+var HAPTIC_TEXTURE_DURATION = 3.0;
+var HAPTIC_TEXTURE_DISTANCE = 0.002;
+var HAPTIC_DEQUIP_STRENGTH = 0.75;
+var HAPTIC_DEQUIP_DURATION = 50.0;
+
+
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 var PICK_WITH_HAND_RAY = true;
@@ -61,15 +70,15 @@ var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance 
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 
 var COLORS_GRAB_SEARCHING_HALF_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 10,
+    green: 10,
+    blue: 255
 };
 
 var COLORS_GRAB_SEARCHING_FULL_SQUEEZE = {
-    red: 255,
-    green: 97,
-    blue: 129
+    red: 250,
+    green: 10,
+    blue: 10
 };
 
 var COLORS_GRAB_DISTANCE_HOLD = {
@@ -98,7 +107,10 @@ var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for ne
 
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
-var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
+
+// if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
+var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
+var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimension of held item, > this means drop
 
 //
 // other constants
@@ -934,7 +946,7 @@ function MyController(hand) {
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
-            this.updateEquipHaptics(potentialEquipHotspot);
+            this.updateEquipHaptics(potentialEquipHotspot, this.getHandPosition());
         }
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
@@ -948,11 +960,15 @@ function MyController(hand) {
         this.prevPotentialEquipHotspot = null;
     };
 
-    this.updateEquipHaptics = function(potentialEquipHotspot) {
+    this.updateEquipHaptics = function(potentialEquipHotspot, currentLocation) {
         if (potentialEquipHotspot && !this.prevPotentialEquipHotspot ||
             !potentialEquipHotspot && this.prevPotentialEquipHotspot) {
-            Controller.triggerShortHapticPulse(0.5, this.hand);
-        }
+            Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
+            this.lastHapticPulseLocation = currentLocation;
+        } else if (potentialEquipHotspot && Vec3.distance(this.lastHapticPulseLocation, currentLocation) > HAPTIC_TEXTURE_DISTANCE) {
+            Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
+            this.lastHapticPulseLocation = currentLocation;
+        }       
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
@@ -1254,7 +1270,7 @@ function MyController(hand) {
             if (this.triggerSmoothedGrab()) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
-                this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
+                this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
                 return;
             }
         }
@@ -1337,7 +1353,7 @@ function MyController(hand) {
             }
         }
 
-        this.updateEquipHaptics(potentialEquipHotspot);
+        this.updateEquipHaptics(potentialEquipHotspot, handPosition);
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
         equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
@@ -1365,7 +1381,7 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','both');
         this.clearEquipHaptics();
 
         // controller pose is in avatar frame
@@ -1422,13 +1438,16 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("startDistanceGrab");
         }
 
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+
         this.turnOffVisualizations();
 
         this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.distanceHolding = function(deltaTime, timestamp) {
-        if (this.triggerSmoothedReleased()) {
+        
+        if (!this.triggerClicked) {    
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -1518,7 +1537,9 @@ function MyController(hand) {
 
         // visualizations
 
-        this.overlayLineOn(handPosition, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+         var rayPickInfo = this.calcRayPickInfo(this.hand);
+
+       this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -1611,21 +1632,28 @@ function MyController(hand) {
 
         if (handIsUpsideDown != this.prevHandIsUpsideDown) {
             this.prevHandIsUpsideDown = handIsUpsideDown;
-            Controller.triggerShortHapticPulse(0.5, this.hand);
+            Controller.triggerHapticPulse(HAPTIC_DEQUIP_STRENGTH, HAPTIC_DEQUIP_DURATION, this.hand);
         }
 
         return handIsUpsideDown;
     };
 
     this.nearGrabbingEnter = function() {
+        if (this.hand === 0) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
 
+        }
+        if (this.hand === 1) {
+            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
+
+        }
         this.lineOff();
         this.overlayLineOff();
 
         this.dropGestureReset();
         this.clearEquipHaptics();
 
-        Controller.triggerShortHapticPulse(1.0, this.hand);
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
         if (this.entityActivated) {
             var saveGrabbedID = this.grabbedEntity;
@@ -1746,7 +1774,7 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
 
-        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+        if (this.state == STATE_NEAR_GRABBING && !this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -1793,7 +1821,8 @@ function MyController(hand) {
 
         this.heartBeat(this.grabbedEntity);
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
+                                                                      "position", "rotation", "dimensions"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1805,10 +1834,9 @@ function MyController(hand) {
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
-            if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > NEAR_GRAB_MAX_DISTANCE) {
+            if (props.parentID == MyAvatar.sessionUUID) {
                 var handPosition = this.getHandPosition();
-                // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
+                // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
                 var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
@@ -1945,10 +1973,14 @@ function MyController(hand) {
     };
 
     this.release = function() {
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler','none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
+
+            //  Make a small release haptic pulse if we really were holding something
+            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             // If this looks like the release after adjusting something still held in the other hand, print the position
             // and rotation of the held thing to help content creators set the userData.
@@ -2335,9 +2367,20 @@ var handleHandMessages = function(channel, message, sender) {
             try {
                 data = JSON.parse(message);
                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                var hotspotIndex = data.hotspotIndex !== undefined ? parseInt(data.hotspotIndex) : 0;
                 selectedController.release();
+                var wearableEntity = data.entityID;
+                entityPropertiesCache.addEntity(wearableEntity);
+                selectedController.grabbedEntity = wearableEntity;
+                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedEntity);
+                if (hotspots.length > 0) {
+                    if (hotspotIndex >= hotspots.length) {
+                        hotspotIndex = 0;
+                    }
+                    selectedController.grabbedHotspot = hotspots[hotspotIndex];
+                }
                 selectedController.setState(STATE_HOLD, "Hifi-Hand-Grab msg received");
-                selectedController.grabbedEntity = data.entityID;
+                selectedController.nearGrabbingEnter();
 
             } catch (e) {
                 print("WARNING: error parsing Hifi-Hand-Grab message");

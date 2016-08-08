@@ -430,6 +430,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
+        getHead()->setPosition(getPosition()); // so audio-position isn't 0,0,0
         return;
     }
 

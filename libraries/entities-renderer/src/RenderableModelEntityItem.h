@@ -52,7 +52,6 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-
     ModelPointer getModel(EntityTreeRenderer* renderer);
 
     virtual bool needsToCallUpdate() const override;
@@ -64,6 +63,8 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
 
     virtual bool contains(const glm::vec3& point) const override;
+
+    virtual bool shouldBePhysical() const override;
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
