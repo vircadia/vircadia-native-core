@@ -1,8 +1,8 @@
 //
 //  QmlNetworkAccessManager.cpp
+//  libraries/networking/src
 //
-//
-//  Created by Clement on 7/1/14.
+//  Created by Zander Otavka on 8/4/16.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
