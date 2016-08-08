@@ -47,6 +47,7 @@
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
+#include "ConnectionMonitor.h"
 #include "FileLogger.h"
 #include "gpu/Context.h"
 #include "Menu.h"
@@ -562,6 +563,9 @@ private:
     bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
+
+    ConnectionMonitor _connectionMonitor;
 };
+
 
 #endif // hifi_Application_h

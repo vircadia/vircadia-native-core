@@ -44,6 +44,7 @@ public:
 
 public slots:
     void toggleAddressBar();
+    void showAddressBar();
     void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
