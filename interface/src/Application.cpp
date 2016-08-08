@@ -4252,7 +4252,7 @@ namespace render {
                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
                    static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
                    static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
-                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 3.5f };
+                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 2.0f };
                    static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
 
                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
