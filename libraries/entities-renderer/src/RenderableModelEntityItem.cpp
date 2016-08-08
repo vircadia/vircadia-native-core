@@ -484,7 +484,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
+            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL(), renderer->getEntityLoadingPriority(*this));
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if ((QUrl(getModelURL()) != _model->getURL() || QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
