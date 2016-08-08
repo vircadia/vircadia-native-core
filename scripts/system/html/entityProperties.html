@@ -1389,23 +1389,13 @@
             <label>Spatial</label><span>M</span>
         </div>
         <div class="spatial-group property xyz">
-            <label>Dimensions <span class="unit">m</span></label>
+            <label>Position <span class="unit">m</span></label>
             <div class="tuple">
-                <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
-                <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
+                <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
+                <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
             </div>
         </div>
-        <div class="spatial-group property gen">
-            <label>Scale <span class="unit">%</span></label>
-            <div class="row">
-                <input type="number" id="dimension-rescale-pct" value=100>
-                <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
-                <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
-            </div>
-        </div>
-
-        <hr class="spatial-group" />
         <div class="spatial-group property pyr">
             <label>Rotation <span class="unit">deg</span></label>
             <div class="tuple">
@@ -1414,19 +1404,28 @@
                 <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
             </div>
         </div>
-
-        <hr class="spatial-group" />
         <div class="spatial-group property xyz">
-            <label>Position <span class="unit">m</span></label>
+            <label>Dimensions <span class="unit">m</span></label>
             <div class="tuple">
-                <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
-                <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
+                <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
+                <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
             </div>
-            <div class="buttons">
-                <input type="button" id="move-selection-to-grid" value="Selection to Grid">
-                <input type="button" id="move-all-to-grid" value="All to Grid">
-                <input type="button" id="preview-camera-button" value="Preview Camera">
+        </div>
+        <div class="spatial-group property xyz">
+            <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
+            <div class="tuple">
+                <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
+                <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
+            </div>
+        </div>
+        <div class="spatial-group property gen">
+            <label>Scale <span class="unit">%</span></label>
+            <div class="row">
+                <input type="number" id="dimension-rescale-pct" value=100>
+                <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
+                <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
             </div>
         </div>
         <div class="spatial-group row">
@@ -1439,15 +1438,17 @@
                 <input type="number" id="property-parent-joint-index">
             </div>
         </div>
-        <div class="spatial-group property xyz">
-            <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
-                <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
+        <div class="spatial-group ">
+            <div class="property text">
+                <label>Align</label>
             </div>
+            <div class="row">
+                <div class="buttons">
+                    <input type="button" id="move-selection-to-grid" value="Selection to Grid">
+                    <input type="button" id="move-all-to-grid" value="All to Grid">
+                </div> 
+             </div>
         </div>
-
         <hr class="spatial-group poly-vox-section" />
         <div class="spatial-group poly-vox-section property xyz">
             <label>Voxel volume size <span class="unit">m</span></label>
