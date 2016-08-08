@@ -124,9 +124,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
     const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
     const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
-    const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
-    const auto halfLinearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(3);
-    const auto halfNormalTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(4);
+  //  const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
+   // const auto halfLinearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(3);
+  //  const auto halfNormalTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(4);
 
     
     // Curvature pass

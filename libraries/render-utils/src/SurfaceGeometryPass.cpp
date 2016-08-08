@@ -61,6 +61,9 @@ void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depth
 void LinearDepthFramebuffer::clear() {
     _linearDepthFramebuffer.reset();
     _linearDepthTexture.reset();
+	_downsampleFramebuffer.reset();
+	_halfLinearDepthTexture.reset();
+	_halfNormalTexture.reset();
 }
 
 void LinearDepthFramebuffer::allocate() {
@@ -79,7 +82,7 @@ void LinearDepthFramebuffer::allocate() {
     // For Downsampling:
     _halfLinearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
-	_halfLinearDepthTexture->autoGenerateMips(-1);
+	_halfLinearDepthTexture->autoGenerateMips(5);
 
     _halfNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));

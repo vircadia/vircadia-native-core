@@ -38,21 +38,34 @@ Column {
                 }
             }
         }
-
-        Column {
-            Repeater {
-                model: [
-                    "resolutionLevel:resolutionLevel",
-                    "ditheringEnabled:ditheringEnabled",
-                    "borderingEnabled:borderingEnabled",
-                    "fetchMipsEnabled:fetchMipsEnabled",
-                ]
-                CheckBox {
-                    text: qsTr(modelData.split(":")[0])
-                    checked: Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]]
-                    onCheckedChanged: { Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]] = checked }
+        Row{
+            Column {
+                Repeater {
+                    model: [
+                        "resolutionLevel:resolutionLevel",
+                        "ditheringEnabled:ditheringEnabled",
+                        "borderingEnabled:borderingEnabled",
+                        "fetchMipsEnabled:fetchMipsEnabled"
+                    ]
+                    CheckBox {
+                        text: qsTr(modelData.split(":")[0])
+                        checked: Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]]
+                        onCheckedChanged: { Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]] = checked }
+                    } 
                 }
             }
+            Column {
+                Repeater {
+                    model: [
+                       "debugEnabled:showCursorPixel"
+                    ]
+                    CheckBox {
+                        text: qsTr(modelData.split(":")[0])
+                        checked: Render.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]]
+                        onCheckedChanged: { Render.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]] = checked }
+                    } 
+                }
+            }    
         }
 
         PlotPerf {

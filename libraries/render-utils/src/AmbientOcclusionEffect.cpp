@@ -403,7 +403,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
       
         // We need this with the mips levels  
-		batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+	//	batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
@@ -479,6 +479,10 @@ const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
 void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
+
+	if (!_showCursorPixel) {
+		return;
+	}
 
     RenderArgs* args = renderContext->args;
 
