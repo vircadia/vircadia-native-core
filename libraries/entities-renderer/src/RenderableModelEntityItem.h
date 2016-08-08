@@ -52,7 +52,6 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-
     ModelPointer getModel(EntityTreeRenderer* renderer);
 
     virtual bool needsToCallUpdate() const override;
