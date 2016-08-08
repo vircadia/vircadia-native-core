@@ -139,7 +139,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-#include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
@@ -2291,7 +2290,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_Asterisk:
-                Menu::getInstance()->triggerOption(MenuOption::Stars);
+                Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
 
             case Qt::Key_S:
@@ -4216,8 +4215,6 @@ public:
     typedef render::Payload<BackgroundRenderData> Payload;
     typedef Payload::DataPointer Pointer;
 
-    Stars _stars;
-
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
@@ -4252,34 +4249,26 @@ namespace render {
 
             // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
-//                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-//                    PerformanceTimer perfTimer("stars");
-//                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-//                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
-//                    // should be the first rendering pass - w/o depth buffer / lighting
-//
-//                    static const float alpha = 1.0f;
-//                    background->_stars.render(args, alpha);
-//                }
+               if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                   static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                   static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
+                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 3.5f };
+                   static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
 
-                static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
-                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 3.5f };
-                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
+                   auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                   auto sceneKeyLight = scene->getKeyLight();
+                   scene->setSunModelEnable(false);
+                   sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                   sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                   sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                   sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
 
-                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                auto sceneKeyLight = scene->getKeyLight();
-                scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                   auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                   sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
 
-                auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-
-                qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+                   qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+               }
             }
                 break;
 
