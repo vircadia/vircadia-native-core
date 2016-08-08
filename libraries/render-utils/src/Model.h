@@ -409,7 +409,7 @@ protected:
     bool _collisionGeometryRequestFailed { false };
 
 private:
-    float _loadingPriority { 0 };
+    float _loadingPriority { 0.0f };
 
 };
 
