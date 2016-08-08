@@ -3250,6 +3250,11 @@ void Application::init() {
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
         auto maxSize = glm::max(dims.x, dims.y, dims.z);
+
+        if (maxSize <= 0.0f) {
+            return 0.0f;
+        }
+
         auto distance = glm::distance(getMyAvatar()->getPosition(), item.getPosition());
         return atan2(maxSize, distance);
     });
