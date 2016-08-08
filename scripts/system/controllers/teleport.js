@@ -1,32 +1,15 @@
 // Created by james b. pollack @imgntn on 7/2/2016
 // Copyright 2016 High Fidelity, Inc.
 //
-//  Creates a beam and target and then teleports you there.
+//  Creates a beam and target and then teleports you there.  Release when its close to you to cancel.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 var inTeleportMode = false;
 
-// instant
-// var NUMBER_OF_STEPS = 0;
-// var SMOOTH_ARRIVAL_SPACING = 0;
-
-// // slow
-// var SMOOTH_ARRIVAL_SPACING = 150;
-// var NUMBER_OF_STEPS = 2;
-
-// medium-slow
-// var SMOOTH_ARRIVAL_SPACING = 100;
-// var NUMBER_OF_STEPS = 4;
-
-// medium-fast
 var SMOOTH_ARRIVAL_SPACING = 33;
 var NUMBER_OF_STEPS = 6;
-
-//fast
-// var SMOOTH_ARRIVAL_SPACING = 10;
-// var NUMBER_OF_STEPS = 20;
 
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
 var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
@@ -53,7 +36,6 @@ var COLORS_TELEPORT_TOO_CLOSE = {
     green: 184,
     blue: 73
 };
-
 
 var TELEPORT_CANCEL_RANGE = 1.5;
 
@@ -105,7 +87,6 @@ function Teleporter() {
         this.disableGrab();
     };
 
-
     this.createMappings = function() {
         teleporter.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
         teleporter.teleportMappingInternal = Controller.newMapping(teleporter.telporterMappingInternalName);
@@ -139,7 +120,6 @@ function Teleporter() {
         Script.update.connect(this.update);
         this.updateConnected = true;
     };
-
 
     this.createTargetOverlay = function() {
 
@@ -181,6 +161,7 @@ function Teleporter() {
         if (this.cancelOverlay === null) {
             return;
         }
+
         Overlays.deleteOverlay(this.cancelOverlay);
         this.cancelOverlay = null;
     }
@@ -189,6 +170,7 @@ function Teleporter() {
         if (this.targetOverlay === null) {
             return;
         }
+
         Overlays.deleteOverlay(this.targetOverlay);
         this.intersection = null;
         this.targetOverlay = null;
@@ -255,7 +237,7 @@ function Teleporter() {
 
         var rightControllerRotation = Controller.getPoseValue(Controller.Standard.RightHand).rotation;
 
-        var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation)
+        var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation);
 
         var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
             x: 1,
@@ -296,7 +278,6 @@ function Teleporter() {
                 }
 
             }
-
 
         } else {
 
@@ -425,47 +406,41 @@ function Teleporter() {
     this.updateTargetOverlay = function(intersection) {
         _this.intersection = intersection;
 
-        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP)
-        var euler = Quat.safeEulerAngles(rotation)
+        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP);
+        var euler = Quat.safeEulerAngles(rotation);
         var position = {
             x: intersection.intersection.x,
             y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
             z: intersection.intersection.z
-        }
+        };
 
         this.tooClose = isTooCloseToTeleport(position);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
-
         Overlays.editOverlay(this.targetOverlay, {
             position: position,
-            rotation: towardUs,
+            rotation: towardUs
         });
 
-
-
     };
-
 
     this.updateCancelOverlay = function(intersection) {
         _this.intersection = intersection;
 
-        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP)
-        var euler = Quat.safeEulerAngles(rotation)
+        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP);
+        var euler = Quat.safeEulerAngles(rotation);
         var position = {
             x: intersection.intersection.x,
             y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
             z: intersection.intersection.z
-        }
+        };
 
         this.tooClose = isTooCloseToTeleport(position);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
-
-
         Overlays.editOverlay(this.cancelOverlay, {
             position: position,
-            rotation: towardUs,
+            rotation: towardUs
         });
     };
 
@@ -500,7 +475,6 @@ function Teleporter() {
             this.smoothArrival();
         }
     };
-
 
     this.findMidpoint = function(start, end) {
         var xy = Vec3.sum(start, end);
@@ -546,7 +520,6 @@ function Teleporter() {
         }, SMOOTH_ARRIVAL_SPACING);
     }
 }
-
 
 //related to repositioning the avatar after you teleport
 function getAvatarFootOffset() {
@@ -613,11 +586,11 @@ function isMoving() {
     } else {
         return false;
     }
-}
+};
 
 function isTooCloseToTeleport(position) {
     return Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
-}
+};
 
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
@@ -671,7 +644,7 @@ function registerMappings() {
             }, TELEPORT_DELAY)
             return;
         });
-}
+};
 
 registerMappings();
 
