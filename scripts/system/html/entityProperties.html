@@ -440,10 +440,11 @@
                 var elWebSections = document.querySelectorAll(".web-section");
                 allSections.push(elWebSections);
                 var elWebSourceURL = document.getElementById("property-web-source-url");
-    
+
+                var elDescription = document.getElementById("property-description");
 
                 var elHyperlinkHref = document.getElementById("property-hyperlink-href");
-                var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
+             
                 var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
               
     
@@ -651,7 +652,7 @@
                                 setTextareaScrolling(elUserData);
     
                                 elHyperlinkHref.value = properties.href;
-                                elHyperlinkDescription.value = properties.description;
+                                elDescription.value = properties.description;
     
                                 for (var i = 0; i < allSections.length; i++) {
                                     for (var j = 0; j < allSections[i].length; j++) {
@@ -818,7 +819,7 @@
                 elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
                 elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
                 elHyperlinkHref.addEventListener('change', createEmitTextPropertyUpdateFunction('href'));
-                elHyperlinkDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
+                elDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
                 elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
     
                 var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
@@ -1363,6 +1364,10 @@
             <label for="property-name">Name</label>
             <input type="text" id="property-name">
         </div>
+        <div class="property text">
+            <label for="property-description">Description</label>
+            <input type="text" id="property-description">
+        </div>
         <div class="property textarea">
             <label for="property-user-data">User data</label>
             <textarea id="property-user-data"></textarea>
@@ -1379,10 +1384,7 @@
             <label for="property-hyperlink-href">Href - hifi://address</label>
             <input type="text" id="property-hyperlink-href">
         </div>
-        <div class="hyperlink-group hyperlink-section property text">
-            <label for="property-hyperlink-description">Description</label>
-            <input type="text" id="property-hyperlink-description">
-        </div>
+
 
 
         <div class="section-header spatial-group">
