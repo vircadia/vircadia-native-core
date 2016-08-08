@@ -38,7 +38,9 @@ static const QString DISABLE_PREVIEW = "Disable Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
+#if !defined(Q_OS_MAC)
 static const bool DEFAULT_DISABLE_PREVIEW = false;
+#endif
 static const glm::mat4 IDENTITY_MATRIX;
 static const size_t NUMBER_OF_HANDS = 2;
 
@@ -69,7 +71,9 @@ bool HmdDisplayPlugin::internalActivate() {
         _monoPreview = clicked;
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
-
+#if defined(Q_OS_MAC)
+    _disablePreview = true;
+#else
     _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || !_vsyncSupported);
     if (_vsyncSupported) {
         _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
@@ -81,6 +85,7 @@ bool HmdDisplayPlugin::internalActivate() {
             }
         }, true, _disablePreview);
     }
+#endif
 
     _container->removeMenu(FRAMERATE);
     for_each_eye([&](Eye eye) {
