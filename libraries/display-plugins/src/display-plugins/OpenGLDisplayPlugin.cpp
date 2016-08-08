@@ -665,17 +665,13 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 }
 
 QImage OpenGLDisplayPlugin::getScreenshot() const {
-#if 0
-    using namespace oglplus;
-    QImage screenshot(_compositeFramebuffer->size.x, _compositeFramebuffer->size.y, QImage::Format_RGBA8888);
+    auto size = _compositeFramebuffer->getSize();
+    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+    QImage screenshot(size.x, size.y, QImage::Format_ARGB32);
     withMainThreadContext([&] {
-        Framebuffer::Bind(Framebuffer::Target::Read, _compositeFramebuffer->fbo);
-        Context::ReadPixels(0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y, enums::PixelDataFormat::RGBA, enums::PixelDataType::UnsignedByte, screenshot.bits());
+        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(uvec2(0), size), screenshot);
     });
     return screenshot.mirrored(false, true);
-#else
-    return QImage();
-#endif
 }
 
 glm::uvec2 OpenGLDisplayPlugin::getSurfacePixels() const {
