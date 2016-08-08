@@ -19,7 +19,7 @@ for i in range(NUM_VALUES):
     if s < 0.04045:
         l = s / 12.92
     else:
-        l = ((s + 0.044) / 1.055) ** 2.4
+        l = ((s + 0.055) / 1.055) ** 2.4
     srgb_to_linear.append(l)
 
 # Format and print
