@@ -25,7 +25,7 @@
         <ul class="nav nav-pills nav-stacked">
         </ul>
 
-        <button id="advanced-toggle-button" hidden=true class="btn btn-info advanced-toggle">Show advanced</button>
+        <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
         <button class="btn btn-success save-button">Save and restart</button>
       </div>
     </div>
