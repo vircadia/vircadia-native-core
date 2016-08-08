@@ -130,8 +130,8 @@ public:
     mutable PageManager _renderPages;
     mutable Sysmem _renderSysmem;
 
-    mutable std::atomic<size_t> _getUpdateCount;
-    mutable std::atomic<size_t> _applyUpdateCount;
+    mutable std::atomic<size_t> _getUpdateCount { 0 };
+    mutable std::atomic<size_t> _applyUpdateCount { 0 };
 //protected:
 public:
     void markDirty(Size offset, Size bytes);

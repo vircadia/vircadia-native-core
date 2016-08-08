@@ -730,7 +730,9 @@ gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
     if (!_backend) {
         return nullptr;
     }
-    return dynamic_cast<gpu::gl::GLBackend*>(_backend.get());
+    auto backend = _backend.get();
+    auto glbackend = static_cast<gpu::gl::GLBackend*>(backend);
+    return glbackend;
 }
 
 void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
