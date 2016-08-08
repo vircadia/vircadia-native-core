@@ -181,10 +181,14 @@ public:
     gpu::ContextPointer _gpuContext; // initialized during window creation
     std::atomic<size_t> _presentCount;
     QElapsedTimer _elapsed;
-    std::atomic<uint16_t> _fps;
+    std::atomic<uint16_t> _fps{ 1 };
     RateCounter<200> _fpsCounter;
     std::mutex _mutex;
     std::shared_ptr<gpu::Backend> _backend;
+    std::vector<uint64_t> _frameTimes;
+    size_t _frameIndex;
+    static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
+
 
 
     void initialize(QOpenGLContextWrapper* displayContext, QWindow* surface) {
@@ -211,6 +215,7 @@ public:
         glewExperimental = true;
         glewInit();
         glGetError();
+        _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
 
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
@@ -269,18 +274,38 @@ public:
         }
     }
 
-    bool processQueueItems(const Queue& items) override {
-        auto frame = items.last();
+    void report() {
+        uint64_t total = 0;
+        for (const auto& t : _frameTimes) {
+            total += t;
+        }
+        auto averageFrameTime = total / FRAME_TIME_BUFFER_SIZE;
+        qDebug() << "Average frame " << averageFrameTime;
 
-        auto start = usecTimestampNow();
-        renderFrame(frame);
-        auto duration = usecTimestampNow() - start;
-        float frameTime = (float)duration / (float)USECS_PER_SECOND;
-        float averageFrameTime = 1.0f / _fps;
-        float diff = frameTime - averageFrameTime;
-        diff = std::max(diff, -diff);
-        if ((diff - 1.0f) > 2.0f) {
-            qDebug() << "Long frame " << frameTime * MSECS_PER_SECOND;
+        std::list<uint64_t> sortedHighFrames;
+        for (const auto& t : _frameTimes) {
+            if (t > averageFrameTime * 6) {
+                sortedHighFrames.push_back(t);
+            }
+        }
+
+        sortedHighFrames.sort();
+        for (const auto& t : sortedHighFrames) {
+            qDebug() << "Long frame " << t;
+        }
+    }
+
+    bool processQueueItems(const Queue& items) override {
+        for (auto frame : items) {
+            auto start = usecTimestampNow();
+            renderFrame(frame);
+            auto duration = usecTimestampNow() - start;
+            auto frameBufferIndex = _frameIndex % FRAME_TIME_BUFFER_SIZE;
+            _frameTimes[frameBufferIndex] = duration;
+            ++_frameIndex;
+            if (0 == _frameIndex % FRAME_TIME_BUFFER_SIZE) {
+                report();
+            }
         }
         return true;
     }
@@ -404,6 +429,8 @@ public:
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
+        // Prevent web entities from rendering
+        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
         
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
