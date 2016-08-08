@@ -124,10 +124,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
     const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
     const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
-  //  const auto linearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(2);
-   // const auto halfLinearDepthTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(3);
-  //  const auto halfNormalTexture = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(4);
-
     
     // Curvature pass
     const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
@@ -150,8 +146,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
-
+		surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
+	
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
@@ -178,15 +174,14 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
-        // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
-        
+		// Debugging Deferred buffer job
+		const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+		addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
-
 
 
         // Scene Octree Debuging job

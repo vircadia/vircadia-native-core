@@ -94,8 +94,8 @@ public:
     float blurDeviation{ 2.5f };
     float numSpiralTurns{ 7.0f }; // defining an angle span to distribute the samples ray directions
     int numSamples{ 11 };
-    int resolutionLevel{ 1 };
-    int blurRadius{ 3 }; // 0 means no blurring
+    int resolutionLevel{ 0 };
+    int blurRadius{ 4 }; // 0 means no blurring
     bool ditheringEnabled{ true }; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true
     bool fetchMipsEnabled{ true }; // fetch taps in sub mips to otpimize cache, should always be true

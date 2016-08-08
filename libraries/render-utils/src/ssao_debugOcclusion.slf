@@ -72,8 +72,9 @@ void main(void) {
     }
 
     // Let's make noise 
-   // float randomPatternRotationAngle = getAngleDithering(ssC);
-    float randomPatternRotationAngle = getAngleDitheringWorldPos(Cp);
+    //float randomPatternRotationAngle = getAngleDithering(ssC);
+	vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
+    float randomPatternRotationAngle = getAngleDitheringWorldPos(wCp);
     
 
     // Accumulate the Obscurance for each samples
@@ -84,14 +85,17 @@ void main(void) {
 
     for (int i = 0; i < getNumSamples(); ++i) {
         vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, cursorPixelPos, imageSize);
+
         // The occluding point in camera space
         vec2 fragToTap = vec2(ssC) + tap.xy - fragCoord.xy;
         if (dot(fragToTap,fragToTap) < keepTapRadius) {
             keep = true;
-            keepedMip = evalMipFromRadius(tap.z);
+            keepedMip = evalMipFromRadius(tap.z * doFetchMips());
         } 
 
-        vec3 Q = getOffsetPosition(side.xyz, ssC, tap, imageSize);
+		vec3 tapUVZ = fetchTap(side.xyz, ssC, tap, imageSize);
+		
+		vec3 Q = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
 
         sum += float(tap.z > 0.0) * evalAO(Cp, Cn, Q);
     }

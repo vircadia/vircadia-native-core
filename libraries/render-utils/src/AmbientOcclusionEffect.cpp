@@ -375,7 +375,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto resolutionLevel = _parametersBuffer->getResolutionLevel();
 
 
-    //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
+    _parametersBuffer->ditheringInfo.y += 0.25f;
 
     // Running in stero ?
     bool isStereo = args->_context->isStereo();
@@ -403,7 +403,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
       
         // We need this with the mips levels  
-	//	batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+		batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);

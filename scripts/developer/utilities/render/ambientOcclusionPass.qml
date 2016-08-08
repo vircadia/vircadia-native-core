@@ -44,8 +44,8 @@ Column {
                     model: [
                         "resolutionLevel:resolutionLevel",
                         "ditheringEnabled:ditheringEnabled",
-                        "borderingEnabled:borderingEnabled",
-                        "fetchMipsEnabled:fetchMipsEnabled"
+                        "fetchMipsEnabled:fetchMipsEnabled",
+                        "borderingEnabled:borderingEnabled"
                     ]
                     CheckBox {
                         text: qsTr(modelData.split(":")[0])
