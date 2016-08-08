@@ -124,7 +124,7 @@ void OculusDisplayPlugin::hmdPresent() {
     {
         gpu::Batch batch;
         batch.enableStereo(false);
-        auto source = _currentFrame->framebuffer;
+        auto source = _compositeFramebuffer;
         auto sourceRect = ivec4(ivec2(0), source->getSize());
         auto dest = _outputFramebuffer;
         auto destRect = ivec4(ivec2(0), dest->getSize());
