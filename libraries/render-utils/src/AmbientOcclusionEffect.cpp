@@ -339,9 +339,9 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     RenderArgs* args = renderContext->args;
 
-    const auto frameTransform = inputs.get0();
-    const auto deferredFramebuffer = inputs.get1();
-    const auto linearDepthFramebuffer = inputs.get2();
+    const auto& frameTransform = inputs.get0();
+    const auto& deferredFramebuffer = inputs.get1();
+    const auto& linearDepthFramebuffer = inputs.get2();
     
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto sourceViewport = args->_viewport;
@@ -403,13 +403,13 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
       
         // We need this with the mips levels  
-        batch.generateTextureMips(linearDepthTexture);
+		batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, linearDepthTexture);
+		batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
@@ -487,10 +487,10 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
 //        return;
 //    }
 
-    const auto frameTransform = inputs.get0();
-    const auto deferredFramebuffer = inputs.get1();
-    const auto linearDepthFramebuffer = inputs.get2();
-    const auto ambientOcclusionUniforms = inputs.get3();
+    const auto& frameTransform = inputs.get0();
+    const auto& deferredFramebuffer = inputs.get1();
+    const auto& linearDepthFramebuffer = inputs.get2();
+    const auto& ambientOcclusionUniforms = inputs.get3();
     
 	// Skip if AO is not started yet
 	if (!ambientOcclusionUniforms._buffer) {
@@ -498,16 +498,14 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
 	}
 
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
-    auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
     auto sourceViewport = args->_viewport;
     auto occlusionViewport = sourceViewport;
 
     auto resolutionLevel = ambientOcclusionUniforms->getResolutionLevel();
     
     if (resolutionLevel > 0) {
-        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
-        normalTexture = linearDepthFramebuffer->getHalfNormalTexture();
-        occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
+		linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+		occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
     }
         
 

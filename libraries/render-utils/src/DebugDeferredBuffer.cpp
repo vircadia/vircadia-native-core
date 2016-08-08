@@ -423,5 +423,23 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const glm::vec2 bottomLeft(_size.x, _size.y);
         const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
+
+
+		batch.setResourceTexture(Albedo, nullptr);
+		batch.setResourceTexture(Normal, nullptr);
+		batch.setResourceTexture(Specular, nullptr);
+		batch.setResourceTexture(Depth, nullptr);
+		batch.setResourceTexture(Lighting, nullptr);
+		batch.setResourceTexture(Shadow, nullptr);
+		batch.setResourceTexture(LinearDepth, nullptr);
+		batch.setResourceTexture(HalfLinearDepth, nullptr);
+		batch.setResourceTexture(HalfNormal, nullptr);
+
+		batch.setResourceTexture(Curvature, nullptr);
+		batch.setResourceTexture(DiffusedCurvature, nullptr);
+
+		batch.setResourceTexture(AmbientOcclusion, nullptr);
+		batch.setResourceTexture(AmbientOcclusionBlurred, nullptr);
+
     });
 }
