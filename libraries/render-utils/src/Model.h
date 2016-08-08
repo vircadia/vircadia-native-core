@@ -407,12 +407,8 @@ protected:
 
     bool _visualGeometryRequestFailed { false };
     bool _collisionGeometryRequestFailed { false };
-    bool _geometryRequestFailed { false };
 
     bool _renderItemsNeedUpdate { false };
-
-private slots:
-    void handleGeometryResourceFailure() { _geometryRequestFailed = true; }
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
