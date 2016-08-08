@@ -257,7 +257,7 @@ void OculusLegacyDisplayPlugin::hmdPresent() {
     memset(eyePoses, 0, sizeof(ovrPosef) * 2);
     eyePoses[0].Orientation = eyePoses[1].Orientation = ovrRotation;
     
-    GLint texture = getGLBackend()->getTextureID(_compositeTexture, false);
+    GLint texture = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
     auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush();
     if (_hmdWindow->makeCurrent()) {

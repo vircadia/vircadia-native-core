@@ -32,6 +32,8 @@ namespace gpu {
         Mat4 pose;
         /// The collection of batches which make up the frame
         Batches batches;
+        /// The main thread updates to buffers that are applicable for this frame.
+        BufferUpdates bufferUpdates;
         /// The destination framebuffer in which the results will be placed
         FramebufferPointer framebuffer;
         /// The destination texture containing the 2D overlay
@@ -39,10 +41,6 @@ namespace gpu {
 
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
-        /// How to process the overlay texture when the frame dies.  MUST BE THREAD SAFE
-        OverlayRecycler overlayRecycler;
-        BufferUpdates bufferUpdates;
-
     };
 
 };

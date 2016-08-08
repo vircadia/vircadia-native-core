@@ -386,7 +386,6 @@ void OpenGLDisplayPlugin::customizeContext() {
     }
     auto renderSize = getRecommendedRenderSize();
     _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
-    _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
@@ -394,7 +393,6 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _cursorPipeline.reset();
     _overlayPipeline.reset();
     _compositeFramebuffer.reset();
-    _compositeTexture.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
         while (!_newFrameQueue.empty()) {
@@ -538,7 +536,6 @@ void OpenGLDisplayPlugin::compositeLayers() {
     auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
-        _compositeTexture = _compositeFramebuffer->getRenderBuffer(0);
     }
 
     {

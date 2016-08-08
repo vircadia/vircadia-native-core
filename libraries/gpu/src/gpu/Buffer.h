@@ -11,6 +11,10 @@
 
 #include <atomic>
 
+#if _DEBUG
+#include <QtCore/QDebug>
+#endif
+
 #include "Forward.h"
 #include "Format.h"
 #include "Resource.h"

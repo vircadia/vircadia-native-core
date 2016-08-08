@@ -17,10 +17,6 @@ Frame::~Frame() {
         framebuffer.reset();
     }
 
-    if (overlay && overlayRecycler) {
-        overlayRecycler(overlay);
-        overlay.reset();
-    }
     assert(bufferUpdates.empty());
     if (!bufferUpdates.empty()) {
         qFatal("Buffer sync error... frame destroyed without buffer updates being applied");

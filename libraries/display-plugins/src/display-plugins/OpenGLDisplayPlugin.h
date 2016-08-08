@@ -69,7 +69,7 @@ protected:
     glm::uvec2 getSurfaceSize() const;
     glm::uvec2 getSurfacePixels() const;
 
-    void compositeLayers();
+    virtual void compositeLayers();
     virtual void compositeScene();
     virtual void compositeOverlay();
     virtual void compositePointer();
@@ -110,7 +110,6 @@ protected:
 
     gpu::FramePointer _currentFrame;
     gpu::FramebufferPointer _compositeFramebuffer;
-    gpu::TexturePointer _compositeTexture;
     gpu::PipelinePointer _overlayPipeline;
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
@@ -148,7 +147,7 @@ protected:
     }
 
     gpu::gl::GLBackend* getGLBackend();
-private:
+
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex
     mutable Mutex _presentMutex;

@@ -163,7 +163,7 @@ void HmdDisplayPlugin::internalPresent() {
                 viewport.z *= 2; 
             } 
             batch.setViewportTransform(viewport);
-            batch.setResourceTexture(0, _compositeTexture);
+            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.setPipeline(_presentPipeline);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
