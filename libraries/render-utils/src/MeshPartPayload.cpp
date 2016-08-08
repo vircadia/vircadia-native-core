@@ -13,8 +13,6 @@
 
 #include <PerfStat.h>
 
-#include <Interpolate.h>
-
 #include "DeferredLightingEffect.h"
 #include "Model.h"
 
