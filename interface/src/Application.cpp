@@ -739,7 +739,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    ResourceCache::setRequestLimit(MAX_CONCURRENT_RESOURCE_DOWNLOADS);
+    const char** constArgv = const_cast<const char**>(argv);
+    QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
+    bool success;
+    int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
+    if (!success) {
+        concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
+    }
+    ResourceCache::setRequestLimit(concurrentDownloads);
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
@@ -811,6 +818,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     }
     UserActivityLogger::getInstance().logAction("launch", properties);
 
+    _connectionMonitor.init();
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -3239,6 +3247,18 @@ void Application::init() {
         QMutexLocker viewLocker(&_viewMutex);
         getEntities()->setViewFrustum(_viewFrustum);
     }
+
+    getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
+        auto dims = item.getDimensions();
+        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+
+        if (maxSize <= 0.0f) {
+            return 0.0f;
+        }
+
+        auto distance = glm::distance(getMyAvatar()->getPosition(), item.getPosition());
+        return atan2(maxSize, distance);
+    });
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();

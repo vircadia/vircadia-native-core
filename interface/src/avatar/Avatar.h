@@ -184,6 +184,8 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
+    void setModelURLFinished(bool success);
+
 protected:
     friend class AvatarManager;
 

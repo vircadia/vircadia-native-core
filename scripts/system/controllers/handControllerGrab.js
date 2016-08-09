@@ -107,7 +107,10 @@ var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for ne
 
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
-var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
+
+// if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
+var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
+var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimension of held item, > this means drop
 
 //
 // other constants
@@ -1267,7 +1270,7 @@ function MyController(hand) {
             if (this.triggerSmoothedGrab()) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
-                this.setState(STATE_HOLD, "eqipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
+                this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
                 return;
             }
         }
@@ -1818,7 +1821,8 @@ function MyController(hand) {
 
         this.heartBeat(this.grabbedEntity);
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
+                                                                      "position", "rotation", "dimensions"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1830,10 +1834,9 @@ function MyController(hand) {
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
-            if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > NEAR_GRAB_MAX_DISTANCE) {
+            if (props.parentID == MyAvatar.sessionUUID) {
                 var handPosition = this.getHandPosition();
-                // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
+                // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
                 var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
@@ -2364,9 +2367,20 @@ var handleHandMessages = function(channel, message, sender) {
             try {
                 data = JSON.parse(message);
                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                var hotspotIndex = data.hotspotIndex !== undefined ? parseInt(data.hotspotIndex) : 0;
                 selectedController.release();
+                var wearableEntity = data.entityID;
+                entityPropertiesCache.addEntity(wearableEntity);
+                selectedController.grabbedEntity = wearableEntity;
+                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedEntity);
+                if (hotspots.length > 0) {
+                    if (hotspotIndex >= hotspots.length) {
+                        hotspotIndex = 0;
+                    }
+                    selectedController.grabbedHotspot = hotspots[hotspotIndex];
+                }
                 selectedController.setState(STATE_HOLD, "Hifi-Hand-Grab msg received");
-                selectedController.grabbedEntity = data.entityID;
+                selectedController.nearGrabbingEnter();
 
             } catch (e) {
                 print("WARNING: error parsing Hifi-Hand-Grab message");

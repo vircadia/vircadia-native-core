@@ -111,8 +111,8 @@ Model::Model(RigPointer rig, QObject* parent) :
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 
-    // handle download failure reported by the GeometryResourceWatcher
-    connect(&_renderWatcher, &GeometryResourceWatcher::resourceFailed, this, &Model::handleGeometryResourceFailure);
+    connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
+    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadCollisionModelURLFinished);
 }
 
 Model::~Model() {
@@ -822,12 +822,21 @@ void Model::setURL(const QUrl& url) {
     _needsReload = true;
     _needsUpdateTextures = true;
     _meshGroupsKnown = false;
-    _geometryRequestFailed = false;
+    _visualGeometryRequestFailed = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _renderWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+    auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+    resource->setLoadPriority(this, _loadingPriority);
+    _renderWatcher.setResource(resource);
     onInvalidate();
+}
+
+void Model::loadURLFinished(bool success) {
+    if (!success) {
+        _visualGeometryRequestFailed = true;
+    }
+    emit setURLFinished(success);
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -835,7 +844,16 @@ void Model::setCollisionModelURL(const QUrl& url) {
         return;
     }
     _collisionUrl = url;
+    _collisionGeometryRequestFailed = false;
     _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+}
+
+void Model::loadCollisionModelURLFinished(bool success) {
+    if (!success) {
+        _collisionGeometryRequestFailed  = true;
+    }
+
+    emit setCollisionModelURLFinished(success);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
