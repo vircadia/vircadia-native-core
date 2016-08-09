@@ -232,14 +232,11 @@ function Teleporter() {
     };
 
     this.rightRay = function() {
+        var pose = Controller.getPoseValue(Controller.Standard.RightHand);
+        var rightPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+        var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) : MyAvatar.headOrientation;
 
-        var rightPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).translation), MyAvatar.position);
-
-        var rightControllerRotation = Controller.getPoseValue(Controller.Standard.RightHand).rotation;
-
-        var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation);
-
-        var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
+        var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(-90, {
             x: 1,
             y: 0,
             z: 0
@@ -247,7 +244,7 @@ function Teleporter() {
 
         var rightPickRay = {
             origin: rightPosition,
-            direction: Quat.getUp(rightRotation),
+            direction: Quat.getUp(pose.valid ? rightRotation : rightFinal),
         };
 
         this.rightPickRay = rightPickRay;
@@ -288,11 +285,11 @@ function Teleporter() {
 
 
     this.leftRay = function() {
-        var leftPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).translation), MyAvatar.position);
+        var pose = Controller.getPoseValue(Controller.Standard.LeftHand);
+        var leftPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+        var leftRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) : MyAvatar.headOrientation;
 
-        var leftRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).rotation)
-
-        var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
+        var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(-90, {
             x: 1,
             y: 0,
             z: 0
@@ -300,7 +297,7 @@ function Teleporter() {
 
         var leftPickRay = {
             origin: leftPosition,
-            direction: Quat.getUp(leftRotation),
+            direction: Quat.getUp(pose.valid ? leftRotation : leftFinal),
         };
 
         this.leftPickRay = leftPickRay;
