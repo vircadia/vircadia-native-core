@@ -521,14 +521,15 @@ ScrollingWindow {
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
                 onClicked: {
-                    var index = treeView.indexAt(mouse.x, mouse.y);
-
-                    treeView.selection.setCurrentIndex(index, 0x0002);
-
-                    contextMenu.currentIndex = index;
-                    contextMenu.popup();
+                    if (!HMD.active) {  // Popup only displays properly on desktop
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        treeView.selection.setCurrentIndex(index, 0x0002);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
                 }
             }
+
         }
         HifiControls.ContentSection {
             id: uploadSection
