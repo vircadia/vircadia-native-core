@@ -29,7 +29,7 @@ function confirmShare(data) {
 }
 
 function snapshotShared(success) {
-    if(success) {
+    if (success) {
         // for now just print status
         print('snapshot uploaded and shared');
     } else {

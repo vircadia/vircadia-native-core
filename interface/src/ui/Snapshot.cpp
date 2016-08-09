@@ -148,8 +148,6 @@ void Snapshot::uploadSnapshot(const QString& filename) {
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
     static SnapshotUploader uploader;
     
-    qDebug() << "uploading snapshot " << filename;
-
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
     file->open(QIODevice::ReadOnly);
@@ -165,11 +163,7 @@ void Snapshot::uploadSnapshot(const QString& filename) {
     multiPart->append(imagePart);
     
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = &uploader;
-    callbackParams.jsonCallbackMethod = "uploadSuccess";
-    callbackParams.errorCallbackReceiver = &uploader;
-    callbackParams.errorCallbackMethod = "uploadFailure";
+    JSONCallbackParameters callbackParams(&uploader, "uploadSuccess", &uploader, "uploadFailure");
 
     accountManager->sendRequest(SNAPSHOT_UPLOAD_URL,
                                 AccountManagerAuth::Required,
@@ -191,7 +185,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         QString thumbnailUrl = doc.object().value("thumbnail_url").toString();
         auto addressManager = DependencyManager::get<AddressManager>();
         QString placeName = addressManager->getPlaceName();
-        if(placeName.isEmpty()) {
+        if (placeName.isEmpty()) {
             placeName = addressManager->getHost();
         }
         QString currentPath = addressManager->currentPath(true);
@@ -206,11 +200,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         rootObject.insert("user_story", userStoryObject);
 
         auto accountManager = DependencyManager::get<AccountManager>();
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = &uploader;
-        callbackParams.jsonCallbackMethod = "createStorySuccess";
-        callbackParams.errorCallbackReceiver = &uploader;
-        callbackParams.errorCallbackMethod = "createStoryFailure";
+        JSONCallbackParameters callbackParams(&uploader, "createStorySuccess", &uploader, "createStoryFailure");
 
         accountManager->sendRequest(STORY_UPLOAD_URL,
                                     AccountManagerAuth::Required,
@@ -219,7 +209,6 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
                                     QJsonDocument(rootObject).toJson());
                                     
     } else {
-        qDebug() << "Error parsing upload response: " << jsonError.errorString();
         emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
     }
 }
