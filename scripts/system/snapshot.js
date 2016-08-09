@@ -21,11 +21,27 @@ var button = toolBar.addButton({
 });
 
 function confirmShare(data) {
-    if (!Window.confirm("Share snapshot " + data.localPath + "?")) { // This dialog will be more elaborate...
-        return;
+    var dialog = new OverlayWebWindow('Snapshot', Script.resolvePath("html/ShareSnapshot.html"), 800, 300);
+    function onMessage(message) {
+        if (message == 'ready') { // The window can now receive data from us.
+            dialog.emitScriptEvent(data); // Send it.
+            return;
+        } // Rest is confirmation processing
+        dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
+        dialog.close();
+        dialog.deleteLater();
+        message = message.filter(function (picture) { return picture.share; });
+        if (message.length) {
+            print('sharing', message.map(function (picture) { return picture.localPath; }).join(', '));
+            message.forEach(function (data) {
+                Window.shareSnapshot(data.localPath);
+            });
+        } else {
+            print('declined to share', JSON.stringify(data));
+        }
     }
-    Window.snapshotShared.connect(snapshotShared);
-    Window.shareSnapshot(data.localPath); 
+    dialog.webEventReceived.connect(onMessage);
+    dialog.raise();
 }
 
 function snapshotShared(success) {
@@ -74,12 +90,14 @@ function resetButtons(path, notify) {
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
-    confirmShare({localPath: path});
+    confirmShare([{localPath: path}]);
  }
 
 button.clicked.connect(onClicked);
+Window.snapshotShared.connect(snapshotShared);
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("snapshot");
     button.clicked.disconnect(onClicked);
+    Window.snapshotShared.disconnect(snapshotShared);
 });
