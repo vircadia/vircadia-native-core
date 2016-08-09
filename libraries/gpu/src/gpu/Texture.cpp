@@ -700,8 +700,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
         return false;
     }
 
-    const float UCHAR_TO_FLOAT = 1.0f / float(std::numeric_limits<unsigned char>::max());
-
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
 
