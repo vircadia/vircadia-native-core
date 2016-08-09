@@ -729,3 +729,7 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
 gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return processCubeTextureColorFromImage(srcImage, srcImageName, false, true, true, true);
 }
+
+gpu::Texture* TextureUsage::createCubeTextureFromImageWithoutIrradiance(const QImage& srcImage, const std::string& srcImageName) {
+    return processCubeTextureColorFromImage(srcImage, srcImageName, false, true, true, false);
+}

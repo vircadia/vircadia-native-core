@@ -40,6 +40,7 @@ public:
     static gpu::Texture* createRoughnessTextureFromGlossImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createCubeTextureFromImageWithoutIrradiance(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 
 

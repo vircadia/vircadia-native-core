@@ -440,10 +440,11 @@
                 var elWebSections = document.querySelectorAll(".web-section");
                 allSections.push(elWebSections);
                 var elWebSourceURL = document.getElementById("property-web-source-url");
-    
+
+                var elDescription = document.getElementById("property-description");
 
                 var elHyperlinkHref = document.getElementById("property-hyperlink-href");
-                var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
+             
                 var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
               
     
@@ -651,7 +652,7 @@
                                 setTextareaScrolling(elUserData);
     
                                 elHyperlinkHref.value = properties.href;
-                                elHyperlinkDescription.value = properties.description;
+                                elDescription.value = properties.description;
     
                                 for (var i = 0; i < allSections.length; i++) {
                                     for (var j = 0; j < allSections[i].length; j++) {
@@ -818,7 +819,7 @@
                 elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
                 elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
                 elHyperlinkHref.addEventListener('change', createEmitTextPropertyUpdateFunction('href'));
-                elHyperlinkDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
+                elDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
                 elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
     
                 var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
@@ -1363,6 +1364,10 @@
             <label for="property-name">Name</label>
             <input type="text" id="property-name">
         </div>
+        <div class="property text">
+            <label for="property-description">Description</label>
+            <input type="text" id="property-description">
+        </div>
         <div class="property textarea">
             <label for="property-user-data">User data</label>
             <textarea id="property-user-data"></textarea>
@@ -1379,14 +1384,27 @@
             <label for="property-hyperlink-href">Href - hifi://address</label>
             <input type="text" id="property-hyperlink-href">
         </div>
-        <div class="hyperlink-group hyperlink-section property text">
-            <label for="property-hyperlink-description">Description</label>
-            <input type="text" id="property-hyperlink-description">
-        </div>
+
 
 
         <div class="section-header spatial-group">
             <label>Spatial</label><span>M</span>
+        </div>
+        <div class="spatial-group property xyz">
+            <label>Position <span class="unit">m</span></label>
+            <div class="tuple">
+                <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
+                <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
+            </div>
+        </div>
+        <div class="spatial-group property pyr">
+            <label>Rotation <span class="unit">deg</span></label>
+            <div class="tuple">
+                <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
+                <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
+                <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
+            </div>
         </div>
         <div class="spatial-group property xyz">
             <label>Dimensions <span class="unit">m</span></label>
@@ -1396,37 +1414,20 @@
                 <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
             </div>
         </div>
+        <div class="spatial-group property xyz">
+            <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
+            <div class="tuple">
+                <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
+                <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
+            </div>
+        </div>
         <div class="spatial-group property gen">
             <label>Scale <span class="unit">%</span></label>
             <div class="row">
                 <input type="number" id="dimension-rescale-pct" value=100>
                 <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
                 <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
-            </div>
-        </div>
-
-        <hr class="spatial-group" />
-        <div class="spatial-group property pyr">
-            <label>Rotation <span class="unit">deg</span></label>
-            <div class="tuple">
-                <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
-                <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
-                <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
-            </div>
-        </div>
-
-        <hr class="spatial-group" />
-        <div class="spatial-group property xyz">
-            <label>Position <span class="unit">m</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
-                <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
-            </div>
-            <div class="buttons">
-                <input type="button" id="move-selection-to-grid" value="Selection to Grid">
-                <input type="button" id="move-all-to-grid" value="All to Grid">
-                <input type="button" id="preview-camera-button" value="Preview Camera">
             </div>
         </div>
         <div class="spatial-group row">
@@ -1439,15 +1440,17 @@
                 <input type="number" id="property-parent-joint-index">
             </div>
         </div>
-        <div class="spatial-group property xyz">
-            <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
-                <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
+        <div class="spatial-group ">
+            <div class="property text">
+                <label>Align</label>
             </div>
+            <div class="row">
+                <div class="buttons">
+                    <input type="button" id="move-selection-to-grid" value="Selection to Grid">
+                    <input type="button" id="move-all-to-grid" value="All to Grid">
+                </div> 
+             </div>
         </div>
-
         <hr class="spatial-group poly-vox-section" />
         <div class="spatial-group poly-vox-section property xyz">
             <label>Voxel volume size <span class="unit">m</span></label>

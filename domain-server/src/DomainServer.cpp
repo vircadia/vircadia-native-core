@@ -1233,7 +1233,10 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
         callbackParameters.errorCallbackReceiver = this;
         callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
 
-        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to" << _iceServerSocket.getAddress().toString();
+        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+                   ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+                 << _iceServerSocket.getAddress().toString();
 
         static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
 
