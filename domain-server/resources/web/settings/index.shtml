@@ -25,7 +25,7 @@
         <ul class="nav nav-pills nav-stacked">
         </ul>
 
-        <button id="advanced-toggle-button" hidden=true class="btn btn-info advanced-toggle">Show advanced</button>
+        <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
         <button class="btn btn-success save-button">Save and restart</button>
       </div>
     </div>
@@ -57,15 +57,13 @@
               <div class="panel-body">
                 <% _.each(split_settings[0], function(setting) { %>
                   <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                  <%= getFormGroup(keypath, setting, values, false,
-                    (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
+                  <%= getFormGroup(keypath, setting, values, false) %>
                 <% }); %>
                 <% if (!_.isEmpty(split_settings[1])) { %>
                   <% $("#advanced-toggle-button").show() %>
                   <% _.each(split_settings[1], function(setting) { %>
                     <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                    <%= getFormGroup(keypath, setting, values, true,
-                      (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
+                    <%= getFormGroup(keypath, setting, values, true) %>
                   <% }); %>
                 <% }%>
               </div>

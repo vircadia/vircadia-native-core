@@ -147,7 +147,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     writeDroppableSilentSamples(networkSamples);
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
-                    emit mismatchedAudioCodec(sendingNode, _selectedCodecName);
+                    emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
                 }
             }
             break;

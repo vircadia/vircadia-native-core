@@ -283,12 +283,7 @@ void NodeList::sendDomainServerCheckIn() {
         auto accountManager = DependencyManager::get<AccountManager>();
         const QUuid& connectionToken = _domainHandler.getConnectionToken();
 
-        // we assume that we're on the same box as the DS if it has the same local address and
-        // it didn't present us with a connection token to use for username signature
-        bool localhostDomain = _domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
-            || (_domainHandler.getSockAddr().getAddress() == _localSockAddr.getAddress() && connectionToken.isNull());
-
-        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull() && !localhostDomain;
+        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull();
 
         if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "A keypair is required to present a username signature to the domain-server"
@@ -732,7 +727,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
         emit ignoredNode(nodeID);
 
     } else {
-        qWarning() << "UsersScriptingInterface::ignore called with an invalid ID or an ID which matches the current session ID.";
+        qWarning() << "NodeList::ignoreNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
     }
 }
 
@@ -762,5 +757,30 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
             // send this NLPacketList to the new node
             sendPacketList(std::move(ignorePacketList), *newNode);
         }
+    }
+}
+
+void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
+    // send a request to domain-server to kick the node with the given session ID
+    // the domain-server will handle the persistence of the kick (via username or IP)
+
+    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+        if (getThisNodeCanKick()) {
+            // setup the packet
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
+
+            // write the node ID to the packet
+            kickPacket->write(nodeID.toRfc4122());
+
+            qDebug() << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
+
+            sendPacket(std::move(kickPacket), _domainHandler.getSockAddr());
+        } else {
+            qWarning() << "You do not have permissions to kick in this domain."
+                << "Request to kick node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+        }
+    } else {
+        qWarning() << "NodeList::kickNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
+
     }
 }

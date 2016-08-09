@@ -508,4 +508,3 @@ Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
     OffscreenFlags.navigationFocusDisabled = false;
 });
-

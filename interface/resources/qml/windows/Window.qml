@@ -30,6 +30,7 @@ Fadable {
     //
     // Signals
     //
+    signal windowClosed();
     signal windowDestroyed();
     signal mouseEntered();
     signal mouseExited();

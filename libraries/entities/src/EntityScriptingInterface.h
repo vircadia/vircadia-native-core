@@ -86,7 +86,8 @@ public slots:
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
 
     /// temporary method until addEntity can be used from QJSEngine
-    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position);
+    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType, bool dynamic,
+                                     const glm::vec3& position, const glm::vec3& gravity);
 
     /// gets the current model properties for a specific model
     /// this function will not find return results in script engine contexts which don't have access to models
