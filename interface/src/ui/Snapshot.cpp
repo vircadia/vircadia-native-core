@@ -32,6 +32,7 @@
 
 #include "Application.h"
 #include "Snapshot.h"
+#include "scripting/WindowScriptingInterface.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -140,4 +141,88 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
         return imageTempFile;
     }
+}
+
+void Snapshot::uploadSnapshot(const QString& filename) {
+
+    const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
+    static SnapshotUploader uploader;
+    
+    QFile* file = new QFile(filename);
+    Q_ASSERT(file->exists());
+    file->open(QIODevice::ReadOnly);
+
+    QHttpPart imagePart;
+    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpeg"));
+    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                        QVariant("form-data; name=\"image\"; filename=\"" + file->fileName() + "\""));
+    imagePart.setBodyDevice(file);
+    
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
+    multiPart->append(imagePart);
+    
+    auto accountManager = DependencyManager::get<AccountManager>();
+    JSONCallbackParameters callbackParams(&uploader, "uploadSuccess", &uploader, "uploadFailure");
+
+    accountManager->sendRequest(SNAPSHOT_UPLOAD_URL,
+                                AccountManagerAuth::Required,
+                                QNetworkAccessManager::PostOperation,
+                                callbackParams,
+                                nullptr,
+                                multiPart);
+}
+
+void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
+    const QString STORY_UPLOAD_URL = "/api/v1/user_stories";
+    static SnapshotUploader uploader;
+
+    // parse the reply for the thumbnail_url
+    QByteArray contents = reply.readAll();
+    QJsonParseError jsonError;
+    auto doc = QJsonDocument::fromJson(contents, &jsonError);
+    if (jsonError.error == QJsonParseError::NoError) {
+        QString thumbnailUrl = doc.object().value("thumbnail_url").toString();
+        auto addressManager = DependencyManager::get<AddressManager>();
+        QString placeName = addressManager->getPlaceName();
+        if (placeName.isEmpty()) {
+            placeName = addressManager->getHost();
+        }
+        QString currentPath = addressManager->currentPath(true);
+
+        // create json post data
+        QJsonObject rootObject;
+        QJsonObject userStoryObject;
+        userStoryObject.insert("thumbnail_url", thumbnailUrl);
+        userStoryObject.insert("place_name", placeName);
+        userStoryObject.insert("path", currentPath);
+        userStoryObject.insert("action", "snapshot");
+        rootObject.insert("user_story", userStoryObject);
+
+        auto accountManager = DependencyManager::get<AccountManager>();
+        JSONCallbackParameters callbackParams(&uploader, "createStorySuccess", &uploader, "createStoryFailure");
+
+        accountManager->sendRequest(STORY_UPLOAD_URL,
+                                    AccountManagerAuth::Required,
+                                    QNetworkAccessManager::PostOperation,
+                                    callbackParams,
+                                    QJsonDocument(rootObject).toJson());
+                                    
+    } else {
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
+    }
+}
+
+void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
+    // TODO: parse response, potentially helpful for logging (?)
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
+}
+
+void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {    
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true);
+}
+
+void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
+    // TODO: parse response, potentially helpful for logging (?)
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
 }

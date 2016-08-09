@@ -249,6 +249,7 @@ public:
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
     
     void takeSnapshot(bool notify);
+    void shareSnapshot(const QString& filename);
 
 signals:
     void svoImportRequested(const QString& url);

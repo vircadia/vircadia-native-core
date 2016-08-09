@@ -5082,6 +5082,11 @@ void Application::takeSnapshot(bool notify) {
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
 }
 
+void Application::shareSnapshot(const QString& path) {
+    // not much to do here, everything is done in snapshot code...
+    Snapshot::uploadSnapshot(path);
+}
+
 float Application::getRenderResolutionScale() const {
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
         return 1.0f;
