@@ -109,34 +109,28 @@ void OculusDisplayPlugin::hmdPresent() {
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
+    int curIndex;
+    ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);
+    GLuint curTexId;
+    ovr_GetTextureSwapChainBufferGL(_session, _textureSwapChain, curIndex, &curTexId);
+
     // Manually bind the texture to the FBO
+    // FIXME we should have a way of wrapping raw GL ids in GPU objects without 
+    // taking ownership of the object
     auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
-    {
-        int curIndex;
-        ovr_GetTextureSwapChainCurrentIndex(_session, _textureSwapChain, &curIndex);
-        GLuint curTexId;
-        ovr_GetTextureSwapChainBufferGL(_session, _textureSwapChain, curIndex, &curTexId);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, curTexId, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    }
-
-    {
-        gpu::Batch batch;
+    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
+    render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        auto source = _compositeFramebuffer;
-        auto sourceRect = ivec4(ivec2(0), source->getSize());
-        auto dest = _outputFramebuffer;
-        auto destRect = ivec4(ivec2(0), dest->getSize());
-        batch.blit(source, sourceRect, dest, destRect);
-        _backend->render(batch);
-    }
-
-    {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    }
+        batch.setFramebuffer(_outputFramebuffer);
+        batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
+        batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
+        batch.clearViewTransform();
+        batch.setProjectionTransform(mat4());
+        batch.setPipeline(_presentPipeline);
+        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, 0, 0);
 
     {
         auto result = ovr_CommitTextureSwapChain(_session, _textureSwapChain);
