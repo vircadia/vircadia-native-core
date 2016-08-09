@@ -25,7 +25,7 @@
 #include <NumericalConstants.h>
 #include <Finally.h>
 #include <PathUtils.h>
-#include <QmlNetworkAccessManager.h>
+#include <NetworkAccessManager.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
@@ -55,6 +55,22 @@ private:
     friend class OffscreenQmlRenderThread;
     friend class OffscreenQmlSurface;
 };
+
+class QmlNetworkAccessManager : public NetworkAccessManager {
+public:
+    friend class QmlNetworkAccessManagerFactory;
+protected:
+    QmlNetworkAccessManager(QObject* parent) : NetworkAccessManager(parent) { }
+};
+
+class QmlNetworkAccessManagerFactory : public QQmlNetworkAccessManagerFactory {
+public:
+    QNetworkAccessManager* create(QObject* parent);
+};
+
+QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
+    return new QmlNetworkAccessManager(parent);
+}
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")

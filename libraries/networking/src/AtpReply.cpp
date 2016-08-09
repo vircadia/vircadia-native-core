@@ -1,5 +1,5 @@
 //
-//  QmlAtpReply.cpp
+//  AtpReply.cpp
 //  libraries/networking/src
 //
 //  Created by Zander Otavka on 8/4/16.
@@ -10,30 +10,30 @@
 //
 
 #include "ResourceManager.h"
-#include "QmlAtpReply.h"
+#include "AtpReply.h"
 
-QmlAtpReply::QmlAtpReply(const QUrl& url, QObject* parent) :
+AtpReply::AtpReply(const QUrl& url, QObject* parent) :
         _resourceRequest(ResourceManager::createResourceRequest(parent, url)) {
     setOperation(QNetworkAccessManager::GetOperation);
 
-    connect(_resourceRequest, &AssetResourceRequest::progress, this, &QmlAtpReply::downloadProgress);
-    connect(_resourceRequest, &AssetResourceRequest::finished, this, &QmlAtpReply::handleRequestFinish);
+    connect(_resourceRequest, &AssetResourceRequest::progress, this, &AtpReply::downloadProgress);
+    connect(_resourceRequest, &AssetResourceRequest::finished, this, &AtpReply::handleRequestFinish);
 
     _resourceRequest->send();
 }
 
-QmlAtpReply::~QmlAtpReply() {
+AtpReply::~AtpReply() {
     if (_resourceRequest) {
         _resourceRequest->deleteLater();
         _resourceRequest = nullptr;
     }
 }
 
-qint64 QmlAtpReply::bytesAvailable() const {
+qint64 AtpReply::bytesAvailable() const {
     return _content.size() - _readOffset + QIODevice::bytesAvailable();
 }
 
-qint64 QmlAtpReply::readData(char* data, qint64 maxSize) {
+qint64 AtpReply::readData(char* data, qint64 maxSize) {
     if (_readOffset < _content.size()) {
         qint64 readSize = qMin(maxSize, _content.size() - _readOffset);
         memcpy(data, _content.constData() + _readOffset, readSize);
@@ -44,7 +44,7 @@ qint64 QmlAtpReply::readData(char* data, qint64 maxSize) {
     }
 }
 
-void QmlAtpReply::handleRequestFinish() {
+void AtpReply::handleRequestFinish() {
     Q_ASSERT(_resourceRequest->getState() == ResourceRequest::State::Finished);
 
     switch (_resourceRequest->getResult()) {
