@@ -189,16 +189,19 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
     auto doc = QJsonDocument::fromJson(contents, &jsonError);
     if (jsonError.error == QJsonParseError::NoError) {
         QString thumbnailUrl = doc.object().value("thumbnail_url").toString();
-        QString placeName = DependencyManager::get<AddressManager>()->getPlaceName();
+        auto addressManager = DependencyManager::get<AddressManager>();
+        QString placeName = addressManager->getPlaceName();
         if(placeName.isEmpty()) {
-            placeName = DependencyManager::get<AddressManager>()->getHost();
+            placeName = addressManager->getHost();
         }
+        QString currentPath = addressManager->currentPath(true);
 
         // create json post data
         QJsonObject rootObject;
         QJsonObject userStoryObject;
         userStoryObject.insert("thumbnail_url", thumbnailUrl);
         userStoryObject.insert("place_name", placeName);
+        userStoryObject.insert("path", currentPath);
         userStoryObject.insert("action", "snapshot");
         rootObject.insert("user_story", userStoryObject);
 
