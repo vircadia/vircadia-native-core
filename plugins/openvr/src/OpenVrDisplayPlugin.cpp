@@ -297,7 +297,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
         _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
     });
     _submitThread->setObjectName("OpenVR Submit Thread");
-    _submitThread->start(QThread::TimeCriticalPriority);
 #endif
 
     return Parent::internalActivate();
@@ -306,11 +305,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
 void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 
-#if OPENVR_THREADED_SUBMIT
-    _submitThread->_quit = true;
-    _submitThread->wait();
-#endif
-    
     _openVrDisplayActive = false;
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
@@ -339,10 +333,17 @@ void OpenVrDisplayPlugin::customizeContext() {
         }
         _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
     }
+
+    _submitThread->start(QThread::HighPriority);
 }
 
 void OpenVrDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
+
+#if OPENVR_THREADED_SUBMIT
+    _submitThread->_quit = true;
+    _submitThread->wait();
+#endif
 }
 
 void OpenVrDisplayPlugin::resetSensors() {

@@ -12,6 +12,7 @@
 #include <QtGui/QImage>
 #include <ui-plugins/PluginContainer.h>
 #include <FramebufferCache.h>
+#include <gpu/Frame.h>
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
@@ -24,6 +25,9 @@ bool NullDisplayPlugin::hasFocus() const {
 }
 
 void NullDisplayPlugin::submitFrame(const gpu::FramePointer& resultFramebuffer) {
+    if (resultFramebuffer) {
+        resultFramebuffer->preRender();
+    }
 }
 
 QImage NullDisplayPlugin::getScreenshot() const {

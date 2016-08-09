@@ -83,11 +83,6 @@ void OculusDisplayPlugin::customizeContext() {
     _sceneLayer.ColorTexture[0] = _textureSwapChain;
     // not needed since the structure was zeroed on init, but explicit
     _sceneLayer.ColorTexture[1] = nullptr;
-
-    enableVsync(false);
-    // Only enable mirroring if we know vsync is disabled
-    _enablePreview = !isVsyncEnabled();
-    
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {

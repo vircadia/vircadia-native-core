@@ -24,10 +24,6 @@ public:
 
     virtual bool internalActivate() override;
 
-    void submitFrame(const gpu::FramePointer& newFrame) override;
-
-    virtual void internalPresent() override;
-
     virtual bool isThrottled() const override;
 
 protected:
@@ -40,5 +36,4 @@ private:
     QAction* _vsyncAction { nullptr };
     uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
-    bool _wantVsync { true };
 };

@@ -38,12 +38,17 @@ public:
 
     bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
 
+    bool wantVsync() const override {
+        return false;
+    }
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
     virtual void postPreview() {};
     virtual void updatePresentPose();
 
+    bool beginFrameRender(uint32_t frameIndex) override;
     bool internalActivate() override;
     void internalDeactivate() override;
     void compositeOverlay() override;
@@ -94,10 +99,11 @@ protected:
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
 
+    bool _disablePreview{ true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
 
-    bool _disablePreview{ true };
+    bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
     gpu::TexturePointer _previewTexture;

@@ -118,7 +118,6 @@ Buffer::Update::Update(const Buffer& parent) : buffer(parent) {
 void Buffer::Update::apply() const {
     // Make sure we're loaded in order
     ++buffer._applyUpdateCount;
-    assert(isRenderThread());
     assert(buffer._applyUpdateCount.load() == updateNumber);
     const auto pageSize = buffer._pages._pageSize;
     buffer._renderSysmem.resize(size);

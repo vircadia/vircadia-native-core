@@ -63,7 +63,24 @@ QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
 
+bool HmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    if (!_vsyncEnabled && !_disablePreviewItemAdded) {
+        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
+            [this](bool clicked) {
+                _disablePreview = clicked;
+                _container->setBoolSetting("disableHmdPreview", _disablePreview);
+                if (_disablePreview) {
+                    _clearPreviewFlag = true;
+                }
+            }, true, _disablePreview);
+        _disablePreviewItemAdded = true;
+    }
+    return Parent::beginFrameRender(frameIndex);
+}
+
+
 bool HmdDisplayPlugin::internalActivate() {
+    _disablePreviewItemAdded = false;
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
     _clearPreviewFlag = true;
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -74,17 +91,7 @@ bool HmdDisplayPlugin::internalActivate() {
 #if defined(Q_OS_MAC)
     _disablePreview = true;
 #else
-    _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || !_vsyncSupported);
-    if (_vsyncSupported) {
-        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
-            [this](bool clicked) {
-            _disablePreview = clicked;
-            _container->setBoolSetting("disableHmdPreview", _disablePreview);
-            if (_disablePreview) {
-                _clearPreviewFlag = true;
-            }
-        }, true, _disablePreview);
-    }
+    _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
 #endif
 
     _container->removeMenu(FRAMERATE);
@@ -103,15 +110,20 @@ void HmdDisplayPlugin::internalDeactivate() {
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    // Only enable mirroring if we know vsync is disabled
-    // On Mac, this won't work due to how the contexts are handled, so don't try
-#if !defined(Q_OS_MAC)
-    enableVsync(false);
-#endif
     _overlayRenderer.build();
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
+    // This stops the weirdness where if the preview was disabled, on switching back to 2D,
+    // the vsync was stuck in the disabled state.  No idea why that happens though.
+    _disablePreview = false;
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.clearViewTransform();
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+    });
+    internalPresent();
     _overlayRenderer = OverlayRenderer();
     Parent::uncustomizeContext();
 }

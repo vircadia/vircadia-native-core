@@ -29,8 +29,6 @@ protected:
 
 private:
     static const QString NAME;
-    bool _enablePreview { false };
-    bool _monoPreview { true };
     ovrTextureSwapChain _textureSwapChain;
     gpu::FramebufferPointer _outputFramebuffer;
 };
