@@ -14,6 +14,7 @@ import "controls"
 import "styles"
 import "windows"
 import "hifi"
+import "hifi/toolbars"
 
 Window {
     id: root
@@ -49,14 +50,40 @@ Window {
         addressLine.text = card.path;
         toggleOrGo(true);
     }
+    property bool useFeed: false;
     property var allPlaces: [];
+    property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
+    property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
+    function pastTime(timestamp) { // Answer a descriptive string
+        timestamp = new Date(timestamp);
+        var then = timestamp.getTime(),
+            now = Date.now(),
+            since = now - then,
+            ONE_MINUTE = 1000 * 60,
+            ONE_HOUR = ONE_MINUTE * 60,
+            hours = since / ONE_HOUR,
+            minutes = (hours % 1) * 60;
+        if (hours > 24) {
+            return timestamp.toDateString();
+        }
+        if (hours > 1) {
+            return Math.floor(hours).toString() + ' hr ' + Math.floor(minutes) + ' min ago';
+        }
+        if (minutes >= 2) {
+            return Math.floor(minutes).toString() + ' min ago';
+        }
+        return 'about a minute ago';
+    }
 
     AddressBarDialog {
         id: addressBarDialog
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
+        // The buttons have their button state changed on hover, so we have to manually fix them up here
+        onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
+        onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
 
         ListModel { id: suggestions }
 
@@ -68,7 +95,7 @@ Window {
             anchors {
                 bottom: backgroundImage.top;
                 bottomMargin: 2 * hifi.layout.spacing;
-                right: backgroundImage.right;
+                horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
             orientation: ListView.Horizontal;
@@ -76,10 +103,10 @@ Window {
                 width: cardWidth;
                 height: cardHeight;
                 goFunction: goCard;
-                path: model.name + model.path;
-                thumbnail: model.thumbnail;
-                placeText: model.name;
-                usersText: model.online_users + ((model.online_users === 1) ? ' person' : ' people');
+                path: model.place_name + model.path;
+                thumbnail: model.thumbnail_url;
+                placeText: model.created_at ? "" : model.place_name;
+                usersText: model.created_at ? pastTime(model.created_at) : (model.online_users + ((model.online_users === 1) ? ' person' : ' people'));
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -96,63 +123,42 @@ Window {
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
-            Image {
+            ToolbarButton {
                 id: homeButton
-                source: "../images/home-button.svg"
-                width: 29
-                height: 26
+                imageURL: "../images/home.svg"
+                buttonState: 1
+                defaultState: 1
+                hoverState: 2
+                onClicked: addressBarDialog.loadHome();
                 anchors {
                     left: parent.left
-                    leftMargin: parent.height + 2 * hifi.layout.spacing
+                    leftMargin: homeButton.width / 2
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadHome()
-                    }
                 }
             }
 
-            Image {
-                id: backArrow
-                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/left-arrow-disabled.svg"
-                width: 22
-                height: 26
+            ToolbarButton {
+                id: backArrow;
+                imageURL: "../images/backward.svg";
+                hoverState: addressBarDialog.backEnabled ? 2 : 0;
+                defaultState: addressBarDialog.backEnabled ? 1 : 0;
+                buttonState: addressBarDialog.backEnabled ? 1 : 0;
+                onClicked: addressBarDialog.loadBack();
                 anchors {
                     left: homeButton.right
-                    leftMargin: 2 * hifi.layout.spacing
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadBack()
-                    }
                 }
             }
-
-            Image {
-                id: forwardArrow
-                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
-                width: 22
-                height: 26
+            ToolbarButton {
+                id: forwardArrow;
+                imageURL: "../images/forward.svg";
+                hoverState: addressBarDialog.forwardEnabled ? 2 : 0;
+                defaultState: addressBarDialog.forwardEnabled ? 1 : 0;
+                buttonState: addressBarDialog.forwardEnabled ? 1 : 0;
+                onClicked: addressBarDialog.loadForward();
                 anchors {
                     left: backArrow.right
-                    leftMargin: 2 * hifi.layout.spacing
                     verticalCenter: parent.verticalCenter
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        addressBarDialog.loadForward()
-                    }
                 }
             }
 
@@ -161,20 +167,56 @@ Window {
                 id: addressLine
                 focus: true
                 anchors {
-                    fill: parent
-                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 7
-                    rightMargin: hifi.layout.spacing * 2
+                    top: parent.top
+                    bottom: parent.bottom
+                    left: forwardArrow.right
+                    right: placesButton.left
+                    leftMargin: forwardArrow.width
+                    rightMargin: placesButton.width
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
                 helperText: "Go to: place, @user, /path, network address"
+                helperPixelSize: font.pixelSize * 0.75
+                helperItalic: true
                 onTextChanged: filterChoicesByText()
             }
-
+            // These two are radio buttons.
+            ToolbarButton {
+                id: placesButton
+                imageURL: "../images/places.svg"
+                buttonState: 1
+                defaultState: useFeed ? 0 : 1;
+                hoverState: useFeed ? 2 : -1;
+                onClicked: useFeed ? toggleFeed() : identity()
+                anchors {
+                    right: feedButton.left;
+                    bottom: addressLine.bottom;
+                }
+            }
+            ToolbarButton {
+                id: feedButton;
+                imageURL: "../images/snap-feed.svg";
+                buttonState: 0
+                defaultState: useFeed ? 1 : 0;
+                hoverState: useFeed ? -1 : 2;
+                onClicked: useFeed ? identity() : toggleFeed();
+                anchors {
+                    right: parent.right;
+                    bottom: addressLine.bottom;
+                    rightMargin: feedButton.width / 2
+                }
+            }
         }
     }
 
+    function toggleFeed () {
+        useFeed = !useFeed;
+        placesButton.buttonState = useFeed ? 0 : 1;
+        feedButton.buttonState = useFeed ? 1 : 0;
+        filterChoicesByText();
+    }
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
         // TODO: make available to other .qml.
         var request = new XMLHttpRequest();
@@ -235,23 +277,31 @@ Window {
         return x;
     }
 
-    function handleError(error, data, cb) { // cb(error) and answer truthy if needed, else falsey
+    function handleError(url, error, data, cb) { // cb(error) and answer truthy if needed, else falsey
         if (!error && (data.status === 'success')) {
             return;
         }
-        cb(error || new Error(data.status + ': ' + data.error));
+        if (!error) { // Create a message from the data
+            error = data.status + ': ' + data.error;
+        }
+        if (typeof(error) === 'string') { // Make a proper Error object
+            error = new Error(error);
+        }
+        error.message += ' in ' + url; // Include the url.
+        cb(error);
         return true;
     }
 
     function getPlace(placeData, cb) { // cb(error, side-effected-placeData), after adding path, thumbnails, and description
-        getRequest('https://metaverse.highfidelity.com/api/v1/places/' + placeData.name, function (error, data) {
-            if (handleError(error, data, cb)) {
+        var url = metaverseBase + 'places/' + placeData.place_name;
+        getRequest(url, function (error, data) {
+            if (handleError(url, error, data, cb)) {
                 return;
             }
             var place = data.data.place, previews = place.previews;
             placeData.path = place.path;
             if (previews && previews.thumbnail) {
-                placeData.thumbnail = previews.thumbnail;
+                placeData.thumbnail_url = previews.thumbnail;
             }
             if (place.description) {
                 placeData.description = place.description;
@@ -260,17 +310,28 @@ Window {
             cb(error, placeData);
         });
     }
+    function makeModelData(data, optionalPlaceName) { // create a new obj from data
+        // ListModel elements will only ever have those properties that are defined by the first obj that is added.
+        // So here we make sure that we have all the properties we need, regardless of whether it is a place data or user story.
+        var name = optionalPlaceName || data.place_name,
+            tags = data.tags || [data.action],
+            description = data.description || "";
+        return {
+            place_name: name,
+            path: data.path || "",
+            created_at: data.created_at || "",
+            thumbnail_url: data.thumbnail_url || "",
+
+            tags: tags,
+            description: description,
+            online_users: data.online_users,
+
+            searchText: [name].concat(tags, description).join(' ').toUpperCase()
+        }
+    }
     function mapDomainPlaces(domain, cb) { // cb(error, arrayOfDomainPlaceData)
         function addPlace(name, icb) {
-            getPlace({
-                name: name,
-                tags: domain.tags,
-                thumbnail: "",
-                description: "",
-                path: "",
-                searchText: [name].concat(domain.tags).join(' ').toUpperCase(),
-                online_users: domain.online_users
-            }, icb);
+            getPlace(makeModelData(domain, name), icb);
         }
         // IWBNI we could get these results in order with most-recent-entered first.
         // In any case, we don't really need to preserve the domain.names order in the results.
@@ -278,8 +339,11 @@ Window {
     }
 
     function suggestable(place) {
-        return (place.name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
-            && place.thumbnail
+        if (useFeed) {
+            return true;
+        }
+        return (place.place_name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
+            && place.thumbnail_url
             && place.online_users // at least one present means it's actually online
             && place.online_users <= 20;
     }
@@ -298,8 +362,9 @@ Window {
             'sort_order=desc',
             'page=' + pageNumber
         ];
-        getRequest('https://metaverse.highfidelity.com/api/v1/domains/all?' + params.join('&'), function (error, data) {
-            if (handleError(error, data, cb)) {
+        var url = metaverseBase + 'domains/all?' + params.join('&');
+        getRequest(url, function (error, data) {
+            if (handleError(url, error, data, cb)) {
                 return;
             }
             asyncMap(data.data.domains, mapDomainPlaces, function (error, pageResults) {
@@ -309,7 +374,7 @@ Window {
                 // pageResults is now [ [ placeDataOneForDomainOne, placeDataTwoForDomainOne, ...], [ placeDataTwoForDomainTwo...] ]
                 pageResults.forEach(function (domainResults) {
                     allPlaces = allPlaces.concat(domainResults);
-                    if (!addressLine.text) { // Don't add if the user is already filtering
+                    if (!addressLine.text && !useFeed) { // Don't add if the user is already filtering
                         domainResults.forEach(function (place) {
                             if (suggestable(place)) {
                                 suggestions.append(place);
@@ -324,9 +389,39 @@ Window {
             });
         });
     }
+    function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
+        var url = metaverseBase + 'user_stories?page=' + pageNumber;
+        getRequest(url, function (error, data) {
+            if (handleError(url, error, data, cb)) {
+                return;
+            }
+            // FIXME: For debugging until we have real data
+            if (!data.user_stories.length) {
+                data.user_stories = [
+                    {created_at: "8/3/2016", action: "snapshot", path: "/4257.1,126.084,1335.45/0,-0.857368,0,0.514705", place_name: "SpiritMoving", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/c28/a26/f0-/thumbnail/hifi-place-c28a26f0-6991-4654-9c2b-e64228c06954.jpg?1456878797"},
+                    {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
+                ];
+            }
+
+            var stories = data.user_stories.map(function (story) { // explicit single-argument function
+                return makeModelData(story);
+            });
+            allStories = allStories.concat(stories);
+            if (!addressLine.text && useFeed) { // Don't add if the user is already filtering
+                stories.forEach(function (story) {
+                    suggestions.append(story);
+                });
+            }
+            if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
+                return getUserStoryPage(pageNumber + 1, cb);
+            }
+            cb();
+        });
+    }
     function filterChoicesByText() {
         suggestions.clear();
-        var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity);
+        var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
+            data = useFeed ? allStories : allPlaces;
         function matches(place) {
             if (!words.length) {
                 return suggestable(place);
@@ -335,7 +430,7 @@ Window {
                 return place.searchText.indexOf(word) >= 0;
             });
         }
-        allPlaces.forEach(function (place) {
+        data.forEach(function (place) {
             if (matches(place)) {
                 suggestions.append(place);
             }
@@ -344,12 +439,13 @@ Window {
 
     function fillDestinations() {
         allPlaces = [];
+        allStories = [];
         suggestions.clear();
         getDomainPage(1, function (error) {
-            if (error) {
-                console.log('domain query failed:', error);
-            }
-            console.log('domain query finished', allPlaces.length);
+            console.log('domain query', error || 'ok', allPlaces.length);
+        });
+        getUserStoryPage(1, function (error) {
+            console.log('user stories query', error || 'ok', allStories.length);
         });
     }
 
