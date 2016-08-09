@@ -406,29 +406,28 @@ GeometryCache::GeometryCache() :
 _nextID(0) {
     buildShapes();
     GeometryCache::_simpleOpaquePipeline =
-    std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
-    );
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
     GeometryCache::_simpleTransparentPipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
-    );
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {}
-    );
+            [](const render::ShapePipeline&, gpu::Batch& batch) {});
 }
 
 GeometryCache::~GeometryCache() {

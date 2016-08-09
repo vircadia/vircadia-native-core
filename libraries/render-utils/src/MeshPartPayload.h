@@ -84,9 +84,8 @@ public:
     void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
     // Entity fade in
-    void startFade() { _fadeStartTime = usecTimestampNow(); }
+    void startFade();
     bool hasStartedFade() { return _hasStartedFade; }
-    void setHasStartedFade(bool hasStartedFade) { _hasStartedFade = hasStartedFade; }
     bool isStillFading() const { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
 
     // Render Item interface

@@ -214,7 +214,6 @@ void Model::updateRenderItems() {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
                     data.startFade();
-                    data.setHasStartedFade(true);
                 }
                 // Ensure the model geometry was not reset between frames
                 if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {

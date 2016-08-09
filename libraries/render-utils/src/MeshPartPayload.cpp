@@ -516,6 +516,10 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(transform);
 }
 
+void ModelMeshPartPayload::startFade() {
+    _fadeStartTime = usecTimestampNow();
+    _hasStartedFade = true;
+}
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
