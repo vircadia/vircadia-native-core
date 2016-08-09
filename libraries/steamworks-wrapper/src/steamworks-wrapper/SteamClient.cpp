@@ -301,8 +301,7 @@ void SteamClient::joinLobby(QString lobbyIdStr) {
     if (!initialized) {
         if (SteamAPI_IsSteamRunning()) {
             init();
-        }
-        else {
+        } else {
             qWarning() << "Steam is not running";
             return;
         }

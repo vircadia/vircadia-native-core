@@ -54,11 +54,11 @@ void LoginDialog::toggleAction() {
     }
 }
 
-bool LoginDialog::isSteamRunning() {
+bool LoginDialog::isSteamRunning() const {
     return SteamClient::isRunning();
 }
 
-void LoginDialog::login(const QString& username, const QString& password) {
+void LoginDialog::login(const QString& username, const QString& password) const {
     qDebug() << "Attempting to login " << username;
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
@@ -131,23 +131,10 @@ void LoginDialog::createAccountFromStream(QString username) {
 
 }
 
-void LoginDialog::openUrl(const QString& url) {
+void LoginDialog::openUrl(const QString& url) const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto browser = offscreenUi->load("Browser.qml");
     browser->setProperty("url", url);
-}
-
-void LoginDialog::sendRecoveryEmail(const QString& email) {
-    const QString PASSWORD_RESET_PATH = "/users/password";
-
-    QJsonObject payload;
-    payload.insert("user_email", QJsonValue::fromVariant(QVariant(email)));
-
-
-    auto accountManager = DependencyManager::get<AccountManager>();
-    accountManager->sendRequest(PASSWORD_RESET_PATH, AccountManagerAuth::None,
-                                QNetworkAccessManager::PostOperation, JSONCallbackParameters(),
-                                QJsonDocument(payload).toJson());
 }
 
 void LoginDialog::linkCompleted(QNetworkReply& reply) {

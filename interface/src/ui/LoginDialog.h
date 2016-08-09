@@ -45,15 +45,14 @@ public slots:
     void createFailed(QNetworkReply& reply);
 
 protected slots:
-    Q_INVOKABLE bool isSteamRunning();
+    Q_INVOKABLE bool isSteamRunning() const;
 
-    Q_INVOKABLE void login(const QString& username, const QString& password);
+    Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromStream(QString username = QString());
 
-    Q_INVOKABLE void openUrl(const QString& url);
-    Q_INVOKABLE void sendRecoveryEmail(const QString& email);
+    Q_INVOKABLE void openUrl(const QString& url) const;
 
 };
 
