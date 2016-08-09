@@ -164,7 +164,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
-    checkTransparency();
+    checkFading();
 
     #ifdef WANT_EXTRA_DEBUGGING
     {
@@ -210,7 +210,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
     }
 
-    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);

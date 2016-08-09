@@ -27,10 +27,10 @@ EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
-    checkTransparency();
+    checkFading();
     
     static const float SLIGHTLY_BEHIND = -0.005f;
-    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     bool transparent = fadeRatio < 1.0f;
     glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), fadeRatio);
     glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), fadeRatio);

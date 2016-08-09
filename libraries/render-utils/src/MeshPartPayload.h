@@ -110,7 +110,9 @@ public:
 private:
     quint64 _fadeStartTime { 0 };
     bool _hasStartedFade { false };
-    mutable bool _wasFading { false };
+    mutable bool _prevHasStartedFade{ false };
+    mutable bool _hasFinishedFade { false };
+    mutable bool _isFading { false };
 };
 
 namespace render {

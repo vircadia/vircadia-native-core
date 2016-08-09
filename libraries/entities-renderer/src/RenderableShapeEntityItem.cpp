@@ -72,8 +72,10 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
 }
 
 bool RenderableShapeEntityItem::isTransparent() {
-    if (_procedural && _procedural->ready()) {
-        return Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
+    if (_procedural && _procedural->isFading()) {
+        float isFading = Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
+        _procedural->setIsFading(isFading);
+        return isFading;
     } else {
         return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
     }
@@ -83,7 +85,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
-    checkTransparency();
+    checkFading();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
@@ -110,12 +112,12 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
-        outColor.a *= Interpolate::calculateFadeRatio(_procedural->getFadeStartTime());
+        outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        color.a *= Interpolate::calculateFadeRatio(_fadeStartTime);
+        color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);

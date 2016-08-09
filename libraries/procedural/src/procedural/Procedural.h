@@ -43,6 +43,8 @@ public:
 
     glm::vec4 getColor(const glm::vec4& entityColor);
     quint64 getFadeStartTime() { return _fadeStartTime; }
+    bool isFading() { return _isFading; }
+    void setIsFading(bool isFading) { _isFading = isFading; }
 
     uint8_t _version { 1 };
 
@@ -110,6 +112,7 @@ private:
 
     quint64 _fadeStartTime;
     bool _hasStartedFade { false };
+    bool _isFading { false };
 };
 
 #endif

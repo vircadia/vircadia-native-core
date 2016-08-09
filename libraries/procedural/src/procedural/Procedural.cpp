@@ -208,6 +208,7 @@ bool Procedural::ready() {
 
     if (!_hasStartedFade) {
         _hasStartedFade = true;
+        _isFading = true;
     }
     return true;
 }

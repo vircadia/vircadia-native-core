@@ -391,7 +391,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
         }
     }
 
-    if (Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
+    if (!_hasFinishedFade) {
         builder.withTransparent();
     }
 
@@ -446,7 +446,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent || Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f) {
+    if (isTranslucent || !_hasFinishedFade) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -487,7 +487,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    float fadeRatio = Interpolate::calculateFadeRatio(_fadeStartTime);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     if (!_hasColorAttrib || fadeRatio < 1.0f) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
@@ -519,6 +519,8 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 void ModelMeshPartPayload::startFade() {
     _fadeStartTime = usecTimestampNow();
     _hasStartedFade = true;
+    _prevHasStartedFade = false;
+    _hasFinishedFade = false;
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
@@ -530,10 +532,13 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     // When an individual mesh parts like this finishes its fade, we will mark the Model as 
     // having render items that need updating
-    if (_wasFading && !isStillFading()) {
+    bool nextIsFading = _isFading ? isStillFading() : false;
+    if (_isFading != nextIsFading || _prevHasStartedFade != _hasStartedFade) {
+        _isFading = nextIsFading || _prevHasStartedFade != _hasStartedFade;
+        _hasFinishedFade = _prevHasStartedFade == _hasStartedFade && !_isFading;
+        _prevHasStartedFade = _hasStartedFade;
         _model->setRenderItemsNeedUpdate();
     }
-    _wasFading = isStillFading();
 
     gpu::Batch& batch = *(args->_batch);
 

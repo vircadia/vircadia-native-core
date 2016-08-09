@@ -28,6 +28,8 @@ EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityI
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
+    checkFading();
+
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
@@ -35,7 +37,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 
     glm::vec3 color = toGlm(getXColor());
 
-    float intensity = getIntensity() * Interpolate::calculateFadeRatio(_fadeStartTime);
+    float intensity = getIntensity() * (_isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f);
     float falloffRadius = getFalloffRadius();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
