@@ -55,6 +55,7 @@ Window {
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
+    property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
     function pastTime(timestamp) { // Answer a descriptive string
         timestamp = new Date(timestamp);
         var then = timestamp.getTime(),
@@ -292,7 +293,7 @@ Window {
     }
 
     function getPlace(placeData, cb) { // cb(error, side-effected-placeData), after adding path, thumbnails, and description
-        var url = 'https://metaverse.highfidelity.com/api/v1/places/' + placeData.place_name;
+        var url = metaverseBase + 'places/' + placeData.place_name;
         getRequest(url, function (error, data) {
             if (handleError(url, error, data, cb)) {
                 return;
@@ -361,7 +362,7 @@ Window {
             'sort_order=desc',
             'page=' + pageNumber
         ];
-        var url = 'https://metaverse.highfidelity.com/api/v1/domains/all?' + params.join('&');
+        var url = metaverseBase + 'domains/all?' + params.join('&');
         getRequest(url, function (error, data) {
             if (handleError(url, error, data, cb)) {
                 return;
@@ -389,7 +390,7 @@ Window {
         });
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
-        var url = 'https://metaverse.highfidelity.com/api/v1/user_stories?page=' + pageNumber;
+        var url = metaverseBase + 'user_stories?page=' + pageNumber;
         getRequest(url, function (error, data) {
             if (handleError(url, error, data, cb)) {
                 return;
