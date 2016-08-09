@@ -398,26 +398,36 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
-render::ShapePipelinePointer GeometryCache::_simplePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
     buildShapes();
-    GeometryCache::_simplePipeline =
-        std::make_shared<render::ShapePipeline>(getSimplePipeline(), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
-    );
+    GeometryCache::_simpleOpaquePipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
+    GeometryCache::_simpleTransparentPipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch) {}
-    );
+            [](const render::ShapePipeline&, gpu::Batch& batch) {});
 }
 
 GeometryCache::~GeometryCache() {
@@ -1704,6 +1714,7 @@ class SimpleProgramKey {
 public:
     enum FlagBit {
         IS_TEXTURED_FLAG = 0,
+        IS_TRANSPARENT_FLAG,
         IS_CULLED_FLAG,
         IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
@@ -1713,6 +1724,7 @@ public:
 
     enum Flag {
         IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
+        IS_TRANSPARENT = (1 << IS_TRANSPARENT_FLAG),
         IS_CULLED = (1 << IS_CULLED_FLAG),
         IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
@@ -1722,6 +1734,7 @@ public:
     bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
 
     bool isTextured() const { return isFlag(IS_TEXTURED); }
+    bool isTransparent() const { return isFlag(IS_TRANSPARENT); }
     bool isCulled() const { return isFlag(IS_CULLED); }
     bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
@@ -1732,9 +1745,9 @@ public:
     int getRaw() const { return *reinterpret_cast<const int*>(this); }
 
 
-    SimpleProgramKey(bool textured = false, bool culled = true,
+    SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false) {
-        _flags = (textured ? IS_TEXTURED : 0) | (culled ? IS_CULLED : 0) |
+        _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
             (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
     }
 
@@ -1771,7 +1784,7 @@ gpu::PipelinePointer GeometryCache::getSimpleSRGBTexturedUnlitNoTexAlphaPipeline
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_NONE);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(false,
+        state->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
@@ -1781,8 +1794,8 @@ gpu::PipelinePointer GeometryCache::getSimpleSRGBTexturedUnlitNoTexAlphaPipeline
     return _simpleSRGBTexturedUnlitNoTexAlphaPipeline;
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool unlit, bool depthBiased) {
-    batch.setPipeline(getSimplePipeline(textured, culled, unlit, depthBiased));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1794,8 +1807,8 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool cul
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled, bool unlit, bool depthBiased) {
-    SimpleProgramKey config { textured, culled, unlit, depthBiased };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased };
 
     // Compile the shaders
     static std::once_flag once;
@@ -1831,7 +1844,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled
         state->setDepthBias(1.0f);
         state->setDepthBiasSlopeScale(1.0f);
     }
-    state->setBlendFunction(false,
+    state->setBlendFunction(config.isTransparent(),
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 

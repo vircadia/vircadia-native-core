@@ -92,6 +92,9 @@ public:
 
     render::ItemID getMetaRenderItem() { return _myMetaItem; }
 
+    // Transparency is handled in ModelMeshPartPayload
+    bool isTransparent() override { return false; }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
