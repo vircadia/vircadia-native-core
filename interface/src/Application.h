@@ -65,6 +65,9 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include <procedural/ProceduralSkybox.h>
+#include <model/Skybox.h>
+
 class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
@@ -248,6 +251,10 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+
+    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
+    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -565,6 +572,10 @@ private:
     QString _returnFromFullScreenMirrorTo;
 
     ConnectionMonitor _connectionMonitor;
+
+    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    gpu::TexturePointer _defaultSkyboxTexture;
+    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
 
 

@@ -139,7 +139,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-#include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
@@ -1234,6 +1233,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
+    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+
+    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
+
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
@@ -2302,7 +2312,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_Asterisk:
-                Menu::getInstance()->triggerOption(MenuOption::Stars);
+                Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
 
             case Qt::Key_S:
@@ -4227,8 +4237,6 @@ public:
     typedef render::Payload<BackgroundRenderData> Payload;
     typedef Payload::DataPointer Pointer;
 
-    Stars _stars;
-
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
@@ -4263,15 +4271,26 @@ namespace render {
 
             // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                    PerformanceTimer perfTimer("stars");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
-                    // should be the first rendering pass - w/o depth buffer / lighting
+               if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                   static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                   static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
+                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 2.0f };
+                   static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
 
-                    static const float alpha = 1.0f;
-                    background->_stars.render(args, alpha);
-                }
+                   auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                   auto sceneKeyLight = scene->getKeyLight();
+                   scene->setSunModelEnable(false);
+                   sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                   sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                   sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                   sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+
+                   auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                   sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+
+                   qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+               }
             }
                 break;
 
@@ -4465,7 +4484,6 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 }
-
 void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
@@ -4491,6 +4509,7 @@ void Application::clearDomainOctreeDetails() {
     getEntities()->clear();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
 
     _recentlyClearedDomain = true;
