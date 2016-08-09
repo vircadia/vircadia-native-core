@@ -492,8 +492,6 @@ function loaded() {
         var elYTextureURL = document.getElementById("property-y-texture-url");
         var elZTextureURL = document.getElementById("property-z-texture-url");
 
-        var elPreviewCameraButton = document.getElementById("preview-camera-button");
-
         if (window.EventBridge !== undefined) {
             var properties;
             EventBridge.scriptEventReceived.connect(function(data) {
@@ -1133,12 +1131,6 @@ function loaded() {
             }));
         });
         */
-        elPreviewCameraButton.addEventListener("click", function() {
-            EventBridge.emitWebEvent(JSON.stringify({
-                type: "action",
-                action: "previewCamera"
-            }));
-        });
 
         window.onblur = function() {
             // Fake a change event
