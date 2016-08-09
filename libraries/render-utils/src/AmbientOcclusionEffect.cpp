@@ -234,8 +234,8 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         _parametersBuffer->resolutionInfo.z = config.perspectiveScale;
     }
     if (config.resolutionLevel != _parametersBuffer->getResolutionLevel()) {
-		auto& current = _parametersBuffer->resolutionInfo;
-		current.x = (float) config.resolutionLevel;
+        auto& current = _parametersBuffer->resolutionInfo;
+        current.x = (float) config.resolutionLevel;
     }
  
     if (config.blurRadius != _parametersBuffer->getBlurRadius()) {
@@ -351,9 +351,9 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
     
-	if (_parametersBuffer->getResolutionLevel() > 0) {
+    if (_parametersBuffer->getResolutionLevel() > 0) {
         linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
-		occlusionViewport = occlusionViewport >> _parametersBuffer->getResolutionLevel();
+        occlusionViewport = occlusionViewport >> _parametersBuffer->getResolutionLevel();
     }
 
     _framebuffer->updateLinearDepth(linearDepthTexture);
@@ -367,15 +367,15 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
     
-	float sMin = occlusionViewport.x / (float)framebufferSize.x;
-	float sWidth = occlusionViewport.z / (float)framebufferSize.x;
-	float tMin = occlusionViewport.y / (float)framebufferSize.y;
-	float tHeight = occlusionViewport.w / (float)framebufferSize.y;
+    float sMin = occlusionViewport.x / (float)framebufferSize.x;
+    float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+    float tMin = occlusionViewport.y / (float)framebufferSize.y;
+    float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
     auto resolutionLevel = _parametersBuffer->getResolutionLevel();
 
 
-    _parametersBuffer->ditheringInfo.y += 0.25f;
+    //_parametersBuffer->ditheringInfo.y += 0.25f;
 
     // Running in stero ?
     bool isStereo = args->_context->isStereo();
@@ -403,13 +403,13 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
       
         // We need this with the mips levels  
-		batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+        batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-		batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
@@ -480,9 +480,9 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
-	if (!_showCursorPixel) {
-		return;
-	}
+    if (!_showCursorPixel) {
+        return;
+    }
 
     RenderArgs* args = renderContext->args;
 
@@ -496,10 +496,10 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
     const auto& linearDepthFramebuffer = inputs.get2();
     const auto& ambientOcclusionUniforms = inputs.get3();
     
-	// Skip if AO is not started yet
-	if (!ambientOcclusionUniforms._buffer) {
-		return;
-	}
+    // Skip if AO is not started yet
+    if (!ambientOcclusionUniforms._buffer) {
+        return;
+    }
 
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto sourceViewport = args->_viewport;
@@ -508,17 +508,17 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
     auto resolutionLevel = ambientOcclusionUniforms->getResolutionLevel();
     
     if (resolutionLevel > 0) {
-		linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
-		occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
+        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+        occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
     }
         
 
     auto framebufferSize = glm::ivec2(linearDepthTexture->getDimensions());
     
-	float sMin = occlusionViewport.x / (float)framebufferSize.x;
-	float sWidth = occlusionViewport.z / (float)framebufferSize.x;
-	float tMin = occlusionViewport.y / (float)framebufferSize.y;
-	float tHeight = occlusionViewport.w / (float)framebufferSize.y;
+    float sMin = occlusionViewport.x / (float)framebufferSize.x;
+    float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+    float tMin = occlusionViewport.y / (float)framebufferSize.y;
+    float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
 
     // Running in stero ?
