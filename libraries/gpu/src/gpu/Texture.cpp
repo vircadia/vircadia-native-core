@@ -788,12 +788,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 uint pixOffsetIndex = (x + y * width) * numComponents;
 
                 // get color from texture and map to range [0, 1]
-                glm::vec3 clr(float(data[pixOffsetIndex]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+1]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
-
-                // Gamma correct
-                clr = ColorUtils::sRGBToLinearVec3(clr);
+                glm::vec3 clr(ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex]),
+                              ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex + 1]),
+                              ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex + 2]));
 
                 // scale color and add to previously accumulated coefficients
                 sphericalHarmonicsScale(shBuffB.data(), order,
