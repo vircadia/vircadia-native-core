@@ -234,17 +234,12 @@ function Teleporter() {
     this.rightRay = function() {
         var pose = Controller.getPoseValue(Controller.Standard.RightHand);
         var rightPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
-        var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) : MyAvatar.headOrientation;
-
-        var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(-90, {
-            x: 1,
-            y: 0,
-            z: 0
-        }));
+        var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
+                                         Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
 
         var rightPickRay = {
             origin: rightPosition,
-            direction: Quat.getUp(pose.valid ? rightRotation : rightFinal),
+            direction: Quat.getUp(rightRotation),
         };
 
         this.rightPickRay = rightPickRay;
@@ -287,17 +282,12 @@ function Teleporter() {
     this.leftRay = function() {
         var pose = Controller.getPoseValue(Controller.Standard.LeftHand);
         var leftPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
-        var leftRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) : MyAvatar.headOrientation;
-
-        var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(-90, {
-            x: 1,
-            y: 0,
-            z: 0
-        }));
+        var leftRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
+                                        Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
 
         var leftPickRay = {
             origin: leftPosition,
-            direction: Quat.getUp(pose.valid ? leftRotation : leftFinal),
+            direction: Quat.getUp(leftRotation),
         };
 
         this.leftPickRay = leftPickRay;
