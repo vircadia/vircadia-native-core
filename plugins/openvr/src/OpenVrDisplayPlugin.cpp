@@ -40,11 +40,6 @@ bool _openVrDisplayActive { false };
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_LEFT{ 0, 0, 0.5f, 1 };
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };
 
-
-
-#define OPENVR_THREADED_SUBMIT 1
-
-
 #if OPENVR_THREADED_SUBMIT
 
 static QString readFile(const QString& filename) {
@@ -326,6 +321,7 @@ void OpenVrDisplayPlugin::customizeContext() {
 
     Parent::customizeContext();
 
+#if OPENVR_THREADED_SUBMIT
     _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
     for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
         if (0 != i) {
@@ -333,8 +329,8 @@ void OpenVrDisplayPlugin::customizeContext() {
         }
         _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
     }
-
     _submitThread->start(QThread::HighPriority);
+#endif
 }
 
 void OpenVrDisplayPlugin::uncustomizeContext() {
@@ -459,8 +455,8 @@ void OpenVrDisplayPlugin::hmdPresent() {
 
 #if OPENVR_THREADED_SUBMIT
     _submitThread->waitForPresent();
-
 #else
+    GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
     vr::Texture_t vrTexture{ (void*)glTexId, vr::API_OpenGL, vr::ColorSpace_Auto };
     vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
     vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
