@@ -33,6 +33,8 @@ static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
+static int MAX_WINDOW_SIZE = 4096;
+
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
     entity->setProperties(properties);
@@ -98,6 +100,19 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     return true;
 }
 
+glm::vec2 RenderableWebEntityItem::getWindowSize() const {
+    glm::vec2 dims = glm::vec2(getDimensions());
+    dims *= METERS_TO_INCHES * _dpi;
+
+    // ensure no side is never larger then MAX_WINDOW_SIZE
+    float max = (dims.x > dims.y) ? dims.x : dims.y;
+    if (max > MAX_WINDOW_SIZE) {
+        dims *= MAX_WINDOW_SIZE / max;
+    }
+
+    return dims;
+}
+
 void RenderableWebEntityItem::render(RenderArgs* args) {
     checkFading();
 
@@ -123,13 +138,13 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
 
     _lastRenderTime = usecTimestampNow();
-    glm::vec2 dims = glm::vec2(getDimensions());
 
-    dims *= METERS_TO_INCHES * _dpi;
+    glm::vec2 windowSize = getWindowSize();
+
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
     // without worrying about excessive overhead.
-    _webSurface->resize(QSize(dims.x, dims.y));
+    _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);

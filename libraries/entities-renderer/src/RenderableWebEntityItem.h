@@ -47,6 +47,7 @@ public:
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
     void destroyWebSurface();
+    glm::vec2 getWindowSize() const;
 
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
