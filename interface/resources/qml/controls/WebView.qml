@@ -5,7 +5,7 @@ WebEngineView {
     id: root
     property var newUrl;
 
-    profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
+    profile: desktop.browserProfile
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
@@ -13,7 +13,6 @@ WebEngineView {
         root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
-
     }
 
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
