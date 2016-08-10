@@ -141,7 +141,7 @@ void Buffer::applyUpdate(const Update& update) {
     update.apply();
 }
 
-void Buffer::flush() {
+void Buffer::flush() const {
     ++_getUpdateCount;
     ++_applyUpdateCount;
     _renderPages = _pages;

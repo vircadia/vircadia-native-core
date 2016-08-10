@@ -53,9 +53,9 @@ public:
 
     void setStereoState(const StereoState& stereo) { _stereo = stereo; }
 
-    virtual void render(Batch& batch) = 0;
+    virtual void render(const Batch& batch) = 0;
     virtual void syncCache() = 0;
-    virtual void cleanupTrash() const = 0;
+    virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
     // UBO class... layout MUST match the layout in Transform.slh
@@ -142,8 +142,43 @@ public:
     ~Context();
 
     void beginFrame(const glm::mat4& renderPose = glm::mat4());
-    void append(Batch& batch);
+    void appendFrameBatch(Batch& batch);
     FramePointer endFrame();
+
+    // MUST only be called on the rendering thread
+    // 
+    // Handle any pending operations to clean up (recycle / deallocate) resources no longer in use
+    void recycle() const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Execute a batch immediately, rather than as part of a frame
+    void executeBatch(Batch& batch) const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Executes a frame, applying any updates contained in the frame batches to the rendering
+    // thread shadow copies.  Either executeFrame or consumeFrameUpdates MUST be called on every frame
+    // generated, IN THE ORDER they were generated.
+    void executeFrame(const FramePointer& frame) const;
+
+    // MUST only be called on the rendering thread. 
+    //
+    // Consuming a frame applies any updates queued from the recording thread and applies them to the 
+    // shadow copy used by the rendering thread.  
+    //
+    // EVERY frame generated MUST be consumed, regardless of whether the frame is actually executed,
+    // or the buffer shadow copies can become unsynced from the recording thread copies.
+    // 
+    // Consuming a frame is idempotent, as the frame encapsulates the updates and clears them out as
+    // it applies them, so calling it more than once on a given frame will have no effect after the 
+    // first time
+    //
+    //
+    // This is automatically called by executeFrame, so you only need to call it if you 
+    // have frames you aren't going to otherwise execute, for instance when a display plugin is
+    // being disabled, or in the null display plugin where no rendering actually occurs
+    void consumeFrameUpdates(const FramePointer& frame) const;
 
     const BackendPointer& getBackend() const { return _backend; }
 
@@ -220,7 +255,7 @@ template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
     gpu::Batch batch;
     f(batch);
-    context->append(batch);
+    context->appendFrameBatch(batch);
 }
 
 };

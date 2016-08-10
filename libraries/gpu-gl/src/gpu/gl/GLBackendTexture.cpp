@@ -21,7 +21,7 @@ bool GLBackend::isTextureReady(const TexturePointer& texture) {
 }
 
 
-void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
+void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
     if (!resourceTexture) {
         return;

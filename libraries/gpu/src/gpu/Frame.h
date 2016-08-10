@@ -17,14 +17,14 @@
 namespace gpu {
 
     class Frame {
+        friend class Context;
+
     public:
+        virtual ~Frame();
+
         using Batches = std::vector<Batch>;
         using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
         using OverlayRecycler = std::function<void(const TexturePointer&)>;
-
-        virtual ~Frame();
-        void finish();
-        void preRender();
 
         StereoState stereoState;
         uint32_t frameIndex{ 0 };
@@ -38,9 +38,13 @@ namespace gpu {
         FramebufferPointer framebuffer;
         /// The destination texture containing the 2D overlay
         TexturePointer overlay;
-
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
+
+    protected:
+        // Should be called once per frame, on the recording thred
+        void finish();
+        void preRender();
     };
 
 };

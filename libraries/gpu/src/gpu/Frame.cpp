@@ -25,7 +25,7 @@ Frame::~Frame() {
 
 void Frame::finish() {
     for (Batch& batch : batches) {
-        batch.finish(bufferUpdates);
+        batch.finishFrame(bufferUpdates);
     }
 }
 

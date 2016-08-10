@@ -119,7 +119,7 @@ GLuint GL45Backend::getFramebufferID(const FramebufferPointer& framebuffer) {
     return framebuffer ? gl::GLFramebuffer::getId<GL45Framebuffer>(*this, *framebuffer) : 0;
 }
 
-void GL45Backend::do_blit(Batch& batch, size_t paramOffset) {
+void GL45Backend::do_blit(const Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
     for (auto i = 0; i < 4; ++i) {

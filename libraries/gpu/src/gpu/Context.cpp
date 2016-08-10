@@ -35,7 +35,7 @@ void Context::beginFrame(const glm::mat4& renderPose) {
     _currentFrame->pose = renderPose;
 }
 
-void Context::append(Batch& batch) {
+void Context::appendFrameBatch(Batch& batch) {
     if (!_frameActive) {
         qWarning() << "Batch executed outside of frame boundaries";
         return;
@@ -54,6 +54,30 @@ FramePointer Context::endFrame() {
     return result;
 }
 
+void Context::executeBatch(Batch& batch) const {
+    batch.flush();
+    _backend->render(batch);
+}
+
+void Context::recycle() const {
+    _backend->recycle();
+}
+
+void Context::consumeFrameUpdates(const FramePointer& frame) const {
+    frame->preRender();
+}
+
+void Context::executeFrame(const FramePointer& frame) const {
+    // FIXME? probably not necessary, but safe
+    consumeFrameUpdates(frame);
+    _backend->setStereoState(frame->stereoState);
+    {
+        // Execute the frame rendering commands
+        for (auto& batch : frame->batches) {
+            _backend->render(batch);
+        }
+    }
+}
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram() && _makeProgramCallback) {

@@ -127,7 +127,7 @@ GLuint GL41Backend::getFramebufferID(const FramebufferPointer& framebuffer) {
     return framebuffer ? GL41Framebuffer::getId<GL41Framebuffer>(*this, *framebuffer) : 0;
 }
 
-void GL41Backend::do_blit(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_blit(const Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
     for (auto i = 0; i < 4; ++i) {

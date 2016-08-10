@@ -492,17 +492,6 @@ void Batch::captureNamedDrawCallInfo(std::string name) {
     std::swap(_currentNamedCall, name); // Restore _currentNamedCall
 }
 
-void Batch::preExecute() {
-    for (auto& mapItem : _namedData) {
-        auto& name = mapItem.first;
-        auto& instance = mapItem.second;
-
-        startNamedCall(name);
-        instance.process(*this);
-        stopNamedCall();
-    }
-}
-
 // Debugging
 void Batch::pushProfileRange(const char* name) {
 #if defined(NSIGHT_FOUND)
@@ -630,7 +619,16 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
     _params.emplace_back(red);
 }
 
-void Batch::finish(BufferUpdates& updates) {
+void Batch::finishFrame(BufferUpdates& updates) {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        startNamedCall(name);
+        instance.process(*this);
+        stopNamedCall();
+    }
+
     for (auto& namedCallData : _namedData) {
         for (auto& buffer : namedCallData.second.buffers) {
             if (!buffer || !buffer->isDirty()) {
@@ -650,6 +648,16 @@ void Batch::finish(BufferUpdates& updates) {
 }
 
 void Batch::flush() {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        auto& self = const_cast<Batch&>(*this);
+        self.startNamedCall(name);
+        instance.process(self);
+        self.stopNamedCall();
+    }
+
     for (auto& namedCallData : _namedData) {
         for (auto& buffer : namedCallData.second.buffers) {
             if (!buffer) {

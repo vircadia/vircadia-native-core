@@ -89,7 +89,7 @@ public:
     DrawCallInfoBuffer _drawCallInfos;
     static size_t _drawCallInfosMax;
 
-    std::string _currentNamedCall;
+    mutable std::string _currentNamedCall;
 
     const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
     DrawCallInfoBuffer& getDrawCallInfoBuffer();
@@ -102,14 +102,6 @@ public:
     ~Batch();
 
     void clear();
-
-    // Call on the main thread to prepare for passing to the render thread
-    void finish(BufferUpdates& updates);
-
-    // Call on the rendering thread for batches that only exist there
-    void flush();
-
-    void preExecute();
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -401,7 +393,7 @@ public:
                 return offset;
             }
 
-            Data get(uint32 offset) {
+            Data get(uint32 offset) const {
                 if (offset >= _items.size()) {
                     return Data();
                 }
@@ -430,6 +422,13 @@ public:
     typedef std::vector<Byte> Bytes;
     size_t cacheData(size_t size, const void* data);
     Byte* editData(size_t offset) {
+        if (offset >= _data.size()) {
+            return 0;
+        }
+        return (_data.data() + offset);
+    }
+
+    const Byte* readData(size_t offset) const {
         if (offset >= _data.size()) {
             return 0;
         }
@@ -478,6 +477,18 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    friend class Context;
+    friend class Frame;
+
+    // Apply all the named calls to the end of the batch
+    // and prepare updates for the render shadow copies of the buffers
+    void finishFrame(BufferUpdates& updates);
+
+    // Directly copy from the main data to the render thread shadow copy
+    // MUST only be called on the render thread
+    // MUST only be called on batches created on the render thread
+    void flush();
+
     void startNamedCall(const std::string& name);
     void stopNamedCall();
 

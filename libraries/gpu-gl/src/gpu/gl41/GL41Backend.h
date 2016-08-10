@@ -68,12 +68,12 @@ protected:
     gl::GLQuery* syncGPUObject(const Query& query) override;
 
     // Draw Stage
-    void do_draw(Batch& batch, size_t paramOffset) override;
-    void do_drawIndexed(Batch& batch, size_t paramOffset) override;
-    void do_drawInstanced(Batch& batch, size_t paramOffset) override;
-    void do_drawIndexedInstanced(Batch& batch, size_t paramOffset) override;
-    void do_multiDrawIndirect(Batch& batch, size_t paramOffset) override;
-    void do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) override;
+    void do_draw(const Batch& batch, size_t paramOffset) override;
+    void do_drawIndexed(const Batch& batch, size_t paramOffset) override;
+    void do_drawInstanced(const Batch& batch, size_t paramOffset) override;
+    void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) override;
+    void do_multiDrawIndirect(const Batch& batch, size_t paramOffset) override;
+    void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) override;
 
     // Input Stage
     void updateInput() override;
@@ -85,7 +85,7 @@ protected:
     void resetTransformStage();
 
     // Output stage
-    void do_blit(Batch& batch, size_t paramOffset) override;
+    void do_blit(const Batch& batch, size_t paramOffset) override;
 };
 
 } }

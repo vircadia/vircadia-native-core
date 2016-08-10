@@ -46,7 +46,7 @@ public:
     ~GLBackend();
 
     void setCameraCorrection(const Mat4& correction);
-    void render(Batch& batch) final;
+    void render(const Batch& batch) final;
 
     // This call synchronize the Full Backend cache with the current GLState
     // THis is only intended to be used when mixing raw gl calls with the gpu api usage in order to sync
@@ -75,74 +75,74 @@ public:
     size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
     // Draw Stage
-    virtual void do_draw(Batch& batch, size_t paramOffset) = 0;
-    virtual void do_drawIndexed(Batch& batch, size_t paramOffset) = 0;
-    virtual void do_drawInstanced(Batch& batch, size_t paramOffset) = 0;
-    virtual void do_drawIndexedInstanced(Batch& batch, size_t paramOffset) = 0;
-    virtual void do_multiDrawIndirect(Batch& batch, size_t paramOffset) = 0;
-    virtual void do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) = 0;
+    virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawInstanced(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_multiDrawIndirect(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) = 0;
 
     // Input Stage
-    virtual void do_setInputFormat(Batch& batch, size_t paramOffset) final;
-    virtual void do_setInputBuffer(Batch& batch, size_t paramOffset) final;
-    virtual void do_setIndexBuffer(Batch& batch, size_t paramOffset) final;
-    virtual void do_setIndirectBuffer(Batch& batch, size_t paramOffset) final;
-    virtual void do_generateTextureMips(Batch& batch, size_t paramOffset) final;
+    virtual void do_setInputFormat(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setInputBuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
-    virtual void do_setModelTransform(Batch& batch, size_t paramOffset) final;
-    virtual void do_setViewTransform(Batch& batch, size_t paramOffset) final;
-    virtual void do_setProjectionTransform(Batch& batch, size_t paramOffset) final;
-    virtual void do_setViewportTransform(Batch& batch, size_t paramOffset) final;
-    virtual void do_setDepthRangeTransform(Batch& batch, size_t paramOffset) final;
+    virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setViewTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setProjectionTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) final;
 
     // Uniform Stage
-    virtual void do_setUniformBuffer(Batch& batch, size_t paramOffset) final;
+    virtual void do_setUniformBuffer(const Batch& batch, size_t paramOffset) final;
 
     // Resource Stage
-    virtual void do_setResourceTexture(Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
 
     // Pipeline Stage
-    virtual void do_setPipeline(Batch& batch, size_t paramOffset) final;
+    virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Output stage
-    virtual void do_setFramebuffer(Batch& batch, size_t paramOffset) final;
-    virtual void do_clearFramebuffer(Batch& batch, size_t paramOffset) final;
-    virtual void do_blit(Batch& batch, size_t paramOffset) = 0;
+    virtual void do_setFramebuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_clearFramebuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_blit(const Batch& batch, size_t paramOffset) = 0;
 
     // Query section
-    virtual void do_beginQuery(Batch& batch, size_t paramOffset) final;
-    virtual void do_endQuery(Batch& batch, size_t paramOffset) final;
-    virtual void do_getQuery(Batch& batch, size_t paramOffset) final;
+    virtual void do_beginQuery(const Batch& batch, size_t paramOffset) final;
+    virtual void do_endQuery(const Batch& batch, size_t paramOffset) final;
+    virtual void do_getQuery(const Batch& batch, size_t paramOffset) final;
 
     // Reset stages
-    virtual void do_resetStages(Batch& batch, size_t paramOffset) final;
+    virtual void do_resetStages(const Batch& batch, size_t paramOffset) final;
 
-    virtual void do_runLambda(Batch& batch, size_t paramOffset) final;
+    virtual void do_runLambda(const Batch& batch, size_t paramOffset) final;
 
-    virtual void do_startNamedCall(Batch& batch, size_t paramOffset) final;
-    virtual void do_stopNamedCall(Batch& batch, size_t paramOffset) final;
+    virtual void do_startNamedCall(const Batch& batch, size_t paramOffset) final;
+    virtual void do_stopNamedCall(const Batch& batch, size_t paramOffset) final;
 
-    virtual void do_pushProfileRange(Batch& batch, size_t paramOffset) final;
-    virtual void do_popProfileRange(Batch& batch, size_t paramOffset) final;
+    virtual void do_pushProfileRange(const Batch& batch, size_t paramOffset) final;
+    virtual void do_popProfileRange(const Batch& batch, size_t paramOffset) final;
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    virtual void do_glActiveBindTexture(Batch& batch, size_t paramOffset) final;
+    virtual void do_glActiveBindTexture(const Batch& batch, size_t paramOffset) final;
 
-    virtual void do_glUniform1i(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform1f(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform2f(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform3f(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform4f(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform3fv(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform4fv(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniform4iv(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniformMatrix3fv(Batch& batch, size_t paramOffset) final;
-    virtual void do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform1i(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform1f(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform2f(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform3f(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform4f(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform3fv(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform4fv(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniform4iv(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniformMatrix3fv(const Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniformMatrix4fv(const Batch& batch, size_t paramOffset) final;
 
-    virtual void do_glColor4f(Batch& batch, size_t paramOffset) final;
+    virtual void do_glColor4f(const Batch& batch, size_t paramOffset) final;
 
     // The State setters called by the GLState::Commands when a new state is assigned
     virtual void do_setStateFillMode(int32 mode) final;
@@ -159,8 +159,8 @@ public:
     virtual void do_setStateSampleMask(uint32 mask) final;
     virtual void do_setStateBlend(State::BlendFunction blendFunction) final;
     virtual void do_setStateColorWriteMask(uint32 mask) final;
-    virtual void do_setStateBlendFactor(Batch& batch, size_t paramOffset) final;
-    virtual void do_setStateScissorRect(Batch& batch, size_t paramOffset) final;
+    virtual void do_setStateBlendFactor(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setStateScissorRect(const Batch& batch, size_t paramOffset) final;
 
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) = 0;
@@ -174,10 +174,10 @@ public:
     virtual void releaseShader(GLuint id) const;
     virtual void releaseProgram(GLuint id) const;
     virtual void releaseQuery(GLuint id) const;
-    virtual void cleanupTrash() const;
 
 protected:
 
+    void recycle() const override;
     virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
     virtual GLBuffer* syncGPUObject(const Buffer& buffer) = 0;
     virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) = 0;
@@ -197,8 +197,8 @@ protected:
     mutable std::list<GLuint> _programsTrash;
     mutable std::list<GLuint> _queriesTrash;
 
-    void renderPassTransfer(Batch& batch);
-    void renderPassDraw(Batch& batch);
+    void renderPassTransfer(const Batch& batch);
+    void renderPassDraw(const Batch& batch);
     void setupStereoSide(int side);
 
     virtual void initInput() final;
@@ -362,7 +362,7 @@ protected:
 
     void resetStages();
 
-    typedef void (GLBackend::*CommandCall)(Batch&, size_t);
+    typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
     friend class GLState;
 };
