@@ -240,24 +240,21 @@ public:
     void renderFrame(gpu::FramePointer& frame) {
         ++_presentCount;
         _displayContext->makeCurrent(_displaySurface);
-        ((gpu::gl::GLBackend&)(*_backend)).cleanupTrash();
+        _backend->recycle();
+        _backend->syncCache();
         if (frame && !frame->batches.empty()) {
-            frame->preRender();
-            _backend->syncCache();
-            _backend->setStereoState(frame->stereoState);
-            for (auto& batch : frame->batches) {
-                _backend->render(batch);
-            }
+            _gpuContext->executeFrame(frame);
+
             {
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
                 presentBatch.enableStereo(false);
-                presentBatch.clearViewTransform();
+                presentBatch.resetViewTransform();
                 presentBatch.setFramebuffer(gpu::FramebufferPointer());
                 presentBatch.setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
                 presentBatch.setPipeline(_presentPipeline);
                 presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
-                _backend->render(presentBatch);
+                _gpuContext->executeBatch(presentBatch);
             }
         }
         {
