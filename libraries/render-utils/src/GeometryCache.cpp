@@ -11,7 +11,7 @@
 
 #include "GeometryCache.h"
 
-
+#include <qmath.h>
 #include <cmath>
 
 #include <QtCore/QThreadPool>
