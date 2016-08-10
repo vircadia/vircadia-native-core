@@ -722,7 +722,7 @@ gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
         return nullptr;
     }
     auto backend = _gpuContext->getBackend().get();
-#if Q_OS_MAC
+#if defined(Q_OS_MAC)
     // Should be dynamic_cast, but that doesn't work in plugins on OSX
     auto glbackend = static_cast<gpu::gl::GLBackend*>(backend);
 #else
