@@ -295,9 +295,10 @@ void HmdDisplayPlugin::updateFrameData() {
         }
 
         _presentHandLaserPoints[i].first = vec3(_presentHandPoses[i][3]);
+        _presentHandLaserPoints[i].second = _presentHandLaserPoints[i].first + (castDirection * distance);
+
         vec3 intersectionPosition = vec3(_presentHandPoses[i][3]) + (castDirection * distance) - _presentUiModelTransform.getTranslation();
         intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
-        _presentHandLaserPoints[i].second = intersectionPosition;
 
         // Take the interesection normal and convert it to a texture coordinate
         vec2 yawPitch;
