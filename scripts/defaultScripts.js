@@ -9,6 +9,7 @@
 //
 
 
+Script.load("system/steam.js");
 Script.load("system/progress.js");
 Script.load("system/away.js");
 Script.load("system/users.js");

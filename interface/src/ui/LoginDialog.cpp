@@ -12,8 +12,11 @@
 #include "LoginDialog.h"
 
 #include <QDesktopServices>
+#include <QJsonDocument>
+#include <QNetworkReply>
 
 #include <NetworkingConstants.h>
+#include <steamworks-wrapper/SteamClient.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -21,9 +24,7 @@
 
 HIFI_QML_DEF(LoginDialog)
 
-LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent),
-    _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString())
-{
+LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
@@ -53,36 +54,102 @@ void LoginDialog::toggleAction() {
     }
 }
 
-void LoginDialog::handleLoginCompleted(const QUrl&) {
-    hide();
+bool LoginDialog::isSteamRunning() const {
+    return SteamClient::isRunning();
 }
 
-void LoginDialog::handleLoginFailed() {
-    setStatusText("Invalid username or password");
-}
-
-void LoginDialog::setStatusText(const QString& statusText) {
-    if (statusText != _statusText) {
-        _statusText = statusText;
-        emit statusTextChanged();
-    }
-}
-
-QString LoginDialog::statusText() const {
-    return _statusText;
-}
-
-QString LoginDialog::rootUrl() const {
-    return _rootUrl;
-}
-
-void LoginDialog::login(const QString& username, const QString& password) {
+void LoginDialog::login(const QString& username, const QString& password) const {
     qDebug() << "Attempting to login " << username;
-    setStatusText("Logging in...");
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
-void LoginDialog::openUrl(const QString& url) {
-    qDebug() << url;
-    QDesktopServices::openUrl(url);
+void LoginDialog::loginThroughSteam() {
+    qDebug() << "Attempting to login through Steam";
+    SteamClient::requestTicket([this](Ticket ticket) {
+        if (ticket.isNull()) {
+            emit handleLoginFailed();
+            return;
+        }
+
+        DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
+    });
 }
+
+void LoginDialog::linkSteam() {
+    qDebug() << "Attempting to link Steam account";
+    SteamClient::requestTicket([this](Ticket ticket) {
+        if (ticket.isNull()) {
+            emit handleLoginFailed();
+            return;
+        }
+
+        JSONCallbackParameters callbackParams;
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "linkCompleted";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "linkFailed";
+
+        const QString LINK_STEAM_PATH = "api/v1/user/link_steam";
+
+        QJsonObject payload;
+        payload.insert("ticket", QJsonValue::fromVariant(QVariant(ticket)));
+
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
+                                    QNetworkAccessManager::PostOperation, callbackParams,
+                                    QJsonDocument(payload).toJson());
+    });
+}
+
+void LoginDialog::createAccountFromStream(QString username) {
+    qDebug() << "Attempting to create account from Steam info";
+    SteamClient::requestTicket([this, username](Ticket ticket) {
+        if (ticket.isNull()) {
+            emit handleLoginFailed();
+            return;
+        }
+
+        JSONCallbackParameters callbackParams;
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "createCompleted";
+        callbackParams.errorCallbackReceiver = this;
+        callbackParams.errorCallbackMethod = "createFailed";
+
+        const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/create_from_steam";
+
+        QJsonObject payload;
+        payload.insert("ticket", QJsonValue::fromVariant(QVariant(ticket)));
+        if (!username.isEmpty()) {
+            payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+        }
+
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
+                                    QNetworkAccessManager::PostOperation, callbackParams,
+                                    QJsonDocument(payload).toJson());
+    });
+
+}
+
+void LoginDialog::openUrl(const QString& url) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto browser = offscreenUi->load("Browser.qml");
+    browser->setProperty("url", url);
+}
+
+void LoginDialog::linkCompleted(QNetworkReply& reply) {
+    emit handleLinkCompleted();
+}
+
+void LoginDialog::linkFailed(QNetworkReply& reply) {
+    emit handleLinkFailed(reply.errorString());
+}
+
+void LoginDialog::createCompleted(QNetworkReply& reply) {
+    emit handleCreateCompleted();
+}
+
+void LoginDialog::createFailed(QNetworkReply& reply) {
+    emit handleCreateFailed(reply.errorString());
+}
+

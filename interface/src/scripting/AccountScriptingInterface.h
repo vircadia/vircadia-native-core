@@ -17,6 +17,11 @@
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
 
+    Q_PROPERTY(QString username READ getUsername NOTIFY usernameChanged)
+
+signals:
+    void usernameChanged();
+
 public slots:
     static AccountScriptingInterface* getInstance();
     QString getUsername();
