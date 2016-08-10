@@ -13,6 +13,7 @@
 #include <ui-plugins/PluginContainer.h>
 #include <FramebufferCache.h>
 #include <gpu/Frame.h>
+#include <gpu/Context.h>
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
@@ -24,9 +25,9 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-void NullDisplayPlugin::submitFrame(const gpu::FramePointer& resultFramebuffer) {
-    if (resultFramebuffer) {
-        resultFramebuffer->preRender();
+void NullDisplayPlugin::submitFrame(const gpu::FramePointer& frame) {
+    if (frame) {
+        _gpuContext->consumeFrameUpdates(frame);
     }
 }
 

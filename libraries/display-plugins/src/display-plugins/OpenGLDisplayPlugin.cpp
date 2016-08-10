@@ -425,8 +425,7 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     withPresentThreadLock([&] {
         _currentFrame.reset();
         while (!_newFrameQueue.empty()) {
-            _currentFrame = _newFrameQueue.front();
-            _currentFrame->preRender();
+            _gpuContext->consumeFrameUpdates(_newFrameQueue.front());
             _newFrameQueue.pop();
         }
     });
@@ -491,12 +490,12 @@ void OpenGLDisplayPlugin::updateFrameData() {
         uint32_t skippedCount = 0;
         if (!_newFrameQueue.empty()) {
             // We're changing frames, so we can cleanup any GL resources that might have been used by the old frame
-            getGLBackend()->cleanupTrash();
+            _gpuContext->recycle();
         }
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
-            _currentFrame->preRender();
             _newFrameQueue.pop();
+            _gpuContext->consumeFrameUpdates(_currentFrame);
             if (_currentFrame && oldFrame) {
                 skippedCount += (_currentFrame->frameIndex - oldFrame->frameIndex) - 1;
             }
@@ -604,17 +603,18 @@ void OpenGLDisplayPlugin::internalPresent() {
 void OpenGLDisplayPlugin::present() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xffffff00, (uint64_t)presentCount())
     updateFrameData();
-
     incrementPresentCount();
+
+    {
+        PROFILE_RANGE_EX("recycle", 0xff00ff00, (uint64_t)presentCount())
+        _gpuContext->recycle();
+    }
+
     if (_currentFrame) {
-        _backend->cleanupTrash();
-        _backend->setStereoState(_currentFrame->stereoState);
         {
-            PROFILE_RANGE_EX("execute", 0xff00ff00, (uint64_t)presentCount())
             // Execute the frame rendering commands
-            for (auto& batch : _currentFrame->batches) {
-                _backend->render(batch);
-            }
+            PROFILE_RANGE_EX("execute", 0xff00ff00, (uint64_t)presentCount())
+            _gpuContext->executeFrame(_currentFrame);
         }
 
         // Write all layers to a local framebuffer
@@ -718,17 +718,22 @@ ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
 }
 
 gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
-    if (!_backend) {
+    if (!_gpuContext || !_gpuContext->getBackend()) {
         return nullptr;
     }
-    auto backend = _backend.get();
+    auto backend = _gpuContext->getBackend().get();
+#if Q_OS_MAC
+    // Should be dynamic_cast, but that doesn't work in plugins on OSX
     auto glbackend = static_cast<gpu::gl::GLBackend*>(backend);
+#else
+    auto glbackend = dynamic_cast<gpu::gl::GLBackend*>(backend);
+#endif
+
     return glbackend;
 }
 
 void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
     gpu::Batch batch;
     f(batch);
-    batch.flush();
-    _backend->render(batch);
+    _gpuContext->executeBatch(batch);
 }

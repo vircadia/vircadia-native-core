@@ -145,7 +145,7 @@ public:
     virtual QString getPreferredAudioOutDevice() const { return QString(); }
 
     // Rendering support
-    virtual void setBackend(const gpu::BackendPointer& backend) final { _backend = backend; }
+    virtual void setContext(const gpu::ContextPointer& context) final { _gpuContext = context; }
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
 
     // Does the rendering surface have current focus?
@@ -200,7 +200,7 @@ signals:
 protected:
     void incrementPresentCount();
 
-    gpu::BackendPointer _backend;
+    gpu::ContextPointer _gpuContext;
 
 private:
     std::atomic<uint32_t> _presentedFrameIndex;

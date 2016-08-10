@@ -5385,7 +5385,7 @@ void Application::updateDisplayMode() {
         DisplayPluginList advanced;
         DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
-            displayPlugin->setBackend(_gpuContext->getBackend());
+            displayPlugin->setContext(_gpuContext);
             auto grouping = displayPlugin->getGrouping();
             switch (grouping) {
                 case Plugin::ADVANCED:
