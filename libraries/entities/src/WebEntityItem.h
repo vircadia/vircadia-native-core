@@ -56,6 +56,7 @@ public:
 
 protected:
     QString _sourceUrl;
+    float _dpi;
 };
 
 #endif // hifi_WebEntityItem_h

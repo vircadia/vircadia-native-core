@@ -11,6 +11,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include <QDebug>
+#include <QJsonDocument>
 
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
@@ -20,7 +21,25 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
+const float DEFAULT_DPI = 30.47f;
+
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
+
+static float parseDPIFromUserData(QString str) {
+    QJsonParseError error;
+    auto doc = QJsonDocument::fromJson(str.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        return DEFAULT_DPI;
+    }
+    QJsonObject obj = doc.object();
+
+    QJsonValue dpiValue = obj.value("dpi");
+    if (!dpiValue.isDouble()) {
+        return DEFAULT_DPI;
+    }
+    double dpi = dpiValue.toDouble();
+    return (float)dpi;
+}
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity { new WebEntityItem(entityID) };
@@ -30,6 +49,7 @@ EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const Ent
 
 WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Web;
+    _dpi = DEFAULT_DPI;
 }
 
 const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
@@ -61,6 +81,9 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
+
+    // AJT: TODO MAKE THIS A REAL PROPERTY
+    _dpi = parseDPIFromUserData(getUserData());
 
     return somethingChanged;
 }

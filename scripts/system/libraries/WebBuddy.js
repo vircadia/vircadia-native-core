@@ -33,7 +33,8 @@ WebBuddy = function (url) {
         gravity: {x: 0, y: 0, z: 0},
         shapeType: "box",
         userData: JSON.stringify({
-            "grabbableKey": {"grabbable": true}
+            "grabbableKey": {"grabbable": true},
+            "dpi": 75
         }),
         parentID: MyAvatar.sessionUUID,
         parentJointIndex: NEGATIVE_ONE

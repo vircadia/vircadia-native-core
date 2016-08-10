@@ -26,7 +26,6 @@
 
 #include "EntityTreeRenderer.h"
 
-const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
@@ -87,7 +86,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             QTouchEvent::TouchPoint point;
             point.setId(event.getID());
             point.setState(Qt::TouchPointReleased);
-            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
             QPointF windowPoint(windowPos.x, windowPos.y);
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
@@ -125,7 +124,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     _lastRenderTime = usecTimestampNow();
     glm::vec2 dims = glm::vec2(getDimensions());
-    dims *= METERS_TO_INCHES * DPI;
+
+    dims *= METERS_TO_INCHES * _dpi;
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
     // without worrying about excessive overhead.
@@ -185,7 +185,7 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         return;
     }
 
-    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
     if (event.getType() == PointerEvent::Move) {
