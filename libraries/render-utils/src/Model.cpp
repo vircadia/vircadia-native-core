@@ -111,8 +111,8 @@ Model::Model(RigPointer rig, QObject* parent) :
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 
-    // handle download failure reported by the GeometryResourceWatcher
-    connect(&_renderWatcher, &GeometryResourceWatcher::resourceFailed, this, &Model::handleGeometryResourceFailure);
+    connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
+    connect(&_collisionWatcher, &GeometryResourceWatcher::finished, this, &Model::loadCollisionModelURLFinished);
 }
 
 Model::~Model() {
@@ -174,6 +174,7 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::updateRenderItems() {
 
     _needsUpdateClusterMatrices = true;
+    _renderItemsNeedUpdate = false;
 
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
@@ -211,6 +212,9 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
+                    data.startFade();
+                }
                 // Ensure the model geometry was not reset between frames
                 if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                     // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
@@ -822,12 +826,21 @@ void Model::setURL(const QUrl& url) {
     _needsReload = true;
     _needsUpdateTextures = true;
     _meshGroupsKnown = false;
-    _geometryRequestFailed = false;
+    _visualGeometryRequestFailed = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _renderWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+    auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+    resource->setLoadPriority(this, _loadingPriority);
+    _renderWatcher.setResource(resource);
     onInvalidate();
+}
+
+void Model::loadURLFinished(bool success) {
+    if (!success) {
+        _visualGeometryRequestFailed = true;
+    }
+    emit setURLFinished(success);
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -835,7 +848,16 @@ void Model::setCollisionModelURL(const QUrl& url) {
         return;
     }
     _collisionUrl = url;
+    _collisionGeometryRequestFailed = false;
     _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+}
+
+void Model::loadCollisionModelURLFinished(bool success) {
+    if (!success) {
+        _collisionGeometryRequestFailed  = true;
+    }
+
+    emit setCollisionModelURLFinished(success);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {

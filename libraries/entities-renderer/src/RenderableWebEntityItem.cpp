@@ -95,6 +95,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
+    checkFading();
+
     #ifdef WANT_EXTRA_DEBUGGING
     {
         gpu::Batch& batch = *args->_batch;
@@ -112,6 +114,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
             return;
         }
+        _fadeStartTime = usecTimestampNow();
         #endif
     }
 
@@ -138,8 +141,11 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
     }
 
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
+
     DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio));
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

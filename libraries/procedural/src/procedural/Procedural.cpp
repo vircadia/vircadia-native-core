@@ -175,6 +175,10 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 }
 
 bool Procedural::ready() {
+    if (!_hasStartedFade) {
+        _fadeStartTime = usecTimestampNow();
+    }
+
     // Load any changes to the procedural
     // Check for changes atomically, in case they are currently being made
     if (_proceduralDataDirty) {
@@ -202,6 +206,10 @@ bool Procedural::ready() {
         }
     }
 
+    if (!_hasStartedFade) {
+        _hasStartedFade = true;
+        _isFading = true;
+    }
     return true;
 }
 
