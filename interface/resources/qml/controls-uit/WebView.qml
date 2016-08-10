@@ -62,44 +62,6 @@ WebEngineView {
         }
     }
 
-    Timer {
-        id: zipTimer
-        running: false
-        repeat: false
-        interval: 1500
-        property var handler;
-        onTriggered: handler();
-    }
-
-    property var autoCancel: 'var element = $("a.btn.cancel");
-                              element.click();'
-
-    onNewViewRequested: {
-        console.log("new view requested url");
-        var component = Qt.createComponent("../Browser.qml");
-        var newWindow = component.createObject(desktop);
-        request.openIn(newWindow.webView);
-        if (File.testUrl(desktop.currentUrl)) {
-            zipTimer.handler = function() {
-                newWindow.destroy();
-                runJavaScript(autoCancel);
-            }
-            zipTimer.start();
-        }
-    }
-
-    property var simpleDownload: 'var element = $("a.download-file");
-                                  element.removeClass("download-file");
-                                  element.removeAttr("download");'
-
-    onLinkHovered: {
-        desktop.currentUrl = hoveredUrl
-        console.log("my url in WebView: " + desktop.currentUrl)
-        if (File.testUrl(desktop.currentUrl)) {
-            runJavaScript(simpleDownload, function(){console.log("ran the JS");});
-        }
-
-    }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521

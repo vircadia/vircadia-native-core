@@ -218,9 +218,9 @@ ScrollingWindow {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
-			Component.onCompleted: {
-				desktop.initWebviewProfileHandlers(webview.profile)
-			}
+	        Component.onCompleted: {
+		        desktop.initWebviewProfileHandlers(webview.profile)
+	        }
 			
 
             //profile: desktop.browserProfile
