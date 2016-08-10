@@ -119,7 +119,7 @@ void OculusDisplayPlugin::hmdPresent() {
         batch.setFramebuffer(_outputFramebuffer);
         batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
         batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
         batch.setPipeline(_presentPipeline);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));

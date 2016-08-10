@@ -52,9 +52,21 @@ in vec2 varTexCoord0;
 
 out vec4 outFragColor;
 
-void main(void) {
-    outFragColor = vec4(pow(texture(colorMap, varTexCoord0).rgb, vec3(2.2)), 1.0);
+float sRGBFloatToLinear(float value) {
+    const float SRGB_ELBOW = 0.04045;
+    
+    return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
 }
+
+vec3 colorToLinearRGB(vec3 srgb) {
+    return vec3(sRGBFloatToLinear(srgb.r), sRGBFloatToLinear(srgb.g), sRGBFloatToLinear(srgb.b));
+}
+
+void main(void) {
+    outFragColor.a = 1.0;
+    outFragColor.rgb = colorToLinearRGB(texture(colorMap, varTexCoord0).rgb);
+}
+
 )SCRIBE";
 
 extern QThread* RENDER_THREAD;
@@ -521,7 +533,7 @@ void OpenGLDisplayPlugin::compositePointer() {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setModelTransform(cursorTransform);
         if (isStereo()) {
             for_each_eye([&](Eye eye) {
@@ -541,7 +553,7 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setViewportTransform(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
         batch.setPipeline(_simplePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
@@ -579,7 +591,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setFramebuffer(gpu::FramebufferPointer());
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));

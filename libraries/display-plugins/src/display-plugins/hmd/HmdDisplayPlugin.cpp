@@ -119,7 +119,7 @@ void HmdDisplayPlugin::uncustomizeContext() {
     _disablePreview = false;
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setFramebuffer(_compositeFramebuffer);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     });
@@ -167,7 +167,7 @@ void HmdDisplayPlugin::internalPresent() {
         auto viewport = getViewportForSourceSize(sourceSize);
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
-            batch.clearViewTransform();
+            batch.resetViewTransform();
             batch.setFramebuffer(gpu::FramebufferPointer());
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
             batch.setStateScissorRect(viewport);
@@ -199,7 +199,7 @@ void HmdDisplayPlugin::internalPresent() {
             auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
             render([&](gpu::Batch& batch) {
                 batch.enableStereo(false);
-                batch.clearViewTransform();
+                batch.resetViewTransform();
                 batch.setFramebuffer(gpu::FramebufferPointer());
                 batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
                 batch.setStateScissorRect(viewport);
@@ -471,7 +471,7 @@ void HmdDisplayPlugin::compositePointer() {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         for_each_eye([&](Eye eye) {
             batch.setViewportTransform(eyeViewport(eye));
             batch.setProjectionTransform(_eyeProjections[eye]);

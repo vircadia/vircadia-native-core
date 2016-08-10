@@ -72,7 +72,7 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
-        batch.clearViewTransform();
+        batch.resetViewTransform();
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
         batch.setPipeline(_blitLightBuffer);
 
