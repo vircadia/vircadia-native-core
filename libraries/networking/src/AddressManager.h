@@ -38,6 +38,7 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
+    Q_PROPERTY(QString placename READ getPlaceName)
 public:
     Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
