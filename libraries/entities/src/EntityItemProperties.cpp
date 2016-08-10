@@ -335,6 +335,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
+    CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -504,6 +505,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Web only
     if (_type == EntityTypes::Web) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
     }
 
     // PolyVoxel only
@@ -726,6 +728,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -903,6 +907,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
 
+        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
 
@@ -1065,6 +1071,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
+                APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
             if (properties.getType() == EntityTypes::Text) {
@@ -1364,6 +1371,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
     }
 
     if (properties.getType() == EntityTypes::Text) {
@@ -1642,6 +1650,8 @@ void EntityItemProperties::markAllChanged() {
 
     _clientOnlyChanged = true;
     _owningAvatarIDChanged = true;
+
+    _dpiChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -1975,6 +1985,10 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (ghostingAllowedChanged()) {
         out += "ghostingAllowed";
+    }
+
+    if (dpiChanged()) {
+        out += "dpi";
     }
 
     if (shapeChanged()) {

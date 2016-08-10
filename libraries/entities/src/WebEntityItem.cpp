@@ -21,25 +21,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
-const float DEFAULT_DPI = 30.47f;
-
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
-
-static float parseDPIFromUserData(QString str) {
-    QJsonParseError error;
-    auto doc = QJsonDocument::fromJson(str.toUtf8(), &error);
-    if (error.error != QJsonParseError::NoError) {
-        return DEFAULT_DPI;
-    }
-    QJsonObject obj = doc.object();
-
-    QJsonValue dpiValue = obj.value("dpi");
-    if (!dpiValue.isDouble()) {
-        return DEFAULT_DPI;
-    }
-    double dpi = dpiValue.toDouble();
-    return (float)dpi;
-}
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity { new WebEntityItem(entityID) };
@@ -49,7 +31,7 @@ EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const Ent
 
 WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Web;
-    _dpi = DEFAULT_DPI;
+    _dpi = ENTITY_ITEM_DEFAULT_DPI;
 }
 
 const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
@@ -62,6 +44,7 @@ void WebEntityItem::setDimensions(const glm::vec3& value) {
 EntityItemProperties WebEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dpi, getDPI);
     return properties;
 }
 
@@ -70,6 +53,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(sourceUrl, setSourceUrl);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dpi, setDPI);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -81,9 +65,6 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
-
-    // AJT: TODO MAKE THIS A REAL PROPERTY
-    _dpi = parseDPIFromUserData(getUserData());
 
     return somethingChanged;
 }
@@ -97,6 +78,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_SOURCE_URL, QString, setSourceUrl);
+    READ_ENTITY_PROPERTY(PROP_DPI, uint16_t, setDPI);
 
     return bytesRead;
 }
@@ -106,6 +88,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
 EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_SOURCE_URL;
+    requestedProperties += PROP_DPI;
     return requestedProperties;
 }
 
@@ -119,6 +102,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, _sourceUrl);
+    APPEND_ENTITY_PROPERTY(PROP_DPI, _dpi);
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -146,3 +130,11 @@ void WebEntityItem::setSourceUrl(const QString& value) {
 }
 
 const QString& WebEntityItem::getSourceUrl() const { return _sourceUrl; }
+
+void WebEntityItem::setDPI(uint16_t value) {
+    _dpi = value;
+}
+
+uint16_t WebEntityItem::getDPI() const {
+    return _dpi;
+}

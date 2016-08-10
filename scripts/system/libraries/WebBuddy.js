@@ -34,10 +34,10 @@ WebBuddy = function (url) {
         shapeType: "box",
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true},
-            "dpi": 75
         }),
         parentID: MyAvatar.sessionUUID,
-        parentJointIndex: NEGATIVE_ONE
+        parentJointIndex: NEGATIVE_ONE,
+        dpi: 45
     });
 
     this.state = "idle";

@@ -54,9 +54,14 @@ public:
     virtual void setSourceUrl(const QString& value);
     const QString& getSourceUrl() const;
 
+    virtual bool wantsHandControllerPointerEvents() const override { return true; }
+
+    void setDPI(uint16_t value);
+    uint16_t getDPI() const;
+
 protected:
     QString _sourceUrl;
-    float _dpi;
+    uint16_t _dpi;
 };
 
 #endif // hifi_WebEntityItem_h
