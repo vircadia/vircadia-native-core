@@ -39,6 +39,23 @@ Windows.ScrollingWindow {
     // missing signal
     signal sendToScript(var message);
 
+    signal moved(vector2d position);
+    signal resized(size size);
+
+    function notifyMoved() {
+        moved(Qt.vector2d(x, y));
+    }
+
+    function notifyResized() {
+        resized(Qt.size(width, height));
+    }
+
+    onXChanged: notifyMoved();
+    onYChanged: notifyMoved();
+
+    onWidthChanged: notifyResized();
+    onHeightChanged: notifyResized();
+
     Item {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight

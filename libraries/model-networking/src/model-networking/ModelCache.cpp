@@ -404,6 +404,7 @@ void GeometryResourceWatcher::resourceFinished(bool success) {
     if (success) {
         _geometryRef = std::make_shared<Geometry>(*_resource);
     }
+    emit finished(success);
 }
 
 void GeometryResourceWatcher::resourceRefreshed() {

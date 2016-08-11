@@ -72,6 +72,6 @@ module.exports = {
         "spaced-comment": ["error", "always", {
             "line": { "markers": ["/"] }
         }],
-        "space-before-function-paren": ["error", {"anonymous": "always", "named": "never"}]
+        "space-before-function-paren": ["error", {"anonymous": "ignore", "named": "never"}]
     }
 };

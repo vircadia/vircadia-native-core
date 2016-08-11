@@ -17,7 +17,7 @@ Script.load("system/goto.js");
 Script.load("system/hmd.js");
 Script.load("system/marketplace.js");
 Script.load("system/edit.js");
-Script.load("system/ignore.js");
+Script.load("system/mod.js");
 Script.load("system/selectAudioDevice.js");
 Script.load("system/notifications.js");
 Script.load("system/controllers/handControllerGrab.js");

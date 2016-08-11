@@ -634,8 +634,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                     }
                 } else {
                     // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
-                    // Never intersect with particle effect entities
-                    if (localDistance < distance && EntityTypes::getEntityTypeName(entity->getType()) != "ParticleEffect") {
+                    // Never intersect with particle entities
+                    if (localDistance < distance && entity->getType() != EntityTypes::ParticleEffect) {
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = localSurfaceNormal;

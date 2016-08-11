@@ -42,13 +42,18 @@ public:
     const gpu::ShaderPointer& getShader() const { return _shader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
+    quint64 getFadeStartTime() { return _fadeStartTime; }
+    bool isFading() { return _doesFade && _isFading; }
+    void setIsFading(bool isFading) { _isFading = isFading; }
+    void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
     uint8_t _version { 1 };
 
     std::string _vertexSource;
     std::string _fragmentSource;
 
-    gpu::StatePointer _state;
+    gpu::StatePointer _opaqueState { std::make_shared<gpu::State>() };
+    gpu::StatePointer _transparentState { std::make_shared<gpu::State>() };
 
     enum StandardUniforms {
         DATE,
@@ -86,7 +91,8 @@ protected:
     UniformLambdas _uniforms;
     int32_t _standardUniformSlots[NUM_STANDARD_UNIFORMS];
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
-    gpu::PipelinePointer _pipeline;
+    gpu::PipelinePointer _opaquePipeline;
+    gpu::PipelinePointer _transparentPipeline;
     gpu::ShaderPointer _vertexShader;
     gpu::ShaderPointer _fragmentShader;
     gpu::ShaderPointer _shader;
@@ -106,6 +112,11 @@ private:
 
     void setupUniforms();
     void setupChannels(bool shouldCreate);
+
+    quint64 _fadeStartTime;
+    bool _hasStartedFade { false };
+    bool _isFading { false };
+    bool _doesFade { true };
 };
 
 #endif
