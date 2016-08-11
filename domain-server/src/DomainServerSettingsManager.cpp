@@ -532,9 +532,12 @@ void DomainServerSettingsManager::unpackPermissions() {
             // we don't have permissions for one of the standard groups, so we'll add them now
             NodePermissionsPointer perms { new NodePermissions(standardKey) };
 
-            // the localhost user is granted all permissions by default
             if (standardKey == NodePermissions::standardNameLocalhost) {
+                // the localhost user is granted all permissions by default
                 perms->setAll(true);
+            } else {
+                // anonymous, logged in, and friend users get connect permissions by default
+                perms->set(NodePermissions::Permission::canConnectToDomain);
             }
 
             // add the permissions to the standard map
