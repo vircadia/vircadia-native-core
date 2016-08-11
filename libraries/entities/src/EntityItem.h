@@ -26,6 +26,7 @@
 #include <Transform.h>
 #include <Sound.h>
 #include <SpatiallyNestable.h>
+#include <Interpolate.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -431,6 +432,7 @@ public:
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
+    virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
 
 protected:
 
@@ -561,7 +563,8 @@ protected:
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
 
-
+    quint64 _fadeStartTime { usecTimestampNow() };
+    bool _isFading { true };
 };
 
 #endif // hifi_EntityItem_h
