@@ -518,7 +518,7 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
     request.setUrl(grantURL);
