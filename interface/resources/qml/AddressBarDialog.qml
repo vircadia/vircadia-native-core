@@ -407,13 +407,6 @@ Window {
             if (handleError(url, error, data, cb)) {
                 return;
             }
-            // FIXME: For debugging until we have real data
-            if (!data.user_stories.length) {
-                data.user_stories = [
-                    {created_at: "8/3/2016", action: "snapshot", path: "/4257.1,126.084,1335.45/0,-0.857368,0,0.514705", place_name: "SpiritMoving", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/c28/a26/f0-/thumbnail/hifi-place-c28a26f0-6991-4654-9c2b-e64228c06954.jpg?1456878797"},
-                    {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
-                ];
-            }
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
                 return makeModelData(story);
             });
