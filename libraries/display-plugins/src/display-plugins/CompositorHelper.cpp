@@ -451,37 +451,3 @@ QVariant ReticleInterface::getPosition() const {
 void ReticleInterface::setPosition(QVariant position) {
     _compositor->setReticlePosition(vec2FromVariant(position));
 }
-
-QUuid ReticleInterface::getKeyboardFocusEntity() const {
-    QUuid result;
-    QMetaObject::invokeMethod(qApp, "getKeyboardFocusEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
-    return result;
-}
-
-void ReticleInterface::setKeyboardFocusEntity(QUuid id) {
-    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::QueuedConnection, Q_ARG(QUuid, id));
-}
-
-void ReticleInterface::sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityMouseMoveEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
-}
-
-void ReticleInterface::sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseDownEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
-}
-
-void ReticleInterface::sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseUpEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
-}
-
-void ReticleInterface::sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchUpdateEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
-}
-
-void ReticleInterface::sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchBeginEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
-}
-
-void ReticleInterface::sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchEndEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
-}

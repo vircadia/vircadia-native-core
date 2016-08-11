@@ -181,7 +181,6 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(bool mouseCaptured READ isMouseCaptured)
     Q_PROPERTY(bool allowMouseCapture READ getAllowMouseCapture WRITE setAllowMouseCapture)
     Q_PROPERTY(bool pointingAtSystemOverlay READ isPointingAtSystemOverlay)
-    Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
 public:
     ReticleInterface(CompositorHelper* outer) : QObject(outer), _compositor(outer) {}
@@ -203,16 +202,6 @@ public:
     Q_INVOKABLE void setPosition(QVariant position);
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
-
-    Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
-    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
-    Q_INVOKABLE void sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint);
-    Q_INVOKABLE void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
-    Q_INVOKABLE void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
-
-    Q_INVOKABLE void sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
-    Q_INVOKABLE void sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
-    Q_INVOKABLE void sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
 
 private:
     CompositorHelper* _compositor;

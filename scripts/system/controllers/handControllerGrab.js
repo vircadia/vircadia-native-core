@@ -1392,8 +1392,8 @@ function MyController(hand) {
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
 
-            if (Reticle.keyboardFocusEntity != entity) {
-                Reticle.keyboardFocusEntity = entity;
+            if (Entities.keyboardFocusEntity != entity) {
+                Entities.keyboardFocusEntity = entity;
             }
 
             // send mouse events for button highlights and tooltips.
@@ -1401,7 +1401,7 @@ function MyController(hand) {
                                                          this.getOtherHandController().state !== STATE_SEARCHING &&
                                                          this.getOtherHandController().state !== STATE_ENTITY_TOUCHING)) {
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
-                Reticle.sendEntityMouseMoveEvent(entity, rayPickInfo.intersection);
+                Entities.sendEntityMouseMoveEvent(entity, rayPickInfo.intersection);
             }
 
             if (this.triggerSmoothedGrab() && !isEditing()) {
@@ -2054,13 +2054,13 @@ function MyController(hand) {
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
-        Reticle.sendEntityTouchBeginEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+        Entities.sendEntityTouchBeginEvent(this.grabbedEntity, this.hand, intersectInfo.point);
     };
 
     this.entityTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
-        Reticle.sendEntityTouchEndEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+        Entities.sendEntityTouchEndEvent(this.grabbedEntity, this.hand, intersectInfo.point);
     };
 
     this.entityTouching = function() {
@@ -2074,11 +2074,11 @@ function MyController(hand) {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
 
-        if (Reticle.keyboardFocusEntity != this.grabbedEntity) {
-            Reticle.keyboardFocusEntity = this.grabbedEntity;
+        if (Entities.keyboardFocusEntity != this.grabbedEntity) {
+            Entities.keyboardFocusEntity = this.grabbedEntity;
         }
 
-        Reticle.sendEntityTouchUpdateEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+        Entities.sendEntityTouchUpdateEvent(this.grabbedEntity, this.hand, intersectInfo.point);
 
         this.intersectionDistance = intersectInfo.distance;
         this.searchIndicatorOn(intersectInfo.searchRay);

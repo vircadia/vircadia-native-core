@@ -59,9 +59,11 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
-    
+
     Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
+    Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
+
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
@@ -175,6 +177,18 @@ public slots:
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
+
+    Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
+    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
+
+    Q_INVOKABLE void sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
+
+    Q_INVOKABLE void sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+    Q_INVOKABLE void sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
+
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
