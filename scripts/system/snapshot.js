@@ -77,10 +77,6 @@ function onClicked() {
     }, SNAPSHOT_DELAY);
 }
 
-function canShare() {
-    return Account.isLoggedIn() && Boolean(Window.location.placename);
-}
-
 function resetButtons(path, notify) {
     // show overlays if they were on
     if (resetOverlays) {
@@ -96,7 +92,10 @@ function resetButtons(path, notify) {
     Window.snapshotTaken.disconnect(resetButtons);
 
     // last element in data array tells dialog whether we can share or not
-    confirmShare([ { localPath: path }, { canShare: canShare() } ]);
+    confirmShare([ 
+            { localPath: path }, 
+            { canShare: Boolean(Window.location.placename), isLoggedIn: Account.isLoggedIn() } 
+    ]);
  }
 
 button.clicked.connect(onClicked);
