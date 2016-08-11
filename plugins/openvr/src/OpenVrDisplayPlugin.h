@@ -15,7 +15,7 @@
 
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
-#define OPENVR_THREADED_SUBMIT 0
+#define OPENVR_THREADED_SUBMIT 1
 
 #if OPENVR_THREADED_SUBMIT
 class OpenVrSubmitThread;
