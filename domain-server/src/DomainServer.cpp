@@ -38,6 +38,7 @@
 #include <UUID.h>
 #include <LogHandler.h>
 #include <ServerPathUtils.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
@@ -106,15 +107,28 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
+    setupGroupCacheRefresh();
+
     // if we were given a certificate/private key or oauth credentials they must succeed
     if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
         return;
     }
 
+    _settingsManager.apiRefreshGroupInformation();
+
     setupNodeListAndAssignments();
+
+    if (_type == MetaverseDomain) {
+        // if we have a metaverse domain, we'll need an access token to heartbeat handle auto-networking
+        resetAccountManagerAccessToken();
+    }
+
     setupAutomaticNetworking();
-    if (!getID().isNull()) {
+
+    if (!getID().isNull() && _type != NonMetaverse) {
+        // setup periodic heartbeats to metaverse API
         setupHeartbeatToMetaverse();
+
         // send the first heartbeat immediately
         sendHeartbeatToMetaverse();
     }
@@ -296,16 +310,22 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
         // store the new ID and auto networking setting on disk
         _settingsManager.persistToFile();
 
-        // change our domain ID immediately
-        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
-
         // store the new token to the account info
         auto accountManager = DependencyManager::get<AccountManager>();
         accountManager->setTemporaryDomain(id, key);
 
+        // change our domain ID immediately
+        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
+
+        // change our type to reflect that we are a temporary domain now
+        _type = MetaverseTemporaryDomain;
+
         // update our heartbeats to use the correct id
         setupICEHeartbeatForFullNetworking();
         setupHeartbeatToMetaverse();
+
+        // if we have a current ICE server address, update it in the API for the new temporary domain
+        sendICEServerAddressToMetaverseAPI();
     } else {
         qWarning() << "There were problems parsing the API response containing a temporary domain name. Please try again"
             << "via domain-server relaunch or from the domain-server settings.";
@@ -389,6 +409,16 @@ void DomainServer::setupNodeListAndAssignments() {
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
         nodeList->setSessionUUID(idValueVariant->toString());
+
+        // if we have an ID, we'll assume we're a metaverse domain
+        // now see if we think we're a temp domain (we have an API key) or a full domain
+        const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+        if (temporaryDomainKey.isEmpty()) {
+            _type = MetaverseDomain;
+        } else {
+            _type = MetaverseTemporaryDomain;
+        }
+
     } else {
         nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
     }
@@ -406,6 +436,7 @@ void DomainServer::setupNodeListAndAssignments() {
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
+    packetReceiver.registerListener(PacketType::NodeKickRequest, &_settingsManager, "processNodeKickRequestPacket");
     
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest, &_gatekeeper, "processConnectRequestPacket");
@@ -471,42 +502,46 @@ bool DomainServer::resetAccountManagerAccessToken() {
 }
 
 void DomainServer::setupAutomaticNetworking() {
-    qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
-
-    resetAccountManagerAccessToken();
 
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-    const QUuid& domainID = getID();
+    qDebug() << "Configuring automatic networking in domain-server as" << _automaticNetworkingSetting;
 
-    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        setupICEHeartbeatForFullNetworking();
-    }
+    if (_automaticNetworkingSetting != DISABLED_AUTOMATIC_NETWORKING_VALUE) {
+        const QUuid& domainID = getID();
 
-    if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
-        _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+            setupICEHeartbeatForFullNetworking();
+        }
 
-        if (!domainID.isNull()) {
-            qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
-                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+        if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+            _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
 
-            if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
-                // send any public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                        this, &DomainServer::performIPAddressUpdate);
+            if (!domainID.isNull()) {
+                qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
+                    << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
 
-                // have the LNL enable public socket updating via STUN
-                nodeList->startSTUNPublicSocketUpdate();
+                if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+
+                    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+                    // send any public socket changes to the data server so nodes can find us at our new IP
+                    connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                            this, &DomainServer::performIPAddressUpdate);
+
+                    // have the LNL enable public socket updating via STUN
+                    nodeList->startSTUNPublicSocketUpdate();
+                }
+            } else {
+                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                << "Please add an ID to your config file or via the web interface.";
+                
+                return;
             }
-        } else {
-            qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
-            << "Please add an ID to your config file or via the web interface.";
-
-            return;
         }
     }
+
 }
 
 void DomainServer::setupHeartbeatToMetaverse() {
@@ -1098,12 +1133,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-
     // add access level for anonymous connections
     // consider the domain to be "restricted" if anonymous connections are disallowed
     static const QString RESTRICTED_ACCESS_FLAG = "restricted";
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
-    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.can(NodePermissions::Permission::canConnectToDomain);
 
     const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
     if (!temporaryDomainKey.isEmpty()) {
@@ -1134,42 +1168,45 @@ void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
         return;
     }
 
-    // check if we need to force a new temporary domain name
-    switch (requestReply.error()) {
-        // if we have a temporary domain with a bad token, we get a 401
-        case QNetworkReply::NetworkError::AuthenticationRequiredError: {
-            static const QString DATA_KEY = "data";
-            static const QString TOKEN_KEY = "api_key";
+    // only attempt to grab a new temporary name if we're already a temporary domain server
+    if (_type == MetaverseTemporaryDomain) {
+        // check if we need to force a new temporary domain name
+        switch (requestReply.error()) {
+                // if we have a temporary domain with a bad token, we get a 401
+            case QNetworkReply::NetworkError::AuthenticationRequiredError: {
+                static const QString DATA_KEY = "data";
+                static const QString TOKEN_KEY = "api_key";
 
-            QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-            auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
+                QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+                auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
 
-            if (!tokenFailure.isNull()) {
-                qWarning() << "Temporary domain name lacks a valid API key, and is being reset.";
+                if (!tokenFailure.isNull()) {
+                    qWarning() << "Temporary domain name lacks a valid API key, and is being reset.";
+                }
+                break;
             }
-            break;
+                // if the domain does not (or no longer) exists, we get a 404
+            case QNetworkReply::NetworkError::ContentNotFoundError:
+                qWarning() << "Domain not found, getting a new temporary domain.";
+                break;
+                // otherwise, we erred on something else, and should not force a temporary domain
+            default:
+                return;
         }
-        // if the domain does not (or no longer) exists, we get a 404
-        case QNetworkReply::NetworkError::ContentNotFoundError:
-            qWarning() << "Domain not found, getting a new temporary domain.";
-            break;
-        // otherwise, we erred on something else, and should not force a temporary domain
-        default:
-            return;
-    }
 
-    // halt heartbeats until we have a token
-    _metaverseHeartbeatTimer->deleteLater();
-    _metaverseHeartbeatTimer = nullptr;
+        // halt heartbeats until we have a token
+        _metaverseHeartbeatTimer->deleteLater();
+        _metaverseHeartbeatTimer = nullptr;
 
-    // give up eventually to avoid flooding traffic
-    static const int MAX_ATTEMPTS = 5;
-    static int attempt = 0;
-    if (++attempt < MAX_ATTEMPTS) {
-        // get a new temporary name and token
-        getTemporaryName(true);
-    } else {
-        qWarning() << "Already attempted too many temporary domain requests. Please set a domain ID manually or restart.";
+        // give up eventually to avoid flooding traffic
+        static const int MAX_ATTEMPTS = 5;
+        static int attempt = 0;
+        if (++attempt < MAX_ATTEMPTS) {
+            // get a new temporary name and token
+            getTemporaryName(true);
+        } else {
+            qWarning() << "Already attempted too many temporary domain requests. Please set a domain ID manually or restart.";
+        }
     }
 }
 
@@ -1196,7 +1233,10 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
         callbackParameters.errorCallbackReceiver = this;
         callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
 
-        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to" << _iceServerSocket.getAddress().toString();
+        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+                   ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+                 << _iceServerSocket.getAddress().toString();
 
         static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
 
@@ -2326,4 +2366,15 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
 
     // immediately send an update to the metaverse API when our ice-server changes
     sendICEServerAddressToMetaverseAPI();
+}
+
+void DomainServer::setupGroupCacheRefresh() {
+    const int REFRESH_GROUPS_INTERVAL_MSECS = 15 * MSECS_PER_SECOND;
+
+    if (!_metaverseGroupCacheTimer) {
+        // setup a timer to refresh this server's cached group details
+        _metaverseGroupCacheTimer = new QTimer { this };
+        connect(_metaverseGroupCacheTimer, &QTimer::timeout, &_gatekeeper, &DomainGatekeeper::refreshGroupsCache);
+        _metaverseGroupCacheTimer->start(REFRESH_GROUPS_INTERVAL_MSECS);
+    }
 }

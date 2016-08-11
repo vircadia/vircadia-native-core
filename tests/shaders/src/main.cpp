@@ -75,10 +75,6 @@
 #include <model/skybox_vert.h>
 #include <model/skybox_frag.h>
 
-#include <render-utils/stars_vert.h>
-#include <render-utils/stars_frag.h>
-#include <render-utils/starsGrid_frag.h>
-
 #include <gpu/DrawTransformUnitQuad_vert.h>
 #include <gpu/DrawTexcoordRectTransformUnitQuad_vert.h>
 #include <gpu/DrawViewportQuadTransformTexcoord_vert.h>
@@ -168,9 +164,6 @@ void QTestWindow::draw() {
         testShaderBuild(deferred_light_limited_vert, spot_light_frag);
         testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
         testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag);
-        
-        testShaderBuild(standardTransformPNTC_vert, starsGrid_frag);
-        testShaderBuild(stars_vert, stars_frag);
 
         testShaderBuild(model_vert, model_frag);
         testShaderBuild(model_normal_map_vert, model_normal_map_frag);

@@ -1,9 +1,48 @@
 <html>
   <head>
     <title>Share</title>
-    <link rel="stylesheet" type="text/css" href="edit-style.css">
+    <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+    <style type="text/css">
+      .snapshot-container{
+        width:100%;
+      }
+
+      .snapshot-column-left{
+        width:50%;
+        float:left;
+      }
+
+      .snapshot-column-right{
+        width:50%;
+        float:right;
+      }
+      
+      .snapshot-column-right > div > img{
+        max-width: 100%;
+        height:auto;
+      }
+
+      @media (max-width: 768px){
+        .snapshot-column-left{
+        width:100%;
+        }
+        .snapshot-column-right{
+        width:100%;
+        }
+        .snapshot-column-right > div > img{
+        margin-top:32px;
+        }
+      }
+
+      .snapsection{
+      width:95% !important;
+      padding-right:0px;
+      }
+
+    div.clear        { clear: both; }
+    </style>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
     <script>
     var paths = [], idCounter = 0;
     function addImage(data) {
@@ -14,7 +53,7 @@
             id = "p" + idCounter++;
         function toggle() { data.share = input.checked; }
         img.src = data.localPath;
-        label.appendChild(img);
+        div.appendChild(img);
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
         input.id = id;
@@ -24,13 +63,14 @@
         div.class = "property checkbox";
         div.appendChild(input);
         div.appendChild(label);
-        document.getElementById("images").appendChild(div);
+        document.getElementById("snapshot-images").appendChild(div);
         paths.push(data);
 
     }
     window.onload = function () {
         // Something like the following will allow testing in a browser.
         //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
+        //addImage({localPath: 'http://lorempixel.com/1512/1680'});
         openEventBridge(function () {
             // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
             EventBridge.scriptEventReceived.connect(function (message) {
@@ -47,32 +87,27 @@
         EventBridge.emitWebEvent([]);
     };
     </script>
-    <style type="text/css">
-      div.columns div:first-child  { width: 300px; }
-      div.columns div  { float: left; }
-      div.clear        { clear: both; }
-      img { width: 400; }
-    </style>
+
   </head>
 
   <body>
-    <div class="columns">
-      <div>
-        <div class="section-header">
+    <div class="snapshot-container">
+      <div class="snapshot-column-left">
+        <div class="section-header snapsection">
           <label>Snapshots sucessfully saved!</label>
         </div>
-        <div class="sub-section-header">
+        <div class="sub-section-header snapsection">
           <label>Would you like to share?</label>
         </div>
-        <div class="sub-section-header">
+        <div class="sub-section-header snapsection">
           <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
         </div>
-        <div class="sub-section-header">
+        <div class="sub-section-header snapsection">
           <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
         </div>
       </div>
-      <div id="images" class="image-column"/>
+      <div id="snapshot-images" class="snapshot-column-right"/>
+      </div>
     </div>
-    <div class="clear"></div>
   </body>
 </html>

@@ -12,6 +12,8 @@
 #ifndef hifi_Interpolate_h
 #define hifi_Interpolate_h
 
+#include "SharedUtil.h"
+
 class Interpolate {
 
 public:
@@ -22,6 +24,8 @@ public:
     // Interpolate at position u [0.0 - 1.0] between y values equally spaced along the x-axis such that the interpolated values
     // pass through all three y values. Return value lies wholly within the range of y values passed in.
     static float interpolate3Points(float y1, float y2, float y3, float u);
+
+    static float calculateFadeRatio(quint64 start);
 };
 
 #endif // hifi_Interpolate_h

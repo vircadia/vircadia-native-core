@@ -87,6 +87,15 @@ ModalWindow {
             currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
         }
 
+        helper.contentsChanged.connect(function() {
+            if (folderListModel) {
+                // Make folderListModel refresh.
+                var save = folderListModel.folder;
+                folderListModel.folder = "";
+                folderListModel.folder = save;
+            }
+        });
+
         fileTableView.forceActiveFocus();
     }
 
@@ -343,12 +352,14 @@ ModalWindow {
             onFolderChanged: {
                 if (folder === rootFolder) {
                     model = driveListModel;
+                    helper.monitorDirectory("");
                     update();
                 } else {
                     var needsUpdate = model === driveListModel && folder === folderListModel.folder;
 
                     model = folderListModel;
                     folderListModel.folder = folder;
+                    helper.monitorDirectory(helper.urlToPath(folder));
 
                     if (needsUpdate) {
                         update();
