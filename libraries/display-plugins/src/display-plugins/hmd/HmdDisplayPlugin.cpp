@@ -362,7 +362,6 @@ void HmdDisplayPlugin::OverlayRenderer::build() {
             vertices->append(sizeof(Vertex), (gpu::Byte*)&vertex);
         }
     }
-    vertices->flush();
 
     // Compute number of indices needed
     static const int VERTEX_PER_TRANGLE = 3;
@@ -389,7 +388,6 @@ void HmdDisplayPlugin::OverlayRenderer::build() {
         }
     }
     this->indices->append(indices);
-    this->indices->flush();
     format = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
@@ -438,7 +436,6 @@ void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
     for_each_eye([&](Eye eye){
         uniforms.mvp = mvps[eye];
         uniformBuffers[eye]->setSubData(0, uniforms);
-        uniformBuffers[eye]->flush();
     });
     plugin.render([&](gpu::Batch& batch) {
         batch.enableStereo(false);

@@ -126,6 +126,7 @@ public:
     // Main thread operation to say that the buffer is ready to be used as a frame
     Update getUpdate() const;
 
+protected:
     // For use by the render thread to avoid the intermediate step of getUpdate/applyUpdate
     void flush() const;
 
@@ -136,8 +137,7 @@ public:
 
     mutable std::atomic<size_t> _getUpdateCount { 0 };
     mutable std::atomic<size_t> _applyUpdateCount { 0 };
-//protected:
-public:
+
     void markDirty(Size offset, Size bytes);
 
     template <typename T>
@@ -153,10 +153,15 @@ public:
     Sysmem _sysmem;
 
 
-    // FIXME find a more generic way to do this.
-    friend class gl::GLBuffer;
     friend class BufferView;
     friend class Frame;
+    friend class Batch;
+
+    // FIXME find a more generic way to do this.
+    friend class gl::GLBackend;
+    friend class gl::GLBuffer;
+    friend class gl41::GL41Buffer;
+    friend class gl45::GL45Buffer;
 };
 
 using BufferUpdates = std::vector<Buffer::Update>;

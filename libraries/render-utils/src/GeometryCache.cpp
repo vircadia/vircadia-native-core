@@ -378,9 +378,6 @@ void GeometryCache::buildShapes() {
     //Torus,
     //Cone,
     //Cylinder,
-
-    _shapeIndices->flush();
-    _shapeVertices->flush();
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {

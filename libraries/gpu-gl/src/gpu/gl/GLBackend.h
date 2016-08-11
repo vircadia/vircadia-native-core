@@ -342,7 +342,6 @@ protected:
 
         PipelineStageState() {
             _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
-            _cameraCorrectionBuffer._buffer->flush();
         }
     } _pipeline;
 
