@@ -178,3 +178,12 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
 ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
 }
+
+void ModelOverlay::locationChanged(bool tellPhysics) {
+    Base3DOverlay::locationChanged(tellPhysics);
+
+    if (_model && _model->isActive()) {
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    }
+}
