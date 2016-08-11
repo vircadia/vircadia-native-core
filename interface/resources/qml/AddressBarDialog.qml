@@ -47,7 +47,16 @@ Window {
     }
 
     function goCard(card) {
-        addressLine.text = card.path;
+        if (useFeed) {
+            storyCard.imageUrl = card.imageUrl; //"http://howard-stearns.github.io/models/images/dancing-avatars.jpg";
+            storyCard.userName = card.userName;
+            storyCard.placeName = card.placeName;
+            storyCard.actionPhrase = card.actionPhrase;
+            storyCard.timePhrase = card.timePhrase;
+            storyCard.visible = true;
+            return;
+        }
+        addressLine.text = card.hifiUrl;
         toggleOrGo(true);
     }
     property bool useFeed: false;
@@ -56,26 +65,6 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
-    function pastTime(timestamp) { // Answer a descriptive string
-        timestamp = new Date(timestamp);
-        var then = timestamp.getTime(),
-            now = Date.now(),
-            since = now - then,
-            ONE_MINUTE = 1000 * 60,
-            ONE_HOUR = ONE_MINUTE * 60,
-            hours = since / ONE_HOUR,
-            minutes = (hours % 1) * 60;
-        if (hours > 24) {
-            return timestamp.toDateString();
-        }
-        if (hours > 1) {
-            return Math.floor(hours).toString() + ' hr ' + Math.floor(minutes) + ' min ago';
-        }
-        if (minutes >= 2) {
-            return Math.floor(minutes).toString() + ' min ago';
-        }
-        return 'about a minute ago';
-    }
 
     AddressBarDialog {
         id: addressBarDialog
@@ -88,6 +77,7 @@ Window {
         ListModel { id: suggestions }
 
         ListView {
+            id: scroll
             width: (3 * cardWidth) + (2 * hifi.layout.spacing);
             height: cardHeight;
             spacing: hifi.layout.spacing;
@@ -103,10 +93,14 @@ Window {
                 width: cardWidth;
                 height: cardHeight;
                 goFunction: goCard;
-                path: model.place_name + model.path;
+                userName: model.username;
+                placeName: model.place_name;
+                hifiUrl: model.place_name + model.path;
+                imageUrl: model.thumbnail_url; // This is wrong, but it will have to wait.
                 thumbnail: model.thumbnail_url;
-                placeText: model.created_at ? "" : model.place_name;
-                usersText: model.created_at ? pastTime(model.created_at) : (model.online_users + ((model.online_users === 1) ? ' person' : ' people'));
+                action: model.action;
+                timestamp: model.created_at;
+                onlineUsers: model.online_users;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -209,7 +203,23 @@ Window {
                 }
             }
         }
+
+        UserStoryCard {
+            id: storyCard;
+            visible: false;
+            visitPlace: function (hifiUrl) {
+                storyCard.visible = false;
+                addressLine.text = hifiUrl;
+                toggleOrGo(true);
+            };
+            anchors {
+                verticalCenter: scroll.verticalCenter;
+                horizontalCenter: scroll.horizontalCenter;
+                verticalCenterOffset: 50;
+            }
+        }
     }
+
 
     function toggleFeed () {
         useFeed = !useFeed;
@@ -318,13 +328,15 @@ Window {
             description = data.description || "";
         return {
             place_name: name,
+            username: data.username || "",
             path: data.path || "",
             created_at: data.created_at || "",
+            action: data.action || "",
             thumbnail_url: data.thumbnail_url || "",
 
             tags: tags,
             description: description,
-            online_users: data.online_users,
+            online_users: data.online_users || 0,
 
             searchText: [name].concat(tags, description).join(' ').toUpperCase()
         }
@@ -402,7 +414,6 @@ Window {
                     {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
                 ];
             }
-
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
                 return makeModelData(story);
             });
