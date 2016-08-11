@@ -28,16 +28,29 @@
         paths.push(data);
 
     }
+    function handleShareButtons(canShare) {
+        if (!canShare) {
+            // hide the share/do not share buttons
+            document.getElementById("sharing").innerHTML = "<p>You can share if you are logged in and in a public place";
+        }
+    }
     window.onload = function () {
         // Something like the following will allow testing in a browser.
         //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
         openEventBridge(function () {
             // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
             EventBridge.scriptEventReceived.connect(function (message) {
+                // last element of list contains a bool for whether or not we can share stuff
+                var canShare = message.pop().canShare;
+                print("canShare:"+canShare+", message:" + message.toString())
+                handleShareButtons(canShare);
+                
+                // rest are image paths which we add
                 message.forEach(addImage);
             });
             EventBridge.emitWebEvent('ready');
          });
+
     };
     // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
     shareSelected = function() {
@@ -64,11 +77,13 @@
         <div class="sub-section-header">
           <label>Would you like to share?</label>
         </div>
-        <div class="sub-section-header">
-          <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
-        </div>
-        <div class="sub-section-header">
-          <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+        <div id="sharing">
+            <div class="sub-section-header">
+                <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
+            </div>
+            <div class="sub-section-header">
+                <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+            </div>
         </div>
       </div>
       <div id="images" class="image-column"/>

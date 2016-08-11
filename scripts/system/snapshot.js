@@ -77,6 +77,10 @@ function onClicked() {
     }, SNAPSHOT_DELAY);
 }
 
+function canShare() {
+    return Account.isLoggedIn() && Boolean(Window.location.placename);
+}
+
 function resetButtons(path, notify) {
     // show overlays if they were on
     if (resetOverlays) {
@@ -90,7 +94,9 @@ function resetButtons(path, notify) {
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
-    confirmShare([{localPath: path}]);
+
+    // last element in data array tells dialog whether we can share or not
+    confirmShare([ { localPath: path }, { canShare: canShare() } ]);
  }
 
 button.clicked.connect(onClicked);
