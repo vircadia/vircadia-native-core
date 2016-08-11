@@ -40,6 +40,12 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
+void EntityScriptingInterface::resetActivityTracking() {
+    _activityTracking.hasAddedEntity = false;
+    _activityTracking.hasDeletedEntity = false;
+    _activityTracking.hasEditedEntity = false;
+}
+
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->isAllowedEditor();
@@ -130,6 +136,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    _activityTracking.hasAddedEntity = true;
+
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
@@ -200,6 +208,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+    _activityTracking.hasAddedEntity = true;
+
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
@@ -263,6 +273,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    _activityTracking.hasEditedEntity = true;
+
     EntityItemProperties properties = scriptSideProperties;
 
     auto dimensions = properties.getDimensions();
@@ -406,6 +418,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    _activityTracking.hasDeletedEntity = true;
+
     EntityItemID entityID(id);
     bool shouldDelete = true;
 
