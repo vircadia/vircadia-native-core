@@ -92,7 +92,7 @@ void LoginDialog::linkSteam() {
         const QString LINK_STEAM_PATH = "api/v1/user/link_steam";
 
         QJsonObject payload;
-        payload.insert("ticket", QJsonValue::fromVariant(QVariant(ticket)));
+        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
 
         auto accountManager = DependencyManager::get<AccountManager>();
         accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
@@ -118,7 +118,7 @@ void LoginDialog::createAccountFromStream(QString username) {
         const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/create_from_steam";
 
         QJsonObject payload;
-        payload.insert("ticket", QJsonValue::fromVariant(QVariant(ticket)));
+        payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
         if (!username.isEmpty()) {
             payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
         }
