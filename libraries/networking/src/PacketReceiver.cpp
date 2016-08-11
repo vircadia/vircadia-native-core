@@ -215,6 +215,15 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     _inPacketCount += 1;
     _inByteCount += nlPacket->size();
 
+    SharedNodePointer matchingNode;
+    NodeType_t nodeType = NodeType::Unassigned;
+    if (!nlPacket->getSourceID().isNull()) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        matchingNode = nodeList->nodeWithUUID(nlPacket->getSourceID());
+        nodeType = matchingNode->getType();
+    }
+    emit dataReceived(nodeType, nlPacket->getPayloadSize());
+
     handleVerifiedMessage(receivedMessage, true);
 }
 
@@ -223,6 +232,15 @@ void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> pa
 
     _inPacketCount += 1;
     _inByteCount += nlPacket->size();
+
+    SharedNodePointer matchingNode;
+    NodeType_t nodeType = NodeType::Unassigned;
+    if (!nlPacket->getSourceID().isNull()) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        matchingNode = nodeList->nodeWithUUID(nlPacket->getSourceID());
+        nodeType = matchingNode->getType();
+    }
+    emit dataReceived(nodeType, nlPacket->getPayloadSize());
 
     auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(nlPacket->getSenderSockAddr(), nlPacket->getMessageNumber());
     auto it = _pendingMessages.find(key);
@@ -294,7 +312,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
             PacketType packetType = receivedMessage->getType();
             
             if (matchingNode) {
-                emit dataReceived(matchingNode->getType(), receivedMessage->getSize());
                 matchingNode->recordBytesReceived(receivedMessage->getSize());
 
                 QMetaMethod metaMethod = listener.method;
@@ -326,7 +343,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 }
             } else {
                 // qDebug() << "Got verified unsourced packet list: " << QString(nlPacketList->getMessage());
-                emit dataReceived(NodeType::Unassigned, receivedMessage->getSize());
                 
                 // one final check on the QPointer before we invoke
                 if (listener.object) {
