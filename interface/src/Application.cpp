@@ -1244,6 +1244,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
     _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
 
+    EntityItem::setEntitiesShouldFadeFunction([this]() {
+        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
+        return entityServerNode && !isPhysicsEnabled();
+    });
+
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
