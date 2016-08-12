@@ -5114,8 +5114,10 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
-    if (!newScript.isEmpty()) {
+    auto newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    if (QUrl(newScript).scheme() == "atp") {
+        OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
+    } else if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
 }
