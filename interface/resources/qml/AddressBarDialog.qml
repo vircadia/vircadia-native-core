@@ -47,7 +47,16 @@ Window {
     }
 
     function goCard(card) {
-        addressLine.text = card.path;
+        if (useFeed) {
+            storyCard.imageUrl = card.imageUrl;
+            storyCard.userName = card.userName;
+            storyCard.placeName = card.placeName;
+            storyCard.actionPhrase = card.actionPhrase;
+            storyCard.timePhrase = card.timePhrase;
+            storyCard.visible = true;
+            return;
+        }
+        addressLine.text = card.hifiUrl;
         toggleOrGo(true);
     }
     property bool useFeed: false;
@@ -56,26 +65,6 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
-    function pastTime(timestamp) { // Answer a descriptive string
-        timestamp = new Date(timestamp);
-        var then = timestamp.getTime(),
-            now = Date.now(),
-            since = now - then,
-            ONE_MINUTE = 1000 * 60,
-            ONE_HOUR = ONE_MINUTE * 60,
-            hours = since / ONE_HOUR,
-            minutes = (hours % 1) * 60;
-        if (hours > 24) {
-            return timestamp.toDateString();
-        }
-        if (hours > 1) {
-            return Math.floor(hours).toString() + ' hr ' + Math.floor(minutes) + ' min ago';
-        }
-        if (minutes >= 2) {
-            return Math.floor(minutes).toString() + ' min ago';
-        }
-        return 'about a minute ago';
-    }
 
     AddressBarDialog {
         id: addressBarDialog
@@ -88,6 +77,7 @@ Window {
         ListModel { id: suggestions }
 
         ListView {
+            id: scroll
             width: (3 * cardWidth) + (2 * hifi.layout.spacing);
             height: cardHeight;
             spacing: hifi.layout.spacing;
@@ -103,10 +93,14 @@ Window {
                 width: cardWidth;
                 height: cardHeight;
                 goFunction: goCard;
-                path: model.place_name + model.path;
+                userName: model.username;
+                placeName: model.place_name;
+                hifiUrl: model.place_name + model.path;
+                imageUrl: model.image_url;
                 thumbnail: model.thumbnail_url;
-                placeText: model.created_at ? "" : model.place_name;
-                usersText: model.created_at ? pastTime(model.created_at) : (model.online_users + ((model.online_users === 1) ? ' person' : ' people'));
+                action: model.action;
+                timestamp: model.created_at;
+                onlineUsers: model.online_users;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -209,7 +203,23 @@ Window {
                 }
             }
         }
+
+        UserStoryCard {
+            id: storyCard;
+            visible: false;
+            visitPlace: function (hifiUrl) {
+                storyCard.visible = false;
+                addressLine.text = hifiUrl;
+                toggleOrGo(true);
+            };
+            anchors {
+                verticalCenter: scroll.verticalCenter;
+                horizontalCenter: scroll.horizontalCenter;
+                verticalCenterOffset: 50;
+            }
+        }
     }
+
 
     function toggleFeed () {
         useFeed = !useFeed;
@@ -314,19 +324,31 @@ Window {
         // ListModel elements will only ever have those properties that are defined by the first obj that is added.
         // So here we make sure that we have all the properties we need, regardless of whether it is a place data or user story.
         var name = optionalPlaceName || data.place_name,
-            tags = data.tags || [data.action],
-            description = data.description || "";
+            tags = data.tags || [data.action, data.username],
+            description = data.description || "",
+            thumbnail_url = data.thumbnail_url || "",
+            image_url = thumbnail_url;
+        if (data.details) {
+            try {
+                image_url = JSON.parse(data.details).image_url || thumbnail_url;
+            } catch (e) {
+                console.log(name, "has bad details", data.details);
+            }
+        }
         return {
             place_name: name,
+            username: data.username || "",
             path: data.path || "",
             created_at: data.created_at || "",
-            thumbnail_url: data.thumbnail_url || "",
+            action: data.action || "",
+            thumbnail_url: thumbnail_url,
+            image_url: image_url,
 
             tags: tags,
             description: description,
-            online_users: data.online_users,
+            online_users: data.online_users || 0,
 
-            searchText: [name].concat(tags, description).join(' ').toUpperCase()
+            searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
     }
     function mapDomainPlaces(domain, cb) { // cb(error, arrayOfDomainPlaceData)
@@ -395,14 +417,6 @@ Window {
             if (handleError(url, error, data, cb)) {
                 return;
             }
-            // FIXME: For debugging until we have real data
-            if (!data.user_stories.length) {
-                data.user_stories = [
-                    {created_at: "8/3/2016", action: "snapshot", path: "/4257.1,126.084,1335.45/0,-0.857368,0,0.514705", place_name: "SpiritMoving", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/c28/a26/f0-/thumbnail/hifi-place-c28a26f0-6991-4654-9c2b-e64228c06954.jpg?1456878797"},
-                    {created_at: "8/3/2016", action: "snapshot", path: "/10077.4,4003.6,9972.56/0,-0.410351,0,0.911928", place_name: "Ventura", thumbnail_url:"https://hifi-metaverse.s3-us-west-1.amazonaws.com/images/places/previews/1f5/e6b/00-/thumbnail/hifi-place-1f5e6b00-2bf0-4319-b9ae-a2344a72354c.png?1454321596"}
-                ];
-            }
-
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
                 return makeModelData(story);
             });
