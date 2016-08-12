@@ -48,7 +48,7 @@ Window {
 
     function goCard(card) {
         if (useFeed) {
-            storyCard.imageUrl = card.imageUrl; //"http://howard-stearns.github.io/models/images/dancing-avatars.jpg";
+            storyCard.imageUrl = card.imageUrl;
             storyCard.userName = card.userName;
             storyCard.placeName = card.placeName;
             storyCard.actionPhrase = card.actionPhrase;
@@ -96,7 +96,7 @@ Window {
                 userName: model.username;
                 placeName: model.place_name;
                 hifiUrl: model.place_name + model.path;
-                imageUrl: model.thumbnail_url; // This is wrong, but it will have to wait.
+                imageUrl: model.image_url;
                 thumbnail: model.thumbnail_url;
                 action: model.action;
                 timestamp: model.created_at;
@@ -325,14 +325,24 @@ Window {
         // So here we make sure that we have all the properties we need, regardless of whether it is a place data or user story.
         var name = optionalPlaceName || data.place_name,
             tags = data.tags || [data.action, data.username],
-            description = data.description || "";
+            description = data.description || "",
+            thumbnail_url = data.thumbnail_url || "",
+            image_url = thumbnail_url;
+        if (data.details) {
+            try {
+                image_url = JSON.parse(data.details).image_url || thumbnail_url;
+            } catch (e) {
+                console.log(name, "has bad details", data.details);
+            }
+        }
         return {
             place_name: name,
             username: data.username || "",
             path: data.path || "",
             created_at: data.created_at || "",
             action: data.action || "",
-            thumbnail_url: data.thumbnail_url || "",
+            thumbnail_url: thumbnail_url,
+            image_url: image_url,
 
             tags: tags,
             description: description,
