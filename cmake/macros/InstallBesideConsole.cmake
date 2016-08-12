@@ -59,6 +59,12 @@ macro(install_beside_console)
       set(EXECUTABLE_NEEDING_FIXUP "\${CMAKE_INSTALL_PREFIX}/${COMPONENT_INSTALL_DIR}/${TARGET_NAME}")
       string(REPLACE " " "\\ " ESCAPED_EXECUTABLE_NAME ${EXECUTABLE_NEEDING_FIXUP})
 
+      # configure an rc file for the chosen icon
+      set(MACOSX_BUNDLE_EXECUTABLE_NAME "domain-server")
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.highfidelity.server-components")
+      set(MACOSX_BUNDLE_BUNDLE_NAME "Sandbox Components")
+      configure_file("${HF_CMAKE_DIR}/templates/MacOSXBundleSandboxComponentsInfo.plist.in" "${COMPONENTS_BUNDLE_PATH}/Contents/Info.plist")
+
       install(CODE "
         execute_process(COMMAND ${MACDEPLOYQT_COMMAND} ${ESCAPED_BUNDLE_NAME} -verbose=2 -executable=${ESCAPED_EXECUTABLE_NAME})"
         COMPONENT ${SERVER_COMPONENT}
