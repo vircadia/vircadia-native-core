@@ -46,7 +46,7 @@
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
     <script>
-    var paths = [], idCounter = 0;
+    var paths = [], idCounter = 0, useCheckboxes;
     function addImage(data) {
         var div = document.createElement("DIV"),
             input = document.createElement("INPUT"),
@@ -56,15 +56,17 @@
         function toggle() { data.share = input.checked; }
         img.src = data.localPath;
         div.appendChild(img);
-        // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
-        label.setAttribute('for', id); // cannot do label.for =
-        input.id = id;
-        input.type = "checkbox";
-        input.checked = data.share = true;
-        input.addEventListener('change', toggle);
-        div.class = "property checkbox";
-        div.appendChild(input);
-        div.appendChild(label);
+        if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
+            // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
+            label.setAttribute('for', id); // cannot do label.for =
+            input.id = id;
+            input.type = "checkbox";
+            input.checked = data.share = true;
+            input.addEventListener('change', toggle);
+            div.class = "property checkbox";
+            div.appendChild(input);
+            div.appendChild(label);
+        }
         document.getElementById("snapshot-images").appendChild(div);
         paths.push(data);
 
@@ -93,6 +95,7 @@
                 handleShareButtons(shareMsg);
                 
                 // rest are image paths which we add
+                useCheckboxes = message.length > 1;
                 message.forEach(addImage);
             });
             EventBridge.emitWebEvent('ready');
