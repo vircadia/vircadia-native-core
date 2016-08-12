@@ -429,6 +429,10 @@ var toolBar = (function () {
             });
         });
 
+        addButton("openAssetBrowserButton","asset-browser.svg",function(){
+            
+        })
+
         that.setActive(false);
     }
 
