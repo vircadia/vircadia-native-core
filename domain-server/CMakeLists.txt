@@ -6,13 +6,13 @@ else ()
   set(_SHOULD_SYMLINK_RESOURCES FALSE)
 endif ()
 
+# setup the project and link required Qt modules
+setup_hifi_project(Network)
+
 # Fix up the rpath so macdeployqt works
 if (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif ()
-
-# setup the project and link required Qt modules
-setup_hifi_project(Network)
 
 # TODO: find a solution that will handle web file changes in resources on windows without a re-build.
 # Currently the resources are only copied on post-build. If one is changed but the domain-server is not, they will
