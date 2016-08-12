@@ -86,15 +86,16 @@
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
 #include <plugins/CodecPlugin.h>
+#include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
-#include <RecordingScriptingInterface.h>
+#include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <ScriptEngines.h>
+#include <steamworks-wrapper/SteamClient.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -1631,6 +1632,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+
+    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
     
 
     _glWidget->installEventFilter(offscreenUi.data());
@@ -2943,6 +2946,8 @@ void Application::idle(float nsecsElapsed) {
 
     PROFILE_RANGE(__FUNCTION__);
 
+    SteamClient::runCallbacks();
+
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
@@ -3249,6 +3254,14 @@ void Application::init() {
     QString addressLookupString;
     if (urlIndex != -1) {
         addressLookupString = arguments().value(urlIndex + 1);
+    }
+
+    // when +connect_lobby in command line, join steam lobby
+    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+    if (lobbyIndex != -1) {
+        QString lobbyId = arguments().value(lobbyIndex + 1);
+        SteamClient::joinLobby(lobbyId);
     }
 
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
@@ -4837,6 +4850,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {

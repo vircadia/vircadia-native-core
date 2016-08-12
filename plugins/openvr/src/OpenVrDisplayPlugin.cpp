@@ -161,7 +161,10 @@ static bool isBadPose(vr::HmdMatrix34_t* mat) {
 
 bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     handleOpenVrEvents();
-
+    if (openVrQuitRequested()) {
+        QMetaObject::invokeMethod(qApp, "quit");
+        return false;
+    }
     double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     double frameDuration = 1.f / displayFrequency;
     double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
