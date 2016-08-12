@@ -115,6 +115,11 @@ bool Procedural::parseUrl(const QUrl& shaderUrl) {
         return false;
     }
 
+    // If the URL hasn't changed, don't mark the shader as dirty
+    if (_shaderUrl == shaderUrl) {
+        return true;
+    }
+
     _shaderUrl = shaderUrl;
     _shaderDirty = true;
 

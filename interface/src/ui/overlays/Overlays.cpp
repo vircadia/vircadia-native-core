@@ -192,6 +192,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QVariant& propertie
 unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
+    overlay->setOverlayID(thisID);
     _nextOverlayID++;
     if (overlay->is3D()) {
         _overlaysWorld[thisID] = overlay;
