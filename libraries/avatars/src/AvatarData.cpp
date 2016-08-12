@@ -1638,7 +1638,9 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     for (const auto& attachmentVar : variant) {
         AttachmentData attachment;
         attachment.fromVariant(attachmentVar);
-        newAttachments.append(attachment);
+        if (!attachment.modelURL.isEmpty()) {
+            newAttachments.append(attachment);
+        }
     }
     setAttachmentData(newAttachments);
 }

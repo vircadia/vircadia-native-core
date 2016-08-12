@@ -167,6 +167,7 @@ void ScriptCache::scriptContentAvailable() {
         Lock lock(_containerLock);
         allCallbacks = _contentCallbacks.values(url);
         _contentCallbacks.remove(url);
+        Q_ASSERT(req->getState() == ResourceRequest::Finished);
         success = req->getResult() == ResourceRequest::Success;
 
         if (success) {

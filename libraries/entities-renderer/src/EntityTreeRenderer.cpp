@@ -375,7 +375,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         }
 
         skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
-
         return; // Early exit
     }
 

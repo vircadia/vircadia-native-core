@@ -15,8 +15,6 @@
 #include <PerfStat.h>
 #include <Transform.h>
 
-
-
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
@@ -29,10 +27,13 @@ EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
+    checkFading();
     
     static const float SLIGHTLY_BEHIND = -0.005f;
-    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
-    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    bool transparent = fadeRatio < 1.0f;
+    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), fadeRatio);
+    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), fadeRatio);
     glm::vec3 dimensions = getDimensions();
     
     // Render background
@@ -62,7 +63,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     
     batch.setModelTransform(transformToTopLeft);
     
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, transparent, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();

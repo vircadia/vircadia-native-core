@@ -176,25 +176,6 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     _needsInitialSimulation = false;
 }
 
-
-// TODO: we need a solution for changes to the postion/rotation/etc of a model...
-// this current code path only addresses that in this setup case... not the changing/moving case
-bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
-    if (!_model && renderArgs) {
-        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
-        PerformanceTimer perfTimer("getModel");
-        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
-        getModel(renderer);
-    }
-    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
-        // make sure to simulate so everything gets set up correctly for rendering
-        doInitialModelSimulation();
-        _model->renderSetup(renderArgs);
-    }
-    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
-    return ready;
-}
-
 class RenderableModelEntityItemMeta {
 public:
     RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
@@ -370,6 +351,12 @@ void RenderableModelEntityItem::updateModelBounds() {
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
+
+    // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
+    // we will watch for that and ask the model to update it's render items
+    if (_model && _model->getRenderItemsNeedUpdate()) {
+        _model->updateRenderItems();
+    }
 
     if (hasModel()) {
         // Prepare the current frame

@@ -232,18 +232,10 @@ function Teleporter() {
     };
 
     this.rightRay = function() {
-
-        var rightPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).translation), MyAvatar.position);
-
-        var rightControllerRotation = Controller.getPoseValue(Controller.Standard.RightHand).rotation;
-
-        var rightRotation = Quat.multiply(MyAvatar.orientation, rightControllerRotation);
-
-        var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
-            x: 1,
-            y: 0,
-            z: 0
-        }));
+        var pose = Controller.getPoseValue(Controller.Standard.RightHand);
+        var rightPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+        var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
+                                         Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
 
         var rightPickRay = {
             origin: rightPosition,
@@ -288,15 +280,10 @@ function Teleporter() {
 
 
     this.leftRay = function() {
-        var leftPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).translation), MyAvatar.position);
-
-        var leftRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).rotation)
-
-        var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
-            x: 1,
-            y: 0,
-            z: 0
-        }));
+        var pose = Controller.getPoseValue(Controller.Standard.LeftHand);
+        var leftPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+        var leftRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
+                                        Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
 
         var leftPickRay = {
             origin: leftPosition,
