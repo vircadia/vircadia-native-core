@@ -197,7 +197,8 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         QJsonObject userStoryObject;
         QJsonObject detailsObject;
         detailsObject.insert("image_url", imageUrl);
-        userStoryObject.insert("details", detailsObject);
+        QString pickledDetails = QJsonDocument(detailsObject).toJson();
+        userStoryObject.insert("details", pickledDetails);
         userStoryObject.insert("thumbnail_url", thumbnailUrl);
         userStoryObject.insert("place_name", placeName);
         userStoryObject.insert("path", currentPath);
