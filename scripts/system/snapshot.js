@@ -21,7 +21,7 @@ var button = toolBar.addButton({
 });
 
 function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot', Script.resolvePath("html/ShareSnapshot.html"), 800, 300);
+    var dialog = new OverlayWebWindow('Snapshot', Script.resolvePath("html/ShareSnapshot.html"), 800, 470);
     function onMessage(message) {
         if (message == 'ready') { // The window can now receive data from us.
             dialog.emitScriptEvent(data); // Send it.
