@@ -40,7 +40,6 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
@@ -52,7 +51,6 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-
     ModelPointer getModel(EntityTreeRenderer* renderer);
 
     virtual bool needsToCallUpdate() const override;
@@ -92,6 +90,9 @@ public:
     const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }
 
     render::ItemID getMetaRenderItem() { return _myMetaItem; }
+
+    // Transparency is handled in ModelMeshPartPayload
+    bool isTransparent() override { return false; }
 
 private:
     QVariantMap parseTexturesToMap(QString textures);

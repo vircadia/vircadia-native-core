@@ -28,6 +28,8 @@
 #include "Util.h"
 #include "ui/Stats.h"
 #include "ui/AvatarInputs.h"
+#include "OffscreenUi.h"
+#include <QQmlContext>
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 static const float ORTHO_NEAR_CLIP = -1000.0f;
@@ -177,13 +179,11 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
-
-        geometryCache->useSimpleDrawPipeline(batch, true);
         batch.setResourceTexture(0, selfieTexture);
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
+        float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
 
         batch.setResourceTexture(0, renderArgs->_whiteTexture);
-        geometryCache->useSimpleDrawPipeline(batch, false);
     }
 }
 

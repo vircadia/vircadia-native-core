@@ -174,6 +174,7 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::updateRenderItems() {
 
     _needsUpdateClusterMatrices = true;
+    _renderItemsNeedUpdate = false;
 
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
@@ -211,6 +212,9 @@ void Model::updateRenderItems() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
+                    data.startFade();
+                }
                 // Ensure the model geometry was not reset between frames
                 if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                     // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
@@ -826,7 +830,9 @@ void Model::setURL(const QUrl& url) {
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _renderWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+    auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+    resource->setLoadPriority(this, _loadingPriority);
+    _renderWatcher.setResource(resource);
     onInvalidate();
 }
 

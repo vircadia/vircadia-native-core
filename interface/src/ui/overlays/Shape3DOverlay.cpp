@@ -47,7 +47,7 @@ void Shape3DOverlay::render(RenderArgs* args) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = args->_pipeline;
         if (!pipeline) {
-            pipeline = _isSolid ? geometryCache->getShapePipeline() : geometryCache->getWireShapePipeline();
+            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         transform.setScale(dimensions);
