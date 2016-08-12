@@ -135,17 +135,25 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
 
     _permissions = newPermissions;
 
-    if (originalPermissions.canAdjustLocks != newPermissions.canAdjustLocks) {
-        emit isAllowedEditorChanged(_permissions.canAdjustLocks);
+    if (originalPermissions.can(NodePermissions::Permission::canAdjustLocks) !=
+        newPermissions.can(NodePermissions::Permission::canAdjustLocks)) {
+        emit isAllowedEditorChanged(_permissions.can(NodePermissions::Permission::canAdjustLocks));
     }
-    if (originalPermissions.canRezPermanentEntities != newPermissions.canRezPermanentEntities) {
-        emit canRezChanged(_permissions.canRezPermanentEntities);
+    if (originalPermissions.can(NodePermissions::Permission::canRezPermanentEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezPermanentEntities)) {
+        emit canRezChanged(_permissions.can(NodePermissions::Permission::canRezPermanentEntities));
     }
-    if (originalPermissions.canRezTemporaryEntities != newPermissions.canRezTemporaryEntities) {
-        emit canRezTmpChanged(_permissions.canRezTemporaryEntities);
+    if (originalPermissions.can(NodePermissions::Permission::canRezTemporaryEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezTemporaryEntities)) {
+        emit canRezTmpChanged(_permissions.can(NodePermissions::Permission::canRezTemporaryEntities));
     }
-    if (originalPermissions.canWriteToAssetServer != newPermissions.canWriteToAssetServer) {
-        emit canWriteAssetsChanged(_permissions.canWriteToAssetServer);
+    if (originalPermissions.can(NodePermissions::Permission::canWriteToAssetServer) !=
+        newPermissions.can(NodePermissions::Permission::canWriteToAssetServer)) {
+        emit canWriteAssetsChanged(_permissions.can(NodePermissions::Permission::canWriteToAssetServer));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canKick) !=
+        newPermissions.can(NodePermissions::Permission::canKick)) {
+        emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
     }
 }
 

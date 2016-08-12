@@ -41,7 +41,13 @@ class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
 public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
-    
+
+    enum DomainType {
+        NonMetaverse,
+        MetaverseDomain,
+        MetaverseTemporaryDomain
+    };
+
     static int const EXIT_CODE_REBOOT;
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
@@ -64,7 +70,7 @@ public slots:
     void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
-    
+
 private slots:
     void aboutToQuit();
 
@@ -74,7 +80,7 @@ private slots:
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
     void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
     void sendHeartbeatToIceServer();
-    
+
     void handleConnectedNode(SharedNodePointer newNode);
 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
@@ -96,7 +102,7 @@ signals:
     void iceServerChanged();
     void userConnected();
     void userDisconnected();
-    
+
 private:
     const QUuid& getID();
 
@@ -136,7 +142,7 @@ private:
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
-    
+
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
 
@@ -151,7 +157,9 @@ private:
 
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-    
+
+    void setupGroupCacheRefresh();
+
     DomainGatekeeper _gatekeeper;
 
     HTTPManager _httpManager;
@@ -184,6 +192,7 @@ private:
     DomainMetadata* _metadata { nullptr };
     QTimer* _iceHeartbeatTimer { nullptr };
     QTimer* _metaverseHeartbeatTimer { nullptr };
+    QTimer* _metaverseGroupCacheTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -191,6 +200,8 @@ private:
     int _noReplyICEHeartbeats { 0 };
     int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
+
+    DomainType _type { DomainType::NonMetaverse };
 
     friend class DomainGatekeeper;
     friend class DomainMetadata;

@@ -47,7 +47,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = args->_pipeline;
         if (!pipeline) {
-            pipeline = _isSolid ? geometryCache->getShapePipeline() : geometryCache->getWireShapePipeline();
+            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         if (_isSolid) {
@@ -55,7 +55,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             batch->setModelTransform(transform);
             geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, true, true);
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
                 transform.setScale(1.0f);
                 batch->setModelTransform(transform);

@@ -98,6 +98,7 @@ Avatar::Avatar(RigPointer rig) :
     _headData = static_cast<HeadData*>(new Head(this));
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
 }
 
 Avatar::~Avatar() {
@@ -298,7 +299,9 @@ void Avatar::simulate(float deltaTime) {
         {
             PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = getPosition();
-            _skeletonModel->getHeadPosition(headPosition);
+            if (!_skeletonModel->getHeadPosition(headPosition)) {
+                headPosition = getPosition();
+            }
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
@@ -306,6 +309,7 @@ void Avatar::simulate(float deltaTime) {
         }
     } else {
         // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+        getHead()->setPosition(getPosition());
         _skeletonModel->simulate(deltaTime, false);
     }
 
@@ -776,7 +780,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
 
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, true, true, true);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                 bevelDistance, backgroundColor);
         }
@@ -915,6 +919,17 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
 }
+
+void Avatar::setModelURLFinished(bool success) {
+    if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
+        // we don't redo this every time we receive an identity packet from the avatar with the bad url.
+        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
+                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+    }
+}
+
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {

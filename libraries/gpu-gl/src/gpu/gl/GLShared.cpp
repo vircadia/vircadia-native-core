@@ -596,7 +596,7 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         }
 
         Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
-        buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
+        buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER, size));
     }
     return buffersCount;
 }

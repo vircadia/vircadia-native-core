@@ -9,11 +9,12 @@
 #ifndef hifi_ui_FileDialogHelper_h
 #define hifi_ui_FileDialogHelper_h
 
+#include <QtCore/QFileSystemWatcher>
 #include <QtCore/QObject>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QUrl>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QtCore/QUrl>
 
 
 class FileDialogHelper : public QObject {
@@ -61,6 +62,15 @@ public:
     Q_INVOKABLE QList<QUrl> urlToList(const QUrl& url);
 
     Q_INVOKABLE void openDirectory(const QString& path);
+
+    Q_INVOKABLE void monitorDirectory(const QString& path);
+
+signals:
+    void contentsChanged();
+
+private:
+    QFileSystemWatcher _fsWatcher;
+    QString _fsWatcherPath;
 };
 
 

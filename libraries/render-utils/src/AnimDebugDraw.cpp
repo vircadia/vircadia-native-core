@@ -7,6 +7,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qmath.h>
+
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"
 #include <gpu/Batch.h>
@@ -374,8 +376,6 @@ void AnimDebugDraw::update() {
                 }
             }
         }
-        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
-        data._vertexBuffer->setSubData<Vertex>(0, vertices);
 
         // draw markers from shared DebugDraw singleton
         for (auto& iter : markerMap) {
@@ -402,6 +402,9 @@ void AnimDebugDraw::update() {
             addLine(std::get<0>(iter), std::get<1>(iter), std::get<2>(iter), v);
         }
         DebugDraw::getInstance().clearRays();
+
+        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
+        data._vertexBuffer->setSubData<Vertex>(0, vertices);
 
         assert((!numVerts && !v) || (numVerts == (v - &vertices[0])));
 

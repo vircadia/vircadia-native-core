@@ -115,3 +115,15 @@ QList<QUrl> FileDialogHelper::urlToList(const QUrl& url) {
     return results;
 }
 
+void FileDialogHelper::monitorDirectory(const QString& path) {
+    if (!_fsWatcherPath.isEmpty()) {
+        _fsWatcher.removePath(_fsWatcherPath);
+        _fsWatcherPath = "";
+    }
+
+    if (!path.isEmpty()) {
+        _fsWatcher.addPath(path);
+        _fsWatcherPath = path;
+        connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &FileDialogHelper::contentsChanged);
+    }
+}
