@@ -56,7 +56,7 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
                                             float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     // extents is the entity relative, scaled, centered extents of the entity
     glm::mat4 worldToEntityMatrix;
-    _transform.getInverseMatrix(worldToEntityMatrix);
+    getTransform().getInverseMatrix(worldToEntityMatrix);
 
     glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
