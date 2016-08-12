@@ -249,6 +249,9 @@ var toolBar = (function () {
 
         toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
         toolBar.writeProperty("shown", false);
+        addButton("openAssetBrowserButton","assets-01.svg",function(){
+            Window.showAssetServer();
+        })
 
         addButton("newModelButton", "model-01.svg", function () {
             var SHAPE_TYPE_NONE = 0;
@@ -429,9 +432,6 @@ var toolBar = (function () {
             });
         });
 
-        addButton("openAssetBrowserButton","asset-browser.svg",function(){
-            
-        })
 
         that.setActive(false);
     }
