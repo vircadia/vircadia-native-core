@@ -324,7 +324,7 @@ Window {
         // ListModel elements will only ever have those properties that are defined by the first obj that is added.
         // So here we make sure that we have all the properties we need, regardless of whether it is a place data or user story.
         var name = optionalPlaceName || data.place_name,
-            tags = data.tags || [data.action],
+            tags = data.tags || [data.action, data.username],
             description = data.description || "";
         return {
             place_name: name,
@@ -338,7 +338,7 @@ Window {
             description: description,
             online_users: data.online_users || 0,
 
-            searchText: [name].concat(tags, description).join(' ').toUpperCase()
+            searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
     }
     function mapDomainPlaces(domain, cb) { // cb(error, arrayOfDomainPlaceData)
