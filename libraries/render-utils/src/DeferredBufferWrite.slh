@@ -73,6 +73,8 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3
         discard;
     }
     _fragColor0 = vec4(albedo.rgb, alpha);
+    _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
+
 }
 
 <@endif@>

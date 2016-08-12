@@ -61,7 +61,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             geometryCache->bindSimpleProgram(*batch);
             geometryCache->renderQuad(*batch, topLeft, bottomRight, rectangleColor);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, true, true);
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
                 glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
