@@ -90,7 +90,12 @@ function resetButtons(path, notify) {
     button.writeProperty("defaultState", 1);
     button.writeProperty("hoverState", 3);
     Window.snapshotTaken.disconnect(resetButtons);
-    confirmShare([{localPath: path}]);
+
+    // last element in data array tells dialog whether we can share or not
+    confirmShare([ 
+            { localPath: path }, 
+            { canShare: Boolean(Window.location.placename), isLoggedIn: Account.isLoggedIn() } 
+    ]);
  }
 
 button.clicked.connect(onClicked);

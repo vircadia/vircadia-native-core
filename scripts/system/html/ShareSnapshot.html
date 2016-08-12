@@ -67,6 +67,18 @@
         paths.push(data);
 
     }
+    function handleShareButtons(shareMsg) {
+        if (!shareMsg.canShare) {
+            // this means you may or may not be logged in, but can't share
+            // because you are not in a public place.
+            document.getElementById("sharing").innerHTML = "<p>Snapshots can be shared when they're taken in shareable places.";
+        } else if (!shareMsg.isLoggedIn) {
+            // this means you are in a public place, but can't share because
+            // you need to login.  Soon we will just bring up the share dialog
+            // in this case (and maybe set a boolean here to inform the html)
+            document.getElementById("sharing").innerHTML = "<p>Snapshots can be shared when you are logged in.";
+        }
+    }
     window.onload = function () {
         // Something like the following will allow testing in a browser.
         //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
@@ -74,10 +86,16 @@
         openEventBridge(function () {
             // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
             EventBridge.scriptEventReceived.connect(function (message) {
+                // last element of list contains a bool for whether or not we can share stuff
+                var shareMsg = message.pop();
+                handleShareButtons(shareMsg);
+                
+                // rest are image paths which we add
                 message.forEach(addImage);
             });
             EventBridge.emitWebEvent('ready');
          });
+
     };
     // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
     shareSelected = function() {
@@ -96,14 +114,16 @@
         <div class="section-header snapsection">
           <label>Snapshots sucessfully saved!</label>
         </div>
-        <div class="sub-section-header snapsection">
-          <label>Would you like to share?</label>
-        </div>
-        <div class="sub-section-header snapsection">
-          <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
-        </div>
-        <div class="sub-section-header snapsection">
-          <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+        <div id="sharing">
+            <div class="sub-section-header snapsection">
+                <label>Would you like to share?</label>
+            </div>
+            <div class="sub-section-header snapsection">
+                <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
+            </div>
+            <div class="sub-section-header snapsection">
+                <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+            </div>
         </div>
       </div>
       <div id="snapshot-images" class="snapshot-column-right"/>
