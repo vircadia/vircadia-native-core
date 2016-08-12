@@ -4875,7 +4875,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     }
 
     if (defaultUpload) {
-        toggleAssetServerWidget(urlString);
+        showAssetServerWidget(urlString);
     }
     return defaultUpload;
 }
@@ -5063,7 +5063,7 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
-void Application::toggleAssetServerWidget(QString filePath) {
+void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }

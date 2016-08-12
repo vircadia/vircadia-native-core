@@ -277,7 +277,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
-    void toggleAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;
