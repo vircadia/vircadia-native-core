@@ -6,6 +6,11 @@ else ()
   set(_SHOULD_SYMLINK_RESOURCES FALSE)
 endif ()
 
+# Fix up the rpath so macdeployqt works
+if (APPLE)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+endif ()
+
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 

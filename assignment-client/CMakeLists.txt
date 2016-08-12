@@ -1,5 +1,10 @@
 set(TARGET_NAME assignment-client)
 
+# Fix up the rpath so macdeployqt works
+if (APPLE)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+endif ()
+
 setup_hifi_project(Core Gui Network Script Quick Widgets WebSockets)
 
 # link in the shared libraries

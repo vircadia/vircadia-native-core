@@ -123,7 +123,8 @@ if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
   # make sure the output name for the .app bundle is correct
-  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 elseif (WIN32)
   # configure an rc file for the chosen icon
   set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
