@@ -89,7 +89,7 @@ void LoginDialog::linkSteam() {
         callbackParams.errorCallbackReceiver = this;
         callbackParams.errorCallbackMethod = "linkFailed";
 
-        const QString LINK_STEAM_PATH = "api/v1/user/link_steam";
+        const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
 
         QJsonObject payload;
         payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
@@ -115,7 +115,7 @@ void LoginDialog::createAccountFromStream(QString username) {
         callbackParams.errorCallbackReceiver = this;
         callbackParams.errorCallbackMethod = "createFailed";
 
-        const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/create_from_steam";
+        const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
 
         QJsonObject payload;
         payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
