@@ -77,7 +77,7 @@ void Overlay::setProperties(const QVariantMap& properties) {
     if (properties["pulsePeriod"].isValid()) {
         setPulsePeriod(properties["pulsePeriod"].toFloat());
     }
-    
+
     if (properties["alphaPulse"].isValid()) {
         setAlphaPulse(properties["alphaPulse"].toFloat());
     }
@@ -90,7 +90,7 @@ void Overlay::setProperties(const QVariantMap& properties) {
         bool visible = properties["visible"].toBool();
         setVisible(visible);
     }
-    
+
     if (properties["anchor"].isValid()) {
         QString property = properties["anchor"].toString();
         if (property == "MyAvatar") {
