@@ -22,7 +22,7 @@ var button = toolbar.addButton({
     imageURL: buttonImageURL(),
     visible: true,
     buttonState: 1,
-    defaultState: 2,
+    defaultState: 1,
     hoverState: 3,
     alpha: 0.9
 });
