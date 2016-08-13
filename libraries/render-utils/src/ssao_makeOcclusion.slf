@@ -23,7 +23,7 @@ void main(void) {
     vec2 imageSize = getSideImageSize(getResolutionLevel());
 
     // Pixel being shaded
-	vec2 fragCoord = gl_FragCoord.xy; 
+    vec2 fragCoord = gl_FragCoord.xy; 
     ivec2 ssC = ivec2(fragCoord.xy);
 
     // Fetch the z under the pixel (stereo or not)
@@ -44,8 +44,8 @@ void main(void) {
     float ssDiskRadius = evalDiskRadius(Cp.z, imageSize);
 
     // Let's make noise 
-   // float randomPatternRotationAngle = getAngleDithering(ssC);
-	vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
+    //float randomPatternRotationAngle = getAngleDithering(ssC);
+    vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
     float randomPatternRotationAngle = getAngleDitheringWorldPos(wCp);
 
     // Accumulate the Obscurance for each samples
@@ -53,9 +53,9 @@ void main(void) {
     for (int i = 0; i < getNumSamples(); ++i) {
         vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, ssC, imageSize);
 
-		vec3 tapUVZ = fetchTap(side.xyz, ssC, tap, imageSize);
+        vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);
 
-		vec3 Q = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
+        vec3 Q = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
 
         sum += float(tap.z > 0.0) * evalAO(Cp, Cn, Q);
     }
@@ -74,4 +74,13 @@ void main(void) {
     !>
 
     outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
+
+   /* {
+        vec3 tap = getTapLocationClamped(2, randomPatternRotationAngle, ssDiskRadius, ssC, imageSize);
+        vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);
+        vec2 fetchUV = vec2(tapUVZ.x + side.w * 0.5 * (side.x - tapUVZ.x), tapUVZ.y);
+        vec3 Q = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
+        outFragColor = vec4(fetchUV, 0.0, 1.0);
+    }*/
+
 }

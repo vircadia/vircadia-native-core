@@ -218,7 +218,7 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
         tap.xy = tapPos - pixelPos;
         tap.z = length(tap.xy);
         tap.z = 0;  
-	}
+    }
     
     return tap;
 }
@@ -244,20 +244,23 @@ int evalMipFromRadius(float radius) {
 }
 
 
-vec3 fetchTapUnfiltered(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     ivec2 ssP = ivec2(tap.xy) + ssC;
     ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
 
+
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
 
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+
     vec3 P;
-	P.xy = tapUV;
-    P.z = -texture(pyramidMap, tapUV).x;
+    P.xy = tapUV;
+    P.z = -texture(pyramidMap, fetchUV).x;
 
    return P;
 }
 
-vec3 fetchTap(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     int mipLevel = evalMipFromRadius(tap.z * doFetchMips());
 
     ivec2 ssP = ivec2(tap.xy) + ssC;
@@ -270,13 +273,14 @@ vec3 fetchTap(ivec3 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
 
     ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
    
-   //  vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
-    vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+    // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
 
     vec3 P;
-	P.xy = tapUV;
-    P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
-   // P.z = -textureLod(pyramidMap, tapUV, float(mipLevel)).x;
+    P.xy = tapUV;
+  //  P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
+    P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
 
    return P;
 }
