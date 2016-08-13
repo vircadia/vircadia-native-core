@@ -73,22 +73,27 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     // Restore the original GL context
     currentContext->makeCurrent(currentSurface);
 
-    auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
-        if (intersection.entityID == getID()) {
-            handleMouseEvent(*event, intersection.intersection);
+    auto forwardPointerEvent = [=](const EntityItemID& entityItemID, const PointerEvent& event) {
+        if (entityItemID == getID()) {
+            handlePointerEvent(event);
         }
     };
-    _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
-    _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
-    _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
-    _hoverLeaveConnection = QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+    _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
+    _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
+    _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
+    _hoverLeaveConnection = QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (this->_pressed && this->getID() == entityItemID) {
-            // If the user mouses off the entity while the button is down, simulate a mouse release
-            QMouseEvent mappedEvent(QEvent::MouseButtonRelease,
-                QPoint(_lastMove.x, _lastMove.y),
-                Qt::MouseButton::LeftButton,
-                Qt::MouseButtons(), Qt::KeyboardModifiers());
-            QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+            // If the user mouses off the entity while the button is down, simulate a touch end.
+            QTouchEvent::TouchPoint point;
+            point.setId(event.getID());
+            point.setState(Qt::TouchPointReleased);
+            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+            QPointF windowPoint(windowPos.x, windowPos.y);
+            point.setPos(windowPoint);
+            QList<QTouchEvent::TouchPoint> touchPoints;
+            touchPoints.push_back(point);
+            QTouchEvent touchEvent = QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
         }
     });
     return true;
@@ -173,111 +178,73 @@ QObject* RenderableWebEntityItem::getEventHandler() {
     return _webSurface->getEventHandler();
 }
 
-void RenderableWebEntityItem::handleMouseEvent(QMouseEvent event, glm::vec3 intersectionPoint) {
+void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
+
     // Ignore mouse interaction if we're locked
-    if (getLocked()) {
+    if (getLocked() || !_webSurface) {
         return;
     }
 
-    if (event.button() == Qt::MouseButton::RightButton) {
-        if (event.type() == QEvent::MouseButtonPress) {
-            _lastPress = toGlm(event.pos());
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+    QPointF windowPoint(windowPos.x, windowPos.y);
+
+    /*
+    qDebug() << "AJT: RenderableWebEntityItem::handlePointerEvent!";
+    qDebug() << "AJT:     type = " << (int)event.getType();
+    qDebug() << "AJT:     id = " << event.getID();
+    qDebug() << "AJT:     pos2D = " << event.getPos2D();
+    qDebug() << "AJT:     pos3D = " << event.getPos3D();
+    qDebug() << "AJT:     normal = " << event.getNormal();
+    qDebug() << "AJT:     direction = " << event.getDirection();
+    qDebug() << "AJT:     button = " << (int)event.getButton();
+    qDebug() << "AJT:     buttons = " << event.getButtons();
+    qDebug() << "AJT:     windowPos = " << windowPos;
+    */
+
+    if (event.getType() == PointerEvent::Move && event.getButtons() == PointerEvent::NoButtons) {
+        // Forward a mouse move event to webSurface
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
+    } else {
+        // Forward a touch update event to webSurface
+
+        QEvent::Type type;
+        Qt::TouchPointState touchPointState;
+        switch (event.getType()) {
+        case PointerEvent::Press:
+            type = QEvent::TouchBegin;
+            touchPointState = Qt::TouchPointPressed;
+            break;
+        case PointerEvent::Release:
+            type = QEvent::TouchEnd;
+            touchPointState = Qt::TouchPointReleased;
+            break;
+        case PointerEvent::Move:
+        default:
+            type = QEvent::TouchUpdate;
+            touchPointState = Qt::TouchPointMoved;
+            break;
         }
-    }
 
-    if (event.button() == Qt::MouseButton::RightButton) {
-        if (event.type() == QEvent::MouseButtonRelease) {
-            ivec2 dist = glm::abs(toGlm(event.pos()) - _lastPress);
-            if (!glm::any(glm::greaterThan(dist, ivec2(1)))) {
-                AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                    QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
-                });
-            }
-            _lastPress = ivec2(INT_MIN);
-        }
-        return;
-    }
+        QTouchEvent::TouchPoint point;
+        point.setId(event.getID());
+        point.setState(touchPointState);
+        point.setPos(windowPoint);
+        point.setScreenPos(windowPoint);
+        QList<QTouchEvent::TouchPoint> touchPoints;
+        touchPoints.push_back(point);
 
-    // FIXME doesn't work... double click events not received
-    if (event.type() == QEvent::MouseButtonDblClick) {
-        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-            _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-        });
-    }
+        QTouchEvent touchEvent(type, nullptr, Qt::NoModifier, touchPointState, touchPoints);
+        QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
 
-    if (event.button() == Qt::MouseButton::MiddleButton) {
-        if (event.type() == QEvent::MouseButtonRelease) {
-            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-            });
-        }
-        return;
+        _lastTouchEvent = touchEvent;
     }
-
-    // Map the intersection point to an actual offscreen pixel
-    glm::vec3 point = intersectionPoint;
-    glm::vec3 dimensions = getDimensions();
-    point -= getPosition();
-    point = glm::inverse(getRotation()) * point;
-    point /= dimensions;
-    point += 0.5f;
-    point.y = 1.0f - point.y;
-    point *= dimensions * (METERS_TO_INCHES * DPI);
-
-    if (event.button() == Qt::MouseButton::LeftButton) {
-        if (event.type() == QEvent::MouseButtonPress) {
-            _pressed = true;
-            _lastMove = ivec2((int)point.x, (int)point.y);
-        } else if (event.type() == QEvent::MouseButtonRelease) {
-            _pressed = false;
-        }
-    }
-    if (event.type() == QEvent::MouseMove) {
-        _lastMove = ivec2((int)point.x, (int)point.y);
-    }
-
-    // Forward the mouse event.
-    QMouseEvent mappedEvent(event.type(),
-                            QPoint((int)point.x, (int)point.y),
-                            event.screenPos(), event.button(),
-                            event.buttons(), event.modifiers());
-    QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
 }
-
-void RenderableWebEntityItem::handleTouchEvent(QTouchEvent event, glm::vec3 intersectionPoint) {
-    // Ignore mouse interaction if we're locked
-    if (getLocked()) {
-        return;
-    }
-
-    // Map the intersection point to an actual offscreen pixel
-    glm::vec3 point = intersectionPoint;
-    glm::vec3 dimensions = getDimensions();
-    point -= getPosition();
-    point = glm::inverse(getRotation()) * point;
-    point /= dimensions;
-    point += 0.5f;
-    point.y = 1.0f - point.y;
-    point *= dimensions * (METERS_TO_INCHES * DPI);
-
-    QList<QTouchEvent::TouchPoint> touchPoints = event.touchPoints();
-    for (auto& touchPoint : touchPoints) {
-        touchPoint.setPos(QPointF(point.x, point.y));
-        touchPoint.setScreenPos(QPointF(point.x, point.y));
-    }
-
-    // Forward the touch event.
-    QTouchEvent mappedEvent(event.type(),
-                            event.device(),
-                            event.modifiers(),
-                            event.touchPointStates(),
-                            touchPoints);
-    QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
-}
-
 
 void RenderableWebEntityItem::destroyWebSurface() {
     if (_webSurface) {
+        qDebug() << "AJT: destroyWebSurface!";
+
         --_currentWebCount;
         _webSurface->pause();
         _webSurface->disconnect(_connection);

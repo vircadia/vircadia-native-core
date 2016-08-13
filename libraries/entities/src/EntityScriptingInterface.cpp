@@ -1195,27 +1195,33 @@ void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
 }
 
 void EntityScriptingInterface::sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityMouseMoveEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityMouseMoveEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 void EntityScriptingInterface::sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseDownEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseDownEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 void EntityScriptingInterface::sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseUpEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseUpEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 void EntityScriptingInterface::sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchUpdateEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityTouchUpdateEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 void EntityScriptingInterface::sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchBeginEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityTouchBeginEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 void EntityScriptingInterface::sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QMetaObject::invokeMethod(qApp, "sendEntityTouchEndEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+    // AJT: TODO CURRENTLY BROKEN
+    //QMetaObject::invokeMethod(qApp, "sendEntityTouchEndEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
 }
 
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {

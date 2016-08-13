@@ -1074,7 +1074,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
-            [this](const EntityItemID& entityItemID, const MouseEvent& event) {
+            [this](const EntityItemID& entityItemID, const PointerEvent& event) {
         setKeyboardFocusEntity(entityItemID);
     });
 
@@ -1085,9 +1085,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity,
-        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event) {
-            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
     connect(this, &Application::aboutToQuit, [=]() {
@@ -3575,76 +3574,6 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
         if (_keyboardFocusedItem.get() == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
             _keyboardFocusHighlight->setVisible(false);
         }
-    }
-}
-
-void Application::sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMouseEvent mouseEvent(QEvent::MouseMove, QPoint(0, 0), QPoint(0, 0),
-                           Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-    sendEntityMouseEvent(id, mouseEvent, intersectionPoint);
-}
-
-void Application::sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMouseEvent mouseEvent(QEvent::MouseButtonPress, QPoint(0, 0), QPoint(0, 0),
-                           Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-    sendEntityMouseEvent(id, mouseEvent, intersectionPoint);
-}
-
-void Application::sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint) {
-    QMouseEvent mouseEvent(QEvent::MouseButtonRelease, QPoint(0, 0), QPoint(0, 0),
-                           Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-    sendEntityMouseEvent(id, mouseEvent, intersectionPoint);
-}
-
-void Application::sendEntityMouseEvent(const QUuid& id, const QMouseEvent& mouseEvent, const glm::vec3& intersectionPoint) {
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    EntityItemID entityItemID(id);
-    auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-    if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
-        auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
-        RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-        webEntity->handleMouseEvent(mouseEvent, intersectionPoint);
-    }
-}
-
-void Application::sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QTouchEvent::TouchPoint point;
-    point.setId(fingerID);
-    point.setState(Qt::TouchPointMoved);
-    QList<QTouchEvent::TouchPoint> touchPoints;
-    touchPoints.push_back(point);
-    QTouchEvent touchEvent(QEvent::TouchUpdate, nullptr, Qt::NoModifier, Qt::TouchPointMoved, touchPoints);
-    sendEntityTouchEvent(entityID, touchEvent, intersectionPoint);
-}
-
-void Application::sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QTouchEvent::TouchPoint point;
-    point.setId(fingerID);
-    point.setState(Qt::TouchPointPressed);
-    QList<QTouchEvent::TouchPoint> touchPoints;
-    touchPoints.push_back(point);
-    QTouchEvent touchEvent(QEvent::TouchBegin, nullptr, Qt::NoModifier, Qt::TouchPointPressed, touchPoints);
-    sendEntityTouchEvent(entityID, touchEvent, intersectionPoint);
-}
-
-void Application::sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    QTouchEvent::TouchPoint point;
-    point.setId(fingerID);
-    point.setState(Qt::TouchPointReleased);
-    QList<QTouchEvent::TouchPoint> touchPoints;
-    touchPoints.push_back(point);
-    QTouchEvent touchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
-    sendEntityTouchEvent(entityID, touchEvent, intersectionPoint);
-}
-
-void Application::sendEntityTouchEvent(const QUuid& id, const QTouchEvent& touchEvent, const glm::vec3& intersectionPoint) {
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    EntityItemID entityItemID(id);
-    auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-    if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
-        auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
-        RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-        webEntity->handleTouchEvent(touchEvent, intersectionPoint);
     }
 }
 

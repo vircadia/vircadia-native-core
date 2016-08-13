@@ -34,7 +34,7 @@
 #include "EntityItemProperties.h"
 
 class EntityTree;
-class MouseEvent;
+class PointerEvent;
 
 class RayToEntityIntersectionResult {
 public:
@@ -181,10 +181,10 @@ public slots:
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
 
+    // AJT: TODO CURRENTLY BROKEN
     Q_INVOKABLE void sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint);
-
     Q_INVOKABLE void sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
     Q_INVOKABLE void sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint);
@@ -197,17 +197,17 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
 
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);

@@ -11,6 +11,8 @@
 
 #include <QSharedPointer>
 #include <QMouseEvent>
+#include <QTouchEvent>
+#include <PointerEvent.h>
 
 #include <WebEntityItem.h>
 
@@ -33,8 +35,7 @@ public:
     void setProxyWindow(QWindow* proxyWindow);
     QObject* getEventHandler();
 
-    void handleMouseEvent(QMouseEvent event, glm::vec3 intersectionPoint);
-    void handleTouchEvent(QTouchEvent event, glm::vec3 intersectionPoint);
+    void handlePointerEvent(const PointerEvent& event);
 
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
@@ -50,7 +51,7 @@ private:
     uint32_t _texture{ 0 };
     ivec2  _lastPress{ INT_MIN };
     bool _pressed{ false };
-    ivec2 _lastMove{ INT_MIN };
+    QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
 
     QMetaObject::Connection _mousePressConnection;
