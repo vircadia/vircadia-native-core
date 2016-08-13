@@ -53,6 +53,7 @@ public slots:
     CustomPromptResult customPrompt(const QVariant& config);
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
 
 signals:
