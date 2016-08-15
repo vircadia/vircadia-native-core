@@ -14,10 +14,13 @@ namespace gpu { namespace gl {
 
 class GLPipeline : public GPUObject {
 public:
-    static GLPipeline* sync(const Pipeline& pipeline);
+    static GLPipeline* sync(GLBackend& backend, const Pipeline& pipeline);
 
     GLShader* _program { nullptr };
     GLState* _state { nullptr };
+    // Bit of a hack, any pipeline can need the camera correction buffer at execution time, so 
+    // we store whether a given pipeline has declared the uniform buffer for it.
+    int32 _cameraCorrection { -1 };
 };
 
 } }

@@ -15,7 +15,6 @@
 #include <gpu/gl/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 #include <gl/GLHelpers.h>
 
 #include <QDir>
@@ -114,7 +113,7 @@ public:
         gpu::Context::init<gpu::gl::GLBackend>();
 
 
-        setupDebugLogger(this);
+        GLDebug::setupLogger(this);
         qDebug() << (const char*)glGetString(GL_VERSION);
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);

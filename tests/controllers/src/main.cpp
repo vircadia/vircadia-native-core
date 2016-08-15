@@ -85,8 +85,6 @@ public:
     virtual void showDisplayPluginsTools(bool show) override {}
     virtual void requestReset() override {}
     virtual bool makeRenderingContextCurrent() override { return true; }
-    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override {}
-    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override {}
     virtual GLWidget* getPrimaryWidget() override { return nullptr; }
     virtual MainWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }

@@ -1,10 +1,11 @@
-//
+﻿//
 //  Created by Bradley Austin Davis on 2016/02/15
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 #include "HmdDisplayPlugin.h"
 
 #include <memory>
@@ -22,9 +23,10 @@
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
-
-#include <gpu/DrawUnitQuadTexcoord_vert.h>
-#include <gpu/DrawTexture_frag.h>
+#include <GeometryCache.h>
+#include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <PathUtils.h>
 
@@ -32,94 +34,18 @@
 #include "../CompositorHelper.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
-static const QString REPROJECTION = "Allow Reprojection";
+static const QString DISABLE_PREVIEW = "Disable Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
-static const int NUMBER_OF_HANDS = 2;
-static const glm::mat4 IDENTITY_MATRIX;
-
-
-glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
-    return CompositorHelper::VIRTUAL_SCREEN_SIZE;
-}
-
-QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
-    return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
-}
-
-bool HmdDisplayPlugin::internalActivate() {
-    _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
-
-    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
-        [this](bool clicked) {
-        _monoPreview = clicked;
-        _container->setBoolSetting("monoPreview", _monoPreview);
-    }, true, _monoPreview);
-    _container->removeMenu(FRAMERATE);
-    _container->addMenu(DEVELOPER_MENU_PATH);
-    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, DEVELOPER_MENU_PATH, REPROJECTION,
-        [this](bool clicked) {
-            _enableReprojection = clicked;
-            _container->setBoolSetting("enableReprojection", _enableReprojection);
-    }, true, _enableReprojection);
-    
-    for_each_eye([&](Eye eye) {
-        _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
-    });
-
-    if (_previewTextureID == 0) {
-        QImage previewTexture(PathUtils::resourcesPath() + "images/preview.png");
-        if (!previewTexture.isNull()) {
-            glGenTextures(1, &_previewTextureID);
-            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.mirrored(false, true).bits());
-            using namespace oglplus;
-            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
-            _firstPreview = true;
-        }
-    }
-
-    return Parent::internalActivate();
-}
-
-void HmdDisplayPlugin::internalDeactivate() {
-    if (_previewTextureID != 0) {
-        glDeleteTextures(1, &_previewTextureID);
-        _previewTextureID = 0;
-    }
-    Parent::internalDeactivate();
-}
-
-void HmdDisplayPlugin::customizeContext() {
-    Parent::customizeContext();
-    // Only enable mirroring if we know vsync is disabled
-    // On Mac, this won't work due to how the contexts are handled, so don't try
 #if !defined(Q_OS_MAC)
-    enableVsync(false);
+static const bool DEFAULT_DISABLE_PREVIEW = false;
 #endif
-    _enablePreview = !isVsyncEnabled();
-    _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
-    using namespace oglplus;
-    if (!_enablePreview) {
-        const std::string version("#version 410 core\n");
-        compileProgram(_previewProgram, version + DrawUnitQuadTexcoord_vert, version + DrawTexture_frag);
-        _previewUniforms.previewTexture = Uniform<int>(*_previewProgram, "colorMap").Location();
-    }
-
-    updateReprojectionProgram();
-    updateOverlayProgram();
-#ifdef HMD_HAND_LASER_SUPPORT
-    updateLaserProgram();
-    _laserGeometry = loadLaser(_laserProgram);
-#endif
-}
+static const glm::mat4 IDENTITY_MATRIX;
+static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
+extern glm::vec3 getPoint(float yaw, float pitch);
 
 static QString readFile(const QString& filename) {
     QFile file(filename);
@@ -129,183 +55,220 @@ static QString readFile(const QString& filename) {
     return result;
 }
 
-void HmdDisplayPlugin::updateReprojectionProgram() {
-    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_reproject.vert";
-    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_reproject.frag";
-#if LIVE_SHADER_RELOAD
-    static qint64 vsBuiltAge = 0;
-    static qint64 fsBuiltAge = 0;
-    QFileInfo vsInfo(vsFile);
-    QFileInfo fsInfo(fsFile);
-    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
-    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
-    if (!_reprojectionProgram || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
-        vsBuiltAge = vsAge;
-        fsBuiltAge = fsAge;
-#else
-    if (!_reprojectionProgram) {
-#endif
-        QString vsSource = readFile(vsFile);
-        QString fsSource = readFile(fsFile);
-        ProgramPtr program;
-        try {
-            compileProgram(program, vsSource.toLocal8Bit().toStdString(), fsSource.toLocal8Bit().toStdString());
-            if (program) {
-                using namespace oglplus;
-                _reprojectionUniforms.reprojectionMatrix = Uniform<glm::mat3>(*program, "reprojection").Location();
-                _reprojectionUniforms.inverseProjectionMatrix = Uniform<glm::mat4>(*program, "inverseProjections").Location();
-                _reprojectionUniforms.projectionMatrix = Uniform<glm::mat4>(*program, "projections").Location();
-                _reprojectionProgram = program;
-            }
-        } catch (std::runtime_error& error) {
-            qWarning() << "Error building reprojection shader " << error.what();
-        }
-    }
-
+glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
+    return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-#ifdef HMD_HAND_LASER_SUPPORT
-void HmdDisplayPlugin::updateLaserProgram() {
-    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_hand_lasers.vert";
-    static const QString gsFile = PathUtils::resourcesPath() + "/shaders/hmd_hand_lasers.geom";
-    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_hand_lasers.frag";
-
-#if LIVE_SHADER_RELOAD
-    static qint64 vsBuiltAge = 0;
-    static qint64 gsBuiltAge = 0;
-    static qint64 fsBuiltAge = 0;
-    QFileInfo vsInfo(vsFile);
-    QFileInfo fsInfo(fsFile);
-    QFileInfo gsInfo(fsFile);
-    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
-    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
-    auto gsAge = gsInfo.lastModified().toMSecsSinceEpoch();
-    if (!_laserProgram || vsAge > vsBuiltAge || fsAge > fsBuiltAge || gsAge > gsBuiltAge) {
-        vsBuiltAge = vsAge;
-        gsBuiltAge = gsAge;
-        fsBuiltAge = fsAge;
-#else
-    if (!_laserProgram) {
-#endif
-
-        QString vsSource = readFile(vsFile);
-        QString fsSource = readFile(fsFile);
-        QString gsSource = readFile(gsFile);
-        ProgramPtr program;
-        try {
-            compileProgram(program, vsSource.toLocal8Bit().toStdString(), gsSource.toLocal8Bit().toStdString(), fsSource.toLocal8Bit().toStdString());
-            if (program) {
-                using namespace oglplus;
-                _laserUniforms.color = Uniform<glm::vec4>(*program, "color").Location();
-                _laserUniforms.mvp = Uniform<glm::mat4>(*program, "mvp").Location();
-                _laserProgram = program;
-            }
-        } catch (std::runtime_error& error) {
-            qWarning() << "Error building hand laser composite shader " << error.what();
-        }
-    }
+QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
+    return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
-#endif
 
-void HmdDisplayPlugin::updateOverlayProgram() {
-    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
-    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.frag";
-
-#if LIVE_SHADER_RELOAD
-    static qint64 vsBuiltAge = 0;
-    static qint64 fsBuiltAge = 0;
-    QFileInfo vsInfo(vsFile);
-    QFileInfo fsInfo(fsFile);
-    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
-    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
-    if (!_overlayProgram || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
-        vsBuiltAge = vsAge;
-        fsBuiltAge = fsAge;
-#else
-    if (!_overlayProgram) {
-#endif
-        QString vsSource = readFile(vsFile);
-        QString fsSource = readFile(fsFile);
-        ProgramPtr program;
-        try {
-            compileProgram(program, vsSource.toLocal8Bit().toStdString(), fsSource.toLocal8Bit().toStdString());
-            if (program) {
-                using namespace oglplus;
-                _overlayUniforms.mvp = Uniform<glm::mat4>(*program, "mvp").Location();
-                _overlayUniforms.alpha = Uniform<float>(*program, "alpha").Location();
-                _overlayUniforms.glowColors = Uniform<glm::vec4>(*program, "glowColors").Location();
-                _overlayUniforms.glowPoints = Uniform<glm::vec4>(*program, "glowPoints").Location();
-                _overlayUniforms.resolution = Uniform<glm::vec2>(*program, "resolution").Location();
-                _overlayUniforms.radius = Uniform<float>(*program, "radius").Location();
-                _overlayProgram = program;
-                useProgram(_overlayProgram);
-                Uniform<glm::vec2>(*_overlayProgram, _overlayUniforms.resolution).Set(CompositorHelper::VIRTUAL_SCREEN_SIZE);
-            }
-        } catch (std::runtime_error& error) {
-            qWarning() << "Error building overlay composite shader " << error.what();
-        }
+bool HmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    if (!_vsyncEnabled && !_disablePreviewItemAdded) {
+        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
+            [this](bool clicked) {
+                _disablePreview = clicked;
+                _container->setBoolSetting("disableHmdPreview", _disablePreview);
+                if (_disablePreview) {
+                    _clearPreviewFlag = true;
+                }
+            }, true, _disablePreview);
+        _disablePreviewItemAdded = true;
     }
+    return Parent::beginFrameRender(frameIndex);
+}
+
+
+bool HmdDisplayPlugin::internalActivate() {
+    _disablePreviewItemAdded = false;
+    _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
+    _clearPreviewFlag = true;
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
+        [this](bool clicked) {
+        _monoPreview = clicked;
+        _container->setBoolSetting("monoPreview", _monoPreview);
+    }, true, _monoPreview);
+#if defined(Q_OS_MAC)
+    _disablePreview = true;
+#else
+    _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
+#endif
+
+    _container->removeMenu(FRAMERATE);
+    for_each_eye([&](Eye eye) {
+        _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
+    });
+
+    _clearPreviewFlag = true;
+
+    return Parent::internalActivate();
+}
+
+void HmdDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
+}
+
+void HmdDisplayPlugin::customizeContext() {
+    Parent::customizeContext();
+    _overlayRenderer.build();
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
-    _overlayProgram.reset();
-    _sphereSection.reset();
-    _compositeFramebuffer.reset();
-    _previewProgram.reset();
-    _reprojectionProgram.reset();
-#ifdef HMD_HAND_LASER_SUPPORT
-    _laserProgram.reset();
-    _laserGeometry.reset();
-#endif
+    // This stops the weirdness where if the preview was disabled, on switching back to 2D,
+    // the vsync was stuck in the disabled state.  No idea why that happens though.
+    _disablePreview = false;
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.resetViewTransform();
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+    });
+    internalPresent();
+    _overlayRenderer = OverlayRenderer();
     Parent::uncustomizeContext();
 }
 
-// By default assume we'll present with the same pose as the render
+ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
+    // screen preview mirroring
+    auto window = _container->getPrimaryWidget();
+    auto devicePixelRatio = window->devicePixelRatio();
+    auto windowSize = toGlm(window->size());
+    windowSize *= devicePixelRatio;
+    float windowAspect = aspect(windowSize);
+    float sceneAspect = aspect(size);
+    float aspectRatio = sceneAspect / windowAspect;
+    uvec2 targetViewportSize = windowSize;
+    if (aspectRatio < 1.0f) {
+        targetViewportSize.x *= aspectRatio;
+    } else {
+        targetViewportSize.y /= aspectRatio;
+    }
+    uvec2 targetViewportPosition;
+    if (targetViewportSize.x < windowSize.x) {
+        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
+    } else if (targetViewportSize.y < windowSize.y) {
+        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
+    }
+    return ivec4(targetViewportPosition, targetViewportSize);
+}
+
+void HmdDisplayPlugin::internalPresent() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
+
+    if (!_disablePreview) {
+        // screen preview mirroring
+        auto sourceSize = _renderTargetSize;
+        if (_monoPreview) {
+            sourceSize.x >>= 1;
+        }
+        auto viewport = getViewportForSourceSize(sourceSize);
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.resetViewTransform();
+            batch.setFramebuffer(gpu::FramebufferPointer());
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+            batch.setStateScissorRect(viewport);
+            if (_monoPreview) { 
+                viewport.z *= 2; 
+            } 
+            batch.setViewportTransform(viewport);
+            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+            batch.setPipeline(_presentPipeline);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+        swapBuffers();
+    } else if (_clearPreviewFlag) {
+        auto image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        image = image.mirrored();
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+        if (!_previewTexture) {
+            _previewTexture.reset(
+                gpu::Texture::create2D(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
+            _previewTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), image.byteCount(), image.constBits());
+            _previewTexture->autoGenerateMips(-1);
+        }
+        
+        if (getGLBackend()->isTextureReady(_previewTexture)) {
+            auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
+            render([&](gpu::Batch& batch) {
+                batch.enableStereo(false);
+                batch.resetViewTransform();
+                batch.setFramebuffer(gpu::FramebufferPointer());
+                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+                batch.setStateScissorRect(viewport);
+                batch.setViewportTransform(viewport);
+                batch.setResourceTexture(0, _previewTexture);
+                batch.setPipeline(_presentPipeline);
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+            _clearPreviewFlag = false;
+            swapBuffers();
+        }
+    }
+    postPreview();
+}
+
+// HMD specific stuff
+
+glm::mat4 HmdDisplayPlugin::getHeadPose() const {
+    return _currentRenderFrameInfo.renderPose;
+}
+
 void HmdDisplayPlugin::updatePresentPose() {
+    // By default assume we'll present with the same pose as the render
     _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }
 
-void HmdDisplayPlugin::compositeScene() {
-    updatePresentPose();
+void HmdDisplayPlugin::updateFrameData() {
+    // Check if we have old frame data to discard
+    static const uint32_t INVALID_FRAME = (uint32_t)(~0);
+    uint32_t oldFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
 
-    if (!_enableReprojection || glm::mat3() == _currentPresentFrameInfo.presentReprojection) {
-        // No reprojection required
-        Parent::compositeScene();
-        return;
+    Parent::updateFrameData();
+    uint32_t newFrameIndex = _currentFrame ? _currentFrame->frameIndex : INVALID_FRAME;
+
+    if (oldFrameIndex != newFrameIndex) {
+        withPresentThreadLock([&] {
+            if (oldFrameIndex != INVALID_FRAME) {
+                auto itr = _frameInfos.find(oldFrameIndex);
+                if (itr != _frameInfos.end()) {
+                    _frameInfos.erase(itr);
+                }
+            }
+            if (newFrameIndex != INVALID_FRAME) {
+                _currentPresentFrameInfo = _frameInfos[newFrameIndex];
+            }
+        });
     }
 
-#ifdef DEBUG_REPROJECTION_SHADER
-    _reprojectionProgram = getReprojectionProgram();
-#endif
-    useProgram(_reprojectionProgram);
+    updatePresentPose();
 
-    using namespace oglplus;
-    Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-    Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-    Uniform<glm::mat3>(*_reprojectionProgram, _reprojectionUniforms.reprojectionMatrix).Set(_currentPresentFrameInfo.presentReprojection);
-    //Uniform<glm::mat4>(*_reprojectionProgram, PROJECTION_MATRIX_LOCATION).Set(_eyeProjections);
-    //Uniform<glm::mat4>(*_reprojectionProgram, INVERSE_PROJECTION_MATRIX_LOCATION).Set(_eyeInverseProjections);
-    // FIXME what's the right oglplus mechanism to do this?  It's not that ^^^ ... better yet, switch to a uniform buffer
-    glUniformMatrix4fv(_reprojectionUniforms.inverseProjectionMatrix, 2, GL_FALSE, &(_eyeInverseProjections[0][0][0]));
-    glUniformMatrix4fv(_reprojectionUniforms.projectionMatrix, 2, GL_FALSE, &(_eyeProjections[0][0][0]));
-    _plane->UseInProgram(*_reprojectionProgram);
-    _plane->Draw();
-}
-
-void HmdDisplayPlugin::compositeOverlay() {
-    using namespace oglplus;
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
+    if (_currentFrame) {
+        auto batchPose = _currentFrame->pose;
+        auto currentPose = _currentPresentFrameInfo.presentPose;
+        auto correction = glm::inverse(batchPose) * currentPose;
+        getGLBackend()->setCameraCorrection(correction);
+    }
 
     withPresentThreadLock([&] {
         _presentHandLasers = _handLasers;
         _presentHandPoses = _handPoses;
         _presentUiModelTransform = _uiModelTransform;
     });
-    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints { { vec2(-1), vec2(-1) } };
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
+    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints{ { vec2(-1), vec2(-1) } };
 
     // compute the glow point interesections
-    for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
+    for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
         if (_presentHandPoses[i] == IDENTITY_MATRIX) {
             continue;
         }
@@ -331,6 +294,9 @@ void HmdDisplayPlugin::compositeOverlay() {
             continue;
         }
 
+        _presentHandLaserPoints[i].first = vec3(_presentHandPoses[i][3]);
+        _presentHandLaserPoints[i].second = _presentHandLaserPoints[i].first + (castDirection * distance);
+
         vec3 intersectionPosition = vec3(_presentHandPoses[i][3]) + (castDirection * distance) - _presentUiModelTransform.getTranslation();
         intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
 
@@ -353,154 +319,174 @@ void HmdDisplayPlugin::compositeOverlay() {
         handGlowPoints[i] = yawPitch;
     }
 
-    updateOverlayProgram();
-    if (!_overlayProgram) {
-        return;
-    }
 
-    useProgram(_overlayProgram);
+    for_each_eye([&](Eye eye) {
+        auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
+        _overlayRenderer.mvps[eye] = _eyeProjections[eye] * modelView;
+    });
+
     // Setup the uniforms
     {
-        if (_overlayUniforms.alpha >= 0) {
-            Uniform<float>(*_overlayProgram, _overlayUniforms.alpha).Set(_compositeOverlayAlpha);
-        }
-        if (_overlayUniforms.glowPoints >= 0) {
-            vec4 glowPoints(handGlowPoints[0], handGlowPoints[1]);
-            Uniform<glm::vec4>(*_overlayProgram, _overlayUniforms.glowPoints).Set(glowPoints);
-        }
-        if (_overlayUniforms.glowColors >= 0) {
-            std::array<glm::vec4, NUMBER_OF_HANDS> glowColors;
-            glowColors[0] = _presentHandLasers[0].color;
-            glowColors[1] = _presentHandLasers[1].color;
-            glProgramUniform4fv(GetName(*_overlayProgram), _overlayUniforms.glowColors, 2, &glowColors[0].r);
+        auto& uniforms = _overlayRenderer.uniforms;
+        uniforms.alpha = _compositeOverlayAlpha;
+        uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
+        uniforms.glowColors[0] = _presentHandLasers[0].color;
+        uniforms.glowColors[1] = _presentHandLasers[1].color;
+    }
+}
+
+void HmdDisplayPlugin::OverlayRenderer::build() {
+    vertices = std::make_shared<gpu::Buffer>();
+    indices = std::make_shared<gpu::Buffer>();
+
+    //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
+    
+    static const float fov = CompositorHelper::VIRTUAL_UI_TARGET_FOV.y;
+    static const float aspectRatio = CompositorHelper::VIRTUAL_UI_ASPECT_RATIO;
+    static const uint16_t stacks = 128;
+    static const uint16_t slices = 64;
+
+    Vertex vertex;
+
+    // Compute vertices positions and texture UV coordinate
+    // Create and write to buffer
+    for (int i = 0; i < stacks; i++) {
+        vertex.uv.y = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
+        // abs(theta) <= fov / 2.0f
+        float pitch = -fov * (vertex.uv.y - 0.5f);
+        for (int j = 0; j < slices; j++) {
+            vertex.uv.x = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
+            // abs(phi) <= fov * aspectRatio / 2.0f
+            float yaw = -fov * aspectRatio * (vertex.uv.x - 0.5f);
+            vertex.pos = getPoint(yaw, pitch);
+            vertices->append(sizeof(Vertex), (gpu::Byte*)&vertex);
         }
     }
 
-    _sphereSection->Use();
-    for_each_eye([&](Eye eye) {
-        eyeViewport(eye);
-        auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
-        auto mvp = _eyeProjections[eye] * modelView;
-        Uniform<glm::mat4>(*_overlayProgram, _overlayUniforms.mvp).Set(mvp);
-        _sphereSection->Draw();
+    // Compute number of indices needed
+    static const int VERTEX_PER_TRANGLE = 3;
+    static const int TRIANGLE_PER_RECTANGLE = 2;
+    int numberOfRectangles = (slices - 1) * (stacks - 1);
+    indexCount = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
+
+    // Compute indices order
+    std::vector<GLushort> indices;
+    for (int i = 0; i < stacks - 1; i++) {
+        for (int j = 0; j < slices - 1; j++) {
+            GLushort bottomLeftIndex = i * slices + j;
+            GLushort bottomRightIndex = bottomLeftIndex + 1;
+            GLushort topLeftIndex = bottomLeftIndex + slices;
+            GLushort topRightIndex = topLeftIndex + 1;
+            // FIXME make a z-order curve for better vertex cache locality
+            indices.push_back(topLeftIndex);
+            indices.push_back(bottomLeftIndex);
+            indices.push_back(topRightIndex);
+
+            indices.push_back(topRightIndex);
+            indices.push_back(bottomLeftIndex);
+            indices.push_back(bottomRightIndex);
+        }
+    }
+    this->indices->append(indices);
+    format = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+    format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+    uniformBuffers[0] = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
+    uniformBuffers[1] = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
+    updatePipeline();
+}
+
+void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
+    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
+    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.frag";
+
+#if LIVE_SHADER_RELOAD
+    static qint64 vsBuiltAge = 0;
+    static qint64 fsBuiltAge = 0;
+    QFileInfo vsInfo(vsFile);
+    QFileInfo fsInfo(fsFile);
+    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
+    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
+    if (!pipeline || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
+        vsBuiltAge = vsAge;
+        fsBuiltAge = fsAge;
+#else
+    if (!pipeline) {
+#endif
+        QString vsSource = readFile(vsFile);
+        QString fsSource = readFile(fsFile);
+        auto vs = gpu::Shader::createVertex(vsSource.toLocal8Bit().toStdString());
+        auto ps = gpu::Shader::createPixel(fsSource.toLocal8Bit().toStdString());
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::gl::GLBackend::makeProgram(*program, gpu::Shader::BindingSet());
+        this->uniformsLocation = program->getBuffers().findLocation("overlayBuffer");
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        pipeline = gpu::Pipeline::create(program, state);
+    }
+}
+
+void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
+    updatePipeline();
+    for_each_eye([&](Eye eye){
+        uniforms.mvp = mvps[eye];
+        uniformBuffers[eye]->setSubData(0, uniforms);
+    });
+    plugin.render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(plugin._compositeFramebuffer);
+        batch.setPipeline(pipeline);
+        batch.setInputFormat(format);
+        gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
+        gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+        batch.setInputBuffer(gpu::Stream::POSITION, posView);
+        batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
+        batch.setIndexBuffer(gpu::UINT16, indices, 0);
+        batch.setResourceTexture(0, plugin._currentFrame->overlay);
+        // FIXME use stereo information input to set both MVPs in the uniforms
+        for_each_eye([&](Eye eye) {
+            batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
+            batch.setViewportTransform(plugin.eyeViewport(eye));
+            batch.drawIndexed(gpu::TRIANGLES, indexCount);
+        });
     });
 }
 
 void HmdDisplayPlugin::compositePointer() {
-    using namespace oglplus;
-
+    auto& cursorManager = Cursor::Manager::instance();
+    const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-
-    useProgram(_program);
-    // set the alpha
-    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
-
-    // Mouse pointer
-    _plane->Use();
     // Reconstruct the headpose from the eye poses
     auto headPosition = vec3(_currentPresentFrameInfo.presentPose[3]);
-    for_each_eye([&](Eye eye) {
-        eyeViewport(eye);
-        auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
-        auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
-        auto mvp = _eyeProjections[eye] * reticleTransform;
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
-        _plane->Draw();
-    });
-    // restore the alpha
-    Uniform<float>(*_program, _alphaUniform).Set(1.0);
-}
-
-
-void HmdDisplayPlugin::internalPresent() {
-
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
-
-    // Composite together the scene, overlay and mouse cursor
-    hmdPresent();
-
-    // screen preview mirroring
-    auto window = _container->getPrimaryWidget();
-    auto devicePixelRatio = window->devicePixelRatio();
-    auto windowSize = toGlm(window->size());
-    windowSize *= devicePixelRatio;
-    float windowAspect = aspect(windowSize);
-    float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
-    if (_enablePreview && _monoPreview) {
-        sceneAspect /= 2.0f;
-    }
-    float aspectRatio = sceneAspect / windowAspect;
-
-    uvec2 targetViewportSize = windowSize;
-    if (aspectRatio < 1.0f) {
-        targetViewportSize.x *= aspectRatio;
-    } else {
-        targetViewportSize.y /= aspectRatio;
-    }
-
-    uvec2 targetViewportPosition;
-    if (targetViewportSize.x < windowSize.x) {
-        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-    } else if (targetViewportSize.y < windowSize.y) {
-        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-    }
-
-    if (_enablePreview) {
-        using namespace oglplus;
-        Context::Clear().ColorBuffer();
-        auto sourceSize = _compositeFramebuffer->size;
-        if (_monoPreview) {
-            sourceSize.x /= 2;
-        }
-        _compositeFramebuffer->Bound(Framebuffer::Target::Read, [&] {
-            Context::BlitFramebuffer(
-                0, 0, sourceSize.x, sourceSize.y,
-                targetViewportPosition.x, targetViewportPosition.y, 
-                targetViewportPosition.x + targetViewportSize.x, targetViewportPosition.y + targetViewportSize.y,
-                BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
+    render([&](gpu::Batch& batch) {
+        // FIXME use standard gpu stereo rendering for this.
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setPipeline(_cursorPipeline);
+        batch.setResourceTexture(0, cursorData.texture);
+        batch.resetViewTransform();
+        for_each_eye([&](Eye eye) {
+            batch.setViewportTransform(eyeViewport(eye));
+            batch.setProjectionTransform(_eyeProjections[eye]);
+            auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
+            auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
+            batch.setModelTransform(reticleTransform);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
-        swapBuffers();
-    } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
-        useProgram(_previewProgram);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glViewport(targetViewportPosition.x, targetViewportPosition.y, targetViewportSize.x, targetViewportSize.y);
-        glUniform1i(_previewUniforms.previewTexture, 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        swapBuffers();
-        _firstPreview = false;
-        _prevWindowSize = windowSize;
-        _prevDevicePixelRatio = devicePixelRatio;
+    });
+}
+
+void HmdDisplayPlugin::compositeOverlay() {
+    if (!_currentFrame || !_currentFrame->overlay) {
+        return;
     }
 
-    postPreview();
-}
-
-void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
-}
-
-void HmdDisplayPlugin::updateFrameData() {
-    // Check if we have old frame data to discard
-    withPresentThreadLock([&] {
-        auto itr = _frameInfos.find(_currentPresentFrameIndex);
-        if (itr != _frameInfos.end()) {
-            _frameInfos.erase(itr);
-        }
-    });
-
-    Parent::updateFrameData();
-
-    withPresentThreadLock([&] {
-        _currentPresentFrameInfo = _frameInfos[_currentPresentFrameIndex];
-    });
-}
-
-glm::mat4 HmdDisplayPlugin::getHeadPose() const {
-    return _currentRenderFrameInfo.renderPose;
+    _overlayRenderer.render(*this);
 }
 
 bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) {
@@ -508,7 +494,7 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
     info.mode = mode;
     info.color = color;
     info.direction = direction;
-    withRenderThreadLock([&] {
+    withNonPresentThreadLock([&] {
         if (hands & Hand::LeftHand) {
             _handLasers[0] = info;
         }
@@ -522,7 +508,6 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
 }
 
 void HmdDisplayPlugin::compositeExtra() {
-#ifdef HMD_HAND_LASER_SUPPORT
     // If neither hand laser is activated, exit
     if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid()) {
         return;
@@ -532,64 +517,20 @@ void HmdDisplayPlugin::compositeExtra() {
         return;
     }
 
-    updateLaserProgram();
-
-    // Render hand lasers
-    using namespace oglplus;
-    useProgram(_laserProgram);
-    _laserGeometry->Use();
-    std::array<mat4, NUMBER_OF_HANDS> handLaserModelMatrices;
-
-    for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
-        if (_presentHandPoses[i] == IDENTITY_MATRIX) {
-            continue;
-        }
-        const auto& handLaser = _presentHandLasers[i];
-        if (!handLaser.valid()) {
-            continue;
-        }
-
-        const auto& laserDirection = handLaser.direction;
-        auto model = _presentHandPoses[i];
-        auto castDirection = glm::quat_cast(model) * laserDirection;
-        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
-            castDirection = glm::normalize(castDirection);
-        }
-
-        // FIXME fetch the actual UI radius from... somewhere?
-        float uiRadius = 1.0f;
-
-        // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance; 
-        if (!glm::intersectRaySphere(vec3(_presentHandPoses[i][3]), castDirection, _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
-            continue;
-        }
-
-        // Make sure we rotate to match the desired laser direction
-        if (laserDirection != Vectors::UNIT_NEG_Z) {
-            auto rotation = glm::rotation(Vectors::UNIT_NEG_Z, laserDirection);
-            model = model * glm::mat4_cast(rotation);
-        }
-
-        model = glm::scale(model, vec3(distance));
-        handLaserModelMatrices[i] = model;
-    }
-
-    glEnable(GL_BLEND);
-    for_each_eye([&](Eye eye) {
-        eyeViewport(eye);
-        auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
-        auto view = glm::inverse(eyePose);
-        const auto& projection = _eyeProjections[eye];
-        for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
-            if (handLaserModelMatrices[i] == IDENTITY_MATRIX) {
-                continue;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    render([&](gpu::Batch& batch) {
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
+        batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
+        bilateral::for_each_side([&](bilateral::Side side){
+            auto index = bilateral::index(side);
+            if (_presentHandPoses[index] == IDENTITY_MATRIX) {
+                return;
             }
-            Uniform<glm::mat4>(*_laserProgram, "mvp").Set(projection * view * handLaserModelMatrices[i]);
-            Uniform<glm::vec4>(*_laserProgram, "color").Set(_presentHandLasers[i].color);
-            _laserGeometry->Draw();
-        }
+            const auto& points = _presentHandLaserPoints[index];
+            const auto& lasers = _presentHandLasers[index];
+            geometryCache->renderGlowLine(batch, points.first, points.second, lasers.color);
+        });
     });
-    glDisable(GL_BLEND);
-#endif
 }
+
