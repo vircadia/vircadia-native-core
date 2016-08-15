@@ -1147,6 +1147,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     static glm::vec3 lastAvatarPosition = getMyAvatar()->getPosition();
     static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
+    static controller::Pose lastLeftHandPose = getMyAvatar()->getLeftHandPose();
+    static controller::Pose lastRightHandPose = getMyAvatar()->getRightHandPose();
 
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
@@ -1209,7 +1211,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
         lastHMDHeadPose = hmdHeadPose;
 
-        properties["hand_pose_changed"] = false;
+        auto leftHandPose = getMyAvatar()->getLeftHandPose();
+        auto rightHandPose = getMyAvatar()->getRightHandPose();
+        // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
+        // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
+        properties["hand_pose_changed"] =
+            (!(leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
+            || (!(rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
+        lastLeftHandPose = leftHandPose;
+        lastRightHandPose = rightHandPose;
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
