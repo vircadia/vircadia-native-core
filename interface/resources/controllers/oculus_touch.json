@@ -1,0 +1,69 @@
+{
+    "name": "Oculus Touch to Standard",
+    "channels": [
+        { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb", "peek": true },
+        { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb", "peek": true },
+
+        { "from": "OculusTouch.A", "to": "Standard.A" },
+        { "from": "OculusTouch.B", "to": "Standard.B" },
+        { "from": "OculusTouch.X", "to": "Standard.X" },
+        { "from": "OculusTouch.Y", "to": "Standard.Y" },
+
+        { "from": "OculusTouch.LY", "to": "Standard.LY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "OculusTouch.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
+        { "from": "OculusTouch.LT", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.LT", "to": "Standard.LT" },
+        { "from": "OculusTouch.LS", "to": "Standard.LS" },
+        { "from": "OculusTouch.LeftGrip", "to": "Standard.LT" },
+        { "from": "OculusTouch.LeftGrip", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.LeftHand", "to": "Standard.LeftHand" },
+
+        { "from": "OculusTouch.RY", "to": "Standard.RY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "OculusTouch.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
+        { "from": "OculusTouch.RT", "to": "Standard.RTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.RT", "to": "Standard.RT" },
+        { "from": "OculusTouch.RS", "to": "Standard.RS" },
+        { "from": "OculusTouch.RightGrip", "to": "Standard.RT" },
+            { "from": "OculusTouch.RightGrip", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.RightHand", "to": "Standard.RightHand" },
+
+        { "from": "OculusTouch.LeftApplicationMenu", "to": "Standard.Back" },
+        { "from": "OculusTouch.RightApplicationMenu", "to": "Standard.Start" },
+
+        { "from": "OculusTouch.LeftPrimaryThumbTouch", "to": "Standard.LeftPrimaryThumbTouch" },
+        { "from": "OculusTouch.LeftSecondaryThumbTouch", "to": "Standard.LeftSecondaryThumbTouch" },
+        { "from": "OculusTouch.RightPrimaryThumbTouch", "to": "Standard.RightPrimaryThumbTouch" },
+        { "from": "OculusTouch.RightSecondaryThumbTouch", "to": "Standard.RightSecondaryThumbTouch" },
+        { "from": "OculusTouch.LeftPrimaryIndexTouch", "to": "Standard.LeftPrimaryIndexTouch" },
+        { "from": "OculusTouch.RightPrimaryIndexTouch", "to": "Standard.RightPrimaryIndexTouch" },
+        { "from": "OculusTouch.LSTouch", "to": "Standard.LSTouch" },
+        { "from": "OculusTouch.RSTouch", "to": "Standard.RSTouch" },
+        { "from": "OculusTouch.LeftThumbUp", "to": "Standard.LeftThumbUp" },
+        { "from": "OculusTouch.RightThumbUp", "to": "Standard.RightThumbUp" },
+        { "from": "OculusTouch.LeftIndexPoint", "to": "Standard.LeftIndexPoint" },
+        { "from": "OculusTouch.RightIndexPoint", "to": "Standard.RightIndexPoint" }
+    ]
+}
+
