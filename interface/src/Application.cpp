@@ -4279,7 +4279,7 @@ namespace render {
                    sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
 
                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                   // do not set the ambient sphere - it peaks too high, and causes flashing when turning
                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
 
                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
