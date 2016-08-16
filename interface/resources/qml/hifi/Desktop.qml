@@ -88,6 +88,7 @@ OriginalDesktop.Desktop {
             console.log("Download start: " + download.state);
             adaptedPath = File.convertUrlToPath(currentUrl);
             tempDir = File.getTempDir();
+            console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
             console.log("Path where it should download: " + download.path);
             download.accept();
@@ -101,7 +102,7 @@ OriginalDesktop.Desktop {
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
                 console.log("Download Finished: " + download.state);
                 console.log("File object is: " + File);
-                File.runUnzip(download.path, tempDir, currentUrl);
+                File.runUnzip(download.path, currentUrl);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }

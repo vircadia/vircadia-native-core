@@ -53,7 +53,7 @@ Rectangle {
             var component = Qt.createComponent("Browser.qml");
             var newWindow = component.createObject(desktop);
             request.openIn(newWindow.webView);
-            if (File.testUrl(desktop.currentUrl)) {
+            if (File.isZippedFbx(desktop.currentUrl)) {
                 zipTimer.handler = function() {
                     newWindow.destroy();
                     runJavaScript(autoCancel);
@@ -69,7 +69,7 @@ Rectangle {
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl
             console.log("my url in WebView: " + desktop.currentUrl)
-            if (File.testUrl(desktop.currentUrl)) {
+            if (File.isZippedFbx(desktop.currentUrl)) {
                 runJavaScript(simpleDownload, function(){console.log("ran the JS");});
             }
 

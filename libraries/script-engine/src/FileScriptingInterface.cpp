@@ -31,9 +31,13 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QString tempDir, QUrl url) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     qDebug() << "Url that was downloaded: " + url.toString();
     qDebug() << "Path where download is saved: " + path;
+    QString fileName = "/" + path.section("/", -1);
+    qDebug() << "Filename to remove from temp path: " + fileName;
+    QString tempDir = path.remove(fileName);
+    qDebug() << "Temporary directory at: " + tempDir;
     QString file = unzipFile(path, tempDir);
     if (file != "") {
         qDebug() << "file to upload: " + file;
@@ -47,7 +51,7 @@ void FileScriptingInterface::runUnzip(QString path, QString tempDir, QUrl url) {
     QDir(tempDir).removeRecursively();
 }
 
-bool FileScriptingInterface::testUrl(QUrl url) {
+bool FileScriptingInterface::isZippedFbx(QUrl url) {
     if (url.toString().contains(".zip") && url.toString().contains("fbx")) return true;
     qDebug() << "This model is not a .fbx packaged in a .zip. Please try with another model.";
     return false;
