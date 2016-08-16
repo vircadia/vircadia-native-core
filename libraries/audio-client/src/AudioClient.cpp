@@ -1362,8 +1362,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 }
 
 void AudioClient::checkDevices() {
-#   ifdef Q_OS_LINUX
-    // on linux, this makes the audio stream hiccup
+#   if defined(Q_OS_LINUX) || defined (Q_OS_WIN)
+    // on Windows and Linux, this causes dropouts in the audio stream
 #   else
     QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
     QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
