@@ -25,7 +25,7 @@ Rectangle {
     property string actionPhrase: "did something";
     property string timePhrase: "";
     property string hifiUrl: storyCard.placeName;
-    property string imageUrl: Qt.resolvedUrl("../images/default-domain.gif");
+    property string imageUrl: Qt.resolvedUrl("../../images/default-domain.gif");
     property var visitPlace: function (ignore) { };
     color: "white";
     HifiStyles.HifiConstants { id: otherHifi }
