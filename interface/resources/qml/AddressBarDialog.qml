@@ -53,6 +53,7 @@ Window {
             storyCard.placeName = card.placeName;
             storyCard.actionPhrase = card.actionPhrase;
             storyCard.timePhrase = card.timePhrase;
+            storyCard.hifiUrl = card.hifiUrl;
             storyCard.visible = true;
             return;
         }
@@ -78,7 +79,7 @@ Window {
 
         ListView {
             id: scroll
-            width: (3 * cardWidth) + (2 * hifi.layout.spacing);
+            width: backgroundImage.width;
             height: cardHeight;
             spacing: hifi.layout.spacing;
             clip: true;
@@ -106,9 +107,18 @@ Window {
             }
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
-            highlight: Rectangle { color: "transparent"; border.width: 2; border.color: "#1FA5E8"; z: 1; }
+            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
+            leftMargin: 50; // Start the first item over be about the same amount as the last item peeks through on the other side.
+            rightMargin: 50;
         }
-
+        Image { // Just a visual indicator that the user can swipe the cards over to see more.
+            source: "../images/Swipe-Icon-single.svg"
+            width: 50;
+            anchors {
+                right: scroll.right;
+                verticalCenter: scroll.verticalCenter;
+            }
+        }
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
