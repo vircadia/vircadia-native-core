@@ -9,7 +9,7 @@
 #ifndef hifi_WebEntityItem_h
 #define hifi_WebEntityItem_h
 
-#include "EntityItem.h" 
+#include "EntityItem.h"
 
 class WebEntityItem : public EntityItem {
 public:
@@ -18,13 +18,13 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     WebEntityItem(const EntityItemID& entityItemID);
-    
+
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
     virtual void setDimensions(const glm::vec3& value);
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-    
+
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
@@ -32,15 +32,15 @@ public:
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const;
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
@@ -53,6 +53,8 @@ public:
 
     virtual void setSourceUrl(const QString& value);
     const QString& getSourceUrl() const;
+
+    bool wantsHandControllerPointerEvents() const override { return true; }
 
 protected:
     QString _sourceUrl;

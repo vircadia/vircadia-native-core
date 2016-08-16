@@ -438,6 +438,8 @@ public:
 
     virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
 
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }

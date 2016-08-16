@@ -193,6 +193,8 @@ public slots:
     Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
     Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
+    Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

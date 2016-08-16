@@ -61,7 +61,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
-    
+
     return somethingChanged;
 }
 
@@ -91,8 +91,8 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
-                                    OctreeElement::AppendState& appendState) const { 
+                                    int& propertyCount,
+                                    OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, _sourceUrl);

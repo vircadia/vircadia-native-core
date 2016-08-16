@@ -246,7 +246,7 @@ function projectOntoEntityXYPlane(entityID, worldPos) {
              y: (1 - normalizedPos.y) * props.dimensions.y }; // flip y-axis
 }
 
-function handLaserIntersectWebEntity(entityID, hand) {
+function handLaserIntersectEntity(entityID, hand) {
     var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
     var pose = Controller.getPoseValue(standardControllerValue);
     var worldHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
@@ -1403,7 +1403,7 @@ function MyController(hand) {
             }
         }
 
-        if (rayPickInfo.entityID && entityPropertiesCache.getProps(rayPickInfo.entityID).type === "Web") {
+        if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
 
@@ -2108,7 +2108,7 @@ function MyController(hand) {
 
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
 
         var pointerEvent = {
             type: "Press",
@@ -2129,7 +2129,7 @@ function MyController(hand) {
 
     this.entityTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
 
         var pointerEvent = {
             type: "Release",
@@ -2159,7 +2159,7 @@ function MyController(hand) {
         }
 
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
 
         if (Entities.keyboardFocusEntity != this.grabbedEntity) {
             Entities.keyboardFocusEntity = this.grabbedEntity;

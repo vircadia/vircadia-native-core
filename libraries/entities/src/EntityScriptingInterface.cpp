@@ -1230,6 +1230,19 @@ void EntityScriptingInterface::sendHoverLeaveEntity(QUuid id, PointerEvent event
     QMetaObject::invokeMethod(qApp, "sendHoverLeaveEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
+bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(id));
+            if (entity) {
+                result = entity->wantsHandControllerPointerEvents();
+            }
+        });
+    }
+    return result;
+}
+
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }

@@ -2629,7 +2629,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         event->screenPos(), button,
         buttons, event->modifiers());
 
-    if (!compositor.getReticleOverDesktop() || getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+    if (!isHMDMode() || !compositor.getReticleOverDesktop() || getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
