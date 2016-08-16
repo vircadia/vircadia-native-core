@@ -136,6 +136,9 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
 
+    STAT_UPDATE_FLOAT(assetMbpsIn, (float)bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(assetMbpsOut, (float)bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
+
     // Second column: ping
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);

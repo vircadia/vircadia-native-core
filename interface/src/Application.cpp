@@ -838,7 +838,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
         bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+    connect(nodeList.data(), &LimitedNodeList::dataReceived,
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     // FIXME -- I'm a little concerned about this.
