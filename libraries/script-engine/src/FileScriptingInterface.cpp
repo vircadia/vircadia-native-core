@@ -36,7 +36,8 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     qDebug() << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
     qDebug() << "Filename to remove from temp path: " + fileName;
-    QString tempDir = path.remove(fileName);
+    QString tempDir = path;
+    tempDir.remove(fileName);
     qDebug() << "Temporary directory at: " + tempDir;
     QString file = unzipFile(path, tempDir);
     if (file != "") {
