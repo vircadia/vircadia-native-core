@@ -96,7 +96,9 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 //
 
 var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
-var EQUIP_HOTSPOT_RENDER_RADIUS = 0.3; // radius used for palm vs equip-hotspot for rendering hot-spots
+// if EQUIP_HOTSPOT_RENDER_RADIUS is greater than zero, the hotspot will appear before the hand
+// has reached the required position, and then grow larger once the hand is close enough to equip.
+var EQUIP_HOTSPOT_RENDER_RADIUS = 0.0; // radius used for palm vs equip-hotspot for rendering hot-spots
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
@@ -110,13 +112,11 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 
 // if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
-var AUTO_UNEQUIP_DISTANCE_FACTOR = 1.2; // multiplied by maximum dimension of held item, > this means drop
 
 //
 // other constants
 //
 
-var HOTSPOT_DRAW_DISTANCE = 10;
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
@@ -1753,7 +1753,7 @@ function MyController(hand) {
             z: 0
         };
 
-        var DROP_ANGLE = Math.PI / 7;
+        var DROP_ANGLE = Math.PI / 6;
         var HYSTERESIS_FACTOR = 1.1;
         var ROTATION_ENTER_THRESHOLD = Math.cos(DROP_ANGLE);
         var ROTATION_EXIT_THRESHOLD = Math.cos(DROP_ANGLE * HYSTERESIS_FACTOR);

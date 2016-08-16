@@ -249,6 +249,9 @@ var toolBar = (function () {
 
         toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
         toolBar.writeProperty("shown", false);
+        addButton("openAssetBrowserButton","assets-01.svg",function(){
+            Window.showAssetServer();
+        })
 
         addButton("newModelButton", "model-01.svg", function () {
             var SHAPE_TYPE_NONE = 0;
@@ -428,6 +431,7 @@ var toolBar = (function () {
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
             });
         });
+
 
         that.setActive(false);
     }

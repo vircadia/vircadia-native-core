@@ -69,17 +69,17 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround
 
-    auto transform = _transform;
+    auto transform = getTransform();
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
-    
+
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
     if (getIsSolid()) {
         if (!_quadVerticesID) {
             _quadVerticesID = geometryCache->allocateID();
         }
-        
+
         if (geometryChanged) {
             QVector<glm::vec2> points;
             QVector<glm::vec4> colors;

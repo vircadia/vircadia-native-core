@@ -21,7 +21,7 @@ static bool timeElapsed = true;
 static bool timeElapsed = false;
 #endif
 
-void GLBackend::do_beginQuery(Batch& batch, size_t paramOffset) {
+void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
@@ -34,7 +34,7 @@ void GLBackend::do_beginQuery(Batch& batch, size_t paramOffset) {
     }
 }
 
-void GLBackend::do_endQuery(Batch& batch, size_t paramOffset) {
+void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
@@ -47,7 +47,7 @@ void GLBackend::do_endQuery(Batch& batch, size_t paramOffset) {
     }
 }
 
-void GLBackend::do_getQuery(Batch& batch, size_t paramOffset) {
+void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) { 

@@ -86,15 +86,16 @@
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
 #include <plugins/CodecPlugin.h>
+#include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
-#include <RecordingScriptingInterface.h>
+#include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <ScriptEngines.h>
+#include <steamworks-wrapper/SteamClient.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -256,7 +257,10 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-
+            // Don't do heartbeat detection under nsight
+            if (nsightActive()) {
+                continue;
+            }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -304,8 +308,6 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-
-
                     deadlockDetectionCrash();
                 #endif
             }
@@ -778,16 +780,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
 
-    _chromiumShareContext = new OffscreenGLCanvas();
-    _chromiumShareContext->create(_glWidget->context()->contextHandle());
-    _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->create(_glWidget->context()->contextHandle());
-    _offscreenContext->makeCurrent();
     initializeGL();
-    _offscreenContext->makeCurrent();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -845,7 +838,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
         bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+    connect(nodeList.data(), &LimitedNodeList::dataReceived,
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     // FIXME -- I'm a little concerned about this.
@@ -1452,11 +1445,18 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    _glWidget->makeCurrent();
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
+    _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1475,7 +1475,8 @@ void Application::initializeGL() {
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
+
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
@@ -1491,8 +1492,13 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
+    _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->makeCurrent();
+
     // update before the first render
     update(0);
+
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -1509,7 +1515,7 @@ void Application::initializeUi() {
 
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_offscreenContext->getContext());
+    offscreenUi->create(_glWidget->context()->contextHandle());
 
     auto rootContext = offscreenUi->getRootContext();
 
@@ -1586,6 +1592,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+
+    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
     
 
     _glWidget->installEventFilter(offscreenUi.data());
@@ -1678,17 +1686,7 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
-    // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
-    {
-        PerformanceTimer perfTimer("syncCache");
-        renderArgs._context->syncCache();
-    }
-
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    // Final framebuffer that will be handled to the display-plugin
-    auto finalFramebuffer = framebufferCache->getFramebuffer();
-
-    _gpuContext->beginFrame(finalFramebuffer, getHMDSensorPose());
+    _gpuContext->beginFrame(getHMDSensorPose());
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
     gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
@@ -1818,7 +1816,10 @@ void Application::paintGL() {
     getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
 
     // Primary rendering pass
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
+    // Final framebuffer that will be handled to the display-plugin
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
@@ -1843,7 +1844,6 @@ void Application::paintGL() {
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
-            mat4 headPose = displayPlugin->getHeadPose();
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
@@ -1859,13 +1859,6 @@ void Application::paintGL() {
                 // Apply IPD scaling
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
-
-                // Tell the plugin what pose we're using to render.  In this case we're just using the
-                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-                // for rotational timewarp.  If we move to support positonal timewarp, we need to
-                // ensure this contains the full pose composed with the eye offsets.
-                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
-
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
@@ -1873,35 +1866,25 @@ void Application::paintGL() {
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
-
-        renderArgs._blitFramebuffer.reset();
-        renderArgs._context->enableStereo(false);
     }
 
-    _gpuContext->endFrame();
-
-    gpu::TexturePointer overlayTexture = _applicationOverlay.acquireOverlay();
-    if (overlayTexture) {
-        displayPlugin->submitOverlayTexture(overlayTexture);
-    }
-
-    // deliver final composited scene to the display plugin
+    auto frame = _gpuContext->endFrame();
+    frame->frameIndex = _frameCount;
+    frame->framebuffer = finalFramebuffer;
+    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
+        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+    };
+    frame->overlay = _applicationOverlay.getOverlayTexture();
+    // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-
-        auto finalTexture = finalFramebuffer->getRenderBuffer(0);
-        Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
-        _lockedFramebufferMap[finalTexture] = finalFramebuffer;
-
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
-        {
-            PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
-            PerformanceTimer perfTimer("pluginSubmitScene");
-            displayPlugin->submitSceneTexture(_frameCount, finalTexture);
-        }
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
+        displayPlugin->submitFrame(frame);
     }
+
+    // Reset the framebuffer and stereo state
+    renderArgs._blitFramebuffer.reset();
+    renderArgs._context->enableStereo(false);
 
     {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
@@ -2902,6 +2885,8 @@ void Application::idle(float nsecsElapsed) {
 
     PROFILE_RANGE(__FUNCTION__);
 
+    SteamClient::runCallbacks();
+
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
@@ -3222,6 +3207,14 @@ void Application::init() {
     QString addressLookupString;
     if (urlIndex != -1) {
         addressLookupString = arguments().value(urlIndex + 1);
+    }
+
+    // when +connect_lobby in command line, join steam lobby
+    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+    if (lobbyIndex != -1) {
+        QString lobbyId = arguments().value(lobbyIndex + 1);
+        SteamClient::joinLobby(lobbyId);
     }
 
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
@@ -4859,6 +4852,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4897,7 +4892,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     }
 
     if (defaultUpload) {
-        toggleAssetServerWidget(urlString);
+        showAssetServerWidget(urlString);
     }
     return defaultUpload;
 }
@@ -5085,7 +5080,7 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
-void Application::toggleAssetServerWidget(QString filePath) {
+void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
@@ -5136,8 +5131,10 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
-    if (!newScript.isEmpty()) {
+    auto newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    if (QUrl(newScript).scheme() == "atp") {
+        OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
+    } else if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
 }
@@ -5410,6 +5407,7 @@ void Application::updateDisplayMode() {
         DisplayPluginList advanced;
         DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
+            displayPlugin->setContext(_gpuContext);
             auto grouping = displayPlugin->getGrouping();
             switch (grouping) {
                 case Plugin::ADVANCED:
@@ -5478,9 +5476,6 @@ void Application::updateDisplayMode() {
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
-
-        // FIXME probably excessive and useless context switching
-        _offscreenContext->makeCurrent();
 
         bool active = newDisplayPlugin->activate();
 
@@ -5624,20 +5619,6 @@ QOpenGLContext* Application::getPrimaryContext() {
 
 bool Application::makeRenderingContextCurrent() {
     return _offscreenContext->makeCurrent();
-}
-
-void Application::releaseSceneTexture(const gpu::TexturePointer& texture) {
-    Q_ASSERT(QThread::currentThread() == thread());
-    auto& framebufferMap = _lockedFramebufferMap;
-    Q_ASSERT(framebufferMap.contains(texture));
-    auto framebufferPointer = framebufferMap[texture];
-    framebufferMap.remove(texture);
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    framebufferCache->releaseFramebuffer(framebufferPointer);
-}
-
-void Application::releaseOverlayTexture(const gpu::TexturePointer& texture) {
-    _applicationOverlay.releaseOverlay(texture);
 }
 
 bool Application::isForeground() const { 

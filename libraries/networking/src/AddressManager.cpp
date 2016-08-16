@@ -17,6 +17,7 @@
 #include <QStringList>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <UUID.h>
 
@@ -46,7 +47,7 @@ bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
-const QUrl AddressManager::currentAddress() const {
+QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
@@ -57,6 +58,21 @@ const QUrl AddressManager::currentAddress() const {
     }
     
     hifiURL.setPath(currentPath());
+
+    return hifiURL;
+}
+
+QUrl AddressManager::currentFacingAddress() const {
+    QUrl hifiURL;
+
+    hifiURL.setScheme(HIFI_URL_SCHEME);
+    hifiURL.setHost(_host);
+
+    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
+        hifiURL.setPort(_port);
+    }
+
+    hifiURL.setPath(currentFacingPath());
 
     return hifiURL;
 }
@@ -97,7 +113,7 @@ void AddressManager::storeCurrentAddress() {
     currentAddressHandle.set(currentAddress());
 }
 
-const QString AddressManager::currentPath(bool withOrientation) const {
+QString AddressManager::currentPath(bool withOrientation) const {
 
     if (_positionGetter) {
         QString pathString = "/" + createByteArray(_positionGetter());
@@ -117,6 +133,25 @@ const QString AddressManager::currentPath(bool withOrientation) const {
     } else {
         qCDebug(networking) << "Cannot create address path without a getter for position."
             << "Call AddressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
+        return QString();
+    }
+}
+
+QString AddressManager::currentFacingPath() const {
+    if (_positionGetter && _orientationGetter) {
+        auto position = _positionGetter();
+        auto orientation = _orientationGetter();
+
+        // move the user a couple units away
+        const float DISTANCE_TO_USER = 2.0f;
+        position += orientation * Vectors::FRONT * DISTANCE_TO_USER;
+
+        // rotate the user by 180 degrees
+        orientation = orientation * glm::angleAxis(PI, Vectors::UP);
+
+        return "/" + createByteArray(position) + "/" + createByteArray(orientation);
+    } else {
+        qCDebug(networking) << "Cannot create address path without a getter for position/orientation.";
         return QString();
     }
 }

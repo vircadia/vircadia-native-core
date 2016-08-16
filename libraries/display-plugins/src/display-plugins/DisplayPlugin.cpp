@@ -12,6 +12,7 @@
 #include "NullDisplayPlugin.h"
 #include "stereo/SideBySideStereoDisplayPlugin.h"
 #include "stereo/InterleavedStereoDisplayPlugin.h"
+#include "hmd/DebugHmdDisplayPlugin.h"
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
 
 const QString& DisplayPlugin::MENU_PATH() {
@@ -23,6 +24,7 @@ const QString& DisplayPlugin::MENU_PATH() {
 DisplayPluginList getDisplayPlugins() {
     DisplayPlugin* PLUGIN_POOL[] = {
         new Basic2DWindowOpenGLDisplayPlugin(),
+        new DebugHmdDisplayPlugin(),
 #ifdef DEBUG
         new NullDisplayPlugin(),
 #endif
