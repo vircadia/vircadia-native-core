@@ -38,17 +38,13 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
     }
 
     if (!batch._objects.empty()) {
-        auto byteSize = batch._objects.size() * sizeof(Batch::TransformObject);
-        bufferData.resize(byteSize);
-        memcpy(bufferData.data(), batch._objects.data(), byteSize);
-
 #ifdef GPU_SSBO_DRAW_CALL_INFO
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 #else
         glBindBuffer(GL_TEXTURE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_TEXTURE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_TEXTURE_BUFFER, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
 #endif
     }

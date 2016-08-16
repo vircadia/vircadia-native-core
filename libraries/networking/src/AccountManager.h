@@ -96,6 +96,7 @@ public:
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
+    void requestAccessTokenWithSteam(QByteArray authSessionTicket);
 
     void requestAccessTokenFinished();
     void requestProfileFinished();

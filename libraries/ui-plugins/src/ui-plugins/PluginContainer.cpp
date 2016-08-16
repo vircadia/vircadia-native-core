@@ -8,12 +8,14 @@
 #include "PluginContainer.h"
 
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtWidgets/QApplication>
 
 #include <ui/Menu.h>
 #include <MainWindow.h>
+#include <plugins/DisplayPlugin.h>
 
 static PluginContainer* INSTANCE{ nullptr };
 

@@ -119,7 +119,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         args->getViewFrustum().evalProjectionMatrix(projMat);
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // FXAA step

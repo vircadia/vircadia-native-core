@@ -51,9 +51,11 @@ class Backend {
 public:
     virtual~ Backend() {};
 
-    virtual void render(Batch& batch) = 0;
+    void setStereoState(const StereoState& stereo) { _stereo = stereo; }
 
+    virtual void render(const Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
     // UBO class... layout MUST match the layout in Transform.slh
@@ -122,7 +124,7 @@ protected:
 class Context {
 public:
     using Size = Resource::Size;
-    typedef Backend* (*CreateBackend)();
+    typedef BackendPointer (*CreateBackend)();
     typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
 
 
@@ -139,10 +141,46 @@ public:
     Context();
     ~Context();
 
-    void setFrameHandler(FrameHandler handler);
-    void beginFrame(const FramebufferPointer& outputFramebuffer, const glm::mat4& renderPose = glm::mat4());
-    void append(Batch& batch);
-    void endFrame();
+    void beginFrame(const glm::mat4& renderPose = glm::mat4());
+    void appendFrameBatch(Batch& batch);
+    FramePointer endFrame();
+
+    // MUST only be called on the rendering thread
+    // 
+    // Handle any pending operations to clean up (recycle / deallocate) resources no longer in use
+    void recycle() const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Execute a batch immediately, rather than as part of a frame
+    void executeBatch(Batch& batch) const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Executes a frame, applying any updates contained in the frame batches to the rendering
+    // thread shadow copies.  Either executeFrame or consumeFrameUpdates MUST be called on every frame
+    // generated, IN THE ORDER they were generated.
+    void executeFrame(const FramePointer& frame) const;
+
+    // MUST only be called on the rendering thread. 
+    //
+    // Consuming a frame applies any updates queued from the recording thread and applies them to the 
+    // shadow copy used by the rendering thread.  
+    //
+    // EVERY frame generated MUST be consumed, regardless of whether the frame is actually executed,
+    // or the buffer shadow copies can become unsynced from the recording thread copies.
+    // 
+    // Consuming a frame is idempotent, as the frame encapsulates the updates and clears them out as
+    // it applies them, so calling it more than once on a given frame will have no effect after the 
+    // first time
+    //
+    //
+    // This is automatically called by executeFrame, so you only need to call it if you 
+    // have frames you aren't going to otherwise execute, for instance when a display plugin is
+    // being disabled, or in the null display plugin where no rendering actually occurs
+    void consumeFrameUpdates(const FramePointer& frame) const;
+
+    const BackendPointer& getBackend() const { return _backend; }
 
     void enableStereo(bool enable = true);
     bool isStereo();
@@ -150,7 +188,6 @@ public:
     void setStereoViews(const mat4 eyeViews[2]);
     void getStereoProjections(mat4* eyeProjections) const;
     void getStereoViews(mat4* eyeViews) const;
-    void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
@@ -171,10 +208,9 @@ public:
 protected:
     Context(const Context& context);
 
-    std::unique_ptr<Backend> _backend;
+    std::shared_ptr<Backend> _backend;
     bool _frameActive { false };
-    Frame _currentFrame;
-    FrameHandler _frameHandler;
+    FramePointer _currentFrame;
     StereoState  _stereo;
 
     // This function can only be called by "static Shader::makeProgram()"
@@ -219,7 +255,7 @@ template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
     gpu::Batch batch;
     f(batch);
-    context->append(batch);
+    context->appendFrameBatch(batch);
 }
 
 };

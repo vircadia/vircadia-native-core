@@ -18,6 +18,7 @@
 
 #include <controllers/Input.h>
 #include <controllers/Pose.h>
+#include <NumericalConstants.h>
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -113,94 +114,6 @@ void releaseOculusSession() {
         session = nullptr;
     }
 #endif
-}
-
-
-// A wrapper for constructing and using a swap texture set,
-// where each frame you draw to a texture via the FBO,
-// then submit it and increment to the next texture.
-// The Oculus SDK manages the creation and destruction of
-// the textures
-
-SwapFramebufferWrapper::SwapFramebufferWrapper(const ovrSession& session) 
-    : _session(session) {
-    color = nullptr;
-    depth = nullptr;
-}
-
-SwapFramebufferWrapper::~SwapFramebufferWrapper() {
-    destroyColor();
-}
-
-void SwapFramebufferWrapper::Commit() {
-    auto result = ovr_CommitTextureSwapChain(_session, color);
-    Q_ASSERT(OVR_SUCCESS(result));
-}
-
-void SwapFramebufferWrapper::Resize(const uvec2 & size) {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    this->size = size;
-    initColor();
-    initDone();
-}
-
-void SwapFramebufferWrapper::destroyColor() {
-    if (color) {
-        ovr_DestroyTextureSwapChain(_session, color);
-        color = nullptr;
-    }
-}
-
-void SwapFramebufferWrapper::initColor() {
-    destroyColor();
-
-    ovrTextureSwapChainDesc desc = {};
-    desc.Type = ovrTexture_2D;
-    desc.ArraySize = 1;
-    desc.Width = size.x;
-    desc.Height = size.y;
-    desc.MipLevels = 1;
-    desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
-    desc.SampleCount = 1;
-    desc.StaticImage = ovrFalse;
-
-    ovrResult result = ovr_CreateTextureSwapChainGL(_session, &desc, &color);
-    if (!OVR_SUCCESS(result)) {
-        logFatal("Failed to create swap textures");
-    }
-
-    int length = 0;
-    result = ovr_GetTextureSwapChainLength(_session, color, &length);
-    if (!OVR_SUCCESS(result) || !length) {
-        qFatal("Unable to count swap chain textures");
-    }
-    for (int i = 0; i < length; ++i) {
-        GLuint chainTexId;
-        ovr_GetTextureSwapChainBufferGL(_session, color, i, &chainTexId);
-        glBindTexture(GL_TEXTURE_2D, chainTexId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void SwapFramebufferWrapper::initDone() {
-}
-
-void SwapFramebufferWrapper::onBind(oglplus::Framebuffer::Target target) {
-    int curIndex;
-    ovr_GetTextureSwapChainCurrentIndex(_session, color, &curIndex);
-    GLuint curTexId;
-    ovr_GetTextureSwapChainBufferGL(_session, color, curIndex, &curTexId);
-    glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, curTexId, 0);
-}
-
-void SwapFramebufferWrapper::onUnbind(oglplus::Framebuffer::Target target) {
-    glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
 }
 
 

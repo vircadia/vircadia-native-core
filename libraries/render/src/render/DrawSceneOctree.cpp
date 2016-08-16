@@ -103,7 +103,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need
@@ -153,7 +153,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
             Transform crosshairModel;
             crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1000.0));
             crosshairModel.setScale(1000.0 * tan(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
-            batch.setViewTransform(Transform());
+            batch.resetViewTransform();
             batch.setModelTransform(crosshairModel);
             batch.setPipeline(getDrawLODReticlePipeline());
             batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
@@ -211,7 +211,7 @@ void DrawItemSelection::run(const SceneContextPointer& sceneContext,
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need

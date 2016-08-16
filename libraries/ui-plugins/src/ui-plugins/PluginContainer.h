@@ -58,8 +58,6 @@ public:
     virtual void showDisplayPluginsTools(bool show = true) = 0;
     virtual void requestReset() = 0;
     virtual bool makeRenderingContextCurrent() = 0;
-    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) = 0;
-    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) = 0;
     virtual GLWidget* getPrimaryWidget() = 0;
     virtual MainWindow* getPrimaryWindow() = 0;
     virtual QOpenGLContext* getPrimaryContext() = 0;

@@ -58,8 +58,10 @@ public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    const QUrl currentAddress() const;
-    const QString currentPath(bool withOrientation = true) const;
+    QUrl currentAddress() const;
+    QUrl currentFacingAddress() const;
+    QString currentPath(bool withOrientation = true) const;
+    QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     const QString& getPlaceName() const { return _placeName; }
