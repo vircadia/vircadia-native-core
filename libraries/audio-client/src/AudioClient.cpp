@@ -334,20 +334,16 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
 
     const int FORTY_FOUR = 44100;
+    const int FORTY_EIGHT = 48000;
     adjustedAudioFormat = desiredAudioFormat;
 
 #ifdef Q_OS_ANDROID
     adjustedAudioFormat.setSampleRate(FORTY_FOUR);
 #else
 
-    const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
-
-    if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
-        // use 48, which is a simple downsample, upsample
-        adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
-    } else if (audioDevice.supportedSampleRates().contains(HALF_FORTY_FOUR)) {
-        // use 22050, resample but closer to 24
-        adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
+    if (audioDevice.supportedSampleRates().contains(FORTY_EIGHT)) {
+        // use 48000, which is a simple downsample, upsample
+        adjustedAudioFormat.setSampleRate(FORTY_EIGHT);
     } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
         // use 44100, resample
         adjustedAudioFormat.setSampleRate(FORTY_FOUR);
