@@ -346,8 +346,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     auto sceneStage = scene->getStage();
     auto skyStage = scene->getSkyStage();
     auto sceneKeyLight = sceneStage->getKeyLight();
-    auto sceneLocation = sceneStage->getLocation();
-    auto sceneTime = sceneStage->getTime();
     
     // Skybox and procedural skybox data
     auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
@@ -383,6 +381,8 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         sceneStage->setLocation(zone->getStageProperties().getLongitude(),
             zone->getStageProperties().getLatitude(),
             zone->getStageProperties().getAltitude());
+
+        auto sceneTime = sceneStage->getTime();
         sceneTime->setHour(zone->getStageProperties().calculateHour());
         sceneTime->setDay(zone->getStageProperties().calculateDay());
     }
