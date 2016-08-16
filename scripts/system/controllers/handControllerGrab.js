@@ -1425,8 +1425,8 @@ function MyController(hand) {
                     isTertiaryButton: false
                 };
 
+                this.hoverEntity = entity;
                 Entities.sendHoverEnterEntity(entity, pointerEvent);
-                // AJT: TODO: send hover leave entity at some point as well!!??!
             }
 
             // send mouse events for button highlights and tooltips.
@@ -1457,6 +1457,13 @@ function MyController(hand) {
                 this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
                 return;
             }
+        } else if (this.hoverEntity) {
+            var pinterEvent = {
+                type: "Move",
+                id: this.hand + 1
+            };
+            Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+            this.hoverEntity = null;
         }
 
         if (rayPickInfo.entityID) {
@@ -2139,6 +2146,8 @@ function MyController(hand) {
 
         Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
         Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
+        Entities.sendHoverLeaveEntity(this.grabbedEntity, pointerEvent);
+        this.focusedEntity = null;
     };
 
     this.entityTouching = function() {
