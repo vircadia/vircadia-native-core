@@ -134,7 +134,7 @@ Menu::Menu() {
     // Edit > My Asset Server
     auto assetServerAction = addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer,
                                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                                           qApp, SLOT(toggleAssetServerWidget()));
+                                                           qApp, SLOT(showAssetServerWidget()));
     auto nodeList = DependencyManager::get<NodeList>();
     QObject::connect(nodeList.data(), &NodeList::canWriteAssetsChanged, assetServerAction, &QAction::setEnabled);
     assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());

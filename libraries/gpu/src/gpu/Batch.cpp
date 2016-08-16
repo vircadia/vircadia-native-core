@@ -232,10 +232,11 @@ void Batch::setModelTransform(const Transform& model) {
     _invalidModel = true;
 }
 
-void Batch::setViewTransform(const Transform& view) {
+void Batch::setViewTransform(const Transform& view, bool camera) {
     ADD_COMMAND(setViewTransform);
-
+    uint cameraFlag = camera ? 1 : 0;
     _params.emplace_back(_transforms.cache(view));
+    _params.emplace_back(cameraFlag);
 }
 
 void Batch::setProjectionTransform(const Mat4& proj) {
@@ -491,17 +492,6 @@ void Batch::captureNamedDrawCallInfo(std::string name) {
     std::swap(_currentNamedCall, name); // Restore _currentNamedCall
 }
 
-void Batch::preExecute() {
-    for (auto& mapItem : _namedData) {
-        auto& name = mapItem.first;
-        auto& instance = mapItem.second;
-
-        startNamedCall(name);
-        instance.process(*this);
-        stopNamedCall();
-    }
-}
-
 // Debugging
 void Batch::pushProfileRange(const char* name) {
 #if defined(NSIGHT_FOUND)
@@ -627,4 +617,67 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
     _params.emplace_back(blue);
     _params.emplace_back(green);
     _params.emplace_back(red);
+}
+
+void Batch::finishFrame(BufferUpdates& updates) {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        startNamedCall(name);
+        instance.process(*this);
+        stopNamedCall();
+    }
+
+    for (auto& namedCallData : _namedData) {
+        for (auto& buffer : namedCallData.second.buffers) {
+            if (!buffer || !buffer->isDirty()) {
+                continue;
+            }
+            updates.emplace_back(buffer->getUpdate());
+        }
+    }
+
+    for (auto& bufferCacheItem : _buffers._items) {
+        const BufferPointer& buffer = bufferCacheItem._data;
+        if (!buffer || !buffer->isDirty()) {
+            continue;
+        }
+        updates.emplace_back(buffer->getUpdate());
+    }
+}
+
+void Batch::flush() {
+    for (auto& mapItem : _namedData) {
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        auto& self = const_cast<Batch&>(*this);
+        self.startNamedCall(name);
+        instance.process(self);
+        self.stopNamedCall();
+    }
+
+    for (auto& namedCallData : _namedData) {
+        for (auto& buffer : namedCallData.second.buffers) {
+            if (!buffer) {
+                continue;
+            }
+            if (!buffer->isDirty()) {
+                continue;
+            }
+            buffer->flush();
+        }
+    }
+
+    for (auto& bufferCacheItem : _buffers._items) {
+        const BufferPointer& buffer = bufferCacheItem._data;
+        if (!buffer) {
+            continue;
+        }
+        if (!buffer->isDirty()) {
+            continue;
+        }
+        buffer->flush();
+    }
 }

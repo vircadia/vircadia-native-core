@@ -35,7 +35,7 @@ void GLBackend::resetOutputStage() {
     glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
-void GLBackend::do_setFramebuffer(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     if (_output._framebuffer != framebuffer) {
         auto newFBO = getFramebufferID(framebuffer);
@@ -47,7 +47,7 @@ void GLBackend::do_setFramebuffer(Batch& batch, size_t paramOffset) {
     }
 }
 
-void GLBackend::do_clearFramebuffer(Batch& batch, size_t paramOffset) {
+void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }

@@ -19,13 +19,14 @@
 
 #include "AnimDebugDraw.h"
 
-struct Vertex {
-    glm::vec3 pos;
-    uint32_t rgba;
-};
-
 class AnimDebugDrawData {
 public:
+
+    struct Vertex {
+        glm::vec3 pos;
+        uint32_t rgba;
+    };
+
     typedef render::Payload<AnimDebugDrawData> Payload;
     typedef Payload::DataPointer Pointer;
 
@@ -119,18 +120,18 @@ AnimDebugDraw::AnimDebugDraw() :
     }
 
     // HACK: add red, green and blue axis at (1,1,1)
-    _animDebugDrawData->_vertexBuffer->resize(sizeof(Vertex) * 6);
+    _animDebugDrawData->_vertexBuffer->resize(sizeof(AnimDebugDrawData::Vertex) * 6);
     
-    static std::vector<Vertex> vertices({ 
-        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
-        Vertex { glm::vec3(2.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
-        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 255, 0, 255) },
-        Vertex { glm::vec3(1.0, 2.0f, 1.0f), toRGBA(0, 255, 0, 255) },
-        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 0, 255, 255) },
-        Vertex { glm::vec3(1.0, 1.0f, 2.0f), toRGBA(0, 0, 255, 255) },
+    static std::vector<AnimDebugDrawData::Vertex> vertices({
+        AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
+        AnimDebugDrawData::Vertex { glm::vec3(2.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
+        AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 255, 0, 255) },
+        AnimDebugDrawData::Vertex { glm::vec3(1.0, 2.0f, 1.0f), toRGBA(0, 255, 0, 255) },
+        AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 0, 255, 255) },
+        AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 2.0f), toRGBA(0, 0, 255, 255) },
     });
     static std::vector<uint16_t> indices({ 0, 1, 2, 3, 4, 5 });
-    _animDebugDrawData->_vertexBuffer->setSubData<Vertex>(0, vertices);
+    _animDebugDrawData->_vertexBuffer->setSubData<AnimDebugDrawData::Vertex>(0, vertices);
     _animDebugDrawData->_indexBuffer->setSubData<uint16_t>(0, indices);
 }
 
@@ -161,7 +162,7 @@ static const uint32_t blue = toRGBA(0, 0, 255, 255);
 
 const int NUM_CIRCLE_SLICES = 24;
 
-static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius, Vertex*& v) {
+static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius, AnimDebugDrawData::Vertex*& v) {
 
     const float XYZ_AXIS_LENGTH = radius * 4.0f;
 
@@ -236,7 +237,7 @@ static void addBone(const AnimPose& rootPose, const AnimPose& pose, float radius
 }
 
 static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPose& parentPose,
-                    float radius, const glm::vec4& colorVec, Vertex*& v) {
+                    float radius, const glm::vec4& colorVec, AnimDebugDrawData::Vertex*& v) {
 
     uint32_t color = toRGBA(colorVec);
 
@@ -298,7 +299,7 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
     }
 }
 
-static void addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, Vertex*& v) {
+static void addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, AnimDebugDrawData::Vertex*& v) {
     uint32_t colorInt = toRGBA(color);
     v->pos = start;
     v->rgba = colorInt;
@@ -347,10 +348,10 @@ void AnimDebugDraw::update() {
         numVerts += (int)DebugDraw::getInstance().getRays().size() * VERTICES_PER_RAY;
 
         // allocate verts!
-        std::vector<Vertex> vertices;
+        std::vector<AnimDebugDrawData::Vertex> vertices;
         vertices.resize(numVerts);
         //Vertex* verts = (Vertex*)data._vertexBuffer->editData();
-        Vertex* v = nullptr;
+        AnimDebugDrawData::Vertex* v = nullptr;
         if (numVerts) {
             v = &vertices[0];
         }
@@ -403,8 +404,8 @@ void AnimDebugDraw::update() {
         }
         DebugDraw::getInstance().clearRays();
 
-        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
-        data._vertexBuffer->setSubData<Vertex>(0, vertices);
+        data._vertexBuffer->resize(sizeof(AnimDebugDrawData::Vertex) * numVerts);
+        data._vertexBuffer->setSubData<AnimDebugDrawData::Vertex>(0, vertices);
 
         assert((!numVerts && !v) || (numVerts == (v - &vertices[0])));
 

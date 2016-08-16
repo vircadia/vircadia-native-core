@@ -16,6 +16,7 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QThreadPool>
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>
@@ -30,14 +31,13 @@
 #include <AssetClient.h>
 
 #include <gl/OffscreenGLCanvas.h>
-#include <gl/OglplusHelpers.h>
 #include <gl/GLHelpers.h>
 #include <gl/QOpenGLContextWrapper.h>
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
+#include <gpu/StandardShaderLib.h>
 
 #include <WebEntityItem.h>
 #include <OctreeUtils.h>
@@ -157,7 +157,204 @@ static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<siz
     return QString("%1 %2").arg(size).arg(SUFFIXES[suffixIndex]);
 }
 
+const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
+uniform sampler2D colorMap;
+
+in vec2 varTexCoord0;
+
+out vec4 outFragColor;
+
+void main(void) {
+    outFragColor = vec4(pow(texture(colorMap, varTexCoord0).rgb, vec3(2.2)), 1.0);
+}
+)SCRIBE";
+
+extern QThread* RENDER_THREAD;
+
+class RenderThread : public GenericQueueThread<gpu::FramePointer> {
+    using Parent = GenericQueueThread<gpu::FramePointer>;
+public:
+    QOpenGLContextWrapper* _displayContext{ nullptr };
+    QSurface* _displaySurface{ nullptr };
+    gpu::PipelinePointer _presentPipeline;
+    gpu::ContextPointer _gpuContext; // initialized during window creation
+    std::atomic<size_t> _presentCount;
+    QElapsedTimer _elapsed;
+    std::atomic<uint16_t> _fps{ 1 };
+    RateCounter<200> _fpsCounter;
+    std::mutex _mutex;
+    std::shared_ptr<gpu::Backend> _backend;
+    std::vector<uint64_t> _frameTimes;
+    size_t _frameIndex;
+    static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
+
+
+
+    void initialize(QOpenGLContextWrapper* displayContext, QWindow* surface) {
+        setObjectName("RenderThread");
+        _displayContext = displayContext;
+        _displaySurface = surface;
+        _displayContext->makeCurrent(_displaySurface);
+        // GPU library init
+        gpu::Context::init<gpu::gl::GLBackend>();
+        _gpuContext = std::make_shared<gpu::Context>();
+        _backend = _gpuContext->getBackend();
+        _displayContext->makeCurrent(_displaySurface);
+        DependencyManager::get<DeferredLightingEffect>()->init();
+        _displayContext->doneCurrent();
+        Parent::initialize();
+        if (isThreaded()) {
+            _displayContext->moveToThread(thread());
+        }
+    }
+
+    void setup() override {
+        RENDER_THREAD = QThread::currentThread();
+        _displayContext->makeCurrent(_displaySurface);
+        glewExperimental = true;
+        glewInit();
+        glGetError();
+        _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
+
+        {
+            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+            auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+            gpu::Shader::BindingSet slotBindings;
+            gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            _presentPipeline = gpu::Pipeline::create(program, state);
+        }
+
+        //_textOverlay = new TextOverlay(glm::uvec2(800, 600));
+        glViewport(0, 0, 800, 600);
+        _elapsed.start();
+    }
+
+    void shutdown() override {
+        _presentPipeline.reset();
+        _gpuContext.reset();
+    }
+
+    void renderFrame(gpu::FramePointer& frame) {
+        ++_presentCount;
+        _displayContext->makeCurrent(_displaySurface);
+        _backend->recycle();
+        _backend->syncCache();
+        if (frame && !frame->batches.empty()) {
+            _gpuContext->executeFrame(frame);
+
+            {
+                auto geometryCache = DependencyManager::get<GeometryCache>();
+                gpu::Batch presentBatch;
+                presentBatch.enableStereo(false);
+                presentBatch.resetViewTransform();
+                presentBatch.setFramebuffer(gpu::FramebufferPointer());
+                presentBatch.setResourceTexture(0, frame->framebuffer->getRenderBuffer(0));
+                presentBatch.setPipeline(_presentPipeline);
+                presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
+                _gpuContext->executeBatch(presentBatch);
+            }
+        }
+        {
+            //_textOverlay->render();
+        }
+        _displayContext->swapBuffers(_displaySurface);
+        _fpsCounter.increment();
+        static size_t _frameCount{ 0 };
+        ++_frameCount;
+        if (_elapsed.elapsed() >= 500) {
+            _fps = _fpsCounter.rate();
+            _frameCount = 0;
+            _elapsed.restart();
+        }
+    }
+
+    void report() {
+        uint64_t total = 0;
+        for (const auto& t : _frameTimes) {
+            total += t;
+        }
+        auto averageFrameTime = total / FRAME_TIME_BUFFER_SIZE;
+        qDebug() << "Average frame " << averageFrameTime;
+
+        std::list<uint64_t> sortedHighFrames;
+        for (const auto& t : _frameTimes) {
+            if (t > averageFrameTime * 6) {
+                sortedHighFrames.push_back(t);
+            }
+        }
+
+        sortedHighFrames.sort();
+        for (const auto& t : sortedHighFrames) {
+            qDebug() << "Long frame " << t;
+        }
+    }
+
+    bool processQueueItems(const Queue& items) override {
+        for (auto frame : items) {
+            auto start = usecTimestampNow();
+            renderFrame(frame);
+            auto duration = usecTimestampNow() - start;
+            auto frameBufferIndex = _frameIndex % FRAME_TIME_BUFFER_SIZE;
+            _frameTimes[frameBufferIndex] = duration;
+            ++_frameIndex;
+            if (0 == _frameIndex % FRAME_TIME_BUFFER_SIZE) {
+                report();
+            }
+        }
+        return true;
+    }
+};
+
+
+// Background Render Data & rendering functions
+class BackgroundRenderData {
+public:
+    typedef render::Payload<BackgroundRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID BackgroundRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+        return ItemKey::Builder::background();
+    }
+
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+        return Item::Bound();
+    }
+
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+
+        // Background rendering decision
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        auto backgroundMode = skyStage->getBackgroundMode();
+
+        switch (backgroundMode) {
+        case model::SunSkyStage::SKY_BOX: {
+            auto skybox = skyStage->getSkybox();
+            if (skybox) {
+                PerformanceTimer perfTimer("skybox");
+                skybox->render(batch, args->getViewFrustum());
+                break;
+            }
+        }
+
+                                          // Fall through: if no skybox is available, render the SKY_DOME
+        case model::SunSkyStage::SKY_DOME:  
+        case model::SunSkyStage::NO_BACKGROUND:
+        default:
+            // this line intentionally left blank
+            break;
+        }
+    }
+}
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
@@ -185,6 +382,7 @@ protected:
     }
 
     void postLambdaEvent(std::function<void()> f) override {}
+
     qreal getDevicePixelRatio() override {
         return 1.0f;
     }
@@ -192,6 +390,7 @@ protected:
     render::ScenePointer getMain3DScene() override {
         return _main3DScene;
     }
+
     render::EnginePointer getRenderEngine() override {
         return _renderEngine;
     }
@@ -221,13 +420,15 @@ public:
     }
 
     QTestWindow() {
+        _camera.movementSpeed = 50.0f;
+        QThreadPool::globalInstance()->setMaxThreadCount(2);
         QThread::currentThread()->setPriority(QThread::HighestPriority);
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
         // Prevent web entities from rendering
-        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory)
-
+        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
+        
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -241,52 +442,37 @@ public:
         format.setOption(QSurfaceFormat::DebugContext);
         setFormat(format);
 
-        _context.setFormat(format);
-        _context.create();
         resize(QSize(800, 600));
         show();
-        makeCurrent();
+
+        _context.setFormat(format);
+        _context.create();
+        _context.makeCurrent(this);
         glewExperimental = true;
         glewInit();
         glGetError();
-        setupDebugLogger(this);
+        GLDebug::setupLogger(this);
 #ifdef Q_OS_WIN
         wglSwapIntervalEXT(0);
 #endif
-        {
-            makeCurrent();
-            _quadProgram = loadDefaultShader();
-            _plane = loadPlane(_quadProgram);
-            _textOverlay = new TextOverlay(glm::uvec2(800, 600));
-            glViewport(0, 0, 800, 600);
-        }
+        _context.doneCurrent();
 
-        _camera.movementSpeed = 50.0f;
-
-
-        // GPU library init
-        {
-            _offscreenContext = new OffscreenGLCanvas();
-            _offscreenContext->create(_context.getContext());
-            _offscreenContext->makeCurrent();
-            gpu::Context::init<gpu::gl::GLBackend>();
-            _gpuContext = std::make_shared<gpu::Context>();
-        }
+        _initContext.create(_context.getContext());
+        _renderThread.initialize(&_context, this);
+        // FIXME use a wait condition
+        QThread::msleep(1000);
+        _renderThread.queueItem(gpu::FramePointer());
+        _initContext.makeCurrent();
+        // Render engine init
+        _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
+        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", _cullFunctor);
+        _renderEngine->load();
+        _renderEngine->registerScene(_main3DScene);
 
         // Render engine library init
-        {
-            _offscreenContext->makeCurrent();
-            DependencyManager::get<DeferredLightingEffect>()->init();
-            _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
-            _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", _cullFunctor);
-            _renderEngine->load();
-            _renderEngine->registerScene(_main3DScene);
-        }
-
         reloadScene();
         restorePosition();
 
-        _elapsed.start();
         QTimer* timer = new QTimer(this);
         timer->setInterval(0);
         connect(timer, &QTimer::timeout, this, [this] {
@@ -297,9 +483,21 @@ public:
     }
 
     virtual ~QTestWindow() {
+        _renderThread.terminate();
+        getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+        _renderEngine.reset();
+        _main3DScene.reset();
+        EntityTreePointer tree = getEntities()->getTree();
+        tree->setSimulation(nullptr);
+        DependencyManager::destroy<AnimationCache>();
+        DependencyManager::destroy<FramebufferCache>();
+        DependencyManager::destroy<TextureCache>();
+        DependencyManager::destroy<ModelCache>();
+        DependencyManager::destroy<GeometryCache>();
+        DependencyManager::destroy<ScriptCache>();
         ResourceManager::cleanup();
-        try { _quadProgram.reset(); } catch (std::runtime_error&) {}
-        try { _plane.reset(); } catch (std::runtime_error&) {}
+        // remove the NodeList from the DependencyManager
+        DependencyManager::destroy<NodeList>();
     }
 
 protected:
@@ -363,6 +561,7 @@ private:
         return (renderAccuracy > 0.0f);
     }
 
+    uint16_t _fps;
     void draw() {
         if (!_ready) {
             return;
@@ -370,17 +569,21 @@ private:
         if (!isVisible()) {
             return;
         }
+        if (_renderCount.load() != 0 && _renderCount.load() >= _renderThread._presentCount.load()) {
+            return;
+        }
+        _renderCount = _renderThread._presentCount.load();
         update();
 
-        _offscreenContext->makeCurrent();
-
-        RenderArgs renderArgs(_gpuContext, _octree.data(), DEFAULT_OCTREE_SIZE_SCALE,
+        RenderArgs renderArgs(_renderThread._gpuContext, _octree.data(), DEFAULT_OCTREE_SIZE_SCALE,
             0, RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         QSize windowSize = size();
         framebufferCache->setFrameBufferSize(windowSize);
+
+        renderArgs._blitFramebuffer = framebufferCache->getFramebuffer();
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, windowSize.width(), windowSize.height());
 
@@ -398,49 +601,11 @@ private:
         }
 
         // Final framebuffer that will be handled to the display-plugin
-        {
-            auto finalFramebuffer = framebufferCache->getFramebuffer();
-            renderArgs._blitFramebuffer = finalFramebuffer;
-        }
-
-        _gpuContext->beginFrame(renderArgs._blitFramebuffer);
-        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
-            batch.resetStages();
-        });
         render(&renderArgs);
-        _gpuContext->endFrame();
-        GLuint glTex;
-        {
-            auto gpuTex = renderArgs._blitFramebuffer->getRenderBuffer(0);
-            glTex = gpu::Backend::getGPUObject<gpu::gl::GLTexture>(*gpuTex)->_id;
-        }
 
-        makeCurrent();
-        {
-            glBindTexture(GL_TEXTURE_2D, glTex);
-            _quadProgram->Use();
-            _plane->Use();
-            _plane->Draw();
-            glBindVertexArray(0);
-        }
-
-        {
-            //_textOverlay->render();
-        }
-
-        _context.swapBuffers(this);
-
-        _offscreenContext->makeCurrent();
-        framebufferCache->releaseFramebuffer(renderArgs._blitFramebuffer);
-        renderArgs._blitFramebuffer.reset();
-        _fpsCounter.increment();
-        static size_t _frameCount { 0 };
-        ++_frameCount;
-        if (_elapsed.elapsed() >= 500) {
-            _fps = _fpsCounter.rate();
+        if (_fps != _renderThread._fps) {
+            _fps = _renderThread._fps;
             updateText();
-            _frameCount = 0;
-            _elapsed.restart();
         }
     }
 
@@ -463,11 +628,13 @@ private:
         const qint64& now;
     };
 
-
-
-
     void updateText() {
-        //qDebug() << "FPS " << fps.rate();
+        setTitle(QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
+            .arg(_fps).arg(_cullingEnabled)
+            .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2)));
+
+#if 0
         {
             _textBlocks.erase(TextBlock::Info);
             auto& infoTextBlock = _textBlocks[TextBlock::Info];
@@ -475,13 +642,10 @@ private:
             infoTextBlock.push_back({ vec2(100, 10), std::to_string((uint32_t)_fps), TextOverlay::alignLeft });
             infoTextBlock.push_back({ vec2(98, 30), "Culling: ", TextOverlay::alignRight });
             infoTextBlock.push_back({ vec2(100, 30), _cullingEnabled ? "Enabled" : "Disabled", TextOverlay::alignLeft });
-
-            setTitle(QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
-                .arg(_fps).arg(_cullingEnabled)
-                .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-                .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2)));
         }
+#endif
 
+#if 0
         _textOverlay->beginTextUpdate();
         for (const auto& e : _textBlocks) {
             for (const auto& b : e.second) {
@@ -489,6 +653,7 @@ private:
             }
         }
         _textOverlay->endTextUpdate();
+#endif
     }
 
     void update() {
@@ -522,9 +687,41 @@ private:
         }
 
         last = now;
+
+        getEntities()->update();
+
+        // The pending changes collecting the changes here
+        render::PendingChanges pendingChanges;
+
+        // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
+        // Background rendering decision
+        if (!render::Item::isValidID(BackgroundRenderData::_item)) {
+            auto backgroundRenderData = std::make_shared<BackgroundRenderData>();
+            auto backgroundRenderPayload = std::make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
+            BackgroundRenderData::_item = _main3DScene->allocateID();
+            pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
+        }
+        // Setup the current Zone Entity lighting
+        {
+            auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+            DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
+        }
+
+        {
+            PerformanceTimer perfTimer("SceneProcessPendingChanges");
+            _main3DScene->enqueuePendingChanges(pendingChanges);
+
+            _main3DScene->processPendingChangesQueue();
+        }
+
     }
 
     void render(RenderArgs* renderArgs) {
+        auto& gpuContext = renderArgs->_context;
+        gpuContext->beginFrame();
+        gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
+            batch.resetStages();
+        });
         PROFILE_RANGE(__FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
@@ -544,6 +741,17 @@ private:
             // Before the deferred pass, let's try to use the render engine
             _renderEngine->run();
         }
+        auto frame = gpuContext->endFrame();
+        frame->framebuffer = renderArgs->_blitFramebuffer;
+        frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){ 
+            DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+        };
+        _renderThread.queueItem(frame);
+        if (!_renderThread.isThreaded()) {
+            _renderThread.process();
+        }
+        
+
     }
 
     bool makeCurrent() {
@@ -558,9 +766,8 @@ private:
         if (!_ready) {
             return;
         }
-        _textOverlay->resize(toGlm(_size));
-        makeCurrent();
-        glViewport(0, 0, size.width(), size.height());
+        //_textOverlay->resize(toGlm(_size));
+        //glViewport(0, 0, size.width(), size.height());
     }
 
     void parsePath(const QString& viewpointString) {
@@ -704,31 +911,28 @@ private:
 
     std::map<TextBlock, std::list<TextElement>> _textBlocks;
 
-    gpu::ContextPointer _gpuContext; // initialized during window creation
     render::EnginePointer _renderEngine { new render::Engine() };
     render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    OffscreenGLCanvas* _offscreenContext { nullptr };
     QOpenGLContextWrapper _context;
     QSize _size;
-    RateCounter<200> _fpsCounter;
     QSettings _settings;
 
-    ProgramPtr _quadProgram;
-    ShapeWrapperPtr _plane;
-
+    std::atomic<size_t> _renderCount;
+    OffscreenGLCanvas _initContext;
+    RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _shadowViewFrustum; // current state of view frustum, perspective, orientation, etc.
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
-    QElapsedTimer _elapsed;
     bool _ready { false };
-    float _fps { 0 };
-    TextOverlay* _textOverlay;
-    bool _cullingEnabled { true };
+    //TextOverlay* _textOverlay;
+    static bool _cullingEnabled;
     bool _stereoEnabled { false };
     QSharedPointer<EntityTreeRenderer> _octree;
 };
+
+bool QTestWindow::_cullingEnabled = true;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (!message.isEmpty()) {

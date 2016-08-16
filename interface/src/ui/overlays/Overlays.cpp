@@ -121,7 +121,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
 
         thisOverlay->render(renderArgs);
     }

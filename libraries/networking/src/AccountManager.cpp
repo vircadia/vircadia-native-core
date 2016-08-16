@@ -505,6 +505,29 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
 }
 
+void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
+
+    QByteArray postData;
+    postData.append("grant_type=password&");
+    postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
+}
 
 void AccountManager::requestAccessTokenFinished() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
@@ -545,6 +568,7 @@ void AccountManager::requestAccessTokenFinished() {
 void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qCDebug(networking) << "AccountManager requestError - " << error;
+    emit loginFailed();
 }
 
 void AccountManager::requestProfile() {

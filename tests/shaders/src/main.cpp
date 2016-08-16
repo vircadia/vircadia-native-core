@@ -20,7 +20,6 @@
 
 #include <gl/GLHelpers.h>
 
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 #include <gl/QOpenGLContextWrapper.h>
 
 #include <render-utils/simple_vert.h>
@@ -111,7 +110,7 @@ public:
         makeCurrent();
 
         gpu::Context::init<gpu::gl::GLBackend>();
-        setupDebugLogger(this);
+        GLDebug::setupLogger(this);
         makeCurrent();
         resize(QSize(800, 600));
     }
