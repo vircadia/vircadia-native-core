@@ -179,6 +179,10 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
 
+void WindowScriptingInterface::showAssetServer(const QString& upload) {
+    QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getWindow()->geometry().width();
 }

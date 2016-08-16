@@ -142,7 +142,7 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);

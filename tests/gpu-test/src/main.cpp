@@ -33,7 +33,6 @@
 #include <gpu/gl/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 #include <gl/GLHelpers.h>
 
 #include <GLMHelpers.h>

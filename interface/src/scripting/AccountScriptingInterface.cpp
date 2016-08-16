@@ -15,6 +15,9 @@
 
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
+    auto accountManager = DependencyManager::get<AccountManager>();
+    QObject::connect(accountManager.data(), &AccountManager::profileChanged,
+                     &sharedInstance, &AccountScriptingInterface::usernameChanged);
     return &sharedInstance;
 }
 
