@@ -1129,36 +1129,37 @@ function handeMenuEvent(menuItem) {
     tooltip.show(false);
 }
 
-// This function tries to find a reasonable position to place a new entity based on the camera
-// position. If a reasonable position within the world bounds can't be found, `null` will
-// be returned. The returned position will also take into account grid snapping settings.
 function getPositionToCreateEntity() {
-    var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-    var direction = Quat.getFront(Camera.orientation);
-    var offset = Vec3.multiply(distance, direction);
-    var placementPosition = Vec3.sum(Camera.position, offset);
-
-    var cameraPosition = Camera.position;
-
     var HALF_TREE_SCALE = 16384;
-
-    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE || Math.abs(cameraPosition.y) > HALF_TREE_SCALE ||
-                            Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
-    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE ||
-                               Math.abs(placementPosition.y) > HALF_TREE_SCALE ||
-                               Math.abs(placementPosition.z) > HALF_TREE_SCALE;
-
-    if (cameraOutOfBounds && placementOutOfBounds) {
-        return null;
+    var direction = Quat.getFront(MyAvatar.orientation);
+    var distance = 1;
+    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
+    position.y +=0.5;
+    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
+        return null
     }
-
-    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
-    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
-    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
-
-    return placementPosition;
+    return position;
 }
 
+function getPositionToImportEntity() {
+    var dimensions = Clipboard.getContentsDimensions();
+    var HALF_TREE_SCALE = 16384;
+    var direction = Quat.getFront(MyAvatar.orientation);
+    var distance = 1;
+    if (dimensions.x > distance) {
+        distance = dimensions.x
+    }
+    if (dimensions.z > distance) {
+        distance = dimensions.z
+    }
+    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
+
+    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
+        return null
+    }
+
+    return position;
+}
 function importSVO(importURL) {
     print("Import URL requested: " + importURL);
     if (!Entities.canAdjustLocks()) {
@@ -1183,7 +1184,7 @@ function importSVO(importURL) {
             z: 0
         };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
-            position = getPositionToCreateEntity();
+            position = getPositionToImportEntity();
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
