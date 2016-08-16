@@ -92,8 +92,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
-            QTouchEvent touchEvent = QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
-            QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
+            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
         }
     });
     return true;
@@ -188,25 +188,19 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
-    /*
-    qDebug() << "AJT: RenderableWebEntityItem::handlePointerEvent!";
-    qDebug() << "AJT:     type = " << (int)event.getType();
-    qDebug() << "AJT:     id = " << event.getID();
-    qDebug() << "AJT:     pos2D = " << event.getPos2D();
-    qDebug() << "AJT:     pos3D = " << event.getPos3D();
-    qDebug() << "AJT:     normal = " << event.getNormal();
-    qDebug() << "AJT:     direction = " << event.getDirection();
-    qDebug() << "AJT:     button = " << (int)event.getButton();
-    qDebug() << "AJT:     buttons = " << event.getButtons();
-    qDebug() << "AJT:     windowPos = " << windowPos;
-    */
-
-    if (event.getType() == PointerEvent::Move && event.getButtons() == PointerEvent::NoButtons) {
+    if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to webSurface
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    } else {
+        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+
+    {
         // Forward a touch update event to webSurface
+        if (event.getType() == PointerEvent::Press) {
+            this->_pressed = true;
+        } else if (event.getType() == PointerEvent::Release) {
+            this->_pressed = false;
+        }
 
         QEvent::Type type;
         Qt::TouchPointState touchPointState;
@@ -234,17 +228,21 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         QList<QTouchEvent::TouchPoint> touchPoints;
         touchPoints.push_back(point);
 
-        QTouchEvent touchEvent(type, nullptr, Qt::NoModifier, touchPointState, touchPoints);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
+        QTouchEvent* touchEvent = new QTouchEvent(type);
+        touchEvent->setWindow(nullptr);
+        touchEvent->setDevice(nullptr);
+        touchEvent->setTarget(nullptr);
+        touchEvent->setTouchPoints(touchPoints);
+        touchEvent->setTouchPointStates(touchPointState);
 
-        _lastTouchEvent = touchEvent;
+        _lastTouchEvent = *touchEvent;
+
+        QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
     }
 }
 
 void RenderableWebEntityItem::destroyWebSurface() {
     if (_webSurface) {
-        qDebug() << "AJT: destroyWebSurface!";
-
         --_currentWebCount;
         _webSurface->pause();
         _webSurface->disconnect(_connection);

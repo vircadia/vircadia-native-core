@@ -2629,7 +2629,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         event->screenPos(), button,
         buttons, event->modifiers());
 
-    getEntities()->mouseMoveEvent(&mappedEvent);
+    if (!compositor.getReticleOverDesktop() || getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getEntities()->mouseMoveEvent(&mappedEvent);
+    }
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -5640,4 +5642,49 @@ void Application::releaseOverlayTexture(const gpu::TexturePointer& texture) {
 
 bool Application::isForeground() const { 
     return _isForeground && !_window->isMinimized(); 
+}
+
+void Application::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mousePressOnEntity(entityItemID, event);
+}
+
+void Application::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mouseMoveOnEntity(entityItemID, event);
+}
+
+void Application::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mouseReleaseOnEntity(entityItemID, event);
+}
+
+void Application::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->clickDownOnEntity(entityItemID, event);
+}
+
+void Application::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->holdingClickOnEntity(entityItemID, event);
+}
+
+void Application::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->clickReleaseOnEntity(entityItemID, event);
+}
+
+void Application::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverEnterEntity(entityItemID, event);
+}
+
+void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverOverEntity(entityItemID, event);
+}
+
+void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverLeaveEntity(entityItemID, event);
 }

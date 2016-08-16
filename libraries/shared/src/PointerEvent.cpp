@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PointerEvent.h"
+
 #include <qscriptengine.h>
 #include <qscriptvalue.h>
 
-#include "PointerEvent.h"
+#include "RegisteredMetaTypes.h"
 
 static bool areFlagsSet(uint32_t flags, uint32_t mask) {
     return (flags & mask) != 0;
@@ -106,5 +108,56 @@ QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEve
 }
 
 void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& event) {
-    // nothing for now...
+    if (object.isObject()) {
+        QScriptValue type = object.property("type");
+        QString typeStr = type.isString() ? type.toString() : "Move";
+        if (typeStr == "Press") {
+            event._type = Press;
+        } else if (typeStr == "Release") {
+            event._type = Release;
+        } else {
+            event._type = Move;
+        }
+
+        QScriptValue id = object.property("id");
+        event._id = type.isNumber() ? (uint32_t)type.toNumber() : 0;
+
+        glm::vec2 pos2D;
+        vec2FromScriptValue(object.property("pos2D"), event._pos2D);
+
+        glm::vec3 pos3D;
+        vec3FromScriptValue(object.property("pos3D"), event._pos3D);
+
+        glm::vec3 normal;
+        vec3FromScriptValue(object.property("normal"), event._normal);
+
+        glm::vec3 direction;
+        vec3FromScriptValue(object.property("direction"), event._direction);
+
+        QScriptValue button = object.property("button");
+        QString buttonStr = type.isString() ? type.toString() : "NoButtons";
+        if (buttonStr == "Primary") {
+            event._button = PrimaryButton;
+        } else if (buttonStr == "Secondary") {
+            event._button = SecondaryButton;
+        } else if (buttonStr == "Tertiary") {
+            event._button = TertiaryButton;
+        } else {
+            event._button = NoButtons;
+        }
+
+        bool primary = object.property("isPrimary").toBool() || object.property("isLeftButton").toBool();
+        bool secondary = object.property("isSecondary").toBool() || object.property("isRightButton").toBool();
+        bool tertiary = object.property("isTertiary").toBool() || object.property("isMiddleButton").toBool();
+        event._buttons = 0;
+        if (primary) {
+            event._buttons |= PrimaryButton;
+        }
+        if (secondary) {
+            event._buttons |= SecondaryButton;
+        }
+        if (tertiary) {
+            event._buttons |= TertiaryButton;
+        }
+    }
 }

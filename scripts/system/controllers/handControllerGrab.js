@@ -136,6 +136,7 @@ var PICKS_PER_SECOND_PER_HAND = 60;
 var MSECS_PER_SEC = 1000.0;
 var GRABBABLE_PROPERTIES = [
     "position",
+    "registrationPoint",
     "rotation",
     "gravity",
     "collidesWith",
@@ -233,6 +234,18 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
     updateMethod: "entityTouching"
 };
 
+function projectOntoEntityXYPlane(entityID, worldPos) {
+    var props = entityPropertiesCache.getProps(entityID);
+    var invRot = Quat.inverse(props.rotation);
+    var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(worldPos, props.position));
+    var invDimensions = { x: 1 / props.dimensions.x,
+                          y: 1 / props.dimensions.y,
+                          z: 1 / props.dimensions.z };
+    var normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
+    return { x: normalizedPos.x * props.dimensions.x,
+             y: (1 - normalizedPos.y) * props.dimensions.y }; // flip y-axis
+}
+
 function handLaserIntersectWebEntity(entityID, hand) {
     var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
     var pose = Controller.getPoseValue(standardControllerValue);
@@ -253,6 +266,7 @@ function handLaserIntersectWebEntity(entityID, hand) {
         intersectionPoint = planePosition;
     }
     intersectionInfo.point = intersectionPoint;
+    intersectionInfo.normal = planeNormal;
     intersectionInfo.searchRay = {
         origin: rayStart,
         direction: rayDirection,
@@ -1071,7 +1085,8 @@ function MyController(hand) {
                 overlayID: intersection.overlayID,
                 searchRay: pickRay,
                 distance: Vec3.distance(pickRay.origin, intersection.intersection),
-                intersection: intersection.intersection
+                intersection: intersection.intersection,
+                normal: intersection.surfaceNormal
             };
         } else {
             return result;
@@ -1392,16 +1407,49 @@ function MyController(hand) {
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
 
+            var pointerEvent;
+
             if (Entities.keyboardFocusEntity != entity) {
                 Entities.keyboardFocusEntity = entity;
+
+                pointerEvent = {
+                    type: "Move",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
+                    pos3D: rayPickInfo.intersection,
+                    normal: rayPickInfo.normal,
+                    direction: rayPickInfo.searchRay.direction,
+                    button: "None",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+
+                Entities.sendHoverEnterEntity(entity, pointerEvent);
+                // AJT: TODO: send hover leave entity at some point as well!!??!
             }
 
             // send mouse events for button highlights and tooltips.
             if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
                                                          this.getOtherHandController().state !== STATE_SEARCHING &&
                                                          this.getOtherHandController().state !== STATE_ENTITY_TOUCHING)) {
+
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
-                Entities.sendEntityMouseMoveEvent(entity, rayPickInfo.intersection);
+                pointerEvent = {
+                    type: "Move",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
+                    pos3D: rayPickInfo.intersection,
+                    normal: rayPickInfo.normal,
+                    direction: rayPickInfo.searchRay.direction,
+                    button: "None",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+
+                Entities.sendMouseMoveOnEntity(entity, pointerEvent);
+                Entities.sendHoverOverEntity(entity, pointerEvent);
             }
 
             if (this.triggerSmoothedGrab() && !isEditing()) {
@@ -2054,13 +2102,43 @@ function MyController(hand) {
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
-        Entities.sendEntityTouchBeginEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+
+        var pointerEvent = {
+            type: "Press",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+            pos3D: intersectInfo.point,
+            normal: intersectInfo.normal,
+            direction: intersectInfo.searchRay.direction,
+            button: "Primary",
+            isPrimaryButton: true,
+            isSecondaryButton: false,
+            isTertiaryButton: false
+        };
+
+        Entities.sendMousePressOnEntity(this.grabbedEntity, pointerEvent);
+        Entities.sendClickDownOnEntity(this.grabbedEntity, pointerEvent);
     };
 
     this.entityTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectWebEntity(this.grabbedEntity, this.hand);
-        Entities.sendEntityTouchEndEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+
+        var pointerEvent = {
+            type: "Release",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+            pos3D: intersectInfo.point,
+            normal: intersectInfo.normal,
+            direction: intersectInfo.searchRay.direction,
+            button: "Primary",
+            isPrimaryButton: true,
+            isSecondaryButton: false,
+            isTertiaryButton: false
+        };
+
+        Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
+        Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
     };
 
     this.entityTouching = function() {
@@ -2078,7 +2156,21 @@ function MyController(hand) {
             Entities.keyboardFocusEntity = this.grabbedEntity;
         }
 
-        Entities.sendEntityTouchUpdateEvent(this.grabbedEntity, this.hand, intersectInfo.point);
+        var pointerEvent = {
+            type: "Move",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+            pos3D: intersectInfo.point,
+            normal: intersectInfo.normal,
+            direction: intersectInfo.searchRay.direction,
+            button: "NoButtons",
+            isPrimaryButton: true,
+            isSecondaryButton: false,
+            isTertiaryButton: false
+        };
+
+        Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
+        Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
 
         this.intersectionDistance = intersectInfo.distance;
         this.searchIndicatorOn(intersectInfo.searchRay);

@@ -99,19 +99,24 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                     bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                     BoxFace& face, glm::vec3& surfaceNormal,
-                     void** intersectedObject, bool precisionPicking) const {
+                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                BoxFace& face, glm::vec3& surfaceNormal,
+                                                void** intersectedObject, bool precisionPicking) const {
     glm::vec3 dimensions = getDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getRotation();
-    glm::vec3 position = getPosition() + rotation * 
-            (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
-    // FIXME - should set face and surfaceNormal
-    return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);
+    glm::vec3 position = getPosition() + rotation * (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
+
+    if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
+        surfaceNormal = rotation * Vectors::UNIT_Z;
+        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        return true;
+    } else {
+        return false;
+    }
 }
-                     
-void WebEntityItem::setSourceUrl(const QString& value) { 
+
+void WebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
         _sourceUrl = value;
     }

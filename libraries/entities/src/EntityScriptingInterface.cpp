@@ -1194,34 +1194,40 @@ void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
     QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::QueuedConnection, Q_ARG(QUuid, id));
 }
 
-void EntityScriptingInterface::sendEntityMouseMoveEvent(QUuid id, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityMouseMoveEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMousePressOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
-void EntityScriptingInterface::sendEntityLeftMouseDownEvent(QUuid id, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseDownEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseMoveOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
-void EntityScriptingInterface::sendEntityLeftMouseUpEvent(QUuid id, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityLeftMouseUpEvent", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
-void EntityScriptingInterface::sendEntityTouchUpdateEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityTouchUpdateEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickDownOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
-void EntityScriptingInterface::sendEntityTouchBeginEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityTouchBeginEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoldingClickOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
-void EntityScriptingInterface::sendEntityTouchEndEvent(QUuid entityID, int fingerID, glm::vec3 intersectionPoint) {
-    // AJT: TODO CURRENTLY BROKEN
-    //QMetaObject::invokeMethod(qApp, "sendEntityTouchEndEvent", Qt::QueuedConnection, Q_ARG(QUuid, entityID), Q_ARG(int, fingerID), Q_ARG(glm::vec3, intersectionPoint));
+void EntityScriptingInterface::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverEnterEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverOverEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverLeaveEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
 }
 
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
