@@ -661,6 +661,9 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 
 QImage OpenGLDisplayPlugin::getScreenshot() const {
     auto size = _compositeFramebuffer->getSize();
+    if (isHmd()) {
+        size.x /= 2;
+    }
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(size.x, size.y, QImage::Format_ARGB32);
     withMainThreadContext([&] {
