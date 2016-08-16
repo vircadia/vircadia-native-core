@@ -9,7 +9,7 @@
 //
 var SNAPSHOT_DELAY = 500; // 500ms
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var resetOverlays;
+var resetOverlays, recticleVisible;
 var button = toolBar.addButton({
     objectName: "snapshot",
     imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
@@ -57,6 +57,8 @@ function snapshotShared(success) {
 function onClicked() {
     // update button states
     resetOverlays = Menu.isOptionChecked("Overlays");
+    reticleVisible = Reticle.visible;
+    Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
     
     button.writeProperty("buttonState", 0);
@@ -84,6 +86,7 @@ function resetButtons(path, notify) {
     }
     // show hud
     toolBar.writeProperty("visible", true);
+    Reticle.visible = reticleVisible;
     
     // update button states
     button.writeProperty("buttonState", 1);
