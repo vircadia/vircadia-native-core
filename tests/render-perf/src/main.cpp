@@ -345,10 +345,6 @@ namespace render {
                 break;
             }
         }
-
-                                          // Fall through: if no skybox is available, render the SKY_DOME
-        case model::SunSkyStage::SKY_DOME:  
-        case model::SunSkyStage::NO_BACKGROUND:
         default:
             // this line intentionally left blank
             break;

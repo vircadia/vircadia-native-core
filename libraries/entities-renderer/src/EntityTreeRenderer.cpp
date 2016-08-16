@@ -351,10 +351,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     
     // Skybox and procedural skybox data
     auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
-    static QString userData;
 
+    // If there is no zone, use the default background
     if (!zone) {
-        userData = QString();
+        _zoneUserData = QString();
         skybox->clear();
 
         _pendingSkyboxTexture = false;
@@ -363,50 +363,31 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
 
-        if (_hasPreviousZone) {
-            sceneKeyLight->resetAmbientSphere();
-            sceneKeyLight->setAmbientMap(nullptr);
-            sceneKeyLight->setColor(_previousKeyLightColor);
-            sceneKeyLight->setIntensity(_previousKeyLightIntensity);
-            sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
-            sceneKeyLight->setDirection(_previousKeyLightDirection);
-            sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
-            sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
-                                    _previousStageAltitude);
-            sceneTime->setHour(_previousStageHour);
-            sceneTime->setDay(_previousStageDay);
+        sceneKeyLight->resetAmbientSphere();
+        sceneKeyLight->setAmbientMap(nullptr);
 
-            _hasPreviousZone = false;
-        }
-
-        skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
-        return; // Early exit
+        skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+        return;
     }
 
-    if (!_hasPreviousZone) {
-        _previousKeyLightColor = sceneKeyLight->getColor();
-        _previousKeyLightIntensity = sceneKeyLight->getIntensity();
-        _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
-        _previousKeyLightDirection = sceneKeyLight->getDirection();
-        _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
-        _previousStageLongitude = sceneLocation->getLongitude();
-        _previousStageLatitude = sceneLocation->getLatitude();
-        _previousStageAltitude = sceneLocation->getAltitude();
-        _previousStageHour = sceneTime->getHour();
-        _previousStageDay = sceneTime->getDay();
-        _hasPreviousZone = true;
-    }
-
+    // Set the keylight
     sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
     sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
     sceneKeyLight->setAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
     sceneKeyLight->setDirection(zone->getKeyLightProperties().getDirection());
-    sceneStage->setSunModelEnable(zone->getStageProperties().getSunModelEnabled());
-    sceneStage->setLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
-                            zone->getStageProperties().getAltitude());
-    sceneTime->setHour(zone->getStageProperties().calculateHour());
-    sceneTime->setDay(zone->getStageProperties().calculateDay());
 
+    // Set the stage
+    bool isSunModelEnabled = zone->getStageProperties().getSunModelEnabled();
+    sceneStage->setSunModelEnable(isSunModelEnabled);
+    if (isSunModelEnabled) {
+        sceneStage->setLocation(zone->getStageProperties().getLongitude(),
+            zone->getStageProperties().getLatitude(),
+            zone->getStageProperties().getAltitude());
+        sceneTime->setHour(zone->getStageProperties().calculateHour());
+        sceneTime->setDay(zone->getStageProperties().calculateDay());
+    }
+
+    // Set the ambient texture
     bool isAmbientTextureSet = false;
     if (zone->getKeyLightProperties().getAmbientURL().isEmpty()) {
         _pendingAmbientTexture = false;
@@ -429,12 +410,13 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         }
     }
 
+    // Set the skybox texture
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_SKYBOX: {
             skybox->setColor(zone->getSkyboxProperties().getColorVec3());
-            if (userData != zone->getUserData()) {
-                userData = zone->getUserData();
-                skybox->parse(userData);
+            if (_zoneUserData != zone->getUserData()) {
+                _zoneUserData = zone->getUserData();
+                skybox->parse(_zoneUserData);
             }
             if (zone->getSkyboxProperties().getURL().isEmpty()) {
                 skybox->setCubemap(nullptr);
@@ -471,14 +453,18 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         case BACKGROUND_MODE_INHERIT:
         default:
             // Clear the skybox to release its textures
-            userData = QString();
+            _zoneUserData = QString();
             skybox->clear();
 
             _skyboxTexture.clear();
             _pendingSkyboxTexture = false;
 
             // Let the application background through
-            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+            if (isAmbientTextureSet) {
+                skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT_TEXTURE);
+            } else {
+                skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE);
+            }
             break;
     }
 
