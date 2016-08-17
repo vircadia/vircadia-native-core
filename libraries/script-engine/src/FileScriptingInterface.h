@@ -33,6 +33,7 @@ signals:
     void unzipSuccess(QString url);
 
 private:
+    bool isTempDir(QString tempDir);
     QString unzipFile(QString path, QString tempDir);
     void recursiveFileScan(QFileInfo file, QString* dirName);
     void downloadZip(QString path, const QString link);

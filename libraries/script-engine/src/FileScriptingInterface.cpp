@@ -39,6 +39,11 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     QString tempDir = path;
     tempDir.remove(fileName);
     qDebug() << "Temporary directory at: " + tempDir;
+    if (!isTempDir(tempDir)) {
+        qDebug() << "Temporary directory mismatch; risk of losing files";
+        return;
+    }
+
     QString file = unzipFile(path, tempDir);
     if (file != "") {
         qDebug() << "file to upload: " + file;
@@ -50,6 +55,20 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     }
     qDebug() << "Removing temporary directory at: " + tempDir;
     QDir(tempDir).removeRecursively();
+}
+
+// fix to check that we are only referring to a temporary directory
+bool FileScriptingInterface::isTempDir(QString tempDir) {
+    QString folderName = "/" + tempDir.section("/", -1);
+    QString tempContainer = tempDir;
+    tempContainer.remove(folderName);
+    QTemporaryDir test;
+    QString testDir = test.path();
+    folderName = "/" + testDir.section("/", -1);
+    QString testContainer = testDir;
+    testContainer.remove(folderName);
+    if (testContainer == tempContainer) return true;
+    return false;
 }
 
 bool FileScriptingInterface::isZippedFbx(QUrl url) {
