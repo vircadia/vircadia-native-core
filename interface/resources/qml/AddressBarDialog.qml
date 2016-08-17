@@ -48,20 +48,22 @@ Window {
     }
 
     function resetAfterTeleport() {
-        console.log('hrs fixme got reset')
         storyCardFrame.shown = root.shown = false;
     }
     function goCard(card) {
         if (addressBarDialog.useFeed) {
-            /*storyCard.imageUrl = card.imageUrl; // hrs fixme 
-            storyCard.userName = card.userName;
-            storyCard.placeName = card.placeName;
-            storyCard.actionPhrase = card.actionPhrase;
-            storyCard.timePhrase = card.timePhrase;
-            storyCard.hifiUrl = card.hifiUrl;
-            storyCard.visible = true;*/
-            storyCard.url = metaverseBase + "user_stories/" + card.storyId + ".html";
-            storyCardFrame.shown = true;
+            if (useHTML) {
+                storyCardHTML.url = metaverseBase + "user_stories/" + card.storyId + ".html";
+                storyCardFrame.shown = true;
+            } else {
+                storyCardQML.imageUrl = card.imageUrl;
+                storyCardQML.userName = card.userName;
+                storyCardQML.placeName = card.placeName;
+                storyCardQML.actionPhrase = card.actionPhrase;
+                storyCardQML.timePhrase = card.timePhrase;
+                storyCardQML.hifiUrl = card.hifiUrl;
+                storyCardQML.visible = true;
+            }
             return;
         }
         addressLine.text = card.hifiUrl;
@@ -72,6 +74,8 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
+    //property string metaverseBase: "http://10.0.0.241:3000/api/v1/";
+    property bool useHTML: false; // fixme: remove this and all false branches after the server is updated
 
     AddressBarDialog {
         id: addressBarDialog
@@ -81,7 +85,7 @@ Window {
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onUseFeedChanged: { updateFeedState(); }
-        onReceivedHifiSchemeURL: { console.log('hrs status change'); console.log('hrs status got', url); resetAfterTeleport(); }
+        onReceivedHifiSchemeURL: resetAfterTeleport();
 
         ListModel { id: suggestions }
 
@@ -224,20 +228,26 @@ Window {
             }
         }
 
-        /*UserStoryCard { // hrs fixme remove
-            id: storyCard;
+        UserStoryCard {
+            id: storyCardQML;
             visible: false;
             visitPlace: function (hifiUrl) {
-                storyCard.visible = false;
+                storyCardQML.visible = false;
                 addressLine.text = hifiUrl;
                 toggleOrGo(true);
-                };*/
+            };
+            anchors {
+                verticalCenter: scroll.verticalCenter;
+                horizontalCenter: scroll.horizontalCenter;
+                verticalCenterOffset: 50;
+            }
+        }
         Window {
             width: 750;
             height: 360;
             HifiControls.WebView {
                 anchors.fill: parent;
-                id: storyCard;
+                id: storyCardHTML;
             }
             id: storyCardFrame;
 
@@ -371,7 +381,6 @@ Window {
                 console.log(name, "has bad details", data.details);
             }
         }
-        console.log('hrs fixme id', data.id, typeof data.id, JSON.stringify(data));
         return {
             place_name: name,
             username: data.username || "",
