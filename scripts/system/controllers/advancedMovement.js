@@ -19,6 +19,7 @@ function registerMappings() {
     advancedMapping = Controller.newMapping(mappingName);
     advancedMapping.from(Controller.Vive.LY).invert().to(Controller.Standard.LY);
     advancedMapping.from(Controller.Vive.LX).to(Controller.Standard.LX);
+    advancedMapping.from(Controller.Vive.RY).invert().to(Standard.RY);
 }
 
 function removeTranslationFromLeftStick() {

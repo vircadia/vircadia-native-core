@@ -13,7 +13,6 @@
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
-        { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
         { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
         { 
         	"from": "Vive.RT", "to": "Standard.RT",
