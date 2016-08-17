@@ -15,7 +15,6 @@ import "styles"
 import "windows"
 import "hifi"
 import "hifi/toolbars"
-import "controls-uit" as HifiControls
 
 Window {
     id: root
@@ -47,21 +46,15 @@ Window {
         anchors.centerIn = parent;
     }
 
-    function resetAfterTeleport() {
-        console.log('hrs fixme got reset')
-        storyCardFrame.shown = root.shown = false;
-    }
     function goCard(card) {
         if (addressBarDialog.useFeed) {
-            /*storyCard.imageUrl = card.imageUrl; // hrs fixme 
+            storyCard.imageUrl = card.imageUrl;
             storyCard.userName = card.userName;
             storyCard.placeName = card.placeName;
             storyCard.actionPhrase = card.actionPhrase;
             storyCard.timePhrase = card.timePhrase;
             storyCard.hifiUrl = card.hifiUrl;
-            storyCard.visible = true;*/
-            storyCard.url = metaverseBase + "user_stories/" + card.storyId + ".html";
-            storyCardFrame.shown = true;
+            storyCard.visible = true;
             return;
         }
         addressLine.text = card.hifiUrl;
@@ -71,7 +64,8 @@ Window {
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
-    property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
+    //property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
+    property string metaverseBase: "http://10.0.0.242:3000/api/v1/";
 
     AddressBarDialog {
         id: addressBarDialog
@@ -81,7 +75,6 @@ Window {
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onUseFeedChanged: { updateFeedState(); }
-        onReceivedHifiSchemeURL: { console.log('hrs status change'); console.log('hrs status got', url); resetAfterTeleport(); }
 
         ListModel { id: suggestions }
 
@@ -110,7 +103,6 @@ Window {
                 action: model.action;
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
-                storyId: model.metaverseId;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -123,7 +115,6 @@ Window {
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
             source: "../images/Swipe-Icon-single.svg"
             width: 50;
-            visible: suggestions.count > 3;
             anchors {
                 right: scroll.right;
                 verticalCenter: scroll.verticalCenter;
@@ -224,27 +215,14 @@ Window {
             }
         }
 
-        /*UserStoryCard { // hrs fixme remove
+        UserStoryCard {
             id: storyCard;
             visible: false;
             visitPlace: function (hifiUrl) {
                 storyCard.visible = false;
                 addressLine.text = hifiUrl;
                 toggleOrGo(true);
-                };*/
-        Window {
-            width: 750;
-            height: 360;
-            HifiControls.WebView {
-                anchors.fill: parent;
-                id: storyCard;
-            }
-            id: storyCardFrame;
-
-            shown: false;
-            destroyOnCloseButton: false;
-            pinnable: false;
-
+            };
             anchors {
                 verticalCenter: scroll.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
@@ -371,7 +349,6 @@ Window {
                 console.log(name, "has bad details", data.details);
             }
         }
-        console.log('hrs fixme id', data.id, typeof data.id, JSON.stringify(data));
         return {
             place_name: name,
             username: data.username || "",
@@ -380,8 +357,6 @@ Window {
             action: data.action || "",
             thumbnail_url: thumbnail_url,
             image_url: image_url,
-
-            metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
             tags: tags,
             description: description,
