@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global WebBuddy */
-Script.include("./libraries/WebBuddy.js");
+/* global WebTablet */
+Script.include("./libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
@@ -26,17 +26,17 @@ var toolHeight = 50;
 var toolWidth = 50;
 var TOOLBAR_MARGIN_Y = 0;
 var marketplaceVisible = false;
-var marketplaceWebBuddy;
+var marketplaceWebTablet;
 
-function shouldShowWebBuddyMarketplace() {
+function shouldShowWebTablet() {
     var rightPose = Controller.getPoseValue(Controller.Standard.RightHand);
     var leftPose = Controller.getPoseValue(Controller.Standard.LeftHand);
     return HMD.active && (leftPose.valid || rightPose.valid);
 }
 
 function showMarketplace(marketplaceID) {
-    if (shouldShowWebBuddyMarketplace()) {
-        marketplaceWebBuddy = new WebBuddy("https://metaverse.highfidelity.com/marketplace");
+    if (shouldShowWebTablet()) {
+        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace");
     } else {
         var url = MARKETPLACE_URL;
         if (marketplaceID) {
@@ -55,8 +55,8 @@ function hideMarketplace() {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
     } else {
-        marketplaceWebBuddy.destroy();
-        marketplaceWebBuddy = null;
+        marketplaceWebTablet.destroy();
+        marketplaceWebTablet = null;
     }
     marketplaceVisible = false;
 }

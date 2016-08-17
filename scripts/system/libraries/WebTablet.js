@@ -1,5 +1,5 @@
 //
-//  WebBuddy.js
+//  WebTablet.js
 //
 //  Created by Anthony J. Thibault on 8/8/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -39,7 +39,7 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebBuddy = function (url) {
+WebTablet = function (url) {
 
     var ASPECT = 4.0 / 3.0;
     var WIDTH = 0.4;
@@ -99,13 +99,13 @@ WebBuddy = function (url) {
     Script.update.connect(this.updateFunc);
 };
 
-WebBuddy.prototype.destroy = function () {
+WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.webEntityID);
     Entities.deleteEntity(this.tabletEntityID);
     Script.update.disconnect(this.updateFunc);
 };
 
-WebBuddy.prototype.update = function (dt) {
+WebTablet.prototype.update = function (dt) {
 
     var props = Entities.getEntityProperties(this.tabletEntityID, ["position", "rotation", "parentID", "parentJointIndex"]);
     var entityWorldMat;
