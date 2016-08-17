@@ -18,9 +18,12 @@ function registerMappings() {
     mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
     advancedMapping = Controller.newMapping(mappingName);
     var VIVE = Controller.Hardware.Vive;
-    advancedMapping.from(VIVE.LY).when(VIVE.LSY).invert().to(Controller.Standard.LY);
-    advancedMapping.from(VIVE.LX).when(VIVE.LSX).to(Controller.Standard.LX);
-    advancedMapping.from(VIVE.RY).when(VIVE.RSY).invert().to(Controller.Standard.RY);
+    var LSY = Controller.getValue(VIVE.LSY);
+    var LSX = Controller.getValue(VIVE.LSX);
+    var RSY = Controller.getValue(VIVE.RSY);
+    advancedMapping.from(VIVE.LY).when(LSY).invert().to(Controller.Standard.LY);
+    advancedMapping.from(VIVE.LX).when(LSX).to(Controller.Standard.LX);
+    advancedMapping.from(VIVE.RY).when(RSY).invert().to(Controller.Standard.RY);
 }
 
 function removeTranslationFromLeftStick() {
