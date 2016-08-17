@@ -1157,8 +1157,6 @@ function getPositionToImportEntity() {
     }
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
-    print('distance is:: ' + distance);
-
     if (Camera.mode === "entity" || Camera.mode === "independent") {
         position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
     }
