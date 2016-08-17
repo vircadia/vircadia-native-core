@@ -66,8 +66,15 @@ struct PoseData {
     vec3 linearVelocities[vr::k_unMaxTrackedDeviceCount];
     vec3 angularVelocities[vr::k_unMaxTrackedDeviceCount];
 
+    PoseData() {
+        memset(vrPoses, 0, sizeof(vr::TrackedDevicePose_t) * vr::k_unMaxTrackedDeviceCount);
+    }
+
     void update(const glm::mat4& resetMat) {
         for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            if (!vrPoses[i].bPoseIsValid) {
+                continue;
+            }
             poses[i] = resetMat * toGlm(vrPoses[i].mDeviceToAbsoluteTracking);
             linearVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vVelocity));
             angularVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vAngularVelocity));
