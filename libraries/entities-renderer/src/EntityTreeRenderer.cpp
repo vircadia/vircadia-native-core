@@ -503,7 +503,7 @@ void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const Sha
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-ModelPointer EntityTreeRenderer::allocateModel(const QString& url, loadingPriority) {
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loadingPriority) {
     ModelPointer model = nullptr;
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer

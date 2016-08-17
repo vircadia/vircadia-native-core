@@ -82,9 +82,6 @@ public:
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
 
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
-        return !_needsReload && isRenderable() && isActive();
-    }
     bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,

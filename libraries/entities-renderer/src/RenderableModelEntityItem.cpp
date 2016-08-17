@@ -180,6 +180,7 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     _needsInitialSimulation = false;
 }
 
+/*
 // TODO: we need a solution for changes to the postion/rotation/etc of a model...
 // this current code path only addresses that in this setup case... not the changing/moving case
 bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
@@ -197,6 +198,7 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
     bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene();
     return ready;
 }
+*/
 
 class RenderableModelEntityItemMeta {
 public:
