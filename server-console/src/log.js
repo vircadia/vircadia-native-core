@@ -218,6 +218,8 @@ ready = function() {
         appendLogMessages('ac');
     }
 
+    $('#view-logs').on('click', remote.openLogDirectory);
+
     // handle filtering of table rows on input change
     $('#search-input').on('input', function() {
         filter = $(this).val().toLowerCase();
