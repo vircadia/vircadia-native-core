@@ -41,9 +41,9 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
 }
 
 void EntityScriptingInterface::resetActivityTracking() {
-    _activityTracking.hasAddedEntity = false;
-    _activityTracking.hasDeletedEntity = false;
-    _activityTracking.hasEditedEntity = false;
+    _activityTracking.addedEntityCount = 0;
+    _activityTracking.deletedEntityCount = 0;
+    _activityTracking.editedEntityCount = 0;
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -136,7 +136,7 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
-    _activityTracking.hasAddedEntity = true;
+    _activityTracking.addedEntityCount++;
 
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
@@ -208,7 +208,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
-    _activityTracking.hasAddedEntity = true;
+    _activityTracking.addedEntityCount++;
 
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
@@ -273,7 +273,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
-    _activityTracking.hasEditedEntity = true;
+    _activityTracking.editedEntityCount++;
 
     EntityItemProperties properties = scriptSideProperties;
 
@@ -418,7 +418,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
-    _activityTracking.hasDeletedEntity = true;
+    _activityTracking.deletedEntity++;
 
     EntityItemID entityID(id);
     bool shouldDelete = true;

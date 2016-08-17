@@ -67,9 +67,9 @@ public:
 
     class ActivityTracking {
     public:
-        bool hasAddedEntity { false };
-        bool hasDeletedEntity { false };
-        bool hasEditedEntity { false };
+        int addedEntityCount { 0 };
+        int deletedEntityCount { 0 };
+        int editedEntityCount { 0 };
     };
 
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }

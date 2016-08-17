@@ -1203,9 +1203,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto entityActivityTracking = entityScriptingInterface->getActivityTracking();
         entityScriptingInterface->resetActivityTracking();
-        properties["added_entity"] = entityActivityTracking.hasAddedEntity;
-        properties["deleted_entity"] = entityActivityTracking.hasDeletedEntity;
-        properties["edited_entity"] = entityActivityTracking.hasEditedEntity;
+        properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
+        properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
+        properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
