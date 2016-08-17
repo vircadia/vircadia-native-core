@@ -1216,8 +1216,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
         // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
         properties["hand_pose_changed"] =
-            (!(leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
-            || (!(rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
+            ((leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
+            || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
 
