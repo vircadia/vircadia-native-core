@@ -2418,28 +2418,13 @@ function MyController(hand) {
                 var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"]);
                 var parentID = props.parentID;
 
-                var doSetVelocity = false;
-                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID && propsArePhysical(props)) {
-                    // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
-                    // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
-                    // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
-                    // can be thrown.
-                    doSetVelocity = true;
-                }
-
                 if (!noVelocity &&
-                    !doSetVelocity &&
                     parentID == MyAvatar.sessionUUID &&
                     Vec3.length(data["gravity"]) > 0.0 &&
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
-                    deactiveProps["velocity"] = {
-                        x: 0.0,
-                        y: 0.1,
-                        z: 0.0
-                    };
-                    doSetVelocity = false;
+                    deactiveProps["velocity"] = this.currentVelocity;
                 }
                 if (noVelocity) {
                     deactiveProps["velocity"] = {
@@ -2452,21 +2437,9 @@ function MyController(hand) {
                         y: 0.0,
                         z: 0.0
                     };
-                    doSetVelocity = false;
                 }
 
                 Entities.editEntity(entityID, deactiveProps);
-
-                if (doSetVelocity) {
-                    // this is a continuation of the TODO above -- we shouldn't need to set this here.
-                    // do this after the parent has been reset.  setting this at the same time as
-                    // the parent causes it to go off in the wrong direction.  This is a bug that should
-                    // be fixed.
-                    Entities.editEntity(entityID, {
-                        velocity: this.currentVelocity
-                            // angularVelocity: this.currentAngularVelocity
-                    });
-                }
                 data = null;
             } else if (this.shouldResetParentOnRelease) {
                 // we parent-grabbed this from another parent grab.  try to put it back where we found it.

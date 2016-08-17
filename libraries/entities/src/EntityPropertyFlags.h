@@ -177,6 +177,9 @@ enum EntityPropertyList {
 
     PROP_SHAPE,
 
+    PROP_LOCAL_VELOCITY, // only used to convert values to and from scripts
+    PROP_LOCAL_ANGULAR_VELOCITY, // only used to convert values to and from scripts
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

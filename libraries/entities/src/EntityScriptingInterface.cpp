@@ -78,6 +78,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     EntityItemProperties scriptSideProperties = entitySideProperties;
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+    scriptSideProperties.setLocalVelocity(entitySideProperties.getLocalVelocity());
+    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getLocalAngularVelocity());
 
     bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
@@ -88,10 +90,19 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
-    // TODO -- handle velocity and angularVelocity
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity(),
+                                                                      entitySideProperties.getParentID(),
+                                                                      entitySideProperties.getParentJointIndex(),
+                                                                      success);
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                                                    entitySideProperties.getParentID(),
+                                                                                    entitySideProperties.getParentJointIndex(),
+                                                                                    success);
 
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
+    scriptSideProperties.setVelocity(worldVelocity);
+    scriptSideProperties.setAngularVelocity(worldAngularVelocity);
 
     return scriptSideProperties;
 }
@@ -123,6 +134,27 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
                                                                   entitySideProperties.getParentJointIndex(),
                                                                   success);
         entitySideProperties.setRotation(localRotation);
+    }
+
+    if (scriptSideProperties.localVelocityChanged()) {
+        entitySideProperties.setVelocity(scriptSideProperties.getLocalVelocity());
+    } else if (scriptSideProperties.velocityChanged()) {
+        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity(),
+                                                                          entitySideProperties.getParentID(),
+                                                                          entitySideProperties.getParentJointIndex(),
+                                                                          success);
+        entitySideProperties.setVelocity(localVelocity);
+    }
+
+    if (scriptSideProperties.localAngularVelocityChanged()) {
+        entitySideProperties.setAngularVelocity(scriptSideProperties.getLocalAngularVelocity());
+    } else if (scriptSideProperties.angularVelocityChanged()) {
+        glm::vec3 localAngularVelocity =
+            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                           entitySideProperties.getParentID(),
+                                                           entitySideProperties.getParentJointIndex(),
+                                                           success);
+        entitySideProperties.setAngularVelocity(localAngularVelocity);
     }
 
     return entitySideProperties;
