@@ -91,6 +91,11 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         _procedural.reset(new Procedural(getUserData()));
         _procedural->_vertexSource = simple_vert;
         _procedural->_fragmentSource = simple_frag;
+        _procedural->_opaqueState->setCullMode(gpu::State::CULL_NONE);
+        _procedural->_opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
+        _procedural->_opaqueState->setBlendFunction(false,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
 
     gpu::Batch& batch = *args->_batch;
