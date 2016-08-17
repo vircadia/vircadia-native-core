@@ -20,15 +20,19 @@ class AddressBarDialog : public OffscreenQmlDialog {
     HIFI_QML_DECL
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
     Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
+    Q_PROPERTY(bool useFeed READ useFeed WRITE setUseFeed NOTIFY useFeedChanged)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
     bool backEnabled() { return _backEnabled; }
     bool forwardEnabled() { return _forwardEnabled; }
+    bool useFeed() { return _useFeed; }
+    void setUseFeed(bool useFeed) { if (_useFeed != useFeed) { _useFeed = useFeed; emit useFeedChanged(); } }
 
 signals:
     void backEnabledChanged();
     void forwardEnabledChanged();
+    void useFeedChanged();
 
 protected:
     void displayAddressOfflineMessage();
@@ -42,6 +46,7 @@ protected:
 
     bool _backEnabled;
     bool _forwardEnabled;
+    bool _useFeed { false };
 };
 
 #endif

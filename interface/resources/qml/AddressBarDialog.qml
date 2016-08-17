@@ -47,19 +47,19 @@ Window {
     }
 
     function goCard(card) {
-        if (useFeed) {
+        if (addressBarDialog.useFeed) {
             storyCard.imageUrl = card.imageUrl;
             storyCard.userName = card.userName;
             storyCard.placeName = card.placeName;
             storyCard.actionPhrase = card.actionPhrase;
             storyCard.timePhrase = card.timePhrase;
+            storyCard.hifiUrl = card.hifiUrl;
             storyCard.visible = true;
             return;
         }
         addressLine.text = card.hifiUrl;
         toggleOrGo(true);
     }
-    property bool useFeed: false;
     property var allPlaces: [];
     property var allStories: [];
     property int cardWidth: 200;
@@ -73,12 +73,13 @@ Window {
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
+        onUseFeedChanged: { updateFeedState(); }
 
         ListModel { id: suggestions }
 
         ListView {
             id: scroll
-            width: (3 * cardWidth) + (2 * hifi.layout.spacing);
+            width: backgroundImage.width;
             height: cardHeight;
             spacing: hifi.layout.spacing;
             clip: true;
@@ -106,9 +107,18 @@ Window {
             }
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
-            highlight: Rectangle { color: "transparent"; border.width: 2; border.color: "#1FA5E8"; z: 1; }
+            highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
+            leftMargin: 50; // Start the first item over be about the same amount as the last item peeks through on the other side.
+            rightMargin: 50;
         }
-
+        Image { // Just a visual indicator that the user can swipe the cards over to see more.
+            source: "../images/Swipe-Icon-single.svg"
+            width: 50;
+            anchors {
+                right: scroll.right;
+                verticalCenter: scroll.verticalCenter;
+            }
+        }
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
@@ -181,9 +191,9 @@ Window {
                 id: placesButton
                 imageURL: "../images/places.svg"
                 buttonState: 1
-                defaultState: useFeed ? 0 : 1;
-                hoverState: useFeed ? 2 : -1;
-                onClicked: useFeed ? toggleFeed() : identity()
+                defaultState: addressBarDialog.useFeed ? 0 : 1;
+                hoverState: addressBarDialog.useFeed ? 2 : -1;
+                onClicked: addressBarDialog.useFeed ? toggleFeed() : identity()
                 anchors {
                     right: feedButton.left;
                     bottom: addressLine.bottom;
@@ -193,9 +203,9 @@ Window {
                 id: feedButton;
                 imageURL: "../images/snap-feed.svg";
                 buttonState: 0
-                defaultState: useFeed ? 1 : 0;
-                hoverState: useFeed ? -1 : 2;
-                onClicked: useFeed ? identity() : toggleFeed();
+                defaultState: addressBarDialog.useFeed ? 1 : 0;
+                hoverState: addressBarDialog.useFeed ? -1 : 2;
+                onClicked: addressBarDialog.useFeed ? identity() : toggleFeed();
                 anchors {
                     right: parent.right;
                     bottom: addressLine.bottom;
@@ -221,10 +231,13 @@ Window {
     }
 
 
-    function toggleFeed () {
-        useFeed = !useFeed;
-        placesButton.buttonState = useFeed ? 0 : 1;
-        feedButton.buttonState = useFeed ? 1 : 0;
+    function toggleFeed() {
+        addressBarDialog.useFeed = !addressBarDialog.useFeed;
+        updateFeedState();
+    }
+    function updateFeedState() {
+        placesButton.buttonState = addressBarDialog.useFeed ? 0 : 1;
+        feedButton.buttonState = addressBarDialog.useFeed ? 1 : 0;
         filterChoicesByText();
     }
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
@@ -361,7 +374,7 @@ Window {
     }
 
     function suggestable(place) {
-        if (useFeed) {
+        if (addressBarDialog.useFeed) {
             return true;
         }
         return (place.place_name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
@@ -396,7 +409,7 @@ Window {
                 // pageResults is now [ [ placeDataOneForDomainOne, placeDataTwoForDomainOne, ...], [ placeDataTwoForDomainTwo...] ]
                 pageResults.forEach(function (domainResults) {
                     allPlaces = allPlaces.concat(domainResults);
-                    if (!addressLine.text && !useFeed) { // Don't add if the user is already filtering
+                    if (!addressLine.text && !addressBarDialog.useFeed) { // Don't add if the user is already filtering
                         domainResults.forEach(function (place) {
                             if (suggestable(place)) {
                                 suggestions.append(place);
@@ -421,7 +434,7 @@ Window {
                 return makeModelData(story);
             });
             allStories = allStories.concat(stories);
-            if (!addressLine.text && useFeed) { // Don't add if the user is already filtering
+            if (!addressLine.text && addressBarDialog.useFeed) { // Don't add if the user is already filtering
                 stories.forEach(function (story) {
                     suggestions.append(story);
                 });
@@ -435,7 +448,7 @@ Window {
     function filterChoicesByText() {
         suggestions.clear();
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
-            data = useFeed ? allStories : allPlaces;
+            data = addressBarDialog.useFeed ? allStories : allPlaces;
         function matches(place) {
             if (!words.length) {
                 return suggestable(place);

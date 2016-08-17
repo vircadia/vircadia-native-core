@@ -23,6 +23,7 @@ class DesktopScriptingInterface : public QObject, public Dependency {
 
 public:
     Q_INVOKABLE void setOverlayAlpha(float alpha);
+    Q_INVOKABLE void show(const QString& path, const QString&  title);
 
     int getWidth();
     int getHeight();
