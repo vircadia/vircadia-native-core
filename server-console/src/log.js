@@ -43,6 +43,7 @@ ready = function() {
 
     var domainServer = remote.getGlobal('domainServer');
     var acMonitor = remote.getGlobal('acMonitor');
+    var openLogDirectory = remote.getGlobal('openLogDirectory');
 
     var pendingLines = {
         'ds': new Array(),
@@ -218,7 +219,11 @@ ready = function() {
         appendLogMessages('ac');
     }
 
-    $('#view-logs').on('click', remote.openLogDirectory);
+    // Binding a remote function directly does not work, so bind to a function
+    // that calls the remote function.
+    $('#view-logs').on('click', function() {
+        openLogDirectory();
+    });
 
     // handle filtering of table rows on input change
     $('#search-input').on('input', function() {
