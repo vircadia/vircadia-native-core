@@ -38,6 +38,8 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 };
 
 var TELEPORT_CANCEL_RANGE = 1.5;
+var USE_COOL_IN = true;
+var COOL_IN_DURATION = 1750;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -81,6 +83,7 @@ function Teleporter() {
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
     this.tooClose = false;
+    this.inCoolIn = false;
 
     this.initialize = function() {
         this.createMappings();
@@ -99,6 +102,7 @@ function Teleporter() {
     };
 
     this.enterTeleportMode = function(hand) {
+
         if (inTeleportMode === true) {
             return;
         }
@@ -119,6 +123,10 @@ function Teleporter() {
         this.initialize();
         Script.update.connect(this.update);
         this.updateConnected = true;
+        this.inCoolIn = true;
+        Script.setTimeout(function() {
+            _this.inCoolIn = false;
+        }, COOL_IN_DURATION)
     };
 
     this.createTargetOverlay = function() {
@@ -189,16 +197,16 @@ function Teleporter() {
         if (this.updateConnected === true) {
             Script.update.disconnect(this.update);
         }
+
         this.disableMappings();
         this.turnOffOverlayBeams();
-
 
         this.updateConnected = null;
 
         Script.setTimeout(function() {
             inTeleportMode = false;
             _this.enableGrab();
-        }, 100);
+        }, 200);
     };
 
 
@@ -214,7 +222,13 @@ function Teleporter() {
             }
             teleporter.leftRay();
             if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
-                _this.teleport();
+                if (_this.inCoolIn === true) {
+                    _this.exitTeleportMode();
+                    _this.deleteTargetOverlay();
+                    _this.deleteCancelOverlay();
+                } else {
+                    _this.teleport();
+                }
                 return;
             }
 
@@ -224,7 +238,13 @@ function Teleporter() {
             }
             teleporter.rightRay();
             if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
-                _this.teleport();
+                if (_this.inCoolIn === true) {
+                    _this.exitTeleportMode();
+                    _this.deleteTargetOverlay();
+                    _this.deleteCancelOverlay();
+                } else {
+                    _this.teleport();
+                }
                 return;
             }
         }
@@ -235,7 +255,11 @@ function Teleporter() {
         var pose = Controller.getPoseValue(Controller.Standard.RightHand);
         var rightPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
         var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
-                                         Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
+            Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {
+                x: 1,
+                y: 0,
+                z: 0
+            }));
 
         var rightPickRay = {
             origin: rightPosition,
@@ -283,7 +307,11 @@ function Teleporter() {
         var pose = Controller.getPoseValue(Controller.Standard.LeftHand);
         var leftPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
         var leftRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
-                                        Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {x: 1, y: 0, z: 0}));
+            Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {
+                x: 1,
+                y: 0,
+                z: 0
+            }));
 
         var leftPickRay = {
             origin: leftPosition,

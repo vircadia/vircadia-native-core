@@ -1,8 +1,6 @@
 {
     "name": "Vive to Standard",
     "channels": [
-        { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
-        { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
         { 
         	"from": "Vive.LT", "to": "Standard.LT",
         	"filters": [
