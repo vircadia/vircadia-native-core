@@ -21,6 +21,15 @@
         max-width: 100%;
         height:auto;
       }
+      .prompt {
+        font-family: Raleway-SemiBold;
+        text-transform: none;
+      }
+
+      .sub-section-header > div > input {
+        margin-top:20px;
+      }
+      span.inline-checkbox { display:inline; }
 
       @media (max-width: 768px){
         .snapshot-column-left{
@@ -37,6 +46,8 @@
       .snapsection{
         width:95% !important;
         padding-right:0px;
+        margin-left: auto;
+        margin-right: auto;
       }
       div#sharing {
         margin-top:50px;
@@ -104,11 +115,14 @@
 
     };
     // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
-    shareSelected = function() {
-        EventBridge.emitWebEvent(paths);
+    shareSelected = function () {
+        EventBridge.emitWebEvent(paths.concat({openFeed: document.getElementById("openFeed").checked}));
     };
-    doNotShare = function() {
-        EventBridge.emitWebEvent([]);
+    doNotShare = function () {
+        EventBridge.emitWebEvent([{openFeed: document.getElementById("openFeed").checked}]);
+    };
+    snapshotSettings = function () {
+        EventBridge.emitWebEvent("openSettings");
     };
     </script>
 
@@ -120,16 +134,23 @@
         <div class="section-header snapsection">
           <label>Snapshots sucessfully saved!</label>
         </div>
-        <div id="sharing">
-            <div class="sub-section-header snapsection">
-                <label>Would you like to share?</label>
+        <div class="sub-section-header snapsection">
+          <div id="sharing">
+            <div class="prompt">Would you like to share your pic in the Snapshots feed?</div>
+            <div>
+              <input type="button" class="blue" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
             </div>
-            <div class="sub-section-header snapsection">
-                <input type="button" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
-            </div>
-            <div class="sub-section-header snapsection">
-                <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
-            </div>
+          </div>
+          <div>
+            <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+          </div>
+        </div>
+        <div class="sub-section-header snapsection">
+          <input type="button" value="Snapshot setttings" onclick="snapshotSettings()"/>
+          <span class="inline-checkbox property checkbox">
+            <input id="openFeed" type="checkbox" checked/>
+            <label for="openFeed">Open feed after</label>
+          </span>
         </div>
       </div>
       <div id="snapshot-images" class="snapshot-column-right"/>

@@ -20,24 +20,39 @@ var button = toolBar.addButton({
     alpha: 0.9,
 });
 
+function showFeedWindow() {
+    DialogsManager.showFeed();
+}
+
+var openFeed, outstanding;
 function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot', Script.resolvePath("html/ShareSnapshot.html"), 800, 470);
+    var dialog = new OverlayWebWindow('Snapshot Review', Script.resolvePath("html/ShareSnapshot.html"), 800, 470);
     function onMessage(message) {
-        if (message == 'ready') { // The window can now receive data from us.
+        switch (message) {
+        case 'ready':
             dialog.emitScriptEvent(data); // Send it.
-            return;
-        } // Rest is confirmation processing
-        dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
-        dialog.close();
-        dialog.deleteLater();
-        message = message.filter(function (picture) { return picture.share; });
-        if (message.length) {
-            print('sharing', message.map(function (picture) { return picture.localPath; }).join(', '));
-            message.forEach(function (data) {
-                Window.shareSnapshot(data.localPath);
+            openFeed = false;
+            outstanding = 0;
+            break;
+        case 'openSettings':
+            Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+            break;
+        default:
+            dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
+            dialog.close();
+            dialog.deleteLater();
+            message.forEach(function (submessage) {
+                if (submessage.share) {
+                    print('sharing', submessage.localPath);
+                    outstanding++;
+                    Window.shareSnapshot(submessage.localPath);
+                } else if (submessage.openFeed) {
+                    openFeed = true;
+                }
             });
-        } else {
-            print('declined to share', JSON.stringify(data));
+            if (openFeed && !outstanding) {
+                showFeedWindow();
+            }
         }
     }
     dialog.webEventReceived.connect(onMessage);
@@ -51,7 +66,10 @@ function snapshotShared(success) {
     } else {
         // for now just print an error.
         print('snapshot upload/share failed');
-    } 
+    }
+    if ((--outstanding <= 0) && openFeed) {
+        showFeedWindow();
+    }
 }
 
 function onClicked() {
