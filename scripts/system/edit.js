@@ -1128,13 +1128,16 @@ function handeMenuEvent(menuItem) {
     }
     tooltip.show(false);
 }
-
 function getPositionToCreateEntity() {
     var HALF_TREE_SCALE = 16384;
     var direction = Quat.getFront(MyAvatar.orientation);
     var distance = 1;
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
-    position.y +=0.5;
+
+    if (Camera.mode === "entity" || Camera.mode === "independent") {
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
+    }
+    position.y += 0.5;
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
         return null
     }
@@ -1145,14 +1148,20 @@ function getPositionToImportEntity() {
     var dimensions = Clipboard.getContentsDimensions();
     var HALF_TREE_SCALE = 16384;
     var direction = Quat.getFront(MyAvatar.orientation);
-    var distance = 1;
+    var distance = 1.5;
     if (dimensions.x > distance) {
-        distance = dimensions.x
+        distance = dimensions.x / 2
     }
     if (dimensions.z > distance) {
-        distance = dimensions.z
+        distance = dimensions.z / 2
     }
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
+
+    print('distance is:: ' + distance);
+
+    if (Camera.mode === "entity" || Camera.mode === "independent") {
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
+    }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
         return null
