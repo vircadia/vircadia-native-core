@@ -4253,6 +4253,21 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
+            case model::SunSkyStage::SKY_DEFAULT: {
+                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
+                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
+                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
+
+                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                auto sceneKeyLight = scene->getKeyLight();
+                scene->setSunModelEnable(false);
+                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                // fall through: render a skybox, if available
+           }
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
@@ -4260,33 +4275,22 @@ namespace render {
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
+                // fall through: render defaults, if available
             }
-
-            // Fall through: if no skybox is available, render the SKY_DOME
-            case model::SunSkyStage::SKY_DOME:  {
-               if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                   static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                   static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
-                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 2.0f };
-                   static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
-
-                   auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                   auto sceneKeyLight = scene->getKeyLight();
-                   scene->setSunModelEnable(false);
-                   sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                   sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                   sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                   sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
-
-                   auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                   sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-
-                   qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
-               }
+            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                    auto sceneKeyLight = scene->getKeyLight();
+                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                    // do not set the ambient sphere - it peaks too high, and causes flashing when turning
+                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                }
+                // fall through: render defaults, if available
             }
-                break;
-
+            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+                }
             case model::SunSkyStage::NO_BACKGROUND:
             default:
                 // this line intentionally left blank
@@ -4503,7 +4507,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
 }

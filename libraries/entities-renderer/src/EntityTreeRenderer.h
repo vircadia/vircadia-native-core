@@ -185,9 +185,10 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
+
+    QString _zoneUserData;
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
