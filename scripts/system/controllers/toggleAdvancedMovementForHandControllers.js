@@ -1,26 +1,26 @@
+// Created by james b. pollack @imgntn on 7/2/2016
+// Copyright 2016 High Fidelity, Inc.
 //advanced movements settings are in individual controller json files
 //what we do is check the status of the 'advance movement' checkbox when you enter HMD mode
 //if 'advanced movement' is checked...we give you the defaults that are in the json.
 //if 'advanced movement' is not checked... we override the advanced controls with basic ones.
-//when the script stops, 
-
-//todo: store in prefs
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-
-var mappingName, basicMapping,isChecked;
+var mappingName, basicMapping, isChecked;
 
 var previousSetting = Settings.getValue('advancedMovementForHandControllersIsChecked');
 if (previousSetting === '') {
     previousSetting = false;
-    isChecked=false;
+    isChecked = false;
 }
 
-if(previousSetting===true){
-    isChecked=true;
+if (previousSetting === true) {
+    isChecked = true;
 }
-if(previousSetting===false){
-    isChecked=false;
+if (previousSetting === false) {
+    isChecked = false;
 }
 
 function addAdvancedMovementItemToSettingsMenu() {
@@ -37,31 +37,57 @@ function rotate180() {
     MyAvatar.orientation = Quat.inverse(MyAvatar.orientation);
 }
 
+var inFlipTurn = false;
+
 function registerBasicMapping() {
     mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
     basicMapping = Controller.newMapping(mappingName);
     basicMapping.from(Controller.Standard.LY).to(function(value) {
         var stick = Controller.getValue(Controller.Standard.LS);
-        if (value === 1) {
+        if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
         }
-        print('should do LY stuff' + value + ":stick:" + stick);
+        if (Controller.Hardware.Vive !== undefined) {
+            if (value > 0.75 && inFlipTurn === false) {
+                print('vive should flip turn')
+                inFlipTurn = true;
+                rotate180();
+                Script.setTimeout(function() {
+                    print('vive should be able to flip turn again')
+                    inFlipTurn = false;
+                }, 250)
+            } else {
+                print('vive should not flip turn')
+
+            }
+        }
         return;
     });
     basicMapping.from(Controller.Standard.LX).to(Controller.Standard.RX);
     basicMapping.from(Controller.Standard.RY).to(function(value) {
         var stick = Controller.getValue(Controller.Standard.RS);
-        if (value === 1) {
+        if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
+        }
+        if (Controller.Hardware.Vive !== undefined) {
+            if (value > 0.75 && inFlipTurn === false) {
+                print('vive should flip turn')
+                inFlipTurn = true;
+                rotate180();
+                Script.setTimeout(function() {
+                    print('vive should be able to flip turn again')
+                    inFlipTurn = false;
+                }, 250)
+            } else {
+                print('vive should not flip turn')
+
+            }
         }
         print('should do RY stuff' + value + ":stick:" + stick);
         return;
     })
 }
 
-function testPrint(what) {
-    print('it was controller: ' + what)
-}
 
 function enableMappings() {
     Controller.enableMapping(mappingName);
@@ -79,7 +105,6 @@ function scriptEnding() {
 
 function menuItemEvent(menuItem) {
     if (menuItem == "Advanced Movement For Hand Controllers") {
-        print("  checked=" + Menu.isOptionChecked("Advanced Movement For Hand Controllers"));
         isChecked = Menu.isOptionChecked("Advanced Movement For Hand Controllers");
         if (isChecked === true) {
             Settings.setValue('advancedMovementForHandControllersIsChecked', true);
@@ -100,10 +125,8 @@ Menu.menuItemEvent.connect(menuItemEvent);
 
 registerBasicMapping();
 if (previousSetting === true) {
-    print('JBP WAS SET TO TRUE')
     disableMappings();
 } else if (previousSetting === false) {
-    print('JBP WAS SET TO FALSE')
     enableMappings();
 }
 
