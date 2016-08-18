@@ -34,12 +34,12 @@ class Faceshift : public FaceTracker, public Dependency {
 public:
 #ifdef HAVE_FACESHIFT
     // If we don't have faceshift, use the base class' methods
-    virtual void init();
-    virtual void update(float deltaTime);
-    virtual void reset();
+    virtual void init() override;
+    virtual void update(float deltaTime) override;
+    virtual void reset() override;
 
-    virtual bool isActive() const;
-    virtual bool isTracking() const;
+    virtual bool isActive() const override;
+    virtual bool isTracking() const override;
 #endif
 
     bool isConnectedOrConnecting() const;
