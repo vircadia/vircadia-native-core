@@ -23,7 +23,9 @@
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#if __GNUC__ >= 5 && __GNUC_MINOR__ >= 1
 #pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #endif
 
 #include <steam/steam_api.h>

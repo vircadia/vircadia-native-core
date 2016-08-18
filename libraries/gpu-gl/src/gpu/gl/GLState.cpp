@@ -8,8 +8,11 @@
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
+#if __GNUC__ >= 5 && __GNUC_MINOR__ >= 1
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#endif
+
 
 #include "GLState.h"
 
