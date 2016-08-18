@@ -418,7 +418,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
-    _activityTracking.deletedEntity++;
+    _activityTracking.deletedEntityCount++;
 
     EntityItemID entityID(id);
     bool shouldDelete = true;
