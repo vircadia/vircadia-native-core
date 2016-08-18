@@ -128,7 +128,7 @@ registerBasicMapping();
 Script.setTimeout(function() {
     if (previousSetting === true) {
         disableMappings();
-    } else(previousSetting === false) {
+    } else {
         enableMappings();
     }
 
