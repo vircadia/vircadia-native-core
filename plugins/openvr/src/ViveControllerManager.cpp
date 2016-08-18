@@ -29,10 +29,7 @@
 
 #include "OpenVrHelpers.h"
 
-extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
-extern vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
-extern vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
+extern PoseData _nextSimPoseData;
 
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
@@ -279,12 +276,12 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
-        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+        _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
 
         // process pose
-        const mat4& mat = _trackedDevicePoseMat4[deviceIndex];
-        const vec3 linearVelocity = _trackedDeviceLinearVelocities[deviceIndex];
-        const vec3 angularVelocity = _trackedDeviceAngularVelocities[deviceIndex];
+        const mat4& mat = _nextSimPoseData.poses[deviceIndex];
+        const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
+        const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
         handlePoseEvent(deltaTime, inputCalibrationData, mat, linearVelocity, angularVelocity, isLeftHand);
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
@@ -428,7 +425,7 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
-        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+        _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
         float strength = leftHand ? _leftHapticStrength : _rightHapticStrength;
         float duration = leftHand ? _leftHapticDuration : _rightHapticDuration;
 

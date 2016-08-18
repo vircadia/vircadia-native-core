@@ -12,7 +12,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <gl/OglplusHelpers.h>
 #include <controllers/Forward.h>
 
 void logWarning(const char* what);
@@ -105,30 +104,6 @@ inline ovrPosef ovrPoseFromGlm(const glm::mat4 & m) {
     result.Position = ovrFromGlm(translation);
     return result; 
 }
-
-
-// A wrapper for constructing and using a swap texture set,
-// where each frame you draw to a texture via the FBO,
-// then submit it and increment to the next texture.
-// The Oculus SDK manages the creation and destruction of
-// the textures
-struct SwapFramebufferWrapper : public FramebufferWrapper<ovrTextureSwapChain, void*> {
-    SwapFramebufferWrapper(const ovrSession& session);
-    ~SwapFramebufferWrapper();
-    void Commit();
-    void Resize(const uvec2 & size);
-protected:
-    void initColor() override final;
-    void initDepth() override final {}
-    void initDone() override final;
-    void onBind(oglplus::Framebuffer::Target target) override final;
-    void onUnbind(oglplus::Framebuffer::Target target) override final;
-
-    void destroyColor();
-
-private:
-    ovrSession _session;
-};
 
 controller::Pose ovrControllerPoseToHandPose(
     ovrHandType hand,

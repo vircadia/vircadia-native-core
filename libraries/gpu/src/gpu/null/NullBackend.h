@@ -36,7 +36,7 @@ protected:
 public:
     ~Backend() { }
 
-    void render(Batch& batch) final { }
+    void render(const Batch& batch) final { }
 
     // This call synchronize the Full Backend cache with the current GLState
     // THis is only intended to be used when mixing raw gl calls with the gpu api usage in order to sync

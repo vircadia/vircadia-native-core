@@ -67,6 +67,7 @@ enum DeferredShader_MapSlot {
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    CAMERA_CORRECTION_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
@@ -181,10 +182,12 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
 
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -478,8 +481,10 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                 }
             } else {
                 if (keyLight->getAmbientMap()) {
-                    program = deferredLightingEffect->_directionalSkyboxLight;
-                    locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                    program = deferredLightingEffect->_directionalAmbientSphereLight;
+                    locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
+                    //program = deferredLightingEffect->_directionalSkyboxLight;
+                    //locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
                     program = deferredLightingEffect->_directionalAmbientSphereLight;
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
@@ -559,7 +564,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
 
         batch.setProjectionTransform(monoProjMat);
-        batch.setViewTransform(monoViewTransform);
+        batch.setViewTransform(monoViewTransform, true);
 
         // Splat Point lights
         if (points && !deferredLightingEffect->_pointLights.empty()) {

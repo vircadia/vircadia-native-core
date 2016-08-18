@@ -363,6 +363,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     Size expectedSize = evalStoredMipSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     } else if (size > expectedSize) {
@@ -371,6 +372,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     }
@@ -880,11 +882,3 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
-std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
-
-uint32 Texture::getHardwareId() const {
-    if (TEXTURE_ID_RESOLVER) {
-        return TEXTURE_ID_RESOLVER(*this);
-    }
-    return 0;
-}

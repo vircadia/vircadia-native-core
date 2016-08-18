@@ -141,6 +141,34 @@ const QImage& image, bool isLinear, bool doCompress) {
     }
 }
 
+#define CPU_MIPMAPS 0
+
+void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) {
+#if CPU_MIPMAPS
+    auto numMips = texture->evalNumMips();
+    for (uint16 level = 1; level < numMips; ++level) {
+        QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
+        image = image.scaled(mipSize);
+        texture->assignStoredMip(level, formatMip, image.byteCount(), image.constBits());
+    }
+#else
+    texture->autoGenerateMips(-1);
+#endif
+}
+
+void generateFaceMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip, uint8 face) {
+#if CPU_MIPMAPS
+    auto numMips = texture->evalNumMips();
+    for (uint16 level = 1; level < numMips; ++level) {
+        QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
+        image = image.scaled(mipSize);
+        texture->assignStoredMipFace(level, formatMip, image.byteCount(), image.constBits(), face);
+    }
+#else
+    texture->autoGenerateMips(-1);
+#endif
+}
+
 gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, bool isLinear, bool doCompress, bool generateMips) {
     bool validAlpha = false;
     bool alphaAsMask = true;
@@ -167,7 +195,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
 
         if (generateMips) {
-            theTexture->autoGenerateMips(-1);
+            ::generateMips(theTexture, image, formatMip);
         }
     }
 
@@ -207,7 +235,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
+        generateMips(theTexture, image, formatMip);
     }
 
     return theTexture;
@@ -290,7 +318,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
+        generateMips(theTexture, image, formatMip);
     }
 
     return theTexture;
@@ -321,7 +349,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
+        generateMips(theTexture, image, formatMip);
 
         // FIXME queue for transfer to GPU and block on completion
     }
@@ -358,7 +386,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
+        generateMips(theTexture, image, formatMip);
         
         // FIXME queue for transfer to GPU and block on completion
     }
@@ -392,7 +420,7 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
+        generateMips(theTexture, image, formatMip);
 
         // FIXME queue for transfer to GPU and block on completion
     }
@@ -705,6 +733,9 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             int f = 0;
             for (auto& face : faces) {
                 theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
+                if (generateMips) {
+                    generateFaceMips(theTexture, face, formatMip, f);
+                }
                 f++;
             }
 

@@ -48,9 +48,17 @@ public:
 
     static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 worldToLocalVelocity(const glm::vec3& velocity, const QUuid& parentID,
+                                          int parentJointIndex, bool& success);
+    static glm::vec3 worldToLocalAngularVelocity(const glm::vec3& angularVelocity, const QUuid& parentID,
+                                                 int parentJointIndex, bool& success);
 
     static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 localToWorldVelocity(const glm::vec3& velocity,
+                                          const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 localToWorldAngularVelocity(const glm::vec3& angularVelocity,
+                                                 const QUuid& parentID, int parentJointIndex, bool& success);
 
     // world frame
     virtual const Transform getTransform(bool& success, int depth = 0) const;
@@ -151,6 +159,8 @@ public:
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
     bool hasAncestorOfType(NestableType nestableType);
+    SpatiallyNestablePointer getParentPointer(bool& success) const;
+    static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
     void getLocalTransformAndVelocities(Transform& localTransform,
                                         glm::vec3& localVelocity,
@@ -166,7 +176,6 @@ protected:
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
-    SpatiallyNestablePointer getParentPointer(bool& success) const;
 
     mutable SpatiallyNestableWeakPointer _parent;
 

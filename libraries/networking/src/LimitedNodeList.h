@@ -243,6 +243,7 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
+    void dataReceived(quint8 channelType, int bytes);
 
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
@@ -279,7 +280,7 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
     
-    bool packetSourceAndHashMatch(const udt::Packet& packet);
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);

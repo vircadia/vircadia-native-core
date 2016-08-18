@@ -118,7 +118,7 @@ static vr::IVROverlay* _overlay { nullptr };
 static QObject* _keyboardFocusObject { nullptr };
 static QString _existingText;
 static Qt::InputMethodHints _currentHints;
-extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+extern PoseData _nextSimPoseData;
 static bool _keyboardShown { false };
 static bool _overlayRevealed { false };
 static const uint32_t SHOW_KEYBOARD_DELAY_MS = 400;
@@ -160,7 +160,7 @@ void showOpenVrKeyboard(bool show = true) {
             if (vr::VROverlayError_None == showKeyboardResult) {
                 _keyboardShown = true;
                 // Try to position the keyboard slightly below where the user is looking.
-                mat4 headPose = cancelOutRollAndPitch(toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking));
+                mat4 headPose = cancelOutRollAndPitch(toGlm(_nextSimPoseData.vrPoses[0].mDeviceToAbsoluteTracking));
                 mat4 keyboardTransform = glm::translate(headPose, vec3(0, -0.5, -1));
                 keyboardTransform = keyboardTransform * glm::rotate(mat4(), 3.14159f / 4.0f, vec3(-1, 0, 0));
                 auto keyboardTransformVr = toOpenVr(keyboardTransform);
