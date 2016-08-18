@@ -1,9 +1,11 @@
 {
     "name": "Vive to Standard",
     "channels": [
+        { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
+        { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
         { 
-        	"from": "Vive.LT", "to": "Standard.LT",
-        	"filters": [
+            "from": "Vive.LT", "to": "Standard.LT",
+            "filters": [
                 { "type": "deadZone", "min": 0.05 }
             ]
         },
@@ -13,10 +15,11 @@
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
+        { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
         { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
         { 
-        	"from": "Vive.RT", "to": "Standard.RT",
-        	"filters": [
+            "from": "Vive.RT", "to": "Standard.RT",
+            "filters": [
                 { "type": "deadZone", "min": 0.05 }
             ]
         },
