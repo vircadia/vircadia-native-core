@@ -35,7 +35,12 @@ function addAdvancedMovementItemToSettingsMenu() {
 }
 
 function rotate180() {
-    MyAvatar.orientation = Quat.inverse(MyAvatar.orientation);
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.angleAxis(180, {
+        x: 0,
+        y: 1,
+        z: 0
+    }))
+    MyAvatar.orientation = newOrientation
 }
 
 var inFlipTurn = false;
