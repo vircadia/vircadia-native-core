@@ -294,14 +294,25 @@ function Teleporter() {
                     this.createCancelOverlay();
                 }
             } else {
-                this.deleteCancelOverlay();
-
-                this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
-                if (this.targetOverlay !== null) {
-                    this.updateTargetOverlay(rightIntersection);
+                if (this.inCoolIn === true) {
+                    this.deleteTargetOverlay();
+                    this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                    if (this.cancelOverlay !== null) {
+                        this.updateCancelOverlay(rightIntersection);
+                    } else {
+                        this.createCancelOverlay();
+                    }
                 } else {
-                    this.createTargetOverlay();
+                    this.deleteCancelOverlay();
+
+                    this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+                    if (this.targetOverlay !== null) {
+                        this.updateTargetOverlay(rightIntersection);
+                    } else {
+                        this.createTargetOverlay();
+                    }
                 }
+
 
             }
 
@@ -346,14 +357,25 @@ function Teleporter() {
                     this.createCancelOverlay();
                 }
             } else {
-                this.deleteCancelOverlay();
-                this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
-
-                if (this.targetOverlay !== null) {
-                    this.updateTargetOverlay(leftIntersection);
+                if (this.inCoolIn === true) {
+                    this.deleteTargetOverlay();
+                    this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
+                    if (this.cancelOverlay !== null) {
+                        this.updateCancelOverlay(leftIntersection);
+                    } else {
+                        this.createCancelOverlay();
+                    }
                 } else {
-                    this.createTargetOverlay();
+                    this.deleteCancelOverlay();
+                    this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+
+                    if (this.targetOverlay !== null) {
+                        this.updateTargetOverlay(leftIntersection);
+                    } else {
+                        this.createTargetOverlay();
+                    }
                 }
+
 
             }
 
