@@ -55,7 +55,7 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
-    void takeSnapshot(bool notify);
+    void takeSnapshot(bool notify = true, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& path);
 
 signals:

@@ -5130,13 +5130,13 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot(bool notify) {
+void Application::takeSnapshot(bool notify, float aspectRatio) {
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
 }

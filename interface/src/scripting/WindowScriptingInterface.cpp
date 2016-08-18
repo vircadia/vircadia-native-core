@@ -204,10 +204,10 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
     QApplication::clipboard()->setText(text);
 }
 
-void WindowScriptingInterface::takeSnapshot(bool notify) {
+void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
     // only evil-doers call takeSnapshot from a random thread
-    qApp->postLambdaEvent([notify] {
-        qApp->takeSnapshot(notify);
+    qApp->postLambdaEvent([notify, aspectRatio] {
+        qApp->takeSnapshot(notify, aspectRatio);
     });
 }
 
