@@ -166,7 +166,7 @@ private:
     QMyQuickRenderControl* _renderControl{ nullptr };
     FramebufferPtr _fbo;
     RenderbufferPtr _depthStencil;
-    TextureRecycler _textures;
+    TextureRecycler _textures { true };
     GLTextureEscrow _escrow;
 
     uint64_t _lastRenderTime{ 0 };
@@ -398,6 +398,8 @@ void OffscreenQmlRenderThread::render() {
             // for now just clear the errors
             glGetError();
         }
+
+        Context::Bound(oglplus::Texture::Target::_2D, *texture).GenerateMipmap();
 
         // FIXME probably unecessary
         DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
