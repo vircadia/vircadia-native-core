@@ -23,6 +23,7 @@ if (previousSetting === true) {
     isChecked = true;
 }
 if (previousSetting === false) {
+    previousSetting = false;
     isChecked = false;
 }
 
@@ -132,7 +133,7 @@ Script.setTimeout(function() {
         enableMappings();
     }
 
-}, 0)
+}, 100)
 
 
 HMD.displayModeChanged.connect(function(isHMDMode) {
