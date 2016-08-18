@@ -298,7 +298,6 @@ private:
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
-    float calculateDeviceToNetworkInputRatio() const;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
 

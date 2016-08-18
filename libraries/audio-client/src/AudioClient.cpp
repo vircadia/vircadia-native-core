@@ -748,11 +748,10 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-    const float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
-    const int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
+    const int inputSamplesRequired = _inputFormat.channelCount() * _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
     QByteArray inputByteArray = _inputDevice->readAll();
-
 
     handleLocalEchoAndReverb(inputByteArray);
 
@@ -1259,14 +1258,6 @@ int AudioClient::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
         / CALLBACK_ACCELERATOR_RATIO) + 0.5f);
 
     return numInputCallbackBytes;
-}
-
-float AudioClient::calculateDeviceToNetworkInputRatio() const {
-    float inputToNetworkInputRatio = (int)((_numInputCallbackBytes
-        * CALLBACK_ACCELERATOR_RATIO
-        / AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL) + 0.5f);
-
-    return inputToNetworkInputRatio;
 }
 
 int AudioClient::calculateNumberOfFrameSamples(int numBytes) const {
