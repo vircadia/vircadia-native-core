@@ -11,6 +11,8 @@
 
 var mappingName, basicMapping, isChecked;
 
+var TURN_RATE = 1000;
+
 var previousSetting = Settings.getValue('advancedMovementForHandControllersIsChecked');
 if (previousSetting === '') {
     previousSetting = false;
@@ -59,7 +61,7 @@ function registerBasicMapping() {
                 rotate180();
                 Script.setTimeout(function() {
                     inFlipTurn = false;
-                }, 250)
+                }, TURN_RATE)
             } else {
 
             }
@@ -122,11 +124,15 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 
 registerBasicMapping();
-if (previousSetting === true) {
-    disableMappings();
-} else if (previousSetting === false) {
-    enableMappings();
-}
+
+Script.setTimeout(function() {
+    if (previousSetting === true) {
+        disableMappings();
+    } else(previousSetting === false) {
+        enableMappings();
+    }
+
+}, 0)
 
 
 HMD.displayModeChanged.connect(function(isHMDMode) {
