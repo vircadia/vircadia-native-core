@@ -72,6 +72,8 @@ function Trigger(hand) {
     };
 }
 
+var coolInTimeout = null;
+
 function Teleporter() {
     var _this = this;
     this.intersection = null;
@@ -84,6 +86,7 @@ function Teleporter() {
     this.teleportHand = null;
     this.tooClose = false;
     this.inCoolIn = false;
+
 
     this.initialize = function() {
         this.createMappings();
@@ -113,7 +116,11 @@ function Teleporter() {
         inTeleportMode = true;
         this.inCoolIn = true;
         print('setting cool in timeout')
-        this.coolInTimeout = Script.setTimeout(function() {
+        if (coolInTimeout !== null) {
+            Script.clearTimeout(coolInTimeout);
+
+        }
+        coolInTimeout = Script.setTimeout(function() {
             print('should exit cool in mode now' + COOL_IN_DURATION)
             _this.inCoolIn = false;
         }, COOL_IN_DURATION)
@@ -208,9 +215,9 @@ function Teleporter() {
 
         this.updateConnected = null;
         this.inCoolIn = false;
+        inTeleportMode = false;
 
         Script.setTimeout(function() {
-            inTeleportMode = false;
             _this.enableGrab();
         }, 200);
     };
