@@ -528,8 +528,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -540,11 +540,11 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
