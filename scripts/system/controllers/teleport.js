@@ -39,7 +39,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 
 var TELEPORT_CANCEL_RANGE = 1.5;
 var USE_COOL_IN = true;
-var COOL_IN_DURATION = 1750;
+var COOL_IN_DURATION = 500;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -111,6 +111,12 @@ function Teleporter() {
         }
 
         inTeleportMode = true;
+        this.inCoolIn = true;
+        print('setting cool in timeout')
+        this.coolInTimeout = Script.setTimeout(function() {
+            print('should exit cool in mode now' + COOL_IN_DURATION)
+            _this.inCoolIn = false;
+        }, COOL_IN_DURATION)
 
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
@@ -123,10 +129,9 @@ function Teleporter() {
         this.initialize();
         Script.update.connect(this.update);
         this.updateConnected = true;
-        this.inCoolIn = true;
-        Script.setTimeout(function() {
-            _this.inCoolIn = false;
-        }, COOL_IN_DURATION)
+
+
+
     };
 
     this.createTargetOverlay = function() {
@@ -202,7 +207,7 @@ function Teleporter() {
         this.turnOffOverlayBeams();
 
         this.updateConnected = null;
-        _this.inCoolIn = false;
+        this.inCoolIn = false;
 
         Script.setTimeout(function() {
             inTeleportMode = false;
