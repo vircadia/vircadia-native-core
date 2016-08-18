@@ -21,11 +21,11 @@ Script.load("system/edit.js");
 Script.load("system/mod.js");
 Script.load("system/selectAudioDevice.js");
 Script.load("system/notifications.js");
-Script.load("system/controllers/toggleAdvancedMovementForHandControllers.js")
 Script.load("system/controllers/handControllerGrab.js");
 Script.load("system/controllers/handControllerPointer.js");
 Script.load("system/controllers/squeezeHands.js");
 Script.load("system/controllers/grab.js");
 Script.load("system/controllers/teleport.js");
+Script.load("system/controllers/toggleAdvancedMovementForHandControllers.js")
 Script.load("system/dialTone.js");
 Script.load("system/firstPersonHMD.js");
