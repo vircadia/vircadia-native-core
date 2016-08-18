@@ -160,8 +160,10 @@ public:
  
     enum BackgroundMode {
         NO_BACKGROUND = 0,
-        SKY_DOME,
+        SKY_DEFAULT,
         SKY_BOX,
+        SKY_DEFAULT_AMBIENT_TEXTURE,
+        SKY_DEFAULT_TEXTURE,
 
         NUM_BACKGROUND_MODES,
     };
@@ -173,7 +175,7 @@ public:
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
-    BackgroundMode _backgroundMode = SKY_DOME;
+    BackgroundMode _backgroundMode = SKY_DEFAULT;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

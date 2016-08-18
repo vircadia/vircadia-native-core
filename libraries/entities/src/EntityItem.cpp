@@ -35,6 +35,7 @@
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
+std::function<bool()> EntityItem::_entitiesShouldFadeFunction = [](){ return true; };
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID),
