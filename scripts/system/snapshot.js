@@ -32,6 +32,12 @@ var outstanding;
 function confirmShare(data) {
     var dialog = new OverlayWebWindow('Snapshot Review', Script.resolvePath("html/ShareSnapshot.html"), 800, 470);
     function onMessage(message) {
+        // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
+        // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
+        // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
+        //    same time, show the user all of them, and have the user deselect any that they do not want to share.
+        //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
+        var isLoggedIn, needsLogin = false;
         switch (message) {
         case 'ready':
             dialog.emitScriptEvent(data); // Send it.
@@ -50,15 +56,25 @@ function confirmShare(data) {
             dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
             dialog.close();
             dialog.deleteLater();
+            isLoggedIn = Account.isLoggedIn();
             message.forEach(function (submessage) {
+                if (submessage.share && !isLoggedIn) {
+                    needsLogin = true;
+                    submessage.share = false;
+                }
                 if (submessage.share) {
                     print('sharing', submessage.localPath);
                     outstanding++;
                     Window.shareSnapshot(submessage.localPath);
+                } else {
+                    print('not sharing', submessage.localPath);
                 }
             });
             if (!outstanding && shouldOpenFeedAfterShare()) {
                 showFeedWindow();
+            }
+            if (needsLogin) { // after the possible feed, so that the login is on top
+                Account.checkAndSignalForAccessToken();
             }
         }
     }
@@ -124,7 +140,7 @@ function resetButtons(path, notify) {
         { localPath: path },
         {
             canShare: Boolean(Window.location.placename),
-            isLoggedIn: Account.isLoggedIn(),
+            isLoggedIn: true, // Just have the dialog act as though we are. To be removed at both ends later.
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);
