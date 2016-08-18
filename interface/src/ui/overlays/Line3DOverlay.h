@@ -28,8 +28,8 @@ public:
     virtual AABox getBounds() const override;
 
     // getters
-    const glm::vec3& getStart() const;
-    const glm::vec3& getEnd() const;
+    glm::vec3 getStart() const;
+    glm::vec3 getEnd() const;
     const float& getGlow() const { return _glow; }
     const float& getGlowWidth() const { return _glowWidth; }
 

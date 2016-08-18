@@ -32,7 +32,7 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
 Line3DOverlay::~Line3DOverlay() {
 }
 
-const glm::vec3& Line3DOverlay::getStart() const {
+glm::vec3 Line3DOverlay::getStart() const {
     bool success;
     glm::vec3 worldStart = localToWorld(_start, _parentID, _parentJointIndex, success);
     if (!success) {
@@ -41,7 +41,7 @@ const glm::vec3& Line3DOverlay::getStart() const {
     return worldStart;
 }
 
-const glm::vec3& Line3DOverlay::getEnd() const {
+glm::vec3 Line3DOverlay::getEnd() const {
     bool success;
     glm::vec3 worldEnd = localToWorld(_end, _parentID, _parentJointIndex, success);
     if (!success) {
