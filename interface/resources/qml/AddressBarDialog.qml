@@ -15,6 +15,7 @@ import "styles"
 import "windows"
 import "hifi"
 import "hifi/toolbars"
+import "controls-uit" as HifiControls
 
 Window {
     id: root
@@ -46,15 +47,23 @@ Window {
         anchors.centerIn = parent;
     }
 
+    function resetAfterTeleport() {
+        storyCardFrame.shown = root.shown = false;
+    }
     function goCard(card) {
         if (addressBarDialog.useFeed) {
-            storyCard.imageUrl = card.imageUrl;
-            storyCard.userName = card.userName;
-            storyCard.placeName = card.placeName;
-            storyCard.actionPhrase = card.actionPhrase;
-            storyCard.timePhrase = card.timePhrase;
-            storyCard.hifiUrl = card.hifiUrl;
-            storyCard.visible = true;
+            if (useHTML) {
+                storyCardHTML.url = metaverseBase + "user_stories/" + card.storyId + ".html";
+                storyCardFrame.shown = true;
+            } else {
+                storyCardQML.imageUrl = card.imageUrl;
+                storyCardQML.userName = card.userName;
+                storyCardQML.placeName = card.placeName;
+                storyCardQML.actionPhrase = card.actionPhrase;
+                storyCardQML.timePhrase = card.timePhrase;
+                storyCardQML.hifiUrl = card.hifiUrl;
+                storyCardQML.visible = true;
+            }
             return;
         }
         addressLine.text = card.hifiUrl;
@@ -65,6 +74,8 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
+    //property string metaverseBase: "http://10.0.0.241:3000/api/v1/";
+    property bool useHTML: false; // fixme: remove this and all false branches after the server is updated
 
     AddressBarDialog {
         id: addressBarDialog
@@ -74,6 +85,7 @@ Window {
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onUseFeedChanged: { updateFeedState(); }
+        onReceivedHifiSchemeURL: resetAfterTeleport();
 
         ListModel { id: suggestions }
 
@@ -102,6 +114,7 @@ Window {
                 action: model.action;
                 timestamp: model.created_at;
                 onlineUsers: model.online_users;
+                storyId: model.metaverseId;
                 hoverThunk: function () { ListView.view.currentIndex = index; }
                 unhoverThunk: function () { ListView.view.currentIndex = -1; }
             }
@@ -114,6 +127,7 @@ Window {
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
             source: "../images/Swipe-Icon-single.svg"
             width: 50;
+            visible: suggestions.count > 3;
             anchors {
                 right: scroll.right;
                 verticalCenter: scroll.verticalCenter;
@@ -215,13 +229,32 @@ Window {
         }
 
         UserStoryCard {
-            id: storyCard;
+            id: storyCardQML;
             visible: false;
             visitPlace: function (hifiUrl) {
-                storyCard.visible = false;
+                storyCardQML.visible = false;
                 addressLine.text = hifiUrl;
                 toggleOrGo(true);
             };
+            anchors {
+                verticalCenter: scroll.verticalCenter;
+                horizontalCenter: scroll.horizontalCenter;
+                verticalCenterOffset: 50;
+            }
+        }
+        Window {
+            width: 750;
+            height: 360;
+            HifiControls.WebView {
+                anchors.fill: parent;
+                id: storyCardHTML;
+            }
+            id: storyCardFrame;
+
+            shown: false;
+            destroyOnCloseButton: false;
+            pinnable: false;
+
             anchors {
                 verticalCenter: scroll.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
@@ -356,6 +389,8 @@ Window {
             action: data.action || "",
             thumbnail_url: thumbnail_url,
             image_url: image_url,
+
+            metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
             tags: tags,
             description: description,

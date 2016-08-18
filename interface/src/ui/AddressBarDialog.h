@@ -33,6 +33,7 @@ signals:
     void backEnabledChanged();
     void forwardEnabledChanged();
     void useFeedChanged();
+    void receivedHifiSchemeURL(QString url);
 
 protected:
     void displayAddressOfflineMessage();

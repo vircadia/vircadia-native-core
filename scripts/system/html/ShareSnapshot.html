@@ -84,6 +84,9 @@
 
     }
     function handleShareButtons(shareMsg) {
+        var openFeed = document.getElementById('openFeed');
+        openFeed.checked = shareMsg.openFeedAfterShare;
+        openFeed.onchange = function () { EventBridge.emitWebEvent(openFeed.checked ? 'setOpenFeedTrue' : 'setOpenFeedFalse'); };
         if (!shareMsg.canShare) {
             // this means you may or may not be logged in, but can't share
             // because you are not in a public place.
@@ -116,10 +119,10 @@
     };
     // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
     shareSelected = function () {
-        EventBridge.emitWebEvent(paths.concat({openFeed: document.getElementById("openFeed").checked}));
+        EventBridge.emitWebEvent(paths);
     };
     doNotShare = function () {
-        EventBridge.emitWebEvent([{openFeed: document.getElementById("openFeed").checked}]);
+        EventBridge.emitWebEvent([]);
     };
     snapshotSettings = function () {
         EventBridge.emitWebEvent("openSettings");

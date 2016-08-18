@@ -25,6 +25,7 @@ Rectangle {
     property string thumbnail: defaultThumbnail;
     property string imageUrl: "";
     property var goFunction: null;
+    property string storyId: "";
 
     property string timePhrase: pastTime(timestamp);
     property string actionPhrase: makeActionPhrase(action);
