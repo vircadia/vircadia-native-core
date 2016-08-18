@@ -31,7 +31,8 @@ var marketplaceWebTablet;
 function shouldShowWebTablet() {
     var rightPose = Controller.getPoseValue(Controller.Standard.RightHand);
     var leftPose = Controller.getPoseValue(Controller.Standard.LeftHand);
-    return HMD.active && (leftPose.valid || rightPose.valid);
+    var hasHydra = !!Controller.Hardware.Hydra;
+    return HMD.active && (leftPose.valid || rightPose.valid || hasHydra);
 }
 
 function showMarketplace(marketplaceID) {
