@@ -1,5 +1,6 @@
-// Created by james b. pollack @imgntn on 7/2/2016
+// Created by james b. pollack @imgntn on 8/18/2016
 // Copyright 2016 High Fidelity, Inc.
+//
 //advanced movements settings are in individual controller json files
 //what we do is check the status of the 'advance movement' checkbox when you enter HMD mode
 //if 'advanced movement' is checked...we give you the defaults that are in the json.
@@ -49,15 +50,12 @@ function registerBasicMapping() {
         }
         if (Controller.Hardware.Vive !== undefined) {
             if (value > 0.75 && inFlipTurn === false) {
-                print('vive should flip turn')
                 inFlipTurn = true;
                 rotate180();
                 Script.setTimeout(function() {
-                    print('vive should be able to flip turn again')
                     inFlipTurn = false;
                 }, 250)
             } else {
-                print('vive should not flip turn')
 
             }
         }
@@ -71,19 +69,15 @@ function registerBasicMapping() {
         }
         if (Controller.Hardware.Vive !== undefined) {
             if (value > 0.75 && inFlipTurn === false) {
-                print('vive should flip turn')
                 inFlipTurn = true;
                 rotate180();
                 Script.setTimeout(function() {
-                    print('vive should be able to flip turn again')
                     inFlipTurn = false;
                 }, 250)
             } else {
-                print('vive should not flip turn')
 
             }
         }
-        print('should do RY stuff' + value + ":stick:" + stick);
         return;
     })
 }
@@ -114,7 +108,6 @@ function menuItemEvent(menuItem) {
             enableMappings();
         }
     }
-
 }
 
 addAdvancedMovementItemToSettingsMenu();

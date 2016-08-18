@@ -115,13 +115,11 @@ function Teleporter() {
 
         inTeleportMode = true;
         this.inCoolIn = true;
-        print('setting cool in timeout')
         if (coolInTimeout !== null) {
             Script.clearTimeout(coolInTimeout);
 
         }
         coolInTimeout = Script.setTimeout(function() {
-            print('should exit cool in mode now' + COOL_IN_DURATION)
             _this.inCoolIn = false;
         }, COOL_IN_DURATION)
 
@@ -234,15 +232,12 @@ function Teleporter() {
             teleporter.leftRay();
             if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
                 if (_this.inCoolIn === true) {
-                    print('released during cool in period.  exit.')
                     _this.exitTeleportMode();
                     _this.deleteTargetOverlay();
                     _this.deleteCancelOverlay();
                 } else {
-                    print('release while not in cool in and in teleport mode. should teleport')
                     _this.teleport();
                 }
-                print('some other state::' + leftPad.buttonValue + "///" + inTeleportMode)
                 return;
             }
 
@@ -253,15 +248,12 @@ function Teleporter() {
             teleporter.rightRay();
             if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
                 if (_this.inCoolIn === true) {
-                    print('released during cool in period.  exit.')
                     _this.exitTeleportMode();
                     _this.deleteTargetOverlay();
                     _this.deleteCancelOverlay();
                 } else {
-                    print('release while not in cool in and in teleport mode. should teleport')
                     _this.teleport();
                 }
-                print('some other state::' + rightPad.buttonValue + "///" + inTeleportMode)
                 return;
             }
         }
