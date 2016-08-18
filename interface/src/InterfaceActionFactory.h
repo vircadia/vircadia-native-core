@@ -21,9 +21,9 @@ public:
     virtual EntityActionPointer factory(EntityActionType type,
                                         const QUuid& id,
                                         EntityItemPointer ownerEntity,
-                                        QVariantMap arguments);
+                                        QVariantMap arguments) override;
     virtual EntityActionPointer factoryBA(EntityItemPointer ownerEntity,
-                                          QByteArray data);
+                                          QByteArray data) override;
 };
 
 #endif // hifi_InterfaceActionFactory_h

@@ -26,7 +26,7 @@ public:
     };
 
 protected:
-    void highlightBlock(const QString& text);
+    void highlightBlock(const QString& text) override;
     void highlightKeywords(const QString& text);
     void formatComments(const QString& text);
     void formatQuotedText(const QString& text);

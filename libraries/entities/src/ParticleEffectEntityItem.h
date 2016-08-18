@@ -26,10 +26,10 @@ public:
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
@@ -37,15 +37,15 @@ public:
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const;
+                                    OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged);
+                                                 bool& somethingChanged) override;
 
-    virtual void update(const quint64& now);
-    virtual bool needsToCallUpdate() const;
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const override;
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
@@ -95,10 +95,10 @@ public:
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _alphaSpread; }
 
-    void setShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const { return _shapeType; }
+    void setShapeType(ShapeType type) override;
+    virtual ShapeType getShapeType() const override { return _shapeType; }
 
-    virtual void debugDump() const;
+    virtual void debugDump() const override;
 
     bool isEmittingParticles() const; /// emitting enabled, and there are particles alive
     bool getIsEmitting() const { return _isEmitting; }
@@ -219,7 +219,7 @@ public:
         _emitterShouldTrail = emitterShouldTrail;
     }
 
-    virtual bool supportsDetailedRayIntersection() const { return false; }
+    virtual bool supportsDetailedRayIntersection() const override { return false; }
 
 protected:
     struct Particle;

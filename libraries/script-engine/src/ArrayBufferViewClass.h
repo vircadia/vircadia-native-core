@@ -30,22 +30,22 @@ class ArrayBufferViewClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
     ArrayBufferViewClass(ScriptEngine* scriptEngine);
-    
+
     ScriptEngine* getScriptEngine() { return _scriptEngine; }
-    
+
     virtual QueryFlags queryProperty(const QScriptValue& object,
                                      const QScriptString& name,
-                                     QueryFlags flags, uint* id);
+                                     QueryFlags flags, uint* id) override;
     virtual QScriptValue property(const QScriptValue& object,
-                                  const QScriptString& name, uint id);
+                                  const QScriptString& name, uint id) override;
     virtual QScriptValue::PropertyFlags propertyFlags(const QScriptValue& object,
-                                                      const QScriptString& name, uint id);
+                                                      const QScriptString& name, uint id) override;
 protected:
     // JS Object attributes
     QScriptString _bufferName;
     QScriptString _byteOffsetName;
     QScriptString _byteLengthName;
-    
+
     ScriptEngine* _scriptEngine;
 };
 

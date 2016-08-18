@@ -49,7 +49,7 @@ public:
     // these pitch/yaw angles are in degrees
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
     float getEyeGazeLeftYaw() const { return _eyeGazeLeftYaw; }
-    
+
     float getEyeGazeRightPitch() const { return _eyeGazeRightPitch; }
     float getEyeGazeRightYaw() const { return _eyeGazeRightYaw; }
 
@@ -67,10 +67,10 @@ public:
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
-    
+
     QString getHostname() { return _hostname.get(); }
     void setHostname(const QString& hostname);
-    
+
     void updateFakeCoefficients(float leftBlink,
                                 float rightBlink,
                                 float browUp,
@@ -79,76 +79,76 @@ public:
                                 float mouth3,
                                 float mouth4,
                                 QVector<float>& coefficients) const;
-    
+
 signals:
     void connectionStateChanged();
 
 public slots:
-    void setEnabled(bool enabled);
-    
+    void setEnabled(bool enabled) override;
+
 private slots:
     void connectSocket();
     void noteConnected();
     void noteError(QAbstractSocket::SocketError error);
     void readPendingDatagrams();
-    void readFromSocket();        
+    void readFromSocket();
     void noteDisconnected();
 
 private:
     Faceshift();
     virtual ~Faceshift() {}
-    
+
     void send(const std::string& message);
     void receive(const QByteArray& buffer);
-    
+
     QTcpSocket _tcpSocket;
     QUdpSocket _udpSocket;
 
 #ifdef HAVE_FACESHIFT
     fs::fsBinaryStream _stream;
 #endif
-    
+
     bool _tcpEnabled = true;
     int _tcpRetryCount = 0;
     bool _tracking = false;
     quint64 _lastReceiveTimestamp = 0;
     quint64 _lastMessageReceived = 0;
     float _averageFrameTime = STARTING_FACESHIFT_FRAME_TIME;
-    
+
     glm::vec3 _headAngularVelocity = glm::vec3(0.0f);
     glm::vec3 _headLinearVelocity = glm::vec3(0.0f);
     glm::vec3 _lastHeadTranslation = glm::vec3(0.0f);
     glm::vec3 _filteredHeadTranslation = glm::vec3(0.0f);
-    
+
     // degrees
     float _eyeGazeLeftPitch = 0.0f;
     float _eyeGazeLeftYaw = 0.0f;
     float _eyeGazeRightPitch = 0.0f;
     float _eyeGazeRightYaw = 0.0f;
-    
+
     // degrees
     float _longTermAverageEyePitch = 0.0f;
     float _longTermAverageEyeYaw = 0.0f;
     bool _longTermAverageInitialized = false;
-    
+
     Setting::Handle<QString> _hostname;
-    
+
     // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
     int _leftBlinkIndex = 0;
     int _rightBlinkIndex = 1;
     int _leftEyeOpenIndex = 8;
     int _rightEyeOpenIndex = 9;
-    
+
     // Brows
     int _browDownLeftIndex = 14;
     int _browDownRightIndex = 15;
     int _browUpCenterIndex = 16;
     int _browUpLeftIndex = 17;
     int _browUpRightIndex = 18;
-    
+
     int _mouthSmileLeftIndex = 28;
     int _mouthSmileRightIndex = 29;
-    
+
     int _jawOpenIndex = 21;
 };
 

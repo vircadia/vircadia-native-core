@@ -30,9 +30,9 @@ public:
     EntityTreeHeadlessViewer();
     virtual ~EntityTreeHeadlessViewer();
 
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
+    virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
 
     void update();
 
@@ -40,10 +40,10 @@ public:
 
     void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
-    virtual void init();
+    virtual void init() override;
 
 protected:
-    virtual OctreePointer createTree() {
+    virtual OctreePointer createTree() override {
         EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
         newTree->createRootElement();
         return newTree;

@@ -33,6 +33,11 @@
 #pragma clang diagnostic ignored "-Wpessimizing-move"
 #endif
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -41,6 +46,10 @@
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/shapes/wrapper.hpp>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef _WIN32
 #pragma warning(pop)

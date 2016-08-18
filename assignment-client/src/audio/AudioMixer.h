@@ -35,9 +35,9 @@ public:
 
 public slots:
     /// threaded run of assignment
-    void run();
+    void run() override;
 
-    void sendStatsPacket();
+    void sendStatsPacket() override;
 
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
 

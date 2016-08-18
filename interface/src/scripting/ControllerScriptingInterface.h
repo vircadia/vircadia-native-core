@@ -33,16 +33,16 @@ class InputController : public  controller::InputController {
 public:
     InputController(int deviceTrackerId, int subTrackerId, QObject* parent = NULL);
 
-    virtual void update();
-    virtual Key getKey() const;
+    virtual void update() override;
+    virtual Key getKey() const override;
 
 public slots:
 
-    virtual bool isActive() const { return _isActive; }
-    virtual glm::vec3 getAbsTranslation() const { return _eventCache.absTranslation; }
-    virtual glm::quat getAbsRotation() const    { return _eventCache.absRotation; }
-    virtual glm::vec3 getLocTranslation() const { return _eventCache.locTranslation; }
-    virtual glm::quat getLocRotation() const    { return _eventCache.locRotation; }
+    virtual bool isActive() const override { return _isActive; }
+    virtual glm::vec3 getAbsTranslation() const override { return _eventCache.absTranslation; }
+    virtual glm::quat getAbsRotation() const override { return _eventCache.absRotation; }
+    virtual glm::vec3 getLocTranslation() const override { return _eventCache.locTranslation; }
+    virtual glm::quat getLocRotation() const override { return _eventCache.locRotation; }
 
 private:
 

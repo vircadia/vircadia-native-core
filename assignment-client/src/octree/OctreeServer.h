@@ -120,16 +120,16 @@ public:
     static int howManyThreadsDidHandlePacketSend(quint64 since = 0);
     static int howManyThreadsDidCallWriteDatagram(quint64 since = 0);
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) override;
 
-    virtual void aboutToFinish();
+    virtual void aboutToFinish() override;
 
 public slots:
     /// runs the octree server assignment
-    void run();
+    void run() override;
     virtual void nodeAdded(SharedNodePointer node);
     virtual void nodeKilled(SharedNodePointer node);
-    void sendStatsPacket();
+    void sendStatsPacket() override;
 
 private slots:
     void domainSettingsRequestComplete();

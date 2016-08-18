@@ -567,7 +567,7 @@ class LimiterMono : public LimiterImpl {
 public:
     LimiterMono(int sampleRate) : LimiterImpl(sampleRate) {}
 
-    void process(float* input, int16_t* output, int numFrames);
+    void process(float* input, int16_t* output, int numFrames) override;
 };
 
 template<int N>

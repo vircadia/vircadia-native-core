@@ -55,7 +55,7 @@ public:
         }
     }
 
-    virtual bool process() {
+    virtual bool process() override {
         lock();
         if (!_items.size()) {
             unlock();
