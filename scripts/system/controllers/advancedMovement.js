@@ -8,14 +8,27 @@
 //
 
 
-var mappingName, basicMapping;
+var mappingName, basicMapping,isChecked;
+
+var previousSetting = Settings.getValue('advancedMovementForHandControllersIsChecked');
+if (previousSetting === '') {
+    previousSetting = false;
+    isChecked=false;
+}
+
+if(previousSetting===true){
+    isChecked=true;
+}
+if(previousSetting===false){
+    isChecked=false;
+}
 
 function addAdvancedMovementItemToSettingsMenu() {
     Menu.addMenuItem({
         menuName: "Settings",
         menuItemName: "Advanced Movement For Hand Controllers",
         isCheckable: true,
-        isChecked: false
+        isChecked: previousSetting
     });
 
 }
@@ -63,15 +76,16 @@ function scriptEnding() {
     disableMappings();
 }
 
-var isChecked = false;
 
 function menuItemEvent(menuItem) {
     if (menuItem == "Advanced Movement For Hand Controllers") {
         print("  checked=" + Menu.isOptionChecked("Advanced Movement For Hand Controllers"));
         isChecked = Menu.isOptionChecked("Advanced Movement For Hand Controllers");
         if (isChecked === true) {
+            Settings.setValue('advancedMovementForHandControllersIsChecked', true);
             disableMappings();
         } else if (isChecked === false) {
+            Settings.setValue('advancedMovementForHandControllersIsChecked', false);
             enableMappings();
         }
     }
@@ -85,7 +99,14 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 
 registerBasicMapping();
-enableMappings();
+if (previousSetting === true) {
+    print('JBP WAS SET TO TRUE')
+    disableMappings();
+} else if (previousSetting === false) {
+    print('JBP WAS SET TO FALSE')
+    enableMappings();
+}
+
 
 HMD.displayModeChanged.connect(function(isHMDMode) {
     if (isHMDMode) {
