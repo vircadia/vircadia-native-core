@@ -3,7 +3,7 @@ var mappingName, advancedMapping;
 function addAdvancedMovementItemToSettingsMenu() {
     Menu.addMenuItem({
         menuName: "Settings",
-        menuItemName: "Advanced Movement",
+        menuItemName: "Advanced Movement (Vive)",
         isCheckable: true,
         isChecked: false
     });
@@ -31,14 +31,14 @@ function removeTranslationFromLeftStick() {
 }
 
 function scriptEnding() {
-    Menu.removeMenuItem("Settings", "Advanced Movement");
+    Menu.removeMenuItem("Settings", "Advanced Movement (Vive)");
     removeTranslationFromLeftStick();
 }
 
 function menuItemEvent(menuItem) {
-    if (menuItem == "Advanced Movement") {
-        print("  checked=" + Menu.isOptionChecked("Advanced Movement"));
-        var isChecked = Menu.isOptionChecked("Advanced Movement");
+    if (menuItem == "Advanced Movement (Vive)") {
+        print("  checked=" + Menu.isOptionChecked("Advanced Movement (Vive)"));
+        var isChecked = Menu.isOptionChecked("Advanced Movement (Vive)");
         if (isChecked === true) {
             addTranslationToLeftStick();
         } else if (isChecked === false) {

@@ -26,8 +26,6 @@ Script.load("system/controllers/handControllerPointer.js");
 Script.load("system/controllers/squeezeHands.js");
 Script.load("system/controllers/grab.js");
 Script.load("system/controllers/teleport.js");
-if (Controller.Hardware.Vive !== undefined) {
-    Script.load("system/controllers/advancedMovement.js")
-}
+Script.load("system/controllers/advancedMovement.js")
 Script.load("system/dialTone.js");
 Script.load("system/firstPersonHMD.js");
