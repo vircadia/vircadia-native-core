@@ -742,6 +742,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         int32_t meshCount = 0;
         int32_t pointListIndex = 0;
         for (auto& mesh : meshes) {
+            if (!mesh) {
+                continue;
+            }
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
             const gpu::BufferView& indices = mesh->getIndexBuffer();
             const gpu::BufferView& parts = mesh->getPartBuffer();
