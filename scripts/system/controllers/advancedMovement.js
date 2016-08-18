@@ -17,22 +17,13 @@ function addTranslationToLeftStick() {
 function registerMappings() {
     mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
     advancedMapping = Controller.newMapping(mappingName);
-    advancedMapping.from(Controller.Hardware.Vive.LY).when(Controller.getValue(Controller.Hardware.Vive.LSY)).invert().to(
-        function(val) {
-            testPrint('LY:' + val);
-        });
-    advancedMapping.from(Controller.Hardware.Vive.LX).when(Controller.getValue(Controller.Hardware.Vive.LSX)).to(
-        function(val) {
-            testPrint('LX' + val)
-        });
-    advancedMapping.from(Controller.Hardware.Vive.RY).when(Controller.getValue(Controller.Hardware.Vive.RSY)).invert().to(
-        function(val) {
-            testPrint('RY' + val)
-        });
+    advancedMapping.from(Controller.Hardware.Vive.LY).when(Controller.getValue(Controller.Hardware.Vive.LSY)===1).invert().to(Controller.Standard.LY);
+    advancedMapping.from(Controller.Hardware.Vive.LX).when(Controller.getValue(Controller.Hardware.Vive.LSX)===1).to(Controller.Standard.LX);
+    advancedMapping.from(Controller.Hardware.Vive.RY).when(Controller.getValue(Controller.Hardware.Vive.RSY)===1).invert().to(Controller.Standard.RY);
 }
 
-function testPrint(what) {
-    print(what)
+function testPrint(what){
+    print('it was controller: ' + what)
 }
 
 function removeTranslationFromLeftStick() {
