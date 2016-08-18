@@ -20,22 +20,31 @@ var button = toolBar.addButton({
     alpha: 0.9,
 });
 
+function shouldOpenFeedAfterShare() {
+    var persisted = Settings.getValue('openFeedAfterShare', true); // might answer true, false, "true", or "false"
+    return persisted && (persisted !== 'false');
+}
 function showFeedWindow() {
     DialogsManager.showFeed();
 }
 
-var openFeed, outstanding;
+var outstanding;
 function confirmShare(data) {
     var dialog = new OverlayWebWindow('Snapshot Review', Script.resolvePath("html/ShareSnapshot.html"), 800, 470);
     function onMessage(message) {
         switch (message) {
         case 'ready':
             dialog.emitScriptEvent(data); // Send it.
-            openFeed = false;
             outstanding = 0;
             break;
         case 'openSettings':
             Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+            break;
+        case 'setOpenFeedFalse':
+            Settings.setValue('openFeedAfterShare', false)
+            break;
+        case 'setOpenFeedTrue':
+            Settings.setValue('openFeedAfterShare', true)
             break;
         default:
             dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
@@ -46,11 +55,9 @@ function confirmShare(data) {
                     print('sharing', submessage.localPath);
                     outstanding++;
                     Window.shareSnapshot(submessage.localPath);
-                } else if (submessage.openFeed) {
-                    openFeed = true;
                 }
             });
-            if (openFeed && !outstanding) {
+            if (!outstanding && shouldOpenFeedAfterShare()) {
                 showFeedWindow();
             }
         }
@@ -67,7 +74,7 @@ function snapshotShared(success) {
         // for now just print an error.
         print('snapshot upload/share failed');
     }
-    if ((--outstanding <= 0) && openFeed) {
+    if ((--outstanding <= 0) && shouldOpenFeedAfterShare()) {
         showFeedWindow();
     }
 }
@@ -114,8 +121,12 @@ function resetButtons(path, notify) {
 
     // last element in data array tells dialog whether we can share or not
     confirmShare([ 
-            { localPath: path }, 
-            { canShare: Boolean(Window.location.placename), isLoggedIn: Account.isLoggedIn() } 
+        { localPath: path },
+        {
+            canShare: Boolean(Window.location.placename),
+            isLoggedIn: Account.isLoggedIn(),
+            openFeedAfterShare: shouldOpenFeedAfterShare()
+        }
     ]);
  }
 
