@@ -121,7 +121,7 @@ function ignoreMouseActivity() {
         return true;
     }
     var pos = Reticle.position;
-    if (pos.x == -1 && pos.y == -1) {
+    if (!pos || (pos.x == -1 && pos.y == -1)) {
         return true;
     }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js

@@ -11,6 +11,7 @@
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QQmlContext>
 #include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
@@ -68,6 +69,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->load("WebView.qml");
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+    _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
