@@ -1674,12 +1674,12 @@ function MyController(hand) {
         var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
         var handPosition = this.getHandPosition();
 
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+        this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
+
         var hasPresetPosition = false;
         if (this.state == STATE_HOLD && this.grabbedHotspot) {
-            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
-            this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
-
             var offsets = USE_ATTACH_POINT_SETTINGS && getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
             if (offsets) {
                 this.offsetPosition = offsets[0];
@@ -1694,8 +1694,6 @@ function MyController(hand) {
                 }
             }
         } else {
-            this.ignoreIK = false;
-
             var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
