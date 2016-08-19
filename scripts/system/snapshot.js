@@ -137,7 +137,7 @@ function resetButtons(path, notify) {
     confirmShare([ 
         { localPath: path },
         {
-            canShare: Boolean(Window.location.placename),
+            canShare: Boolean(location.placename),
             isLoggedIn: true, // Just have the dialog act as though we are. To be removed at both ends later.
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
