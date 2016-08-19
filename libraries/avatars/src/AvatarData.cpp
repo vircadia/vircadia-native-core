@@ -220,9 +220,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     packOrientationQuatToSixBytes(header->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
     glm::vec3 scale = extractScale(sensorToWorldMatrix);
     packFloatScalarToSignedTwoByteFixed((uint8_t*)&header->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
-    header->sensorToWorldTrans[0] = sensorToWorldMatrix[0][3];
-    header->sensorToWorldTrans[1] = sensorToWorldMatrix[1][3];
-    header->sensorToWorldTrans[2] = sensorToWorldMatrix[2][3];
+    header->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
+    header->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
+    header->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
 
     setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
     // hand state
@@ -518,6 +518,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&header->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
     glm::vec3 sensorToWorldTrans(header->sensorToWorldTrans[0], header->sensorToWorldTrans[1], header->sensorToWorldTrans[2]);
     glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
+
     _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
 
     { // bitFlags and face data
