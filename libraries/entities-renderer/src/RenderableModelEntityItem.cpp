@@ -786,7 +786,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;
-                        while (indexItr < indexEnd) {
+                        while (indexItr != indexEnd) {
                             triangleIndices.push_back(*indexItr + meshIndexOffset);
                             ++indexItr;
                         }
@@ -810,7 +810,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                         // the rest use previous and next index
                         uint32_t triangleCount = 1;
-                        while (indexItr < indexEnd) {
+                        while (indexItr != indexEnd) {
                             if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
                                 if (triangleCount % 2 == 0) {
                                     // even triangles use first two indices in order
@@ -843,7 +843,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;
-                        while (indexItr < indexEnd) {
+                        while (indexItr != indexEnd) {
                             uniqueIndices.insert(*indexItr);
                             ++indexItr;
                         }
@@ -861,7 +861,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                         // the rest use previous and next index
                         uint32_t triangleCount = 1;
-                        while (indexItr < indexEnd) {
+                        while (indexItr != indexEnd) {
                             if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
                                 if (triangleCount % 2 == 0) {
                                     // EVEN triangles use first two indices in order
