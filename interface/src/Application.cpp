@@ -838,7 +838,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
         bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+    connect(nodeList.data(), &LimitedNodeList::dataReceived,
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     // FIXME -- I'm a little concerned about this.
@@ -1138,10 +1138,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     static int SEND_STATS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
 
+    static glm::vec3 lastAvatarPosition = getMyAvatar()->getPosition();
+    static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
+    static controller::Pose lastLeftHandPose = getMyAvatar()->getLeftHandPose();
+    static controller::Pose lastRightHandPose = getMyAvatar()->getRightHandPose();
+
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
     sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
+
         QJsonObject properties = {};
         MemoryInfo memInfo;
         if (getMemoryInfo(memInfo)) {
@@ -1182,6 +1188,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
+
+        glm::vec3 avatarPosition = getMyAvatar()->getPosition();
+        properties["avatar_has_moved"] = lastAvatarPosition != avatarPosition;
+        lastAvatarPosition = avatarPosition;
+
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto entityActivityTracking = entityScriptingInterface->getActivityTracking();
+        entityScriptingInterface->resetActivityTracking();
+        properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
+        properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
+        properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        auto hmdHeadPose = getHMDSensorPose();
+        properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
+        lastHMDHeadPose = hmdHeadPose;
+
+        auto leftHandPose = getMyAvatar()->getLeftHandPose();
+        auto rightHandPose = getMyAvatar()->getRightHandPose();
+        // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
+        // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
+        properties["hand_pose_changed"] =
+            ((leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
+            || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
+        lastLeftHandPose = leftHandPose;
+        lastRightHandPose = rightHandPose;
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -1236,6 +1267,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
     _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
+
+    EntityItem::setEntitiesShouldFadeFunction([this]() {
+        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
+        return entityServerNode && !isPhysicsEnabled();
+    });
 
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
@@ -4253,6 +4289,21 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
+            case model::SunSkyStage::SKY_DEFAULT: {
+                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
+                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
+                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
+
+                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                auto sceneKeyLight = scene->getKeyLight();
+                scene->setSunModelEnable(false);
+                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                // fall through: render a skybox, if available
+           }
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
@@ -4260,33 +4311,22 @@ namespace render {
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
+                // fall through: render defaults, if available
             }
-
-            // Fall through: if no skybox is available, render the SKY_DOME
-            case model::SunSkyStage::SKY_DOME:  {
-               if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                   static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                   static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
-                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 2.0f };
-                   static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
-
-                   auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                   auto sceneKeyLight = scene->getKeyLight();
-                   scene->setSunModelEnable(false);
-                   sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                   sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                   sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                   sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
-
-                   auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                   sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-
-                   qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
-               }
+            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                    auto sceneKeyLight = scene->getKeyLight();
+                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                    // do not set the ambient sphere - it peaks too high, and causes flashing when turning
+                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                }
+                // fall through: render defaults, if available
             }
-                break;
-
+            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+                }
             case model::SunSkyStage::NO_BACKGROUND:
             default:
                 // this line intentionally left blank
@@ -4503,7 +4543,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
 }
