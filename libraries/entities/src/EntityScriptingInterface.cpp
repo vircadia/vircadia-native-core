@@ -40,6 +40,12 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
+void EntityScriptingInterface::resetActivityTracking() {
+    _activityTracking.addedEntityCount = 0;
+    _activityTracking.deletedEntityCount = 0;
+    _activityTracking.editedEntityCount = 0;
+}
+
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->isAllowedEditor();
@@ -162,6 +168,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
@@ -232,6 +240,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
@@ -295,6 +305,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    _activityTracking.editedEntityCount++;
+
     EntityItemProperties properties = scriptSideProperties;
 
     auto dimensions = properties.getDimensions();
@@ -438,6 +450,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    _activityTracking.deletedEntityCount++;
+
     EntityItemID entityID(id);
     bool shouldDelete = true;
 
