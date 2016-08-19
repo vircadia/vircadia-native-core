@@ -111,12 +111,17 @@ public:
         _plugin.withNonPresentThreadLock([&] {
             while (!_queue.empty()) {
                 auto& front = _queue.front();
+
                 auto result = glClientWaitSync(front.fence, 0, 0);
-                if (GL_TIMEOUT_EXPIRED == result && GL_WAIT_FAILED == result) {
+
+                if (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
                     break;
+                } else if (GL_CONDITION_SATISFIED == result || GL_CONDITION_SATISFIED == result) {
+                    glDeleteSync(front.fence);
+                } else {
+                    assert(false);
                 }
 
-                glDeleteSync(front.fence);
                 front.fence = 0;
                 _current = front;
                 _queue.pop();
@@ -455,6 +460,16 @@ void OpenVrDisplayPlugin::compositeLayers() {
 
 #if OPENVR_THREADED_SUBMIT
     newComposite.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    // https://www.opengl.org/registry/specs/ARB/sync.txt:
+    // > The simple flushing behavior defined by
+    // > SYNC_FLUSH_COMMANDS_BIT will not help when waiting for a fence
+    // > command issued in another context's command stream to complete.
+    // > Applications which block on a fence sync object must take
+    // > additional steps to assure that the context from which the
+    // > corresponding fence command was issued has flushed that command
+    // > to the graphics pipeline.
+    glFlush();
+
     if (!newComposite.textureID) {
         newComposite.textureID = getGLBackend()->getTextureID(newComposite.texture, false);
     }
