@@ -135,17 +135,25 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
 
     _permissions = newPermissions;
 
-    if (originalPermissions.canAdjustLocks != newPermissions.canAdjustLocks) {
-        emit isAllowedEditorChanged(_permissions.canAdjustLocks);
+    if (originalPermissions.can(NodePermissions::Permission::canAdjustLocks) !=
+        newPermissions.can(NodePermissions::Permission::canAdjustLocks)) {
+        emit isAllowedEditorChanged(_permissions.can(NodePermissions::Permission::canAdjustLocks));
     }
-    if (originalPermissions.canRezPermanentEntities != newPermissions.canRezPermanentEntities) {
-        emit canRezChanged(_permissions.canRezPermanentEntities);
+    if (originalPermissions.can(NodePermissions::Permission::canRezPermanentEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezPermanentEntities)) {
+        emit canRezChanged(_permissions.can(NodePermissions::Permission::canRezPermanentEntities));
     }
-    if (originalPermissions.canRezTemporaryEntities != newPermissions.canRezTemporaryEntities) {
-        emit canRezTmpChanged(_permissions.canRezTemporaryEntities);
+    if (originalPermissions.can(NodePermissions::Permission::canRezTemporaryEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezTemporaryEntities)) {
+        emit canRezTmpChanged(_permissions.can(NodePermissions::Permission::canRezTemporaryEntities));
     }
-    if (originalPermissions.canWriteToAssetServer != newPermissions.canWriteToAssetServer) {
-        emit canWriteAssetsChanged(_permissions.canWriteToAssetServer);
+    if (originalPermissions.can(NodePermissions::Permission::canWriteToAssetServer) !=
+        newPermissions.can(NodePermissions::Permission::canWriteToAssetServer)) {
+        emit canWriteAssetsChanged(_permissions.can(NodePermissions::Permission::canWriteToAssetServer));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canKick) !=
+        newPermissions.can(NodePermissions::Permission::canKick)) {
+        emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
     }
 }
 
@@ -167,7 +175,11 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
-    return packetVersionMatch(packet) && packetSourceAndHashMatch(packet);
+    // We track bandwidth when doing packet verification to avoid needing to do a node lookup
+    // later when we already do it in packetSourceAndHashMatchAndTrackBandwidth. A node lookup
+    // incurs a lock, so it is ideal to avoid needing to do it 2+ times for each packet
+    // received.
+    return packetVersionMatch(packet) && packetSourceAndHashMatchAndTrackBandwidth(packet);
 }
 
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
@@ -216,11 +228,12 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
     }
 }
 
-bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
+bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet) {
 
     PacketType headerType = NLPacket::typeInHeader(packet);
 
     if (NON_SOURCED_PACKETS.contains(headerType)) {
+        emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
         return true;
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
@@ -251,6 +264,8 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             // No matter if this packet is handled or not, we update the timestamp for the last time we heard
             // from this sending node
             matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+
+            emit dataReceived(matchingNode->getType(), packet.getPayloadSize());
 
             return true;
 

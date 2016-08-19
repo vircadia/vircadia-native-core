@@ -15,6 +15,7 @@
 
 #include "DeferredLightingEffect.h"
 #include "Model.h"
+#include "EntityItem.h"
 
 using namespace render;
 
@@ -352,7 +353,6 @@ void ModelMeshPartPayload::initCache() {
 
 }
 
-
 void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
@@ -390,6 +390,10 @@ ItemKey ModelMeshPartPayload::getKey() const {
         if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
+    }
+
+    if (!_hasFinishedFade) {
+        builder.withTransparent();
     }
 
     return builder.build();
@@ -443,7 +447,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent) {
+    if (isTranslucent || !_hasFinishedFade) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -484,9 +488,9 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
 
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    if (!_hasColorAttrib || fadeRatio < 1.0f) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
     }
 }
 
@@ -513,12 +517,35 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(transform);
 }
 
+void ModelMeshPartPayload::startFade() {
+    bool shouldFade = EntityItem::getEntitiesShouldFadeFunction()();
+    if (shouldFade) {
+        _fadeStartTime = usecTimestampNow();
+        _hasStartedFade = true;
+        _hasFinishedFade = false;
+    } else {
+        _isFading = true;
+        _hasStartedFade = true;
+        _hasFinishedFade = true;
+    }
+}
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible) {
+    if (!_model->_readyWhenAdded || !_model->_isVisible || !_hasStartedFade) {
         return; // bail asap
+    }
+
+    // When an individual mesh parts like this finishes its fade, we will mark the Model as 
+    // having render items that need updating
+    bool nextIsFading = _isFading ? isStillFading() : false;
+    bool startFading = !_isFading && !_hasFinishedFade && _hasStartedFade;
+    bool endFading = _isFading && !nextIsFading;
+    if (startFading || endFading) {
+        _isFading = startFading;
+        _hasFinishedFade = endFading;
+        _model->setRenderItemsNeedUpdate();
     }
 
     gpu::Batch& batch = *(args->_batch);

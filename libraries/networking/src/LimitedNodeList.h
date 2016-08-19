@@ -106,10 +106,11 @@ public:
     void setSessionUUID(const QUuid& sessionUUID);
 
     void setPermissions(const NodePermissions& newPermissions);
-    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
-    bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
-    bool getThisNodeCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
-    bool getThisNodeCanWriteAssets() const { return _permissions.canWriteToAssetServer; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getThisNodeCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getThisNodeCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
+    bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
@@ -242,6 +243,7 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
+    void dataReceived(quint8 channelType, int bytes);
 
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
@@ -258,6 +260,7 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRezTmp);
     void canWriteAssetsChanged(bool canWriteAssets);
+    void canKickChanged(bool canKick);
 
 protected slots:
     void connectedForLocalSocketTest();
@@ -277,7 +280,7 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
     
-    bool packetSourceAndHashMatch(const udt::Packet& packet);
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);

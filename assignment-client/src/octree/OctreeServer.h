@@ -172,6 +172,7 @@ protected:
 
     QString _persistFilePath;
     QString _persistAsFileType;
+    QString _backupDirectoryPath;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
     OctreePointer _tree; // this IS a reaveraging tree

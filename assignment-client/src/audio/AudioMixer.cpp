@@ -100,6 +100,63 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 
+const int IEEE754_MANT_BITS = 23;
+const int IEEE754_EXPN_BIAS = 127;
+
+//
+// for x  > 0.0f, returns log2(x)
+// for x <= 0.0f, returns large negative value
+//
+// abs |error| < 8e-3, smooth (exact for x=2^N) for NPOLY=3
+// abs |error| < 2e-4, smooth (exact for x=2^N) for NPOLY=5
+// rel |error| < 0.4 from precision loss very close to 1.0f
+//
+static inline float fastlog2(float x) {
+
+    union { float f; int32_t i; } mant, bits = { x };
+
+    // split into mantissa and exponent
+    mant.i = (bits.i & ((1 << IEEE754_MANT_BITS) - 1)) | (IEEE754_EXPN_BIAS << IEEE754_MANT_BITS);
+    int32_t expn = (bits.i >> IEEE754_MANT_BITS) - IEEE754_EXPN_BIAS;
+
+    mant.f -= 1.0f;
+
+    // polynomial for log2(1+x) over x=[0,1]
+    //x = (-0.346555386f * mant.f + 1.346555386f) * mant.f;
+    x = (((-0.0821307180f * mant.f + 0.321188984f) * mant.f - 0.677784014f) * mant.f + 1.43872575f) * mant.f;
+
+    return x + expn;
+}
+
+//
+// for -126 <= x < 128, returns exp2(x)
+//
+// rel |error| < 3e-3, smooth (exact for x=N) for NPOLY=3
+// rel |error| < 9e-6, smooth (exact for x=N) for NPOLY=5
+//
+static inline float fastexp2(float x) {
+
+    union { float f; int32_t i; } xi;
+
+    // bias such that x > 0
+    x += IEEE754_EXPN_BIAS;
+    //x = MAX(x, 1.0f);
+    //x = MIN(x, 254.9999f);
+
+    // split into integer and fraction
+    xi.i = (int32_t)x;
+    x -= xi.i;
+
+    // construct exp2(xi) as a float
+    xi.i <<= IEEE754_MANT_BITS;
+
+    // polynomial for exp2(x) over x=[0,1]
+    //x = (0.339766028f * x + 0.660233972f) * x + 1.0f;
+    x = (((0.0135557472f * x + 0.0520323690f) * x + 0.241379763f) * x + 0.693032121f) * x + 1.0f;
+
+    return x * xi.f;
+}
+
 float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
                                 const AvatarAudioStream& listeningNodeStream, const glm::vec3& relativePosition, bool isEcho) {
     float gain = 1.0f;
@@ -148,7 +205,7 @@ float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
         g = (g > 1.0f) ? 1.0f : g;
 
         // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = exp2f(log2f(g) * log2f(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
+        float distanceCoefficient = fastexp2(fastlog2(g) * fastlog2(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;

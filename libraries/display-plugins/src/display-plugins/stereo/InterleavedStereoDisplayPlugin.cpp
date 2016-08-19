@@ -8,52 +8,56 @@
 
 #include "InterleavedStereoDisplayPlugin.h"
 
-static const char * INTERLEAVED_TEXTURED_VS = R"VS(#version 410 core
-#pragma line __LINE__
+#include <gpu/StandardShaderLib.h>
+#include <gpu/Pipeline.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
 
-in vec3 Position;
-in vec2 TexCoord;
+static const char* INTERLEAVED_SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
-out vec2 vTexCoord;
+struct TextureData {
+    ivec2 textureSize;
+};
 
-void main() {
-  gl_Position = vec4(Position, 1);
-  vTexCoord = TexCoord;
-}
+layout(std140) uniform textureDataBuffer {
+    TextureData textureData;
+};
 
-)VS";
+uniform sampler2D colorMap;
 
-static const char * INTERLEAVED_TEXTURED_FS = R"FS(#version 410 core
-#pragma line __LINE__
+in vec2 varTexCoord0;
 
-uniform sampler2D sampler;
-uniform ivec2 textureSize;
+out vec4 outFragColor;
 
-in vec2 vTexCoord;
-out vec4 FragColor;
-
-void main() {
-    ivec2 texCoord = ivec2(floor(vTexCoord * textureSize));
+void main(void) {
+    ivec2 texCoord = ivec2(floor(varTexCoord0 * textureData.textureSize));
     texCoord.x /= 2;
     int row = int(floor(gl_FragCoord.y));
     if (row % 2 > 0) {
-        texCoord.x += (textureSize.x / 2);
+        texCoord.x += (textureData.textureSize.x / 2);
     }
-    FragColor = texelFetch(sampler, texCoord, 0); //texture(sampler, texCoord);
+    outFragColor = vec4(pow(texelFetch(colorMap, texCoord, 0).rgb, vec3(2.2)), 1.0);
 }
 
-)FS";
+)SCRIBE";
 
 const QString InterleavedStereoDisplayPlugin::NAME("3D TV - Interleaved");
 
 void InterleavedStereoDisplayPlugin::customizeContext() {
     StereoDisplayPlugin::customizeContext();
-    // Set up the stencil buffers?  Or use a custom shader?
-    compileProgram(_interleavedProgram, INTERLEAVED_TEXTURED_VS, INTERLEAVED_TEXTURED_FS);
+    if (!_interleavedPresentPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(INTERLEAVED_SRGB_TO_LINEAR_FRAG));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram(*program);
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(gpu::State::DepthTest(false));
+        _interleavedPresentPipeline = gpu::Pipeline::create(program, state);
+    }
 }
 
 void InterleavedStereoDisplayPlugin::uncustomizeContext() {
-    _interleavedProgram.reset();
+    _interleavedPresentPipeline.reset();
     StereoDisplayPlugin::uncustomizeContext();
 }
 
@@ -65,15 +69,14 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
 }
 
 void InterleavedStereoDisplayPlugin::internalPresent() {
-    using namespace oglplus;
-    auto sceneSize = getRecommendedRenderSize();
-    _interleavedProgram->Bind();
-    Uniform<ivec2>(*_interleavedProgram, "textureSize").SetValue(sceneSize);
-    auto surfaceSize = getSurfacePixels();
-    Context::Viewport(0, 0, surfaceSize.x, surfaceSize.y);
-    glBindTexture(GL_TEXTURE_2D, GetName(_compositeFramebuffer->color));
-    _plane->Use();
-    _plane->Draw();
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.resetViewTransform();
+        batch.setFramebuffer(gpu::FramebufferPointer());
+        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.setPipeline(_interleavedPresentPipeline);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
     swapBuffers();
 }
-

@@ -24,6 +24,7 @@ protected:
     void internalPresent() override;
 
 private:
-    ProgramPtr _interleavedProgram;
     static const QString NAME;
+    gpu::PipelinePointer _interleavedPresentPipeline;
+    gpu::BufferPointer _textureDataBuffer;
 };

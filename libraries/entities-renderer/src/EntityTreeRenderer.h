@@ -28,10 +28,13 @@ class AbstractViewStateInterface;
 class Model;
 class ScriptEngine;
 class ZoneEntityItem;
+class EntityItem;
 
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
+
+using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
@@ -45,6 +48,10 @@ public:
     virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
     virtual void setTree(OctreePointer newTree);
+
+    // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
+    float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
+    void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { this->_calculateEntityLoadingPriorityFunc = fn; }
 
     void shutdown();
     void update();
@@ -66,7 +73,7 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0.0f);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
@@ -178,30 +185,24 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
+
+    QString _zoneUserData;
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
 
-    glm::vec3 _previousKeyLightColor;
-    float _previousKeyLightIntensity;
-    float _previousKeyLightAmbientIntensity;
-    glm::vec3 _previousKeyLightDirection;
-    bool _previousStageSunModelEnabled;
-    float _previousStageLongitude;
-    float _previousStageLatitude;
-    float _previousStageAltitude;
-    float _previousStageHour;
-    int _previousStageDay;
-    
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 
     static int _entitiesScriptEngineCount;
+
+    CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc = [](const EntityItem& item) -> float {
+        return 0.0f;
+    };
 };
 
 

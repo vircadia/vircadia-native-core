@@ -12,6 +12,8 @@
 #ifndef hifi_MeshPartPayload_h
 #define hifi_MeshPartPayload_h
 
+#include <Interpolate.h>
+
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
@@ -81,6 +83,11 @@ public:
     void notifyLocationChanged() override;
     void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
+    // Entity fade in
+    void startFade();
+    bool hasStartedFade() { return _hasStartedFade; }
+    bool isStillFading() const { return Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f; }
+
     // Render Item interface
     render::ItemKey getKey() const override;
     render::ShapeKey getShapeKey() const override; // shape interface
@@ -99,6 +106,12 @@ public:
 
     bool _isSkinned{ false };
     bool _isBlendShaped{ false };
+
+private:
+    quint64 _fadeStartTime { 0 };
+    bool _hasStartedFade { false };
+    mutable bool _hasFinishedFade { false };
+    mutable bool _isFading { false };
 };
 
 namespace render {

@@ -200,8 +200,9 @@ void AccountManager::sendRequest(const QString& path,
                                  const JSONCallbackParameters& callbackParams,
                                  const QByteArray& dataByteArray,
                                  QHttpMultiPart* dataMultiPart,
-                                 const QVariantMap& propertyMap) {
-    
+                                 const QVariantMap& propertyMap,
+                                 QUrlQuery query) {
+
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",
                                   Q_ARG(const QString&, path),
@@ -213,9 +214,9 @@ void AccountManager::sendRequest(const QString& path,
                                   Q_ARG(QVariantMap, propertyMap));
         return;
     }
-    
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    
+
     QNetworkRequest networkRequest;
 
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
@@ -224,13 +225,17 @@ void AccountManager::sendRequest(const QString& path,
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
-    
+
     if (path.startsWith("/")) {
         requestURL.setPath(path);
     } else {
         requestURL.setPath("/" + path);
     }
-    
+
+    if (!query.isEmpty()) {
+        requestURL.setQuery(query);
+    }
+
     if (authType != AccountManagerAuth::None ) {
         if (hasValidAccessToken()) {
             networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
@@ -241,22 +246,21 @@ void AccountManager::sendRequest(const QString& path,
                     << path << "that requires authentication";
                 return;
             }
-            
         }
     }
-    
+
     networkRequest.setUrl(requestURL);
-    
+
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
         qCDebug(networking) << "Making a request to" << qPrintable(requestURL.toString());
-        
+
         if (!dataByteArray.isEmpty()) {
             qCDebug(networking) << "The POST/PUT body -" << QString(dataByteArray);
         }
     }
-    
+
     QNetworkReply* networkReply = NULL;
-    
+
     switch (operation) {
         case QNetworkAccessManager::GetOperation:
             networkReply = networkAccessManager.get(networkRequest);
@@ -269,7 +273,7 @@ void AccountManager::sendRequest(const QString& path,
                 } else {
                     networkReply = networkAccessManager.put(networkRequest, dataMultiPart);
                 }
-                
+
                 // make sure dataMultiPart is destroyed when the reply is
                 connect(networkReply, &QNetworkReply::destroyed, dataMultiPart, &QHttpMultiPart::deleteLater);
             } else {
@@ -280,7 +284,7 @@ void AccountManager::sendRequest(const QString& path,
                     networkReply = networkAccessManager.put(networkRequest, dataByteArray);
                 }
             }
-            
+
             break;
         case QNetworkAccessManager::DeleteOperation:
             networkReply = networkAccessManager.sendCustomRequest(networkRequest, "DELETE");
@@ -289,7 +293,7 @@ void AccountManager::sendRequest(const QString& path,
             // other methods not yet handled
             break;
     }
-    
+
     if (networkReply) {
         if (!propertyMap.isEmpty()) {
             // we have properties to set on the reply so the user can check them after
@@ -297,18 +301,18 @@ void AccountManager::sendRequest(const QString& path,
                 networkReply->setProperty(qPrintable(propertyKey), propertyMap.value(propertyKey));
             }
         }
-        
-        
+
+
         if (!callbackParams.isEmpty()) {
             // if we have information for a callback, insert the callbackParams into our local map
             _pendingCallbackMap.insert(networkReply, callbackParams);
-            
+
             if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
                 callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
                                                        callbackParams.updateSlot.toStdString().c_str());
             }
         }
-        
+
         // if we ended up firing of a request, hook up to it now
         connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
     }
@@ -501,6 +505,29 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
 }
 
+void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
+
+    QByteArray postData;
+    postData.append("grant_type=password&");
+    postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
+}
 
 void AccountManager::requestAccessTokenFinished() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
@@ -541,6 +568,7 @@ void AccountManager::requestAccessTokenFinished() {
 void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qCDebug(networking) << "AccountManager requestError - " << error;
+    emit loginFailed();
 }
 
 void AccountManager::requestProfile() {

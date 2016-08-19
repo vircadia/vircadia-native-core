@@ -47,6 +47,7 @@
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
+#include "ConnectionMonitor.h"
 #include "FileLogger.h"
 #include "gpu/Context.h"
 #include "Menu.h"
@@ -63,6 +64,9 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
+
+#include <procedural/ProceduralSkybox.h>
+#include <model/Skybox.h>
 
 class OffscreenGLCanvas;
 class GLCanvas;
@@ -108,8 +112,6 @@ public:
     virtual MainWindow* getPrimaryWindow() override;
     virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool makeRenderingContextCurrent() override;
-    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
-    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
     virtual bool isForeground() const override;
 
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
@@ -248,6 +250,10 @@ public:
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
 
+    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
+    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -269,7 +275,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
-    void toggleAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;
@@ -426,7 +432,6 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -562,6 +567,13 @@ private:
     bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
+
+    ConnectionMonitor _connectionMonitor;
+
+    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    gpu::TexturePointer _defaultSkyboxTexture;
+    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
+
 
 #endif // hifi_Application_h

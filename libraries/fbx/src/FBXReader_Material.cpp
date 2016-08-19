@@ -9,7 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXReader.h"
+
 #include <iostream>
+#include <memory>
+
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
@@ -20,9 +24,8 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include "FBXReader.h"
 
-#include <memory>
+#include "ModelFormatLogging.h"
 
 bool FBXMaterial::needTangentSpace() const {
     return !normalTexture.isNull();
@@ -258,11 +261,11 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
                 }
             }
         }
-        qDebug() << " fbx material Name:" << material.name;
+        qCDebug(modelformat) << " fbx material Name:" << material.name;
 
         if (materialMap.contains(material.name)) {
             QJsonObject materialOptions = materialMap.value(material.name).toObject();
-            qDebug() << "Mapping fbx material:" << material.name << " with HifiMaterial: " << materialOptions; 
+            qCDebug(modelformat) << "Mapping fbx material:" << material.name << " with HifiMaterial: " << materialOptions;
 
             if (materialOptions.contains("scattering")) {
                 float scattering = (float) materialOptions.value("scattering").toDouble();

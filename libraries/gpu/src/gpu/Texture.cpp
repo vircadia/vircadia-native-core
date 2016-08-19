@@ -363,6 +363,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     Size expectedSize = evalStoredMipSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     } else if (size > expectedSize) {
@@ -371,6 +372,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     }
@@ -700,8 +702,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
         return false;
     }
 
-    const float UCHAR_TO_FLOAT = 1.0f / float(std::numeric_limits<unsigned char>::max());
-
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
 
@@ -788,12 +788,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 uint pixOffsetIndex = (x + y * width) * numComponents;
 
                 // get color from texture and map to range [0, 1]
-                glm::vec3 clr(float(data[pixOffsetIndex]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+1]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
-
-                // Gamma correct
-                clr = ColorUtils::sRGBToLinearVec3(clr);
+                glm::vec3 clr(ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex]),
+                              ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex + 1]),
+                              ColorUtils::sRGB8ToLinearFloat(data[pixOffsetIndex + 2]));
 
                 // scale color and add to previously accumulated coefficients
                 sphericalHarmonicsScale(shBuffB.data(), order,
@@ -885,11 +882,3 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
-std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
-
-uint32 Texture::getHardwareId() const {
-    if (TEXTURE_ID_RESOLVER) {
-        return TEXTURE_ID_RESOLVER(*this);
-    }
-    return 0;
-}

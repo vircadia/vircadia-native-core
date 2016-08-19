@@ -171,7 +171,8 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const
 }
 
 
-NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type) {
+NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type,
+                                                          const QVariantMap& options = QVariantMap()) {
     using Type = NetworkTexture;
 
     switch (type) {
@@ -188,7 +189,11 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
             break;
         }
         case Type::CUBE_TEXTURE: {
-            return model::TextureUsage::createCubeTextureFromImage;
+            if (options.value("generateIrradiance", true).toBool()) {
+                return model::TextureUsage::createCubeTextureFromImage;
+            } else {
+                return model::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
+            }
             break;
         }
         case Type::BUMP_TEXTURE: {
@@ -225,9 +230,9 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type, QVariantMap options) {
     QImage image = QImage(path);
-    auto loader = getTextureLoaderForType(type);
+    auto loader = getTextureLoaderForType(type, options);
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
