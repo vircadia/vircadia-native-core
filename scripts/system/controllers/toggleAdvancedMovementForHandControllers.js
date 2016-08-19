@@ -12,8 +12,9 @@
 var mappingName, basicMapping, isChecked;
 
 var TURN_RATE = 1000;
-
-var previousSetting = Settings.getValue('advancedMovementForHandControllersIsChecked');
+var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
+var SETTINGS_KEY = 'advancedMovementForHandControllersIsChecked';
+var previousSetting = Settings.getValue(SETTINGS_KEY);
 if (previousSetting === '') {
     previousSetting = false;
     isChecked = false;
@@ -29,7 +30,7 @@ if (previousSetting === false) {
 function addAdvancedMovementItemToSettingsMenu() {
     Menu.addMenuItem({
         menuName: "Settings",
-        menuItemName: "Advanced Movement For Hand Controllers",
+        menuItemName: MENU_ITEM_NAME,
         isCheckable: true,
         isChecked: previousSetting
     });
@@ -54,16 +55,13 @@ function registerBasicMapping() {
         var stick = Controller.getValue(Controller.Standard.LS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
-        }
-        if (Controller.Hardware.Vive !== undefined) {
+        } else if (Controller.Hardware.Vive !== undefined) {
             if (value > 0.75 && inFlipTurn === false) {
                 inFlipTurn = true;
                 rotate180();
                 Script.setTimeout(function() {
                     inFlipTurn = false;
                 }, TURN_RATE)
-            } else {
-
             }
         }
         return;
@@ -73,16 +71,13 @@ function registerBasicMapping() {
         var stick = Controller.getValue(Controller.Standard.RS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
-        }
-        if (Controller.Hardware.Vive !== undefined) {
+        } else if (Controller.Hardware.Vive !== undefined) {
             if (value > 0.75 && inFlipTurn === false) {
                 inFlipTurn = true;
                 rotate180();
                 Script.setTimeout(function() {
                     inFlipTurn = false;
                 }, TURN_RATE)
-            } else {
-
             }
         }
         return;
@@ -99,19 +94,19 @@ function disableMappings() {
 }
 
 function scriptEnding() {
-    Menu.removeMenuItem("Settings", "Advanced Movement For Hand Controllers");
+    Menu.removeMenuItem("Settings", MENU_ITEM_NAME);
     disableMappings();
 }
 
 
 function menuItemEvent(menuItem) {
-    if (menuItem == "Advanced Movement For Hand Controllers") {
-        isChecked = Menu.isOptionChecked("Advanced Movement For Hand Controllers");
+    if (menuItem == MENU_ITEM_NAME) {
+        isChecked = Menu.isOptionChecked(MENU_ITEM_NAME);
         if (isChecked === true) {
-            Settings.setValue('advancedMovementForHandControllersIsChecked', true);
+            Settings.setValue(SETTINGS_KEY, true);
             disableMappings();
         } else if (isChecked === false) {
-            Settings.setValue('advancedMovementForHandControllersIsChecked', false);
+            Settings.setValue(SETTINGS_KEY, false);
             enableMappings();
         }
     }
@@ -131,7 +126,6 @@ Script.setTimeout(function() {
     } else {
         enableMappings();
     }
-
 }, 100)
 
 
