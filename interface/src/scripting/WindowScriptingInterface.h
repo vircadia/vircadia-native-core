@@ -63,7 +63,7 @@ signals:
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
     void snapshotTaken(const QString& path, bool notify);
-    void snapshotShared(bool success);
+    void snapshotShared(const QString& error);
 
 private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
