@@ -54,8 +54,6 @@ public:
     virtual void setSourceUrl(const QString& value);
     const QString& getSourceUrl() const;
 
-    virtual bool wantsHandControllerPointerEvents() const { return true; }
-
 protected:
     QString _sourceUrl;
 };

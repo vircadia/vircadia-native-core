@@ -2048,10 +2048,9 @@ bool Application::event(QEvent* event) {
             case QEvent::KeyRelease: {
                 auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem.get());
-                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-                if (webEntity && webEntity->getEventHandler()) {
+                if (entity && entity->getEventHandler()) {
                     event->setAccepted(false);
-                    QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
+                    QCoreApplication::sendEvent(entity->getEventHandler(), event);
                     if (event->isAccepted()) {
                         _lastAcceptedKeyPress = usecTimestampNow();
                         return true;
@@ -2931,10 +2930,9 @@ void Application::idle(float nsecsElapsed) {
                 // update position of highlight overlay
                 auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem.get());
-                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-                if (webEntity && _keyboardFocusHighlight) {
-                    _keyboardFocusHighlight->setRotation(webEntity->getRotation());
-                    _keyboardFocusHighlight->setPosition(webEntity->getPosition());
+                if (entity && _keyboardFocusHighlight) {
+                    _keyboardFocusHighlight->setRotation(entity->getRotation());
+                    _keyboardFocusHighlight->setPosition(entity->getPosition());
                 }
             }
         }
@@ -3540,9 +3538,8 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
         if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
             auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
-            RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-            if (webEntity) {
-                webEntity->setProxyWindow(_window->windowHandle());
+            if (entity && entity->wantsKeyboardFocus()) {
+                entity->setProxyWindow(_window->windowHandle());
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
@@ -3560,9 +3557,9 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                     _keyboardFocusHighlight->setIgnoreRayIntersection(true);
                     _keyboardFocusHighlight->setDrawInFront(false);
                 }
-                _keyboardFocusHighlight->setRotation(webEntity->getRotation());
-                _keyboardFocusHighlight->setPosition(webEntity->getPosition());
-                _keyboardFocusHighlight->setDimensions(webEntity->getDimensions() * 1.05f);
+                _keyboardFocusHighlight->setRotation(entity->getRotation());
+                _keyboardFocusHighlight->setPosition(entity->getPosition());
+                _keyboardFocusHighlight->setDimensions(entity->getDimensions() * 1.05f);
                 _keyboardFocusHighlight->setVisible(true);
                 _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
             }

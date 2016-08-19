@@ -32,8 +32,10 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual void setSourceUrl(const QString& value) override;
 
-    void setProxyWindow(QWindow* proxyWindow);
-    QObject* getEventHandler();
+    virtual bool wantsHandControllerPointerEvents() const override { return true; }
+    virtual bool wantsKeyboardFocus() const override { return true; }
+    virtual void setProxyWindow(QWindow* proxyWindow) override;
+    virtual QObject* getEventHandler() override;
 
     void handlePointerEvent(const PointerEvent& event);
 
