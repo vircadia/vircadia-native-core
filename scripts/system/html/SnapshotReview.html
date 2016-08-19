@@ -6,6 +6,7 @@
 
         .snapshot-container {
             width: 100%;
+            padding-top: 3px;
         }
 
         .snapshot-column-left {
@@ -31,10 +32,19 @@
                 width: 100%;
             }
             .snapshot-column-right > div > img {
-                margin-top: 32px;
+                margin-top: 32px !important;
             }
         }
 
+        .snapshot-column-right > div {
+            position: relative;
+            padding: 2px;
+        }
+
+        .snapshot-column-right > div > img {
+            border: 2px solid #575757;
+            margin: -2px;
+        }
     </style>
     <!--
       <style type="text/css">
