@@ -3,6 +3,41 @@
     <title>Share</title>
     <link rel="stylesheet" type="text/css" href="css/edit-style.css">
     <style type="text/css">
+
+        .snapshot-container {
+            width: 100%;
+        }
+
+        .snapshot-column-left {
+            width: 320px;
+            position: absolute;
+        }
+
+        .snapshot-column-right {
+            margin-left: 342px;
+        }
+      
+        .snapshot-column-right > div > img {
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .snapshot-column-left {
+                position: initial;
+                width: 100%;
+            }
+            .snapshot-column-right {
+                margin-left: 0;
+                width: 100%;
+            }
+            .snapshot-column-right > div > img {
+                margin-top: 32px;
+            }
+        }
+
+    </style>
+    <!--
+      <style type="text/css">
       .snapshot-container{
         width:100%;
       }
@@ -54,6 +89,7 @@
       }
 
     </style>
+    -->
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
     <script>
