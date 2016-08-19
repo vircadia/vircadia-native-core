@@ -51,7 +51,6 @@ WebEngineView {
 
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
-        console.log("loading change requested url");
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {
             var url = loadRequest.url.toString();
             if (urlHandler.canHandleUrl(url)) {

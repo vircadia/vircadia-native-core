@@ -80,7 +80,7 @@ OriginalDesktop.Desktop {
     property string tempDir: ""
 
     function initWebviewProfileHandlers(profile) {
-        console.log("the webview url in desktop is: " + currentUrl);
+        console.log("The webview url in desktop is: " + currentUrl);
         if (webViewProfileSetup) return;
         webViewProfileSetup = true;
 
@@ -90,9 +90,8 @@ OriginalDesktop.Desktop {
             tempDir = File.getTempDir();
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
-            console.log("Path where it should download: " + download.path);
+            console.log("Path where object should download: " + download.path);
             download.accept();
-            console.log("Download accept: " + download.state);
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
                 console.log("download failed to complete");
             }
@@ -100,8 +99,6 @@ OriginalDesktop.Desktop {
 
         profile.downloadFinished.connect(function(download){
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                console.log("Download Finished: " + download.state);
-                console.log("File object is: " + File);
                 File.runUnzip(download.path, currentUrl);
             } else {
                 console.log("The download was corrupted, state: " + download.state);

@@ -35,7 +35,6 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     qDebug() << "Url that was downloaded: " + url.toString();
     qDebug() << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
-    qDebug() << "Filename to remove from temp path: " + fileName;
     QString tempDir = path;
     tempDir.remove(fileName);
     qDebug() << "Temporary directory at: " + tempDir;
@@ -46,9 +45,8 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
 
     QString file = unzipFile(path, tempDir);
     if (file != "") {
-        qDebug() << "file to upload: " + file;
+        qDebug() << "Object file to upload: " + file;
         QUrl url = QUrl::fromLocalFile(file);
-        qDebug() << "url from local file: " + url.toString();
         emit unzipSuccess(url.toString());
     } else {
         qDebug() << "unzip failed";
@@ -73,7 +71,6 @@ bool FileScriptingInterface::isTempDir(QString tempDir) {
 
 bool FileScriptingInterface::isZippedFbx(QUrl url) {
     if (url.toString().contains(".zip") && url.toString().contains("fbx")) return true;
-    qDebug() << "This model is not a .fbx packaged in a .zip. Please try with another model.";
     return false;
 }
 
@@ -108,9 +105,7 @@ QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 
     QDir dir(path);
     QString dirName = dir.path();
-    qDebug() << "Zip directory is stored at: " + dirName;
     QString target = tempDir + "/model_repo";
-    qDebug() << "Target path: " + target;
     QStringList list = JlCompress::extractDir(dirName, target);
 
     qDebug() << list;

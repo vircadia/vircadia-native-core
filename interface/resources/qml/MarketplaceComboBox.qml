@@ -49,7 +49,6 @@ Rectangle {
                                   element.click();'
 
         onNewViewRequested: {
-            console.log("new view requested url");
             var component = Qt.createComponent("Browser.qml");
             var newWindow = component.createObject(desktop);
             request.openIn(newWindow.webView);
@@ -68,7 +67,6 @@ Rectangle {
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl
-            console.log("my url in WebView: " + desktop.currentUrl)
             if (File.isZippedFbx(desktop.currentUrl)) {
                 runJavaScript(simpleDownload, function(){console.log("ran the JS");});
             }
