@@ -73,8 +73,7 @@ Window {
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
-    property string metaverseBase: "https://metaverse.highfidelity.com/api/v1/";
-    //property string metaverseBase: "http://10.0.0.241:3000/api/v1/";
+    property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property bool useHTML: false; // fixme: remove this and all false branches after the server is updated
 
     AddressBarDialog {

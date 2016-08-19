@@ -215,20 +215,18 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
                                     QJsonDocument(rootObject).toJson());
                                     
     } else {
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(contents);
     }
 }
 
 void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
-    // TODO: parse response, potentially helpful for logging (?)
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
 }
 
 void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {    
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared("");
 }
 
 void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
-    // TODO: parse response, potentially helpful for logging (?)
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
 }
