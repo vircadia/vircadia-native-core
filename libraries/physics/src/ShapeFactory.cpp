@@ -178,14 +178,14 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     }
 
     const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-    if (triangleIndices.size() < 3) {
+    int32_t numIndices = triangleIndices.size();
+    if (numIndices < 3) {
         // not enough indices to make a single triangle
         return nullptr;
     }
 
     // allocate mesh buffers
     btIndexedMesh mesh;
-    int32_t numIndices = triangleIndices.size();
     const int32_t VERTICES_PER_TRIANGLE = 3;
     mesh.m_numTriangles = numIndices / VERTICES_PER_TRIANGLE;
     if (numIndices < INT16_MAX) {
