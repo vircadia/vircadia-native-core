@@ -667,7 +667,7 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     auto bestSize = size;
     uvec2 corner(0);
     if (aspectRatio != 0.0f) { // Pick out the largest piece of the center that produces the requested width/height aspectRatio
-        if (((size.y * aspectRatio) + 0.5f) < size.x) {
+        if (ceil(size.y * aspectRatio) < size.x) {
             bestSize.x = round(size.y * aspectRatio);
         } else {
             bestSize.y = round(size.x / aspectRatio);
