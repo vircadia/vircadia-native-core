@@ -8,8 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var NEGATIVE_ONE = 65535;
-
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
@@ -61,7 +59,7 @@ WebTablet = function (url) {
         }),
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
-        parentJointIndex: NEGATIVE_ONE
+        parentJointIndex: -2
     });
 
     var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
@@ -82,61 +80,14 @@ WebTablet = function (url) {
         shapeType: "box",
         dpi: 45,
         parentID: this.tabletEntityID,
-        parentJointIndex: NEGATIVE_ONE
+        parentJointIndex: -1
     });
 
     this.state = "idle";
-
-    // compute the room/sensor matrix of the entity.
-    var invRoomMat = Mat4.inverse(MyAvatar.sensorToWorldMatrix);
-    var entityWorldMat = Mat4.createFromRotAndTrans(tabletEntityRotation, tabletEntityPosition);
-    this.entityRoomMat = Mat4.multiply(invRoomMat, entityWorldMat);
-
-    var _this = this;
-    this.updateFunc = function (dt) {
-        _this.update(dt);
-    };
-    Script.update.connect(this.updateFunc);
 };
 
 WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.webEntityID);
     Entities.deleteEntity(this.tabletEntityID);
-    Script.update.disconnect(this.updateFunc);
-};
-
-WebTablet.prototype.update = function (dt) {
-
-    var props = Entities.getEntityProperties(this.tabletEntityID, ["position", "rotation", "parentID", "parentJointIndex"]);
-    var entityWorldMat;
-
-    if (this.state === "idle") {
-
-        if (props.parentID !== MyAvatar.sessionUUID || props.parentJointIndex !== NEGATIVE_ONE) {
-            this.state = "held";
-            return;
-        }
-
-        // convert the sensor/room matrix of the entity into world space, using the current sensorToWorldMatrix
-        var roomMat = MyAvatar.sensorToWorldMatrix;
-        entityWorldMat = Mat4.multiply(roomMat, this.entityRoomMat);
-
-        // slam the world space position and orientation
-        Entities.editEntity(this.tabletEntityID, {
-            position: Mat4.extractTranslation(entityWorldMat),
-            rotation: Mat4.extractRotation(entityWorldMat)
-        });
-    } else if (this.state === "held") {
-        if (props.parentID === MyAvatar.sessionUUID && props.parentJointIndex === NEGATIVE_ONE) {
-
-            // re-compute the room/sensor matrix for the avatar now that it has been released.
-            var invRoomMat = Mat4.inverse(MyAvatar.sensorToWorldMatrix);
-            entityWorldMat = Mat4.createFromRotAndTrans(props.rotation, props.position);
-            this.entityRoomMat = Mat4.multiply(invRoomMat, entityWorldMat);
-
-            this.state = "idle";
-            return;
-        }
-    }
 };
 
