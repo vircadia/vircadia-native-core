@@ -606,6 +606,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
             });
         }
 
+        // Signal when a socket changes, so we can start the hole punch over.
+        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambda to hold a strong ref
+        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [=] {
+            emit nodeUpdated(weakPtr);
+        });
+
         return newNodePointer;
     }
 }
