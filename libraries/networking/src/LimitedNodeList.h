@@ -250,7 +250,7 @@ signals:
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
-    void nodeUpdated(SharedNodePointer);
+    void nodeSocketUpdated(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
     void nodeActivated(SharedNodePointer);
 

@@ -93,7 +93,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
-    connect(this, &LimitedNodeList::nodeUpdated, this, &NodeList::startNodeHolePunch);
+    connect(this, &LimitedNodeList::nodeSocketUpdated, this, &NodeList::startNodeHolePunch);
 
     // anytime we get a new node we may need to re-send our set of ignored node IDs to it
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
