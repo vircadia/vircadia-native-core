@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <thread>
+
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
@@ -20,12 +22,13 @@
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
+#include <steamworks-wrapper/SteamClient.h>
+
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
-#include <thread>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
@@ -137,6 +140,8 @@ int main(int argc, const char* argv[]) {
     // or in the main window ctor, before GL startup.
     Application::initPlugins(arguments);
 
+    SteamClient::init();
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -201,6 +206,8 @@ int main(int argc, const char* argv[]) {
     }
 
     Application::shutdownPlugins();
+
+    SteamClient::shutdown();
 
     qCDebug(interfaceapp, "Normal exit.");
 #if !defined(DEBUG) && !defined(Q_OS_LINUX)

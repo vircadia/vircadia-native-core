@@ -356,7 +356,7 @@ void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap&
         if (nameKey.first.toLower() != groupNameLower) {
             continue;
         }
-        QUuid groupID = _groupIDs[groupNameLower];
+        QUuid groupID = _groupIDs[groupNameLower.toLower()];
         QUuid rankID = nameKey.second;
         GroupRank rank = _groupRanks[groupID][rankID];
         if (rank.order == 0) {
@@ -532,9 +532,12 @@ void DomainServerSettingsManager::unpackPermissions() {
             // we don't have permissions for one of the standard groups, so we'll add them now
             NodePermissionsPointer perms { new NodePermissions(standardKey) };
 
-            // the localhost user is granted all permissions by default
             if (standardKey == NodePermissions::standardNameLocalhost) {
+                // the localhost user is granted all permissions by default
                 perms->setAll(true);
+            } else {
+                // anonymous, logged in, and friend users get connect permissions by default
+                perms->set(NodePermissions::Permission::canConnectToDomain);
             }
 
             // add the permissions to the standard map
@@ -1477,14 +1480,14 @@ void DomainServerSettingsManager::apiGetGroupRanksErrorCallback(QNetworkReply& r
 
 void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, QUuid rankID) {
     if (rankID != QUuid()) {
-        _groupMembership[name][groupID] = rankID;
+        _groupMembership[name.toLower()][groupID] = rankID;
     } else {
-        _groupMembership[name].remove(groupID);
+        _groupMembership[name.toLower()].remove(groupID);
     }
 }
 
 QUuid DomainServerSettingsManager::isGroupMember(const QString& name, const QUuid& groupID) {
-    const QHash<QUuid, QUuid>& groupsForName = _groupMembership[name];
+    const QHash<QUuid, QUuid>& groupsForName = _groupMembership[name.toLower()];
     if (groupsForName.contains(groupID)) {
         return groupsForName[groupID];
     }
@@ -1528,7 +1531,7 @@ void DomainServerSettingsManager::debugDumpGroupsState() {
 
     qDebug() << "_groupIDs:";
     foreach (QString groupName, _groupIDs.keys()) {
-        qDebug() << "|  " << groupName << "==>" << _groupIDs[groupName];
+        qDebug() << "|  " << groupName << "==>" << _groupIDs[groupName.toLower()];
     }
 
     qDebug() << "_groupNames:";
@@ -1548,7 +1551,7 @@ void DomainServerSettingsManager::debugDumpGroupsState() {
 
     qDebug() << "_groupMembership";
     foreach (QString userName, _groupMembership.keys()) {
-        QHash<QUuid, QUuid>& groupsForUser = _groupMembership[userName];
+        QHash<QUuid, QUuid>& groupsForUser = _groupMembership[userName.toLower()];
         QString line = "";
         foreach (QUuid groupID, groupsForUser.keys()) {
             line += " g=" + groupID.toString() + ",r=" + groupsForUser[groupID].toString();

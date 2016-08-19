@@ -9,21 +9,30 @@
 #define hifi_gpu_gl_GLBuffer_h
 
 #include "GLShared.h"
+#include "GLBackend.h"
 
 namespace gpu { namespace gl {
 
 class GLBuffer : public GLObject<Buffer> {
 public:
     template <typename GLBufferType>
-    static GLBufferType* sync(const Buffer& buffer) {
+    static GLBufferType* sync(GLBackend& backend, const Buffer& buffer) {
+        if (buffer.getSysmem().getSize() != 0) {
+            if (buffer._getUpdateCount == 0) {
+                qWarning() << "Unsynced buffer";
+            }
+            if (buffer._getUpdateCount < buffer._applyUpdateCount) {
+                qWarning() << "Unsynced buffer " << buffer._getUpdateCount << " " << buffer._applyUpdateCount;
+            }
+        }
         GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
 
         // Has the storage size changed?
-        if (!object || object->_stamp != buffer.getSysmem().getStamp()) {
-            object = new GLBufferType(buffer, object);
+        if (!object || object->_stamp != buffer._renderSysmem.getStamp()) {
+            object = new GLBufferType(backend.shared_from_this(), buffer, object);
         }
 
-        if (0 != (buffer._flags & Buffer::DIRTY)) {
+        if (0 != (buffer._renderPages._flags & PageManager::DIRTY)) {
             object->transfer();
         }
 
@@ -31,8 +40,8 @@ public:
     }
 
     template <typename GLBufferType>
-    static GLuint getId(const Buffer& buffer) {
-        GLBuffer* bo = sync<GLBufferType>(buffer);
+    static GLuint getId(GLBackend& backend, const Buffer& buffer) {
+        GLBuffer* bo = sync<GLBufferType>(backend, buffer);
         if (bo) {
             return bo->_buffer;
         } else {
@@ -49,7 +58,7 @@ public:
     virtual void transfer() = 0;
 
 protected:
-    GLBuffer(const Buffer& buffer, GLuint id);
+    GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id);
 };
 
 } }

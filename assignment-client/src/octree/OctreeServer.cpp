@@ -1063,6 +1063,12 @@ void OctreeServer::readConfiguration() {
         _wantBackup = !noBackup;
         qDebug() << "wantBackup=" << _wantBackup;
 
+        if (!readOptionString("backupDirectoryPath", settingsSectionObject, _backupDirectoryPath)) {
+            _backupDirectoryPath = "";
+        }
+
+        qDebug() << "backupDirectoryPath=" << _backupDirectoryPath;
+
         readOptionBool(QString("persistFileDownload"), settingsSectionObject, _persistFileDownload);
         qDebug() << "persistFileDownload=" << _persistFileDownload;
 
@@ -1160,25 +1166,25 @@ void OctreeServer::domainSettingsRequestComplete() {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
-        QString absoluteFilePath = persistPath.absolutePath();
+        QString persistAbsoluteFilePath = persistPath.absolutePath();
 
         if (persistPath.isRelative()) {
             // if the domain settings passed us a relative path, make an absolute path that is relative to the
             // default data directory
-            absoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+            persistAbsoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
         }
 
         static const QString ENTITY_PERSIST_EXTENSION = ".json.gz";
 
         // force the persist file to end with .json.gz
-        if (!absoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
-            absoluteFilePath += ENTITY_PERSIST_EXTENSION;
+        if (!persistAbsoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
+            persistAbsoluteFilePath += ENTITY_PERSIST_EXTENSION;
         } else {
             // make sure the casing of .json.gz is correct
-            absoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
+            persistAbsoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
         }
 
-        if (!QFile::exists(absoluteFilePath)) {
+        if (!QFile::exists(persistAbsoluteFilePath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
 
             static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
@@ -1204,7 +1210,7 @@ void OctreeServer::domainSettingsRequestComplete() {
                 pathToCopyFrom = oldDefaultPersistPath;
             }
 
-            QDir persistFileDirectory { QDir::cleanPath(absoluteFilePath + "/..") };
+            QDir persistFileDirectory { QDir::cleanPath(persistAbsoluteFilePath + "/..") };
 
             if (!persistFileDirectory.exists()) {
                 qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
@@ -1212,16 +1218,46 @@ void OctreeServer::domainSettingsRequestComplete() {
             }
 
             if (shouldCopy) {
-                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << absoluteFilePath;
+                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistAbsoluteFilePath;
 
-                QFile::copy(pathToCopyFrom, absoluteFilePath);
+                QFile::copy(pathToCopyFrom, persistAbsoluteFilePath);
             } else {
                 qDebug() << "No existing persist file found";
             }
         }
+
+        auto persistFileDirectory = QFileInfo(persistAbsoluteFilePath).absolutePath();
+        if (_backupDirectoryPath.isEmpty()) {
+            // Use the persist file's directory to store backups
+            _backupDirectoryPath = persistFileDirectory;
+        } else {
+            // The backup directory has been set.
+            //   If relative, make it relative to the entities directory in the application data directory
+            //   If absolute, no resolution is necessary
+            QDir backupDirectory { _backupDirectoryPath };
+            QString absoluteBackupDirectory;
+            if (backupDirectory.isRelative()) {
+                absoluteBackupDirectory = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_backupDirectoryPath);
+                absoluteBackupDirectory = QDir(absoluteBackupDirectory).absolutePath();
+            } else {
+                absoluteBackupDirectory = backupDirectory.absolutePath();
+            }
+            backupDirectory = QDir(absoluteBackupDirectory);
+            if (!backupDirectory.exists()) {
+                if (backupDirectory.mkpath(".")) {
+                    qDebug() << "Created backup directory";
+                } else {
+                    qDebug() << "ERROR creating backup directory, using persist file directory";
+                    _backupDirectoryPath = persistFileDirectory;
+                }
+            } else {
+                _backupDirectoryPath = absoluteBackupDirectory;
+            }
+        }
+        qDebug() << "Backups will be stored in: " << _backupDirectoryPath;
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, absoluteFilePath, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, persistAbsoluteFilePath, _backupDirectoryPath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }

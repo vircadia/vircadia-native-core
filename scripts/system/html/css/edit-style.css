@@ -10,51 +10,51 @@
 
 @font-face {
     font-family: Raleway-Regular;
-    src: url(../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
-         url(../../../fonts/Raleway-Regular.ttf),  /* OSX production */
-         url(../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
+    src: url(../../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
+         url(../../../../fonts/Raleway-Regular.ttf),  /* OSX production */
+         url(../../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
 }
 
 @font-face {
     font-family: Raleway-Light;
-    src: url(../../../resources/fonts/Raleway-Light.ttf),
-         url(../../../fonts/Raleway-Light.ttf),
-         url(../../../interface/resources/fonts/Raleway-Light.ttf);
+    src: url(../../../../resources/fonts/Raleway-Light.ttf),
+         url(../../../../fonts/Raleway-Light.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Light.ttf);
 }
 
 @font-face {
     font-family: Raleway-Bold;
-    src: url(../../../resources/fonts/Raleway-Bold.ttf),
-         url(../../../fonts/Raleway-Bold.ttf),
-         url(../../../interface/resources/fonts/Raleway-Bold.ttf);
+    src: url(../../../../resources/fonts/Raleway-Bold.ttf),
+         url(../../../../fonts/Raleway-Bold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Bold.ttf);
 }
 
 @font-face {
     font-family: Raleway-SemiBold;
-    src: url(../../../resources/fonts/Raleway-SemiBold.ttf),
-         url(../../../fonts/Raleway-SemiBold.ttf),
-         url(../../../interface/resources/fonts/Raleway-SemiBold.ttf);
+    src: url(../../../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../../../fonts/Raleway-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf);
 }
 
 @font-face {
     font-family: FiraSans-SemiBold;
-    src: url(../../../resources/fonts/FiraSans-SemiBold.ttf),
-         url(../../../fonts/FiraSans-SemiBold.ttf),
-         url(../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
+    src: url(../../../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../../../fonts/FiraSans-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
 }
 
 @font-face {
     font-family: AnonymousPro-Regular;
-    src: url(../../../resources/fonts/AnonymousPro-Regular.ttf),
-         url(../../../fonts/AnonymousPro-Regular.ttf),
-         url(../../../interface/resources/fonts/AnonymousPro-Regular.ttf);
+    src: url(../../../../resources/fonts/AnonymousPro-Regular.ttf),
+         url(../../../../fonts/AnonymousPro-Regular.ttf),
+         url(../../../../interface/resources/fonts/AnonymousPro-Regular.ttf);
 }
 
 @font-face {
     font-family: HiFi-Glyphs;
-    src: url(../../../resources/fonts/hifi-glyphs.ttf),
-         url(../../../fonts/hifi-glyphs.ttf),
-         url(../../../interface/resources/fonts/hifi-glyphs.ttf);
+    src: url(../../../../resources/fonts/hifi-glyphs.ttf),
+         url(../../../../fonts/hifi-glyphs.ttf),
+         url(../../../../interface/resources/fonts/hifi-glyphs.ttf);
 }
 
 * {
@@ -1075,10 +1075,6 @@ input#dimension-rescale-button {
     margin-left: 6px;
 }
 input#reset-to-natural-dimensions {
-    margin-right: 0;
-}
-input#preview-camera-button {
-    margin-left: 1px;
     margin-right: 0;
 }
 

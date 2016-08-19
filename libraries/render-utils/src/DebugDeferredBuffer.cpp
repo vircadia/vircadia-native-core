@@ -394,7 +394,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         args->getViewFrustum().evalProjectionMatrix(projMat);
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // TODO REMOVE: Temporary until UI

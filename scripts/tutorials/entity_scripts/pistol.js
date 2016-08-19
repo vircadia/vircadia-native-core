@@ -22,7 +22,7 @@
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
-    var RELOAD_THRESHOLD = 0.95;
+    var RELOAD_THRESHOLD = 0.90;
 
     Pistol = function() {
         _this = this;
@@ -81,11 +81,11 @@
         },
         toggleWithTriggerPressure: function() {
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
-
+            
             if (this.triggerValue < RELOAD_THRESHOLD) {
                 this.canShoot = true;
             }
-            if (this.canShoot === true && this.triggerValue === 1) {
+            if (this.canShoot === true && this.triggerValue >= RELOAD_THRESHOLD) {
                 this.fire();
                 this.canShoot = false;
             }
@@ -140,7 +140,7 @@
                 direction: this.firingDirection
             };
             this.createGunFireEffect(this.barrelPoint)
-            var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
+            var intersection = Entities.findRayIntersection(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
                 if (Math.random() < this.playRichochetSoundChance) {

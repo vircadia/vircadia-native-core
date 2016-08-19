@@ -24,14 +24,14 @@ public:
         return result;
     }
 
-    GL41Query(const Query& query) 
-        : Parent(query, allocateQuery(), allocateQuery()) { }
+    GL41Query(const std::weak_ptr<gl::GLBackend>& backend, const Query& query)
+        : Parent(backend, query, allocateQuery(), allocateQuery()) { }
 };
 
 gl::GLQuery* GL41Backend::syncGPUObject(const Query& query) {
-    return GL41Query::sync<GL41Query>(query);
+    return GL41Query::sync<GL41Query>(*this, query);
 }
 
 GLuint GL41Backend::getQueryID(const QueryPointer& query) {
-    return GL41Query::getId<GL41Query>(query);
+    return GL41Query::getId<GL41Query>(*this, query);
 }

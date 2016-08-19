@@ -290,7 +290,7 @@ void GLBackend::do_setStateColorWriteMask(uint32 mask) {
 }
 
 
-void GLBackend::do_setStateBlendFactor(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setStateBlendFactor(const Batch& batch, size_t paramOffset) {
     Vec4 factor(batch._params[paramOffset + 0]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 2]._float,
@@ -300,9 +300,9 @@ void GLBackend::do_setStateBlendFactor(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_setStateScissorRect(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setStateScissorRect(const Batch& batch, size_t paramOffset) {
     Vec4i rect;
-    memcpy(&rect, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+    memcpy(&rect, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
     if (_stereo._enable) {
         rect.z /= 2;

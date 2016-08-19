@@ -48,7 +48,7 @@ void main() {
     
     packDeferredFragmentTranslucent(
         normalize(_normal),
-        a,
+        a * Color.a,
         Color.rgb,
         DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);

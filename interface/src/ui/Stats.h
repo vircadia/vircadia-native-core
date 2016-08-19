@@ -43,6 +43,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, packetOutCount, 0)
     STATS_PROPERTY(float, mbpsIn, 0)
     STATS_PROPERTY(float, mbpsOut, 0)
+    STATS_PROPERTY(float, assetMbpsIn, 0)
+    STATS_PROPERTY(float, assetMbpsOut, 0)
     STATS_PROPERTY(int, audioPing, 0)
     STATS_PROPERTY(int, avatarPing, 0)
     STATS_PROPERTY(int, entitiesPing, 0)
@@ -128,6 +130,8 @@ signals:
     void packetOutCountChanged();
     void mbpsInChanged();
     void mbpsOutChanged();
+    void assetMbpsInChanged();
+    void assetMbpsOutChanged();
     void audioPingChanged();
     void avatarPingChanged();
     void entitiesPingChanged();
