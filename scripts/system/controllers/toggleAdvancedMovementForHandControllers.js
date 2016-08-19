@@ -23,7 +23,6 @@ if (previousSetting === true) {
     isChecked = true;
 }
 if (previousSetting === false) {
-    previousSetting = false;
     isChecked = false;
 }
 
@@ -81,7 +80,7 @@ function registerBasicMapping() {
                 rotate180();
                 Script.setTimeout(function() {
                     inFlipTurn = false;
-                }, 250)
+                }, TURN_RATE)
             } else {
 
             }

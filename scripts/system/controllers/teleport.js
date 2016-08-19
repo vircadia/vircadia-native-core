@@ -37,7 +37,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
     blue: 73
 };
 
-var TELEPORT_CANCEL_RANGE = 1.5;
+var TELEPORT_CANCEL_RANGE = 1;
 var USE_COOL_IN = true;
 var COOL_IN_DURATION = 500;
 
