@@ -15,12 +15,13 @@ var TURN_RATE = 1000;
 var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
 var SETTINGS_KEY = 'advancedMovementForHandControllersIsChecked';
 var previousSetting = Settings.getValue(SETTINGS_KEY);
-if (previousSetting === '' || previousSetting === false) {
+if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
     previousSetting = false;
     isChecked = false;
 }
 
-if (previousSetting === true) {
+if (previousSetting === true || previousSetting === 'true') {
+    previousSetting = true;
     isChecked = true;
 }
 
