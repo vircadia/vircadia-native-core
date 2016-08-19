@@ -340,7 +340,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     RenderArgs* args = renderContext->args;
 
     const auto& frameTransform = inputs.get0();
-    const auto& deferredFramebuffer = inputs.get1();
     const auto& linearDepthFramebuffer = inputs.get2();
     
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
@@ -372,13 +371,9 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     float tMin = occlusionViewport.y / (float)framebufferSize.y;
     float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
-    auto resolutionLevel = _parametersBuffer->getResolutionLevel();
-
 
     //_parametersBuffer->ditheringInfo.y += 0.25f;
 
-    // Running in stero ?
-    bool isStereo = args->_context->isStereo();
 
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
@@ -486,13 +481,7 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
 
     RenderArgs* args = renderContext->args;
 
-    // FIXME: Different render modes should have different tasks
-//    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
-//        return;
-//    }
-
     const auto& frameTransform = inputs.get0();
-    const auto& deferredFramebuffer = inputs.get1();
     const auto& linearDepthFramebuffer = inputs.get2();
     const auto& ambientOcclusionUniforms = inputs.get3();
     
@@ -519,11 +508,7 @@ void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext,
     float sWidth = occlusionViewport.z / (float)framebufferSize.x;
     float tMin = occlusionViewport.y / (float)framebufferSize.y;
     float tHeight = occlusionViewport.w / (float)framebufferSize.y;
-
-
-    // Running in stero ?
-    bool isStereo = args->_context->isStereo();
-
+    
     auto debugPipeline = getDebugPipeline();
     
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {

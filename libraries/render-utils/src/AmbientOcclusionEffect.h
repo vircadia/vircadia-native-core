@@ -109,15 +109,18 @@ signals:
 namespace gpu {
 template <class T> class UniformBuffer : public gpu::BufferView {
   public:
+
+      static BufferPointer makeBuffer() {
+          T t;
+          return std::make_shared<gpu::Buffer>(sizeof(T), (const gpu::Byte*) &t);
+      }
     ~UniformBuffer<T>() {};
-    UniformBuffer<T>() : gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(T), (const gpu::Byte*) &T())) {}
+    UniformBuffer<T>() : gpu::BufferView(makeBuffer()) {}
 
     const T* operator ->() const { return &get<T>(); }  
     T* operator ->() { return &edit<T>(); }
 
 };
-
-
 }
 
 class AmbientOcclusionEffect {
