@@ -44,7 +44,7 @@ Item {
         }
     }
 
-    MenuItem {
+    InfoItem {
         id: mainTextContainer
         anchors {
             top: parent.top

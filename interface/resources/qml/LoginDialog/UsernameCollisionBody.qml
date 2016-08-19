@@ -78,7 +78,7 @@ Item {
         placeholderText: "Choose your own"
     }
 
-    MenuItem {
+    InfoItem {
         id: termsContainer
         anchors {
             top: textField.bottom
