@@ -432,6 +432,8 @@ public:
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
+    static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
+    static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
     virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
 
 protected:
@@ -564,7 +566,8 @@ protected:
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
 
     quint64 _fadeStartTime { usecTimestampNow() };
-    bool _isFading { true };
+    static std::function<bool()> _entitiesShouldFadeFunction;
+    bool _isFading { _entitiesShouldFadeFunction() };
 };
 
 #endif // hifi_EntityItem_h
