@@ -1409,11 +1409,10 @@ function MyController(hand) {
             }
         }
 
+        var pointerEvent;
         if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
-
-            var pointerEvent;
 
             if (Entities.keyboardFocusEntity != entity) {
                 Entities.keyboardFocusEntity = entity;
@@ -1464,7 +1463,7 @@ function MyController(hand) {
                 return;
             }
         } else if (this.hoverEntity) {
-            var pinterEvent = {
+            pointerEvent = {
                 type: "Move",
                 id: this.hand + 1
             };
