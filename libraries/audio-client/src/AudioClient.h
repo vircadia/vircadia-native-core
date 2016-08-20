@@ -139,6 +139,8 @@ public:
     
     QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
 
+    void checkDevices();
+
     static const float CALLBACK_ACCELERATOR_RATIO;
 
 #ifdef Q_OS_WIN
@@ -312,7 +314,6 @@ private:
 
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
-    void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
     

@@ -67,6 +67,33 @@ Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredRe
                                                       DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
 Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
 
+// background thread that continuously polls for device changes
+class CheckDevicesThread : public QThread {
+public:
+    const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+
+    CheckDevicesThread(AudioClient* audioClient)
+        : _audioClient(audioClient) {
+
+        connect(qApp, &QCoreApplication::aboutToQuit, [this] {
+            _quit = true;
+        });
+    }
+
+    void run() override {
+        while (!_quit) {
+
+            //qDebug() << "Checking for audio device changes...";
+            _audioClient->checkDevices();
+
+            QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
+        }
+    }
+
+    AudioClient* _audioClient { nullptr };
+    bool _quit { false };
+};
+
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _audioInput(NULL),
@@ -121,14 +148,14 @@ AudioClient::AudioClient() :
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
-
     _inputDevices = getDeviceNames(QAudio::AudioInput);
     _outputDevices = getDeviceNames(QAudio::AudioOutput);
 
-    const qint64 DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
-    QTimer* updateTimer = new QTimer(this);
-    connect(updateTimer, &QTimer::timeout, this, &AudioClient::checkDevices);
-    updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
+    // start a thread to detect any device changes
+    QThread* checkDevicesThread = new CheckDevicesThread(this);
+    checkDevicesThread->setObjectName("CheckDevices Thread");
+    checkDevicesThread->setPriority(QThread::LowPriority);
+    checkDevicesThread->start();
 
     configureReverb();
 
@@ -1349,9 +1376,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 }
 
 void AudioClient::checkDevices() {
-#   if defined(Q_OS_LINUX) || defined (Q_OS_WIN)
-    // on Windows and Linux, this causes dropouts in the audio stream
-#   else
     QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
     QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
 
@@ -1361,7 +1385,6 @@ void AudioClient::checkDevices() {
 
         emit deviceChanged();
     }
-#   endif
 }
 
 void AudioClient::loadSettings() {
