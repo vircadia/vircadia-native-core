@@ -218,7 +218,7 @@ Window {
 
         Window {
             width: 750;
-            height: 360;
+            height: 500;
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
@@ -230,9 +230,8 @@ Window {
             pinnable: false;
 
             anchors {
-                verticalCenter: scroll.verticalCenter;
+                verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
-                verticalCenterOffset: 50;
             }
         }
     }
