@@ -67,8 +67,29 @@
             font-size: 14px;
         }
 
-        #share, #close {
-            margin-top: 21px;
+        div.button {
+            padding-top: 21px;
+        }
+
+        .compound-button {
+            position: relative;
+            height: auto;
+        }
+
+        .compound-button input {
+            padding-left: 40px;
+        }
+
+        .compound-button .glyph {
+            display: inline-block;
+            position: absolute;
+            left: 12px;
+            top: 16px;
+            width: 23px;
+            height: 23px;
+            background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgaGVpZ2h0PSI0MCIKICAgd2lkdGg9IjQwIgogICBpZD0ic3ZnMiIKICAgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIKICAgdmlld0JveD0iMCAwIDQwIDQwIgogICB5PSIwcHgiCiAgIHg9IjBweCIKICAgdmVyc2lvbj0iMS4xIj48bWV0YWRhdGEKICAgICBpZD0ibWV0YWRhdGEzNCI+PHJkZjpSREY+PGNjOldvcmsKICAgICAgICAgcmRmOmFib3V0PSIiPjxkYzpmb3JtYXQ+aW1hZ2Uvc3ZnK3htbDwvZGM6Zm9ybWF0PjxkYzp0eXBlCiAgICAgICAgICAgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIgLz48ZGM6dGl0bGU+PC9kYzp0aXRsZT48L2NjOldvcms+PC9yZGY6UkRGPjwvbWV0YWRhdGE+PGRlZnMKICAgICBpZD0iZGVmczMyIiAvPjxzdHlsZQogICAgIGlkPSJzdHlsZTQiCiAgICAgdHlwZT0idGV4dC9jc3MiPgoJLnN0MHtmaWxsOiM0MTQwNDI7fQoJLnN0MXtmaWxsOiNDQ0NDQ0M7fQoJLnN0MntmaWxsOiMxMzk4QkI7fQoJLnN0M3tmaWxsOiMzMUQ4RkY7fQo8L3N0eWxlPjxnCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwtMTEwKSIKICAgICBpZD0iTGF5ZXJfMSI+PGNpcmNsZQogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJjaXJjbGUxMyIKICAgICAgIHI9IjQuNDQwMDAwMSIKICAgICAgIGN5PSIxMjYuMTciCiAgICAgICBjeD0iMjAuNTQwMDAxIgogICAgICAgY2xhc3M9InN0MSIgLz48cGF0aAogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJwYXRoMTUiCiAgICAgICBkPSJtIDI4Ljg3LDEzOS4yNiBjIDAuMDEsLTAuMDEgMC4wMiwtMC4wMiAwLjAzLC0wLjAzIGwgMCwtMS44NiBjIDAsLTIuNjggLTIuMzMsLTQuNzcgLTUsLTQuNzcgbCAtNi40MiwwIGMgLTIuNjgsMCAtNC44NSwyLjA5IC00Ljg1LDQuNzcgbCAwLDEuODggMTYuMjQsMCB6IgogICAgICAgY2xhc3M9InN0MSIgLz48cGF0aAogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJwYXRoMTciCiAgICAgICBkPSJtIDM4LjE3LDEyMy40MiBjIDAsLTMuOTcgLTMuMjIsLTcuMTkgLTcuMTksLTcuMTkgbCAtMjAuMzEsMCBjIC0zLjk3LDAgLTcuMTksMy4yMiAtNy4xOSw3LjE5IGwgMCwxNC4xOCBjIDAsMy45NyAzLjIyLDcuMTkgNy4xOSw3LjE5IGwgMjAuMzEsMCBjIDMuOTcsMCA3LjE5LC0zLjIyIDcuMTksLTcuMTkgbCAwLC0xNC4xOCB6IG0gLTEuNzgsMTQuMjcgYyAwLDMuMDMgLTIuNDYsNS40OSAtNS40OSw1LjQ5IGwgLTIwLjMyLDAgYyAtMy4wMywwIC01LjQ5LC0yLjQ2IC01LjQ5LC01LjQ5IGwgMCwtMTQuMTkgYyAwLC0zLjAzIDIuNDYsLTUuNDkgNS40OSwtNS40OSBsIDIwLjMzLDAgYyAzLjAzLDAgNS40OSwyLjQ2IDUuNDksNS40OSBsIDAsMTQuMTkgeiIKICAgICAgIGNsYXNzPSJzdDEiIC8+PC9nPjxnCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwtMTEwKSIKICAgICBpZD0iTGF5ZXJfMiIgLz48L3N2Zz4=);
+            background-repeat: no-repeat;
+            background-size: 23px 23px;
         }
 
         .setting {
@@ -191,11 +212,14 @@
         <div class="snapsection">
           <div id="sharing">
             <div class="prompt">Would you like to share your pic in the Snapshots feed?</div>
-            <div>
-              <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()"/>
+            <div class="button">
+              <span class="compound-button">
+                <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()"/>
+                <span class="glyph"></span>
+              </span>
             </div>
           </div>
-          <div>
+          <div class="button">
             <input type="button" class="black" id="close" value="Don't Share" onclick="doNotShare()"/>
           </div>
         </div>
