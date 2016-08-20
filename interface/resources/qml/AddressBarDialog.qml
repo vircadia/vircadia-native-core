@@ -52,18 +52,8 @@ Window {
     }
     function goCard(card) {
         if (addressBarDialog.useFeed) {
-            if (useHTML) {
-                storyCardHTML.url = metaverseBase + "user_stories/" + card.storyId + ".html";
-                storyCardFrame.shown = true;
-            } else {
-                storyCardQML.imageUrl = card.imageUrl;
-                storyCardQML.userName = card.userName;
-                storyCardQML.placeName = card.placeName;
-                storyCardQML.actionPhrase = card.actionPhrase;
-                storyCardQML.timePhrase = card.timePhrase;
-                storyCardQML.hifiUrl = card.hifiUrl;
-                storyCardQML.visible = true;
-            }
+            storyCardHTML.url = addressBarDialog.metaverseServerUrl + "/user_stories/" + card.storyId;
+            storyCardFrame.shown = true;
             return;
         }
         addressLine.text = card.hifiUrl;
@@ -74,7 +64,6 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
-    property bool useHTML: false; // fixme: remove this and all false branches after the server is updated
 
     AddressBarDialog {
         id: addressBarDialog
@@ -227,20 +216,6 @@ Window {
             }
         }
 
-        UserStoryCard {
-            id: storyCardQML;
-            visible: false;
-            visitPlace: function (hifiUrl) {
-                storyCardQML.visible = false;
-                addressLine.text = hifiUrl;
-                toggleOrGo(true);
-            };
-            anchors {
-                verticalCenter: scroll.verticalCenter;
-                horizontalCenter: scroll.horizontalCenter;
-                verticalCenterOffset: 50;
-            }
-        }
         Window {
             width: 750;
             height: 360;
