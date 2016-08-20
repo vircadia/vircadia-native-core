@@ -118,7 +118,9 @@ template <class T> class UniformBuffer : public gpu::BufferView {
     UniformBuffer<T>() : gpu::BufferView(makeBuffer()) {}
 
     const T* operator ->() const { return &get<T>(); }  
-    T* operator ->() { return &edit<T>(); }
+    T* operator ->() {
+        return &edit<T>(0);
+    }
 
 };
 }
