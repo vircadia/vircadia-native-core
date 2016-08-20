@@ -3,56 +3,106 @@
     <title>Share</title>
     <link rel="stylesheet" type="text/css" href="css/edit-style.css">
     <style type="text/css">
-      .snapshot-container{
-        width:100%;
-      }
 
-      .snapshot-column-left{
-        width:50%;
-        float:left;
-      }
+        .snapshot-container {
+            width: 100%;
+            padding-top: 3px;
+        }
 
-      .snapshot-column-right{
-        width:50%;
-        float:right;
-      }
+        .snapshot-column-left {
+            width: 320px;
+            position: absolute;
+            padding-top: 8px;
+        }
+
+        .snapshot-column-right {
+            margin-left: 342px;
+        }
       
-      .snapshot-column-right > div > img{
-        max-width: 100%;
-        height:auto;
-      }
-      .prompt {
-        font-family: Raleway-SemiBold;
-        text-transform: none;
-      }
-
-      .sub-section-header > div > input {
-        margin-top:20px;
-      }
-      span.inline-checkbox { display:inline; }
-
-      @media (max-width: 768px){
-        .snapshot-column-left{
-        width:100%;
+        .snapshot-column-right > div > img {
+            width: 100%;
         }
-        .snapshot-column-right{
-        width:100%;
-        }
-        .snapshot-column-right > div > img{
-        margin-top:32px;
-        }
-      }
 
-      .snapsection{
-        width:95% !important;
-        padding-right:0px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      div#sharing {
-        margin-top:50px;
-      }
+        @media (max-width: 768px) {
+            .snapshot-column-left {
+                position: initial;
+                width: 100%;
+            }
+            .snapshot-column-right {
+                margin-left: 0;
+                width: 100%;
+            }
+            .snapshot-column-right > div > img {
+                margin-top: 18px !important;
+            }
+        }
 
+        .snapshot-column-right > div {
+            position: relative;
+            padding: 2px;
+        }
+
+        .snapshot-column-right > div > img {
+            border: 2px solid #575757;
+            margin: -2px;
+        }
+
+        hr {
+            padding-left: 0;
+            padding-right: 0;
+            margin: 21px 0;
+        }
+
+        .snapsection {
+            text-align: center;
+        }
+
+        .title {
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .prompt {
+            font-family: Raleway-SemiBold;
+            font-size: 14px;
+        }
+
+        #share, #close {
+            margin-top: 21px;
+        }
+
+        .setting {
+            display: inline-table;
+            height: 28px;
+        }
+
+        .setting label {
+            display: table-cell;
+            vertical-align: middle;
+            font-family: Raleway-SemiBold;
+            font-size: 14px;
+        }
+
+        .setting + .setting {
+            margin-left: 18px;
+        }
+
+        input[type=button].naked {
+            font-size: 40px;
+            line-height: 40px;
+            width: 30px;
+            padding: 0;
+            margin: 0 0 -6px 0;
+            position: relative;
+            top: -6px;
+            left: -8px;
+            background: none;
+        }
+
+        input[type=button].naked:hover {
+            color: #00b4ef;
+            background: none;
+        }
     </style>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
@@ -90,12 +140,12 @@
         if (!shareMsg.canShare) {
             // this means you may or may not be logged in, but can't share
             // because you are not in a public place.
-            document.getElementById("sharing").innerHTML = "<p>Snapshots can be shared when they're taken in shareable places.";
+            document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when they're taken in shareable places.";
         } else if (!shareMsg.isLoggedIn) {
             // this means you are in a public place, but can't share because
             // you need to login.  Soon we will just bring up the share dialog
             // in this case (and maybe set a boolean here to inform the html)
-            document.getElementById("sharing").innerHTML = "<p>Snapshots can be shared when you are logged in.";
+            document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when you're logged in.";
         }
     }
     window.onload = function () {
@@ -134,23 +184,28 @@
   <body>
     <div class="snapshot-container">
       <div class="snapshot-column-left">
-        <div class="section-header snapsection">
-          <label>Snapshots sucessfully saved!</label>
+        <div class="snapsection">
+          <label class="title">Snapshot successfully saved!</label>
         </div>
-        <div class="sub-section-header snapsection">
+        <hr />
+        <div class="snapsection">
           <div id="sharing">
             <div class="prompt">Would you like to share your pic in the Snapshots feed?</div>
             <div>
-              <input type="button" class="blue" id="share" value="SHARE IN FEED" onclick="shareSelected()"/>
+              <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()"/>
             </div>
           </div>
           <div>
-            <input type="button" class="red" id="close" value="DON'T SHARE" onclick="doNotShare()"/>
+            <input type="button" class="black" id="close" value="Don't Share" onclick="doNotShare()"/>
           </div>
         </div>
-        <div class="sub-section-header snapsection">
-          <input type="button" value="Snapshot setttings" onclick="snapshotSettings()"/>
-          <span class="inline-checkbox property checkbox">
+        <hr />
+        <div class="snapsection">
+          <span class="setting">
+            <input type="button" class="glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
+            <label for="snapshotSettings">Snapshot settings</label>
+          </span>
+          <span class="setting checkbox">
             <input id="openFeed" type="checkbox" checked/>
             <label for="openFeed">Open feed after</label>
           </span>
