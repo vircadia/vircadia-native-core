@@ -15,6 +15,7 @@
 
 #include "DeferredLightingEffect.h"
 #include "Model.h"
+#include "EntityItem.h"
 
 using namespace render;
 
@@ -517,10 +518,16 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 }
 
 void ModelMeshPartPayload::startFade() {
-    _fadeStartTime = usecTimestampNow();
-    _hasStartedFade = true;
-    _prevHasStartedFade = false;
-    _hasFinishedFade = false;
+    bool shouldFade = EntityItem::getEntitiesShouldFadeFunction()();
+    if (shouldFade) {
+        _fadeStartTime = usecTimestampNow();
+        _hasStartedFade = true;
+        _hasFinishedFade = false;
+    } else {
+        _isFading = true;
+        _hasStartedFade = true;
+        _hasFinishedFade = true;
+    }
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
@@ -533,10 +540,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // When an individual mesh parts like this finishes its fade, we will mark the Model as 
     // having render items that need updating
     bool nextIsFading = _isFading ? isStillFading() : false;
-    if (_isFading != nextIsFading || _prevHasStartedFade != _hasStartedFade) {
-        _isFading = nextIsFading || _prevHasStartedFade != _hasStartedFade;
-        _hasFinishedFade = _prevHasStartedFade == _hasStartedFade && !_isFading;
-        _prevHasStartedFade = _hasStartedFade;
+    bool startFading = !_isFading && !_hasFinishedFade && _hasStartedFade;
+    bool endFading = _isFading && !nextIsFading;
+    if (startFading || endFading) {
+        _isFading = startFading;
+        _hasFinishedFade = endFading;
         _model->setRenderItemsNeedUpdate();
     }
 
