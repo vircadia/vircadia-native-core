@@ -30,7 +30,7 @@ function showFeedWindow() {
 
 var outstanding;
 function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot Review', Script.resolvePath("html/SnapshotReview.html"), 800, 470);
+    var dialog = new OverlayWebWindow('Snapshot Review', Script.resolvePath("html/SnapshotReview.html"), 800, 320);
     function onMessage(message) {
         // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
         // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
