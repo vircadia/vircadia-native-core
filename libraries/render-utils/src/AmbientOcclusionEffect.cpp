@@ -169,6 +169,7 @@ public:
 
 const int AmbientOcclusionEffect_FrameTransformSlot = 0;
 const int AmbientOcclusionEffect_ParamsSlot = 1;
+const int AmbientOcclusionEffect_CameraCorrectionSlot = 2;
 const int AmbientOcclusionEffect_LinearDepthMapSlot = 0;
 const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
 
@@ -268,6 +269,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
+        
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -290,6 +293,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -312,6 +316,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         
