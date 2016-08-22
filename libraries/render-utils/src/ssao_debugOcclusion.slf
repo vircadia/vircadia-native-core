@@ -17,7 +17,7 @@
 
 <$declarePackOcclusionDepth()$>
 
-<@include gpu/color.slh@>
+<@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
 struct DebugParams{
