@@ -50,8 +50,8 @@ public:
 
     static int const EXIT_CODE_REBOOT;
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 public slots:
     /// Called by NodeList to inform us a node has been added

@@ -29,18 +29,18 @@ public:
     QScreen* getLastApplicationScreen() const { return _previousScreen; }
     bool hasHMDScreen() const { return _hmdScreenNumber >= -1; }
     void watchWindow(QWindow* window);
-    
+
 signals:
     void closed();
 
 public slots:
-    void reject();
+    void reject() override;
     void screenCountChanged(int newCount);
-    
+
 protected:
-    virtual void closeEvent(QCloseEvent*); // Emits a 'closed' signal when this dialog is closed.
-    virtual void showEvent(QShowEvent* event);
-    virtual void hideEvent(QHideEvent* event);
+    virtual void closeEvent(QCloseEvent*) override; // Emits a 'closed' signal when this dialog is closed.
+    virtual void showEvent(QShowEvent* event) override;
+    virtual void hideEvent(QHideEvent* event) override;
 
 private:
     void centerCursorOnWidget(QWidget* widget);
@@ -59,7 +59,7 @@ private:
     QScreen* _previousDialogScreen{ nullptr };
     QString _hmdPluginName;
     QString _defaultPluginName;
-    
+
     QHash<QWindow*, HMDWindowWatcher*> _windowWatchers;
     friend class HMDWindowWatcher;
 };
@@ -75,7 +75,7 @@ public:
 public slots:
     void windowScreenChanged(QScreen* screen);
     void windowGeometryChanged(int arg);
-    
+
 private:
     QWindow* _window;
     HMDToolsDialog* _hmdTools;

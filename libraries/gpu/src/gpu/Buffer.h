@@ -58,7 +58,7 @@ public:
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
-    Size getSize() const;
+    Size getSize() const override;
     template <typename T>
     Size getTypedSize() const { return getSize() / sizeof(T); };
 

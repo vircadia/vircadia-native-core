@@ -62,7 +62,7 @@ public:
     void setProperties(const QVariantMap& properties);
     QVariant getProperty(const QString& property);
 
-    virtual void applyTransformTo(Transform& transform, bool force = false);
+    virtual void applyTransformTo(Transform& transform, bool force = false) override;
 
 private:
     Transform _anchorTransform;

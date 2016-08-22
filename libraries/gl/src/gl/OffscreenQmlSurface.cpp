@@ -65,7 +65,7 @@ protected:
 
 class QmlNetworkAccessManagerFactory : public QQmlNetworkAccessManagerFactory {
 public:
-    QNetworkAccessManager* create(QObject* parent);
+    QNetworkAccessManager* create(QObject* parent) override;
 };
 
 QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {

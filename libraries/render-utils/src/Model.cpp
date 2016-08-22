@@ -916,7 +916,7 @@ public:
     Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
-    virtual void run();
+    virtual void run() override;
 
 private:
 

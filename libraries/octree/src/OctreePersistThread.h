@@ -51,7 +51,7 @@ signals:
 
 protected:
     /// Implements generic processing behavior for this thread.
-    virtual bool process();
+    virtual bool process() override;
 
     void persist();
     void backup();
