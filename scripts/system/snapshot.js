@@ -138,7 +138,7 @@ function resetButtons(path, notify) {
     confirmShare([ 
         { localPath: path },
         {
-            canShare: Boolean(location.placename),
+            canShare: !!location.placename,
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);

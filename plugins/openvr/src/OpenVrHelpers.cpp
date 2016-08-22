@@ -187,6 +187,7 @@ void updateFromOpenVrKeyboardInput() {
     //event.setCommitString(newText, 0, _existingText.size());
     //qApp->sendEvent(_keyboardFocusObject, &event);
 }
+
 void finishOpenVrKeyboardInput() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     updateFromOpenVrKeyboardInput();

@@ -32,7 +32,7 @@
 
 #include "Application.h"
 #include "Snapshot.h"
-#include "scripting/WindowScriptingInterface.h"
+#include "SnapshotUploader.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -173,60 +173,3 @@ void Snapshot::uploadSnapshot(const QString& filename) {
                                 multiPart);
 }
 
-void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
-    const QString STORY_UPLOAD_URL = "/api/v1/user_stories";
-    static SnapshotUploader uploader;
-
-    // parse the reply for the thumbnail_url
-    QByteArray contents = reply.readAll();
-    QJsonParseError jsonError;
-    auto doc = QJsonDocument::fromJson(contents, &jsonError);
-    if (jsonError.error == QJsonParseError::NoError) {
-        auto dataObject = doc.object().value("data").toObject();
-        QString thumbnailUrl = dataObject.value("thumbnail_url").toString();
-        QString imageUrl = dataObject.value("image_url").toString();
-        auto addressManager = DependencyManager::get<AddressManager>();
-        QString placeName = addressManager->getPlaceName();
-        if (placeName.isEmpty()) {
-            placeName = addressManager->getHost();
-        }
-        QString currentPath = addressManager->currentPath(true);
-
-        // create json post data
-        QJsonObject rootObject;
-        QJsonObject userStoryObject;
-        QJsonObject detailsObject;
-        detailsObject.insert("image_url", imageUrl);
-        QString pickledDetails = QJsonDocument(detailsObject).toJson();
-        userStoryObject.insert("details", pickledDetails);
-        userStoryObject.insert("thumbnail_url", thumbnailUrl);
-        userStoryObject.insert("place_name", placeName);
-        userStoryObject.insert("path", currentPath);
-        userStoryObject.insert("action", "snapshot");
-        rootObject.insert("user_story", userStoryObject);
-
-        auto accountManager = DependencyManager::get<AccountManager>();
-        JSONCallbackParameters callbackParams(&uploader, "createStorySuccess", &uploader, "createStoryFailure");
-
-        accountManager->sendRequest(STORY_UPLOAD_URL,
-                                    AccountManagerAuth::Required,
-                                    QNetworkAccessManager::PostOperation,
-                                    callbackParams,
-                                    QJsonDocument(rootObject).toJson());
-                                    
-    } else {
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(contents);
-    }
-}
-
-void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
-}
-
-void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {    
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared("");
-}
-
-void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
-}
