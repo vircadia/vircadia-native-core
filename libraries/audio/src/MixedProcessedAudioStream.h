@@ -22,7 +22,7 @@ public:
     MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings);
 
 signals:
-    
+
     void addedSilence(int silentSamplesPerChannel);
     void addedLastFrameRepeatedWithFade(int samplesPerChannel);
     void addedStereoSamples(const QByteArray& samples);
@@ -33,9 +33,9 @@ public:
     void outputFormatChanged(int outputFormatChannelCountTimesSampleRate);
 
 protected:
-    int writeDroppableSilentSamples(int silentSamples);
-    int writeLastFrameRepeatedWithFade(int samples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties);
+    int writeDroppableSilentSamples(int silentSamples) override;
+    int writeLastFrameRepeatedWithFade(int samples) override;
+    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) override;
 
 private:
     int networkToDeviceSamples(int networkSamples);

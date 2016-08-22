@@ -27,7 +27,7 @@ class SendAssetTask : public QRunnable {
 public:
     SendAssetTask(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& sendToNode, const QDir& resourcesDir);
 
-    void run();
+    void run() override;
 
 private:
     QSharedPointer<ReceivedMessage> _message;

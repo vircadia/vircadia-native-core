@@ -282,7 +282,7 @@ public:
 
     ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data, const QUrl& url = QUrl());
 
-    virtual void run();
+    virtual void run() override;
 
 private:
     static void listSupportedImageFormats();

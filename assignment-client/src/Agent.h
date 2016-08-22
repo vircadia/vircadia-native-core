@@ -52,10 +52,10 @@ public:
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
     QUuid getSessionUUID() const;
 
-    virtual void aboutToFinish();
+    virtual void aboutToFinish() override;
 
 public slots:
-    void run();
+    void run() override;
     void playAvatarSound(SharedSoundPointer avatarSound) { setAvatarSound(avatarSound); }
 
 private slots:

@@ -44,10 +44,10 @@ public:
                                 AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
 
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
-    virtual void setTree(OctreePointer newTree);
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
+    virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
+    virtual void setTree(OctreePointer newTree) override;
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
     float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
@@ -60,29 +60,29 @@ public:
 
     void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
-    virtual void init();
+    virtual void init() override;
 
-    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem);
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
-    
+    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
+    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
+    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) override;
+
     /// clears the tree
-    virtual void clear();
+    virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
     Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0.0f);
-    
+
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
     void releaseModel(ModelPointer model);
-    
+
     void deleteReleasedModels();
-    
+
     // event handles which may generate entity related events
     void mouseReleaseEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -128,7 +128,7 @@ public slots:
     void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
 
 protected:
-    virtual OctreePointer createTree() {
+    virtual OctreePointer createTree() override {
         EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
         newTree->createRootElement();
         return newTree;
@@ -180,7 +180,7 @@ private:
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;
     bool _dontDoPrecisionPicking;
-    
+
     bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
@@ -193,6 +193,17 @@ private:
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
+
+    glm::vec3 _previousKeyLightColor;
+    float _previousKeyLightIntensity;
+    float _previousKeyLightAmbientIntensity;
+    glm::vec3 _previousKeyLightDirection;
+    bool _previousStageSunModelEnabled;
+    float _previousStageLongitude;
+    float _previousStageLatitude;
+    float _previousStageAltitude;
+    float _previousStageHour;
+    int _previousStageDay;
 
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
