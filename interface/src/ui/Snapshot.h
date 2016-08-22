@@ -32,16 +32,6 @@ private:
     QUrl _URL;
 };
 
-
-class SnapshotUploader: public QObject {
-    Q_OBJECT
-public slots:
-    void uploadSuccess(QNetworkReply& reply);
-    void uploadFailure(QNetworkReply& reply);
-    void createStorySuccess(QNetworkReply& reply);
-    void createStoryFailure(QNetworkReply& reply);
-};
-
 class Snapshot {
 public:
     static QString saveSnapshot(QImage image);
