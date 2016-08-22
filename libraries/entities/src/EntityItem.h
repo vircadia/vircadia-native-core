@@ -327,10 +327,6 @@ public:
 
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
-    // these are only needed because the names don't match
-    virtual const glm::quat getRotation() const { return getOrientation(); }
-    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
-
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
