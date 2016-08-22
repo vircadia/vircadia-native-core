@@ -162,11 +162,6 @@
             // this means you may or may not be logged in, but can't share
             // because you are not in a public place.
             document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when they're taken in shareable places.";
-        } else if (!shareMsg.isLoggedIn) {
-            // this means you are in a public place, but can't share because
-            // you need to login.  Soon we will just bring up the share dialog
-            // in this case (and maybe set a boolean here to inform the html)
-            document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when you're logged in.";
         }
     }
     window.onload = function () {
