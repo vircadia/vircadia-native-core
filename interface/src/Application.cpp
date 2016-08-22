@@ -2047,7 +2047,7 @@ bool Application::event(QEvent* event) {
             case QEvent::KeyPress:
             case QEvent::KeyRelease: {
                 auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem.get());
+                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
                 if (entity && entity->getEventHandler()) {
                     event->setAccepted(false);
                     QCoreApplication::sendEvent(entity->getEventHandler(), event);
@@ -2929,7 +2929,7 @@ void Application::idle(float nsecsElapsed) {
             } else {
                 // update position of highlight overlay
                 auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem.get());
+                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
                 if (entity && _keyboardFocusHighlight) {
                     _keyboardFocusHighlight->setRotation(entity->getRotation());
                     _keyboardFocusHighlight->setPosition(entity->getPosition());
@@ -3536,8 +3536,8 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     if (_keyboardFocusedItem.get() != entityItemID) {
         _keyboardFocusedItem.set(UNKNOWN_ENTITY_ID);
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-        if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
-            auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
+        if (!properties.getLocked() && properties.getVisible()) {
+            auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
             if (entity && entity->wantsKeyboardFocus()) {
                 entity->setProxyWindow(_window->windowHandle());
                 if (_keyboardMouseDevice->isActive()) {
