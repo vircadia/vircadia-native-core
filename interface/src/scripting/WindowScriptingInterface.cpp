@@ -205,13 +205,9 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
 }
 
 void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
-    qApp->postLambdaEvent([notify, aspectRatio] {
-        qApp->takeSnapshot(notify, aspectRatio);
-    });
+    qApp->takeSnapshot(notify, aspectRatio);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path) {
-    qApp->postLambdaEvent([path] {
-        qApp->shareSnapshot(path);
-    });
+    qApp->shareSnapshot(path);
 }
