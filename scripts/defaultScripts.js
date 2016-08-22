@@ -32,7 +32,7 @@ var DEFAULT_SCRIPTS = [
 ];
 
 // add a menu item for debugging
-var MENU_CATEGORY = "Developer"
+var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
 var debuggingDefaultScripts = false;
 
@@ -56,8 +56,8 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
     }
 } else {
     // include all default scripts into this ScriptEngine
-    for (var i in DEFAULT_SCRIPTS) {
-        Script.include(DEFAULT_SCRIPTS[i]);
+    for (var j in DEFAULT_SCRIPTS) {
+        Script.include(DEFAULT_SCRIPTS[j]);
     }
 }
 
@@ -68,7 +68,7 @@ function stopLoadedScripts() {
         for (var i in runningScripts) {
             var scriptName = runningScripts[i].name;
             for (var j in DEFAULT_SCRIPTS) {
-                if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) == scriptName) {
+                if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
                     ScriptDiscoveryService.stopScript(runningScripts[i].url);
                 }
             }
