@@ -116,7 +116,7 @@ public:
 
                 if (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
                     break;
-                } else if (GL_CONDITION_SATISFIED == result || GL_CONDITION_SATISFIED == result) {
+                } else if (GL_CONDITION_SATISFIED == result || GL_ALREADY_SIGNALED == result) {
                     glDeleteSync(front.fence);
                 } else {
                     assert(false);
