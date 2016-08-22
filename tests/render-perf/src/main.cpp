@@ -11,6 +11,9 @@
 #include <vector>
 #include <sstream>
 
+#include <gl/Config.h>
+#include <gl/Context.h>
+
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
@@ -27,12 +30,13 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QApplication>
 
+
 #include <shared/RateCounter.h>
 #include <AssetClient.h>
 
-#include <gl/OffscreenGLCanvas.h>
-#include <gl/GLHelpers.h>
-#include <gl/QOpenGLContextWrapper.h>
+//#include <gl/OffscreenGLCanvas.h>
+//#include <gl/GLHelpers.h>
+//#include <gl/QOpenGLContextWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
@@ -60,6 +64,7 @@
 
 #include "Camera.hpp"
 #include "TextOverlay.hpp"
+
 
 static const QString LAST_SCENE_KEY = "lastSceneFile";
 static const QString LAST_LOCATION_KEY = "lastLocation";
@@ -94,7 +99,56 @@ public:
     }
 };
 
+#if 0
+class GlfwCamera : public Camera {
+    Key forKey(int key) {
+        switch (key) {
+        case GLFW_KEY_W: return FORWARD;
+        case GLFW_KEY_S: return BACK;
+        case GLFW_KEY_A: return LEFT;
+        case GLFW_KEY_D: return RIGHT;
+        case GLFW_KEY_E: return UP;
+        case GLFW_KEY_C: return DOWN;
+        case GLFW_MOUSE_BUTTON_LEFT: return MLEFT;
+        case GLFW_MOUSE_BUTTON_RIGHT: return MRIGHT;
+        case GLFW_MOUSE_BUTTON_MIDDLE: return MMIDDLE;
+        default: break;
+        }
+        return INVALID;
+    }
 
+    vec2 _lastMouse;
+public:
+    void keyHandler(int key, int scancode, int action, int mods) {
+        Key k = forKey(key);
+        if (k == INVALID) {
+            return;
+        }
+        if (action == GLFW_PRESS) {
+            keys.set(k);
+        } else if (action == GLFW_RELEASE) {
+            keys.reset(k);
+        }
+    }
+
+    //static void MouseMoveHandler(GLFWwindow* window, double posx, double posy);
+    //static void MouseScrollHandler(GLFWwindow* window, double xoffset, double yoffset);
+    void onMouseMove(double posx, double posy) {
+        vec2 mouse = vec2(posx, posy);
+        vec2 delta = mouse - _lastMouse;
+        if (keys.at(Key::MRIGHT)) {
+            dolly(delta.y * 0.01f);
+        } else if (keys.at(Key::MLEFT)) {
+            rotate(delta.x * -0.01f);
+        } else if (keys.at(Key::MMIDDLE)) {
+            delta.y *= -1.0f;
+            translate(delta * -0.01f);
+        }
+        _lastMouse = mouse;
+    }
+
+};
+#else
 class QWindowCamera : public Camera {
     Key forKey(int key) {
         switch (key) {
@@ -143,6 +197,7 @@ public:
         _lastMouse = mouse;
     }
 };
+#endif
 
 static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<size_t>::max()) {
     static const std::vector<QString> SUFFIXES{ { "B", "KB", "MB", "GB", "TB", "PB" } };
@@ -175,8 +230,7 @@ extern QThread* RENDER_THREAD;
 class RenderThread : public GenericThread {
     using Parent = GenericThread;
 public:
-    QOpenGLContextWrapper* _displayContext{ nullptr };
-    QSurface* _displaySurface{ nullptr };
+    gl::Context _context;
     gpu::PipelinePointer _presentPipeline;
     gpu::ContextPointer _gpuContext; // initialized during window creation
     std::atomic<size_t> _presentCount;
@@ -198,38 +252,44 @@ public:
     }
 
 
-    void initialize(QOpenGLContextWrapper* displayContext, QWindow* surface) {
+    void initialize(QWindow* window, gl::Context& initContext) {
         setObjectName("RenderThread");
-        _displayContext = displayContext;
-        _displaySurface = surface;
-        _displayContext->makeCurrent(_displaySurface);
+        _context.setWindow(window);
+        _context.create();
+        _context.makeCurrent();
+        window->setSurfaceType(QSurface::OpenGLSurface);
+        _context.makeCurrent(_context.qglContext(), window);
+#ifdef Q_OS_WIN
+        wglSwapIntervalEXT(0);
+#endif
         // GPU library init
         gpu::Context::init<gpu::gl::GLBackend>();
         _gpuContext = std::make_shared<gpu::Context>();
         _backend = _gpuContext->getBackend();
-        _displayContext->makeCurrent(_displaySurface);
+        _context.makeCurrent();
         DependencyManager::get<DeferredLightingEffect>()->init();
-        _displayContext->doneCurrent();
+        _context.makeCurrent();
+        initContext.create();
+        _context.doneCurrent();
         std::unique_lock<std::mutex> lock(_mutex);
         Parent::initialize();
-        if (isThreaded()) {
-            _displayContext->moveToThread(thread());
-        }
+        _context.moveToThread(_thread);
     }
 
     void setup() override {
         RENDER_THREAD = QThread::currentThread();
-        QThread::currentThread()->setPriority(QThread::HighestPriority);
+
         // Wait until the context has been moved to this thread
         {
             std::unique_lock<std::mutex> lock(_mutex);
         }
-        _displayContext->makeCurrent(_displaySurface);
+
+        _context.makeCurrent();
         glewExperimental = true;
         glewInit();
         glGetError();
-        _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
 
+        _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
             auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
@@ -254,14 +314,11 @@ public:
         }
         _presentPipeline.reset();
         _gpuContext.reset();
-        if (isThreaded()) {
-            _displayContext->moveToThread(qApp->thread());
-        }
     }
 
     void renderFrame(gpu::FramePointer& frame) {
         ++_presentCount;
-        _displayContext->makeCurrent(_displaySurface);
+        _context.makeCurrent();
         _backend->recycle();
         _backend->syncCache();
         if (frame && !frame->batches.empty()) {
@@ -280,7 +337,8 @@ public:
             }
             (void)CHECK_GL_ERROR();
         }
-        _displayContext->swapBuffers(_displaySurface);
+        _context.makeCurrent();
+        _context.swapBuffers();
         _fpsCounter.increment();
         static size_t _frameCount{ 0 };
         ++_frameCount;
@@ -290,7 +348,7 @@ public:
             _elapsed.restart();
         }
         (void)CHECK_GL_ERROR();
-        _displayContext->doneCurrent();
+        _context.doneCurrent();
     }
 
     void report() {
@@ -350,7 +408,6 @@ public:
     }
 };
 
-
 // Background Render Data & rendering functions
 class BackgroundRenderData {
 public:
@@ -396,7 +453,6 @@ namespace render {
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
-    Q_OBJECT
 
 protected:
     void copyCurrentViewFrustum(ViewFrustum& viewOut) const override {
@@ -476,28 +532,47 @@ public:
         nodeList->setPermissions(permissions);
 
         ResourceManager::init();
-        setSurfaceType(QSurface::OpenGLSurface);
-        auto format = getDefaultOpenGLSurfaceFormat();
-        format.setOption(QSurfaceFormat::DebugContext);
-        setFormat(format);
 
-        resize(QSize(800, 600));
+        setFlags(Qt::MSWindowsOwnDC);
+        _size = QSize(800, 600);
+        setGeometry(QRect(QPoint(), _size));
+        create();
         show();
+        QCoreApplication::processEvents();
+        // Create the initial context
+        _renderThread.initialize(this, _initContext);
+        _initContext.makeCurrent();
 
-        _context.setFormat(format);
-        _context.create();
-        _context.makeCurrent(this);
-        glewExperimental = true;
-        glewInit();
-        glGetError();
+#if 0
+        glfwInit();
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        resizeWindow(QSize(800, 600));
+        _window = glfwCreateWindow(_size.width(), _size.height(), "Window Title", NULL, NULL);
+        if (!_window) {
+            throw std::runtime_error("Could not create window");
+        }
+
+        glfwSetWindowUserPointer(_window, this);
+        glfwSetKeyCallback(_window, KeyboardHandler);
+        glfwSetMouseButtonCallback(_window, MouseHandler);
+        glfwSetCursorPosCallback(_window, MouseMoveHandler);
+        glfwSetWindowCloseCallback(_window, CloseHandler);
+        glfwSetFramebufferSizeCallback(_window, FramebufferSizeHandler);
+        glfwSetScrollCallback(_window, MouseScrollHandler);
+
+
+        glfwMakeContextCurrent(_window);
         GLDebug::setupLogger(this);
+#endif
+
 #ifdef Q_OS_WIN
         wglSwapIntervalEXT(0);
 #endif
-        _context.doneCurrent();
 
-        _initContext.create(_context.getContext());
-        _renderThread.initialize(&_context, this);
         // FIXME use a wait condition
         QThread::msleep(1000);
         _renderThread.submitFrame(gpu::FramePointer());
@@ -627,7 +702,7 @@ private:
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        QSize windowSize = size();
+        QSize windowSize = _size;
         framebufferCache->setFrameBufferSize(windowSize);
 
         renderArgs._blitFramebuffer = framebufferCache->getFramebuffer();
@@ -676,11 +751,11 @@ private:
     };
 
     void updateText() {
-        setTitle(QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
+        QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
             .arg(_fps).arg(_cullingEnabled)
             .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2)));
-
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2));
+        setTitle(title);
 #if 0
         {
             _textBlocks.erase(TextBlock::Info);
@@ -799,12 +874,6 @@ private:
         }
         
 
-    }
-
-    bool makeCurrent() {
-        bool currentResult = _context.makeCurrent(this);
-        Q_ASSERT(currentResult);
-        return currentResult;
     }
 
     void resizeWindow(const QSize& size) {
@@ -960,12 +1029,11 @@ private:
 
     render::EnginePointer _renderEngine { new render::Engine() };
     render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    QOpenGLContextWrapper _context;
     QSize _size;
     QSettings _settings;
 
     std::atomic<size_t> _renderCount;
-    OffscreenGLCanvas _initContext;
+    gl::OffscreenContext _initContext;
     RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
