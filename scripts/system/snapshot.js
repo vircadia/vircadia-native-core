@@ -55,7 +55,7 @@ function confirmShare(data) {
                 Settings.setValue('openFeedAfterShare', true)
                 break;
             default:
-                dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
+                dialog.webEventReceived.disconnect(onMessage);
                 dialog.close();
                 isLoggedIn = Account.isLoggedIn();
                 message.forEach(function (submessage) {
@@ -139,7 +139,6 @@ function resetButtons(path, notify) {
         { localPath: path },
         {
             canShare: Boolean(location.placename),
-            isLoggedIn: true, // Just have the dialog act as though we are. To be removed at both ends later.
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }
     ]);
