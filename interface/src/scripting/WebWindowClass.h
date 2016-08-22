@@ -66,7 +66,7 @@ signals:
     void closed();
 
 protected:
-    virtual bool eventFilter(QObject* sender, QEvent* event);
+    virtual bool eventFilter(QObject* sender, QEvent* event) override;
 
 private slots:
     void hasClosed();

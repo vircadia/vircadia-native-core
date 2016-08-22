@@ -58,7 +58,7 @@ public:
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
-    Size getSize() const;
+    Size getSize() const override;
     template <typename T>
     Size getTypedSize() const { return getSize() / sizeof(T); };
 
@@ -224,6 +224,8 @@ public:
 
         bool operator==(const Iterator<T>& iterator) const { return (_ptr == iterator.getConstPtr()); }
         bool operator!=(const Iterator<T>& iterator) const { return (_ptr != iterator.getConstPtr()); }
+        bool operator<(const Iterator<T>& iterator) const { return (_ptr < iterator.getConstPtr()); }
+        bool operator>(const Iterator<T>& iterator) const { return (_ptr > iterator.getConstPtr()); }
 
         void movePtr(const Index& movement) {
             auto byteptr = ((Byte*)_ptr);

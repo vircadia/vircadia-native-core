@@ -36,7 +36,7 @@ signals:
     void textChanged();
 
 protected slots:
-    virtual void accept();
+    virtual void accept() override;
 
 private:
     QString _text;

@@ -164,17 +164,28 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     assert(info.getType() == SHAPE_TYPE_STATIC_MESH); // should only get here for mesh shapes
 
     const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
-    assert(pointCollection.size() == 1); // should only have one mesh
 
+    if (pointCollection.size() < 1) {
+        // no lists of points to work with
+        return nullptr;
+    }
+
+    // we only use the first point collection
     const ShapeInfo::PointList& pointList = pointCollection[0];
-    assert(pointList.size() > 2); // should have at least one triangle's worth of points
+    if (pointList.size() < 3) {
+        // not enough distinct points to make a non-degenerate triangle
+        return nullptr;
+    }
 
     const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
-    assert(triangleIndices.size() > 2); // should have at least one triangle's worth of indices
+    int32_t numIndices = triangleIndices.size();
+    if (numIndices < 3) {
+        // not enough indices to make a single triangle
+        return nullptr;
+    }
 
     // allocate mesh buffers
     btIndexedMesh mesh;
-    int32_t numIndices = triangleIndices.size();
     const int32_t VERTICES_PER_TRIANGLE = 3;
     mesh.m_numTriangles = numIndices / VERTICES_PER_TRIANGLE;
     if (numIndices < INT16_MAX) {
@@ -328,7 +339,9 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         break;
         case SHAPE_TYPE_STATIC_MESH: {
             btTriangleIndexVertexArray* dataArray = createStaticMeshArray(info);
-            shape = new StaticMeshShape(dataArray);
+            if (dataArray) {
+                shape = new StaticMeshShape(dataArray);
+            }
         }
         break;
     }

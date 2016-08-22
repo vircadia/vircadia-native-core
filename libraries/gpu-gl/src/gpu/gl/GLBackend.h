@@ -46,17 +46,18 @@ public:
     ~GLBackend();
 
     void setCameraCorrection(const Mat4& correction);
-    void render(const Batch& batch) final;
+    void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
     // THis is only intended to be used when mixing raw gl calls with the gpu api usage in order to sync
     // the gpu::Backend state with the true gl state which has probably been messed up by these ugly naked gl calls
     // Let's try to avoid to do that as much as possible!
-    void syncCache() final;
+    void syncCache() final override;
 
     // This is the ugly "download the pixels to sysmem for taking a snapshot"
     // Just avoid using it, it's ugly and will break performances
-    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) final;
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer,
+                                     const Vec4i& region, QImage& destImage) final override;
 
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;

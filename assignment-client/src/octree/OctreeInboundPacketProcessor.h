@@ -74,15 +74,15 @@ public:
 
     NodeToSenderStatsMap getSingleSenderStats() { QReadLocker locker(&_senderStatsLock); return _singleSenderStats; }
 
-    virtual void terminating() { _shuttingDown = true; ReceivedPacketProcessor::terminating(); }
+    virtual void terminating() override { _shuttingDown = true; ReceivedPacketProcessor::terminating(); }
 
 protected:
 
-    virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
 
-    virtual unsigned long getMaxWait() const;
-    virtual void preProcess();
-    virtual void midProcess();
+    virtual unsigned long getMaxWait() const override;
+    virtual void preProcess() override;
+    virtual void midProcess() override;
 
 private:
     int sendNackPackets();

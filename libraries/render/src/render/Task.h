@@ -47,19 +47,19 @@ public:
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
-    
+
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
     uint8_t length() const { return (*_concept).length(); }
 
     template <class T> Varying getN (uint8_t index) const { return get<T>()[index]; }
     template <class T> Varying editN (uint8_t index) { return edit<T>()[index]; }
-    
+
 protected:
     class Concept {
     public:
         virtual ~Concept() = default;
-    
+
         virtual Varying operator[] (uint8_t index) const = 0;
         virtual uint8_t length() const = 0;
     };
@@ -69,12 +69,12 @@ protected:
 
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
-        
-        virtual Varying operator[] (uint8_t index) const {
+
+        virtual Varying operator[] (uint8_t index) const override {
             Varying var;
             return var;
         }
-        virtual uint8_t length() const { return 0; }
+        virtual uint8_t length() const override { return 0; }
 
         Data _data;
     };
@@ -362,7 +362,7 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
-    // Running Time measurement 
+    // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
     void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
     quint64 getCPUTRunTime() const { return _CPURunTime; }
@@ -457,8 +457,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -466,11 +466,11 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -528,8 +528,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -540,11 +540,11 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -609,7 +609,7 @@ public:
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();
-            
+
         }
     }
 
@@ -621,6 +621,5 @@ protected:
 };
 
 }
-
 
 #endif // hifi_render_Task_h

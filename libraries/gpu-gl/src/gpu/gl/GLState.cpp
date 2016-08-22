@@ -5,7 +5,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#if __GNUC__ >= 5 && __GNUC_MINOR__ >= 1
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+#endif
+
+
 #include "GLState.h"
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
+
 #include "GLBackend.h"
 
 using namespace gpu;

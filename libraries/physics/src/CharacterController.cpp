@@ -36,7 +36,7 @@ public:
         m_collisionFilterGroup = BULLET_COLLISION_GROUP_MY_AVATAR;
         m_collisionFilterMask = BULLET_COLLISION_MASK_MY_AVATAR;
     }
-    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
+    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) override {
         if (rayResult.m_collisionObject == _me) {
             return 1.0f;
         }
