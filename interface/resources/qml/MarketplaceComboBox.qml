@@ -66,7 +66,8 @@ Rectangle {
                                       element.removeAttr("download");'
 
         onLinkHovered: {
-            desktop.currentUrl = hoveredUrl
+            desktop.currentUrl = hoveredUrl;
+            // add an error message for non-fbx files
             if (File.isZippedFbx(desktop.currentUrl)) {
                 runJavaScript(simpleDownload, function(){console.log("ran the JS");});
             }

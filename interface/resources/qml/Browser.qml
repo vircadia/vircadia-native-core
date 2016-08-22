@@ -218,6 +218,11 @@ ScrollingWindow {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
+            onNewViewRequested: {
+                var component = Qt.createComponent("Browser.qml");
+                var newWindow = component.createObject(desktop);
+                request.openIn(newWindow.webView)
+            }
 	        Component.onCompleted: {
 		        desktop.initWebviewProfileHandlers(webview.profile)
 	        }
