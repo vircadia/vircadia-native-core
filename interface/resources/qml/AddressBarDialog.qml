@@ -273,9 +273,9 @@ Window {
     function asyncMap(array, iterator, cb) {
         // call iterator(element, icb) once for each element of array, and then cb(error, mappedResult)
         // when icb(error, mappedElement) has been called by each iterator.
-        // Calls to iterator are overlapped and map call icb in any order, but the mappedResults are collected in the same
+        // Calls to iterator are overlapped and may call icb in any order, but the mappedResults are collected in the same
         // order as the elements of the array.
-        // short-circuits if error. Note that iterator MUST be an asynchronous function. (Use setTimeout if necessary.)
+        // Short-circuits if error. Note that iterator MUST be an asynchronous function. (Use setTimeout if necessary.)
         var count = array.length, results = [];
         if (!count) {
             return cb(null, results);
@@ -287,7 +287,7 @@ Window {
             iterator(element, function (error, mapped) {
                 results[index] = mapped;
                 if (error || !--count) {
-                    count = 1; // don't cb multiple times if error
+                    count = 0; // don't cb multiple times if error
                     cb(error, results);
                 }
             });
@@ -397,9 +397,9 @@ Window {
         // only appending the collected results.
         var params = [
             'open', // published hours handle now
-            // FIXME: should determine if place is actually running
-            'restriction=open', // Not by whitelist, etc.  FIXME: If logged in, add hifi to the restriction options, in order to include places that require login.
-            // FIXME add maturity
+            // TBD: should determine if place is actually running?
+            'restriction=open', // Not by whitelist, etc.  TBD: If logged in, add hifi to the restriction options, in order to include places that require login?
+            // TBD: add maturity?
             'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
             'sort_by=users',
             'sort_order=desc',

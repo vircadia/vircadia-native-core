@@ -37,6 +37,7 @@ Rectangle {
     property int textSizeSmall: 18;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     HifiConstants { id: hifi }
+
     function pastTime(timestamp) { // Answer a descriptive string
         timestamp = new Date(timestamp);
         var then = timestamp.getTime(),
@@ -77,7 +78,7 @@ Rectangle {
         anchors.left: parent.left;
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + hfiUrl);
+                console.log("source: " + source + ": failed to load " + hifiUrl);
                 source = defaultThumbnail;
             }
         }
@@ -129,6 +130,9 @@ Rectangle {
             margins: textPadding;
         }
     }
+    // These two can be supplied to provide hover behavior.
+    // For example, AddressBarDialog provides functions that set the current list view item
+    // to that which is being hovered over.
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
     MouseArea {
