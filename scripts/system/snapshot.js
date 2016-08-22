@@ -9,7 +9,8 @@
 //
 var SNAPSHOT_DELAY = 500; // 500ms
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-var resetOverlays, recticleVisible;
+var resetOverlays;
+var reticleVisible;
 var button = toolBar.addButton({
     objectName: "snapshot",
     imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
@@ -37,45 +38,45 @@ function confirmShare(data) {
         // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
         //    same time, show the user all of them, and have the user deselect any that they do not want to share.
         //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
-        var isLoggedIn, needsLogin = false;
+        var isLoggedIn;
+        var needsLogin = false;
         switch (message) {
-        case 'ready':
-            dialog.emitScriptEvent(data); // Send it.
-            outstanding = 0;
-            break;
-        case 'openSettings':
-            Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
-            break;
-        case 'setOpenFeedFalse':
-            Settings.setValue('openFeedAfterShare', false)
-            break;
-        case 'setOpenFeedTrue':
-            Settings.setValue('openFeedAfterShare', true)
-            break;
-        default:
-            dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
-            dialog.close();
-            dialog.deleteLater();
-            isLoggedIn = Account.isLoggedIn();
-            message.forEach(function (submessage) {
-                if (submessage.share && !isLoggedIn) {
-                    needsLogin = true;
-                    submessage.share = false;
+            case 'ready':
+                dialog.emitScriptEvent(data); // Send it.
+                outstanding = 0;
+                break;
+            case 'openSettings':
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+                break;
+            case 'setOpenFeedFalse':
+                Settings.setValue('openFeedAfterShare', false)
+                break;
+            case 'setOpenFeedTrue':
+                Settings.setValue('openFeedAfterShare', true)
+                break;
+            default:
+                dialog.webEventReceived.disconnect(onMessage); // I'm not certain that this is necessary. If it is, what do we do on normal close?
+                dialog.close();
+                isLoggedIn = Account.isLoggedIn();
+                message.forEach(function (submessage) {
+                    if (submessage.share && !isLoggedIn) {
+                        needsLogin = true;
+                        submessage.share = false;
+                    }
+                    if (submessage.share) {
+                        print('sharing', submessage.localPath);
+                        outstanding++;
+                        Window.shareSnapshot(submessage.localPath);
+                    } else {
+                        print('not sharing', submessage.localPath);
+                    }
+                });
+                if (!outstanding && shouldOpenFeedAfterShare()) {
+                    showFeedWindow();
                 }
-                if (submessage.share) {
-                    print('sharing', submessage.localPath);
-                    outstanding++;
-                    Window.shareSnapshot(submessage.localPath);
-                } else {
-                    print('not sharing', submessage.localPath);
+                if (needsLogin) { // after the possible feed, so that the login is on top
+                    Account.checkAndSignalForAccessToken();
                 }
-            });
-            if (!outstanding && shouldOpenFeedAfterShare()) {
-                showFeedWindow();
-            }
-            if (needsLogin) { // after the possible feed, so that the login is on top
-                Account.checkAndSignalForAccessToken();
-            }
         }
     }
     dialog.webEventReceived.connect(onMessage);

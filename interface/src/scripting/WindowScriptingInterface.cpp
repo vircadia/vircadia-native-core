@@ -205,7 +205,6 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
 }
 
 void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
-    // only evil-doers call takeSnapshot from a random thread
     qApp->postLambdaEvent([notify, aspectRatio] {
         qApp->takeSnapshot(notify, aspectRatio);
     });
