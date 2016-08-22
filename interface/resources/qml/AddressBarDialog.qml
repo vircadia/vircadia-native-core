@@ -72,7 +72,7 @@ Window {
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
-        onUseFeedChanged: { updateFeedState(); }
+        onUseFeedChanged: updateFeedState();
         onReceivedHifiSchemeURL: resetAfterTeleport();
 
         ListModel { id: suggestions }
@@ -109,7 +109,7 @@ Window {
             highlightMoveDuration: -1;
             highlightMoveVelocity: -1;
             highlight: Rectangle { color: "transparent"; border.width: 4; border.color: "#1DB5ED"; z: 1; }
-            leftMargin: 50; // Start the first item over be about the same amount as the last item peeks through on the other side.
+            leftMargin: 50; // Start the first item over by about the same amount as the last item peeks through on the other side.
             rightMargin: 50;
         }
         Image { // Just a visual indicator that the user can swipe the cards over to see more.
