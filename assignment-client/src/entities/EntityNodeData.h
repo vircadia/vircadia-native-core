@@ -18,7 +18,7 @@
 
 class EntityNodeData : public OctreeQueryNode {
 public:
-    virtual PacketType getMyPacketType() const { return PacketType::EntityData; }
+    virtual PacketType getMyPacketType() const override { return PacketType::EntityData; }
 
     quint64 getLastDeletedEntitiesSentAt() const { return _lastDeletedEntitiesSentAt; }
     void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }

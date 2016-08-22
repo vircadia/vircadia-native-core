@@ -32,9 +32,9 @@ public:
     const QUuid DEFAULT_STREAM_IDENTIFIER = QUuid();
     virtual const QUuid& getStreamIdentifier() const { return DEFAULT_STREAM_IDENTIFIER; }
 
-    virtual void resetStats();
+    virtual void resetStats() override;
 
-    virtual AudioStreamStats getAudioStreamStats() const;
+    virtual AudioStreamStats getAudioStreamStats() const override;
 
     void updateLastPopOutputLoudnessAndTrailingLoudness();
     float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
@@ -46,7 +46,7 @@ public:
     PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
-    
+
 
 protected:
     // disallow copying of PositionalAudioStream objects

@@ -138,7 +138,8 @@ public:
     static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
+                                            const QStringList& params = QStringList()) override;
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
@@ -157,8 +158,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - These are the callback implementations for ScriptUser the get called by ScriptCache when the contents
     // of a script are available.
-    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
-    virtual void errorInLoadingScript(const QUrl& url);
+    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents) override;
+    virtual void errorInLoadingScript(const QUrl& url) override;
 
     // These are currently used by Application to track if a script is user loaded or not. Consider finding a solution
     // inside of Application so that the ScriptEngine class is not polluted by this notion

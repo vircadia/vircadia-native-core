@@ -24,19 +24,19 @@ class QPushButton;
 
 class ModelSelector : public QDialog {
     Q_OBJECT
-    
+
 public:
     ModelSelector();
-    
+
     QFileInfo getFileInfo() const;
     FSTReader::ModelType getModelType() const;
-    
+
     public slots:
-    virtual void accept();
-    
+    virtual void accept() override;
+
     private slots:
     void browse();
-    
+
 private:
     QFileInfo _modelFile;
     QPushButton* _browseButton;

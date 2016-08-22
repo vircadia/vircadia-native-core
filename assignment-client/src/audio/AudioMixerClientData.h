@@ -49,17 +49,17 @@ public:
 
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
-    
-    int parseData(ReceivedMessage& message);
+
+    int parseData(ReceivedMessage& message) override;
 
     void checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
-    
+
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
-    
+
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 

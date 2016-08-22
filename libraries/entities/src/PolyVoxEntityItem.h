@@ -23,11 +23,11 @@ class PolyVoxEntityItem : public EntityItem {
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
@@ -35,21 +35,21 @@ class PolyVoxEntityItem : public EntityItem {
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const;
+                                    OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged);
+                                                 bool& somethingChanged) override;
 
     // never have a ray intersection pick a PolyVoxEntityItem.
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
-                                                BoxFace& face, glm::vec3& surfaceNormal,
-                                                void** intersectedObject, bool precisionPicking) const { return false; }
+                                             bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             void** intersectedObject, bool precisionPicking) const override { return false; }
 
-    virtual void debugDump() const;
+    virtual void debugDump() const override;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     virtual glm::vec3 getVoxelVolumeSize() const;

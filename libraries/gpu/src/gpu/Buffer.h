@@ -58,7 +58,7 @@ public:
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
-    Size getSize() const;
+    Size getSize() const override;
     template <typename T>
     Size getTypedSize() const { return getSize() / sizeof(T); };
 
@@ -293,10 +293,18 @@ public:
     template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
 #else 
     template <typename T> Iterator<const T> begin() const { return Iterator<const T>(&get<T>(), _stride); }
-    template <typename T> Iterator<const T> end() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
+    template <typename T> Iterator<const T> end() const {
+        // reimplement get<T> without bounds checking
+        Resource::Size elementOffset = getNum<T>() * _stride + _offset;
+        return Iterator<const T>((reinterpret_cast<const T*> (_buffer->getData() + elementOffset)), _stride);
+    }
 #endif
     template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(), _stride); }
-    template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
+    template <typename T> Iterator<const T> cend() const {
+        // reimplement get<T> without bounds checking
+        Resource::Size elementOffset = getNum<T>() * _stride + _offset;
+        return Iterator<const T>((reinterpret_cast<const T*> (_buffer->getData() + elementOffset)), _stride);
+    }
 
     // the number of elements of the specified type fitting in the view size
     template <typename T> Index getNum() const {

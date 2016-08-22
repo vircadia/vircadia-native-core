@@ -108,19 +108,20 @@ public:
     }
 
     void updateSource() {
-        Lock lock(_plugin._presentMutex);
-        while (!_queue.empty()) {
-            auto& front = _queue.front();
-            auto result = glClientWaitSync(front.fence, 0, 0);
-            if (GL_TIMEOUT_EXPIRED == result && GL_WAIT_FAILED == result) {
-                break;
-            }
+        _plugin.withNonPresentThreadLock([&] {
+            while (!_queue.empty()) {
+                auto& front = _queue.front();
+                auto result = glClientWaitSync(front.fence, 0, 0);
+                if (GL_TIMEOUT_EXPIRED == result && GL_WAIT_FAILED == result) {
+                    break;
+                }
 
-            glDeleteSync(front.fence);
-            front.fence = 0;
-            _current = front;
-            _queue.pop();
-        }
+                glDeleteSync(front.fence);
+                front.fence = 0;
+                _current = front;
+                _queue.pop();
+            }
+        });
     }
 
     void run() override {
@@ -170,15 +171,28 @@ public:
                 PoseData nextRender, nextSim;
                 nextRender.frameIndex = _plugin.presentCount();
                 vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
-                {
-                    Lock lock(_plugin._presentMutex);
-                    _presentCount++;
-                    _presented.notify_one();
-                    _nextRender = nextRender;
-                    _nextRender.update(_plugin._sensorResetMat);
-                    _nextSim = nextSim;
-                    _nextSim.update(_plugin._sensorResetMat);
+
+                // Copy invalid poses in nextSim from nextRender
+                for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i) {
+                    if (!nextSim.vrPoses[i].bPoseIsValid) {
+                        nextSim.vrPoses[i] = nextRender.vrPoses[i];
+                    }
                 }
+
+                mat4 sensorResetMat;
+                _plugin.withNonPresentThreadLock([&] {
+                    sensorResetMat = _plugin._sensorResetMat;
+                });
+
+                nextRender.update(sensorResetMat);
+                nextSim.update(sensorResetMat);
+
+                _plugin.withNonPresentThreadLock([&] {
+                    _nextRender = nextRender;
+                    _nextSim = nextSim;
+                    ++_presentCount;
+                    _presented.notify_one();
+                });
             }
             _canvas.doneCurrent();
         }
@@ -366,19 +380,20 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     }
     _currentRenderFrameInfo = FrameInfo();
 
+    PoseData nextSimPoseData;
     withNonPresentThreadLock([&] {
-        _currentRenderFrameInfo.renderPose = _nextSimPoseData.poses[vr::k_unTrackedDeviceIndex_Hmd];
+        nextSimPoseData = _nextSimPoseData;
     });
 
     // HACK: when interface is launched and steam vr is NOT running, openvr will return bad HMD poses for a few frames
     // To workaround this, filter out any hmd poses that are obviously bad, i.e. beneath the floor.
-    if (isBadPose(&_nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking)) {
+    if (isBadPose(&nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking)) {
         qDebug() << "WARNING: ignoring bad hmd pose from openvr";
 
         // use the last known good HMD pose
-        _nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking = _lastGoodHMDPose;
+        nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking = _lastGoodHMDPose;
     } else {
-        _lastGoodHMDPose = _nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
+        _lastGoodHMDPose = nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
     }
 
     vr::TrackedDeviceIndex_t handIndices[2] { vr::k_unTrackedDeviceIndexInvalid, vr::k_unTrackedDeviceIndexInvalid };
@@ -387,7 +402,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         auto trackedCount = _system->GetSortedTrackedDeviceIndicesOfClass(vr::TrackedDeviceClass_Controller, controllerIndices, 2);
         // Find the left and right hand controllers, if they exist
         for (uint32_t i = 0; i < std::min<uint32_t>(trackedCount, 2); ++i) {
-            if (_nextSimPoseData.vrPoses[i].bPoseIsValid) {
+            if (nextSimPoseData.vrPoses[i].bPoseIsValid) {
                 auto role = _system->GetControllerRoleForTrackedDeviceIndex(controllerIndices[i]);
                 if (vr::TrackedControllerRole_LeftHand == role) {
                     handIndices[0] = controllerIndices[i];
@@ -398,8 +413,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         }
     }
 
-    _currentRenderFrameInfo.renderPose = _nextSimPoseData.poses[vr::k_unTrackedDeviceIndex_Hmd];
-
+    _currentRenderFrameInfo.renderPose = nextSimPoseData.poses[vr::k_unTrackedDeviceIndex_Hmd];
     bool keyboardVisible = isOpenVrKeyboardShown();
 
     std::array<mat4, 2> handPoses;
@@ -409,9 +423,9 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
                 continue;
             }
             auto deviceIndex = handIndices[i];
-            const mat4& mat = _nextSimPoseData.poses[deviceIndex];
-            const vec3& linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
-            const vec3& angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+            const mat4& mat = nextSimPoseData.poses[deviceIndex];
+            const vec3& linearVelocity = nextSimPoseData.linearVelocities[deviceIndex];
+            const vec3& angularVelocity = nextSimPoseData.angularVelocities[deviceIndex];
             auto correctedPose = openVrControllerPoseToHandPose(i == 0, mat, linearVelocity, angularVelocity);
             static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
             handPoses[i] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);

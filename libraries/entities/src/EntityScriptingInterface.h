@@ -67,14 +67,24 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
+    class ActivityTracking {
+    public:
+        int addedEntityCount { 0 };
+        int deletedEntityCount { 0 };
+        int editedEntityCount { 0 };
+    };
+
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
-    virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
-    virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
+    virtual NodeType_t getServerNodeType() const override { return NodeType::EntityServer; }
+    virtual OctreeEditPacketSender* createPacketSender() override { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
+
+    void resetActivityTracking();
+    ActivityTracking getActivityTracking() const { return _activityTracking; }
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -240,12 +250,13 @@ private:
 
     std::recursive_mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
-    
+
     bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);
-    
+
+    ActivityTracking _activityTracking;
     float costMultiplier = { 0.01f };
     float getCostMultiplier();
     void setCostMultiplier(float value);

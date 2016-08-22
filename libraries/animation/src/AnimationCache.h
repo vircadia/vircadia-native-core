@@ -34,9 +34,9 @@ public:
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
-    
+
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
+        const void* extra) override;
 private:
     explicit AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
@@ -82,7 +82,7 @@ class AnimationReader : public QObject, public QRunnable {
 
 public:
     AnimationReader(const QUrl& url, const QByteArray& data);
-    virtual void run();
+    virtual void run() override;
 
 signals:
     void onSuccess(FBXGeometry::Pointer geometry);

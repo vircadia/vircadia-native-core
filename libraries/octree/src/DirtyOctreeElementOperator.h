@@ -20,8 +20,8 @@ public:
 
     ~DirtyOctreeElementOperator() {}
 
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element);
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override;
 private:
     glm::vec3 _point;
     OctreeElementPointer _element;

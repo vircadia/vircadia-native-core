@@ -48,7 +48,7 @@ signals:
 
 protected:
     void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
-    virtual bool processQueueItems(const Queue& messages);
+    virtual bool processQueueItems(const Queue& messages) override;
 
 private:
     const FileLogger& _logger;
