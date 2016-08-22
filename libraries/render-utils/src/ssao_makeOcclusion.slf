@@ -44,9 +44,9 @@ void main(void) {
     float ssDiskRadius = evalDiskRadius(Cp.z, imageSize);
 
     // Let's make noise 
-    //float randomPatternRotationAngle = getAngleDithering(ssC);
-    vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
-    float randomPatternRotationAngle = getAngleDitheringWorldPos(wCp);
+    float randomPatternRotationAngle = getAngleDithering(ssC);
+    //vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
+    //float randomPatternRotationAngle = getAngleDitheringWorldPos(wCp);
 
     // Accumulate the Obscurance for each samples
     float sum = 0.0;
@@ -62,7 +62,7 @@ void main(void) {
 
     float A = max(0.0, 1.0 - sum * getObscuranceScaling() * 5.0 * getInvNumSamples());
 
-    <! // KEEP IT for Debugging
+     // KEEP IT for Debugging
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
     if (abs(dFdx(Cp.z)) < 0.02) {
@@ -71,7 +71,7 @@ void main(void) {
     if (abs(dFdy(Cp.z)) < 0.02) {
         A -= dFdy(A) * ((ssC.y & 1) - 0.5);
     }
-    !>
+    
 
     outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
 
