@@ -252,9 +252,11 @@ void NodeList::setSocketLocalPort(quint16 socketLocalPort) {
                                   Q_ARG(quint16, socketLocalPort));
         return;
     }
-    _nodeSocket.rebind(socketLocalPort);
-    reset();
-    NODELIST_LOCAL_PORT.set(socketLocalPort);
+    if (_nodeSocket.localPort() != socketLocalPort) {
+        reset();
+        _nodeSocket.rebind(socketLocalPort);
+        NODELIST_LOCAL_PORT.set(socketLocalPort);
+    }
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {

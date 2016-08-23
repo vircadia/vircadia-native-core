@@ -254,6 +254,15 @@ public:
     Type getType() override { return Spinner; }
 };
 
+class IntSpinnerPreference : public IntPreference {
+    Q_OBJECT
+public:
+    IntSpinnerPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : IntPreference(category, name, getter, setter) { }
+
+    Type getType() override { return Spinner; }
+};
+
 class EditPreference : public StringPreference {
     Q_OBJECT
     Q_PROPERTY(QString placeholderText READ getPlaceholderText CONSTANT)
