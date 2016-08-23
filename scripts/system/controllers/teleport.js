@@ -553,6 +553,7 @@ function Teleporter() {
         _this.smoothArrivalInterval = Script.setInterval(function() {
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
+                HMD.centerUI();
                 return;
             }
             var landingPoint = _this.arrivalPoints.shift();
@@ -564,8 +565,8 @@ function Teleporter() {
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
-        
-        HMD.centerUI();
+
+
     }
 }
 
