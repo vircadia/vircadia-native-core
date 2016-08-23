@@ -26,6 +26,11 @@ bool AccountScriptingInterface::isLoggedIn() {
     return accountManager->isLoggedIn();
 }
 
+bool AccountScriptingInterface::checkAndSignalForAccessToken() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->checkAndSignalForAccessToken();
+}
+
 QString AccountScriptingInterface::getUsername() {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (accountManager->isLoggedIn()) {
