@@ -31,18 +31,10 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
-#include <SettingHandle.h>
-
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
-static Setting::Handle<quint16> NODELIST_LOCAL_PORT("NodeList.LocalPort", 0);
-
-quint16 pickPortHelper(quint16 port) {
-    return (port != 0) ? port : NODELIST_LOCAL_PORT.get();
-}
-
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
-    LimitedNodeList(pickPortHelper(socketListenPort), dtlsListenPort),
+    LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
@@ -243,18 +235,6 @@ void NodeList::reset() {
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {
         disconnect(_dtlsSocket, 0, this, 0);
-    }
-}
-
-void NodeList::setSocketLocalPort(quint16 socketLocalPort) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setSocketLocalPort", Qt::QueuedConnection,
-                                  Q_ARG(quint16, socketLocalPort));
-        return;
-    }
-    if (_nodeSocket.localPort() != socketLocalPort) {
-        _nodeSocket.rebind(socketLocalPort);
-        NODELIST_LOCAL_PORT.set(socketLocalPort);
     }
 }
 

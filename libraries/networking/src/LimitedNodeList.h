@@ -113,6 +113,8 @@ public:
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
+    void setSocketLocalPort(quint16 socketLocalPort);
+
     QUdpSocket& getDTLSSocket();
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }

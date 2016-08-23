@@ -529,19 +529,19 @@ Menu::Menu() {
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
-                                           MenuOption::DisableActivityLogger,
-                                           0,
-                                           false,
-                                           &UserActivityLogger::getInstance(),
-                                           SLOT(disable(bool)));
+        MenuOption::DisableActivityLogger,
+        0,
+        false,
+        &UserActivityLogger::getInstance(),
+        SLOT(disable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
-                                  dialogsManager.data(), SLOT(cachesSizeDialog()));
+        dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
-                                  dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
+        dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
-                                  dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+        dialogsManager.data(), SLOT(showDomainConnectionDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
-                                  dialogsManager.data(), SLOT(bandwidthDetails()));
+        dialogsManager.data(), SLOT(bandwidthDetails()));
 
     #if (PR_BUILD || DEV_BUILD)
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,

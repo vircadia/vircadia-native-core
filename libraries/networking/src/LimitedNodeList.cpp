@@ -18,6 +18,7 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
@@ -25,6 +26,7 @@
 
 #include <LogHandler.h>
 #include <NumericalConstants.h>
+#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -33,6 +35,8 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
+
+static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
@@ -62,8 +66,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     }
 
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
-
-    _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
+    auto port = (socketListenPort != 0) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
+    _nodeSocket.bind(QHostAddress::AnyIPv4, port);
     qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
 
     if (dtlsListenPort > 0) {
@@ -154,6 +158,18 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     if (originalPermissions.can(NodePermissions::Permission::canKick) !=
         newPermissions.can(NodePermissions::Permission::canKick)) {
         emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
+    }
+}
+
+void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setSocketLocalPort", Qt::QueuedConnection,
+                                  Q_ARG(quint16, socketLocalPort));
+        return;
+    }
+    if (_nodeSocket.localPort() != socketLocalPort) {
+        _nodeSocket.rebind(socketLocalPort);
+        LIMITED_NODELIST_LOCAL_PORT.set(socketLocalPort);
     }
 }
 
