@@ -360,6 +360,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 LookupTrigger trigger = (LookupTrigger) reply.property(LOOKUP_TRIGGER_KEY).toInt();
 
+
                 // set our current root place id to the ID that came back
                 const QString PLACE_ID_KEY = "id";
                 _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
@@ -367,6 +368,15 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
                 QString placeName = rootMap[PLACE_NAME_KEY].toString();
+
+                if (placeName.isEmpty()) {
+                    // we didn't get a set place name, check if there is a default or temporary domain name to use
+                    const QString TEMPORARY_DOMAIN_NAME_KEY = "name";
+
+                    if (domainObject.contains(TEMPORARY_DOMAIN_NAME_KEY)) {
+                        placeName = domainObject[TEMPORARY_DOMAIN_NAME_KEY].toString();
+                    }
+                }
 
                 if (!placeName.isEmpty()) {
                     if (setHost(placeName, trigger)) {
