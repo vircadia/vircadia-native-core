@@ -118,8 +118,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     setupNodeListAndAssignments();
 
-    if (_type == MetaverseDomain) {
-        // if we have a metaverse domain, we'll need an access token to heartbeat handle auto-networking
+    if (_type != NonMetaverse) {
+        // if we have a metaverse domain, we'll use an access token for API calls
         resetAccountManagerAccessToken();
     }
 
@@ -469,8 +469,8 @@ bool DomainServer::resetAccountManagerAccessToken() {
             if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant->toString();
             } else {
-                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present.";
-                qDebug() << "Set an access token via the web interface, in your user or master config"
+                qWarning() << "No access token is present. Some operations that use the metaverse API will fail.";
+                qDebug() << "Set an access token via the web interface, in your user config"
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
 
                 // clear any existing access token from AccountManager
@@ -480,7 +480,7 @@ bool DomainServer::resetAccountManagerAccessToken() {
             }
         } else {
             qDebug() << "Using access token from DOMAIN_SERVER_ACCESS_TOKEN in env. This overrides any access token present"
-                << " in the user or master config.";
+                << " in the user config.";
         }
 
         // give this access token to the AccountManager

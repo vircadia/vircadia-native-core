@@ -23,6 +23,7 @@
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
+#include <PointerEvent.h>
 
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
@@ -34,7 +35,6 @@
 #include "EntityItemProperties.h"
 
 class EntityTree;
-class MouseEvent;
 
 class RayToEntityIntersectionResult {
 public:
@@ -59,9 +59,11 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
-    
+
     Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
+    Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
+
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
@@ -73,8 +75,8 @@ public:
     };
 
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
-    virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
-    virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
+    virtual NodeType_t getServerNodeType() const override { return NodeType::EntityServer; }
+    virtual OctreeEditPacketSender* createPacketSender() override { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
@@ -186,6 +188,23 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
+    Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
+    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
+
+    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -193,17 +212,17 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
 
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -231,14 +250,13 @@ private:
 
     std::recursive_mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
-    
+
     bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);
 
     ActivityTracking _activityTracking;
-    
     float costMultiplier = { 0.01f };
     float getCostMultiplier();
     void setCostMultiplier(float value);

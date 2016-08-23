@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QtGui/QWindow>
+
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -53,7 +55,7 @@ namespace render {
 }
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
-#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
+#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
 
 #define debugTime(T, N) qPrintable(QString("%1 [ %2 ago]").arg(T, 16, 10).arg(formatUsecTime(N - T), 15))
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
@@ -435,6 +437,11 @@ public:
     static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
     static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
     virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
+
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+    virtual bool wantsKeyboardFocus() const { return false; }
+    virtual void setProxyWindow(QWindow* proxyWindow) {}
+    virtual QObject* getEventHandler() { return nullptr; }
 
 protected:
 

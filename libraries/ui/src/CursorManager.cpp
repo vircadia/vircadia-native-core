@@ -26,7 +26,7 @@ namespace Cursor {
 
 
     class MouseInstance : public Instance {
-        Source getType() const {
+        Source getType() const override {
             return Source::MOUSE;
         }
     };

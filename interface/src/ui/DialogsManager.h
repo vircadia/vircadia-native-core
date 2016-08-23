@@ -45,6 +45,7 @@ public:
 public slots:
     void toggleAddressBar();
     void showAddressBar();
+    void showFeed();
     void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
@@ -63,6 +64,7 @@ public slots:
 signals:
     void addressBarToggled();
     void addressBarShown(bool visible);
+    void setUseFeed(bool useFeed);
 
 private slots:
     void hmdToolsClosed();

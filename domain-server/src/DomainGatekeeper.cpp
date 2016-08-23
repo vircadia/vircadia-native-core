@@ -509,9 +509,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
         }
     } else {
         if (!senderSockAddr.isNull()) {
-            qDebug() << "Insufficient data to decrypt username signature - denying connection.";
-            sendConnectionDeniedPacket("Insufficient data", senderSockAddr,
-                DomainHandler::ConnectionRefusedReason::LoginError);
+            qDebug() << "Insufficient data to decrypt username signature - delaying connection.";
         }
     }
 

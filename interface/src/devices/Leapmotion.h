@@ -33,7 +33,7 @@ public:
 
     bool isActive() const { return _active; }
 
-    virtual void update();
+    virtual void update() override;
 
 protected:
     Leapmotion();

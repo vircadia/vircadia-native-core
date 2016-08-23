@@ -20,15 +20,15 @@ class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
     LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay);
-    
-    virtual void update(float deltatime);
-    virtual void render(RenderArgs* args);
 
-    virtual LocalModelsOverlay* createClone() const;
+    virtual void update(float deltatime) override;
+    virtual void render(RenderArgs* args) override;
+
+    virtual LocalModelsOverlay* createClone() const override;
 
 private:
     EntityTreeRenderer* _entityTreeRenderer;

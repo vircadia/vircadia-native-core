@@ -38,6 +38,8 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     });
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
+    connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }
 
 void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {

@@ -25,12 +25,47 @@
 #include <NumericalConstants.h>
 #include <Finally.h>
 #include <PathUtils.h>
+#include <AbstractUriHandler.h>
+#include <AccountManager.h>
 #include <NetworkAccessManager.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
 #include "GLHelpers.h"
 
+
+QString fixupHifiUrl(const QString& urlString) {
+	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+    QUrl url(urlString);
+	QUrlQuery query(url);
+	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+	    auto accountManager = DependencyManager::get<AccountManager>();
+	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
+	    url.setQuery(query.query());
+	    return url.toString();
+	}
+    return urlString;
+}
+
+class UrlHandler : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE bool canHandleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->canAcceptURL(url);
+    }
+
+    Q_INVOKABLE bool handleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->acceptURL(url);
+    }
+
+    // FIXME hack for authentication, remove when we migrate to Qt 5.6
+    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
+        return fixupHifiUrl(originalUrl);
+    }
+};
 
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
@@ -65,7 +100,7 @@ protected:
 
 class QmlNetworkAccessManagerFactory : public QQmlNetworkAccessManagerFactory {
 public:
-    QNetworkAccessManager* create(QObject* parent);
+    QNetworkAccessManager* create(QObject* parent) override;
 };
 
 QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
@@ -438,6 +473,9 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
     _updateTimer.setInterval(MIN_TIMER_MS);
     _updateTimer.start();
+
+    auto rootContext = getRootContext();
+    rootContext->setContextProperty("urlHandler", new UrlHandler());
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
@@ -786,3 +824,5 @@ void OffscreenQmlSurface::setFocusText(bool newFocusText) {
         emit focusTextChanged(_focusText);
     }
 }
+
+#include "OffscreenQmlSurface.moc"

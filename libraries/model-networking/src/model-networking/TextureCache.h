@@ -127,19 +127,19 @@ public:
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray());
-    
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type);
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra);
-        
+        const void* extra) override;
+
 private:
     TextureCache();
     virtual ~TextureCache();
     friend class DilatableNetworkTexture;
- 
+
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
     gpu::TexturePointer _grayTexture;

@@ -28,33 +28,33 @@ public:
     ArrayBufferClass(ScriptEngine* scriptEngine);
     QScriptValue newInstance(qint32 size);
     QScriptValue newInstance(const QByteArray& ba);
-    
+
     QueryFlags queryProperty(const QScriptValue& object,
                              const QScriptString& name,
-                             QueryFlags flags, uint* id);
+                             QueryFlags flags, uint* id) override;
     QScriptValue property(const QScriptValue& object,
-                          const QScriptString& name, uint id);
+                          const QScriptString& name, uint id) override;
     QScriptValue::PropertyFlags propertyFlags(const QScriptValue& object,
-                                              const QScriptString& name, uint id);
-    
-    QString name() const;
-    QScriptValue prototype() const;
-    
+                                              const QScriptString& name, uint id) override;
+
+    QString name() const override;
+    QScriptValue prototype() const override;
+
     ScriptEngine* getEngine() { return _scriptEngine; }
-    
+
 private:
     static QScriptValue construct(QScriptContext* context, QScriptEngine* engine);
-    
+
     static QScriptValue toScriptValue(QScriptEngine* eng, const QByteArray& ba);
     static void fromScriptValue(const QScriptValue& obj, QByteArray& ba);
-    
+
     QScriptValue _proto;
     QScriptValue _ctor;
-    
+
     // JS Object attributes
     QScriptString _name;
     QScriptString _byteLength;
-    
+
     ScriptEngine* _scriptEngine;
 };
 

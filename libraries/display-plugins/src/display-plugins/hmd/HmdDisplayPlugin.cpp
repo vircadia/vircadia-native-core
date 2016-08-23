@@ -305,7 +305,7 @@ void HmdDisplayPlugin::updateFrameData() {
         {
             vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
             yawPitch.x = glm::atan(xdir.x, xdir.y);
-            yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + M_PI_2;
+            yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
         }
         vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
 

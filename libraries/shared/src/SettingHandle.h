@@ -70,57 +70,57 @@ namespace Setting {
     public:
         Handle(const QString& key) : Interface(key) {}
         Handle(const QStringList& path) : Interface(path.join("/")) {}
-        
+
         Handle(const QString& key, const T& defaultValue) : Interface(key), _defaultValue(defaultValue) {}
         Handle(const QStringList& path, const T& defaultValue) : Handle(path.join("/"), defaultValue) {}
-        
+
         virtual ~Handle() { deinit(); }
-        
+
         // Returns setting value, returns its default value if not found
-        T get() const { 
-            return get(_defaultValue); 
+        T get() const {
+            return get(_defaultValue);
         }
 
         // Returns setting value, returns other if not found
-        T get(const T& other) const { 
-            maybeInit(); 
-            return (_isSet) ? _value : other; 
+        T get(const T& other) const {
+            maybeInit();
+            return (_isSet) ? _value : other;
         }
 
-        const T& getDefault() const { 
-            return _defaultValue; 
-        }
-        
-        void reset() { 
-            set(_defaultValue); 
+        const T& getDefault() const {
+            return _defaultValue;
         }
 
-        void set(const T& value) { 
-            maybeInit(); 
+        void reset() {
+            set(_defaultValue);
+        }
+
+        void set(const T& value) {
+            maybeInit();
             if ((!_isSet && (value != _defaultValue)) || _value != value) {
-                _value = value; 
-                _isSet = true; 
-                save(); 
-            } 
+                _value = value;
+                _isSet = true;
+                save();
+            }
         }
 
-        void remove() { 
-            maybeInit(); 
-            if (_isSet) { 
-                _isSet = false; 
-                save(); 
-            }  
+        void remove() {
+            maybeInit();
+            if (_isSet) {
+                _isSet = false;
+                save();
+            }
         }
-        
+
     protected:
-        virtual void setVariant(const QVariant& variant);
-        virtual QVariant getVariant() { return QVariant::fromValue(get()); }
-        
+        virtual void setVariant(const QVariant& variant) override;
+        virtual QVariant getVariant() override { return QVariant::fromValue(get()); }
+
     private:
         T _value;
         const T _defaultValue;
     };
-    
+
     template <typename T>
     void Handle<T>::setVariant(const QVariant& variant) {
         if (variant.canConvert<T>() || std::is_same<T, QVariant>::value) {

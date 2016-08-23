@@ -21,8 +21,8 @@ public:
     explicit ScriptsTableWidget(QWidget* parent);
 
 protected:
-    virtual void paintEvent(QPaintEvent* event);
-    virtual void keyPressEvent(QKeyEvent* event);
+    virtual void paintEvent(QPaintEvent* event) override;
+    virtual void keyPressEvent(QKeyEvent* event) override;
 };
 
 #endif // hifi__ScriptsTableWidget_h
