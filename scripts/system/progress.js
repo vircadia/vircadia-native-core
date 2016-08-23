@@ -245,7 +245,7 @@
     }
 
     function updateProgressBarLocation() {
-        viewport = Controller.getViewportDimensions();
+        var viewport = Controller.getViewportDimensions();
         windowWidth = viewport.x;
         windowHeight = viewport.y;
 
