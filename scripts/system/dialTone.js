@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  dialTone.js
 //  examples
@@ -10,9 +12,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 // setup the local sound we're going to use
-
-
 var connectSound = SoundCache.getSound(Script.resolvePath("assets/sounds/hello.wav"));
 var disconnectSound = SoundCache.getSound(Script.resolvePath("assets/sounds/goodbye.wav"));
 var micMutedSound = SoundCache.getSound(Script.resolvePath("assets/sounds/goodbye.wav"));
@@ -36,3 +38,5 @@ AudioDevice.muteToggled.connect(function () {
         Audio.playSound(micMutedSound, soundOptions);
     }
 });
+
+}()); // END LOCAL_SCOPE

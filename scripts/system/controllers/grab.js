@@ -1,3 +1,5 @@
+"use strict";
+
 //  grab.js
 //  examples
 //
@@ -9,7 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global print, Mouse, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("../libraries/utils.js");
 // objects that appear smaller than this can't be grabbed
@@ -344,7 +347,6 @@ Grabber.prototype.pressEvent = function(event) {
 
     mouse.startDrag(event);
 
-    var now = Date.now();
     this.lastHeartBeat = 0;
 
     var clickedEntity = pickResults.entityID;
@@ -385,7 +387,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     beacon.updatePosition(this.startPosition);
 
-    if(!entityIsGrabbedByOther(this.entityID)){
+    if (!entityIsGrabbedByOther(this.entityID)) {
       this.moveEvent(event);
     }
 
@@ -452,7 +454,7 @@ Grabber.prototype.moveEvent = function(event) {
 
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
-    if (Vec3.length(entityProperties.gravity) != 0) {
+    if (Vec3.length(entityProperties.gravity) !== 0.0) {
         this.originalGravity = entityProperties.gravity;
     }
     this.currentPosition = entityProperties.position;
@@ -500,7 +502,8 @@ Grabber.prototype.moveEvent = function(event) {
             };
         } else {
             var cameraPosition = Camera.getPosition();
-            newPointOnPlane = mouseIntersectionWithPlane(this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
+            newPointOnPlane = mouseIntersectionWithPlane(
+                    this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
             var relativePosition = Vec3.subtract(newPointOnPlane, cameraPosition);
             var distance = Vec3.length(relativePosition);
             if (distance > this.maxDistance) {
@@ -625,7 +628,7 @@ function editEvent(channel, message, sender, localOnly) {
         return;
     }
     try {
-        data = JSON.parse(message);
+        var data = JSON.parse(message);
         if ("enabled" in data) {
             enabled = !data["enabled"];
         }
@@ -640,3 +643,5 @@ Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Messages.subscribe("edit-events");
 Messages.messageReceived.connect(editEvent);
+
+}()); // END LOCAL_SCOPE

@@ -1,3 +1,6 @@
+"use strict";
+/* jslint vars: true, plusplus: true */
+
 //
 //  defaultScripts.js
 //  examples
