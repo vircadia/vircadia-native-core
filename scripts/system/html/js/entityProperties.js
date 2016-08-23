@@ -766,6 +766,7 @@ function loaded() {
 
                             elUserData.value = properties.userData;
                             showUserDataTextArea();
+                            showNewJSONEditorButton();
                             hideSaveUserDataButton();
                         }
 
