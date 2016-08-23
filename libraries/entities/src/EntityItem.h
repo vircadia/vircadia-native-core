@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QtGui/QWindow>
+
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -435,6 +437,11 @@ public:
     static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
     static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
     virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
+
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+    virtual bool wantsKeyboardFocus() const { return false; }
+    virtual void setProxyWindow(QWindow* proxyWindow) {}
+    virtual QObject* getEventHandler() { return nullptr; }
 
 protected:
 

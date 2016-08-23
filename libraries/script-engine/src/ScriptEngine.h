@@ -30,7 +30,7 @@
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
 
-#include "MouseEvent.h"
+#include "PointerEvent.h"
 #include "ArrayBufferClass.h"
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
@@ -140,7 +140,7 @@ public:
     Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
                                             const QStringList& params = QStringList()) override;
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }

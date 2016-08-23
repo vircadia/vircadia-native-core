@@ -727,9 +727,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        using MouseHandler = std::function<void(const EntityItemID&, const MouseEvent&)>;
-        auto makeMouseHandler = [this](QString eventName) -> MouseHandler {
-            return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
+        using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
+        auto makePointerHandler = [this](QString eventName) -> PointerHandler {
+            return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
@@ -745,17 +745,17 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makeMouseHandler("mousePressOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makeMouseHandler("mouseMoveOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makeMouseHandler("mouseReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makePointerHandler("mousePressOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makePointerHandler("mouseMoveOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makePointerHandler("mouseReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makeMouseHandler("clickDownOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makeMouseHandler("holdingClickOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makeMouseHandler("clickReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makePointerHandler("clickDownOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makePointerHandler("holdingClickOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makePointerHandler("clickReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makeMouseHandler("hoverEnterEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makePointerHandler("hoverEnterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makePointerHandler("hoverOverEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makePointerHandler("hoverLeaveEntity"));
 
         connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, makeCollisionHandler("collisionWithEntity"));
     }
@@ -1550,7 +1550,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1560,12 +1560,12 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
-                                  Q_ARG(const MouseEvent&, event));
+                                  Q_ARG(const PointerEvent&, event));
         return;
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
+        "entityID:" << entityID << "methodName:" << methodName << "event: pointerEvent";
 #endif
 
     refreshFileScript(entityID);
