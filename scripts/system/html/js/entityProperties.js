@@ -348,8 +348,11 @@ function setTextareaScrolling(element) {
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 };
 
+
+
 var editor = null;
 var editorTimeout = null;
+var lastJSONString=null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -365,13 +368,15 @@ function createJSONEditor() {
             alert('JSON editor:' + e)
         },
         onChange: function() {
-            if (editorTimeout !== null) {
-                clearTimeout(editorTimeout);
+            console.log('changed')
+            if(currentJSONString==='{"":""}'){
+                console.log('its empty')
+                return;
             }
-            editorTimeout = setTimeout(function() {
-                    saveJSONUserData();
-                }, EDITOR_TIMEOUT_DURATION)
-                //saveJSONUserData();
+            $('#userdata-save').attr('disabled',false)
+            var currentJSONString = editor.getText();
+
+
         }
     };
     editor = new JSONEditor(container, options);
@@ -448,7 +453,16 @@ function saveJSONUserData() {
     }
     savedJSONTimer = setTimeout(function() {
         $('#userdata-saved').hide();
+        $('#userdata-save').attr('disabled',true)
     }, 1500)
+}
+
+function bindAllNonJSONEditorElements(){
+    var inputs = $('input');
+    var i;
+    for(i=0;i<inputs.length;i++){
+        var input = inputs[i];
+    }
 }
 
 function loaded() {
@@ -773,7 +787,7 @@ function loaded() {
                         FIXME: See FIXME for property-script-url.
                         elScriptTimestamp.value = properties.scriptTimestamp;
                         */
-                        deleteJSONEditor();
+                        //deleteJSONEditor();
                         hideUserDataTextArea();
                         var json = null;
                         try {
@@ -782,8 +796,12 @@ function loaded() {
                             if (Object.keys(json).length === 0 && json.constructor === Object) {
                                 //it's an empty object
                             }
-                            createJSONEditor();
-                            setEditorJSON(json)
+                            if (editor === null) {
+                                createJSONEditor();
+                                console.log('CREATING NEW EDITOR')
+                            }
+
+                            setEditorJSON(json);
                             showSaveUserDataButton();
                             hideNewJSONEditorButton();
 
@@ -956,6 +974,7 @@ function loaded() {
                             elLocked.removeAttribute('disabled');
                         } else {
                             enableProperties();
+                            elSaveUserData.disabled=true;
                         }
 
                         var activeElement = document.activeElement;
@@ -1096,7 +1115,9 @@ function loaded() {
         });
 
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
-
+        // elJSONEditor.addEventListener('mouseleave',function(){
+        //     saveJSONUserData();
+        // });
         elNewJSONEditor.addEventListener('click', function() {
             deleteJSONEditor();
             createJSONEditor();
@@ -1366,6 +1387,7 @@ function loaded() {
                 clicked = true;
             };
         }
+        bindMouseLeaveForJSONEditor();
     });
 
     // Collapsible sections
