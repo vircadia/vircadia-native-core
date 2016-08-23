@@ -253,7 +253,6 @@ void NodeList::setSocketLocalPort(quint16 socketLocalPort) {
         return;
     }
     if (_nodeSocket.localPort() != socketLocalPort) {
-        reset();
         _nodeSocket.rebind(socketLocalPort);
         NODELIST_LOCAL_PORT.set(socketLocalPort);
     }
