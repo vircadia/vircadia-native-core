@@ -26,6 +26,10 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
+bool ProceduralSkybox::empty() {
+    return !_procedural.enabled() && Skybox::empty();
+}
+
 void ProceduralSkybox::clear() {
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
