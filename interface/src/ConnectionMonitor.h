@@ -25,7 +25,6 @@ public:
 private slots:
     void disconnectedFromDomain();
     void connectedToDomain(const QString& name);
-    void hostChanged(const QString& name);
 
 private:
     QTimer _timer;
