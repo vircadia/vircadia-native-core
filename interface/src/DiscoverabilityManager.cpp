@@ -111,7 +111,7 @@ void DiscoverabilityManager::updateLocation() {
     }
 
     // Update Steam
-    SteamClient::updateLocation(domainHandler.getHostname(), addressManager->currentFacingAddress());
+    SteamClient::updateLocation(domainHandler.getHostname(), addressManager->currentShareableAddress());
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {

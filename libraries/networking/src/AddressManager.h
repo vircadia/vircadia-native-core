@@ -59,6 +59,8 @@ public:
 
     QUrl currentAddress() const;
     QUrl currentFacingAddress() const;
+    QUrl currentShareableAddress() const;
+    QUrl currentFacingShareableAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
 

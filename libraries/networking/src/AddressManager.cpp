@@ -63,15 +63,31 @@ QUrl AddressManager::currentAddress() const {
 }
 
 QUrl AddressManager::currentFacingAddress() const {
-    QUrl hifiURL;
+    auto hifiURL = currentAddress();
+    hifiURL.setPath(currentFacingPath());
 
-    hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_host);
+    return hifiURL;
+}
 
-    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
-        hifiURL.setPort(_port);
+
+QUrl AddressManager::currentShareableAddress() const {
+    if (!_shareablePlaceName.isEmpty()) {
+        // if we have a shareable place name use that instead of whatever the current host is
+        QUrl hifiURL;
+
+        hifiURL.setScheme(HIFI_URL_SCHEME);
+        hifiURL.setHost(_shareablePlaceName);
+
+        hifiURL.setPath(currentPath());
+
+        return hifiURL;
+    } else {
+        return currentAddress();
     }
+}
 
+QUrl AddressManager::currentFacingShareableAddress() const {
+    auto hifiURL = currentShareableAddress();
     hifiURL.setPath(currentFacingPath());
 
     return hifiURL;
@@ -372,9 +388,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 if (placeName.isEmpty()) {
                     // we didn't get a set place name, check if there is a default or temporary domain name to use
                     const QString TEMPORARY_DOMAIN_NAME_KEY = "name";
+                    const QString DEFAULT_DOMAIN_NAME_KEY = "default_place_name";
 
                     if (domainObject.contains(TEMPORARY_DOMAIN_NAME_KEY)) {
                         placeName = domainObject[TEMPORARY_DOMAIN_NAME_KEY].toString();
+                    } else if (domainObject.contains(DEFAULT_DOMAIN_NAME_KEY)) {
+                        placeName = domainObject[DEFAULT_DOMAIN_NAME_KEY].toString();
                     }
                 }
 
@@ -714,7 +733,8 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
-    QApplication::clipboard()->setText(currentAddress().toString());
+    // assume that the address is being copied because the user wants a shareable address
+    QApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
