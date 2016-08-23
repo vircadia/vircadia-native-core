@@ -564,6 +564,8 @@ function Teleporter() {
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
+        
+        HMD.centerUI();
     }
 }
 
