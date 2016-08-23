@@ -4941,7 +4941,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
 
         agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
-            modelLicense + "\nDo you argee to these terms?",
+            modelLicense + "\nDo you agree to these terms?",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
     }
 
