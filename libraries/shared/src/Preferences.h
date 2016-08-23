@@ -189,6 +189,38 @@ protected:
     float _step { 0.1f };
 };
 
+
+class IntPreference : public TypedPreference<int> {
+    Q_OBJECT
+    Q_PROPERTY(float value READ getValue WRITE setValue NOTIFY valueChanged)
+    Q_PROPERTY(float min READ getMin CONSTANT)
+    Q_PROPERTY(float max READ getMax CONSTANT)
+    Q_PROPERTY(float step READ getStep CONSTANT)
+
+public:
+    IntPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+    : TypedPreference(category, name, getter, setter) { }
+
+    float getMin() const { return _min; }
+    void setMin(float min) { _min = min; };
+
+    float getMax() const { return _max; }
+    void setMax(float max) { _max = max; };
+
+    float getStep() const { return _step; }
+    void setStep(float step) { _step = step; };
+
+signals:
+    void valueChanged();
+
+protected:
+    void emitValueChanged() override { emit valueChanged(); }
+
+    int _min { std::numeric_limits<int>::min() };
+    int _max { std::numeric_limits<int>::max() };
+    int _step { 1 };
+};
+
 class StringPreference : public TypedPreference<QString> {
     Q_OBJECT
     Q_PROPERTY(QString value READ getValue WRITE setValue NOTIFY valueChanged)

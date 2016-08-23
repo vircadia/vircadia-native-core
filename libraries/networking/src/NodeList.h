@@ -92,6 +92,8 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
+    void setSocketLocalPort(quint16 socketLocalPort);
+
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
 #endif

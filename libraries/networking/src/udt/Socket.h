@@ -61,8 +61,9 @@ public:
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
     void bind(const QHostAddress& address, quint16 port = 0);
+    void rebind(quint16 port);
     void rebind();
-    
+
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     void setMessageHandler(MessageHandler handler) { _messageHandler = handler; }

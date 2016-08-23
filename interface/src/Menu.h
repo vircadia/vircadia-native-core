@@ -129,6 +129,7 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NamesAboveHeads = "Names Above Heads";
+    const QString Networking = "Networking...";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnePointCalibration = "1 Point Calibration";
