@@ -1064,8 +1064,16 @@ function loaded() {
 
         });
 
+        var savedJSONTimer = null;
         elSaveUserData.addEventListener("click", function() {
             setUserDataFromEditor();
+            $('#userdata-saved').show();
+            if (savedJSONTimer !== null) {
+                clearTimeout(savedJSONTimer);
+            }
+            savedJSONTimer = setTimeout(function() {
+                $('#userdata-saved').hide();
+            }, 1500)
         });
 
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
@@ -1080,6 +1088,12 @@ function loaded() {
             showSaveUserDataButton();
         });
 
+        elJSONEditor.addEventListener('mouseenter', function() {
+            console.log('mouse in the json editor')
+        })
+        elJSONEditor.addEventListener('mouseleave', function() {
+            console.log('mouse leaves the json editor')
+        })
         var colorChangeFunction = createEmitColorPropertyUpdateFunction(
             'color', elColorRed, elColorGreen, elColorBlue);
         elColorRed.addEventListener('change', colorChangeFunction);

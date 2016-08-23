@@ -1097,3 +1097,9 @@ input#reset-to-natural-dimensions {
     margin-bottom:10px;
     background-color: #2e2e2e;
 }
+
+#userdata-saved{
+    margin-top:5px;
+    font-size:16px;
+    display:none;
+}
