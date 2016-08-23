@@ -217,8 +217,8 @@ Window {
         }
 
         Window {
-            width: 750;
-            height: 500;
+            width: 938;
+            height: 625;
             scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
