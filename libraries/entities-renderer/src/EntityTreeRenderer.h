@@ -18,7 +18,8 @@
 #include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
-#include <MouseEvent.h>
+#include <QMouseEvent>
+#include <PointerEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>
@@ -98,18 +99,18 @@ public:
     std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _bestZone; }
 
 signals:
-    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mousePressOffEntity();
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -174,8 +175,8 @@ private:
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
                                   const EntityItemID& id, const Collision& collision);
 
-    bool _lastMouseEventValid;
-    MouseEvent _lastMouseEvent;
+    bool _lastPointerEventValid;
+    PointerEvent _lastPointerEvent;
     AbstractViewStateInterface* _viewState;
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;

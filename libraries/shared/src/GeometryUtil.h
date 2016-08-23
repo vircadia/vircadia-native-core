@@ -113,6 +113,20 @@ int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk)
 // calculate the angle between a point on a sphere that is closest to the cone.
 float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirection, const glm::vec3& sphereCenter, float sphereRadius);
 
+inline bool rayPlaneIntersection(const glm::vec3& planePosition, const glm::vec3& planeNormal,
+                                 const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distanceOut) {
+    float rayDirectionDotPlaneNormal = glm::dot(rayDirection, planeNormal);
+    const float PARALLEL_THRESHOLD = 0.0001f;
+    if (fabsf(rayDirectionDotPlaneNormal) > PARALLEL_THRESHOLD) {
+        float rayStartDotPlaneNormal = glm::dot(planePosition - rayStart, planeNormal);
+        distanceOut = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return true;
+    } else {
+        // ray is parallel to the plane
+        return false;
+    }
+}
+
 typedef glm::vec2 LineSegment2[2];
 
 // Polygon Clipping routines inspired by, pseudo code found here: http://www.cs.rit.edu/~icss571/clipTrans/PolyClipBack.html

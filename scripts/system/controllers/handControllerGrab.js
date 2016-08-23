@@ -136,6 +136,7 @@ var PICKS_PER_SECOND_PER_HAND = 60;
 var MSECS_PER_SEC = 1000.0;
 var GRABBABLE_PROPERTIES = [
     "position",
+    "registrationPoint",
     "rotation",
     "gravity",
     "collidesWith",
@@ -173,6 +174,7 @@ var STATE_NEAR_GRABBING = 3;
 var STATE_NEAR_TRIGGER = 4;
 var STATE_FAR_TRIGGER = 5;
 var STATE_HOLD = 6;
+var STATE_ENTITY_TOUCHING = 7;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -188,6 +190,8 @@ var delayedDeactivateEntityID;
 
 var CONTROLLER_STATE_MACHINE = {};
 
+var mostRecentSearchingHand = RIGHT_HAND;
+
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
     enterMethod: "offEnter",
@@ -195,6 +199,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
+    enterMethod: "searchEnter",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -222,6 +227,71 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
 };
+CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
+    name: "entityTouching",
+    enterMethod: "entityTouchingEnter",
+    exitMethod: "entityTouchingExit",
+    updateMethod: "entityTouching"
+};
+
+function projectOntoEntityXYPlane(entityID, worldPos) {
+    var props = entityPropertiesCache.getProps(entityID);
+    var invRot = Quat.inverse(props.rotation);
+    var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(worldPos, props.position));
+    var invDimensions = { x: 1 / props.dimensions.x,
+                          y: 1 / props.dimensions.y,
+                          z: 1 / props.dimensions.z };
+    var normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
+    return { x: normalizedPos.x * props.dimensions.x,
+             y: (1 - normalizedPos.y) * props.dimensions.y }; // flip y-axis
+}
+
+function handLaserIntersectEntity(entityID, hand) {
+    var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+    var pose = Controller.getPoseValue(standardControllerValue);
+    var worldHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
+    var worldHandRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);
+
+    var props = entityPropertiesCache.getProps(entityID);
+
+    if (props.position) {
+        var planePosition = props.position;
+        var planeNormal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1.0});
+        var rayStart = worldHandPosition;
+        var rayDirection = Quat.getUp(worldHandRotation);
+        var intersectionInfo = rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection);
+
+        var intersectionPoint = planePosition;
+        if (intersectionInfo.hit && intersectionInfo.distance > 0) {
+            intersectionPoint = Vec3.sum(rayStart, Vec3.multiply(intersectionInfo.distance, rayDirection));
+        } else {
+            intersectionPoint = planePosition;
+        }
+        intersectionInfo.point = intersectionPoint;
+        intersectionInfo.normal = planeNormal;
+        intersectionInfo.searchRay = {
+            origin: rayStart,
+            direction: rayDirection,
+            length: PICK_MAX_DISTANCE
+        };
+        return intersectionInfo;
+    } else {
+        // entity has been destroyed? or is no longer in cache
+        return null;
+    }
+}
+
+function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
+    var rayDirectionDotPlaneNormal = Vec3.dot(rayDirection, planeNormal);
+    if (rayDirectionDotPlaneNormal > 0.00001 || rayDirectionDotPlaneNormal < -0.00001) {
+        var rayStartDotPlaneNormal = Vec3.dot(Vec3.subtract(planePosition, rayStart), planeNormal);
+        var distance = rayStartDotPlaneNormal / rayDirectionDotPlaneNormal;
+        return {hit: true, distance: distance};
+    } else {
+        // ray is parallel to the plane
+        return {hit: false, distance: 0};
+    }
+}
 
 function stateToName(state) {
     return CONTROLLER_STATE_MACHINE[state] ? CONTROLLER_STATE_MACHINE[state].name : "???";
@@ -733,8 +803,6 @@ function MyController(hand) {
         }
     };
 
-
-
     this.searchSphereOn = function(location, size, color) {
 
         var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
@@ -968,7 +1036,7 @@ function MyController(hand) {
         } else if (potentialEquipHotspot && Vec3.distance(this.lastHapticPulseLocation, currentLocation) > HAPTIC_TEXTURE_DISTANCE) {
             Controller.triggerHapticPulse(HAPTIC_TEXTURE_STRENGTH, HAPTIC_TEXTURE_DURATION, this.hand);
             this.lastHapticPulseLocation = currentLocation;
-        }       
+        }
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
@@ -1022,7 +1090,9 @@ function MyController(hand) {
                 entityID: intersection.entityID,
                 overlayID: intersection.overlayID,
                 searchRay: pickRay,
-                distance: Vec3.distance(pickRay.origin, intersection.intersection)
+                distance: Vec3.distance(pickRay.origin, intersection.intersection),
+                intersection: intersection.intersection,
+                normal: intersection.surfaceNormal
             };
         } else {
             return result;
@@ -1245,6 +1315,10 @@ function MyController(hand) {
         }
     };
 
+    this.searchEnter = function() {
+        mostRecentSearchingHand = this.hand;
+    };
+
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
@@ -1261,6 +1335,12 @@ function MyController(hand) {
         }
 
         var handPosition = this.getHandPosition();
+
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
+
+        if (rayPickInfo.entityID) {
+            entityPropertiesCache.addEntity(rayPickInfo.entityID);
+        }
 
         var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
@@ -1279,10 +1359,8 @@ function MyController(hand) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
 
-        var rayPickInfo = this.calcRayPickInfo(this.hand);
         if (rayPickInfo.entityID) {
             this.intersectionDistance = rayPickInfo.distance;
-            entityPropertiesCache.addEntity(rayPickInfo.entityID);
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
                 grabbableEntities.push(rayPickInfo.entityID);
             }
@@ -1331,6 +1409,68 @@ function MyController(hand) {
             }
         }
 
+        var pointerEvent;
+        if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
+            entity = rayPickInfo.entityID;
+            name = entityPropertiesCache.getProps(entity).name;
+
+            if (Entities.keyboardFocusEntity != entity) {
+                Entities.keyboardFocusEntity = entity;
+
+                pointerEvent = {
+                    type: "Move",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
+                    pos3D: rayPickInfo.intersection,
+                    normal: rayPickInfo.normal,
+                    direction: rayPickInfo.searchRay.direction,
+                    button: "None",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+
+                this.hoverEntity = entity;
+                Entities.sendHoverEnterEntity(entity, pointerEvent);
+            }
+
+            // send mouse events for button highlights and tooltips.
+            if (this.hand == mostRecentSearchingHand || (this.hand !== mostRecentSearchingHand &&
+                                                         this.getOtherHandController().state !== STATE_SEARCHING &&
+                                                         this.getOtherHandController().state !== STATE_ENTITY_TOUCHING)) {
+
+                // most recently searching hand has priority over other hand, for the purposes of button highlighting.
+                pointerEvent = {
+                    type: "Move",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
+                    pos3D: rayPickInfo.intersection,
+                    normal: rayPickInfo.normal,
+                    direction: rayPickInfo.searchRay.direction,
+                    button: "None",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+
+                Entities.sendMouseMoveOnEntity(entity, pointerEvent);
+                Entities.sendHoverOverEntity(entity, pointerEvent);
+            }
+
+            if (this.triggerSmoothedGrab() && !isEditing()) {
+                this.grabbedEntity = entity;
+                this.setState(STATE_ENTITY_TOUCHING, "begin touching entity '" + name + "'");
+                return;
+            }
+        } else if (this.hoverEntity) {
+            pointerEvent = {
+                type: "Move",
+                id: this.hand + 1
+            };
+            Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+            this.hoverEntity = null;
+        }
+
         if (rayPickInfo.entityID) {
             entity = rayPickInfo.entityID;
             name = entityPropertiesCache.getProps(entity).name;
@@ -1360,7 +1500,6 @@ function MyController(hand) {
         if (potentialEquipHotspot) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
         }
-
 
         this.searchIndicatorOn(rayPickInfo.searchRay);
         Reticle.setVisible(false);
@@ -1446,8 +1585,8 @@ function MyController(hand) {
     };
 
     this.distanceHolding = function(deltaTime, timestamp) {
-        
-        if (!this.triggerClicked) {    
+
+        if (!this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
             return;
@@ -1537,9 +1676,9 @@ function MyController(hand) {
 
         // visualizations
 
-         var rayPickInfo = this.calcRayPickInfo(this.hand);
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-       this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -1968,6 +2107,93 @@ function MyController(hand) {
 
     this.offEnter = function() {
         this.release();
+    };
+
+    this.entityTouchingEnter = function() {
+        // test for intersection between controller laser and web entity plane.
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
+        if (intersectInfo) {
+            var pointerEvent = {
+                type: "Press",
+                id: this.hand + 1, // 0 is reserved for hardware mouse
+                pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+                pos3D: intersectInfo.point,
+                normal: intersectInfo.normal,
+                direction: intersectInfo.searchRay.direction,
+                button: "Primary",
+                isPrimaryButton: true,
+                isSecondaryButton: false,
+                isTertiaryButton: false
+            };
+
+            Entities.sendMousePressOnEntity(this.grabbedEntity, pointerEvent);
+            Entities.sendClickDownOnEntity(this.grabbedEntity, pointerEvent);
+        }
+    };
+
+    this.entityTouchingExit = function() {
+        // test for intersection between controller laser and web entity plane.
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
+        if (intersectInfo) {
+            var pointerEvent = {
+                type: "Release",
+                id: this.hand + 1, // 0 is reserved for hardware mouse
+                pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+                pos3D: intersectInfo.point,
+                normal: intersectInfo.normal,
+                direction: intersectInfo.searchRay.direction,
+                button: "Primary",
+                isPrimaryButton: true,
+                isSecondaryButton: false,
+                isTertiaryButton: false
+            };
+
+            Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
+            Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
+            Entities.sendHoverLeaveEntity(this.grabbedEntity, pointerEvent);
+            this.focusedEntity = null;
+        }
+    };
+
+    this.entityTouching = function() {
+        entityPropertiesCache.addEntity(this.grabbedEntity);
+
+        if (!this.triggerSmoothedGrab()) {
+            this.setState(STATE_OFF, "released trigger");
+            return;
+        }
+
+        // test for intersection between controller laser and web entity plane.
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
+        if (intersectInfo) {
+
+            if (Entities.keyboardFocusEntity != this.grabbedEntity) {
+                Entities.keyboardFocusEntity = this.grabbedEntity;
+            }
+
+            var pointerEvent = {
+                type: "Move",
+                id: this.hand + 1, // 0 is reserved for hardware mouse
+                pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+                pos3D: intersectInfo.point,
+                normal: intersectInfo.normal,
+                direction: intersectInfo.searchRay.direction,
+                button: "NoButtons",
+                isPrimaryButton: true,
+                isSecondaryButton: false,
+                isTertiaryButton: false
+            };
+
+            Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
+            Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
+
+            this.intersectionDistance = intersectInfo.distance;
+            this.searchIndicatorOn(intersectInfo.searchRay);
+            Reticle.setVisible(false);
+        } else {
+            this.setState(STATE_OFF, "grabbed entity was destroyed");
+            return;
+        }
     };
 
     this.release = function() {
