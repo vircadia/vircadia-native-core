@@ -23,6 +23,8 @@ var ICON_FOR_TYPE = {
     Multiple: "&#xe000;"
 }
 
+var EDITOR_TIMEOUT_DURATION = 1500;
+
 var colorPickers = [];
 
 debugPrint = function(message) {
@@ -347,6 +349,7 @@ function setTextareaScrolling(element) {
 };
 
 var editor = null;
+var editorTimeout = null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -360,6 +363,15 @@ function createJSONEditor() {
         },
         onError: function(e) {
             alert('JSON editor:' + e)
+        },
+        onChange: function() {
+            if (editorTimeout !== null) {
+                clearTimeout(editorTimeout);
+            }
+            editorTimeout = setTimeout(function() {
+                    saveJSONUserData();
+                }, EDITOR_TIMEOUT_DURATION)
+                //saveJSONUserData();
         }
     };
     editor = new JSONEditor(container, options);
@@ -412,7 +424,8 @@ function removeStaticUserData() {
 };
 
 function setEditorJSON(json) {
-    return editor.set(json)
+    editor.set(json)
+    editor.expandAll();
 };
 
 function getEditorJSON() {
@@ -424,6 +437,19 @@ function deleteJSONEditor() {
         editor.destroy();
     }
 };
+
+var savedJSONTimer = null;
+
+function saveJSONUserData() {
+    setUserDataFromEditor();
+    $('#userdata-saved').show();
+    if (savedJSONTimer !== null) {
+        clearTimeout(savedJSONTimer);
+    }
+    savedJSONTimer = setTimeout(function() {
+        $('#userdata-saved').hide();
+    }, 1500)
+}
 
 function loaded() {
     openEventBridge(function() {
@@ -1064,16 +1090,9 @@ function loaded() {
 
         });
 
-        var savedJSONTimer = null;
+
         elSaveUserData.addEventListener("click", function() {
-            setUserDataFromEditor();
-            $('#userdata-saved').show();
-            if (savedJSONTimer !== null) {
-                clearTimeout(savedJSONTimer);
-            }
-            savedJSONTimer = setTimeout(function() {
-                $('#userdata-saved').hide();
-            }, 1500)
+            saveJSONUserData();
         });
 
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
