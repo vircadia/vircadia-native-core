@@ -141,7 +141,6 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
     return function() {
         var properties = {};
         properties[propertyName] = this.value;
-        console.log('properties at set thingo yo')
         EventBridge.emitWebEvent(
             JSON.stringify({
                 type: "update",
@@ -283,16 +282,13 @@ function setUserDataFromEditor() {
     var json = null;
     try {
         json = editor.get();
-        console.log('its good json')
     } catch (e) {
-        console.log('failed to parse json', e)
         alert('Invalid JSON code - look for red X in your code ', +e)
     }
     if (json === null) {
         return;
     } else {
         var text = editor.getText()
-        console.log('editor text at send:', text)
         EventBridge.emitWebEvent(
             JSON.stringify({
                 type: "update",
@@ -312,12 +308,9 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
     var parsedData = {};
     try {
         if ($('#userdata-editor').css('height') === "0px") {
-            console.log('GET JSON FROM EDITOR')
             parsedData = editor.getJSON();
         } else {
-            console.log('GET JSON FROM TEXT AREA');
             parsedData = JSON.parse(userDataElement.value);
-
         }
     } catch (e) {}
 
@@ -367,9 +360,6 @@ function createJSONEditor() {
         },
         onError: function(e) {
             alert('JSON editor:' + e)
-        },
-        onChange: function() {
-            console.log('editor did change')
         }
     };
     editor = new JSONEditor(container, options);
@@ -412,14 +402,12 @@ function hideUserDataTextArea() {
 };
 
 function showStaticUserData() {
-    console.log('showing static userdata')
     $('#static-userdata').show();
     $('#static-userdata').css('height', $('#userdata-editor').height())
     $('#static-userdata').text(editor.getText());
 };
 
 function removeStaticUserData() {
-    console.log('hiding static userdata')
     $('#static-userdata').hide();
 };
 
@@ -432,9 +420,7 @@ function getEditorJSON() {
 };
 
 function deleteJSONEditor() {
-    console.log('should delete editor')
     if (editor !== null) {
-        console.log('has one so do it')
         editor.destroy();
     }
 };
@@ -769,20 +755,18 @@ function loaded() {
                                 //its json
                             if (Object.keys(json).length === 0 && json.constructor === Object) {
                                 //it's an empty object
-                                console.log('empty object')
                             }
                             createJSONEditor();
                             setEditorJSON(json)
                             showSaveUserDataButton();
                             hideNewJSONEditorButton();
-                            console.log('did parse json successfully')
 
                         } catch (e) {
-                            console.log('error parsing json')
+                            //normal text
+
                             elUserData.value = properties.userData;
                             showUserDataTextArea();
                             hideSaveUserDataButton();
-                            //normal text
                         }
 
                         elHyperlinkHref.value = properties.href;
@@ -1063,29 +1047,23 @@ function loaded() {
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
-            console.log('CLEAR USER DATA WAS CLICKED w')
             elUserData.value = "";
             showUserDataTextArea();
-            console.log('CLEAR USER DATA WAS CLICKED x')
             showNewJSONEditorButton();
-            console.log('CLEAR USER DATA WAS CLICKED y')
             hideSaveUserDataButton();
-            console.log('CLEAR USER DATA WAS CLICKED z')
-                 var properties = {};
-        properties['userData'] = elUserData.value;
-        console.log('properties at set thingo yo',  elUserData.value)
-        EventBridge.emitWebEvent(
-            JSON.stringify({
-                type: "update",
-                properties: properties,
-            })
-        );
+            var properties = {};
+            properties['userData'] = elUserData.value;
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type: "update",
+                    properties: properties,
+                })
+            );
 
 
         });
 
         elSaveUserData.addEventListener("click", function() {
-            console.log('click on save json button')
             setUserDataFromEditor();
         });
 
