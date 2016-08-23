@@ -352,7 +352,7 @@ function setTextareaScrolling(element) {
 
 var editor = null;
 var editorTimeout = null;
-var lastJSONString=null;
+var lastJSONString = null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -368,12 +368,10 @@ function createJSONEditor() {
             alert('JSON editor:' + e)
         },
         onChange: function() {
-            console.log('changed')
-            if(currentJSONString==='{"":""}'){
-                console.log('its empty')
+            if (currentJSONString === '{"":""}') {
                 return;
             }
-            $('#userdata-save').attr('disabled',false)
+            $('#userdata-save').attr('disabled', false)
             var currentJSONString = editor.getText();
 
 
@@ -440,6 +438,7 @@ function getEditorJSON() {
 function deleteJSONEditor() {
     if (editor !== null) {
         editor.destroy();
+        editor = null;
     }
 };
 
@@ -448,20 +447,29 @@ var savedJSONTimer = null;
 function saveJSONUserData() {
     setUserDataFromEditor();
     $('#userdata-saved').show();
+    $('#userdata-save').attr('disabled', true)
     if (savedJSONTimer !== null) {
         clearTimeout(savedJSONTimer);
     }
     savedJSONTimer = setTimeout(function() {
         $('#userdata-saved').hide();
-        $('#userdata-save').attr('disabled',true)
+        
     }, 1500)
 }
 
-function bindAllNonJSONEditorElements(){
+function bindAllNonJSONEditorElements() {
     var inputs = $('input');
     var i;
-    for(i=0;i<inputs.length;i++){
+    for (i = 0; i < inputs.length; i++) {
         var input = inputs[i];
+        var field = $(input);
+        field.on('focus', function(e) {
+            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
+                return;
+            } else {
+                saveJSONUserData();
+            }
+        })
     }
 }
 
@@ -657,12 +665,17 @@ function loaded() {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type == "update") {
+
                     if (data.selections.length == 0) {
+                        if (editor !== null) {
+                            deleteJSONEditor();
+                        }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
                         elID.innerHTML = "";
                         disableProperties();
                     } else if (data.selections.length > 1) {
+                        deleteJSONEditor();
                         var selections = data.selections;
 
                         var ids = [];
@@ -787,7 +800,6 @@ function loaded() {
                         FIXME: See FIXME for property-script-url.
                         elScriptTimestamp.value = properties.scriptTimestamp;
                         */
-                        //deleteJSONEditor();
                         hideUserDataTextArea();
                         var json = null;
                         try {
@@ -798,7 +810,6 @@ function loaded() {
                             }
                             if (editor === null) {
                                 createJSONEditor();
-                                console.log('CREATING NEW EDITOR')
                             }
 
                             setEditorJSON(json);
@@ -974,7 +985,7 @@ function loaded() {
                             elLocked.removeAttribute('disabled');
                         } else {
                             enableProperties();
-                            elSaveUserData.disabled=true;
+                            elSaveUserData.disabled = true;
                         }
 
                         var activeElement = document.activeElement;
@@ -1115,9 +1126,7 @@ function loaded() {
         });
 
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
-        // elJSONEditor.addEventListener('mouseleave',function(){
-        //     saveJSONUserData();
-        // });
+
         elNewJSONEditor.addEventListener('click', function() {
             deleteJSONEditor();
             createJSONEditor();
@@ -1387,7 +1396,7 @@ function loaded() {
                 clicked = true;
             };
         }
-        bindMouseLeaveForJSONEditor();
+        bindAllNonJSONEditorElements();
     });
 
     // Collapsible sections
