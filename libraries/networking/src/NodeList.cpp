@@ -539,6 +539,10 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     if (!_domainHandler.isConnected()) {
         _domainHandler.setUUID(domainUUID);
         _domainHandler.setIsConnected(true);
+
+        // in case we didn't use a place name to get to this domain,
+        // give the address manager a chance to lookup a default one now
+        DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
     } else if (_domainHandler.getUUID() != domainUUID) {
         // Recieved packet from different domain.
         qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" << _domainHandler.getUUID();

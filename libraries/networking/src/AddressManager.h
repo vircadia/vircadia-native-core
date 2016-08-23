@@ -101,6 +101,8 @@ public slots:
     void copyAddress();
     void copyPath();
 
+    void lookupShareableNameForDomainID(const QUuid& domainID);
+
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
@@ -123,6 +125,8 @@ protected:
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
+
+    void handleShareableNameAPIResponse(QNetworkReply& requestReply);
 
 private:
     void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
@@ -153,6 +157,8 @@ private:
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
+
+    QString _shareablePlaceName;
 
     QStack<QUrl> _backStack;
     QStack<QUrl> _forwardStack;

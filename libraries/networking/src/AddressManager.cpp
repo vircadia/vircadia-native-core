@@ -651,6 +651,9 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
 
         _port = port;
 
+        // any host change should clear the shareable place name
+        _shareablePlaceName.clear();
+
         if (host != _host) {
             _host = host;
             emit hostChanged(_host);
@@ -706,6 +709,59 @@ void AddressManager::copyAddress() {
 
 void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
+}
+
+void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {
+    // make sure that this response is for the domain we're currently connected to
+    auto domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
+
+    if (requestReply.url().toString().contains(uuidStringWithoutCurlyBraces(domainID))) {
+        // check for a name or default name in the API response
+
+        QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+        QJsonObject domainObject = responseObject["domain"].toObject();
+
+        const QString DOMAIN_NAME_KEY = "name";
+        const QString DOMAIN_DEFAULT_PLACE_NAME_KEY = "default_place_name";
+
+        bool shareableNameChanged { false };
+
+        if (domainObject[DOMAIN_NAME_KEY].isString()) {
+            _shareablePlaceName = domainObject[DOMAIN_NAME_KEY].toString();
+            shareableNameChanged = true;
+        } else if (domainObject[DOMAIN_DEFAULT_PLACE_NAME_KEY].isString()) {
+            _shareablePlaceName = domainObject[DOMAIN_DEFAULT_PLACE_NAME_KEY].toString();
+            shareableNameChanged = true;
+        }
+
+        if (shareableNameChanged) {
+            qDebug() << "AddressManager shareable name changed to" << _shareablePlaceName;
+        }
+    }
+}
+
+void AddressManager::lookupShareableNameForDomainID(const QUuid& domainID) {
+
+    // if we get to a domain via IP/hostname, often the address is only reachable by this client
+    // and not by other clients on the LAN or Internet
+
+    // to work around this we use the ID to lookup the default place name, and if it exists we
+    // then use that for Steam join/invite or copiable address
+
+    // it only makes sense to lookup a shareable default name if we don't have a place name
+    if (_placeName.isEmpty()) {
+        JSONCallbackParameters callbackParams;
+
+        // no error callback handling
+        // in the case of an error we simply assume there is no default place name
+        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "handleShareableNameAPIResponse";
+
+        DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(uuidStringWithoutCurlyBraces(domainID)),
+                                                              AccountManagerAuth::None,
+                                                              QNetworkAccessManager::GetOperation,
+                                                              callbackParams);
+    }
 }
 
 void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
