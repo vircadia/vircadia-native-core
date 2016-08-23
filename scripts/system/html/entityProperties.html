@@ -11,14 +11,18 @@
 <html>
 <head>
     <title>Properties</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <link rel="stylesheet" type="text/css" href="css/edit-style.css">
     <link rel="stylesheet" type="text/css" href="css/colpick.css">
+    <link href="css/jsoneditor.css" rel="stylesheet" type="text/css">
     <script src="js/jquery-2.1.4.min.js"></script>
     <script src="js/colpick.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
     <script type="text/javascript" src="js/spinButtons.js"></script>
     <script type="text/javascript" src="js/entityProperties.js"></script>
+
+    <script src="js/jsoneditor.min.js"></script>
 </head>
 <body onload='loaded();'>
     <div id="properties-list">
@@ -58,9 +62,18 @@
             <label for="property-description">Description</label>
             <input type="text" id="property-description">
         </div>
+      
         <div class="property textarea">
             <label for="property-user-data">User data</label>
-            <textarea id="property-user-data"></textarea>
+            <br>
+            <div class="row">
+             <input type="button" class="blue" id="userdata-new-editor" value="Edit as JSON">
+             <input type="button" class="red" id="userdata-clear" value="Clear User Data">
+             <input type="button" class="black" id="userdata-save" value="Save User Data">
+            </div>
+             <div id="static-userdata"></div>
+             <div id="userdata-editor"></div>
+             <textarea id="property-user-data"></textarea>
         </div>
         <div id="id" class="property value">
             <label>ID:</label>
