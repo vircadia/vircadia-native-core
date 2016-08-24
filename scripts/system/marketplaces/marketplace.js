@@ -9,7 +9,7 @@
 //
 
 /* global WebTablet */
-Script.include("./libraries/WebTablet.js");
+Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
