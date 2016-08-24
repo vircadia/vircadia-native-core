@@ -146,7 +146,6 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     }
 
     float maxError = FLT_MAX;
-    int HACK_MAX_ERROR_JOINT = -1;
     int numLoops = 0;
     const int MAX_IK_LOOPS = 16;
     const float MAX_ERROR_TOLERANCE = 0.1f; // cm
@@ -180,13 +179,12 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
         // compute maxError
         maxError = 0.0f;
-        for (int i = 0; i < targets.size(); i++) {
+        for (size_t i = 0; i < targets.size(); i++) {
             if (targets[i].getType() == IKTarget::Type::RotationAndPosition || targets[i].getType() == IKTarget::Type::HmdHead ||
                 targets[i].getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
                 float error = glm::length(absolutePoses[targets[i].getIndex()].trans - targets[i].getTranslation());
                 if (error > maxError) {
                     maxError = error;
-                    HACK_MAX_ERROR_JOINT = targets[i].getIndex();
                 }
             }
         }
