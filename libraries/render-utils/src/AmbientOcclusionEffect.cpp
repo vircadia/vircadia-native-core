@@ -353,7 +353,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
 
         Transform model;
         model.setTranslation(glm::vec3(sMin, tMin, 0.0f));

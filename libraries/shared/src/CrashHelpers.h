@@ -30,7 +30,7 @@ private:
 class B : public A {
 public:
     B() : A(this) { }
-    virtual void virtualFunction() { }
+    virtual void virtualFunction() override { }
 };
 
 A::~A() {

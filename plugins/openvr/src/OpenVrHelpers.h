@@ -59,4 +59,28 @@ inline vr::HmdMatrix34_t toOpenVr(const mat4& m) {
     return result;
 }
 
+struct PoseData {
+    uint32_t frameIndex{ 0 };
+    vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
+    mat4 poses[vr::k_unMaxTrackedDeviceCount];
+    vec3 linearVelocities[vr::k_unMaxTrackedDeviceCount];
+    vec3 angularVelocities[vr::k_unMaxTrackedDeviceCount];
+
+    PoseData() {
+        memset(vrPoses, 0, sizeof(vr::TrackedDevicePose_t) * vr::k_unMaxTrackedDeviceCount);
+    }
+
+    void update(const glm::mat4& resetMat) {
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            if (!vrPoses[i].bPoseIsValid) {
+                continue;
+            }
+            poses[i] = resetMat * toGlm(vrPoses[i].mDeviceToAbsoluteTracking);
+            linearVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vVelocity));
+            angularVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vAngularVelocity));
+        }
+    }
+};
+
+
 controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity);

@@ -1109,6 +1109,14 @@
           "advanced": true
         },
         {
+          "name": "backupDirectoryPath",
+          "label": "Entities Backup Directory Path",
+          "help": "The path to the directory to store backups in.<br/>If this path is relative it will be relative to the application data directory.",
+          "placeholder": "",
+          "default": "",
+          "advanced": true
+        },
+        {
           "name": "persistInterval",
           "label": "Save Check Interval",
           "help": "Milliseconds between checks for saving the current state of entities.",

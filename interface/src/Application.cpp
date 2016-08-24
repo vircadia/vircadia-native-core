@@ -86,15 +86,16 @@
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
 #include <plugins/CodecPlugin.h>
+#include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
-#include <RecordingScriptingInterface.h>
+#include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <ScriptEngines.h>
+#include <steamworks-wrapper/SteamClient.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -139,7 +140,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-#include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
@@ -257,7 +257,10 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-
+            // Don't do heartbeat detection under nsight
+            if (nsightActive()) {
+                continue;
+            }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -305,8 +308,6 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-
-
                     deadlockDetectionCrash();
                 #endif
             }
@@ -391,6 +392,11 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 }
 
 static const QString STATE_IN_HMD = "InHMD";
+static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
+static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
+static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
+static const QString STATE_CAMERA_ENTITY = "CameraEntity";
+static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
 static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
@@ -470,7 +476,9 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
-    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
+                    STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
+                    STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -739,7 +747,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    ResourceCache::setRequestLimit(MAX_CONCURRENT_RESOURCE_DOWNLOADS);
+    const char** constArgv = const_cast<const char**>(argv);
+    QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
+    bool success;
+    int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
+    if (!success) {
+        concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
+    }
+    ResourceCache::setRequestLimit(concurrentDownloads);
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
@@ -765,16 +780,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
 
-    _chromiumShareContext = new OffscreenGLCanvas();
-    _chromiumShareContext->create(_glWidget->context()->contextHandle());
-    _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->create(_glWidget->context()->contextHandle());
-    _offscreenContext->makeCurrent();
     initializeGL();
-    _offscreenContext->makeCurrent();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -811,6 +817,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     }
     UserActivityLogger::getInstance().logAction("launch", properties);
 
+    _connectionMonitor.init();
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -831,7 +838,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
         bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+    connect(nodeList.data(), &LimitedNodeList::dataReceived,
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     // FIXME -- I'm a little concerned about this.
@@ -953,6 +960,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _applicationStateDevice->setInputVariant(STATE_IN_HMD, []() -> float {
         return qApp->isHMDMode() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_FULL_SCREEN_MIRROR, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
+        return qApp->getCamera()->getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
@@ -1116,10 +1138,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     static int SEND_STATS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
 
+    static glm::vec3 lastAvatarPosition = getMyAvatar()->getPosition();
+    static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
+    static controller::Pose lastLeftHandPose = getMyAvatar()->getLeftHandPose();
+    static controller::Pose lastRightHandPose = getMyAvatar()->getRightHandPose();
+
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
     sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
+
         QJsonObject properties = {};
         MemoryInfo memInfo;
         if (getMemoryInfo(memInfo)) {
@@ -1160,6 +1188,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
+
+        glm::vec3 avatarPosition = getMyAvatar()->getPosition();
+        properties["avatar_has_moved"] = lastAvatarPosition != avatarPosition;
+        lastAvatarPosition = avatarPosition;
+
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto entityActivityTracking = entityScriptingInterface->getActivityTracking();
+        entityScriptingInterface->resetActivityTracking();
+        properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
+        properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
+        properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        auto hmdHeadPose = getHMDSensorPose();
+        properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
+        lastHMDHeadPose = hmdHeadPose;
+
+        auto leftHandPose = getMyAvatar()->getLeftHandPose();
+        auto rightHandPose = getMyAvatar()->getRightHandPose();
+        // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
+        // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
+        properties["hand_pose_changed"] =
+            ((leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
+            || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
+        lastLeftHandPose = leftHandPose;
+        lastRightHandPose = rightHandPose;
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -1203,6 +1256,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
+
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
+    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+
+    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
+
+    EntityItem::setEntitiesShouldFadeFunction([this]() {
+        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
+        return entityServerNode && !isPhysicsEnabled();
+    });
 
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
@@ -1457,11 +1526,18 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    _glWidget->makeCurrent();
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
+    _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1480,7 +1556,8 @@ void Application::initializeGL() {
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _offscreenContext->makeCurrent();
+    _glWidget->makeCurrent();
+
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
@@ -1496,8 +1573,13 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
+    _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->makeCurrent();
+
     // update before the first render
     update(0);
+
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -1514,7 +1596,7 @@ void Application::initializeUi() {
 
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_offscreenContext->getContext());
+    offscreenUi->create(_glWidget->context()->contextHandle());
 
     auto rootContext = offscreenUi->getRootContext();
 
@@ -1591,6 +1673,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+
+    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
     
 
     _glWidget->installEventFilter(offscreenUi.data());
@@ -1683,17 +1767,7 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
-    // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
-    {
-        PerformanceTimer perfTimer("syncCache");
-        renderArgs._context->syncCache();
-    }
-
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    // Final framebuffer that will be handled to the display-plugin
-    auto finalFramebuffer = framebufferCache->getFramebuffer();
-
-    _gpuContext->beginFrame(finalFramebuffer, getHMDSensorPose());
+    _gpuContext->beginFrame(getHMDSensorPose());
     // Reset the gpu::Context Stages
     // Back to the default framebuffer;
     gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
@@ -1823,7 +1897,10 @@ void Application::paintGL() {
     getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
 
     // Primary rendering pass
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
+    // Final framebuffer that will be handled to the display-plugin
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
@@ -1848,7 +1925,6 @@ void Application::paintGL() {
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
-            mat4 headPose = displayPlugin->getHeadPose();
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
@@ -1864,13 +1940,6 @@ void Application::paintGL() {
                 // Apply IPD scaling
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
-
-                // Tell the plugin what pose we're using to render.  In this case we're just using the
-                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-                // for rotational timewarp.  If we move to support positonal timewarp, we need to
-                // ensure this contains the full pose composed with the eye offsets.
-                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
-
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
@@ -1878,35 +1947,25 @@ void Application::paintGL() {
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
-
-        renderArgs._blitFramebuffer.reset();
-        renderArgs._context->enableStereo(false);
     }
 
-    _gpuContext->endFrame();
-
-    gpu::TexturePointer overlayTexture = _applicationOverlay.acquireOverlay();
-    if (overlayTexture) {
-        displayPlugin->submitOverlayTexture(overlayTexture);
-    }
-
-    // deliver final composited scene to the display plugin
+    auto frame = _gpuContext->endFrame();
+    frame->frameIndex = _frameCount;
+    frame->framebuffer = finalFramebuffer;
+    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
+        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+    };
+    frame->overlay = _applicationOverlay.getOverlayTexture();
+    // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-
-        auto finalTexture = finalFramebuffer->getRenderBuffer(0);
-        Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
-        _lockedFramebufferMap[finalTexture] = finalFramebuffer;
-
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
-        {
-            PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
-            PerformanceTimer perfTimer("pluginSubmitScene");
-            displayPlugin->submitSceneTexture(_frameCount, finalTexture);
-        }
-        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
+        displayPlugin->submitFrame(frame);
     }
+
+    // Reset the framebuffer and stereo state
+    renderArgs._blitFramebuffer.reset();
+    renderArgs._context->enableStereo(false);
 
     {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
@@ -2272,7 +2331,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_Asterisk:
-                Menu::getInstance()->triggerOption(MenuOption::Stars);
+                Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
 
             case Qt::Key_S:
@@ -2903,6 +2962,8 @@ void Application::idle(float nsecsElapsed) {
 
     PROFILE_RANGE(__FUNCTION__);
 
+    SteamClient::runCallbacks();
+
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
@@ -3211,6 +3272,14 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
+    // when +connect_lobby in command line, join steam lobby
+    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+    if (lobbyIndex != -1) {
+        QString lobbyId = arguments().value(lobbyIndex + 1);
+        SteamClient::joinLobby(lobbyId);
+    }
+
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (addressLookupString.isEmpty() && firstRun.get()) {
         qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";
@@ -3239,6 +3308,18 @@ void Application::init() {
         QMutexLocker viewLocker(&_viewMutex);
         getEntities()->setViewFrustum(_viewFrustum);
     }
+
+    getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
+        auto dims = item.getDimensions();
+        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+
+        if (maxSize <= 0.0f) {
+            return 0.0f;
+        }
+
+        auto distance = glm::distance(getMyAvatar()->getPosition(), item.getPosition());
+        return atan2(maxSize, distance);
+    });
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();
@@ -4185,8 +4266,6 @@ public:
     typedef render::Payload<BackgroundRenderData> Payload;
     typedef Payload::DataPointer Pointer;
 
-    Stars _stars;
-
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
@@ -4210,29 +4289,44 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
+            case model::SunSkyStage::SKY_DEFAULT: {
+                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
+                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
+                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
+
+                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                auto sceneKeyLight = scene->getKeyLight();
+                scene->setSunModelEnable(false);
+                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                // fall through: render a skybox, if available
+           }
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox) {
+                if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
+                // fall through: render defaults, if available
             }
-
-            // Fall through: if no skybox is available, render the SKY_DOME
-            case model::SunSkyStage::SKY_DOME:  {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                    PerformanceTimer perfTimer("stars");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
-                    // should be the first rendering pass - w/o depth buffer / lighting
-
-                    static const float alpha = 1.0f;
-                    background->_stars.render(args, alpha);
+            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                    auto sceneKeyLight = scene->getKeyLight();
+                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                    // do not set the ambient sphere - it peaks too high, and causes flashing when turning
+                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
                 }
+                // fall through: render defaults, if available
             }
-                break;
-
+            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+                }
             case model::SunSkyStage::NO_BACKGROUND:
             default:
                 // this line intentionally left blank
@@ -4423,7 +4517,6 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 }
-
 void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
@@ -4449,7 +4542,8 @@ void Application::clearDomainOctreeDetails() {
     getEntities()->clear();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
 }
@@ -4776,6 +4870,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4814,7 +4910,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     }
 
     if (defaultUpload) {
-        toggleAssetServerWidget(urlString);
+        showAssetServerWidget(urlString);
     }
     return defaultUpload;
 }
@@ -5002,7 +5098,7 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
-void Application::toggleAssetServerWidget(QString filePath) {
+void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
@@ -5053,8 +5149,10 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
-    if (!newScript.isEmpty()) {
+    auto newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    if (QUrl(newScript).scheme() == "atp") {
+        OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
+    } else if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
 }
@@ -5327,6 +5425,7 @@ void Application::updateDisplayMode() {
         DisplayPluginList advanced;
         DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
+            displayPlugin->setContext(_gpuContext);
             auto grouping = displayPlugin->getGrouping();
             switch (grouping) {
                 case Plugin::ADVANCED:
@@ -5395,9 +5494,6 @@ void Application::updateDisplayMode() {
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
-
-        // FIXME probably excessive and useless context switching
-        _offscreenContext->makeCurrent();
 
         bool active = newDisplayPlugin->activate();
 
@@ -5541,20 +5637,6 @@ QOpenGLContext* Application::getPrimaryContext() {
 
 bool Application::makeRenderingContextCurrent() {
     return _offscreenContext->makeCurrent();
-}
-
-void Application::releaseSceneTexture(const gpu::TexturePointer& texture) {
-    Q_ASSERT(QThread::currentThread() == thread());
-    auto& framebufferMap = _lockedFramebufferMap;
-    Q_ASSERT(framebufferMap.contains(texture));
-    auto framebufferPointer = framebufferMap[texture];
-    framebufferMap.remove(texture);
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    framebufferCache->releaseFramebuffer(framebufferPointer);
-}
-
-void Application::releaseOverlayTexture(const gpu::TexturePointer& texture) {
-    _applicationOverlay.releaseOverlay(texture);
 }
 
 bool Application::isForeground() const { 

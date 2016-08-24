@@ -16,35 +16,44 @@
 
 #include <OffscreenQmlDialog.h>
 
+class QNetworkReply;
+
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
-
-    Q_PROPERTY(QString statusText READ statusText WRITE setStatusText NOTIFY statusTextChanged)
-    Q_PROPERTY(QString rootUrl READ rootUrl)
 
 public:
     static void toggleAction();
 
     LoginDialog(QQuickItem* parent = nullptr);
 
-    void setStatusText(const QString& statusText);
-    QString statusText() const;
-
-    QString rootUrl() const;
-
 signals:
-    void statusTextChanged();
-
-protected:
-    void handleLoginCompleted(const QUrl& authURL);
+    void handleLoginCompleted();
     void handleLoginFailed();
 
-    Q_INVOKABLE void login(const QString& username, const QString& password);
-    Q_INVOKABLE void openUrl(const QString& url);
-private:
-    QString _statusText;
-    const QString _rootUrl;
+    void handleLinkCompleted();
+    void handleLinkFailed(QString error);
+
+    void handleCreateCompleted();
+    void handleCreateFailed(QString error);
+
+public slots:
+    void linkCompleted(QNetworkReply& reply);
+    void linkFailed(QNetworkReply& reply);
+
+    void createCompleted(QNetworkReply& reply);
+    void createFailed(QNetworkReply& reply);
+
+protected slots:
+    Q_INVOKABLE bool isSteamRunning() const;
+
+    Q_INVOKABLE void login(const QString& username, const QString& password) const;
+    Q_INVOKABLE void loginThroughSteam();
+    Q_INVOKABLE void linkSteam();
+    Q_INVOKABLE void createAccountFromStream(QString username = QString());
+
+    Q_INVOKABLE void openUrl(const QString& url) const;
+
 };
 
 #endif // hifi_LoginDialog_h

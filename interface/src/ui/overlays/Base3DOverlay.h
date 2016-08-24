@@ -12,10 +12,11 @@
 #define hifi_Base3DOverlay_h
 
 #include <Transform.h>
+#include <SpatiallyNestable.h>
 
 #include "Overlay.h"
 
-class Base3DOverlay : public Overlay {
+class Base3DOverlay : public Overlay, public SpatiallyNestable {
     Q_OBJECT
 
 public:
@@ -24,12 +25,9 @@ public:
 
     // getters
     virtual bool is3D() const override { return true; }
-    const glm::vec3& getPosition() const { return _transform.getTranslation(); }
-    const glm::quat& getRotation() const { return _transform.getRotation(); }
-    const glm::vec3& getScale() const { return _transform.getScale(); }
 
     // TODO: consider implementing registration points in this class
-    const glm::vec3& getCenter() const { return getPosition(); }
+    glm::vec3 getCenter() const { return getPosition(); }
 
     float getLineWidth() const { return _lineWidth; }
     bool getIsSolid() const { return _isSolid; }
@@ -37,12 +35,6 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
-
-    // setters
-    void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
-    void setRotation(const glm::quat& value) { _transform.setRotation(value); }
-    void setScale(float value) { _transform.setScale(value); }
-    void setScale(const glm::vec3& value) { _transform.setScale(value); }
 
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
@@ -64,7 +56,8 @@ public:
     }
 
 protected:
-    Transform _transform;
+    virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void parentDeleted() override;
 
     float _lineWidth;
     bool _isSolid;

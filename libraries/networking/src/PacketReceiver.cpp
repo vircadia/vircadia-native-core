@@ -294,7 +294,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
             PacketType packetType = receivedMessage->getType();
             
             if (matchingNode) {
-                emit dataReceived(matchingNode->getType(), receivedMessage->getSize());
                 matchingNode->recordBytesReceived(receivedMessage->getSize());
 
                 QMetaMethod metaMethod = listener.method;
@@ -326,7 +325,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 }
             } else {
                 // qDebug() << "Got verified unsourced packet list: " << QString(nlPacketList->getMessage());
-                emit dataReceived(NodeType::Unassigned, receivedMessage->getSize());
                 
                 // one final check on the QPointer before we invoke
                 if (listener.object) {

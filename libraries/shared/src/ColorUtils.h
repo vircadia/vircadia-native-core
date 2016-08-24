@@ -13,9 +13,12 @@
 #define hifi_ColorUtils_h
 
 #include <glm/glm.hpp>
-#include <SharedUtil.h>
+
+#include "SharedUtil.h"
 
 #include "DependencyManager.h"
+
+extern const float srgbToLinearLookupTable[256];
 
 class ColorUtils {
 public:
@@ -33,6 +36,7 @@ public:
     inline static glm::vec4 tosRGBVec4(const glm::vec4& srgb);
     
     inline static float sRGBToLinearFloat(const float& srgb);
+    inline static float sRGB8ToLinearFloat(const uint8_t srgb);
     inline static float tosRGBFloat(const float& linear);
 };
 
@@ -81,6 +85,9 @@ inline float ColorUtils::sRGBToLinearFloat(const float &srgb) {
     }
     
     return linearValue;
+}
+inline float ColorUtils::sRGB8ToLinearFloat(const uint8_t srgb) {
+    return srgbToLinearLookupTable[srgb];
 }
 
 // This is based upon the conversions found in section 17.3.9 of the OpenGL 4.4 specification.

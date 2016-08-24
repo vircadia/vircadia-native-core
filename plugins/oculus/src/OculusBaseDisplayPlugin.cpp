@@ -10,6 +10,7 @@
 #include <ViewFrustum.h>
 #include <controllers/Pose.h>
 #include <display-plugins/CompositorHelper.h>
+#include <gpu/Frame.h>
 
 #include "OculusHelpers.h"
 
@@ -21,7 +22,7 @@ void OculusBaseDisplayPlugin::resetSensors() {
 
 bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
-    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();;
+    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
     auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
@@ -40,7 +41,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         handPoses[hand] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
     });
 
-    withRenderThreadLock([&] {
+    withNonPresentThreadLock([&] {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
@@ -111,4 +112,13 @@ void OculusBaseDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
     releaseOculusSession();
     _session = nullptr;
+}
+
+void OculusBaseDisplayPlugin::updatePresentPose() {
+    //mat4 sensorResetMat;
+    //_currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
+    //_currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, _currentFrame->frameIndex);
+    //auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    //_currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
+    _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }

@@ -54,8 +54,9 @@ macro(SETUP_HIFI_LIBRARY)
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
   endforeach()
 
-  # Don't make scribed shaders cumulative
+  # Don't make scribed shaders or QT resource files cumulative
   set(AUTOSCRIBE_SHADER_LIB_SRC "")
+  set(QT_RESOURCES_FILE "")
 
   target_glm()
     

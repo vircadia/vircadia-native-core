@@ -63,7 +63,13 @@ QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
     return doc.object()[PROCEDURAL_USER_DATA_KEY];
 }
 
-Procedural::Procedural() : _state { std::make_shared<gpu::State>() } {
+Procedural::Procedural() {
+    _transparentState->setCullMode(gpu::State::CULL_NONE);
+    _transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
+    _transparentState->setBlendFunction(true,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
     _proceduralDataDirty = false;
 }
 
@@ -101,6 +107,11 @@ bool Procedural::parseUrl(const QUrl& shaderUrl) {
         }
         _networkShader.reset();
         return false;
+    }
+
+    // If the URL hasn't changed, don't mark the shader as dirty
+    if (_shaderUrl == shaderUrl) {
+        return true;
     }
 
     _shaderUrl = shaderUrl;
@@ -175,6 +186,10 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 }
 
 bool Procedural::ready() {
+    if (!_hasStartedFade) {
+        _fadeStartTime = usecTimestampNow();
+    }
+
     // Load any changes to the procedural
     // Check for changes atomically, in case they are currently being made
     if (_proceduralDataDirty) {
@@ -202,6 +217,10 @@ bool Procedural::ready() {
         }
     }
 
+    if (!_hasStartedFade) {
+        _hasStartedFade = true;
+        _isFading = true;
+    }
     return true;
 }
 
@@ -222,7 +241,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         _shaderSource = _networkShader->_source;
     }
 
-    if (!_pipeline || _shaderDirty) {
+    if (!_opaquePipeline || !_transparentPipeline || _shaderDirty) {
         if (!_vertexShader) {
             _vertexShader = gpu::Shader::createVertex(_vertexSource);
         }
@@ -260,7 +279,8 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
         gpu::Shader::makeProgram(*_shader, slotBindings);
 
-        _pipeline = gpu::Pipeline::create(_shader, _state);
+        _opaquePipeline = gpu::Pipeline::create(_shader, _opaqueState);
+        _transparentPipeline = gpu::Pipeline::create(_shader, _transparentState);
         for (size_t i = 0; i < NUM_STANDARD_UNIFORMS; ++i) {
             const std::string& name = STANDARD_UNIFORM_NAMES[i];
             _standardUniformSlots[i] = _shader->getUniforms().findLocation(name);
@@ -269,7 +289,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         _frameCount = 0;
     }
 
-    batch.setPipeline(_pipeline);
+    batch.setPipeline(isFading() ? _transparentPipeline : _opaquePipeline);
 
     if (_shaderDirty || _uniformsDirty) {
         setupUniforms();

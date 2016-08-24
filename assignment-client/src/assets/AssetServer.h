@@ -26,7 +26,7 @@ public:
     AssetServer(ReceivedMessage& message);
 
 public slots:
-    void run();
+    void run() override;
 
 private slots:
     void completeSetup();
@@ -35,9 +35,9 @@ private slots:
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
     void handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    
-    void sendStatsPacket();
-    
+
+    void sendStatsPacket() override;
+
 private:
     using Mappings = QVariantHash;
 

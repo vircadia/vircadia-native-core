@@ -94,7 +94,7 @@ public:
 template <class T> class CongestionControlFactory: public CongestionControlVirtualFactory {
 public:
     virtual ~CongestionControlFactory() {}
-    virtual std::unique_ptr<CongestionControl> create() { return std::unique_ptr<T>(new T()); }
+    virtual std::unique_ptr<CongestionControl> create() override { return std::unique_ptr<T>(new T()); }
 };
 
 class DefaultCC: public CongestionControl {
@@ -102,12 +102,12 @@ public:
     DefaultCC();
     
 public:
-    virtual void onACK(SequenceNumber ackNum);
-    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
-    virtual void onTimeout();
+    virtual void onACK(SequenceNumber ackNum) override;
+    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override;
+    virtual void onTimeout() override;
 
 protected:
-    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum);
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override;
 
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout

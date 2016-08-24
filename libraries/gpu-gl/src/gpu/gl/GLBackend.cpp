@@ -32,30 +32,44 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-static bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
+static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
-Backend* GLBackend::createBackend() {
+static GLBackend* INSTANCE{ nullptr };
+static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
+
+BackendPointer GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
-    GLBackend* result; 
-    if (enableOpenGL45 && version >= 0x0405) {
+    std::shared_ptr<GLBackend> result;
+    if (!disableOpenGL45 && version >= 0x0405) {
         qDebug() << "Using OpenGL 4.5 backend";
-        result = new gpu::gl45::GL45Backend();
+        result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
         qDebug() << "Using OpenGL 4.1 backend";
-        result = new gpu::gl41::GL41Backend();
+        result = std::make_shared<gpu::gl41::GL41Backend>();
     }
     result->initInput();
     result->initTransform();
+
+    INSTANCE = result.get();
+    void* voidInstance = &(*result);
+    qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
+
     gl::GLTexture::initTextureTransferHelper();
     return result;
 }
 
+GLBackend& getBackend() {
+    if (!INSTANCE) {
+        INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());
+    }
+    return *INSTANCE;
+}
 
 bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
-    return GLShader::makeProgram(shader, slotBindings);
+    return GLShader::makeProgram(getBackend(), shader, slotBindings);
 }
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -120,24 +134,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
-extern std::function<uint32(const Texture& texture)> TEXTURE_ID_RESOLVER;
-
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
-
-        TEXTURE_ID_RESOLVER = [](const Texture& texture)->uint32 {
-            auto object = Backend::getGPUObject<GLTexture>(texture);
-            if (!object) {
-                return 0;
-            }
-            
-            if (object->getSyncState() != GLSyncState::Idle) {
-                return object->_downsampleSource._texture;
-            }
-            return object->_texture;
-        };
-
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
         qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
@@ -178,6 +177,7 @@ void GLBackend::init() {
 }
 
 GLBackend::GLBackend() {
+    _pipeline._cameraCorrectionBuffer._buffer->flush();
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
 }
 
@@ -189,7 +189,7 @@ GLBackend::~GLBackend() {
     killTransform();
 }
 
-void GLBackend::renderPassTransfer(Batch& batch) {
+void GLBackend::renderPassTransfer(const Batch& batch) {
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
@@ -245,7 +245,7 @@ void GLBackend::renderPassTransfer(Batch& batch) {
     _inRenderTransferPass = false;
 }
 
-void GLBackend::renderPassDraw(Batch& batch) {
+void GLBackend::renderPassDraw(const Batch& batch) {
     _currentDraw = -1;
     _transform._camerasItr = _transform._cameraOffsets.begin();
     const size_t numCommands = batch.getCommands().size();
@@ -290,11 +290,8 @@ void GLBackend::renderPassDraw(Batch& batch) {
     }
 }
 
-void GLBackend::render(Batch& batch) {
-    // Finalize the batch by moving all the instanced rendering into the command buffer
-    batch.preExecute();
-
-    _stereo._skybox = batch.isSkyboxEnabled();
+void GLBackend::render(const Batch& batch) {
+    _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
     bool savedStereo = _stereo._enable;
@@ -318,6 +315,7 @@ void GLBackend::render(Batch& batch) {
 
 
 void GLBackend::syncCache() {
+    recycle();
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
@@ -334,21 +332,21 @@ void GLBackend::setupStereoSide(int side) {
     _transform.bindCurrentCamera(side);
 }
 
-void GLBackend::do_resetStages(Batch& batch, size_t paramOffset) {
+void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
 }
 
-void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
+void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {
     std::function<void()> f = batch._lambdas.get(batch._params[paramOffset]._uint);
     f();
 }
 
-void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
+void GLBackend::do_startNamedCall(const Batch& batch, size_t paramOffset) {
     batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
     _currentDraw = -1;
 }
 
-void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
+void GLBackend::do_stopNamedCall(const Batch& batch, size_t paramOffset) {
     batch._currentNamedCall.clear();
 }
 
@@ -365,14 +363,16 @@ void GLBackend::resetStages() {
 }
 
 
-void GLBackend::do_pushProfileRange(Batch& batch, size_t paramOffset) {
-#if defined(NSIGHT_FOUND)
+void GLBackend::do_pushProfileRange(const Batch& batch, size_t paramOffset) {
     auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
+    profileRanges.push_back(name);
+#if defined(NSIGHT_FOUND)
     nvtxRangePush(name.c_str());
 #endif
 }
 
-void GLBackend::do_popProfileRange(Batch& batch, size_t paramOffset) {
+void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
+    profileRanges.pop_back();
 #if defined(NSIGHT_FOUND)
     nvtxRangePop();
 #endif
@@ -385,7 +385,7 @@ void GLBackend::do_popProfileRange(Batch& batch, size_t paramOffset) {
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 // #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-void GLBackend::do_glActiveBindTexture(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glActiveBindTexture(const Batch& batch, size_t paramOffset) {
     glActiveTexture(batch._params[paramOffset + 2]._uint);
     glBindTexture(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._uint),
@@ -394,7 +394,7 @@ void GLBackend::do_glActiveBindTexture(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -408,7 +408,7 @@ void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform1f(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform1f(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -422,7 +422,7 @@ void GLBackend::do_glUniform1f(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform2f(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform2f(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -436,7 +436,7 @@ void GLBackend::do_glUniform2f(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform3f(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform3f(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -451,7 +451,7 @@ void GLBackend::do_glUniform3f(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform4f(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform4f(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -467,7 +467,7 @@ void GLBackend::do_glUniform4f(Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform3fv(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform3fv(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -477,12 +477,12 @@ void GLBackend::do_glUniform3fv(Batch& batch, size_t paramOffset) {
     glUniform3fv(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
         batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform4fv(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform4fv(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -492,13 +492,13 @@ void GLBackend::do_glUniform4fv(Batch& batch, size_t paramOffset) {
 
     GLint location = GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int);
     GLsizei count = batch._params[paramOffset + 1]._uint;
-    const GLfloat* value = (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint);
+    const GLfloat* value = (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint);
     glUniform4fv(location, count, value);
 
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniform4iv(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniform4iv(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -508,12 +508,12 @@ void GLBackend::do_glUniform4iv(Batch& batch, size_t paramOffset) {
     glUniform4iv(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
         batch._params[paramOffset + 1]._uint,
-        (const GLint*)batch.editData(batch._params[paramOffset + 0]._uint));
+        (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniformMatrix3fv(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniformMatrix3fv(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -525,11 +525,11 @@ void GLBackend::do_glUniformMatrix3fv(Batch& batch, size_t paramOffset) {
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glUniformMatrix4fv(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -541,11 +541,11 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) {
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_glColor4f(Batch& batch, size_t paramOffset) {
+void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
 
     glm::vec4 newColor(
         batch._params[paramOffset + 3]._float,
@@ -558,4 +558,133 @@ void GLBackend::do_glColor4f(Batch& batch, size_t paramOffset) {
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
     }
     (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::releaseBuffer(GLuint id, Size size) const {
+    Lock lock(_trashMutex);
+    _buffersTrash.push_back({ id, size });
+}
+
+void GLBackend::releaseTexture(GLuint id, Size size) const {
+    Lock lock(_trashMutex);
+    _texturesTrash.push_back({ id, size });
+}
+
+void GLBackend::releaseFramebuffer(GLuint id) const {
+    Lock lock(_trashMutex);
+    _framebuffersTrash.push_back(id);
+}
+
+void GLBackend::releaseShader(GLuint id) const {
+    Lock lock(_trashMutex);
+    _shadersTrash.push_back(id);
+}
+
+void GLBackend::releaseProgram(GLuint id) const {
+    Lock lock(_trashMutex);
+    _shadersTrash.push_back(id);
+}
+
+void GLBackend::releaseQuery(GLuint id) const {
+    Lock lock(_trashMutex);
+    _queriesTrash.push_back(id);
+}
+
+void GLBackend::recycle() const {
+    {
+        std::vector<GLuint> ids;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_buffersTrash, buffersTrash);
+        }
+        ids.reserve(buffersTrash.size());
+        for (auto pair : buffersTrash) {
+            ids.push_back(pair.first);
+            decrementBufferGPUCount();
+            updateBufferGPUMemoryUsage(pair.second, 0);
+        }
+        if (!ids.empty()) {
+            glDeleteBuffers((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<GLuint> framebuffersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_framebuffersTrash, framebuffersTrash);
+        }
+        ids.reserve(framebuffersTrash.size());
+        for (auto id : framebuffersTrash) {
+            ids.push_back(id);
+        }
+        if (!ids.empty()) {
+            glDeleteFramebuffers((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_texturesTrash, texturesTrash);
+        }
+        ids.reserve(texturesTrash.size());
+        for (auto pair : texturesTrash) {
+            ids.push_back(pair.first);
+            decrementTextureGPUCount();
+            updateTextureGPUMemoryUsage(pair.second, 0);
+        }
+        if (!ids.empty()) {
+            glDeleteTextures((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::list<GLuint> programsTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_programsTrash, programsTrash);
+        }
+        for (auto id : programsTrash) {
+            glDeleteProgram(id);
+        }
+    }
+
+    {
+        std::list<GLuint> shadersTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_shadersTrash, shadersTrash);
+        }
+        for (auto id : shadersTrash) {
+            glDeleteShader(id);
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        std::list<GLuint> queriesTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_queriesTrash, queriesTrash);
+        }
+        ids.reserve(queriesTrash.size());
+        for (auto id : queriesTrash) {
+            ids.push_back(id);
+        }
+        if (!ids.empty()) {
+            glDeleteQueries((GLsizei)ids.size(), ids.data());
+        }
+    }
+}
+
+void GLBackend::setCameraCorrection(const Mat4& correction) {
+    _transform._correction.correction = correction;
+    _transform._correction.correctionInverse = glm::inverse(correction);
+    _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
+    _pipeline._cameraCorrectionBuffer._buffer->flush();
 }

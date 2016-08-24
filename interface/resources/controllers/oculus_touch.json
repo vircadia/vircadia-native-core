@@ -1,8 +1,13 @@
 {
     "name": "Oculus Touch to Standard",
     "channels": [
-        { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb" },
-        { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb" },
+        { "from": "OculusTouch.A", "to": "Standard.RightPrimaryThumb", "peek": true },
+        { "from": "OculusTouch.X", "to": "Standard.LeftPrimaryThumb", "peek": true },
+
+        { "from": "OculusTouch.A", "to": "Standard.A" },
+        { "from": "OculusTouch.B", "to": "Standard.B" },
+        { "from": "OculusTouch.X", "to": "Standard.X" },
+        { "from": "OculusTouch.Y", "to": "Standard.Y" },
 
         { "from": "OculusTouch.LY", "to": "Standard.LY",
             "filters": [
@@ -17,7 +22,11 @@
         },
         { "from": "OculusTouch.LT", "to": "Standard.LT" },
         { "from": "OculusTouch.LS", "to": "Standard.LS" },
-        { "from": "OculusTouch.LeftGrip", "to": "Standard.LeftGrip" },
+        { "from": "OculusTouch.LeftGrip", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.LeftGrip", "to": "Standard.LT" },
         { "from": "OculusTouch.LeftHand", "to": "Standard.LeftHand" },
 
         { "from": "OculusTouch.RY", "to": "Standard.RY",
@@ -33,7 +42,11 @@
         },
         { "from": "OculusTouch.RT", "to": "Standard.RT" },
         { "from": "OculusTouch.RS", "to": "Standard.RS" },
-        { "from": "OculusTouch.RightGrip", "to": "Standard.RightGrip" },
+        { "from": "OculusTouch.RightGrip", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "OculusTouch.RightGrip", "to": "Standard.RT" },
         { "from": "OculusTouch.RightHand", "to": "Standard.RightHand" },
 
         { "from": "OculusTouch.LeftApplicationMenu", "to": "Standard.Back" },
@@ -53,5 +66,4 @@
         { "from": "OculusTouch.RightIndexPoint", "to": "Standard.RightIndexPoint" }
     ]
 }
-
 

@@ -82,12 +82,12 @@ public:
     void setDeltaRoll(float roll) { _deltaRoll = roll; }
     float getDeltaRoll() const { return _deltaRoll; }
 
-    virtual void setFinalYaw(float finalYaw);
-    virtual void setFinalPitch(float finalPitch);
-    virtual void setFinalRoll(float finalRoll);
-    virtual float getFinalPitch() const;
-    virtual float getFinalYaw() const;
-    virtual float getFinalRoll() const;
+    virtual void setFinalYaw(float finalYaw) override;
+    virtual void setFinalPitch(float finalPitch) override;
+    virtual void setFinalRoll(float finalRoll) override;
+    virtual float getFinalPitch() const override;
+    virtual float getFinalYaw() const override;
+    virtual float getFinalRoll() const override;
 
     void relax(float deltaTime);
 

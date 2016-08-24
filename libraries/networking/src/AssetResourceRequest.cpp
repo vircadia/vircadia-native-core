@@ -33,12 +33,7 @@ bool AssetResourceRequest::urlIsAssetHash() const {
 }
 
 void AssetResourceRequest::doSend() {
-    auto parts = _url.path().split(".", QString::SkipEmptyParts);
-    auto hash = parts.length() > 0 ? parts[0] : "";
-    auto extension = parts.length() > 1 ? parts[1] : "";
-
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
-
     if (urlIsAssetHash()) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
         auto parts = _url.path().split(".", QString::SkipEmptyParts);

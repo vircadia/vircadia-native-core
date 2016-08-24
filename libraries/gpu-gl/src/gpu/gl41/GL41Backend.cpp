@@ -18,7 +18,7 @@ Q_LOGGING_CATEGORY(gpugl41logging, "hifi.gpu.gl41")
 using namespace gpu;
 using namespace gpu::gl41;
 
-void GL41Backend::do_draw(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_draw(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
@@ -43,7 +43,7 @@ void GL41Backend::do_draw(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GL41Backend::do_drawIndexed(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_drawIndexed(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
@@ -72,7 +72,7 @@ void GL41Backend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GL41Backend::do_drawInstanced(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
@@ -108,7 +108,7 @@ void glbackend_glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsize
 #endif
 }
 
-void GL41Backend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 3]._uint];
     uint32 numIndices = batch._params[paramOffset + 2]._uint;
@@ -143,7 +143,7 @@ void GL41Backend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
 }
 
 
-void GL41Backend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_multiDrawIndirect(const Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
@@ -159,7 +159,7 @@ void GL41Backend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 
 }
 
-void GL41Backend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];

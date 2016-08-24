@@ -1109,9 +1109,6 @@ SelectionDisplay = (function() {
 
         }
 
-        Entities.editEntity(entityID, {
-            localRenderAlpha: 0.1
-        });
         Overlays.editOverlay(highlightBox, {
             visible: false
         });

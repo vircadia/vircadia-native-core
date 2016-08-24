@@ -68,11 +68,11 @@ class ScriptsModel : public QAbstractItemModel {
 public:
     ScriptsModel(QObject* parent = NULL);
     ~ScriptsModel();
-    QModelIndex index(int row, int column, const QModelIndex& parent) const;
-    QModelIndex parent(const QModelIndex& child) const;
-    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-    int rowCount(const QModelIndex& parent = QModelIndex()) const;
-    int columnCount(const QModelIndex& parent = QModelIndex()) const;
+    QModelIndex index(int row, int column, const QModelIndex& parent) const override;
+    QModelIndex parent(const QModelIndex& child) const override;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
     TreeNodeBase* getTreeNodeFromIndex(const QModelIndex& index) const;
     QList<TreeNodeBase*> getFolderNodes(TreeNodeFolder* parent) const;
 

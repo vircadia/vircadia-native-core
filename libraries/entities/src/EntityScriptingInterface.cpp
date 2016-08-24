@@ -40,6 +40,12 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
+void EntityScriptingInterface::resetActivityTracking() {
+    _activityTracking.addedEntityCount = 0;
+    _activityTracking.deletedEntityCount = 0;
+    _activityTracking.editedEntityCount = 0;
+}
+
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->isAllowedEditor();
@@ -78,6 +84,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     EntityItemProperties scriptSideProperties = entitySideProperties;
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+    scriptSideProperties.setLocalVelocity(entitySideProperties.getLocalVelocity());
+    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getLocalAngularVelocity());
 
     bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
@@ -88,10 +96,19 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
-    // TODO -- handle velocity and angularVelocity
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity(),
+                                                                      entitySideProperties.getParentID(),
+                                                                      entitySideProperties.getParentJointIndex(),
+                                                                      success);
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                                                    entitySideProperties.getParentID(),
+                                                                                    entitySideProperties.getParentJointIndex(),
+                                                                                    success);
 
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
+    scriptSideProperties.setVelocity(worldVelocity);
+    scriptSideProperties.setAngularVelocity(worldAngularVelocity);
 
     return scriptSideProperties;
 }
@@ -125,11 +142,34 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
         entitySideProperties.setRotation(localRotation);
     }
 
+    if (scriptSideProperties.localVelocityChanged()) {
+        entitySideProperties.setVelocity(scriptSideProperties.getLocalVelocity());
+    } else if (scriptSideProperties.velocityChanged()) {
+        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity(),
+                                                                          entitySideProperties.getParentID(),
+                                                                          entitySideProperties.getParentJointIndex(),
+                                                                          success);
+        entitySideProperties.setVelocity(localVelocity);
+    }
+
+    if (scriptSideProperties.localAngularVelocityChanged()) {
+        entitySideProperties.setAngularVelocity(scriptSideProperties.getLocalAngularVelocity());
+    } else if (scriptSideProperties.angularVelocityChanged()) {
+        glm::vec3 localAngularVelocity =
+            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                           entitySideProperties.getParentID(),
+                                                           entitySideProperties.getParentJointIndex(),
+                                                           success);
+        entitySideProperties.setAngularVelocity(localAngularVelocity);
+    }
+
     return entitySideProperties;
 }
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
@@ -200,6 +240,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
@@ -263,6 +305,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    _activityTracking.editedEntityCount++;
+
     EntityItemProperties properties = scriptSideProperties;
 
     auto dimensions = properties.getDimensions();
@@ -406,6 +450,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    _activityTracking.deletedEntityCount++;
+
     EntityItemID entityID(id);
     bool shouldDelete = true;
 

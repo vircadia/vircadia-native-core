@@ -33,18 +33,6 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
-    _wantVsync = true; // always
-    Parent::submitSceneTexture(frameIndex, sceneTexture);
-}
-
-void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {
-    if (_wantVsync != isVsyncEnabled()) {
-        enableVsync(_wantVsync);
-    }
-    Parent::internalPresent();
-}
-
 static const uint32_t MIN_THROTTLE_CHECK_FRAMES = 60;
 
 bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {

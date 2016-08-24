@@ -36,13 +36,13 @@ public:
     AudioStatsDisplay(QFormLayout* form, QString text, unsigned colorRGBA);
     void updatedDisplay(QString str);
     void paint();
-    
+
 private:
     QString _strBuf;
     QLabel* _label;
     QString _text;
     unsigned _colorRGBA;
-    
+
 };
 
 //dialog
@@ -51,9 +51,9 @@ class AudioStatsDialog : public QDialog {
 public:
     AudioStatsDialog(QWidget* parent);
     ~AudioStatsDialog();
-    
-    void paintEvent(QPaintEvent*);
-    
+
+    void paintEvent(QPaintEvent*) override;
+
 private:
     // audio stats methods for rendering
     QVector<QString> _audioMixerStats;
@@ -61,48 +61,47 @@ private:
     QVector<QString> _upstreamMixerStats;
     QVector<QString> _downstreamStats;
     QVector<QString> _upstreamInjectedStats;
-    
+
     int _audioMixerID;
     int _upstreamClientID;
     int _upstreamMixerID;
     int _downstreamID;
     int _upstreamInjectedID;
-    
+
     QVector<QVector<AudioStatsDisplay*>> _audioDisplayChannels;
-    
+
     int addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color);
     void updateStats(QVector<QString>& stats, const int channelID);
     void renderStats();
     void clearAllChannels();
     void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats, bool isDownstreamStats);
-    
-    
+
+
     const AudioIOStats* _stats;
     QFormLayout* _form;
-    
+
     bool _isEnabled;
     bool _shouldShowInjectedStreams;
-        
-    
+
+
 signals:
-        
-    
+
+
     void closed();
-    
+
     public slots:
-    
-        
-    void reject();
+
+
+    void reject() override;
     void updateTimerTimeout();
-    
+
 protected:
-    
+
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent*);
-    
+    void closeEvent(QCloseEvent*) override;
+
 private:
     QTimer* averageUpdateTimer = new QTimer(this);
-    
 };
 
 
