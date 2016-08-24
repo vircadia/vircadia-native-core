@@ -301,7 +301,6 @@ function setUserDataFromEditor(noUpdate) {
         return;
     } else {
         var text = editor.getText()
-        console.log('saving as text:', text)
         if (noUpdate === true) {
             EventBridge.emitWebEvent(
                 JSON.stringify({
@@ -472,7 +471,6 @@ function deleteJSONEditor() {
 var savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
-    console.log('start saving userdata')
     setUserDataFromEditor(noUpdate);
     $('#userdata-saved').show();
     $('#userdata-save').attr('disabled', true)
@@ -495,7 +493,6 @@ function bindAllNonJSONEditorElements() {
             if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
                 return;
             } else {
-                console.log('save on focus',e)
                 saveJSONUserData(true);
             }
         })
@@ -707,7 +704,6 @@ function loaded() {
 
                     if (data.selections.length == 0) {
                         if (editor !== null && lastEntityID!==null) {
-                            console.log('save on no selections')
                             saveJSONUserData(true);
                             deleteJSONEditor();
                         }
@@ -749,8 +745,7 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== properties.id  && lastEntityID!==null) {
-                            console.log('save on init')
+                        if (lastEntityID !== properties.id  && lastEntityID!==null && editor!==null) {
                             saveJSONUserData(true);
                         }
 
@@ -1168,7 +1163,6 @@ function loaded() {
 
 
         elSaveUserData.addEventListener("click", function() {
-            console.log('save on click')
             saveJSONUserData(true);
         });
 
