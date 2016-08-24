@@ -243,7 +243,7 @@ target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets 
+  Qt5::WebChannel Qt5::WebEngine 
 )
 
 if (UNIX)
