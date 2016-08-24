@@ -243,6 +243,16 @@ FunctionEnd
 
 ;--------------------------------
 ; Installation types
+
+Section "-Previous Install Cleanup"
+
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; Remove the resources folder so we don't end up including removed QML files
+    RMDir /r "$INSTDIR\resources"
+  ${EndIf}
+
+SectionEnd
+
 @CPACK_NSIS_INSTALLATION_TYPES@
 
 ;--------------------------------
@@ -588,9 +598,6 @@ Section "-Core installation"
   Delete "$INSTDIR\vccorlib120.dll"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
-
-  ; Remove the resources folder so we don't end up including removed QML files
-  RMDir /r "$INSTDIR\resources"
 
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
