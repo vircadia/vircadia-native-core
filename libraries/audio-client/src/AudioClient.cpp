@@ -1373,6 +1373,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     return bytesWritten;
 }
 
+// now called from a background thread, to keep blocking operations off the audio thread
 void AudioClient::checkDevices() {
     QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
     QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
