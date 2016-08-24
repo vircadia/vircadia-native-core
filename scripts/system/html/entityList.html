@@ -7,73 +7,71 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
-
 <html>
-<head>
-    <link rel="stylesheet" type="text/css" href="css/edit-style.css">
-    <script src="js/list.min.js"></script>
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
-    <script type="text/javascript" src="js/spinButtons.js"></script>
-    <script type="text/javascript" src="js/entityList.js"></script>
-</head>
-<body onload='loaded();'>
-    <div id="entity-list-header">
-        <input type="button" class="glyph" id="refresh" value="F" />
-        <div>
-            <input type="button" id="locked" class="glyph" value="&#xe006;" />
-            <input type="button" id="visible" class="glyph" value="&#xe007;" />
-        </div>
-        <input type="button" id="teleport" value="Jump To Selection" />
-        <input type="button" class="red" id="delete" value="Delete" />
-    </div>
-
-    <div id="entity-list">
-        <div id="search-area">
-            <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
-            <div id="radius-and-unit" class="number">
-                <label for="radius">Search radius <span class="unit">m</span></label>
-                <input type="number" id="radius" value="100" />
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <script src="js/list.min.js"></script>
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/entityList.js"></script>
+    </head>
+    <body onload='loaded();'>
+        <div id="entity-list-header">
+            <input type="button" class="glyph" id="refresh" value="F" />
+            <div>
+                <input type="button" id="locked" class="glyph" value="&#xe006;" />
+                <input type="button" id="visible" class="glyph" value="&#xe007;" />
             </div>
+            <input type="button" id="teleport" value="Jump To Selection" />
+            <input type="button" class="red" id="delete" value="Delete" />
         </div>
-        <div id="entity-table-scroll">
-            <table id="entity-table">
-                <colgroup>
+        <div id="entity-list">
+            <div id="search-area">
+                <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
+                <div id="radius-and-unit" class="number">
+                    <label for="radius">Search radius <span class="unit">m</span></label>
+                    <input type="number" id="radius" value="100" />
+                </div>
+            </div>
+            <div id="entity-table-scroll">
+                <table id="entity-table">
+                    <colgroup>
                     <col span="1" id="col-type" />
                     <col span="1" id="col-name" />
                     <col span="1" id="col-url" />
                     <col span="1" id="col-locked" />
                     <col span="1" id="col-visible" />
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th id="entity-type" data-sort="type">Type<span class="sort-order"></span></th>
-                        <th id="entity-name" data-sort="type">Name<span class="sort-order"></span></th>
-                        <th id="entity-url" data-sort="url">File<span class="sort-order"></span></th>
-                        <th id="entity-locked" data-sort="locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
-                        <th colspan="2" id="entity-visible" data-sort="visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
-                    </tr>
-                </thead>
-                <tbody class="list" id="entity-table-body">
-                    <tr>
-                        <td class="type">Type</td>
-                        <td class="name">Name</td>
-                        <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
-                        <td class="locked glyph">?</td>
-                        <td class="visible glyph">?</td>
-                        <td class="id" style="display: none">ID</td>
-                    </tr>
-                </tbody>
-                <tfoot>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th id="entity-type" data-sort="type">Type<span class="sort-order"></span></th>
+                            <th id="entity-name" data-sort="type">Name<span class="sort-order"></span></th>
+                            <th id="entity-url" data-sort="url">File<span class="sort-order"></span></th>
+                            <th id="entity-locked" data-sort="locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
+                            <th colspan="2" id="entity-visible" data-sort="visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="list" id="entity-table-body">
+                        <tr>
+                            <td class="type">Type</td>
+                            <td class="name">Name</td>
+                            <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
+                            <td class="locked glyph">?</td>
+                            <td class="visible glyph">?</td>
+                            <td class="id" style="display: none">ID</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
                     <tr>
                         <td id="footer-text" colspan="5"> </td>
                     </tr>
-                </tfoot>
-            </table>
-            <div id="no-entities">
-                No entities found within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
+                    </tfoot>
+                </table>
+                <div id="no-entities">
+                    No entities found within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
+                </div>
             </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>
