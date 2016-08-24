@@ -26,7 +26,7 @@ var ICON_FOR_TYPE = {
 var EDITOR_TIMEOUT_DURATION = 1500;
 
 var colorPickers = [];
-
+var lastEntityID=null;
 debugPrint = function(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -84,7 +84,7 @@ function showElements(els, show) {
 function createEmitCheckedPropertyUpdateFunction(propertyName) {
     return function() {
         EventBridge.emitWebEvent(
-            '{ "type":"update", "properties":{"' + propertyName + '":' + this.checked + '}}'
+            '{"id":' + lastEntityID + ', "type":"update", "properties":{"' + propertyName + '":' + this.checked + '}}'
         );
     };
 }
@@ -106,6 +106,7 @@ function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
         properties[group][propertyName] = this.checked;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties
             })
@@ -119,7 +120,7 @@ function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
         var value = parseFloat(this.value).toFixed(decimals);
 
         EventBridge.emitWebEvent(
-            '{ "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
+            '{"id":' + lastEntityID + ', "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
         );
     };
 }
@@ -131,6 +132,7 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
         properties[group][propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -145,6 +147,7 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
         properties[propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -159,6 +162,7 @@ function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
         properties[group][propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -169,6 +173,7 @@ function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
 function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
     return function() {
         var data = {
+            id: lastEntityID,
             type: "update",
             properties: {}
         };
@@ -184,6 +189,7 @@ function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
 function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, elZ) {
     return function() {
         var data = {
+            id: lastEntityID,
             type: "update",
             properties: {}
         };
@@ -200,6 +206,7 @@ function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, el
 function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
     return function() {
         var data = {
+            id: lastEntityID,
             type: "update",
             properties: {}
         };
@@ -220,6 +227,7 @@ function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue)
 
 function emitColorPropertyUpdate(property, red, green, blue, group) {
     var data = {
+        id: lastEntityID,
         type: "update",
         properties: {}
     };
@@ -244,6 +252,7 @@ function emitColorPropertyUpdate(property, red, green, blue, group) {
 function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
     return function() {
         var data = {
+            id: lastEntityID,
             type: "update",
             properties: {}
         };
@@ -273,6 +282,7 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
 
     EventBridge.emitWebEvent(
         JSON.stringify({
+            id: lastEntityID,
             type: "update",
             properties: _properties
         })
@@ -280,7 +290,7 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
 
 }
 
-function setUserDataFromEditor() {
+function setUserDataFromEditor(noUpdate) {
     var json = null;
     try {
         json = editor.get();
@@ -291,19 +301,34 @@ function setUserDataFromEditor() {
         return;
     } else {
         var text = editor.getText()
-        EventBridge.emitWebEvent(
-            JSON.stringify({
-                type: "update",
-                properties: {
-                    userData: text
-                },
-            })
-        );
+        console.log('saving as text:', text)
+        if (noUpdate === true) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "saveUserData",
+                    properties: {
+                        userData: text
+                    },
+                })
+            );
+            return;
+        } else {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "update",
+                    properties: {
+                        userData: text
+                    },
+                })
+            );
+        }
+
     }
 
 
 }
-
 
 function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
     var properties = {};
@@ -337,6 +362,7 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
 
     EventBridge.emitWebEvent(
         JSON.stringify({
+            id: lastEntityID,
             type: "update",
             properties: properties,
         })
@@ -368,11 +394,12 @@ function createJSONEditor() {
             alert('JSON editor:' + e)
         },
         onChange: function() {
+           var currentJSONString = editor.getText();
+
             if (currentJSONString === '{"":""}') {
                 return;
             }
             $('#userdata-save').attr('disabled', false)
-            var currentJSONString = editor.getText();
 
 
         }
@@ -444,8 +471,9 @@ function deleteJSONEditor() {
 
 var savedJSONTimer = null;
 
-function saveJSONUserData() {
-    setUserDataFromEditor();
+function saveJSONUserData(noUpdate) {
+    console.log('start saving userdata')
+    setUserDataFromEditor(noUpdate);
     $('#userdata-saved').show();
     $('#userdata-save').attr('disabled', true)
     if (savedJSONTimer !== null) {
@@ -453,7 +481,7 @@ function saveJSONUserData() {
     }
     savedJSONTimer = setTimeout(function() {
         $('#userdata-saved').hide();
-        
+
     }, 1500)
 }
 
@@ -467,9 +495,20 @@ function bindAllNonJSONEditorElements() {
             if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
                 return;
             } else {
-                saveJSONUserData();
+                console.log('save on focus',e)
+                saveJSONUserData(true);
             }
         })
+    }
+}
+
+function unbindAllInputs() {
+    var inputs = $('input');
+    var i;
+    for (i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var field = $(input);
+        field.unbind();
     }
 }
 
@@ -667,7 +706,9 @@ function loaded() {
                 if (data.type == "update") {
 
                     if (data.selections.length == 0) {
-                        if (editor !== null) {
+                        if (editor !== null && lastEntityID!==null) {
+                            console.log('save on no selections')
+                            saveJSONUserData(true);
                             deleteJSONEditor();
                         }
                         elTypeIcon.style.display = "none";
@@ -707,9 +748,13 @@ function loaded() {
                         disableProperties();
                     } else {
 
-
                         properties = data.selections[0].properties;
+                        if (lastEntityID !== properties.id  && lastEntityID!==null) {
+                            console.log('save on init')
+                            saveJSONUserData(true);
+                        }
 
+                        lastEntityID = properties.id;
                         elID.innerHTML = properties.id;
 
                         elType.innerHTML = properties.type;
@@ -1112,6 +1157,7 @@ function loaded() {
             properties['userData'] = elUserData.value;
             EventBridge.emitWebEvent(
                 JSON.stringify({
+                    id: lastEntityID,
                     type: "update",
                     properties: properties,
                 })
@@ -1122,7 +1168,8 @@ function loaded() {
 
 
         elSaveUserData.addEventListener("click", function() {
-            saveJSONUserData();
+            console.log('save on click')
+            saveJSONUserData(true);
         });
 
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));

@@ -1427,7 +1427,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if (data.type === "showMarketplace") {
+        }else if(data.type==='saveUserData'){
+            Entities.editEntity(data.id,data.properties)
+        }
+         else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
             if (data.action === "moveSelectionToGrid") {
