@@ -98,5 +98,5 @@ marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("marketplace");
     browseExamplesButton.clicked.disconnect(onClick);
-    marketplaceWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
+    marketplaceWindow.visibleChanged.disconnect(onMarketplaceWindowVisibilityChanged);
 });
