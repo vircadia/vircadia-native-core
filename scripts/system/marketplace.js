@@ -55,7 +55,7 @@ function hideMarketplace() {
     if (marketplaceWindow.visible) {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
-    } else {
+    } else if (marketplaceWebTablet) {
         marketplaceWebTablet.destroy();
         marketplaceWebTablet = null;
     }
@@ -81,16 +81,19 @@ var browseExamplesButton = toolBar.addButton({
     alpha: 0.9
 });
 
-function onExamplesWindowVisibilityChanged() {
+function onMarketplaceWindowVisibilityChanged() {
     browseExamplesButton.writeProperty('buttonState', marketplaceWindow.visible ? 0 : 1);
     browseExamplesButton.writeProperty('defaultState', marketplaceWindow.visible ? 0 : 1);
     browseExamplesButton.writeProperty('hoverState', marketplaceWindow.visible ? 2 : 3);
+    marketplaceVisible = marketplaceWindow.visible;
 }
+
 function onClick() {
     toggleMarketplace();
 }
+
 browseExamplesButton.clicked.connect(onClick);
-marketplaceWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
+marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("marketplace");
