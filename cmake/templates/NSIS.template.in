@@ -245,12 +245,8 @@ FunctionEnd
 ; Installation types
 
 Section "-Previous Install Cleanup"
-
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ; Remove the resources folder so we don't end up including removed QML files
-    RMDir /r "$INSTDIR\resources"
-  ${EndIf}
-
+  ; Remove the resources folder so we don't end up including removed QML files
+  RMDir /r "$INSTDIR\resources"
 SectionEnd
 
 @CPACK_NSIS_INSTALLATION_TYPES@
