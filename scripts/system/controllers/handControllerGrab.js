@@ -239,6 +239,10 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
     updateMethod: "entityTouching"
 };
 
+function angleBetween(a, b) {
+    return Math.acos(Vec3.dot(Vec3.normalize(a), Vec3.normalize(b)));
+}
+
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
     var invRot = Quat.inverse(props.rotation);
@@ -2021,7 +2025,8 @@ function MyController(hand) {
                 var handPosition = this.getHandPosition();
                 // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
+                var TEAR_AWAY_DISTANCE = 0.04;
+                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
@@ -2173,6 +2178,11 @@ function MyController(hand) {
 
             Entities.sendMousePressOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendClickDownOnEntity(this.grabbedEntity, pointerEvent);
+
+            this.touchingEnterTimer = 0;
+            this.touchingEnterPointerEvent = pointerEvent;
+            this.touchingEnterPointerEvent.button = "None";
+            this.deadspotExpired = false;
         }
     };
 
@@ -2180,27 +2190,37 @@ function MyController(hand) {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation());
         if (intersectInfo) {
-            var pointerEvent = {
-                type: "Release",
-                id: this.hand + 1, // 0 is reserved for hardware mouse
-                pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
-                pos3D: intersectInfo.point,
-                normal: intersectInfo.normal,
-                direction: intersectInfo.searchRay.direction,
-                button: "Primary",
-                isPrimaryButton: true,
-                isSecondaryButton: false,
-                isTertiaryButton: false
-            };
+            var pointerEvent;
+            if (this.deadspotExpired) {
+                pointerEvent = {
+                    type: "Release",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+                    pos3D: intersectInfo.point,
+                    normal: intersectInfo.normal,
+                    direction: intersectInfo.searchRay.direction,
+                    button: "Primary",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+            } else {
+                pointerEvent = this.touchingEnterPointerEvent;
+                pointerEvent.button = "Primary";
+                pointerEvent.isPrimaryButton = false;
+            }
 
             Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendHoverLeaveEntity(this.grabbedEntity, pointerEvent);
-            this.focusedEntity = null;
         }
+        this.focusedEntity = null;
     };
 
-    this.entityTouching = function() {
+    this.entityTouching = function(dt) {
+
+        this.touchingEnterTimer += dt;
+
         entityPropertiesCache.addEntity(this.grabbedEntity);
 
         if (!this.triggerSmoothedGrab()) {
@@ -2229,8 +2249,14 @@ function MyController(hand) {
                 isTertiaryButton: false
             };
 
-            Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
-            Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
+            var POINTER_PRESS_TO_MOVE_DELAY = 0.15; // seconds
+            var POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.05; // radians ~ 3 degrees
+            if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
+                angleBetween(pointerEvent.direction, this.touchingEnterPointerEvent.direction) > POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE) {
+                Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
+                Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
+                this.deadspotExpired = true;
+            }
 
             this.intersectionDistance = intersectInfo.distance;
             this.searchIndicatorOn(intersectInfo.searchRay);

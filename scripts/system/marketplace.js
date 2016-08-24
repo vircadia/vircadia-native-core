@@ -8,6 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global WebTablet */
+Script.include("./libraries/WebTablet.js");
+
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
@@ -22,26 +25,45 @@ var marketplaceWindow = new OverlayWebWindow({
 var toolHeight = 50;
 var toolWidth = 50;
 var TOOLBAR_MARGIN_Y = 0;
+var marketplaceVisible = false;
+var marketplaceWebTablet;
 
+function shouldShowWebTablet() {
+    var rightPose = Controller.getPoseValue(Controller.Standard.RightHand);
+    var leftPose = Controller.getPoseValue(Controller.Standard.LeftHand);
+    var hasHydra = !!Controller.Hardware.Hydra;
+    return HMD.active && (leftPose.valid || rightPose.valid || hasHydra);
+}
 
 function showMarketplace(marketplaceID) {
-    var url = MARKETPLACE_URL;
-    if (marketplaceID) {
-        url = url + "/items/" + marketplaceID;
+    if (shouldShowWebTablet()) {
+        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace");
+    } else {
+        var url = MARKETPLACE_URL;
+        if (marketplaceID) {
+            url = url + "/items/" + marketplaceID;
+        }
+        marketplaceWindow.setURL(url);
+        marketplaceWindow.setVisible(true);
     }
-    marketplaceWindow.setURL(url);
-    marketplaceWindow.setVisible(true);
 
+    marketplaceVisible = true;
     UserActivityLogger.openedMarketplace();
 }
 
 function hideMarketplace() {
-    marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
+    if (marketplaceWindow.visible) {
+        marketplaceWindow.setVisible(false);
+        marketplaceWindow.setURL("about:blank");
+    } else if (marketplaceWebTablet) {
+        marketplaceWebTablet.destroy();
+        marketplaceWebTablet = null;
+    }
+    marketplaceVisible = false;
 }
 
 function toggleMarketplace() {
-    if (marketplaceWindow.visible) {
+    if (marketplaceVisible) {
         hideMarketplace();
     } else {
         showMarketplace();
@@ -59,16 +81,19 @@ var browseExamplesButton = toolBar.addButton({
     alpha: 0.9
 });
 
-function onExamplesWindowVisibilityChanged() {
+function onMarketplaceWindowVisibilityChanged() {
     browseExamplesButton.writeProperty('buttonState', marketplaceWindow.visible ? 0 : 1);
     browseExamplesButton.writeProperty('defaultState', marketplaceWindow.visible ? 0 : 1);
     browseExamplesButton.writeProperty('hoverState', marketplaceWindow.visible ? 2 : 3);
+    marketplaceVisible = marketplaceWindow.visible;
 }
+
 function onClick() {
     toggleMarketplace();
 }
+
 browseExamplesButton.clicked.connect(onClick);
-marketplaceWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
+marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("marketplace");

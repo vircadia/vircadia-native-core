@@ -11,6 +11,7 @@
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QQmlContext>
 #include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
@@ -26,13 +27,14 @@
 
 #include "EntityTreeRenderer.h"
 
-const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
 // Don't allow more than 100 concurrent web views
 static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
+
+static int MAX_WINDOW_SIZE = 4096;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
@@ -67,6 +69,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->load("WebView.qml");
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+    _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
@@ -87,7 +90,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             QTouchEvent::TouchPoint point;
             point.setId(event.getID());
             point.setState(Qt::TouchPointReleased);
-            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
             QPointF windowPoint(windowPos.x, windowPos.y);
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
@@ -97,6 +100,19 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
         }
     });
     return true;
+}
+
+glm::vec2 RenderableWebEntityItem::getWindowSize() const {
+    glm::vec2 dims = glm::vec2(getDimensions());
+    dims *= METERS_TO_INCHES * _dpi;
+
+    // ensure no side is never larger then MAX_WINDOW_SIZE
+    float max = (dims.x > dims.y) ? dims.x : dims.y;
+    if (max > MAX_WINDOW_SIZE) {
+        dims *= MAX_WINDOW_SIZE / max;
+    }
+
+    return dims;
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
@@ -124,12 +140,13 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
 
     _lastRenderTime = usecTimestampNow();
-    glm::vec2 dims = glm::vec2(getDimensions());
-    dims *= METERS_TO_INCHES * DPI;
+
+    glm::vec2 windowSize = getWindowSize();
+
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
     // without worrying about excessive overhead.
-    _webSurface->resize(QSize(dims.x, dims.y));
+    _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
@@ -185,7 +202,7 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         return;
     }
 
-    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * DPI);
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
     if (event.getType() == PointerEvent::Move) {
