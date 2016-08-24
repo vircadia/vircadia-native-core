@@ -798,7 +798,7 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 }
 
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 20px;
     height: 10px;
 }
 ::-webkit-scrollbar-track {
@@ -1080,4 +1080,26 @@ input#reset-to-natural-dimensions {
 
 #animation-fps {
     margin-top: 48px;
+}
+
+#userdata-clear{
+    margin-bottom: 10px;
+}
+
+
+#static-userdata{
+    display: none;
+    z-index: 99;
+    position: absolute;
+    width: 96%;
+    padding-left:1%;
+    margin-top:5px;
+    margin-bottom:10px;
+    background-color: #2e2e2e;
+}
+
+#userdata-saved{
+    margin-top:5px;
+    font-size:16px;
+    display:none;
 }
