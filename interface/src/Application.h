@@ -250,6 +250,9 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    
+    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
+    void shareSnapshot(const QString& filename);
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
@@ -276,6 +279,7 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -395,8 +399,6 @@ private:
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
-
-    void takeSnapshot();
 
     MyAvatar* getMyAvatar() const;
 

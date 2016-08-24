@@ -11,7 +11,7 @@
 /* global WebTablet */
 Script.include("./libraries/WebTablet.js");
 
-var toolIconUrl = Script.resolvePath("assets/images/tools/");
+var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new OverlayWebWindow({

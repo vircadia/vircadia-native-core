@@ -25,6 +25,8 @@ WebEngineView {
         });
     }
 
+
+
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
     Timer {
         id: urlReplacementTimer
@@ -59,11 +61,6 @@ WebEngineView {
         }
     }
 
-    onNewViewRequested:{
-            var component = Qt.createComponent("../Browser.qml");
-            var newWindow = component.createObject(desktop);
-            request.openIn(newWindow.webView)
-    }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521

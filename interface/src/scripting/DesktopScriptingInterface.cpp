@@ -17,6 +17,8 @@
 #include "Application.h"
 #include "MainWindow.h"
 #include <display-plugins/CompositorHelper.h>
+#include <DependencyManager.h>
+#include <OffscreenUi.h>
 
 int DesktopScriptingInterface::getWidth() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
@@ -29,5 +31,13 @@ int DesktopScriptingInterface::getHeight() {
 
 void DesktopScriptingInterface::setOverlayAlpha(float alpha) {
     qApp->getApplicationCompositor().setAlpha(alpha);
+}
+
+void DesktopScriptingInterface::show(const QString& path, const QString&  title) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "show", Qt::QueuedConnection, Q_ARG(QString, path), Q_ARG(QString, title));
+        return;
+    }
+    DependencyManager::get<OffscreenUi>()->show(path, title);
 }
 

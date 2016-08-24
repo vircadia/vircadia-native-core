@@ -57,6 +57,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FileScriptingInterface.h>
 #include <Finally.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
@@ -1578,6 +1579,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", fileDownload);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2024,7 +2028,6 @@ bool Application::importJSONFromURL(const QString& urlString) {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-
     emit svoImportRequested(urlString);
     return true;
 }
@@ -2149,13 +2152,15 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
+
             if (canAcceptURL(urlString)) {
+
                 return acceptURL(urlString);
             }
         }
@@ -2296,7 +2301,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
-                    takeSnapshot();
+                    takeSnapshot(true);
                 }
                 break;
 
@@ -4326,7 +4331,7 @@ namespace render {
            }
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox) {
+                if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, args->getViewFrustum());
                     break;
@@ -4913,6 +4918,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
+        emit receivedHifiSchemeURL(urlString);
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
@@ -5020,7 +5026,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -5118,11 +5123,11 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
+
 void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-
     static const QUrl url { "AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
@@ -5189,15 +5194,24 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot() {
-    QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-    player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-    player->play();
+void Application::takeSnapshot(bool notify, float aspectRatio) {
+    postLambdaEvent([notify, aspectRatio, this] {
+        QMediaPlayer* player = new QMediaPlayer();
+        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+        player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+        player->play();
 
-    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
+    });
+}
+
+void Application::shareSnapshot(const QString& path) {
+    postLambdaEvent([path] {
+        // not much to do here, everything is done in snapshot code...
+        Snapshot::uploadSnapshot(path);
+    });
 }
 
 float Application::getRenderResolutionScale() const {

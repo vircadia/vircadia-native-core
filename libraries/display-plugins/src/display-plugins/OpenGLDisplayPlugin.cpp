@@ -659,12 +659,26 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
     _container->makeRenderingContextCurrent();
 }
 
-QImage OpenGLDisplayPlugin::getScreenshot() const {
+QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     auto size = _compositeFramebuffer->getSize();
+    if (isHmd()) {
+        size.x /= 2;
+    }
+    auto bestSize = size;
+    uvec2 corner(0);
+    if (aspectRatio != 0.0f) { // Pick out the largest piece of the center that produces the requested width/height aspectRatio
+        if (ceil(size.y * aspectRatio) < size.x) {
+            bestSize.x = round(size.y * aspectRatio);
+        } else {
+            bestSize.y = round(size.x / aspectRatio);
+        }
+        corner.x = round((size.x - bestSize.x) / 2.0f);
+        corner.y = round((size.y - bestSize.y) / 2.0f);
+    }
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
-    QImage screenshot(size.x, size.y, QImage::Format_ARGB32);
+    QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
     withMainThreadContext([&] {
-        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(uvec2(0), size), screenshot);
+        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     });
     return screenshot.mirrored(false, true);
 }
