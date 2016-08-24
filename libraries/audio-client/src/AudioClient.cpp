@@ -82,10 +82,7 @@ public:
 
     void run() override {
         while (!_quit) {
-
-            //qDebug() << "Checking for audio device changes...";
             _audioClient->checkDevices();
-
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
         }
     }
