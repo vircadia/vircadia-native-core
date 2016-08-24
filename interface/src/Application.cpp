@@ -4326,7 +4326,7 @@ namespace render {
            }
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox) {
+                if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, args->getViewFrustum());
                     break;
