@@ -1,22 +1,26 @@
 //
-//  marketplace.js
+//  clara.js
 //
 //  Created by Eric Levin on 8 Jan 2016
+//  Edited by Elisa Lupin-Jimenez on 23 Aug 2016
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var toolIconUrl = Script.resolvePath("assets/images/tools/");
+var toolIconUrl = Script.resolvePath("../assets/images/tools/");
+var qml = Script.resolvePath("../../../resources/qml/MarketplaceComboBox.qml")
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var marketplaceWindow = new OverlayWebWindow({
+
+var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
-    source: "about:blank",
+    source: qml,
     width: 900,
     height: 700,
-    visible: false
+    toolWindow: false,
+    visible: false,
 });
 
 var toolHeight = 50;
@@ -29,7 +33,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
 
     UserActivityLogger.openedMarketplace();
@@ -37,7 +40,6 @@ function showMarketplace(marketplaceID) {
 
 function hideMarketplace() {
     marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
 }
 
 function toggleMarketplace() {

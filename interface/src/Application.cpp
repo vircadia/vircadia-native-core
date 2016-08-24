@@ -57,6 +57,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FileScriptingInterface.h>
 #include <Finally.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
@@ -1578,6 +1579,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", fileDownload);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2024,7 +2028,6 @@ bool Application::importJSONFromURL(const QString& urlString) {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-
     emit svoImportRequested(urlString);
     return true;
 }
@@ -2149,13 +2152,15 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
+
             if (canAcceptURL(urlString)) {
+
                 return acceptURL(urlString);
             }
         }
@@ -5021,7 +5026,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -5119,11 +5123,11 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
+
 void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-
     static const QUrl url { "AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){

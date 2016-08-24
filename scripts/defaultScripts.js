@@ -15,7 +15,7 @@ Script.load("system/users.js");
 Script.load("system/mute.js");
 Script.load("system/goto.js");
 Script.load("system/hmd.js");
-Script.load("system/marketplace.js");
+Script.load("system/marketplaces/marketplace.js");
 Script.load("system/edit.js");
 Script.load("system/mod.js");
 Script.load("system/selectAudioDevice.js");
