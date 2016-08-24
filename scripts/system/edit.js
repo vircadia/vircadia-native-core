@@ -143,7 +143,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-   // print("setting marketplace URL to " + url);
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
@@ -793,7 +792,6 @@ var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
 
 function setupModelMenus() {
-   // print("setupModelMenus()");
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
@@ -802,7 +800,6 @@ function setupModelMenus() {
         grouping: "Advanced"
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
-       // print("no delete... adding ours");
         Menu.addMenuItem({
             menuName: "Edit",
             menuItemName: "Delete",
@@ -813,8 +810,6 @@ function setupModelMenus() {
             grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
-    } else {
-       // print("delete exists... don't add ours");
     }
 
     Menu.addMenuItem({
@@ -1045,8 +1040,6 @@ function deleteSelectedEntities() {
         }
         SelectionManager.clearSelections();
         pushCommandForSelections([], savedProperties);
-    } else {
-       // print("  Delete Entity.... not holding...");
     }
 }
 
@@ -1162,7 +1155,6 @@ function getPositionToImportEntity() {
     return position;
 }
 function importSVO(importURL) {
-    print("Import URL requested: " + importURL);
     if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
@@ -1426,10 +1418,9 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        }else if(data.type==='saveUserData'){
-            Entities.editEntity(data.id,data.properties)
-        }
-         else if (data.type === "showMarketplace") {
+        } else if(data.type === 'saveUserData'){
+            Entities.editEntity(data.id, data.properties)
+        } else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
             if (data.action === "moveSelectionToGrid") {
