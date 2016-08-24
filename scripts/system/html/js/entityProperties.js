@@ -26,7 +26,7 @@ var ICON_FOR_TYPE = {
 var EDITOR_TIMEOUT_DURATION = 1500;
 
 var colorPickers = [];
-var lastEntityID=null;
+var lastEntityID = null;
 debugPrint = function(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -333,11 +333,7 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
     var properties = {};
     var parsedData = {};
     try {
-        if ($('#userdata-editor').css('height') === "0px") {
-            parsedData = editor.getJSON();
-        } else {
-            parsedData = JSON.parse(userDataElement.value);
-        }
+        parsedData = JSON.parse(userDataElement.value);
     } catch (e) {}
 
     if (!(groupName in parsedData)) {
@@ -393,7 +389,7 @@ function createJSONEditor() {
             alert('JSON editor:' + e)
         },
         onChange: function() {
-           var currentJSONString = editor.getText();
+            var currentJSONString = editor.getText();
 
             if (currentJSONString === '{"":""}') {
                 return;
@@ -493,7 +489,10 @@ function bindAllNonJSONEditorElements() {
             if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
                 return;
             } else {
-                saveJSONUserData(true);
+                if ($('#userdata-editor').css('height') !== "0px") {
+                    saveJSONUserData(true);
+
+                }
             }
         })
     }
@@ -703,7 +702,7 @@ function loaded() {
                 if (data.type == "update") {
 
                     if (data.selections.length == 0) {
-                        if (editor !== null && lastEntityID!==null) {
+                        if (editor !== null && lastEntityID !== null) {
                             saveJSONUserData(true);
                             deleteJSONEditor();
                         }
@@ -745,7 +744,7 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== properties.id  && lastEntityID!==null && editor!==null) {
+                        if (lastEntityID !== properties.id && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
 
@@ -843,11 +842,8 @@ function loaded() {
                         hideUserDataTextArea();
                         var json = null;
                         try {
-                            json = JSON.parse(properties.userData)
-                                //its json
-                            if (Object.keys(json).length === 0 && json.constructor === Object) {
-                                //it's an empty object
-                            }
+                            json = JSON.parse(properties.userData);
+                  
                             if (editor === null) {
                                 createJSONEditor();
                             }
