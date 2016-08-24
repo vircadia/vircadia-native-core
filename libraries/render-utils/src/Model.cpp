@@ -166,6 +166,11 @@ void Model::updateRenderItems() {
         return;
     }
 
+    glm::vec3 scale = getScale();
+    if (_collisionGeometry) {
+        // _collisionGeometry is already scaled
+        scale = glm::vec3(1.0f);
+    }
     _needsUpdateClusterMatrices = true;
     _renderItemsNeedUpdate = false;
 
@@ -173,7 +178,7 @@ void Model::updateRenderItems() {
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
     std::weak_ptr<Model> weakSelf = shared_from_this();
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
@@ -184,7 +189,7 @@ void Model::updateRenderItems() {
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         Transform modelTransform;
-        modelTransform.setScale(self->_scale);
+        modelTransform.setScale(scale);
         modelTransform.setTranslation(self->_translation);
         modelTransform.setRotation(self->_rotation);
 

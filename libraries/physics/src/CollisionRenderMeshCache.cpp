@@ -190,10 +190,6 @@ bool CollisionRenderMeshCache::releaseMesh(CollisionRenderMeshCache::Key key) {
     }
     CollisionMeshMap::const_iterator itr = _meshMap.find(key);
     if (itr != _meshMap.end()) {
-        // we hold at least one reference, and the outer scope also holds at least one
-        // so we assert that the reference count is not 1
-        assert((*itr).second.use_count() != 1);
-
         _pendingGarbage.push_back(key);
         return true;
     }
