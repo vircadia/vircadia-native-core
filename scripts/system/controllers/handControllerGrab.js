@@ -22,7 +22,7 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = false;
+var FORCE_IGNORE_IK = true;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -58,12 +58,6 @@ var EQUIP_SPHERE_COLOR = {
 };
 var EQUIP_SPHERE_ALPHA = 0.15;
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
-
-
-var GRAB_POINT_SPHERE_RADIUS = 0.08;
-var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
-var GRAB_POINT_SPHERE_ALPHA = 0.85;
-
 
 
 //
@@ -107,7 +101,7 @@ var EQUIP_HOTSPOT_RENDER_RADIUS = 0.0; // radius used for palm vs equip-hotspot 
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
-var NEAR_GRAB_RADIUS = 0.15; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_RADIUS = 0.07; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
@@ -117,6 +111,13 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 
 // if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
+
+
+var GRAB_POINT_SPHERE_OFFSET = {x: 0, y: 0.2, z:0};
+var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
+var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
+var GRAB_POINT_SPHERE_ALPHA = 0.85;
+
 
 //
 // other constants
@@ -703,12 +704,16 @@ function MyController(hand) {
             return MyAvatar.getLeftPalmRotation();
         }
     };
-    // controllerPosition is where the controller would be, in-world.
+    // controllerLocation is where the controller would be, in-world.
     this.getControllerLocation = function () {
         var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var pose = Controller.getPoseValue(standardControllerValue);
-        return {position: Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position),
-                orientation: Quat.multiply(MyAvatar.orientation, pose.rotation)};
+
+        var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation)
+        var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
+        position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
+
+        return {position: position, orientation: orientation};
     };
 
     this.actionID = null; // action this script created...
@@ -1368,6 +1373,8 @@ function MyController(hand) {
         this.isInitialGrab = false;
         this.shouldResetParentOnRelease = false;
 
+        this.grabPointSphereOn();
+
         this.checkForStrayChildren();
 
         if (this.triggerSmoothedReleased()) {
@@ -1847,7 +1854,8 @@ function MyController(hand) {
         if (this.ignoreIK) {
             var controllerLocation = this.getControllerLocation();
             handRotation = controllerLocation.orientation;
-            handPosition = controllerLocation.position;
+            handPosition = Vec3.subtract(controllerLocation.position,
+                                         Vec3.multiplyQbyV(handRotation, GRAB_POINT_SPHERE_OFFSET));
         } else {
             handRotation = this.getHandRotation();
             handPosition = this.getHandPosition();
