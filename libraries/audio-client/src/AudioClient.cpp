@@ -90,6 +90,7 @@ public:
         }
     }
 
+private:
     AudioClient* _audioClient { nullptr };
     bool _quit { false };
 };
