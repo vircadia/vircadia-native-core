@@ -12,7 +12,7 @@
 #include "DoubleHashKey.h"
 
 const uint32_t NUM_PRIMES = 64;
-const uint32_t PRIMES[] = { 
+const uint32_t PRIMES[] = {
     4194301U, 4194287U, 4194277U, 4194271U, 4194247U, 4194217U, 4194199U, 4194191U,
     4194187U, 4194181U, 4194173U, 4194167U, 4194143U, 4194137U, 4194131U, 4194107U,
     4194103U, 4194023U, 4194011U, 4194007U, 4193977U, 4193971U, 4193963U, 4193957U,
@@ -27,8 +27,8 @@ uint32_t DoubleHashKey::hashFunction(uint32_t value, uint32_t primeIndex) {
     uint32_t hash = PRIMES[primeIndex % NUM_PRIMES] * (value + 1U);
     hash += ~(hash << 15);
     hash ^=  (hash >> 10);
-    hash +=  (hash << 3); 
-    hash ^=  (hash >> 6); 
+    hash +=  (hash << 3);
+    hash ^=  (hash >> 6);
     hash += ~(hash << 11);
     return hash ^ (hash >> 16);
 }
