@@ -149,8 +149,7 @@ public:
 
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
-    
-    
+
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
@@ -158,8 +157,11 @@ public:
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
 
-    void bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(gpu::Batch& batch);
-    gpu::PipelinePointer getSimpleSRGBTexturedUnlitNoTexAlphaPipeline();
+    void bindOpaqueWebBrowserProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getOpaqueWebBrowserProgram();
+
+    void bindTransparentWebBrowserProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getTransparentWebBrowserProgram();
 
     render::ShapePipelinePointer getOpaqueShapePipeline() { return GeometryCache::_simpleOpaquePipeline; }
     render::ShapePipelinePointer getTransparentShapePipeline() { return GeometryCache::_simpleTransparentPipeline; }
@@ -423,9 +425,11 @@ private:
     gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
-    gpu::ShaderPointer _simpleSRGBTexturedUnlitNoTexAlphaShader;
-    gpu::PipelinePointer _simpleSRGBTexturedUnlitNoTexAlphaPipeline;
+    gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
 
+    gpu::ShaderPointer _simpleTransparentWebBrowserShader;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 };
 
 #endif // hifi_GeometryCache_h
