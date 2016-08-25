@@ -1393,7 +1393,8 @@ function MyController(hand) {
             return;
         }
 
-        var handPosition = this.getHandPosition();
+        // var handPosition = this.getHandPosition();
+        var handPosition = this.getControllerLocation().position;
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
