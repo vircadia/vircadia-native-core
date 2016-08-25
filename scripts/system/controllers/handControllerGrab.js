@@ -25,8 +25,8 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = false;
-var SHOW_GRAB_POINT_SPHERE = false;
+var FORCE_IGNORE_IK = true;
+var SHOW_GRAB_POINT_SPHERE = true;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -833,12 +833,8 @@ function MyController(hand) {
         if (!SHOW_GRAB_POINT_SPHERE) {
             return;
         }
-        var controllerLocation = this.getControllerLocation();
-        if (this.grabPointSphere) {
-            Overlays.editOverlay(this.grabPointSphere, {
-                position: controllerLocation.position
-            });
-        } else {
+        if (!this.grabPointSphere) {
+            var controllerLocation = this.getControllerLocation();
             this.grabPointSphere = Overlays.addOverlay("sphere", {
                 position: controllerLocation.position,
                 rotation: { x: 0, y: 0, z: 0, w: 1 },
@@ -848,7 +844,11 @@ function MyController(hand) {
                 solid: true,
                 visible: true,
                 ignoreRayIntersection: true,
-                drawInFront: false
+                drawInFront: false,
+                parentID: MyAvatar.sessionUUID,
+                parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                         "Controller.Standard.RightHand" :
+                                                         "Controller.Standard.LeftHand")
             });
         }
     };
