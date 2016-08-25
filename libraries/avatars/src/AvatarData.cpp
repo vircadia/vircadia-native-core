@@ -53,15 +53,18 @@ namespace AvatarDataPacket {
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
-        float position[3];            // skeletal model's position
-        float globalPosition[3];      // avatar's position
-        uint16_t localOrientation[3]; // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
-        uint16_t scale;               // (compressed) 'ratio' encoding uses sign bit as flag.
-        float lookAtPosition[3];      // world space position that eyes are focusing on.
-        float audioLoudness;          // current loundess of microphone
+        float position[3];                // skeletal model's position
+        float globalPosition[3];          // avatar's position
+        uint16_t localOrientation[3];     // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
+        uint16_t scale;                   // (compressed) 'ratio' encoding uses sign bit as flag.
+        float lookAtPosition[3];          // world space position that eyes are focusing on.
+        float audioLoudness;              // current loundess of microphone
+        uint8_t sensorToWorldQuat[6];     // 6 byte compressed quaternion part of sensor to world matrix
+        uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
+        float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
         uint8_t flags;
     } PACKED_END;
-    const size_t HEADER_SIZE = 49;
+    const size_t HEADER_SIZE = 69;
 
     // only present if HAS_REFERENTIAL flag is set in header.flags
     PACKED_BEGIN struct ParentInfo {
@@ -92,6 +95,9 @@ namespace AvatarDataPacket {
     };
     */
 }
+
+static const int TRANSLATION_COMPRESSION_RADIX = 12;
+static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -209,6 +215,14 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     header->lookAtPosition[1] = _headData->_lookAtPosition.y;
     header->lookAtPosition[2] = _headData->_lookAtPosition.z;
     header->audioLoudness = _headData->_audioLoudness;
+
+    glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+    packOrientationQuatToSixBytes(header->sensorToWorldQuat, glmExtractRotation(sensorToWorldMatrix));
+    glm::vec3 scale = extractScale(sensorToWorldMatrix);
+    packFloatScalarToSignedTwoByteFixed((uint8_t*)&header->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
+    header->sensorToWorldTrans[0] = sensorToWorldMatrix[3][0];
+    header->sensorToWorldTrans[1] = sensorToWorldMatrix[3][1];
+    header->sensorToWorldTrans[2] = sensorToWorldMatrix[3][2];
 
     setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
     // hand state
@@ -345,8 +359,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     if (validityBit != 0) {
         *destinationBuffer++ = validity;
     }
-
-    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     validityBit = 0;
     validity = *validityPosition++;
@@ -500,6 +512,15 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
     _headData->_audioLoudness = audioLoudness;
 
+    glm::quat sensorToWorldQuat;
+    unpackOrientationQuatFromSixBytes(header->sensorToWorldQuat, sensorToWorldQuat);
+    float sensorToWorldScale;
+    unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&header->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+    glm::vec3 sensorToWorldTrans(header->sensorToWorldTrans[0], header->sensorToWorldTrans[1], header->sensorToWorldTrans[2]);
+    glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
+
+    _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
+
     { // bitFlags and face data
         uint8_t bitItems = header->flags;
 
@@ -616,7 +637,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // each joint translation component is stored in 6 bytes.
     const int COMPRESSED_TRANSLATION_SIZE = 6;
     PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
-    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     for (int i = 0; i < numJoints; i++) {
         JointData& data = _jointData[i];
@@ -1716,6 +1736,11 @@ AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
         _avatarEntityDetached.clear();
     });
     return result;
+}
+
+// thread-safe
+glm::mat4 AvatarData::getSensorToWorldMatrix() const {
+    return _sensorToWorldMatrixCache.get();
 }
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {

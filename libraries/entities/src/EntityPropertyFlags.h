@@ -176,6 +176,7 @@ enum EntityPropertyList {
     PROP_OWNING_AVATAR_ID, // doesn't go over wire
 
     PROP_SHAPE,
+    PROP_DPI,
 
     PROP_LOCAL_VELOCITY, // only used to convert values to and from scripts
     PROP_LOCAL_ANGULAR_VELOCITY, // only used to convert values to and from scripts

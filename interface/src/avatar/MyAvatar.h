@@ -79,8 +79,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
-    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
-
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
@@ -109,9 +107,6 @@ public:
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
-
-    // thread safe
-    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
@@ -415,6 +410,10 @@ private:
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
 
+    // working copy of sensorToWorldMatrix.
+    // See AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    glm::mat4 _sensorToWorldMatrix;
+
     // cache of the current HMD sensor position and orientation
     // in sensor space.
     glm::mat4 _hmdSensorMatrix;
@@ -426,10 +425,6 @@ private:
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
     glm::mat4 _bodySensorMatrix;
-
-    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
-    glm::mat4 _sensorToWorldMatrix;
-    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
 
     struct FollowHelper {
         FollowHelper();
