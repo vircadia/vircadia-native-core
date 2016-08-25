@@ -374,6 +374,16 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
+    // faux joints
+    Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
+    Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
+    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
+    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
+                                                           TRANSLATION_COMPRESSION_RADIX);
+
     #ifdef WANT_DEBUG
     if (sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
@@ -428,6 +438,20 @@ bool AvatarData::shouldLogError(const quint64& now) {
     }
     return false;
 }
+
+
+const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSafeValueCache<glm::mat4>& matrixCache) {
+    glm::quat orientation;
+    glm::vec3 position;
+    Transform transform;
+    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, orientation);
+    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, TRANSLATION_COMPRESSION_RADIX);
+    transform.setTranslation(position);
+    transform.setRotation(orientation);
+    matrixCache.set(transform.getMatrix());
+    return sourceBuffer;
+}
+
 
 #define PACKET_READ_CHECK(ITEM_NAME, SIZE_TO_READ)                                        \
     if ((endPosition - sourceBuffer) < (int)SIZE_TO_READ) {                               \
@@ -654,6 +678,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
+
+    // faux joints
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerLeftHandMatrixCache);
+    sourceBuffer = unpackFauxJoint(sourceBuffer, _controllerRightHandMatrixCache);
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
@@ -916,13 +944,13 @@ void AvatarData::clearJointsData() {
 }
 
 int AvatarData::getFauxJointIndex(const QString& name) const {
-    if (name == "sensorToWorld") {
+    if (name == "_SENSOR_TO_WORLD_MATRIX") {
         return SENSOR_TO_WORLD_MATRIX_INDEX;
     }
-    if (name == "Controller.Standard.LeftHand") {
+    if (name == "_CONTROLLER_LEFTHAND") {
         return CONTROLLER_LEFTHAND_INDEX;
     }
-    if (name == "Controller.Standard.RightHand") {
+    if (name == "_CONTROLLER_RIGHTHAND") {
         return CONTROLLER_RIGHTHAND_INDEX;
     }
     return -1;

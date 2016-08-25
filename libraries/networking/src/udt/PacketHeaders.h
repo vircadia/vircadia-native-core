@@ -193,7 +193,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SoftAttachmentSupport,
     AvatarEntities,
     AbsoluteSixByteRotations,
-    SensorToWorldMat
+    SensorToWorldMat,
+    HandControllerJoints
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

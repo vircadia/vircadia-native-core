@@ -117,7 +117,7 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
-var GRAB_POINT_SPHERE_OFFSET = {x: 0, y: 0.2, z:0};
+var GRAB_POINT_SPHERE_OFFSET = { x: 0.0, y: 0.2, z: 0.0 };
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
@@ -719,6 +719,7 @@ function MyController(hand) {
 
         var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation)
         var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
+        // add to the real position so the grab-point is out in front of the hand, a bit
         position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
 
         return {position: position, orientation: orientation};
@@ -847,8 +848,8 @@ function MyController(hand) {
                 drawInFront: false,
                 parentID: MyAvatar.sessionUUID,
                 parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                         "Controller.Standard.RightHand" :
-                                                         "Controller.Standard.LeftHand")
+                                                         "_CONTROLLER_RIGHTHAND" :
+                                                         "_CONTROLLER_LEFTHAND")
             });
         }
     };
@@ -1866,6 +1867,7 @@ function MyController(hand) {
         if (this.ignoreIK) {
             var controllerLocation = this.getControllerLocation();
             handRotation = controllerLocation.orientation;
+            // subtract off the GRAB_POINT_SPHERE_OFFSET that was added in getControllerLocation
             handPosition = Vec3.subtract(controllerLocation.position,
                                          Vec3.multiplyQbyV(handRotation, GRAB_POINT_SPHERE_OFFSET));
         } else {
