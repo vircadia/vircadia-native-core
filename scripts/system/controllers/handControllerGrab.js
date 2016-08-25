@@ -1,4 +1,5 @@
 "use strict";
+
 //  handControllerGrab.js
 //
 //  Created by Eric Levin on  9/2/15
@@ -10,7 +11,8 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform */
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/Xform.js");
@@ -25,8 +27,6 @@ var WANT_DEBUG_SEARCH_NAME = null;
 //
 // these tune time-averaging and "on" value for analog trigger
 //
-
-var SPARK_MODEL_SCALE_FACTOR = 0.75;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_OFF_VALUE = 0.1;
@@ -88,7 +88,6 @@ var COLORS_GRAB_DISTANCE_HOLD = {
 };
 
 
-var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
 //
@@ -129,7 +128,6 @@ var ZERO_VEC = {
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
 // these control how long an abandoned pointer line or action will hang around
-var LIFETIME = 10;
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 60;
@@ -2643,3 +2641,5 @@ function cleanup() {
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+}()); // END LOCAL_SCOPE

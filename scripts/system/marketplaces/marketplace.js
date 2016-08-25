@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 /* global WebTablet */
 Script.include("../libraries/WebTablet.js");
 
@@ -100,3 +102,5 @@ Script.scriptEnding.connect(function () {
     browseExamplesButton.clicked.disconnect(onClick);
     marketplaceWindow.visibleChanged.disconnect(onMarketplaceWindowVisibilityChanged);
 });
+
+}()); // END LOCAL_SCOPE

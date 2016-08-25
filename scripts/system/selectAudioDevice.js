@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  audioDeviceExample.js
 //  examples
@@ -10,6 +12,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 if (typeof String.prototype.startsWith != 'function') {
     String.prototype.startsWith = function (str){
@@ -62,11 +66,11 @@ function setupAudioMenus() {
     for(var i = 0; i < outputDevices.length; i++) {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
-        Menu.addMenuItem({ 
-                            menuName: "Audio > Devices", 
-                            menuItemName: menuItem, 
-                            isCheckable: true, 
-                            isChecked: thisDeviceSelected 
+        Menu.addMenuItem({
+                            menuName: "Audio > Devices",
+                            menuItemName: menuItem,
+                            isCheckable: true,
+                            isChecked: thisDeviceSelected
                         });
         if (thisDeviceSelected) {
             selectedOutputMenu = menuItem;
@@ -86,11 +90,11 @@ function setupAudioMenus() {
     for(var i = 0; i < inputDevices.length; i++) {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
-        Menu.addMenuItem({ 
-                            menuName: "Audio > Devices", 
-                            menuItemName: menuItem, 
-                            isCheckable: true, 
-                            isChecked: thisDeviceSelected 
+        Menu.addMenuItem({
+                            menuName: "Audio > Devices",
+                            menuItemName: menuItem,
+                            isCheckable: true,
+                            isChecked: thisDeviceSelected
                         });
         if (thisDeviceSelected) {
             selectedInputMenu = menuItem;
@@ -212,3 +216,5 @@ Script.scriptEnding.connect(function () {
     Menu.menuItemEvent.disconnect(menuItemEvent);
     Script.update.disconnect(checkHMDAudio);
 });
+
+}()); // END LOCAL_SCOPE

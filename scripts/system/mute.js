@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  goto.js
 //  scripts/system/
@@ -9,8 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+(function() { // BEGIN LOCAL_SCOPE
 
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 var button = toolBar.addButton({
     objectName: "mute",
@@ -33,7 +36,7 @@ function onMuteToggled() {
 }
 onMuteToggled();
 function onClicked(){
-    var menuItem = "Mute Microphone"; 
+    var menuItem = "Mute Microphone";
     Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
 }
 button.clicked.connect(onClicked);
@@ -44,3 +47,5 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
 });
+
+}()); // END LOCAL_SCOPE
