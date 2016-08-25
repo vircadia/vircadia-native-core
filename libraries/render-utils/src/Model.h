@@ -137,9 +137,6 @@ public:
     // And so that getGeometry() isn't chained everywhere
     const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
 
-    // Set the model to use for collisions.
-    // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-
     bool isActive() const { return isLoaded(); }
 
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
@@ -176,6 +173,7 @@ public:
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
     /// \param jointIndex index of joint in model structure
     /// \param rotation[out] rotation of joint in model-frame
     /// \return true if joint exists
