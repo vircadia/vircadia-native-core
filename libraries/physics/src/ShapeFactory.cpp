@@ -346,14 +346,26 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
     }
     if (shape) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
-            // this shape has an offset, which we support by wrapping the true shape
-            // in a btCompoundShape with a local transform
-            auto compound = new btCompoundShape();
-            btTransform trans;
-            trans.setIdentity();
-            trans.setOrigin(glmToBullet(info.getOffset()));
-            compound->addChildShape(trans, shape);
-            shape = compound;
+            // we need to apply an offset
+            btTransform offset;
+            offset.setIdentity();
+            offset.setOrigin(glmToBullet(info.getOffset()));
+
+            if (shape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+                // this shape is already compound
+                // walk through the child shapes and adjust their transforms
+                btCompoundShape* compound = static_cast<btCompoundShape*>(shape);
+                int32_t numSubShapes = compound->getNumChildShapes();
+                for (int32_t i = 0; i < numSubShapes; ++i) {
+                    compound->updateChildTransform(i, offset * compound->getChildTransform(i), false);
+                }
+                compound->recalculateLocalAabb();
+            } else {
+                // wrap this shape in a compound
+                auto compound = new btCompoundShape();
+                compound->addChildShape(offset, shape);
+                shape = compound;
+            }
         }
     }
     return shape;
