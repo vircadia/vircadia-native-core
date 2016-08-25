@@ -51,7 +51,7 @@ protected:
 
     class Schema {
     public:
-        glm::vec3 color { 1.0f, 1.0f, 1.0f };
+        glm::vec3 color { 0.0f, 0.0f, 0.0f };
         float blend { 0.0f };
     };
 
