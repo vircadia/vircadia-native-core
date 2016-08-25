@@ -758,9 +758,11 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
+
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
+                        //the event bridge and json parsing handle our avatar id string differently.  
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.innerHTML = properties.id;
