@@ -915,7 +915,24 @@ void AvatarData::clearJointsData() {
     }
 }
 
+int AvatarData::getFauxJointIndex(const QString& name) const {
+    if (name == "sensorToWorld") {
+        return SENSOR_TO_WORLD_MATRIX_INDEX;
+    }
+    if (name == "Controller.Standard.LeftHand") {
+        return CONTROLLER_LEFTHAND_INDEX;
+    }
+    if (name == "Controller.Standard.RightHand") {
+        return CONTROLLER_RIGHTHAND_INDEX;
+    }
+    return -1;
+}
+
 int AvatarData::getJointIndex(const QString& name) const {
+    int result = getFauxJointIndex(name);
+    if (result != -1) {
+        return result;
+    }
     QReadLocker readLock(&_jointDataLock);
     return _jointIndices.value(name) - 1;
 }
@@ -1742,6 +1759,17 @@ AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
 glm::mat4 AvatarData::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrixCache.get();
 }
+
+// thread-safe
+glm::mat4 AvatarData::getControllerLeftHandMatrix() const {
+    return _controllerLeftHandMatrixCache.get();
+}
+
+// thread-safe
+glm::mat4 AvatarData::getControllerRightHandMatrix() const {
+    return _controllerRightHandMatrixCache.get();
+}
+
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
     QScriptValue obj = engine->newObject();

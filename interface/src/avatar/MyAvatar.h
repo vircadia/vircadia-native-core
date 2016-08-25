@@ -117,6 +117,9 @@ public:
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
+    // read the locations of hand controllers and save the values
+    void updateJointsFromControllers();
+
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
     // This is so the correct camera can be used for rendering.
@@ -410,9 +413,10 @@ private:
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
 
-    // working copy of sensorToWorldMatrix.
-    // See AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
-    glm::mat4 _sensorToWorldMatrix;
+    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    glm::mat4 _sensorToWorldMatrix { glm::mat4() };
+    glm::mat4 _controllerRightHandMatrix { glm::mat4() };
+    glm::mat4 _controllerLeftHandMatrix { glm::mat4() };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

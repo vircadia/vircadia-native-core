@@ -532,6 +532,23 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
+void MyAvatar::updateJointsFromControllers() {
+    if (QThread::currentThread() != thread()) { abort(); } // XXX
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+
+    controller::Pose leftControllerPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
+    Transform controllerLeftHandTransform;
+    controllerLeftHandTransform.setTranslation(leftControllerPose.getTranslation());
+    controllerLeftHandTransform.setRotation(leftControllerPose.getRotation());
+    _controllerLeftHandMatrixCache.set(controllerLeftHandTransform.getMatrix());
+
+    controller::Pose rightControllerPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
+    Transform controllerRightHandTransform;
+    controllerRightHandTransform.setTranslation(rightControllerPose.getTranslation());
+    controllerRightHandTransform.setRotation(rightControllerPose.getRotation());
+    _controllerRightHandMatrixCache.set(controllerRightHandTransform.getMatrix());
+}
+
 // best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
@@ -545,10 +562,13 @@ void MyAvatar::updateSensorToWorldMatrix() {
     lateUpdatePalms();
 
     if (_enableDebugDrawSensorToWorldMatrix) {
-        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix), extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
+        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix),
+                                           extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
+
+    updateJointsFromControllers();
 }
 
 //  Update avatar head rotation with sensor data
