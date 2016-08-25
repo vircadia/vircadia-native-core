@@ -532,27 +532,40 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
-void MyAvatar::updateJointsFromControllers() {
+void MyAvatar::updateJointFromController(glm::mat4& previousSensorToWorldInverseMatrix, controller::Action poseKey,
+                                         ThreadSafeValueCache<glm::mat4>& matrixCache) {
     if (QThread::currentThread() != thread()) { abort(); } // XXX
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
+    Transform transform;
+    transform.setTranslation(controllerPose.getTranslation());
+    transform.setRotation(controllerPose.getRotation());
+    glm::mat4 avatarMatrix = getTransform().getMatrix();
+    glm::mat4 avatarInverseMatrix = glm::inverse(avatarMatrix);
 
-    controller::Pose leftControllerPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
-    Transform controllerLeftHandTransform;
-    controllerLeftHandTransform.setTranslation(leftControllerPose.getTranslation());
-    controllerLeftHandTransform.setRotation(leftControllerPose.getRotation());
-    _controllerLeftHandMatrixCache.set(controllerLeftHandTransform.getMatrix());
+    // do some backflips to avoid jitter
 
-    controller::Pose rightControllerPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    Transform controllerRightHandTransform;
-    controllerRightHandTransform.setTranslation(rightControllerPose.getTranslation());
-    controllerRightHandTransform.setRotation(rightControllerPose.getRotation());
-    _controllerRightHandMatrixCache.set(controllerRightHandTransform.getMatrix());
+    // get the controller pose (avatar space)
+    glm::mat4 controllerMatrix = transform.getMatrix();
+    // transform the controller pose into world space.
+    glm::mat4 controllerWorldSpace = avatarMatrix * controllerMatrix;
+    // transform the controller pose from world space into sensor space. But use the inverse of the ORIGINAL sensorToWorld
+    // matrix before updateSensorToWorldMatrix() changes it.
+    glm::mat4 controllerPreviousSensor = previousSensorToWorldInverseMatrix * controllerWorldSpace;
+    // then transform the sensor space controller pose back into world space using the NEW sensorToWorld matrix.
+    glm::mat4 controllerNewWorldSpace = _sensorToWorldMatrix * controllerPreviousSensor;
+    // then transform that world pose back into avatar space.
+    glm::mat4 newControllerMatrix = avatarInverseMatrix * controllerNewWorldSpace;
+
+    matrixCache.set(newControllerMatrix);
 }
 
 // best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
+
+    glm::mat4 previousSensorToWorldInverse = glm::inverse(_sensorToWorldMatrix);
 
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
@@ -568,7 +581,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
 
-    updateJointsFromControllers();
+    updateJointFromController(previousSensorToWorldInverse, controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
+    updateJointFromController(previousSensorToWorldInverse, controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
 }
 
 //  Update avatar head rotation with sensor data
