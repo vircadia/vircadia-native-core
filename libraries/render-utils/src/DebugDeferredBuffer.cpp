@@ -202,14 +202,14 @@ static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
 
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
+    "    return vec4(vec3(texture(obscuranceMap, uv).xyz), 1.0);"
     // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
-    // when drawing normal "    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
+    // when drawing normal"    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(occlusionBlurredMap, uv).x), 1.0);"
+    "    return vec4(vec3(texture(occlusionBlurredMap, uv).xyz), 1.0);"
     " }"
 };
 
@@ -379,6 +379,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     auto& deferredFramebuffer = inputs.get0();
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
+    auto& ambientOcclusionFramebuffer = inputs.get3();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -402,29 +403,51 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
 
         batch.setPipeline(getPipeline(_mode, first));
 
-        batch.setResourceTexture(Albedo, deferredFramebuffer->getDeferredColorTexture());
-        batch.setResourceTexture(Normal, deferredFramebuffer->getDeferredNormalTexture());
-        batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
-        batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
-        batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
-        batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
-        batch.setResourceTexture(LinearDepth, linearDepthTarget->getLinearDepthTexture());
-        batch.setResourceTexture(HalfLinearDepth, linearDepthTarget->getHalfLinearDepthTexture());
-        batch.setResourceTexture(HalfNormal, linearDepthTarget->getHalfNormalTexture());
+		if (deferredFramebuffer) {
+			batch.setResourceTexture(Albedo, deferredFramebuffer->getDeferredColorTexture());
+			batch.setResourceTexture(Normal, deferredFramebuffer->getDeferredNormalTexture());
+			batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
+			batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
+			batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
+		}
+		if (!lightStage.lights.empty()) {
+			batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
+		}
 
-        batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
-        batch.setResourceTexture(DiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
-        if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
-            batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
-        } else {
-            // need to assign the white texture if ao is off
-            batch.setResourceTexture(AmbientOcclusion, textureCache->getWhiteTexture());
-        }
-        batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
-
+		if (linearDepthTarget) {
+			batch.setResourceTexture(LinearDepth, linearDepthTarget->getLinearDepthTexture());
+			batch.setResourceTexture(HalfLinearDepth, linearDepthTarget->getHalfLinearDepthTexture());
+			batch.setResourceTexture(HalfNormal, linearDepthTarget->getHalfNormalTexture());
+		}
+		if (surfaceGeometryFramebuffer) {
+			batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
+			batch.setResourceTexture(DiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
+		}
+		if (ambientOcclusionFramebuffer) {
+			batch.setResourceTexture(AmbientOcclusion, ambientOcclusionFramebuffer->getOcclusionTexture());
+			batch.setResourceTexture(AmbientOcclusionBlurred, ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
+		}
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(_size.x, _size.y);
         const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
+
+
+		batch.setResourceTexture(Albedo, nullptr);
+		batch.setResourceTexture(Normal, nullptr);
+		batch.setResourceTexture(Specular, nullptr);
+		batch.setResourceTexture(Depth, nullptr);
+		batch.setResourceTexture(Lighting, nullptr);
+		batch.setResourceTexture(Shadow, nullptr);
+		batch.setResourceTexture(LinearDepth, nullptr);
+		batch.setResourceTexture(HalfLinearDepth, nullptr);
+		batch.setResourceTexture(HalfNormal, nullptr);
+
+		batch.setResourceTexture(Curvature, nullptr);
+		batch.setResourceTexture(DiffusedCurvature, nullptr);
+
+		batch.setResourceTexture(AmbientOcclusion, nullptr);
+		batch.setResourceTexture(AmbientOcclusionBlurred, nullptr);
+
     });
 }

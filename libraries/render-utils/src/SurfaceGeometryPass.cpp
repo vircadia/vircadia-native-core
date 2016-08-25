@@ -61,6 +61,9 @@ void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depth
 void LinearDepthFramebuffer::clear() {
     _linearDepthFramebuffer.reset();
     _linearDepthTexture.reset();
+	_downsampleFramebuffer.reset();
+	_halfLinearDepthTexture.reset();
+	_halfNormalTexture.reset();
 }
 
 void LinearDepthFramebuffer::allocate() {
@@ -71,7 +74,6 @@ void LinearDepthFramebuffer::allocate() {
     // For Linear Depth:
     _linearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
-   // _linearDepthTexture->autoGenerateMips(1);
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
     _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
@@ -79,6 +81,7 @@ void LinearDepthFramebuffer::allocate() {
     // For Downsampling:
     _halfLinearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _halfLinearDepthTexture->autoGenerateMips(5);
 
     _halfNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
@@ -193,7 +196,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
         batch.setResourceTexture(DepthLinearPass_NormalMapSlot, normalTexture);
         batch.setPipeline(downsamplePipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+        
         _gpuTimer.end(batch);
     });
 
