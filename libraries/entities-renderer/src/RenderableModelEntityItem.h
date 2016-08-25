@@ -60,7 +60,7 @@ public:
     virtual void setCompoundShapeURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() override;
-    virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
 
     void setCollisionShape(const btCollisionShape* shape) override;
 

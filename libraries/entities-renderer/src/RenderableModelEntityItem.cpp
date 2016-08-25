@@ -631,7 +631,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     return true;
 }
 
-void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
+void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t TRIANGLE_STRIDE = 3;
     const uint32_t QUAD_STRIDE = 4;
 
@@ -645,7 +645,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
         const FBXGeometry& collisionGeometry = _compoundShapeResource->getFBXGeometry();
 
-        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
         uint32_t i = 0;
 
@@ -721,15 +721,14 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 scaleToFit = dimensions / _model->getFBXGeometry().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
+        glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
-                // compensate for registration
-                pointCollection[i][j] += _model->getOffset();
-                // scale so the collision points match the model points
-                pointCollection[i][j] *= scaleToFit;
+                // back compensate for registration so we can apply that offset to the shapeInfo later
+                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + _model->getOffset()) - registrationOffset;
             }
         }
-        info.setParams(type, dimensions, _compoundShapeURL);
+        shapeInfo.setParams(type, dimensions, _compoundShapeURL);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
@@ -742,29 +741,31 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
         int numFbxMeshes = fbxGeometry.meshes.size();
         int totalNumVertices = 0;
+        glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (int i = 0; i < numFbxMeshes; i++) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
                 auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
-                localTransforms.push_back(jointMatrix * cluster.inverseBindMatrix);
+                // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
+                localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
                 glm::mat4 identity;
-                localTransforms.push_back(identity);
+                localTransforms.push_back(invRegistraionOffset);
             }
             totalNumVertices += mesh.vertices.size();
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
         if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
             qWarning() << "model" << getModelURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
-            info.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
 
         auto& meshes = _model->getGeometry()->getMeshes();
         int32_t numMeshes = (int32_t)(meshes.size());
 
-        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
             pointCollection.resize(numMeshes);
@@ -772,7 +773,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             pointCollection.resize(1);
         }
 
-        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+        ShapeInfo::TriangleIndices& triangleIndices = shapeInfo.getTriangleIndices();
         triangleIndices.clear();
 
         Extents extents;
@@ -946,12 +947,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
 
-        info.setParams(type, 0.5f * dimensions, _modelURL);
+        shapeInfo.setParams(type, 0.5f * dimensions, _modelURL);
     } else {
-        ModelEntityItem::computeShapeInfo(info);
-        info.setParams(type, 0.5f * dimensions);
-        adjustShapeInfoByRegistration(info);
+        ModelEntityItem::computeShapeInfo(shapeInfo);
+        shapeInfo.setParams(type, 0.5f * dimensions);
     }
+    // finally apply the registration offset to the shapeInfo
+    adjustShapeInfoByRegistration(shapeInfo);
 }
 
 void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape) {

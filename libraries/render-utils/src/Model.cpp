@@ -1284,6 +1284,11 @@ void Model::createCollisionRenderItemSet() {
     // We should not have any existing renderItems if we enter this section of code
     Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
+    Transform identity;
+    identity.setIdentity();
+    Transform offset;
+    offset.postTranslate(_offset);
+
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     uint32_t numMeshes = (uint32_t)meshes.size();
     for (uint32_t i = 0; i < numMeshes; i++) {
@@ -1296,7 +1301,9 @@ void Model::createCollisionRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
-            _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, material);
+            auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
+            payload->updateTransform(identity, offset);
+            _collisionRenderItemsSet << payload;
         }
     }
 }
