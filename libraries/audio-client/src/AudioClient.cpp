@@ -1265,7 +1265,7 @@ int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
 // proportional to the accelerator ratio.
 
 #ifdef Q_OS_WIN
-const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 0.1f;
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 1.0f;
 #endif
 
 #ifdef Q_OS_MAC
