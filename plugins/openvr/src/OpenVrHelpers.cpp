@@ -176,8 +176,7 @@ void showOpenVrKeyboard(bool show = true) {
     }
 }
 
-void finishOpenVrKeyboardInput() {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+void updateFromOpenVrKeyboardInput() {
     auto chars = _overlay->GetKeyboardText(textArray, 8192);
     auto newText = QString(QByteArray(textArray, chars));
     _keyboardFocusObject->setProperty("text", newText);
@@ -187,6 +186,11 @@ void finishOpenVrKeyboardInput() {
     //QInputMethodEvent event(_existingText, QList<QInputMethodEvent::Attribute>());
     //event.setCommitString(newText, 0, _existingText.size());
     //qApp->sendEvent(_keyboardFocusObject, &event);
+}
+
+void finishOpenVrKeyboardInput() {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    updateFromOpenVrKeyboardInput();
     // Simulate an enter press on the top level window to trigger the action
     if (0 == (_currentHints & Qt::ImhMultiLine)) {
         qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n")));
@@ -265,6 +269,11 @@ void handleOpenVrEvents() {
             case vr::VREvent_Quit:
                 _openVrQuitRequested = true;
                 activeHmd->AcknowledgeQuit_Exiting();
+                break;
+
+            case vr::VREvent_KeyboardCharInput:
+                // Make the focused field match the keyboard results, inclusive of combining characters and such.
+                updateFromOpenVrKeyboardInput();
                 break;
 
             case vr::VREvent_KeyboardDone: 

@@ -10,6 +10,9 @@
 #define hifi_RenderableWebEntityItem_h
 
 #include <QSharedPointer>
+#include <QMouseEvent>
+#include <QTouchEvent>
+#include <PointerEvent.h>
 
 #include <WebEntityItem.h>
 
@@ -28,9 +31,13 @@ public:
 
     virtual void render(RenderArgs* args) override;
     virtual void setSourceUrl(const QString& value) override;
-    
-    void setProxyWindow(QWindow* proxyWindow);
-    QObject* getEventHandler();
+
+    virtual bool wantsHandControllerPointerEvents() const override { return true; }
+    virtual bool wantsKeyboardFocus() const override { return true; }
+    virtual void setProxyWindow(QWindow* proxyWindow) override;
+    virtual QObject* getEventHandler() override;
+
+    void handlePointerEvent(const PointerEvent& event);
 
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
@@ -40,13 +47,14 @@ public:
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
     void destroyWebSurface();
+    glm::vec2 getWindowSize() const;
 
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
     ivec2  _lastPress{ INT_MIN };
     bool _pressed{ false };
-    ivec2 _lastMove{ INT_MIN };
+    QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
 
     QMetaObject::Connection _mousePressConnection;

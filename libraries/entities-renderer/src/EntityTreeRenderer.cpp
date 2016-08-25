@@ -48,7 +48,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
-    _lastMouseEventValid(false),
+    _lastPointerEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
     _displayModelBounds(false),
@@ -195,9 +195,9 @@ void EntityTreeRenderer::update() {
         // Even if we're not moving the mouse, if we started clicking on an entity and we have
         // not yet released the hold then this is still considered a holdingClickOnEntity event
         // and we want to simulate this message here as well as in mouse move
-        if (_lastMouseEventValid && !_currentClickingOnEntityID.isInvalidID()) {
-            emit holdingClickOnEntity(_currentClickingOnEntityID, _lastMouseEvent);
-            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", _lastMouseEvent);
+        if (_lastPointerEventValid && !_currentClickingOnEntityID.isInvalidID()) {
+            emit holdingClickOnEntity(_currentClickingOnEntityID, _lastPointerEvent);
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", _lastPointerEvent);
         }
 
     }
@@ -599,18 +599,10 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event){
-        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event));
-    });
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
-        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event));
-    });
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
-        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event));
-    });
+
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
 
     connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
     connect(this, &EntityTreeRenderer::holdingClickOnEntity, entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity);
@@ -626,6 +618,59 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
 
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
+
+static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRay& pickRay, const RayToEntityIntersectionResult& rayPickResult) {
+
+    if (entity) {
+
+        glm::vec3 entityPosition = entity->getPosition();
+        glm::quat entityRotation = entity->getRotation();
+        glm::vec3 entityDimensions = entity->getDimensions();
+        glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
+
+        // project the intersection point onto the local xy plane of the object.
+        float distance;
+        glm::vec3 planePosition = entityPosition;
+        glm::vec3 planeNormal = entityRotation * Vectors::UNIT_Z;
+        glm::vec3 rayDirection = pickRay.direction;
+        glm::vec3 rayStart = pickRay.origin;
+        glm::vec3 p;
+        if (rayPlaneIntersection(planePosition, planeNormal, rayStart, rayDirection, distance)) {
+            p = rayStart + rayDirection * distance;
+        } else {
+            p = rayPickResult.intersection;
+        }
+        glm::vec3 localP = glm::inverse(entityRotation) * (p - entityPosition);
+        glm::vec3 normalizedP = (localP / entityDimensions) + entityRegistrationPoint;
+        return glm::vec2(normalizedP.x * entityDimensions.x,
+                         (1.0f - normalizedP.y) * entityDimensions.y);  // flip y-axis
+    } else {
+        return glm::vec2();
+    }
+}
+
+static uint32_t toPointerButtons(const QMouseEvent& event) {
+    uint32_t buttons = 0;
+    buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::RightButton) ? PointerEvent::SecondaryButton : 0;
+    buttons |= event.buttons().testFlag(Qt::MiddleButton) ? PointerEvent::TertiaryButton : 0;
+    return buttons;
+}
+
+static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
+    switch (event.button()) {
+    case Qt::LeftButton:
+        return PointerEvent::PrimaryButton;
+    case Qt::RightButton:
+        return PointerEvent::SecondaryButton;
+    case Qt::MiddleButton:
+        return PointerEvent::TertiaryButton;
+    default:
+        return PointerEvent::NoButtons;
+    }
+}
+
+static const uint32_t MOUSE_POINTER_ID = 0;
 
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
@@ -645,24 +690,32 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         QUrl url = QUrl(urlString, QUrl::StrictMode);
         if (url.isValid() && !url.isEmpty()){
             DependencyManager::get<AddressManager>()->handleLookupString(urlString);
-
         }
 
-        emit mousePressOnEntity(rayPickResult, event);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+        emit mousePressOnEntity(rayPickResult.entityID, pointerEvent);
+
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", pointerEvent);
         }
-    
+
         _currentClickingOnEntityID = rayPickResult.entityID;
-        emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+        emit clickDownOnEntity(_currentClickingOnEntityID, pointerEvent);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", pointerEvent);
         }
+
+        _lastPointerEvent = pointerEvent;
+        _lastPointerEventValid = true;
+
     } else {
-        emit mousePressOffEntity(rayPickResult, event);
+        emit mousePressOffEntity();
     }
-    _lastMouseEvent = MouseEvent(*event);
-    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
@@ -671,31 +724,48 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     if (!_tree || _shuttingDown) {
         return;
     }
+
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     bool precisionPicking = !_dontDoPrecisionPicking;
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult, event);
+
+        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+        emit mouseReleaseOnEntity(rayPickResult.entityID, pointerEvent);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", pointerEvent);
         }
+
+        _lastPointerEvent = pointerEvent;
+        _lastPointerEventValid = true;
     }
 
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+
+        auto entity = getTree()->findEntityByID(_currentClickingOnEntityID);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
+        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+        emit clickReleaseOnEntity(_currentClickingOnEntityID, pointerEvent);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", pointerEvent);
         }
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
-    _lastMouseEvent = MouseEvent(*event);
-    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
@@ -712,19 +782,35 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
 
+        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+        emit mouseMoveOnEntity(rayPickResult.entityID, pointerEvent);
+
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", MouseEvent(*event));
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", pointerEvent);
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", pointerEvent);
         }
-    
+
         // handle the hover logic...
-    
+
         // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
+
+            auto entity = getTree()->findEntityByID(_currentHoverOverEntityID);
+            glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
+            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                                      pos2D, rayPickResult.intersection,
+                                      rayPickResult.surfaceNormal, ray.direction,
+                                      toPointerButton(*event), toPointerButtons(*event));
+
+            emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
             if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", pointerEvent);
             }
         }
 
@@ -732,28 +818,39 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // this is true if the _currentHoverOverEntityID is known or unknown
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
             if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", MouseEvent(*event));
+                _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", pointerEvent);
             }
         }
 
         // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
         // we should send our hover over event
-        emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event));
+        emit hoverOverEntity(rayPickResult.entityID, pointerEvent);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", pointerEvent);
         }
 
         // remember what we're hovering over
         _currentHoverOverEntityID = rayPickResult.entityID;
+
+        _lastPointerEvent = pointerEvent;
+        _lastPointerEventValid = true;
 
     } else {
         // handle the hover logic...
         // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
+
+            auto entity = getTree()->findEntityByID(_currentHoverOverEntityID);
+            glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
+            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+            emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
             if (_entitiesScriptEngine) {
-                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
+                _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", pointerEvent);
             }
             _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
@@ -762,13 +859,19 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
     // not yet released the hold then this is still considered a holdingClickOnEntity event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+
+        auto entity = getTree()->findEntityByID(_currentClickingOnEntityID);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
+        PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+                                  pos2D, rayPickResult.intersection,
+                                  rayPickResult.surfaceNormal, ray.direction,
+                                  toPointerButton(*event), toPointerButtons(*event));
+
+        emit holdingClickOnEntity(_currentClickingOnEntityID, pointerEvent);
         if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", pointerEvent);
         }
     }
-    _lastMouseEvent = MouseEvent(*event);
-    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {

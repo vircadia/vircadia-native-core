@@ -73,4 +73,6 @@ const bool ENTITY_ITEM_DEFAULT_BILLBOARDED = false;
 
 const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
 
+const uint16_t ENTITY_ITEM_DEFAULT_DPI = 30;
+
 #endif // hifi_EntityItemPropertiesDefaults_h

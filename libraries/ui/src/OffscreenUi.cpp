@@ -60,39 +60,6 @@ private:
     bool _navigationFocusDisabled{ false };
 };
 
-QString fixupHifiUrl(const QString& urlString) {
-	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
-    QUrl url(urlString);
-	QUrlQuery query(url);
-	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    auto accountManager = DependencyManager::get<AccountManager>();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
-	    url.setQuery(query.query());
-	    return url.toString();
-	}
-    return urlString;
-}
-
-class UrlHandler : public QObject {
-    Q_OBJECT
-public:
-    Q_INVOKABLE bool canHandleUrl(const QString& url) {
-        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
-    }
-
-    Q_INVOKABLE bool handleUrl(const QString& url) {
-        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
-    }
-    
-    // FIXME hack for authentication, remove when we migrate to Qt 5.6
-    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-        return fixupHifiUrl(originalUrl);
-    }
-};
-
 static OffscreenFlags* offscreenFlags { nullptr };
 
 // This hack allows the QML UI to work with keys that are also bound as 
@@ -126,7 +93,6 @@ void OffscreenUi::create(QOpenGLContext* context) {
 
     rootContext->setContextProperty("OffscreenUi", this);
     rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 }
 

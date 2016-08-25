@@ -18,6 +18,7 @@ import "." as VrControls
 
 FocusScope {
     id: root
+    HifiConstants { id: hifi }
 
     property alias model: comboBox.model;
     property alias comboBox: comboBox

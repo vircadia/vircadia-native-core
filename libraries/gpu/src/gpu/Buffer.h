@@ -224,6 +224,8 @@ public:
 
         bool operator==(const Iterator<T>& iterator) const { return (_ptr == iterator.getConstPtr()); }
         bool operator!=(const Iterator<T>& iterator) const { return (_ptr != iterator.getConstPtr()); }
+        bool operator<(const Iterator<T>& iterator) const { return (_ptr < iterator.getConstPtr()); }
+        bool operator>(const Iterator<T>& iterator) const { return (_ptr > iterator.getConstPtr()); }
 
         void movePtr(const Index& movement) {
             auto byteptr = ((Byte*)_ptr);

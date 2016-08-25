@@ -1230,6 +1230,65 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
     return result;
 }
 
+QUuid EntityScriptingInterface::getKeyboardFocusEntity() const {
+    QUuid result;
+    QMetaObject::invokeMethod(qApp, "getKeyboardFocusEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
+    return result;
+}
+
+void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
+    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::QueuedConnection, Q_ARG(QUuid, id));
+}
+
+void EntityScriptingInterface::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMousePressOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseMoveOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickDownOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoldingClickOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverEnterEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverOverEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverLeaveEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(id));
+            if (entity) {
+                result = entity->wantsHandControllerPointerEvents();
+            }
+        });
+    }
+    return result;
+}
+
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }

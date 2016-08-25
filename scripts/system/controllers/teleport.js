@@ -1,3 +1,5 @@
+"use strict";
+
 // Created by james b. pollack @imgntn on 7/2/2016
 // Copyright 2016 High Fidelity, Inc.
 //
@@ -5,6 +7,8 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var inTeleportMode = false;
 
@@ -553,6 +557,7 @@ function Teleporter() {
         _this.smoothArrivalInterval = Script.setInterval(function() {
             if (_this.arrivalPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
+                HMD.centerUI();
                 return;
             }
             var landingPoint = _this.arrivalPoints.shift();
@@ -564,6 +569,8 @@ function Teleporter() {
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
+
+
     }
 }
 
@@ -591,7 +598,6 @@ function getAvatarFootOffset() {
         }
     })
 
-    var myPosition = MyAvatar.position;
     var offset = upperLeg + lowerLeg + foot + toe + toeTop;
     offset = offset / 100;
     return offset;
@@ -735,3 +741,5 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.subscribe('Hifi-Teleport-Disabler');
 Messages.messageReceived.connect(handleHandMessages);
+
+}()); // END LOCAL_SCOPE

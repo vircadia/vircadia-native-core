@@ -533,9 +533,20 @@ void ModelMeshPartPayload::startFade() {
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible || !_hasStartedFade) {
+    if (!_model->_readyWhenAdded || !_model->_isVisible) {
         return; // bail asap
     }
+
+    // If we didn't start the fade in, check if we are ready to now....
+    if (!_hasStartedFade && _model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+        const_cast<ModelMeshPartPayload&>(*this).startFade();
+    }
+
+    // If we still didn't start the fade in, bail
+    if (!_hasStartedFade) {
+        return;
+    }
+
 
     // When an individual mesh parts like this finishes its fade, we will mark the Model as 
     // having render items that need updating
