@@ -205,7 +205,7 @@ public:
     DebugAmbientOcclusionConfig() : render::Job::Config(true) {}
 
     bool showCursorPixel{ false };
-    glm::vec2 debugCursorTexcoord{ 0.5, 0.5 };
+    glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
 
 signals:
     void dirty();

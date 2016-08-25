@@ -377,9 +377,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
 
-    //_parametersBuffer->ditheringInfo.y += 0.25f;
-
-
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
