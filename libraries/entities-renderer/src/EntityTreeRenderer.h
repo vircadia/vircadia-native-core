@@ -65,7 +65,6 @@ public:
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
     virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) override;
 
     /// clears the tree
     virtual void clear() override;
@@ -74,7 +73,7 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0.0f);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f);
 
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
