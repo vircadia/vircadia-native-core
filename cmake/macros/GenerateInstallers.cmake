@@ -24,9 +24,6 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
-  # make the Interface client a required component
-  set(CPACK_COMPONENT_${CLIENT_COMPONENT}_REQUIRED TRUE)
-
   if (WIN32)
     # include CMake module that will install compiler system libraries
     # so that we have msvcr120 and msvcp120 installed with targets
@@ -88,7 +85,7 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
-  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
+  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface" REQUIRED)
   cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
 
   include(CPack)
