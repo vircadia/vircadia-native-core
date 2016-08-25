@@ -1,6 +1,4 @@
 "use strict";
-/*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print*/
 
 //
 //  handControllerPointer.js
@@ -12,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
 // First-person only.
@@ -440,7 +440,7 @@ function clearSystemLaser() {
     HMD.disableHandLasers(BOTH_HUD_LASERS);
     systemLaserOn = false;
     weMovedReticle = true;
-    Reticle.position = { x: -1, y: -1 }; 
+    Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
@@ -508,3 +508,5 @@ Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
     OffscreenFlags.navigationFocusDisabled = false;
 });
+
+}()); // END LOCAL_SCOPE

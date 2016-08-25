@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  notifications.js
 //  Version 0.801
@@ -56,6 +58,8 @@
 //      }
 //  }
 
+(function() { // BEGIN LOCAL_SCOPE
+
 Script.include("./libraries/soundArray.js");
 
 var width = 340.0; //width of notification overlay
@@ -105,7 +109,7 @@ var NotificationType = {
             return NotificationType.UNKNOWN;
         }
         var preMenuItemName = menuItemName.substr(0, menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length);
-        for (type in this.properties) {
+        for (var type in this.properties) {
             if (this.properties[type].text === preMenuItemName) {
                 return parseInt(type) + 1;
             }
@@ -120,7 +124,7 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-    
+
     randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
@@ -230,9 +234,9 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
     };
 }
 
-//  Pushes data to each array and sets up data for 2nd dimension array 
+//  Pushes data to each array and sets up data for 2nd dimension array
 //  to handle auxiliary data not carried by the overlay class
-//  specifically notification "heights", "times" of creation, and . 
+//  specifically notification "heights", "times" of creation, and .
 function notify(notice, button, height, imageProperties, image) {
     var notificationText,
         noticeWidth,
@@ -584,7 +588,7 @@ function setup() {
         isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
     });
     Menu.addSeparator(MENU_NAME, "Play sounds for:");
-    for (type in NotificationType.properties) {
+    for (var type in NotificationType.properties) {
         checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type) + 1));
         checked = checked === '' ? true : checked;
         Menu.addMenuItem({
@@ -620,7 +624,7 @@ LODManager.LODDecreased.connect(function() {
     var warningText = "\n"
             + "Due to the complexity of the content, the \n"
             + "level of detail has been decreased. "
-            + "You can now see: \n" 
+            + "You can now see: \n"
             + LODManager.getLODFeedbackText();
 
     if (lodTextID == false) {
@@ -641,3 +645,5 @@ Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
 
 setup();
+
+}()); // END LOCAL_SCOPE

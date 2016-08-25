@@ -1,4 +1,5 @@
 "use strict";
+
 //  handControllerGrab.js
 //
 //  Created by Eric Levin on  9/2/15
@@ -12,6 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4 */
 
+(function() { // BEGIN LOCAL_SCOPE
+
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/Xform.js");
 
@@ -22,7 +25,8 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = true;
+var FORCE_IGNORE_IK = false;
+var SHOW_GRAB_POINT_SPHERE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -826,11 +830,14 @@ function MyController(hand) {
 
 
     this.grabPointSphereOn = function() {
+        if (!SHOW_GRAB_POINT_SPHERE) {
+            return;
+        }
         var controllerLocation = this.getControllerLocation();
         if (this.grabPointSphere) {
             Overlays.editOverlay(this.grabPointSphere, {
                 position: controllerLocation.position
-            });            
+            });
         } else {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
                 position: controllerLocation.position,
@@ -2688,3 +2695,5 @@ function cleanup() {
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+}()); // END LOCAL_SCOPE

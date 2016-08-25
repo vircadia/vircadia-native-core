@@ -1,13 +1,17 @@
+"use strict";
+
 // Created by james b. pollack @imgntn on 8/18/2016
 // Copyright 2016 High Fidelity, Inc.
 //
-//advanced movements settings are in individual controller json files
-//what we do is check the status of the 'advance movement' checkbox when you enter HMD mode
-//if 'advanced movement' is checked...we give you the defaults that are in the json.
-//if 'advanced movement' is not checked... we override the advanced controls with basic ones.
+// advanced movements settings are in individual controller json files
+// what we do is check the status of the 'advance movement' checkbox when you enter HMD mode
+// if 'advanced movement' is checked...we give you the defaults that are in the json.
+// if 'advanced movement' is not checked... we override the advanced controls with basic ones.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var mappingName, basicMapping, isChecked;
 
@@ -139,3 +143,5 @@ HMD.displayModeChanged.connect(function(isHMDMode) {
         }
     }
 });
+
+}()); // END LOCAL_SCOPE

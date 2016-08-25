@@ -1,8 +1,8 @@
 "use strict";
-/*jslint vars: true, plusplus: true*/
-/*global HMD, AudioDevice, MyAvatar, Controller, Script, Overlays, print*/
+
 //
 //  away.js
+//
 //  examples
 //
 //  Created by Howard Stearns 11/3/15
@@ -13,9 +13,11 @@
 //
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
+
+(function() { // BEGIN LOCAL_SCOPE
+
 var OVERLAY_WIDTH = 1920;
 var OVERLAY_HEIGHT = 1080;
-var OVERLAY_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT;
 var OVERLAY_DATA = {
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
@@ -51,7 +53,11 @@ var AWAY_INTRO = {
 var _animation = AnimationCache.prefetch(AWAY_INTRO.url);
 
 function playAwayAnimation() {
-    MyAvatar.overrideAnimation(AWAY_INTRO.url, AWAY_INTRO.playbackRate, AWAY_INTRO.loopFlag, AWAY_INTRO.startFrame, AWAY_INTRO.endFrame);
+    MyAvatar.overrideAnimation(AWAY_INTRO.url,
+            AWAY_INTRO.playbackRate,
+            AWAY_INTRO.loopFlag,
+            AWAY_INTRO.startFrame,
+            AWAY_INTRO.endFrame);
 }
 
 function stopAwayAnimation() {
@@ -74,8 +80,6 @@ function moveCloserToCamera(positionAtHUD) {
 }
 
 function showOverlay() {
-    var properties = {visible: true};
-
     if (HMD.active) {
         // make sure desktop version is hidden
         Overlays.editOverlay(overlay, { visible: false });
@@ -252,8 +256,9 @@ function maybeGoAway() {
         }
     }
 
-    // If the mouse has gone from captured, to non-captured state, then it likely means the person is still in the HMD, but
-    // tabbed away from the application (meaning they don't have mouse control) and they likely want to go into an away state
+    // If the mouse has gone from captured, to non-captured state, then it likely means the person is still in the HMD,
+    // but tabbed away from the application (meaning they don't have mouse control) and they likely want to go into
+    // an away state
     if (Reticle.mouseCaptured !== wasMouseCaptured) {
         wasMouseCaptured = !wasMouseCaptured;
         if (!wasMouseCaptured) {
@@ -298,3 +303,5 @@ Script.scriptEnding.connect(function () {
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
 });
+
+}()); // END LOCAL_SCOPE
