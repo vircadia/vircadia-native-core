@@ -159,11 +159,17 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             }
         } else { // regular avatar
             if (isRightHand) {
-                palmPosition = holdingAvatar->getRightPalmPosition();
-                palmRotation = holdingAvatar->getRightPalmRotation();
+                Transform controllerRightTransform = Transform(holdingAvatar->getControllerRightHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerRightTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerRightTransform.getTranslation());
             } else {
-                palmPosition = holdingAvatar->getLeftPalmPosition();
-                palmRotation = holdingAvatar->getLeftPalmRotation();
+                Transform controllerLeftTransform = Transform(holdingAvatar->getControllerLeftHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerLeftTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerLeftTransform.getTranslation());
             }
         }
 
