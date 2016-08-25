@@ -190,6 +190,7 @@ using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
 
 class TextureRecycler {
 public:
+    TextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
     void setSize(const uvec2& size);
     void clear();
     TexturePtr getNextTexture();
@@ -212,4 +213,5 @@ private:
     Map _allTextures;
     Queue _readyTextures;
     uvec2 _size{ 1920, 1080 };
+    bool _useMipmaps;
 };

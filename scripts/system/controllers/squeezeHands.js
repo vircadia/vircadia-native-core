@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  controllers/squeezeHands.js
 //
@@ -9,6 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var lastLeftTrigger = 0;
 var lastRightTrigger = 0;
@@ -82,3 +86,5 @@ function shutdown() {
 Script.scriptEnding.connect(shutdown);
 
 init();
+
+}()); // END LOCAL_SCOPE

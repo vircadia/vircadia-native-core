@@ -23,12 +23,14 @@ var ICON_FOR_TYPE = {
     Multiple: "&#xe000;"
 }
 
-var colorPickers = [];
+var EDITOR_TIMEOUT_DURATION = 1500;
 
+var colorPickers = [];
+var lastEntityID = null;
 debugPrint = function(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
-            type:"print", 
+            type: "print",
             message: message
         })
     );
@@ -40,6 +42,7 @@ function enableChildren(el, selector) {
         els[i].removeAttribute('disabled');
     }
 }
+
 function disableChildren(el, selector) {
     els = el.querySelectorAll(selector);
     for (var i = 0; i < els.length; i++) {
@@ -50,7 +53,13 @@ function disableChildren(el, selector) {
 function enableProperties() {
     enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     enableChildren(document, ".colpick");
+    var elLocked = document.getElementById("property-locked");
+
+    if (elLocked.checked === false) {
+        removeStaticUserData();
+    }
 }
+
 
 function disableProperties() {
     disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
@@ -58,6 +67,12 @@ function disableProperties() {
     for (var i = 0; i < colorPickers.length; i++) {
         colorPickers[i].colpickHide();
     }
+    var elLocked = document.getElementById("property-locked");
+
+    if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
+        showStaticUserData();
+    }
+
 }
 
 function showElements(els, show) {
@@ -69,7 +84,7 @@ function showElements(els, show) {
 function createEmitCheckedPropertyUpdateFunction(propertyName) {
     return function() {
         EventBridge.emitWebEvent(
-            '{ "type":"update", "properties":{"' + propertyName + '":' + this.checked + '}}'
+            '{"id":' + lastEntityID + ', "type":"update", "properties":{"' + propertyName + '":' + this.checked + '}}'
         );
     };
 }
@@ -85,12 +100,13 @@ function createEmitCheckedToStringPropertyUpdateFunction(checkboxElement, name, 
 }
 
 function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
-    return function () {
+    return function() {
         var properties = {};
         properties[group] = {};
         properties[group][propertyName] = this.checked;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties
             })
@@ -104,10 +120,11 @@ function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
         var value = parseFloat(this.value).toFixed(decimals);
 
         EventBridge.emitWebEvent(
-            '{ "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
+            '{"id":' + lastEntityID + ', "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
         );
     };
 }
+
 function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
     return function() {
         var properties = {};
@@ -115,6 +132,7 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
         properties[group][propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -129,6 +147,7 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
         properties[propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -136,13 +155,14 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
     };
 }
 
-function createEmitGroupTextPropertyUpdateFunction(group,propertyName) {
+function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
     return function() {
         var properties = {};
         properties[group] = {};
         properties[group][propertyName] = this.value;
         EventBridge.emitWebEvent(
             JSON.stringify({
+                id: lastEntityID,
                 type: "update",
                 properties: properties,
             })
@@ -153,14 +173,14 @@ function createEmitGroupTextPropertyUpdateFunction(group,propertyName) {
 function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
     return function() {
         var data = {
-             type: "update",
-             properties: {
-             }
+            id: lastEntityID,
+            type: "update",
+            properties: {}
         };
         data.properties[property] = {
-             x: elX.value,
-             y: elY.value,
-             z: elZ.value,
+            x: elX.value,
+            y: elY.value,
+            z: elZ.value,
         };
         EventBridge.emitWebEvent(JSON.stringify(data));
     }
@@ -169,15 +189,15 @@ function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
 function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, elZ) {
     return function() {
         var data = {
-             type: "update",
-             properties: {
-             }
+            id: lastEntityID,
+            type: "update",
+            properties: {}
         };
-        data.properties[group] = { };
+        data.properties[group] = {};
         data.properties[group][property] = {
-             x: elX.value,
-             y: elY.value,
-             z: elZ ? elZ.value : 0,
+            x: elX.value,
+            y: elY.value,
+            z: elZ ? elZ.value : 0,
         };
         EventBridge.emitWebEvent(JSON.stringify(data));
     }
@@ -186,14 +206,14 @@ function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, el
 function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
     return function() {
         var data = {
-             type: "update",
-             properties: {
-             }
+            id: lastEntityID,
+            type: "update",
+            properties: {}
         };
         data.properties[property] = {
-             x: elX.value * multiplier,
-             y: elY.value * multiplier,
-             z: elZ.value * multiplier,
+            x: elX.value * multiplier,
+            y: elY.value * multiplier,
+            z: elZ.value * multiplier,
         };
         EventBridge.emitWebEvent(JSON.stringify(data));
     }
@@ -206,42 +226,42 @@ function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue)
 };
 
 function emitColorPropertyUpdate(property, red, green, blue, group) {
-        var data = {
-             type: "update",
-             properties: {
-             }
+    var data = {
+        id: lastEntityID,
+        type: "update",
+        properties: {}
+    };
+    if (group) {
+        data.properties[group] = {};
+        data.properties[group][property] = {
+            red: red,
+            green: green,
+            blue: blue,
         };
-        if (group) {
-            data.properties[group] = { };
-            data.properties[group][property] = {
-                 red: red,
-                 green: green,
-                 blue: blue,
-            };
-        } else {
-            data.properties[property] = {
-                 red: red,
-                 green: green,
-                 blue: blue,
-            };
-        }
-        EventBridge.emitWebEvent(JSON.stringify(data));
+    } else {
+        data.properties[property] = {
+            red: red,
+            green: green,
+            blue: blue,
+        };
+    }
+    EventBridge.emitWebEvent(JSON.stringify(data));
 };
 
 
 function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
     return function() {
         var data = {
-             type: "update",
-             properties: {
-             }
+            id: lastEntityID,
+            type: "update",
+            properties: {}
         };
-        data.properties[group] = { };
+        data.properties[group] = {};
 
         data.properties[group][property] = {
-             red: elRed.value,
-             green: elGreen.value,
-             blue: elBlue.value,
+            red: elRed.value,
+            green: elGreen.value,
+            blue: elBlue.value,
         };
         EventBridge.emitWebEvent(JSON.stringify(data));
     }
@@ -251,21 +271,61 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
     if (subPropertyElement.checked) {
         if (propertyValue.indexOf(subPropertyString)) {
             propertyValue += subPropertyString + ',';
-        } 
+        }
     } else {
         // We've unchecked, so remove 
         propertyValue = propertyValue.replace(subPropertyString + ",", "");
     }
 
-    var _properties ={}
+    var _properties = {}
     _properties[propertyName] = propertyValue;
-    
+
     EventBridge.emitWebEvent(
-      JSON.stringify({
-        type: "update",
-        properties: _properties
-      })
+        JSON.stringify({
+            id: lastEntityID,
+            type: "update",
+            properties: _properties
+        })
     );
+
+}
+
+function setUserDataFromEditor(noUpdate) {
+    var json = null;
+    try {
+        json = editor.get();
+    } catch (e) {
+        alert('Invalid JSON code - look for red X in your code ', +e)
+    }
+    if (json === null) {
+        return;
+    } else {
+        var text = editor.getText()
+        if (noUpdate === true) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "saveUserData",
+                    properties: {
+                        userData: text
+                    },
+                })
+            );
+            return;
+        } else {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "update",
+                    properties: {
+                        userData: text
+                    },
+                })
+            );
+        }
+
+    }
+
 
 }
 
@@ -274,7 +334,7 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
     var parsedData = {};
     try {
         parsedData = JSON.parse(userDataElement.value);
-    } catch(e) {}
+    } catch (e) {}
 
     if (!(groupName in parsedData)) {
         parsedData[groupName] = {}
@@ -297,6 +357,7 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
 
     EventBridge.emitWebEvent(
         JSON.stringify({
+            id: lastEntityID,
             type: "update",
             properties: properties,
         })
@@ -306,9 +367,148 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
 function setTextareaScrolling(element) {
     var isScrolling = element.scrollHeight > element.offsetHeight;
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
+};
+
+
+
+var editor = null;
+var editorTimeout = null;
+var lastJSONString = null;
+
+function createJSONEditor() {
+    var container = document.getElementById("userdata-editor");
+    var options = {
+        search: false,
+        mode: 'tree',
+        modes: ['code', 'tree'],
+        name: 'userData',
+        onModeChange: function() {
+            $('.jsoneditor-poweredBy').remove();
+        },
+        onError: function(e) {
+            alert('JSON editor:' + e)
+        },
+        onChange: function() {
+            var currentJSONString = editor.getText();
+
+            if (currentJSONString === '{"":""}') {
+                return;
+            }
+            $('#userdata-save').attr('disabled', false)
+
+
+        }
+    };
+    editor = new JSONEditor(container, options);
+};
+
+function hideNewJSONEditorButton() {
+    $('#userdata-new-editor').hide();
+
+};
+
+function hideClearUserDataButton() {
+    $('#userdata-clear').hide();
+};
+
+function showSaveUserDataButton() {
+    $('#userdata-save').show();
 }
 
-function loaded() { 
+function hideSaveUserDataButton() {
+    $('#userdata-save').hide();
+
+}
+
+function showNewJSONEditorButton() {
+    $('#userdata-new-editor').show();
+
+};
+
+function showClearUserDataButton() {
+    $('#userdata-clear').show();
+
+};
+
+function showUserDataTextArea() {
+    $('#property-user-data').show();
+};
+
+function hideUserDataTextArea() {
+    $('#property-user-data').hide();
+};
+
+function showStaticUserData() {
+    $('#static-userdata').show();
+    $('#static-userdata').css('height', $('#userdata-editor').height())
+    $('#static-userdata').text(editor.getText());
+};
+
+function removeStaticUserData() {
+    $('#static-userdata').hide();
+};
+
+function setEditorJSON(json) {
+    editor.set(json)
+    editor.expandAll();
+};
+
+function getEditorJSON() {
+    return editor.get();
+};
+
+function deleteJSONEditor() {
+    if (editor !== null) {
+        editor.destroy();
+        editor = null;
+    }
+};
+
+var savedJSONTimer = null;
+
+function saveJSONUserData(noUpdate) {
+    setUserDataFromEditor(noUpdate);
+    $('#userdata-saved').show();
+    $('#userdata-save').attr('disabled', true)
+    if (savedJSONTimer !== null) {
+        clearTimeout(savedJSONTimer);
+    }
+    savedJSONTimer = setTimeout(function() {
+        $('#userdata-saved').hide();
+
+    }, 1500)
+}
+
+function bindAllNonJSONEditorElements() {
+    var inputs = $('input');
+    var i;
+    for (i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var field = $(input);
+        field.on('focus', function(e) {
+            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
+                return;
+            } else {
+                if ($('#userdata-editor').css('height') !== "0px") {
+                    saveJSONUserData(true);
+
+                }
+            }
+        })
+    }
+}
+
+function unbindAllInputs() {
+    var inputs = $('input');
+    var i;
+    for (i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var field = $(input);
+        field.unbind();
+    }
+}
+
+function loaded() {
     openEventBridge(function() {
         var allSections = [];
         var elID = document.getElementById("property-id");
@@ -364,7 +564,7 @@ function loaded() {
 
         var elDensity = document.getElementById("property-density");
         var elCollisionless = document.getElementById("property-collisionless");
-        var elDynamic = document.getElementById("property-dynamic" );
+        var elDynamic = document.getElementById("property-dynamic");
         var elCollideStatic = document.getElementById("property-collide-static");
         var elCollideDynamic = document.getElementById("property-collide-dynamic");
         var elCollideKinematic = document.getElementById("property-collide-kinematic");
@@ -384,7 +584,10 @@ function loaded() {
         */
         var elReloadScriptButton = document.getElementById("reload-script-button");
         var elUserData = document.getElementById("property-user-data");
-
+        var elClearUserData = document.getElementById("userdata-clear");
+        var elSaveUserData = document.getElementById("userdata-save");
+        var elJSONEditor = document.getElementById("userdata-editor");
+        var elNewJSONEditor = document.getElementById('userdata-new-editor');
         var elColorSections = document.querySelectorAll(".color-section");
         var elColor = document.getElementById("property-color");
         var elColorRed = document.getElementById("property-color-red");
@@ -394,7 +597,7 @@ function loaded() {
         var elShapeSections = document.querySelectorAll(".shape-section");
         allSections.push(elShapeSections);
         var elShape = document.getElementById("property-shape");
-        
+
         var elLightSections = document.querySelectorAll(".light-section");
         allSections.push(elLightSections);
         var elLightSpotLight = document.getElementById("property-light-spot-light");
@@ -427,13 +630,14 @@ function loaded() {
         var elWebSections = document.querySelectorAll(".web-section");
         allSections.push(elWebSections);
         var elWebSourceURL = document.getElementById("property-web-source-url");
+        var elWebDPI = document.getElementById("property-web-dpi");
 
         var elDescription = document.getElementById("property-description");
 
         var elHyperlinkHref = document.getElementById("property-hyperlink-href");
-     
+
         var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
-      
+
 
         var elTextSections = document.querySelectorAll(".text-section");
         allSections.push(elTextSections);
@@ -497,12 +701,18 @@ function loaded() {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type == "update") {
+
                     if (data.selections.length == 0) {
+                        if (editor !== null && lastEntityID !== null) {
+                            saveJSONUserData(true);
+                            deleteJSONEditor();
+                        }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
                         elID.innerHTML = "";
                         disableProperties();
                     } else if (data.selections.length > 1) {
+                        deleteJSONEditor();
                         var selections = data.selections;
 
                         var ids = [];
@@ -533,10 +743,13 @@ function loaded() {
 
                         disableProperties();
                     } else {
-    
 
                         properties = data.selections[0].properties;
+                        if (lastEntityID !== properties.id && lastEntityID !== null && editor !== null) {
+                            saveJSONUserData(true);
+                        }
 
+                        lastEntityID = properties.id;
                         elID.innerHTML = properties.id;
 
                         elType.innerHTML = properties.type;
@@ -545,12 +758,6 @@ function loaded() {
 
                         elLocked.checked = properties.locked;
 
-                        if (properties.locked) {
-                            disableProperties();
-                            elLocked.removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                        }
 
                         elName.value = properties.name;
 
@@ -612,7 +819,7 @@ function loaded() {
                         var parsedUserData = {}
                         try {
                             parsedUserData = JSON.parse(properties.userData);
-                                                    
+
                             if ("grabbableKey" in parsedUserData) {
                                 if ("grabbable" in parsedUserData["grabbableKey"]) {
                                     elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
@@ -624,7 +831,7 @@ function loaded() {
                                     elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) {}
 
                         elCollisionSoundURL.value = properties.collisionSoundURL;
                         elLifetime.value = properties.lifetime;
@@ -633,8 +840,27 @@ function loaded() {
                         FIXME: See FIXME for property-script-url.
                         elScriptTimestamp.value = properties.scriptTimestamp;
                         */
-                        elUserData.value = properties.userData;
-                        setTextareaScrolling(elUserData);
+                        hideUserDataTextArea();
+                        var json = null;
+                        try {
+                            json = JSON.parse(properties.userData);
+                  
+                            if (editor === null) {
+                                createJSONEditor();
+                            }
+
+                            setEditorJSON(json);
+                            showSaveUserDataButton();
+                            hideNewJSONEditorButton();
+
+                        } catch (e) {
+                            //normal text
+
+                            elUserData.value = properties.userData;
+                            showUserDataTextArea();
+                            showNewJSONEditorButton();
+                            hideSaveUserDataButton();
+                        }
 
                         elHyperlinkHref.value = properties.href;
                         elDescription.value = properties.description;
@@ -643,7 +869,7 @@ function loaded() {
                             for (var j = 0; j < allSections[i].length; j++) {
                                 allSections[i][j].style.display = 'none';
                             }
-                        }                                    
+                        }
 
                         for (var i = 0; i < elHyperlinkSections.length; i++) {
                             elHyperlinkSections[i].style.display = 'table';
@@ -661,7 +887,7 @@ function loaded() {
                                 elShapeSections[i].style.display = 'none';
                             }
                         }
-                        
+
                         if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                             for (var i = 0; i < elColorSections.length; i++) {
                                 elColorSections[i].style.display = 'table';
@@ -669,7 +895,7 @@ function loaded() {
                             elColorRed.value = properties.color.red;
                             elColorGreen.value = properties.color.green;
                             elColorBlue.value = properties.color.blue;
-                            elColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
+                            elColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
                         } else {
                             for (var i = 0; i < elColorSections.length; i++) {
                                 elColorSections[i].style.display = 'none';
@@ -706,6 +932,7 @@ function loaded() {
                             }
 
                             elWebSourceURL.value = properties.sourceUrl;
+                            elWebDPI.value = properties.dpi;
                         } else if (properties.type == "Text") {
                             for (var i = 0; i < elTextSections.length; i++) {
                                 elTextSections[i].style.display = 'table';
@@ -714,7 +941,7 @@ function loaded() {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera = properties.faceCamera;
-                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
+                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
                             elTextTextColorRed.value = properties.textColor.red;
                             elTextTextColorGreen.value = properties.textColor.green;
                             elTextTextColorBlue.value = properties.textColor.blue;
@@ -728,7 +955,7 @@ function loaded() {
 
                             elLightSpotLight.checked = properties.isSpotlight;
 
-                            elLightColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
+                            elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
                             elLightColorRed.value = properties.color.red;
                             elLightColorGreen.value = properties.color.green;
                             elLightColorBlue.value = properties.color.blue;
@@ -743,7 +970,7 @@ function loaded() {
                             }
 
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
-                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red  + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
+                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
                             elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
                             elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
@@ -766,7 +993,7 @@ function loaded() {
                             elZoneBackgroundMode.value = properties.backgroundMode;
                             setDropdownText(elZoneBackgroundMode);
 
-                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red  + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
+                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
                             elZoneSkyboxColorRed.value = properties.skybox.color.red;
                             elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                             elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
@@ -790,10 +1017,18 @@ function loaded() {
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
                         }
-                        
+
+                        if (properties.locked) {
+                            disableProperties();
+                            elLocked.removeAttribute('disabled');
+                        } else {
+                            enableProperties();
+                            elSaveUserData.disabled = true;
+                        }
+
                         var activeElement = document.activeElement;
-                        
-                        if(typeof activeElement.select!=="undefined"){
+
+                        if (typeof activeElement.select !== "undefined") {
                             activeElement.select();
                         }
                     }
@@ -903,7 +1138,43 @@ function loaded() {
         FIXME: See FIXME for property-script-url.
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
         */
+
+
+        elClearUserData.addEventListener("click", function() {
+            deleteJSONEditor();
+            elUserData.value = "";
+            showUserDataTextArea();
+            showNewJSONEditorButton();
+            hideSaveUserDataButton();
+            var properties = {};
+            properties['userData'] = elUserData.value;
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "update",
+                    properties: properties,
+                })
+            );
+
+
+        });
+
+
+        elSaveUserData.addEventListener("click", function() {
+            saveJSONUserData(true);
+        });
+
         elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
+
+        elNewJSONEditor.addEventListener('click', function() {
+            deleteJSONEditor();
+            createJSONEditor();
+            var data = {};
+            setEditorJSON(data);
+            hideUserDataTextArea();
+            hideNewJSONEditorButton();
+            showSaveUserDataButton();
+        });
 
         var colorChangeFunction = createEmitColorPropertyUpdateFunction(
             'color', elColorRed, elColorGreen, elColorBlue);
@@ -914,13 +1185,13 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-            onShow: function (colpick) {
+            onShow: function(colpick) {
                 $('#property-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
+            onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
@@ -938,13 +1209,13 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-            onShow: function (colpick) {
+            onShow: function(colpick) {
                 $('#property-light-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-light-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
+            onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
@@ -959,14 +1230,15 @@ function loaded() {
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
+        elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi'));
 
         elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
         elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
         elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
 
         elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
-        elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
-        elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
+        elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'running'));
+        elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'fps'));
         elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
         elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
         elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
@@ -984,17 +1256,17 @@ function loaded() {
         elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
         elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
         colorPickers.push($('#property-text-text-color').colpick({
-            colorScheme:'dark',
-            layout:'hex',
+            colorScheme: 'dark',
+            layout: 'hex',
             color: '000000',
-            onShow: function (colpick) {
+            onShow: function(colpick) {
                 $('#property-text-text-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-text-text-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
-                $(el).css('background-color', '#'+hex);
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 $(el).attr('active', 'false');
                 emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
@@ -1007,82 +1279,82 @@ function loaded() {
         elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
         colorPickers.push($('#property-text-background-color').colpick({
-            colorScheme:'dark',
-            layout:'hex',
-            color:'000000',
-            onShow: function (colpick) {
+            colorScheme: 'dark',
+            layout: 'hex',
+            color: '000000',
+            onShow: function(colpick) {
                 $('#property-text-background-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-text-background-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
-                $(el).css('background-color', '#'+hex);
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
         }));
 
-        elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
+        elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
         colorPickers.push($('#property-zone-key-light-color').colpick({
-            colorScheme:'dark',
-            layout:'hex',
-            color:'000000',
-            onShow: function (colpick) {
+            colorScheme: 'dark',
+            layout: 'hex',
+            color: '000000',
+            onShow: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
-                $(el).css('background-color', '#'+hex);
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
         }));
-        var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight','color', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
+        var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
         elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-        elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
-        elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
-        elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
-        var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
+        elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight', 'intensity'));
+        elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight', 'ambientIntensity'));
+        elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight', 'ambientURL'));
+        var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
-        elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
-        elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
-        elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','automaticHourDay'));
-        elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
-        elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
+        elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
+        elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
+        elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'altitude'));
+        elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
+        elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'day'));
+        elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'hour'));
 
 
         elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
-        var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox','color',
+        var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox', 'color',
             elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
         elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
         colorPickers.push($('#property-zone-skybox-color').colpick({
-            colorScheme:'dark',
-            layout:'hex',
-            color:'000000',
-            onShow: function (colpick) {
+            colorScheme: 'dark',
+            layout: 'hex',
+            color: '000000',
+            onShow: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'true');
             },
-            onHide: function (colpick) {
+            onHide: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
-                $(el).css('background-color', '#'+hex);
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
             }
         }));
 
-        elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
+        elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox', 'url'));
 
         elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
         elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
@@ -1164,12 +1436,13 @@ function loaded() {
                 clicked = true;
             };
         }
+        bindAllNonJSONEditorElements();
     });
 
     // Collapsible sections
     var elCollapsible = document.getElementsByClassName("section-header");
 
-    var toggleCollapsedEvent = function (event) {
+    var toggleCollapsedEvent = function(event) {
         var element = event.target;
         if (element.nodeName !== "DIV") {
             element = element.parentNode;
@@ -1188,7 +1461,7 @@ function loaded() {
     // Textarea scrollbars
     var elTextareas = document.getElementsByTagName("TEXTAREA");
 
-    var textareaOnChangeEvent = function (event) {
+    var textareaOnChangeEvent = function(event) {
         setTextareaScrolling(event.target);
     }
 
@@ -1274,7 +1547,7 @@ function loaded() {
         dt.appendChild(span);
 
         var span = document.createElement("span");
-        span.textContent = "5";  // caratDn
+        span.textContent = "5"; // caratDn
         dt.appendChild(span);
 
         var dd = document.createElement("dd");
@@ -1302,8 +1575,7 @@ function loaded() {
     augmentSpinButtons();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
-    document.addEventListener("contextmenu", function (event) {
+    document.addEventListener("contextmenu", function(event) {
         event.preventDefault();
     }, false);
 }
-

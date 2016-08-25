@@ -18,6 +18,7 @@
 * [oglplus](http://oglplus.org/) ~> 0.63
 * [OpenVR](https://github.com/ValveSoftware/openvr) ~> 0.91 (Win32 only)
 * [Polyvox](http://www.volumesoffun.com/) ~> 0.2.1
+* [QuaZip](http://sourceforge.net/projects/quazip/files/quazip/) ~> 0.7.1
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
 * [soxr](http://soxr.sourceforge.net) ~> 0.1.1
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3

@@ -107,7 +107,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
     _bodySensorMatrix(),
-    _sensorToWorldMatrix(),
     _goToPending(false),
     _goToPosition(),
     _goToOrientation(),
@@ -511,13 +510,9 @@ void MyAvatar::simulate(float deltaTime) {
     updateAvatarEntities();
 }
 
-// thread-safe
-glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
-    return _sensorToWorldMatrixCache.get();
-}
-
-// As far as I know no HMD system supports a play area of a kilometer in radius.  
+// As far as I know no HMD system supports a play area of a kilometer in radius.
 static const float MAX_HMD_ORIGIN_DISTANCE = 1000.0f;
+
 // Pass a recent sample of the HMD to the avatar.
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
@@ -526,7 +521,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorMatrix = hmdSensorMatrix;
     auto newHmdSensorPosition = extractTranslation(hmdSensorMatrix);
 
-    if (newHmdSensorPosition != _hmdSensorPosition && 
+    if (newHmdSensorPosition != _hmdSensorPosition &&
         glm::length(newHmdSensorPosition) > MAX_HMD_ORIGIN_DISTANCE) {
         qWarning() << "Invalid HMD sensor position " << newHmdSensorPosition;
         // Ignore unreasonable HMD sensor data

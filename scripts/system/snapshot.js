@@ -7,6 +7,9 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
+
 var SNAPSHOT_DELAY = 500; // 500ms
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var resetOverlays;
@@ -152,3 +155,5 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     Window.snapshotShared.disconnect(snapshotShared);
 });
+
+}()); // END LOCAL_SCOPE
