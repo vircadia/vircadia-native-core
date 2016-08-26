@@ -580,6 +580,17 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
+    // Rendering info
+    if (!skipDefaults) {
+        QScriptValue renderInfo = engine->newObject();
+        renderInfo.setProperty("verticesCount", QScriptValue(10));
+        renderInfo.setProperty("texturesCount", QScriptValue(2));
+        renderInfo.setProperty("texturesSize", QScriptValue(1024));
+        renderInfo.setProperty("hasTransparent", QScriptValue(false));
+        renderInfo.setProperty("drawCalls", QScriptValue(30));
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
+    }
+
     properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
     properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
 

@@ -106,12 +106,18 @@ function loaded() {
           }));
       }
       
-      function addEntity(id, name, type, url, locked, visible) {
+      function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
+          drawCalls, hasScript) {
+
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
           if (entities[id] === undefined) {
-              entityList.add([{ id: id, name: name, type: type, url: filename, locked: locked, visible: visible }],
+              entityList.add([{
+                  id: id, name: name, type: type, url: filename, locked: locked, visible: visible, verticesCount: verticesCount,
+                  texturesCount: texturesCount, texturesSize: texturesSize, hasTransparent: hasTransparent,
+                  drawCalls: drawCalls, hasScript: hasScript
+              }],
                   function (items) {
                       var currentElement = items[0].elm;
                       var id = items[0]._values.id;
@@ -264,7 +270,11 @@ function loaded() {
                           var id = newEntities[i].id;
                           addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
                               newEntities[i].locked ? LOCKED_GLYPH : null,
-                              newEntities[i].visible ? VISIBLE_GLYPH : null);
+                              newEntities[i].visible ? VISIBLE_GLYPH : null,
+                              newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
+                              newEntities[i].hasTransparent ? "T" : null,
+                              newEntities[i].drawCalls,
+                              newEntities[i].hasScript ? "T" : null);
                       }
                       updateSelectedEntities(data.selectedIDs);
                       resize();
@@ -288,11 +298,17 @@ function loaded() {
           } else {
               // Reasonable widths if nothing is displayed
               var tableWidth = document.getElementById("entity-table").offsetWidth;
-              ths[0].width = 0.16 * tableWidth;
-              ths[1].width = 0.34 * tableWidth;
-              ths[2].width = 0.34 * tableWidth;
-              ths[3].width = 0.08 * tableWidth;
-              ths[4].width = 0.08 * tableWidth;
+              ths[0].width = 0.10 * tableWidth;
+              ths[1].width = 0.20 * tableWidth;
+              ths[2].width = 0.20 * tableWidth;
+              ths[3].width = 0.04 * tableWidth;
+              ths[4].width = 0.04 * tableWidth;
+              ths[5].width = 0.10 * tableWidth;
+              ths[6].width = 0.10 * tableWidth;
+              ths[7].width = 0.10 * tableWidth;
+              ths[8].width = 0.04 * tableWidth;
+              ths[9].width = 0.10 * tableWidth;
+              ths[10].width = 0.04 * tableWidth;
           }
       };
 

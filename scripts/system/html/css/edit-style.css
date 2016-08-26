@@ -906,16 +906,38 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #col-type {
-    width: 16%;
+    width: 10%;
 }
 #col-name {
-    width: 34%;
+    width: 20%;
 }
 #col-url {
-    width: 34%;
+    width: 20%;
 }
 #col-locked, #col-visible {
-    width: 8%;
+    width: 4%;
+}
+#col-verticesCount {
+    width: 10%;
+}
+#col-texturesCount {
+    width: 10%;
+}
+#col-texturesSize {
+    width: 10%;
+}
+#col-hasTransparent {
+    width: 4%;
+}
+#col-drawCalls {
+    width: 10%;
+}
+#col-hasScript {
+    width: 4%;
+}
+
+.verticesCount, .texturesCount, .texturesSize, .drawCalls {
+    text-align: right;
 }
 
 #entity-table thead tr, #entity-table thead tr th,

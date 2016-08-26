@@ -37,19 +37,31 @@
             <div id="entity-table-scroll">
                 <table id="entity-table">
                     <colgroup>
-                    <col span="1" id="col-type" />
-                    <col span="1" id="col-name" />
-                    <col span="1" id="col-url" />
-                    <col span="1" id="col-locked" />
-                    <col span="1" id="col-visible" />
+                        <col span="1" id="col-type" />
+                        <col span="1" id="col-name" />
+                        <col span="1" id="col-url" />
+                        <col span="1" id="col-locked" />
+                        <col span="1" id="col-visible" />
+                        <col span="1" id="col-verticesCount" />
+                        <col span="1" id="col-texturesCount" />
+                        <col span="1" id="col-texturesSize" />
+                        <col span="1" id="col-hasTransparent" />
+                        <col span="1" id="col-drawCalls" />
+                        <col span="1" id="col-hasScript" />
                     </colgroup>
                     <thead>
                         <tr>
-                            <th id="entity-type" data-sort="type">Type<span class="sort-order"></span></th>
-                            <th id="entity-name" data-sort="type">Name<span class="sort-order"></span></th>
-                            <th id="entity-url" data-sort="url">File<span class="sort-order"></span></th>
-                            <th id="entity-locked" data-sort="locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
-                            <th colspan="2" id="entity-visible" data-sort="visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
+                            <th id="entity-type">Type<span class="sort-order"></span></th>
+                            <th id="entity-name">Name<span class="sort-order"></span></th>
+                            <th id="entity-url">File<span class="sort-order"></span></th>
+                            <th id="entity-locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
+                            <th id="entity-visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
+                            <th id="entity-verticesCount">V</th>
+                            <th id="entity-texturesCount">T</th>
+                            <th id="entity-texturesSize">S</th>
+                            <th id="entity-hasTransparent">T</th>
+                            <th id="entity-drawCalls">D</th>
+                            <th colspan="2" id="entity-hasScript">S</th>
                         </tr>
                     </thead>
                     <tbody class="list" id="entity-table-body">
@@ -59,12 +71,18 @@
                             <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
                             <td class="locked glyph">?</td>
                             <td class="visible glyph">?</td>
+                            <td class="verticesCount"></td>
+                            <td class="texturesCount"></td>
+                            <td class="texturesSize"></td>
+                            <td class="hasTransparent"></td>
+                            <td class="drawCalls"></td>
+                            <td class="hasScript"></td>
                             <td class="id" style="display: none">ID</td>
                         </tr>
                     </tbody>
                     <tfoot>
                     <tr>
-                        <td id="footer-text" colspan="5"> </td>
+                        <td id="footer-text" colspan="11"> </td>
                     </tr>
                     </tfoot>
                 </table>

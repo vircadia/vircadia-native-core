@@ -60,7 +60,13 @@ EntityListTool = function(opts) {
                 type: properties.type,
                 url: properties.type == "Model" ? properties.modelURL : "",
                 locked: properties.locked,
-                visible: properties.visible
+                visible: properties.visible,
+                verticesCount: properties.renderInfo.verticesCount,
+                texturesCount: properties.renderInfo.texturesCount,
+                texturesSize:properties.renderInfo.texturesSize,
+                hasTransparent: properties.renderInfo.hasTransparent,
+                drawCalls: properties.renderInfo.drawCalls,
+                hasScript: properties.script !== ""
             });
         }
 
