@@ -1,0 +1,25 @@
+/*
+//
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+.marketplaces-container {
+    width: 100%;
+}
+.marketplace-tile {
+    float: left;
+    width: 50%;
+}
+.marketplace-tile-title {
+    width: 100%;
+    height: 10%;
+}
+.marketplace-tile-image-container {
+}
+.marketplace-tile-image {
+}
+.marketplace-tile-description {
+}
