@@ -335,7 +335,7 @@ QVector<QString> UserInputMapper::getActionNames() const {
 }
 
 Pose UserInputMapper::getPoseState(Action action) const {
-    if (QThread::currentThread() != thread()) { abort(); } // XXX
+    assert(QThread::currentThread() == thread());
     return _poseStates[toInt(action)];
 }
 

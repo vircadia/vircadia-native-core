@@ -534,7 +534,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
 void MyAvatar::updateJointFromController(glm::mat4& previousSensorToWorldInverseMatrix, controller::Action poseKey,
                                          ThreadSafeValueCache<glm::mat4>& matrixCache) {
-    if (QThread::currentThread() != thread()) { abort(); } // XXX
+    assert(QThread::currentThread() == thread());
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
     Transform transform;
