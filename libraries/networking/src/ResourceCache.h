@@ -226,8 +226,6 @@ private:
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 
-    void getResourceAsynchronously(const QUrl& url);
-
     static int _requestLimit;
     static int _requestsActive;
 

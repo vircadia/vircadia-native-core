@@ -35,6 +35,7 @@ static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 100;
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
 static int MAX_WINDOW_SIZE = 4096;
+static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
@@ -144,7 +145,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     glm::vec2 windowSize = getWindowSize();
 
     // The offscreen surface is idempotent for resizes (bails early
-    // if it's a no-op), so it's safe to just call resize every frame 
+    // if it's a no-op), so it's safe to just call resize every frame
     // without worrying about excessive overhead.
     _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
@@ -164,9 +165,14 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
 
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
-    DependencyManager::get<GeometryCache>()->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
+    if (fadeRatio < OPAQUE_ALPHA_THRESHOLD) {
+        DependencyManager::get<GeometryCache>()->bindTransparentWebBrowserProgram(batch);
+    } else {
+        DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch);
+    }
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio));
 }
 
@@ -290,4 +296,10 @@ void RenderableWebEntityItem::update(const quint64& now) {
     if (interval > MAX_NO_RENDER_INTERVAL) {
         destroyWebSurface();
     }
+}
+
+
+bool RenderableWebEntityItem::isTransparent() {
+    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+    return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
 }

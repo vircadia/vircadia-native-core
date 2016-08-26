@@ -403,7 +403,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
-    const gpu::FramebufferPointer& lowCurvatureNormalFramebuffer,
+    const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
@@ -434,7 +434,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         
         // FIXME: Different render modes should have different tasks
         if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
-            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
@@ -449,9 +449,6 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
-        }
-        if (lowCurvatureNormalFramebuffer) {
-           // batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormalFramebuffer->getRenderBuffer(0));
             batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (subsurfaceScatteringResource) {
@@ -698,7 +695,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
     auto surfaceGeometryFramebuffer = inputs.get3();
-    auto lowCurvatureNormalFramebuffer = inputs.get4();
+    auto ssaoFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
     auto args = renderContext->args;
 
@@ -706,7 +703,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
        _gpuTimer.begin(batch);
     });
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, subsurfaceScatteringResource);
+    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
 
