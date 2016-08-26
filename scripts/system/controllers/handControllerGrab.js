@@ -829,16 +829,17 @@ function MyController(hand) {
         }
     };
 
-
     this.grabPointSphereOn = function() {
         if (!SHOW_GRAB_POINT_SPHERE) {
             return;
         }
+        if (!MyAvatar.sessionUUID) {
+            return;
+        }
         if (!this.grabPointSphere) {
-            var controllerLocation = this.getControllerLocation();
             this.grabPointSphere = Overlays.addOverlay("sphere", {
-                position: controllerLocation.position,
-                rotation: { x: 0, y: 0, z: 0, w: 1 },
+                localPosition: GRAB_POINT_SPHERE_OFFSET,
+                localRotation: { x: 0, y: 0, z: 0, w: 1 },
                 dimensions: GRAB_POINT_SPHERE_RADIUS,
                 color: GRAB_POINT_SPHERE_COLOR,
                 alpha: GRAB_POINT_SPHERE_ALPHA,
