@@ -16,6 +16,8 @@ const ASCENDING_STRING = '&#x25BE;';
 const DESCENDING_STRING = '&#x25B4;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
+const TRANSPARENCY_GLYPH = "'";
+const SCRIPT_GLYPH = "Q";
 const DELETE = 46; // Key code for the delete key.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
@@ -272,9 +274,9 @@ function loaded() {
                               newEntities[i].locked ? LOCKED_GLYPH : null,
                               newEntities[i].visible ? VISIBLE_GLYPH : null,
                               newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
-                              newEntities[i].hasTransparent ? "T" : null,
+                              newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
                               newEntities[i].drawCalls,
-                              newEntities[i].hasScript ? "T" : null);
+                              newEntities[i].hasScript ? SCRIPT_GLYPH : null);
                       }
                       updateSelectedEntities(data.selectedIDs);
                       resize();
