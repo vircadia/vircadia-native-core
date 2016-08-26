@@ -1373,6 +1373,7 @@ var PropertiesTool = function (opts) {
             data = JSON.parse(data);
         }
         catch(e) {
+            print('web event was not valid json.')
             return;
         }
         var i, properties, dY, diff, newPosition;
