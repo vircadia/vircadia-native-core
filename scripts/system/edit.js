@@ -1369,10 +1369,10 @@ var PropertiesTool = function (opts) {
     });
 
     webView.webEventReceived.connect(function (data) {
-        try{
+        try {
             data = JSON.parse(data);
         }
-        catch(e){
+        catch(e) {
             return;
         }
         var i, properties, dY, diff, newPosition;
@@ -1424,8 +1424,8 @@ var PropertiesTool = function (opts) {
             selectionManager._update();
         } else if(data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
-            var actualID = data.id.split('"')[1]
-            var success = Entities.editEntity(actualID, data.properties)
+            var actualID = data.id.split('"')[1];
+            Entities.editEntity(actualID, data.properties);
         } else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
