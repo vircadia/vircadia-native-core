@@ -499,35 +499,18 @@ ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityI
     return result;
 }
 
-const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemPointer entityItem) {
-    const FBXGeometry* result = NULL;
-    
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        if (modelEntityItem->hasCompoundShapeURL()) {
-            ModelPointer model = modelEntityItem->getModel(this);
-            if (model && model->isCollisionLoaded()) {
-                result = &model->getCollisionFBXGeometry();
-            }
-        }
-    }
-    return result;
-}
-
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority) {
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loadingPriority) {
     ModelPointer model = nullptr;
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(ModelPointer, model),
-                Q_ARG(const QString&, url),
-                Q_ARG(const QString&, collisionUrl));
+                Q_ARG(const QString&, url));
 
         return model;
     }
@@ -536,7 +519,6 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString
     model->setLoadingPriority(loadingPriority);
     model->init();
     model->setURL(QUrl(url));
-    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 
@@ -553,7 +535,6 @@ ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& 
     }
 
     model->setURL(QUrl(newUrl));
-    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 

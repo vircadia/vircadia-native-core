@@ -56,10 +56,13 @@ public:
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
 
+    virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() override;
-    virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
+
+    void setCollisionShape(const btCollisionShape* shape) override;
 
     virtual bool contains(const glm::vec3& point) const override;
 
@@ -98,6 +101,7 @@ private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
+    GeometryResource::Pointer _compoundShapeResource;
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
@@ -112,11 +116,11 @@ private:
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
-    bool _showCollisionHull = false;
-
     bool getAnimationFrame();
 
     bool _needsJointSimulation { false };
+    bool _showCollisionGeometry { false };
+    const void* _collisionMeshKey { nullptr };
 };
 
 #endif // hifi_RenderableModelEntityItem_h

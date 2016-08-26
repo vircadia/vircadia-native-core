@@ -88,9 +88,10 @@ protected:
     bool entityTreeIsLocked() const;
     #endif
 
-    virtual bool isReadyToComputeShape() const override;
-    virtual btCollisionShape* computeNewShape() override;
-    virtual void setMotionType(PhysicsMotionType motionType);
+    bool isReadyToComputeShape() const override;
+    const btCollisionShape* computeNewShape() override;
+    void setShape(const btCollisionShape* shape) override;
+    void setMotionType(PhysicsMotionType motionType) override;
 
     // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be
     // properly "owned" by the EntityItem and will be deleted by it in the dtor.  In pursuit of that

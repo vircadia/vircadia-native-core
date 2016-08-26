@@ -367,7 +367,7 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
 
     ShapeInfo shapeInfo;
     avatar->computeShapeInfo(shapeInfo);
-    btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
     if (shape) {
         // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);

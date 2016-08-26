@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  clara.js
 //
@@ -8,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 var qml = Script.resolvePath("../../../resources/qml/MarketplaceComboBox.qml")
@@ -77,3 +81,5 @@ Script.scriptEnding.connect(function () {
     browseExamplesButton.clicked.disconnect(onClick);
     marketplaceWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
 });
+
+}()); // END LOCAL_SCOPE

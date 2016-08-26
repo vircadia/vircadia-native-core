@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  progress.js
 //  examples
@@ -11,7 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() {
+(function() { // BEGIN LOCAL_SCOPE
 
     function debug() {
         return;
@@ -243,7 +245,7 @@
     }
 
     function updateProgressBarLocation() {
-        viewport = Controller.getViewportDimensions();
+        var viewport = Controller.getViewportDimensions();
         windowWidth = viewport.x;
         windowHeight = viewport.y;
 
@@ -283,4 +285,5 @@
     GlobalServices.updateDownloadInfo();
     Script.setInterval(update, 1000/60);
     Script.scriptEnding.connect(tearDown);
-}());
+
+}()); // END LOCAL_SCOPE

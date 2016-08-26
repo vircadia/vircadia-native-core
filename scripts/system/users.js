@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  users.js
 //  examples
@@ -8,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var PopUpMenu = function (properties) {
     var value = properties.value,
@@ -1189,3 +1193,5 @@ var usersWindow = (function () {
     setUp();
     Script.scriptEnding.connect(tearDown);
 }());
+
+}()); // END LOCAL_SCOPE

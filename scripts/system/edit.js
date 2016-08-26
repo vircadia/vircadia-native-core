@@ -1,3 +1,5 @@
+"use strict";
+
 //  newEditEntities.js
 //  examples
 //
@@ -11,13 +13,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
 
-/* globals SelectionDisplay, SelectionManager, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Toolbars,
-           progressDialog, tooltip, ParticleExplorerTool */
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -94,7 +96,6 @@ var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain.";
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain.";
 
-var mode = 0;
 var isActive = false;
 
 var IMPORTING_SVO_OVERLAY_WIDTH = 144;
@@ -501,8 +502,6 @@ var selectedEntityID;
 var orientation;
 var intersection;
 
-
-var SCALE_FACTOR = 200.0;
 
 function rayPlaneIntersection(pickRay, point, normal) { //
     //
@@ -1726,3 +1725,5 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         }
     }
 });
+
+}()); // END LOCAL_SCOPE
