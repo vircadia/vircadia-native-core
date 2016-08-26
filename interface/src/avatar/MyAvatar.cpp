@@ -540,24 +540,8 @@ void MyAvatar::updateJointFromController(glm::mat4& previousSensorToWorldInverse
     Transform transform;
     transform.setTranslation(controllerPose.getTranslation());
     transform.setRotation(controllerPose.getRotation());
-    glm::mat4 avatarMatrix = getTransform().getMatrix();
-    glm::mat4 avatarInverseMatrix = glm::inverse(avatarMatrix);
-
-    // do some backflips to avoid jitter
-
-    // get the controller pose (avatar space)
     glm::mat4 controllerMatrix = transform.getMatrix();
-    // transform the controller pose into world space.
-    glm::mat4 controllerWorldSpace = avatarMatrix * controllerMatrix;
-    // transform the controller pose from world space into sensor space. But use the inverse of the ORIGINAL sensorToWorld
-    // matrix before updateSensorToWorldMatrix() changes it.
-    glm::mat4 controllerPreviousSensor = previousSensorToWorldInverseMatrix * controllerWorldSpace;
-    // then transform the sensor space controller pose back into world space using the NEW sensorToWorld matrix.
-    glm::mat4 controllerNewWorldSpace = _sensorToWorldMatrix * controllerPreviousSensor;
-    // then transform that world pose back into avatar space.
-    glm::mat4 newControllerMatrix = avatarInverseMatrix * controllerNewWorldSpace;
-
-    matrixCache.set(newControllerMatrix);
+    matrixCache.set(controllerMatrix);
 }
 
 // best called at end of main loop, after physics.
