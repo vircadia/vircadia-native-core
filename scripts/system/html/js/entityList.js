@@ -57,7 +57,25 @@ function loaded() {
       document.getElementById("entity-visible").onclick = function () {
           setSortColumn('visible');
       };
-      
+      document.getElementById("entity-verticesCount").onclick = function () {
+          setSortColumn('verticesCount');
+      };
+      document.getElementById("entity-texturesCount").onclick = function () {
+          setSortColumn('texturesCount');
+      };
+      document.getElementById("entity-texturesSize").onclick = function () {
+          setSortColumn('texturesSize');
+      };
+      document.getElementById("entity-hasTransparent").onclick = function () {
+          setSortColumn('hasTransparent');
+      };
+      document.getElementById("entity-drawCalls").onclick = function () {
+          setSortColumn('drawCalls');
+      };
+      document.getElementById("entity-hasScript").onclick = function () {
+          setSortColumn('hasScript');
+      };
+
       function onRowClicked(clickEvent) {
           var id = this.dataset.entityId;
           var selection = [this.dataset.entityId];
@@ -156,7 +174,13 @@ function loaded() {
           type: document.querySelector('#entity-type .sort-order'),
           url: document.querySelector('#entity-url .sort-order'),
           locked: document.querySelector('#entity-locked .sort-order'),
-          visible: document.querySelector('#entity-visible .sort-order')
+          visible: document.querySelector('#entity-visible .sort-order'),
+          verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
+          texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
+          texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
+          hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
+          drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
+          hasScript: document.querySelector('#entity-hasScript .sort-order'),
       }
       function setSortColumn(column) {
           if (currentSortColumn == column) {
