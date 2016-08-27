@@ -62,8 +62,8 @@ EntityListTool = function(opts) {
                 locked: properties.locked,
                 visible: properties.visible,
                 verticesCount: properties.renderInfo.verticesCount,
-                texturesCount: properties.renderInfo.texturesCount,
-                texturesSize:properties.renderInfo.texturesSize,
+                texturesCount: properties.renderInfo.texturesCount ? properties.renderInfo.texturesCount : "",
+                texturesSize: properties.renderInfo.texturesSize ? properties.renderInfo.texturesSize : "",
                 hasTransparent: properties.renderInfo.hasTransparent,
                 drawCalls: properties.renderInfo.drawCalls,
                 hasScript: properties.script !== ""

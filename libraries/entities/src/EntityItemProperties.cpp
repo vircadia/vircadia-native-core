@@ -582,12 +582,18 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Rendering info
     if (!skipDefaults) {
+        /*
+        renderInfo.setProperty("verticesCount", QScriptValue(randIntInRange(6, 1000)));
+        renderInfo.setProperty("texturesCount", QScriptValue(randIntInRange(0, 10)));
+        renderInfo.setProperty("texturesSize", QScriptValue(randIntInRange(0, 2048)));
+        renderInfo.setProperty("hasTransparent", QScriptValue(randIntInRange(0, 1)));
+        renderInfo.setProperty("drawCalls", QScriptValue(randIntInRange(10, 5000)));
+        */
+
         QScriptValue renderInfo = engine->newObject();
-        renderInfo.setProperty("verticesCount", QScriptValue(10));
-        renderInfo.setProperty("texturesCount", QScriptValue(2));
-        renderInfo.setProperty("texturesSize", QScriptValue(1024));
-        renderInfo.setProperty("hasTransparent", QScriptValue(false));
-        renderInfo.setProperty("drawCalls", QScriptValue(30));
+        if (_type == EntityTypes::Model || _type == EntityTypes::PolyLine || _type == EntityTypes::ParticleEffect) {
+            renderInfo.setProperty("texturesCount", QScriptValue(_textureNames.count()));
+        }
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
