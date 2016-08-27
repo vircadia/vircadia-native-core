@@ -98,10 +98,11 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 // near grabbing
 //
 
-var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
+var EQUIP_RADIUS = 0.2; // radius used for palm vs equip-hotspot for equipping.
 // if EQUIP_HOTSPOT_RENDER_RADIUS is greater than zero, the hotspot will appear before the hand
 // has reached the required position, and then grow larger once the hand is close enough to equip.
 var EQUIP_HOTSPOT_RENDER_RADIUS = 0.0; // radius used for palm vs equip-hotspot for rendering hot-spots
+var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
@@ -1070,7 +1071,7 @@ function MyController(hand) {
 
         this.grabPointSphereOn();
 
-        var candidateEntities = Entities.findEntities(this.getHandPosition(), EQUIP_HOTSPOT_RENDER_RADIUS);
+        var candidateEntities = Entities.findEntities(this.getHandPosition(), MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
@@ -1404,7 +1405,7 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
+        var candidateEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
 
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
