@@ -1483,6 +1483,7 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->setObjectName("ChromiumShareContext");
     _chromiumShareContext->create(_glWidget->context()->contextHandle());
     _chromiumShareContext->makeCurrent();
     qt_gl_set_global_share_context(_chromiumShareContext->getContext());
@@ -1529,6 +1530,7 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->setObjectName("MainThreadContext");
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
 
