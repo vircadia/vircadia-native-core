@@ -244,6 +244,7 @@ public:
     std::mutex _frameLock;
     std::queue<gpu::FramePointer> _pendingFrames;
     gpu::FramePointer _activeFrame;
+    QSize _size;
     static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
 
     void submitFrame(const gpu::FramePointer& frame) {
@@ -325,8 +326,10 @@ public:
             _gpuContext->executeFrame(frame);
 
             {
+                
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
+                presentBatch.setViewportTransform({ 0, 0, _size.width(), _size.height() });
                 presentBatch.enableStereo(false);
                 presentBatch.resetViewTransform();
                 presentBatch.setFramebuffer(gpu::FramebufferPointer());
@@ -523,7 +526,8 @@ public:
         _octree->init();
         // Prevent web entities from rendering
         REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
-        
+        REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, LightEntityItem::factory);
+
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -533,8 +537,9 @@ public:
 
         ResourceManager::init();
 
-        setFlags(Qt::MSWindowsOwnDC);
+        setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
+        _renderThread._size = _size;
         setGeometry(QRect(QPoint(), _size));
         create();
         show();
@@ -570,7 +575,7 @@ public:
 #endif
 
 #ifdef Q_OS_WIN
-        wglSwapIntervalEXT(0);
+        //wglSwapIntervalEXT(0);
 #endif
 
         // FIXME use a wait condition
@@ -634,7 +639,7 @@ protected:
             return;
 
         case Qt::Key_F4:
-            toggleStereo();
+            cycleMode();
             return;
 
         case Qt::Key_F5:
@@ -701,26 +706,42 @@ private:
             0, RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
+
         QSize windowSize = _size;
-        framebufferCache->setFrameBufferSize(windowSize);
-
-        renderArgs._blitFramebuffer = framebufferCache->getFramebuffer();
-        // Viewport is assigned to the size of the framebuffer
-        renderArgs._viewport = ivec4(0, 0, windowSize.width(), windowSize.height());
-
-        renderArgs.setViewFrustum(_viewFrustum);
-
-        renderArgs._context->enableStereo(_stereoEnabled);
-        if (_stereoEnabled) {
+        if (_renderMode == NORMAL) {
+            renderArgs._context->enableStereo(false);
+        } else {
+            renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
-            for (size_t i = 0; i < 2; ++i) {
-                eyeProjections[i] = _viewFrustum.getProjection();
+            if (_renderMode == STEREO) {
+                for (size_t i = 0; i < 2; ++i) {
+                    eyeProjections[i] = _viewFrustum.getProjection();
+                }
+            } else if (_renderMode == HMD) {
+                eyeOffsets[0][3] = vec4 { -0.0327499993, 0.0, 0.0149999997, 1.0 };
+                eyeOffsets[1][3] = vec4 { 0.0327499993, 0.0, 0.0149999997, 1.0 };
+                eyeProjections[0][0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
+                eyeProjections[0][1] = vec4 { 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
+                eyeProjections[0][2] = vec4 { -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
+                eyeProjections[0][3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+                eyeProjections[1][0] = vec4 { 0.752847493, 0.000000000, 0.000000000, 0.000000000 };
+                eyeProjections[1][1] = vec4 { 0.000000000, 0.678060353, 0.000000000, 0.000000000 };
+                eyeProjections[1][2] = vec4 { 0.0578232110, -0.00669418881, -1.00000489, -1.000000000 };
+                eyeProjections[1][3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+                windowSize = { 2048, 2048 };
             }
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
         }
+
+        auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        framebufferCache->setFrameBufferSize(windowSize);
+        
+        renderArgs._blitFramebuffer = framebufferCache->getFramebuffer();
+        // Viewport is assigned to the size of the framebuffer
+        renderArgs._viewport = ivec4(0, 0, windowSize.width(), windowSize.height());
+        renderArgs.setViewFrustum(_viewFrustum);
 
         // Final framebuffer that will be handled to the display-plugin
         render(&renderArgs);
@@ -882,6 +903,7 @@ private:
         if (!_ready) {
             return;
         }
+        _renderThread._size = size;
         //_textOverlay->resize(toGlm(_size));
         //glViewport(0, 0, size.width(), size.height());
     }
@@ -997,8 +1019,18 @@ private:
         _cullingEnabled = !_cullingEnabled;
     }
 
-    void toggleStereo() {
-        _stereoEnabled = !_stereoEnabled;
+    void cycleMode() {
+        static auto defaultProjection = Camera().matrices.perspective;
+        _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
+        if (_renderMode == HMD) {
+            _camera.matrices.perspective[0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
+            _camera.matrices.perspective[1] = vec4 { 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
+            _camera.matrices.perspective[2] = vec4 { -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
+            _camera.matrices.perspective[3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+        } else {
+            _camera.matrices.perspective = defaultProjection;
+            _camera.setAspectRatio((float)_size.width() / (float)_size.height());
+        }
     }
 
     QSharedPointer<EntityTreeRenderer> getEntities() {
@@ -1043,7 +1075,14 @@ private:
     bool _ready { false };
     //TextOverlay* _textOverlay;
     static bool _cullingEnabled;
-    bool _stereoEnabled { false };
+
+    enum RenderMode {
+        NORMAL = 0,
+        STEREO,
+        HMD,
+        RENDER_MODE_COUNT
+    };
+    RenderMode _renderMode { NORMAL };
     QSharedPointer<EntityTreeRenderer> _octree;
 };
 
