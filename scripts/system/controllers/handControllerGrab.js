@@ -718,7 +718,7 @@ function MyController(hand) {
         var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var pose = Controller.getPoseValue(standardControllerValue);
 
-        var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation)
+        var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
         var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
         // add to the real position so the grab-point is out in front of the hand, a bit
         position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
@@ -1102,6 +1102,11 @@ function MyController(hand) {
         this.prevPotentialEquipHotspot = potentialEquipHotspot;
     };
 
+    this.heartBeatIsStale = function(data) {
+        var now = Date.now();
+        return data.heartBeat === undefined || now - data.heartBeat > HEART_BEAT_TIMEOUT;
+    };
+
     // Performs ray pick test from the hand controller into the world
     // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
     // @returns {object} returns object with two keys entityID and distance
@@ -1229,7 +1234,7 @@ function MyController(hand) {
         var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
                 this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
             this.getOtherHandController().grabbedEntity == hotspot.entityID);
-        if (refCount > 0 && !okToEquipFromOtherHand) {
+        if (refCount > 0 && !this.heartBeatIsStale(grabProps) && !okToEquipFromOtherHand) {
             if (debug) {
                 print("equip is skipping '" + props.name + "': grabbed by someone else");
             }
@@ -2407,8 +2412,7 @@ function MyController(hand) {
                 };
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data.refCount > 1) {
-                if (data.heartBeat === undefined ||
-                    now - data.heartBeat > HEART_BEAT_TIMEOUT) {
+                if (this.heartBeatIsStale(data)) {
                     // this entity has userData suggesting it is grabbed, but nobody is updating the hearbeat.
                     // deactivate it before grabbing.
                     this.resetAbandonedGrab(entityID);
