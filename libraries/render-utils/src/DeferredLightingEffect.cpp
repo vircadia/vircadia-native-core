@@ -99,20 +99,28 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
-    _globalLights.push_back(0);
     _allocatedLights.push_back(std::make_shared<model::Light>());
-
     model::LightPointer lp = _allocatedLights[0];
     lp->setType(model::Light::SUN);
-
-    // Add the global light to the light stage (for later shadow rendering)
-    _lightStage.addLight(lp);
-
     lp->setDirection(glm::vec3(-1.0f));
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
+
+    // Add the global light to the light stage (for later shadow rendering)
+    _globalLights.push_back(_lightStage.addLight(lp));
+
+}
+
+void DeferredLightingEffect::addLight(const model::LightPointer& light) {
+    assert(light);
+    auto lightID = _lightStage.addLight(light);
+    if (light->getType() == model::Light::POINT) {
+        _pointLights.push_back(lightID);
+    } else {
+        _spotLights.push_back(lightID);
+    }
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
@@ -459,11 +467,14 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Global directional light and ambient pass
 
-        assert(deferredLightingEffect->getLightStage().lights.size() > 0);
-        const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
+        assert(deferredLightingEffect->getLightStage().getNumLights() > 0);
+        auto lightAndShadow = deferredLightingEffect->getLightStage().getLightAndShadow(0);
+        const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
-        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
+        if (globalShadow) {
+            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
+        }
 
         auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
         LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
@@ -492,7 +503,9 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             }
 
             if (locations->shadowTransformBuffer >= 0) {
-                batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
+                if (globalShadow) {
+                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
+                }
             }
             batch.setPipeline(program);
         }
@@ -573,7 +586,10 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
             for (auto lightID : deferredLightingEffect->_pointLights) {
-                auto& light = deferredLightingEffect->_allocatedLights[lightID];
+                auto light = deferredLightingEffect->getLightStage().getLight(lightID);
+                if (!light) {
+                    continue;
+                }
                 // IN DEBUG: light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
@@ -613,7 +629,10 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             auto& conePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
 
             for (auto lightID : deferredLightingEffect->_spotLights) {
-                auto light = deferredLightingEffect->_allocatedLights[lightID];
+                auto light = deferredLightingEffect->getLightStage().getLight(lightID);
+                if (!light) {
+                    continue;
+                }
                 // IN DEBUG: 
                 // light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());

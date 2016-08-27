@@ -43,6 +43,8 @@ class DeferredLightingEffect : public Dependency {
 public:
     void init();
     
+    void addLight(const model::LightPointer& light);
+
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
         float intensity = 0.5f, float falloffRadius = 0.01f);
@@ -58,6 +60,7 @@ public:
     void setGlobalLight(const model::LightPointer& light);
 
     const LightStage& getLightStage() { return _lightStage; }
+
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
     bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }

@@ -530,7 +530,7 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
 
 
 
-    const auto theLight = DependencyManager::get<DeferredLightingEffect>()->getLightStage().lights[0];
+    const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage().getLight(0);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -564,8 +564,8 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
 
                 batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
                 batch.setUniformBuffer(ScatteringTask_ParamSlot, scatteringResource->getParametersBuffer());
-                if (theLight->light) {
-                    batch.setUniformBuffer(ScatteringTask_LightSlot, theLight->light->getSchemaBuffer());
+                if (light) {
+                    batch.setUniformBuffer(ScatteringTask_LightSlot, light->getSchemaBuffer());
                 }
                 batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
                 batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));

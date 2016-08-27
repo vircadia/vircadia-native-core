@@ -87,10 +87,36 @@ const glm::mat4& LightStage::Shadow::getProjection() const {
     return _frustum->getProjection();
 }
 
-const LightStage::LightPointer LightStage::addLight(model::LightPointer light) {
-  //  Shadow stageShadow{light};
-    LightPointer stageLight = std::make_shared<Light>(Shadow(light));
-    stageLight->light = light;
-    lights.push_back(stageLight);
-    return stageLight;
+LightStage::Index LightStage::findLight(const LightPointer& light) const {
+    auto found = _lightMap.find(light);
+    if (found != _lightMap.end()) {
+        return INVALID_INDEX;
+    } else {
+        return (*found).second;
+    }
+
+}
+
+LightStage::Index LightStage::addLight(const LightPointer& light) {
+
+    auto found = _lightMap.find(light);
+    if (found == _lightMap.end()) {
+        auto lightId = _lights.newElement(light);
+        // Avoid failing to allocate a light, just pass
+        if (lightId != INVALID_INDEX) {
+
+            // Allocate the matching Desc to the light
+            if (lightId >= _descs.size()) {
+                _descs.emplace_back(Desc());
+            } else {
+                _descs.emplace(_descs.begin() + lightId, Desc());
+            }
+
+            // INsert the light and its index in the reverese map
+            _lightMap.insert(LightMap::value_type(light, lightId));
+        }
+        return lightId;
+    } else {
+        return (*found).second;
+    }
 }
