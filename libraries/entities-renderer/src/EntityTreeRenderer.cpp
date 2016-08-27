@@ -113,17 +113,19 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
 
+    // unload and stop the engine
     if (_entitiesScriptEngine) {
-        // Unload and stop the engine here (instead of in its deleter) to
-        // avoid marshalling unload signals back to this thread
+        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
     }
 
+    // reset the engine
     if (_wantScripts && !_shuttingDown) {
         resetEntitiesScriptEngine();
     }
 
+    // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
     foreach(auto entity, _entitiesInScene) {
@@ -131,6 +133,10 @@ void EntityTreeRenderer::clear() {
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    // reset the zone to the default (while we load the next scene)
+    _bestZone = nullptr;
+    applyZonePropertiesToScene(_bestZone);
 
     OctreeRenderer::clear();
 }
@@ -499,35 +505,18 @@ ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityI
     return result;
 }
 
-const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemPointer entityItem) {
-    const FBXGeometry* result = NULL;
-    
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        if (modelEntityItem->hasCompoundShapeURL()) {
-            ModelPointer model = modelEntityItem->getModel(this);
-            if (model && model->isCollisionLoaded()) {
-                result = &model->getCollisionFBXGeometry();
-            }
-        }
-    }
-    return result;
-}
-
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority) {
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loadingPriority) {
     ModelPointer model = nullptr;
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(ModelPointer, model),
-                Q_ARG(const QString&, url),
-                Q_ARG(const QString&, collisionUrl));
+                Q_ARG(const QString&, url));
 
         return model;
     }
@@ -536,7 +525,6 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString
     model->setLoadingPriority(loadingPriority);
     model->init();
     model->setURL(QUrl(url));
-    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 
@@ -553,7 +541,6 @@ ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& 
     }
 
     model->setURL(QUrl(newUrl));
-    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 

@@ -44,6 +44,8 @@ public:
 
     SIMPLE_RENDERABLE();
 
+    virtual bool isTransparent() override;
+
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
     void destroyWebSurface();

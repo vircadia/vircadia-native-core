@@ -180,10 +180,10 @@ public:
     using Index = int;
 
     BufferPointer _buffer;
-    Size _offset;
-    Size _size;
-    Element _element;
-    uint16 _stride;
+    Size _offset { 0 };
+    Size _size { 0 };
+    Element _element { DEFAULT_ELEMENT };
+    uint16 _stride { 0 };
 
     BufferView(const BufferView& view) = default;
     BufferView& operator=(const BufferView& view) = default;

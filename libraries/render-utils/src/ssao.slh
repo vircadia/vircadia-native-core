@@ -30,13 +30,8 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 <@endfunc@>
 
 <@func declareAmbientOcclusion()@>
-
-struct AmbientOcclusionFrameTransform {
-    vec4 _pixelInfo;
-    vec4 _depthInfo;
-    vec4 _stereoInfo;
-    mat4 _projection[2];
-};
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
 
 struct AmbientOcclusionParams {
     vec4 _resolutionInfo;
@@ -47,51 +42,19 @@ struct AmbientOcclusionParams {
     float _gaussianCoefs[8];
 };
 
-uniform ambientOcclusionFrameTransformBuffer {
-    AmbientOcclusionFrameTransform frameTransform;
-};
 uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
 
+float getPerspectiveScale() {
+    
+    return (params._resolutionInfo.z);
+}
 int getResolutionLevel() {
+    
     return int(params._resolutionInfo.x);
 }
-
-vec2 getWidthHeight() {
-    return vec2(ivec2(frameTransform._pixelInfo.zw) >> getResolutionLevel());
-}
-float getProjScale() {
-    return getWidthHeight().y * frameTransform._projection[0][1][1] * 0.5;
-}
-mat4 getProjection(int side) {
-    return frameTransform._projection[side];
-}
-
-bool isStereo() {
-    return frameTransform._stereoInfo.x > 0.0f;
-}
-
-float getStereoSideWidth() {
-    return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
-}
-
-ivec3 getStereoSideInfo(int xPos) {
-    int sideWidth = int(getStereoSideWidth());
-    return ivec3(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth);
-}
-
-
-float evalZeyeFromZdb(float depth) {
-    return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
-}
-
-vec3 evalEyeNormal(vec3 C) {
-    //return normalize(cross(dFdy(C), dFdx(C)));
-    return normalize(cross(dFdx(C), dFdy(C)));
-}
-
 
 float getRadius() {
     return params._radiusInfo.x;
@@ -130,6 +93,10 @@ float getNumSpiralTurns() {
     return params._sampleInfo.z;
 }
 
+int doFetchMips() {
+    return int(params._sampleInfo.w);
+}
+
 float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
@@ -163,6 +130,181 @@ float getBlurCoef(int c) {
 
 <@endfunc@>
 
+<@func declareSamplingDisk()@>
+
+float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
+    vec3 worldPosFract = fract(pixelWorldPos * 1.0);
+
+    ivec3 pixelPos = ivec3(worldPosFract * 256);
+
+    return isDitheringEnabled() * ((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10 + getFrameDithering();
+}
+
+float getAngleDithering(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+}
+
+float evalDiskRadius(float Zeye, vec2 imageSize) {
+    // Choose the screen-space sample radius
+    // proportional to the projected area of the sphere
+    float ssDiskRadius = -( getProjScale(getResolutionLevel()) * getRadius() / Zeye ) * getPerspectiveScale();
+
+    // clamp the disk to fit in the image otherwise too many unknown
+    ssDiskRadius = min(ssDiskRadius, imageSize.y * 0.5);
+
+    return ssDiskRadius;
+}
+
+const float TWO_PI = 6.28;
+
+vec3 getUnitTapLocation(int sampleNumber, float spinAngle){
+    // Radius relative to ssR
+    float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
+    float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
+    return vec3(cos(angle), sin(angle), alpha);
+}
+
+vec3 getTapLocation(int sampleNumber, float spinAngle, float outerRadius) {
+    vec3 tap = getUnitTapLocation(sampleNumber, spinAngle);
+    tap.xy *= tap.z;
+    tap *= outerRadius;
+    return tap;
+}
+
+vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius, vec2 pixelPos, vec2 imageSize) {
+    vec3 tap = getTapLocation(sampleNumber, spinAngle, outerRadius);
+    vec2 tapPos = pixelPos + tap.xy;
+
+    if (!(isBorderingEnabled() > 0.0)) {
+        return tap;
+    }
+    bool redoTap = false;
+
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = -tapPos.x;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x -= (imageSize.x - tapPos.x);
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = -tapPos.y;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y -= (imageSize.y - tapPos.y);
+        redoTap = true;
+    }
+/*
+    if ((tapPos.x < 0.5)) {
+        tapPos.x = 0.5;
+        redoTap = true;
+    } else if ((tapPos.x > imageSize.x - 0.5)) {
+        tapPos.x = imageSize.x - 0.5;
+        redoTap = true;
+    }
+
+    if ((tapPos.y < 0.5)) {
+        tapPos.y = 0.5;
+        redoTap = true;
+    } else if ((tapPos.y > imageSize.y - 0.5)) {
+        tapPos.y = imageSize.y - 0.5;
+        redoTap = true;
+    }
+*/
+   
+    if (redoTap) {
+        tap.xy = tapPos - pixelPos;
+        tap.z = length(tap.xy);
+        tap.z = 0;  
+    }
+    
+    return tap;
+}
+
+<@endfunc@>
+
+
+<@func declareFetchDepthPyramidMap()@>
+
+
+// the depth pyramid texture
+uniform sampler2D pyramidMap;
+
+float getZEye(ivec2 pixel, int level) {
+    return -texelFetch(pyramidMap, pixel, level).x;
+}
+
+const int LOG_MAX_OFFSET = 3;
+const int MAX_MIP_LEVEL = 5;
+int evalMipFromRadius(float radius) {
+    //  mipLevel = floor(log(ssR / MAX_OFFSET));
+    return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+}
+
+
+vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    ivec2 ssP = ivec2(tap.xy) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+
+
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+
+    vec3 P;
+    P.xy = tapUV;
+    P.z = -texture(pyramidMap, fetchUV).x;
+
+   return P;
+}
+
+vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+    int mipLevel = evalMipFromRadius(tap.z * doFetchMips());
+
+    ivec2 ssP = ivec2(tap.xy) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+
+    // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
+    // Manually clamp to the texture size because texelFetch bypasses the texture unit
+   //  ivec2 mipSize = textureSize(pyramidMap, mipLevel);
+   ivec2 mipSize = max(ivec2(imageSize) >> mipLevel, ivec2(1));
+
+    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
+   
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
+    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+    // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
+
+    vec3 P;
+    P.xy = tapUV;
+  //  P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
+    P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
+
+   return P;
+}
+
+
+
+<@endfunc@>
+
+
+<@func declareEvalObscurance()@>
+
+float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
+    vec3 v = Q - C;
+    float vv = dot(v, v);
+    float vn = dot(v, n_C);
+
+    // Fall off function as recommended in SAO paper
+    const float epsilon = 0.01;
+    float f = max(getRadius2() - vv, 0.0);
+    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
+}
+
+<@endfunc@>
+
 <@func declareBlurPass(axis)@>
 
 <$declarePackOcclusionDepth()$>
@@ -188,7 +330,7 @@ vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
     ivec2 ssP = (ssC + tapOffset);
 
-    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight().y))) {
+    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight(getResolutionLevel()).y))) {
         return vec2(0.0);
     }
     vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
@@ -206,7 +348,7 @@ vec3 getBlurredOcclusion(vec2 coord) {
     ivec2 ssC = ivec2(coord);
 
     // Stereo side info
-    ivec3 side = getStereoSideInfo(ssC.x);
+    ivec4 side = getStereoSideInfo(ssC.x, getResolutionLevel());
 
     vec3 rawSample;
     vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
@@ -220,11 +362,11 @@ vec3 getBlurredOcclusion(vec2 coord) {
     int blurRadius = getBlurRadius();
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
     }
     // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
     }
 
     // Final normalization
