@@ -1220,7 +1220,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -4327,8 +4326,9 @@ namespace render {
                 sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
                 sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
                 sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
-                // fall through: render a skybox, if available
+                // fall through: render a skybox (if available), or the defaults (if requested)
            }
+
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (!skybox->empty()) {
@@ -4336,25 +4336,32 @@ namespace render {
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
-                // fall through: render defaults, if available
+                // fall through: render defaults (if requested)
             }
+
             case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    // do not set the ambient sphere - it peaks too high, and causes flashing when turning
+                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
+                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
                     sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                    // fall through: render defaults skybox
+                } else {
+                    break;
                 }
-                // fall through: render defaults, if available
             }
+
             case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
                     qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
                 }
+                break;
+
+            // Any other cases require no extra rendering
             case model::SunSkyStage::NO_BACKGROUND:
             default:
-                // this line intentionally left blank
                 break;
         }
     }
