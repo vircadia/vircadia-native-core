@@ -2341,6 +2341,7 @@ function MyController(hand) {
 
     this.cleanup = function() {
         this.release();
+        this.grabPointSphereOff();
     };
 
     this.heartBeat = function(entityID) {
