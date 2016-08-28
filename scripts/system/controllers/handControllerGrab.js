@@ -2297,16 +2297,7 @@ function MyController(hand) {
             // If this looks like the release after adjusting something still held in the other hand, print the position
             // and rotation of the held thing to help content creators set the userData.
             var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
-            if (grabData.refCount > 1) {
-                var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
-                if (grabbedProperties && grabbedProperties.localPosition && grabbedProperties.localRotation) {
-                    print((this.hand === RIGHT_HAND ? '"LeftHand"' : '"RightHand"') + ":" +
-                        '[{"x":' + grabbedProperties.localPosition.x + ', "y":' + grabbedProperties.localPosition.y +
-                        ', "z":' + grabbedProperties.localPosition.z + '}, {"x":' + grabbedProperties.localRotation.x +
-                        ', "y":' + grabbedProperties.localRotation.y + ', "z":' + grabbedProperties.localRotation.z +
-                        ', "w":' + grabbedProperties.localRotation.w + '}]');
-                }
-            }
+            this.printNewOffsets = (grabData.refCount > 1);
 
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -2555,6 +2546,17 @@ function MyController(hand) {
                     }
                 };
                 Entities.editEntity(entityID, deactiveProps);
+
+                if (this.printNewOffsets) {
+                    var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                    if (grabbedProperties && grabbedProperties.localPosition && grabbedProperties.localRotation) {
+                        print((this.hand === RIGHT_HAND ? '"LeftHand"' : '"RightHand"') + ":" +
+                              '[{"x":' + grabbedProperties.localPosition.x + ', "y":' + grabbedProperties.localPosition.y +
+                              ', "z":' + grabbedProperties.localPosition.z + '}, {"x":' + grabbedProperties.localRotation.x +
+                              ', "y":' + grabbedProperties.localRotation.y + ', "z":' + grabbedProperties.localRotation.z +
+                              ', "w":' + grabbedProperties.localRotation.w + '}]');
+                    }
+                }
             } else if (noVelocity) {
                 Entities.editEntity(entityID, {
                     velocity: {
