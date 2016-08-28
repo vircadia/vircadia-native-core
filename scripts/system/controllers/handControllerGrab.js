@@ -1269,7 +1269,7 @@ function MyController(hand) {
             }
         }
 
-        if (grabbableProps.hasOwnProperty("grabbable") && refCount == 0) {
+        if (grabbableProps.hasOwnProperty("grabbable") && refCount === 0) {
             grabbable = grabbableProps.grabbable;
         }
 
@@ -1415,10 +1415,10 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        var candidateEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
-        entityPropertiesCache.addEntities(candidateEntities);
+        var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
+        entityPropertiesCache.addEntities(candidateHotSpotEntities);
 
-        var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
+        var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateHotSpotEntities);
         if (potentialEquipHotspot) {
             if (this.triggerSmoothedGrab()) {
                 this.grabbedHotspot = potentialEquipHotspot;
@@ -1428,6 +1428,7 @@ function MyController(hand) {
             }
         }
 
+        var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
         var grabbableEntities = candidateEntities.filter(function(entity) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
