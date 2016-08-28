@@ -938,10 +938,14 @@ function MyController(hand) {
         var searchSphereLocation = Vec3.sum(distantPickRay.origin,
             Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
         this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
-            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
+                            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
+                            COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
+                            COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
         if (PICK_WITH_HAND_RAY) {
             this.overlayLineOn(handPosition, searchSphereLocation,
-                (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
+                               (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
+                               COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
+                               COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
         }
     };
 
@@ -1841,6 +1845,7 @@ function MyController(hand) {
         this.grabPointSphereOff();
         this.lineOff();
         this.overlayLineOff();
+        this.searchSphereOff();
 
         this.dropGestureReset();
         this.clearEquipHaptics();
