@@ -23,7 +23,7 @@ Script.include("/~/system/libraries/Xform.js");
 //
 var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
-var WANT_DEBUG_SEARCH_NAME = null;
+var WANT_DEBUG_SEARCH_NAME = "Hifi-Bow"; // null;
 
 var FORCE_IGNORE_IK = true;
 var SHOW_GRAB_POINT_SPHERE = true;
@@ -1255,20 +1255,21 @@ function MyController(hand) {
         var physical = propsArePhysical(props);
         var grabbable = false;
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
+        var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
 
         if (physical) {
             // physical things default to grabbable
             grabbable = true;
         } else {
             // non-physical things default to non-grabbable unless they are already grabbed
-            if ("refCount" in grabProps && grabProps.refCount > 0) {
+            if (refCount > 0) {
                 grabbable = true;
             } else {
                 grabbable = false;
             }
         }
 
-        if (grabbableProps.hasOwnProperty("grabbable")) {
+        if (grabbableProps.hasOwnProperty("grabbable") && refCount == 0) {
             grabbable = grabbableProps.grabbable;
         }
 
