@@ -1983,6 +1983,8 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
 
+        this.grabPointSphereOff();
+
         if (this.state == STATE_NEAR_GRABBING && !this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "trigger released");
