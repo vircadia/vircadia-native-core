@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtc/quaternion.hpp>
+
 #include "QVariantGLM.h"
 #include "ObjectActionTravelOriented.h"
 
@@ -64,7 +66,8 @@ void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
         glm::vec3 forwardInWorldFrame = glm::normalize(orientation * _forward);
 
         // find the rotation that would line up velocity and forward
-        glm::quat rotationalTarget = glm::rotation(forwardInWorldFrame, velocity);
+        glm::quat neededRotation = ::rotationBetween(forwardInWorldFrame, velocity);
+        glm::quat rotationalTarget = orientation * neededRotation;
         btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
 
         auto alignmentDot = bodyRotation.dot(glmToBullet(rotationalTarget));
