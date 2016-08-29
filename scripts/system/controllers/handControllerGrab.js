@@ -23,7 +23,7 @@ Script.include("/~/system/libraries/Xform.js");
 //
 var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
-var WANT_DEBUG_SEARCH_NAME = "Hifi-Bow"; // null;
+var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = true;
 var SHOW_GRAB_POINT_SPHERE = true;
@@ -995,7 +995,8 @@ function MyController(hand) {
     this.turnOffVisualizations = function() {
 
         this.overlayLineOff();
-
+        this.grabPointSphereOff();
+        this.lineOff();
         this.searchSphereOff();
         restore2DMode();
 
