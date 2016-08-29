@@ -21,6 +21,7 @@ using namespace gpu::gl;
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER
     _canvas = QSharedPointer<OffscreenGLCanvas>(new OffscreenGLCanvas(), &QObject::deleteLater);
+    _canvas->setObjectName("TextureTransferCanvas");
     _canvas->create(QOpenGLContextWrapper::currentContext());
     if (!_canvas->makeCurrent()) {
         qFatal("Unable to create texture transfer context");

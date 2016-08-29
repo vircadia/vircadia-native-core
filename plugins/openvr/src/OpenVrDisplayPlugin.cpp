@@ -56,7 +56,7 @@ public:
     using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
     friend class OpenVrDisplayPlugin;
-    OffscreenGLCanvas _canvas;
+    std::shared_ptr<OffscreenGLCanvas> _canvas;
     BasicFramebufferWrapperPtr _framebuffer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
@@ -68,9 +68,7 @@ public:
 
 
     OpenVrSubmitThread(OpenVrDisplayPlugin& plugin) : _plugin(plugin) { 
-        _canvas.create(plugin._container->getPrimaryContext());
-        _canvas.doneCurrent();
-        _canvas.moveToThreadWithContext(this);
+        setObjectName("OpenVR Submit Thread");
     }
 
     void updateReprojectionProgram() {
@@ -131,19 +129,20 @@ public:
 
     void run() override {
         QThread::currentThread()->setPriority(QThread::Priority::TimeCriticalPriority);
-        _canvas.makeCurrent();
+        assert(_canvas->thread() == QThread::currentThread());
+        _canvas->makeCurrent();
         glDisable(GL_DEPTH_TEST);
         glViewport(0, 0, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
         _framebuffer = std::make_shared<BasicFramebufferWrapper>();
         _framebuffer->Init(_plugin._renderTargetSize);
         updateReprojectionProgram();
         _plane = loadPlane(_program);
-        _canvas.doneCurrent();
+        _canvas->doneCurrent();
         while (!_quit) {
-            _canvas.makeCurrent();
+            _canvas->makeCurrent();
             updateSource();
             if (!_current.texture) {
-                _canvas.doneCurrent();
+                _canvas->doneCurrent();
                 QThread::usleep(1);
                 continue;
             }
@@ -199,15 +198,15 @@ public:
                     _presented.notify_one();
                 });
             }
-            _canvas.doneCurrent();
+            _canvas->doneCurrent();
         }
 
-        _canvas.makeCurrent();
+        _canvas->makeCurrent();
         _plane.reset();
         _program.reset();
         _framebuffer.reset();
-        _canvas.doneCurrent();
-
+        _canvas->doneCurrent();
+        _canvas->moveToThreadWithContext(qApp->thread());
     }
 
     void update(const CompositeInfo& newCompositeInfo) {
@@ -307,10 +306,17 @@ bool OpenVrDisplayPlugin::internalActivate() {
     }
 
 #if OPENVR_THREADED_SUBMIT
-    withMainThreadContext([&] {
-        _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
-    });
-    _submitThread->setObjectName("OpenVR Submit Thread");
+    _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
+    if (!_submitCanvas) {
+        withMainThreadContext([&] {
+            _submitCanvas = std::make_shared<OffscreenGLCanvas>();
+            _submitCanvas->setObjectName("OpenVRSubmitContext");
+            _submitCanvas->create(_container->getPrimaryContext());
+            _submitCanvas->doneCurrent();
+        });
+    }
+    _submitCanvas->moveToThreadWithContext(_submitThread.get());
+    assert(_submitCanvas->thread() == _submitThread.get());
 #endif
 
     return Parent::internalActivate();
@@ -348,6 +354,8 @@ void OpenVrDisplayPlugin::customizeContext() {
         }
         _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
     }
+    assert(_submitCanvas->thread() == _submitThread.get());
+    _submitThread->_canvas = _submitCanvas;
     _submitThread->start(QThread::HighPriority);
 #endif
 }
@@ -358,6 +366,8 @@ void OpenVrDisplayPlugin::uncustomizeContext() {
 #if OPENVR_THREADED_SUBMIT
     _submitThread->_quit = true;
     _submitThread->wait();
+    _submitThread.reset();
+    assert(_submitCanvas->thread() == qApp->thread());
 #endif
 }
 
