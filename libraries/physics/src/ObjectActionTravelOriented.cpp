@@ -54,7 +54,7 @@ void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
         // find normalized velocity
         glm::vec3 velocity = bulletToGLM(rigidBody->getLinearVelocity());
         float speed = glm::length(velocity);
-        const float TRAVEL_ORIENTED_TOO_SLOW = 0.001; // meters / second
+        const float TRAVEL_ORIENTED_TOO_SLOW = 0.001f; // meters / second
         if (speed < TRAVEL_ORIENTED_TOO_SLOW) {
             return;
         }
