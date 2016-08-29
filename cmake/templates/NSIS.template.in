@@ -129,12 +129,12 @@ Var AR_RegFlags
   ;Writing modified flags
   SectionSetFlags ${${SecName}} $AR_SecFlags
 
-  ; The client is always selected by default
-  ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
-    SectionSetFlags ${${SecName}} 17
-  ${EndIf}
-
  "default_${SecName}:"
+ ; The client is always selected by default
+ ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
+   SectionSetFlags ${${SecName}} 17
+ ${EndIf}
+
  !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
 !macroend
 
