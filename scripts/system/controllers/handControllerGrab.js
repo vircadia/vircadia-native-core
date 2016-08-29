@@ -1319,6 +1319,11 @@ function MyController(hand) {
 
     this.searchEnter = function() {
         mostRecentSearchingHand = this.hand;
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
+        if (rayPickInfo.entityID || rayPickInfo.overlayID) {
+            this.intersectionDistance = rayPickInfo.distance;
+            this.searchSphereDistance = this.intersectionDistance;
+        }
     };
 
     this.search = function(deltaTime, timestamp) {
