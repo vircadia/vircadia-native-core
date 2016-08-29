@@ -95,7 +95,7 @@ public:
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
-    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _bestZone; }
+    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
 
 signals:
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
@@ -138,9 +138,12 @@ private:
     void resetEntitiesScriptEngine();
 
     void addEntityToScene(EntityItemPointer entity);
-    bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
+    bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
-    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
+    bool applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
+    bool layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
+    bool applySkyboxAndHasAmbient();
+
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
     QList<ModelPointer> _releasedModels;
@@ -156,14 +159,8 @@ private:
     void leaveAllEntities();
     void forceRecheckEntities();
 
-    glm::vec3 _lastAvatarPosition { 0.0f };
+    glm::vec3 _avatarPosition { 0.0f };
     QVector<EntityItemID> _currentEntitiesInside;
-
-    bool _pendingSkyboxTexture { false };
-    NetworkTexturePointer _skyboxTexture;
-
-    bool _pendingAmbientTexture { false };
-    NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
@@ -185,25 +182,59 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    std::shared_ptr<ZoneEntityItem> _bestZone;
-    float _bestZoneVolume;
+    class LayeredZone {
+    public:
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone, QUuid id, float volume) : zone(zone), id(id), volume(volume) {}
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : LayeredZone(zone, zone->getID(), zone->getVolumeEstimate()) {}
 
+        bool operator<(const LayeredZone& r) const { return std::tie(volume, id) < std::tie(r.volume, r.id); }
+        bool operator==(const LayeredZone& r) const { return id == r.id; }
+        bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
+
+        std::shared_ptr<ZoneEntityItem> zone;
+        QUuid id;
+        float volume;
+    };
+
+    class LayeredZones : public std::set<LayeredZone> {
+    public:
+        LayeredZones(EntityTreeRenderer* parent) : _entityTreeRenderer(parent) {}
+        LayeredZones(LayeredZones&& other);
+
+        // avoid accidental misconstruction
+        LayeredZones() = delete;
+        LayeredZones(const LayeredZones&) = delete;
+        LayeredZones& operator=(const LayeredZones&) = delete;
+        LayeredZones& operator=(LayeredZones&&) = delete;
+
+        void clear();
+        std::pair<iterator, bool> insert(const LayeredZone& layer);
+
+        void apply();
+        void update(std::shared_ptr<ZoneEntityItem> zone);
+
+        bool contains(const LayeredZones& other);
+
+        std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
+
+    private:
+        void applyPartial(iterator layer);
+
+        std::map<QUuid, iterator> _map;
+        iterator _skyboxLayer{ end() };
+        EntityTreeRenderer* _entityTreeRenderer;
+    };
+
+    LayeredZones _layeredZones;
     QString _zoneUserData;
+    NetworkTexturePointer _skyboxTexture;
+    NetworkTexturePointer _ambientTexture;
+    bool _pendingSkyboxTexture { false };
+    bool _pendingAmbientTexture { false };
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
-
-    glm::vec3 _previousKeyLightColor;
-    float _previousKeyLightIntensity;
-    float _previousKeyLightAmbientIntensity;
-    glm::vec3 _previousKeyLightDirection;
-    bool _previousStageSunModelEnabled;
-    float _previousStageLongitude;
-    float _previousStageLatitude;
-    float _previousStageAltitude;
-    float _previousStageHour;
-    int _previousStageDay;
 
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
