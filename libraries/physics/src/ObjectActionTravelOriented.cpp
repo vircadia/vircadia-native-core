@@ -29,7 +29,7 @@ ObjectActionTravelOriented::~ObjectActionTravelOriented() {
 }
 
 void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
-    withReadLock([&]{
+    withReadLock([&] {
         auto ownerEntity = _ownerEntity.lock();
         if (!ownerEntity) {
             return;
@@ -103,15 +103,14 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
     bool needUpdate = false;
     bool somethingChanged = ObjectAction::updateArguments(arguments);
     withReadLock([&]{
-        // targets are required, spring-constants are optional
         bool ok = true;
-        forward = EntityActionInterface::extractVec3Argument("travel oriented action", arguments, "forward", ok, false);
-        if (ok) {
+        forward = EntityActionInterface::extractVec3Argument("travel oriented action", arguments, "forward", ok, true);
+        if (!ok) {
             forward = _forward;
         }
         ok = true;
         angularTimeScale =
-            EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+            EntityActionInterface::extractFloatArgument("travel oriented action", arguments, "angularTimeScale", ok, false);
         if (!ok) {
             angularTimeScale = _angularTimeScale;
         }
@@ -155,7 +154,7 @@ QByteArray ObjectActionTravelOriented::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << ACTION_TYPE_SPRING;
+    dataStream << ACTION_TYPE_TRAVEL_ORIENTED;
     dataStream << getID();
     dataStream << ObjectActionTravelOriented::actionVersion;
 
