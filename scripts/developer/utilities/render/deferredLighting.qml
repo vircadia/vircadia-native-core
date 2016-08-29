@@ -24,6 +24,7 @@ Column {
                      "Emissive:LightingModel:enableEmissive", 
                      "Lightmap:LightingModel:enableLightmap",
                      "Background:LightingModel:enableBackground",                      
+                     "ssao:AmbientOcclusion:enabled",                      
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]

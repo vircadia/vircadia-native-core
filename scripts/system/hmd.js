@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  hmd.js
 //  scripts/system/
@@ -8,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var headset; // The preferred headset. Default to the first one found in the following list.
 var displayMenuName = "Display";
@@ -36,13 +40,13 @@ if (headset) {
         visible: true,
         hoverState: 2,
         defaultState: 0,
-        alpha: 0.9,
+        alpha: 0.9
     });
     onHmdChanged(HMD.active);
-    
+
     button.clicked.connect(onClicked);
     HMD.displayModeChanged.connect(onHmdChanged);
-    
+
     Script.scriptEnding.connect(function () {
         toolBar.removeButton("hmdToggle");
         button.clicked.disconnect(onClicked);
@@ -50,3 +54,4 @@ if (headset) {
     });
 }
 
+}()); // END LOCAL_SCOPE

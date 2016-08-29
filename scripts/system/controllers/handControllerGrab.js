@@ -1,4 +1,5 @@
 "use strict";
+
 //  handControllerGrab.js
 //
 //  Created by Eric Levin on  9/2/15
@@ -10,7 +11,8 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform */
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/Xform.js");
@@ -25,8 +27,6 @@ var WANT_DEBUG_SEARCH_NAME = null;
 //
 // these tune time-averaging and "on" value for analog trigger
 //
-
-var SPARK_MODEL_SCALE_FACTOR = 0.75;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_OFF_VALUE = 0.1;
@@ -88,7 +88,6 @@ var COLORS_GRAB_DISTANCE_HOLD = {
 };
 
 
-var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
 //
@@ -129,7 +128,6 @@ var ZERO_VEC = {
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
 // these control how long an abandoned pointer line or action will hang around
-var LIFETIME = 10;
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 60;
@@ -233,6 +231,10 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
     exitMethod: "entityTouchingExit",
     updateMethod: "entityTouching"
 };
+
+function angleBetween(a, b) {
+    return Math.acos(Vec3.dot(Vec3.normalize(a), Vec3.normalize(b)));
+}
 
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
@@ -1975,7 +1977,8 @@ function MyController(hand) {
                 var handPosition = this.getHandPosition();
                 // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
+                var TEAR_AWAY_DISTANCE = 0.04;
+                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
@@ -2128,6 +2131,11 @@ function MyController(hand) {
 
             Entities.sendMousePressOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendClickDownOnEntity(this.grabbedEntity, pointerEvent);
+
+            this.touchingEnterTimer = 0;
+            this.touchingEnterPointerEvent = pointerEvent;
+            this.touchingEnterPointerEvent.button = "None";
+            this.deadspotExpired = false;
         }
     };
 
@@ -2135,27 +2143,37 @@ function MyController(hand) {
         // test for intersection between controller laser and web entity plane.
         var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.hand);
         if (intersectInfo) {
-            var pointerEvent = {
-                type: "Release",
-                id: this.hand + 1, // 0 is reserved for hardware mouse
-                pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
-                pos3D: intersectInfo.point,
-                normal: intersectInfo.normal,
-                direction: intersectInfo.searchRay.direction,
-                button: "Primary",
-                isPrimaryButton: true,
-                isSecondaryButton: false,
-                isTertiaryButton: false
-            };
+            var pointerEvent;
+            if (this.deadspotExpired) {
+                pointerEvent = {
+                    type: "Release",
+                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                    pos2D: projectOntoEntityXYPlane(this.grabbedEntity, intersectInfo.point),
+                    pos3D: intersectInfo.point,
+                    normal: intersectInfo.normal,
+                    direction: intersectInfo.searchRay.direction,
+                    button: "Primary",
+                    isPrimaryButton: false,
+                    isSecondaryButton: false,
+                    isTertiaryButton: false
+                };
+            } else {
+                pointerEvent = this.touchingEnterPointerEvent;
+                pointerEvent.button = "Primary";
+                pointerEvent.isPrimaryButton = false;
+            }
 
             Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendClickReleaseOnEntity(this.grabbedEntity, pointerEvent);
             Entities.sendHoverLeaveEntity(this.grabbedEntity, pointerEvent);
-            this.focusedEntity = null;
         }
+        this.focusedEntity = null;
     };
 
-    this.entityTouching = function() {
+    this.entityTouching = function(dt) {
+
+        this.touchingEnterTimer += dt;
+
         entityPropertiesCache.addEntity(this.grabbedEntity);
 
         if (!this.triggerSmoothedGrab()) {
@@ -2184,8 +2202,14 @@ function MyController(hand) {
                 isTertiaryButton: false
             };
 
-            Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
-            Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
+            var POINTER_PRESS_TO_MOVE_DELAY = 0.15; // seconds
+            var POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.05; // radians ~ 3 degrees
+            if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
+                angleBetween(pointerEvent.direction, this.touchingEnterPointerEvent.direction) > POINTER_PRESS_TO_MOVE_DEADSPOT_ANGLE) {
+                Entities.sendMouseMoveOnEntity(this.grabbedEntity, pointerEvent);
+                Entities.sendHoldingClickOnEntity(this.grabbedEntity, pointerEvent);
+                this.deadspotExpired = true;
+            }
 
             this.intersectionDistance = intersectInfo.distance;
             this.searchIndicatorOn(intersectInfo.searchRay);
@@ -2617,3 +2641,5 @@ function cleanup() {
 
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+}()); // END LOCAL_SCOPE

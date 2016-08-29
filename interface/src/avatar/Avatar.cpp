@@ -59,6 +59,8 @@ const float DISPLAYNAME_ALPHA = 1.0f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
+const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534;
+
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
         return ItemKey::Builder::opaqueShape();
@@ -851,15 +853,33 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
-    glm::quat rotation;
-    _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
-    return Quaternions::Y_180 * rotation;
+    if (index == SENSOR_TO_WORLD_MATRIX_INDEX) {
+        glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+        bool success;
+        Transform avatarTransform;
+        Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+        glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+        return glmExtractRotation(invAvatarMat * sensorToWorldMatrix);
+    } else {
+        glm::quat rotation;
+        _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
+        return Quaternions::Y_180 * rotation;
+    }
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    glm::vec3 translation;
-    _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
-    return Quaternions::Y_180 * translation;
+    if (index == SENSOR_TO_WORLD_MATRIX_INDEX) {
+        glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+        bool success;
+        Transform avatarTransform;
+        Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+        glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+        return extractTranslation(invAvatarMat * sensorToWorldMatrix);
+    } else {
+        glm::vec3 translation;
+        _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
+        return Quaternions::Y_180 * translation;
+    }
 }
 
 int Avatar::getJointIndex(const QString& name) const {

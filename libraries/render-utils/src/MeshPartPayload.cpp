@@ -46,11 +46,9 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
-
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
-    updateTransform(transform, offsetTransform);
 }
 
 void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
@@ -414,8 +412,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
     if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
-        _model->_meshGroupsKnown = false; // regenerate these lists next time around.
-        _model->_readyWhenAdded = false; // in case any of our users are using scenes
+        _model->_needsFixupInScene = true; // trigger remove/add cycle
         _model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         return ShapeKey::Builder::invalid();
     }
@@ -533,9 +530,20 @@ void ModelMeshPartPayload::startFade() {
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->_readyWhenAdded || !_model->_isVisible || !_hasStartedFade) {
+    if (!_model->addedToScene() || !_model->isVisible()) {
         return; // bail asap
     }
+
+    // If we didn't start the fade in, check if we are ready to now....
+    if (!_hasStartedFade && _model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+        const_cast<ModelMeshPartPayload&>(*this).startFade();
+    }
+
+    // If we still didn't start the fade in, bail
+    if (!_hasStartedFade) {
+        return;
+    }
+
 
     // When an individual mesh parts like this finishes its fade, we will mark the Model as 
     // having render items that need updating

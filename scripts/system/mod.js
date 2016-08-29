@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  mod.js
 //  scripts/system/
@@ -8,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 // grab the toolbar
 var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
@@ -39,7 +43,7 @@ function removeOverlays() {
     // enumerate the overlays and remove them
     var modOverlayKeys = Object.keys(modOverlays);
 
-    for (i = 0; i < modOverlayKeys.length; ++i) {
+    for (var i = 0; i < modOverlayKeys.length; ++i) {
         var avatarID = modOverlayKeys[i];
         Overlays.deleteOverlay(modOverlays[avatarID]);
     }
@@ -72,7 +76,7 @@ function updateOverlays() {
 
         var identifiers = AvatarList.getAvatarIdentifiers();
 
-        for (i = 0; i < identifiers.length; ++i) {
+        for (var i = 0; i < identifiers.length; ++i) {
             var avatarID = identifiers[i];
 
             if (avatarID === null) {
@@ -138,7 +142,7 @@ function handleSelectedOverlay(clickedOverlay) {
     // see this is one of our mod overlays
 
     var modOverlayKeys = Object.keys(modOverlays)
-    for (i = 0; i < modOverlayKeys.length; ++i) {
+    for (var i = 0; i < modOverlayKeys.length; ++i) {
         var avatarID = modOverlayKeys[i];
         var modOverlay = modOverlays[avatarID];
 
@@ -214,3 +218,5 @@ Script.scriptEnding.connect(function() {
     removeOverlays();
     triggerMapping.disable();
 });
+
+}()); // END LOCAL_SCOPE

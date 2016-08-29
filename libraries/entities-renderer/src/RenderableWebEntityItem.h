@@ -44,9 +44,12 @@ public:
 
     SIMPLE_RENDERABLE();
 
+    virtual bool isTransparent() override;
+
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
     void destroyWebSurface();
+    glm::vec2 getWindowSize() const;
 
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;

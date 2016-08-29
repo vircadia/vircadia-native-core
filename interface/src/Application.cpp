@@ -57,6 +57,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FileScriptingInterface.h>
 #include <Finally.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
@@ -1219,7 +1220,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -1578,6 +1578,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", fileDownload);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2024,7 +2027,6 @@ bool Application::importJSONFromURL(const QString& urlString) {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-
     emit svoImportRequested(urlString);
     return true;
 }
@@ -2149,13 +2151,15 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
+
             if (canAcceptURL(urlString)) {
+
                 return acceptURL(urlString);
             }
         }
@@ -4322,34 +4326,42 @@ namespace render {
                 sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
                 sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
                 sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
-                // fall through: render a skybox, if available
+                // fall through: render a skybox (if available), or the defaults (if requested)
            }
+
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox) {
+                if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
-                // fall through: render defaults, if available
+                // fall through: render defaults (if requested)
             }
+
             case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    // do not set the ambient sphere - it peaks too high, and causes flashing when turning
+                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
+                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
                     sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                    // fall through: render defaults skybox
+                } else {
+                    break;
                 }
-                // fall through: render defaults, if available
             }
+
             case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
                     qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
                 }
+                break;
+
+            // Any other cases require no extra rendering
             case model::SunSkyStage::NO_BACKGROUND:
             default:
-                // this line intentionally left blank
                 break;
         }
     }
@@ -5021,7 +5033,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -5119,11 +5130,11 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
+
 void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-
     static const QUrl url { "AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){

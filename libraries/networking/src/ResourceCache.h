@@ -226,8 +226,6 @@ private:
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 
-    void getResourceAsynchronously(const QUrl& url);
-
     static int _requestLimit;
     static int _requestsActive;
 
@@ -281,6 +279,9 @@ public:
 
     /// Checks whether the resource has loaded.
     virtual bool isLoaded() const { return _loaded; }
+
+    /// Checks whether the resource has failed to download.
+    virtual bool isFailed() const { return _failedToLoad; }
 
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
