@@ -20,6 +20,8 @@ OriginalDesktop.Desktop {
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
         acceptedButtons: Qt.NoButton
+		
+
     }
 
     // The tool window, one instance
@@ -69,6 +71,39 @@ OriginalDesktop.Desktop {
             var overlayMenuItem = "Overlays"
             MenuInterface.setIsOptionChecked(overlayMenuItem, !MenuInterface.isOptionChecked(overlayMenuItem));
         });
+    }
+
+    // Accept a download through the webview
+    property bool webViewProfileSetup: false
+    property string currentUrl: ""
+    property string adaptedPath: ""
+    property string tempDir: ""
+
+    function initWebviewProfileHandlers(profile) {
+        console.log("The webview url in desktop is: " + currentUrl);
+        if (webViewProfileSetup) return;
+        webViewProfileSetup = true;
+
+        profile.downloadRequested.connect(function(download){
+            console.log("Download start: " + download.state);
+            adaptedPath = File.convertUrlToPath(currentUrl);
+            tempDir = File.getTempDir();
+            console.log("Temp dir created: " + tempDir);
+            download.path = tempDir + "/" + adaptedPath;
+            console.log("Path where object should download: " + download.path);
+            download.accept();
+            if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
+                console.log("download failed to complete");
+            }
+        })
+
+        profile.downloadFinished.connect(function(download){
+            if (download.state === WebEngineDownloadItem.DownloadCompleted) {
+                File.runUnzip(download.path, currentUrl);
+            } else {
+                console.log("The download was corrupted, state: " + download.state);
+            }
+        })
     }
 
     // Create or fetch a toolbar with the given name

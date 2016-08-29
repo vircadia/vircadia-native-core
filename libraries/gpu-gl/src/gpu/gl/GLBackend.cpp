@@ -582,7 +582,7 @@ void GLBackend::releaseShader(GLuint id) const {
 
 void GLBackend::releaseProgram(GLuint id) const {
     Lock lock(_trashMutex);
-    _shadersTrash.push_back(id);
+    _programsTrash.push_back(id);
 }
 
 void GLBackend::releaseQuery(GLuint id) const {

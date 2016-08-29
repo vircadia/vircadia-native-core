@@ -102,5 +102,6 @@ void GLDebug::setupLogger(QObject* window) {
         QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, window, [&](const QOpenGLDebugMessage & debugMessage) {
             GLDebug::log(debugMessage);
         });
+        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
     }
 }

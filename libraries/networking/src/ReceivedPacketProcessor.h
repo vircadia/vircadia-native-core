@@ -49,7 +49,7 @@ public:
     float getIncomingPPS() const { return _incomingPPS.getAverage(); }
     float getProcessedPPS() const { return _processedPPS.getAverage(); }
 
-    virtual void terminating();
+    virtual void terminating() override;
 
 public slots:
     void nodeKilled(SharedNodePointer node);
@@ -61,7 +61,7 @@ protected:
     virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) = 0;
 
     /// Implements generic processing behavior for this thread.
-    virtual bool process();
+    virtual bool process() override;
 
     /// Determines the timeout of the wait when there are no packets to process. Default value means no timeout
     virtual unsigned long getMaxWait() const { return ULONG_MAX; }

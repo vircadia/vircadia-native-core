@@ -38,6 +38,7 @@ public:
     void parse(const QString& userDataJson);
 
     bool ready();
+    bool enabled() { return _enabled; }
     void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation);
     const gpu::ShaderPointer& getShader() const { return _shader; }
 

@@ -49,6 +49,11 @@ void Skybox::updateSchemaBuffer() const {
     }
 }
 
+void Skybox::clear() {
+    _schemaBuffer.edit<Schema>().color = vec3(0);
+    setCubemap(nullptr);
+}
+
 void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
     if (bufferSlot > -1) {
         batch.setUniformBuffer(bufferSlot, _schemaBuffer);

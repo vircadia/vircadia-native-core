@@ -18,7 +18,8 @@
 #include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
-#include <MouseEvent.h>
+#include <QMouseEvent>
+#include <PointerEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>
@@ -44,10 +45,10 @@ public:
                                 AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
 
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
-    virtual void setTree(OctreePointer newTree);
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
+    virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
+    virtual void setTree(OctreePointer newTree) override;
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
     float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
@@ -60,29 +61,28 @@ public:
 
     void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
-    virtual void init();
+    virtual void init() override;
 
-    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem);
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
-    
+    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
+    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
+
     /// clears the tree
-    virtual void clear();
+    virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0.0f);
-    
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f);
+
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
     void releaseModel(ModelPointer model);
-    
+
     void deleteReleasedModels();
-    
+
     // event handles which may generate entity related events
     void mouseReleaseEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
@@ -98,18 +98,18 @@ public:
     std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _bestZone; }
 
 signals:
-    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mousePressOffEntity();
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -128,7 +128,7 @@ public slots:
     void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
 
 protected:
-    virtual OctreePointer createTree() {
+    virtual OctreePointer createTree() override {
         EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
         newTree->createRootElement();
         return newTree;
@@ -174,20 +174,21 @@ private:
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
                                   const EntityItemID& id, const Collision& collision);
 
-    bool _lastMouseEventValid;
-    MouseEvent _lastMouseEvent;
+    bool _lastPointerEventValid;
+    PointerEvent _lastPointerEvent;
     AbstractViewStateInterface* _viewState;
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;
     bool _dontDoPrecisionPicking;
-    
+
     bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
+
+    QString _zoneUserData;
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
@@ -203,7 +204,7 @@ private:
     float _previousStageAltitude;
     float _previousStageHour;
     int _previousStageDay;
-    
+
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;

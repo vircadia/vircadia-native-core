@@ -26,7 +26,7 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() {}
-    MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform);
+    MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material);
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -110,7 +110,6 @@ public:
 private:
     quint64 _fadeStartTime { 0 };
     bool _hasStartedFade { false };
-    mutable bool _prevHasStartedFade{ false };
     mutable bool _hasFinishedFade { false };
     mutable bool _isFading { false };
 };

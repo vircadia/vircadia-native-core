@@ -86,7 +86,7 @@ public:
 
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
-    
+
     class AudioOutputIODevice : public QIODevice {
     public:
         AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
@@ -94,8 +94,8 @@ public:
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
-        qint64    readData(char * data, qint64 maxSize);
-        qint64    writeData(const char * data, qint64 maxSize) { return 0; }
+        qint64 readData(char * data, qint64 maxSize) override;
+        qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
@@ -136,7 +136,7 @@ public:
 
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
-    
+
     QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
 
     void checkDevices();
@@ -165,7 +165,7 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
 
-    virtual void setIsStereoInput(bool stereo);
+    virtual void setIsStereoInput(bool stereo) override;
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
 
@@ -177,7 +177,7 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
-    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector);
+    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) override;
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);
@@ -217,7 +217,7 @@ protected:
     AudioClient();
     ~AudioClient();
 
-    virtual void customDeleter() {
+    virtual void customDeleter() override {
         deleteLater();
     }
 
@@ -316,7 +316,7 @@ private:
     QVector<QString> _outputDevices;
 
     bool _hasReceivedFirstPacket = false;
-    
+
     QVector<AudioInjector*> _activeLocalAudioInjectors;
 
     CodecPluginPointer _codec;

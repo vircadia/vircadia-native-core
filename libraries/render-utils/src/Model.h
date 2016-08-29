@@ -81,24 +81,20 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
-        return !_needsReload && isRenderable() && isActive();
-    }
+
     bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges,
-                    bool showCollisionHull = false) {
+                    render::PendingChanges& pendingChanges) {
         auto getters = render::Item::Status::Getters(0);
-        return addToScene(scene, pendingChanges, getters, showCollisionHull);
+        return addToScene(scene, pendingChanges, getters);
     }
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    render::Item::Status::Getters& statusGetters,
-                    bool showCollisionHull = false);
+                    render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
-    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _renderGeometry->getMeshes().empty()); }
+    bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
 
@@ -114,7 +110,6 @@ public:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
     bool isLoaded() const { return (bool)_renderGeometry; }
-    bool isCollisionLoaded() const { return (bool)_collisionGeometry; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
@@ -141,13 +136,6 @@ public:
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
     const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
-    /// Provided as a convenience, will crash if !isCollisionLoaded()
-    const FBXGeometry& getCollisionFBXGeometry() const { assert(isCollisionLoaded()); return _collisionGeometry->getFBXGeometry(); }
-
-    // Set the model to use for collisions.
-    // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
-    const QUrl& getCollisionURL() const { return _collisionUrl; }
 
     bool isActive() const { return isLoaded(); }
 
@@ -185,6 +173,7 @@ public:
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
     /// \param jointIndex index of joint in model structure
     /// \param rotation[out] rotation of joint in model-frame
     /// \return true if joint exists
@@ -239,18 +228,19 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
+    void setCollisionMesh(model::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
 public slots:
     void loadURLFinished(bool success);
-    void loadCollisionModelURLFinished(bool success);
 
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
 
 protected:
+    bool addedToScene() const { return _addedToScene; }
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
     float getPupilDilation() const { return _pupilDilation; }
@@ -282,10 +272,9 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     Geometry::Pointer _renderGeometry; // only ever set by its watcher
-    Geometry::Pointer _collisionGeometry; // only ever set by its watcher
+    Geometry::Pointer _collisionGeometry;
 
     GeometryResourceWatcher _renderWatcher;
-    GeometryResourceWatcher _collisionWatcher;
 
     glm::vec3 _translation;
     glm::quat _rotation;
@@ -353,7 +342,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    QUrl _collisionUrl;
     bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
@@ -376,10 +364,10 @@ protected:
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
-    void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
-    static model::MaterialPointer _collisionHullMaterial;
+    void createRenderItemSet();
+    void createVisibleRenderItemSet();
+    void createCollisionRenderItemSet();
 
-    bool _meshGroupsKnown;
     bool _isWireframe;
 
 
@@ -396,10 +384,10 @@ protected:
     QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
 
-    bool _readyWhenAdded { false };
+    bool _addedToScene { false }; // has been added to scene
+    bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    bool _showCollisionHull { false };
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;

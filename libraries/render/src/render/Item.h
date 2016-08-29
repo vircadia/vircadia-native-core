@@ -31,7 +31,7 @@
 namespace render {
 
 class Context;
-    
+
 // Key is the KEY to filter Items and create specialized lists
 class ItemKey {
 public:
@@ -51,8 +51,8 @@ public:
 
         NUM_FLAGS,      // Not a valid flag
     };
-    typedef std::bitset<NUM_FLAGS> Flags; 
-    
+    typedef std::bitset<NUM_FLAGS> Flags;
+
     // The key is the Flags
     Flags _flags;
 
@@ -103,7 +103,7 @@ public:
 
     bool isRigid() const { return !_flags[DEFORMED]; }
     bool isDeformed() const { return _flags[DEFORMED]; }
- 
+
     bool isVisible() const { return !_flags[INVISIBLE]; }
     bool isInvisible() const { return _flags[INVISIBLE]; }
 
@@ -125,12 +125,12 @@ using ItemKeys = std::vector<ItemKey>;
 
 inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
     debug << "[ItemKey: isOpaque:" << itemKey.isOpaque()
-                 << ", isStatic:" << itemKey.isStatic() 
-                 << ", isWorldSpace:" << itemKey.isWorldSpace() 
+                 << ", isStatic:" << itemKey.isStatic()
+                 << ", isWorldSpace:" << itemKey.isWorldSpace()
                  << "]";
     return debug;
 }
- 
+
 class ItemFilter {
 public:
     ItemKey::Flags _value{ 0 };
@@ -150,10 +150,10 @@ public:
 
         Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
         Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
-        
+
         Builder& withOpaque()           { _value.reset(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
         Builder& withTransparent()      { _value.set(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
-        
+
         Builder& withWorldSpace()       { _value.reset(ItemKey::VIEW_SPACE); _mask.set(ItemKey::VIEW_SPACE); return (*this); }
         Builder& withViewSpace()        { _value.set(ItemKey::VIEW_SPACE);  _mask.set(ItemKey::VIEW_SPACE); return (*this); }
 
@@ -224,9 +224,9 @@ public:
 
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
-    
+
     // Status records the life history and performances of this item while performing at rendering and updating.
-    // This is Used for monitoring and dynamically adjust the quality 
+    // This is Used for monitoring and dynamically adjust the quality
     class Status {
     public:
 
@@ -243,7 +243,7 @@ public:
             Value() {}
             Value(float scale, float hue, unsigned char icon = 0xFF) { setScale(scale); setColor(hue); setIcon(icon); }
 
-            // It can be scaled in the range [0, 1] 
+            // It can be scaled in the range [0, 1]
             void setScale(float scale);
             // the color hue  in the range [0, 360] representing the color wheel hue
             void setColor(float hue);
@@ -378,7 +378,7 @@ template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payload
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
 template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
-    
+
 // Shape type interface
 // This allows shapes to characterize their pipeline via a ShapeKey, to be picked with a subclass of Shape.
 // When creating a new shape payload you need to create a specialized version, or the ShapeKey will be ownPipeline,
@@ -393,21 +393,23 @@ public:
     Payload(const DataPointer& data) : _data(data) {}
 
     // Payload general interface
-    virtual const ItemKey getKey() const { return payloadGetKey<T>(_data); }
-    virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
-    virtual int getLayer() const { return payloadGetLayer<T>(_data); }
+    virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }
+    virtual const Item::Bound getBound() const override { return payloadGetBound<T>(_data); }
+    virtual int getLayer() const override { return payloadGetLayer<T>(_data); }
 
 
-    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
+    virtual void render(RenderArgs* args) override { payloadRender<T>(_data, args); }
 
     // Shape Type interface
-    virtual const ShapeKey getShapeKey() const { return shapeGetShapeKey<T>(_data); }
+    virtual const ShapeKey getShapeKey() const override { return shapeGetShapeKey<T>(_data); }
 
 protected:
     DataPointer _data;
 
     // Update mechanics
-    virtual void update(const UpdateFunctorPointer& functor) { std::static_pointer_cast<Updater>(functor)->_func((*_data)); }
+    virtual void update(const UpdateFunctorPointer& functor) override {
+        std::static_pointer_cast<Updater>(functor)->_func((*_data));
+    }
     friend class Item;
 };
 
@@ -440,7 +442,7 @@ template <> const Item::Bound payloadGetBound(const FooPointer& foo) {
     return foo->evaluateMyBound();
 }
 
-// In this example, do not specialize the payloadRender call which means the compiler will use the default version which does nothing 
+// In this example, do not specialize the payloadRender call which means the compiler will use the default version which does nothing
 
 */
 // End of the example
@@ -448,7 +450,7 @@ template <> const Item::Bound payloadGetBound(const FooPointer& foo) {
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
 
-// A few typedefs for standard containers of ItemIDs 
+// A few typedefs for standard containers of ItemIDs
 using ItemIDs = std::vector<ItemID>;
 using ItemIDSet = std::set<ItemID>;
 
@@ -457,7 +459,7 @@ class ItemBound {
 public:
     ItemBound(ItemID id) : id(id) { }
     ItemBound(ItemID id, const AABox& bound) : id(id), bound(bound) { }
-    
+
     ItemID id;
     AABox bound;
 };

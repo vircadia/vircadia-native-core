@@ -19,6 +19,7 @@ const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device p
 
 #if OPENVR_THREADED_SUBMIT
 class OpenVrSubmitThread;
+class OffscreenGLCanvas;
 static const size_t COMPOSITING_BUFFER_SIZE = 3;
 
 struct CompositeInfo {
@@ -78,6 +79,7 @@ private:
     CompositeInfo::Array _compositeInfos;
     size_t _renderingIndex { 0 };
     std::shared_ptr<OpenVrSubmitThread> _submitThread;
+    std::shared_ptr<OffscreenGLCanvas> _submitCanvas;
     friend class OpenVrSubmitThread;
 #endif
 };

@@ -24,11 +24,11 @@ public:
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float peek() const {
+    virtual float peek() const override {
         return (float)const_cast<JSEndpoint*>(this)->_callable.call().toNumber();
     }
 
-    virtual void apply(float newValue, const Pointer& source) {
+    virtual void apply(float newValue, const Pointer& source) override {
         _callable.call(QJSValueList({ QJSValue(newValue) }));
     }
 

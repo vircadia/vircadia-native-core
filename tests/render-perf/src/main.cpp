@@ -172,8 +172,8 @@ void main(void) {
 
 extern QThread* RENDER_THREAD;
 
-class RenderThread : public GenericQueueThread<gpu::FramePointer> {
-    using Parent = GenericQueueThread<gpu::FramePointer>;
+class RenderThread : public GenericThread {
+    using Parent = GenericThread;
 public:
     QOpenGLContextWrapper* _displayContext{ nullptr };
     QSurface* _displaySurface{ nullptr };
@@ -187,8 +187,15 @@ public:
     std::shared_ptr<gpu::Backend> _backend;
     std::vector<uint64_t> _frameTimes;
     size_t _frameIndex;
+    std::mutex _frameLock;
+    std::queue<gpu::FramePointer> _pendingFrames;
+    gpu::FramePointer _activeFrame;
     static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
 
+    void submitFrame(const gpu::FramePointer& frame) {
+        std::unique_lock<std::mutex> lock(_frameLock);
+        _pendingFrames.push(frame);
+    }
 
 
     void initialize(QOpenGLContextWrapper* displayContext, QWindow* surface) {
@@ -203,6 +210,7 @@ public:
         _displayContext->makeCurrent(_displaySurface);
         DependencyManager::get<DeferredLightingEffect>()->init();
         _displayContext->doneCurrent();
+        std::unique_lock<std::mutex> lock(_mutex);
         Parent::initialize();
         if (isThreaded()) {
             _displayContext->moveToThread(thread());
@@ -211,6 +219,11 @@ public:
 
     void setup() override {
         RENDER_THREAD = QThread::currentThread();
+        QThread::currentThread()->setPriority(QThread::HighestPriority);
+        // Wait until the context has been moved to this thread
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+        }
         _displayContext->makeCurrent(_displaySurface);
         glewExperimental = true;
         glewInit();
@@ -229,12 +242,21 @@ public:
 
         //_textOverlay = new TextOverlay(glm::uvec2(800, 600));
         glViewport(0, 0, 800, 600);
+        (void)CHECK_GL_ERROR();
         _elapsed.start();
     }
 
     void shutdown() override {
+        _activeFrame.reset();
+        while (!_pendingFrames.empty()) {
+            _gpuContext->consumeFrameUpdates(_pendingFrames.front());
+            _pendingFrames.pop();
+        }
         _presentPipeline.reset();
         _gpuContext.reset();
+        if (isThreaded()) {
+            _displayContext->moveToThread(qApp->thread());
+        }
     }
 
     void renderFrame(gpu::FramePointer& frame) {
@@ -256,9 +278,7 @@ public:
                 presentBatch.draw(gpu::TRIANGLE_STRIP, 4);
                 _gpuContext->executeBatch(presentBatch);
             }
-        }
-        {
-            //_textOverlay->render();
+            (void)CHECK_GL_ERROR();
         }
         _displayContext->swapBuffers(_displaySurface);
         _fpsCounter.increment();
@@ -269,6 +289,8 @@ public:
             _frameCount = 0;
             _elapsed.restart();
         }
+        (void)CHECK_GL_ERROR();
+        _displayContext->doneCurrent();
     }
 
     void report() {
@@ -292,10 +314,30 @@ public:
         }
     }
 
-    bool processQueueItems(const Queue& items) override {
-        for (auto frame : items) {
+
+    bool process() override {
+        std::queue<gpu::FramePointer> pendingFrames;
+        {
+            std::unique_lock<std::mutex> lock(_frameLock);
+            pendingFrames.swap(_pendingFrames);
+        }
+
+        while (!pendingFrames.empty()) {
+            _activeFrame = pendingFrames.front();
+            if (_activeFrame) {
+                _gpuContext->consumeFrameUpdates(_activeFrame);
+            }
+            pendingFrames.pop();
+        }
+
+        if (!_activeFrame) {
+            QThread::msleep(1);
+            return true;
+        }
+
+        {
             auto start = usecTimestampNow();
-            renderFrame(frame);
+            renderFrame(_activeFrame);
             auto duration = usecTimestampNow() - start;
             auto frameBufferIndex = _frameIndex % FRAME_TIME_BUFFER_SIZE;
             _frameTimes[frameBufferIndex] = duration;
@@ -345,10 +387,6 @@ namespace render {
                 break;
             }
         }
-
-                                          // Fall through: if no skybox is available, render the SKY_DOME
-        case model::SunSkyStage::SKY_DOME:  
-        case model::SunSkyStage::NO_BACKGROUND:
         default:
             // this line intentionally left blank
             break;
@@ -420,6 +458,7 @@ public:
     }
 
     QTestWindow() {
+        installEventFilter(this);
         _camera.movementSpeed = 50.0f;
         QThreadPool::globalInstance()->setMaxThreadCount(2);
         QThread::currentThread()->setPriority(QThread::HighestPriority);
@@ -461,7 +500,7 @@ public:
         _renderThread.initialize(&_context, this);
         // FIXME use a wait condition
         QThread::msleep(1000);
-        _renderThread.queueItem(gpu::FramePointer());
+        _renderThread.submitFrame(gpu::FramePointer());
         _initContext.makeCurrent();
         // Render engine init
         _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
@@ -483,7 +522,6 @@ public:
     }
 
     virtual ~QTestWindow() {
-        _renderThread.terminate();
         getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
         _renderEngine.reset();
         _main3DScene.reset();
@@ -501,6 +539,15 @@ public:
     }
 
 protected:
+
+    bool eventFilter(QObject *obj, QEvent *event) override {
+        if (event->type() == QEvent::Close) {
+            _renderThread.terminate();
+        }
+
+        return QWindow::eventFilter(obj, event);
+    }
+
     void keyPressEvent(QKeyEvent* event) override {
         switch (event->key()) {
         case Qt::Key_F1:
@@ -746,7 +793,7 @@ private:
         frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){ 
             DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
         };
-        _renderThread.queueItem(frame);
+        _renderThread.submitFrame(frame);
         if (!_renderThread.isThreaded()) {
             _renderThread.process();
         }

@@ -57,6 +57,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FileScriptingInterface.h>
 #include <Finally.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
@@ -1067,70 +1068,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
-        [this, entityScriptingInterface](const EntityItemID& entityItemID, const MouseEvent& event) {
-        if (_keyboardFocusedItem != entityItemID) {
-            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-            if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
-                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
-                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-                if (webEntity) {
-                    webEntity->setProxyWindow(_window->windowHandle());
-                    if (_keyboardMouseDevice->isActive()) {
-                        _keyboardMouseDevice->pluginFocusOutEvent();
-                    }
-                    _keyboardFocusedItem = entityItemID;
-                    _lastAcceptedKeyPress = usecTimestampNow();
-                    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
-                        _keyboardFocusHighlight = new Cube3DOverlay();
-                        _keyboardFocusHighlight->setAlpha(1.0f);
-                        _keyboardFocusHighlight->setBorderSize(1.0f);
-                        _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
-                        _keyboardFocusHighlight->setIsSolid(false);
-                        _keyboardFocusHighlight->setPulseMin(0.5);
-                        _keyboardFocusHighlight->setPulseMax(1.0);
-                        _keyboardFocusHighlight->setColorPulse(1.0);
-                        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
-                        _keyboardFocusHighlight->setDrawInFront(true);
-                    }
-                    _keyboardFocusHighlight->setRotation(webEntity->getRotation());
-                    _keyboardFocusHighlight->setPosition(webEntity->getPosition());
-                    _keyboardFocusHighlight->setDimensions(webEntity->getDimensions() * 1.05f);
-                    _keyboardFocusHighlight->setVisible(true);
-                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
-                }
-            }
-            if (_keyboardFocusedItem == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
-                _keyboardFocusHighlight->setVisible(false);
-            }
-
-        }
+            [this](const EntityItemID& entityItemID, const PointerEvent& event) {
+        setKeyboardFocusEntity(entityItemID);
     });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity,
-        [=](const EntityItemID& entityItemID) {
-        if (entityItemID == _keyboardFocusedItem) {
-            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-            if (_keyboardFocusHighlight) {
-                _keyboardFocusHighlight->setVisible(false);
-            }
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
+        if (entityItemID == _keyboardFocusedItem.get()) {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
     // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity,
-        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event) {
-        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        if (_keyboardFocusHighlight) {
-            _keyboardFocusHighlight->setVisible(false);
-        }
+    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
     connect(this, &Application::aboutToQuit, [=]() {
-        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        if (_keyboardFocusHighlight) {
-            _keyboardFocusHighlight->setVisible(false);
-        }
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
     // Add periodic checks to send user activity data
@@ -1138,10 +1092,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     static int SEND_STATS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
 
+    static glm::vec3 lastAvatarPosition = getMyAvatar()->getPosition();
+    static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
+    static controller::Pose lastLeftHandPose = getMyAvatar()->getLeftHandPose();
+    static controller::Pose lastRightHandPose = getMyAvatar()->getRightHandPose();
+
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
     sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
+
         QJsonObject properties = {};
         MemoryInfo memInfo;
         if (getMemoryInfo(memInfo)) {
@@ -1182,6 +1142,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
+
+        glm::vec3 avatarPosition = getMyAvatar()->getPosition();
+        properties["avatar_has_moved"] = lastAvatarPosition != avatarPosition;
+        lastAvatarPosition = avatarPosition;
+
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto entityActivityTracking = entityScriptingInterface->getActivityTracking();
+        entityScriptingInterface->resetActivityTracking();
+        properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
+        properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
+        properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        auto hmdHeadPose = getHMDSensorPose();
+        properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
+        lastHMDHeadPose = hmdHeadPose;
+
+        auto leftHandPose = getMyAvatar()->getLeftHandPose();
+        auto rightHandPose = getMyAvatar()->getRightHandPose();
+        // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
+        // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
+        properties["hand_pose_changed"] =
+            ((leftHandPose.valid || lastLeftHandPose.valid) && (leftHandPose != lastLeftHandPose))
+            || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
+        lastLeftHandPose = leftHandPose;
+        lastRightHandPose = rightHandPose;
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -1235,7 +1220,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    _defaultSkybox->setColor({ 1.0, 1.0, 1.0 });
+
+    EntityItem::setEntitiesShouldFadeFunction([this]() {
+        SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
+        return entityServerNode && !isPhysicsEnabled();
+    });
 
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
@@ -1367,11 +1356,13 @@ void Application::cleanupBeforeQuit() {
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
     _applicationStateDevice.reset();
 
-    if (_keyboardFocusHighlightID > 0) {
-        getOverlays().deleteOverlay(_keyboardFocusHighlightID);
-        _keyboardFocusHighlightID = -1;
+    {
+        if (_keyboardFocusHighlightID > 0) {
+            getOverlays().deleteOverlay(_keyboardFocusHighlightID);
+            _keyboardFocusHighlightID = -1;
+        }
+        _keyboardFocusHighlight = nullptr;
     }
-    _keyboardFocusHighlight = nullptr;
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -1492,6 +1483,7 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->setObjectName("ChromiumShareContext");
     _chromiumShareContext->create(_glWidget->context()->contextHandle());
     _chromiumShareContext->makeCurrent();
     qt_gl_set_global_share_context(_chromiumShareContext->getContext());
@@ -1538,6 +1530,7 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->setObjectName("MainThreadContext");
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
 
@@ -1587,6 +1580,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
+    rootContext->setContextProperty("File", fileDownload);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -2033,7 +2029,6 @@ bool Application::importJSONFromURL(const QString& urlString) {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-
     emit svoImportRequested(urlString);
     return true;
 }
@@ -2086,16 +2081,16 @@ bool Application::event(QEvent* event) {
         return true;
     }
 
-    if (!_keyboardFocusedItem.isInvalidID()) {
-        switch (event->type()) {
+    {
+        if (!_keyboardFocusedItem.get().isInvalidID()) {
+            switch (event->type()) {
             case QEvent::KeyPress:
             case QEvent::KeyRelease: {
                 auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(_keyboardFocusedItem);
-                RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
-                if (webEntity && webEntity->getEventHandler()) {
+                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
+                if (entity && entity->getEventHandler()) {
                     event->setAccepted(false);
-                    QCoreApplication::sendEvent(webEntity->getEventHandler(), event);
+                    QCoreApplication::sendEvent(entity->getEventHandler(), event);
                     if (event->isAccepted()) {
                         _lastAcceptedKeyPress = usecTimestampNow();
                         return true;
@@ -2106,6 +2101,7 @@ bool Application::event(QEvent* event) {
 
             default:
                 break;
+            }
         }
     }
 
@@ -2157,13 +2153,15 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
         if (!url.isEmpty()) {
             QString urlString = url.toString();
+
             if (canAcceptURL(urlString)) {
+
                 return acceptURL(urlString);
             }
         }
@@ -2304,7 +2302,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
-                    takeSnapshot();
+                    takeSnapshot(true);
                 }
                 break;
 
@@ -2655,7 +2653,10 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         event->screenPos(), button,
         buttons, event->modifiers());
 
-    getEntities()->mouseMoveEvent(&mappedEvent);
+    if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
+        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getEntities()->mouseMoveEvent(&mappedEvent);
+    }
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -2945,14 +2946,6 @@ void Application::idle(float nsecsElapsed) {
     _simCounter.increment();
 
     PerformanceTimer perfTimer("idle");
-    // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
-    if (!_keyboardFocusedItem.isInvalidID()) {
-        const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
-        quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
-        if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
-            _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
-        }
-    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -2966,6 +2959,27 @@ void Application::idle(float nsecsElapsed) {
         static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp(secondsSinceLastUpdate, 0.0f, BIGGEST_DELTA_TIME_SECS));
     }
+
+
+    // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
+    {
+        if (!_keyboardFocusedItem.get().isInvalidID()) {
+            const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
+            quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
+            if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
+                setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            } else {
+                // update position of highlight overlay
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedItem.get());
+                if (entity && _keyboardFocusHighlight) {
+                    _keyboardFocusHighlight->setRotation(entity->getRotation());
+                    _keyboardFocusHighlight->setPosition(entity->getPosition());
+                }
+            }
+        }
+    }
+
     {
         PerformanceTimer perfTimer("pluginIdle");
         PerformanceWarning warn(showWarnings, "Application::idle()... pluginIdle()");
@@ -3547,6 +3561,54 @@ void Application::reloadResourceCaches() {
 void Application::rotationModeChanged() const {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
         getMyAvatar()->setHeadPitch(0);
+    }
+}
+
+QUuid Application::getKeyboardFocusEntity() const {
+    return _keyboardFocusedItem.get();
+}
+
+void Application::setKeyboardFocusEntity(QUuid id) {
+    EntityItemID entityItemID(id);
+    setKeyboardFocusEntity(entityItemID);
+}
+
+void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    if (_keyboardFocusedItem.get() != entityItemID) {
+        _keyboardFocusedItem.set(UNKNOWN_ENTITY_ID);
+        auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
+        if (!properties.getLocked() && properties.getVisible()) {
+            auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
+            if (entity && entity->wantsKeyboardFocus()) {
+                entity->setProxyWindow(_window->windowHandle());
+                if (_keyboardMouseDevice->isActive()) {
+                    _keyboardMouseDevice->pluginFocusOutEvent();
+                }
+                _keyboardFocusedItem.set(entityItemID);
+                _lastAcceptedKeyPress = usecTimestampNow();
+                if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+                    _keyboardFocusHighlight = new Cube3DOverlay();
+                    _keyboardFocusHighlight->setAlpha(1.0f);
+                    _keyboardFocusHighlight->setBorderSize(1.0f);
+                    _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
+                    _keyboardFocusHighlight->setIsSolid(false);
+                    _keyboardFocusHighlight->setPulseMin(0.5);
+                    _keyboardFocusHighlight->setPulseMax(1.0);
+                    _keyboardFocusHighlight->setColorPulse(1.0);
+                    _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+                    _keyboardFocusHighlight->setDrawInFront(false);
+                }
+                _keyboardFocusHighlight->setRotation(entity->getRotation());
+                _keyboardFocusHighlight->setPosition(entity->getPosition());
+                _keyboardFocusHighlight->setDimensions(entity->getDimensions() * 1.05f);
+                _keyboardFocusHighlight->setVisible(true);
+                _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
+            }
+        }
+        if (_keyboardFocusedItem.get() == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
     }
 }
 
@@ -4253,43 +4315,55 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
+            case model::SunSkyStage::SKY_DEFAULT: {
+                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
+                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
+                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
+                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
+
+                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                auto sceneKeyLight = scene->getKeyLight();
+                scene->setSunModelEnable(false);
+                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
+                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                // fall through: render a skybox (if available), or the defaults (if requested)
+           }
+
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox) {
+                if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
+                // fall through: render defaults (if requested)
             }
 
-            // Fall through: if no skybox is available, render the SKY_DOME
-            case model::SunSkyStage::SKY_DOME:  {
-               if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                   static const glm::vec3 DEFAULT_SKYBOX_COLOR { 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                   static const float DEFAULT_SKYBOX_INTENSITY { 0.2f };
-                   static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY { 2.0f };
-                   static const glm::vec3 DEFAULT_SKYBOX_DIRECTION { 0.0f, 0.0f, -1.0f };
-
-                   auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                   auto sceneKeyLight = scene->getKeyLight();
-                   scene->setSunModelEnable(false);
-                   sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                   sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                   sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                   sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
-
-                   auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                   sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                   sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-
-                   qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
-               }
+            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+                    auto sceneKeyLight = scene->getKeyLight();
+                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
+                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
+                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                    // fall through: render defaults skybox
+                } else {
+                    break;
+                }
             }
+
+            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
+                }
                 break;
 
+            // Any other cases require no extra rendering
             case model::SunSkyStage::NO_BACKGROUND:
             default:
-                // this line intentionally left blank
                 break;
         }
     }
@@ -4503,7 +4577,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
 }
@@ -4853,6 +4927,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
+        emit receivedHifiSchemeURL(urlString);
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
@@ -4901,7 +4976,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
 
         agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
-            modelLicense + "\nDo you argee to these terms?",
+            modelLicense + "\nDo you agree to these terms?",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
     }
 
@@ -4960,7 +5035,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -5058,11 +5132,11 @@ void Application::toggleRunningScriptsWidget() const {
     //}
 }
 
+
 void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-
     static const QUrl url { "AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
@@ -5129,15 +5203,24 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::takeSnapshot() {
-    QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-    player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-    player->play();
+void Application::takeSnapshot(bool notify, float aspectRatio) {
+    postLambdaEvent([notify, aspectRatio, this] {
+        QMediaPlayer* player = new QMediaPlayer();
+        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+        player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+        player->play();
 
-    QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
 
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path);
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, notify);
+    });
+}
+
+void Application::shareSnapshot(const QString& path) {
+    postLambdaEvent([path] {
+        // not much to do here, everything is done in snapshot code...
+        Snapshot::uploadSnapshot(path);
+    });
 }
 
 float Application::getRenderResolutionScale() const {
@@ -5601,4 +5684,49 @@ bool Application::makeRenderingContextCurrent() {
 
 bool Application::isForeground() const { 
     return _isForeground && !_window->isMinimized(); 
+}
+
+void Application::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mousePressOnEntity(entityItemID, event);
+}
+
+void Application::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mouseMoveOnEntity(entityItemID, event);
+}
+
+void Application::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->mouseReleaseOnEntity(entityItemID, event);
+}
+
+void Application::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->clickDownOnEntity(entityItemID, event);
+}
+
+void Application::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->holdingClickOnEntity(entityItemID, event);
+}
+
+void Application::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->clickReleaseOnEntity(entityItemID, event);
+}
+
+void Application::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverEnterEntity(entityItemID, event);
+}
+
+void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverOverEntity(entityItemID, event);
+}
+
+void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    EntityItemID entityItemID(id);
+    emit getEntities()->hoverLeaveEntity(entityItemID, event);
 }

@@ -31,6 +31,6 @@ void NullDisplayPlugin::submitFrame(const gpu::FramePointer& frame) {
     }
 }
 
-QImage NullDisplayPlugin::getScreenshot() const {
+QImage NullDisplayPlugin::getScreenshot(float aspectRatio) const {
     return QImage();
 }

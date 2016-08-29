@@ -28,6 +28,7 @@
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
@@ -74,8 +75,8 @@ void Web3DOverlay::render(RenderArgs* args) {
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-        _webSurface->load("WebEntity.qml");
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
+        _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
@@ -106,7 +107,11 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->bindSimpleSRGBTexturedUnlitNoTexAlphaProgram(batch);
+    if (color.a < OPAQUE_ALPHA_THRESHOLD) {
+        geometryCache->bindTransparentWebBrowserProgram(batch);
+    } else {
+        geometryCache->bindOpaqueWebBrowserProgram(batch);
+    }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }

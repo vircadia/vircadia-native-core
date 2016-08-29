@@ -294,7 +294,7 @@ public:
     Stamp getDataStamp() const { return _storage->getStamp(); }
 
     // The theoretical size in bytes of data stored in the texture
-    Size getSize() const { return _size; }
+    Size getSize() const override { return _size; }
 
     // The actual size in bytes of data stored in the texture
     Size getStoredSize() const;

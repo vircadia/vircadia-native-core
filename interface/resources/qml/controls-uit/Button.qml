@@ -21,6 +21,8 @@ Original.Button {
     width: 120
     height: hifi.dimensions.controlLineHeight
 
+    HifiConstants { id: hifi }
+
     style: ButtonStyle {
 
         background: Rectangle {

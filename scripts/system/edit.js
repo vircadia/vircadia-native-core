@@ -1,3 +1,5 @@
+"use strict";
+
 //  newEditEntities.js
 //  examples
 //
@@ -11,13 +13,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
 
-/* globals SelectionDisplay, SelectionManager, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Toolbars,
-           progressDialog, tooltip, ParticleExplorerTool */
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -94,7 +96,6 @@ var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain.";
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain.";
 
-var mode = 0;
 var isActive = false;
 
 var IMPORTING_SVO_OVERLAY_WIDTH = 144;
@@ -143,7 +144,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    print("setting marketplace URL to " + url);
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
@@ -216,7 +216,6 @@ var toolBar = (function () {
     }
 
     function initialize() {
-        print("QQQ creating edit toolbar");
         Script.scriptEnding.connect(cleanup);
 
         Window.domainChanged.connect(function () {
@@ -503,8 +502,6 @@ var selectedEntityID;
 var orientation;
 var intersection;
 
-
-var SCALE_FACTOR = 200.0;
 
 function rayPlaneIntersection(pickRay, point, normal) { //
     //
@@ -794,7 +791,6 @@ var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
 
 function setupModelMenus() {
-    print("setupModelMenus()");
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
@@ -803,7 +799,6 @@ function setupModelMenus() {
         grouping: "Advanced"
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
-        print("no delete... adding ours");
         Menu.addMenuItem({
             menuName: "Edit",
             menuItemName: "Delete",
@@ -814,8 +809,6 @@ function setupModelMenus() {
             grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
-    } else {
-        print("delete exists... don't add ours");
     }
 
     Menu.addMenuItem({
@@ -1046,8 +1039,6 @@ function deleteSelectedEntities() {
         }
         SelectionManager.clearSelections();
         pushCommandForSelections([], savedProperties);
-    } else {
-        print("  Delete Entity.... not holding...");
     }
 }
 
@@ -1128,39 +1119,41 @@ function handeMenuEvent(menuItem) {
     }
     tooltip.show(false);
 }
-
-// This function tries to find a reasonable position to place a new entity based on the camera
-// position. If a reasonable position within the world bounds can't be found, `null` will
-// be returned. The returned position will also take into account grid snapping settings.
 function getPositionToCreateEntity() {
-    var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-    var direction = Quat.getFront(Camera.orientation);
-    var offset = Vec3.multiply(distance, direction);
-    var placementPosition = Vec3.sum(Camera.position, offset);
-
-    var cameraPosition = Camera.position;
-
     var HALF_TREE_SCALE = 16384;
+    var direction = Quat.getFront(MyAvatar.orientation);
+    var distance = 1;
+    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
-    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE || Math.abs(cameraPosition.y) > HALF_TREE_SCALE ||
-                            Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
-    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE ||
-                               Math.abs(placementPosition.y) > HALF_TREE_SCALE ||
-                               Math.abs(placementPosition.z) > HALF_TREE_SCALE;
-
-    if (cameraOutOfBounds && placementOutOfBounds) {
-        return null;
+    if (Camera.mode === "entity" || Camera.mode === "independent") {
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
     }
-
-    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
-    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
-    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
-
-    return placementPosition;
+    position.y += 0.5;
+    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
+        return null
+    }
+    return position;
 }
 
+function getPositionToImportEntity() {
+    var dimensions = Clipboard.getContentsDimensions();
+    var HALF_TREE_SCALE = 16384;
+    var direction = Quat.getFront(MyAvatar.orientation);
+    var longest = 1;
+    longest = Math.sqrt(Math.pow(dimensions.x, 2) + Math.pow(dimensions.z, 2));
+    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
+
+    if (Camera.mode === "entity" || Camera.mode === "independent") {
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest))
+    }
+
+    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
+        return null
+    }
+
+    return position;
+}
 function importSVO(importURL) {
-    print("Import URL requested: " + importURL);
     if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
@@ -1183,7 +1176,7 @@ function importSVO(importURL) {
             z: 0
         };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
-            position = getPositionToCreateEntity();
+            position = getPositionToImportEntity();
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
@@ -1376,7 +1369,13 @@ var PropertiesTool = function (opts) {
     });
 
     webView.webEventReceived.connect(function (data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        }
+        catch(e) {
+            print('Edit.js received web event that was not valid json.')
+            return;
+        }
         var i, properties, dY, diff, newPosition;
         if (data.type === "print") {
             if (data.message) {
@@ -1424,6 +1423,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if(data.type === 'saveUserData'){
+            //the event bridge and json parsing handle our avatar id string differently.
+            var actualID = data.id.split('"')[1];
+            Entities.editEntity(actualID, data.properties);
         } else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
@@ -1730,3 +1733,5 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         }
     }
 });
+
+}()); // END LOCAL_SCOPE

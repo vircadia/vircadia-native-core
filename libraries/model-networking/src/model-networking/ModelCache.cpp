@@ -330,9 +330,22 @@ bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
         for (auto& material : _materials) {
             // Check if material textures are loaded
-            if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [](const NetworkMaterial::Textures::value_type& it) { return it.texture && !it.texture->isLoaded(); })) {
+            bool materialMissingTexture = std::any_of(material->_textures.cbegin(), material->_textures.cend(),
+                [](const NetworkMaterial::Textures::value_type& it) { 
+                auto texture = it.texture;
+                if (!texture) {
+                    return false;
+                }
+                // Failed texture downloads need to be considered as 'loaded' 
+                // or the object will never fade in
+                bool finished = texture->isLoaded() || texture->isFailed();
+                if (!finished) {
+                    return true;
+                }
+                return false;
+            });
 
+            if (materialMissingTexture) {
                 return false;
             }
 

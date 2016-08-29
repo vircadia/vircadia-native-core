@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  goto.js
 //  scripts/system/
@@ -8,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+(function() { // BEGIN LOCAL_SCOPE
 
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
@@ -38,3 +42,5 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     DialogsManager.addressBarShown.disconnect(onAddressBarShown);
 });
+
+}()); // END LOCAL_SCOPE

@@ -30,8 +30,87 @@
 
 #include "ssao_makePyramid_frag.h"
 #include "ssao_makeOcclusion_frag.h"
+#include "ssao_debugOcclusion_frag.h"
 #include "ssao_makeHorizontalBlur_frag.h"
 #include "ssao_makeVerticalBlur_frag.h"
+
+
+AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
+}
+
+void AmbientOcclusionFramebuffer::updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer) {
+    //If the depth buffer or size changed, we need to delete our FBOs
+    bool reset = false;
+    if ((_linearDepthTexture != linearDepthBuffer)) {
+        _linearDepthTexture = linearDepthBuffer;
+        reset = true;
+    }
+    if (_linearDepthTexture) {
+        auto newFrameSize = glm::ivec2(_linearDepthTexture->getDimensions());
+        if (_frameSize != newFrameSize) {
+            _frameSize = newFrameSize;
+            reset = true;
+        }
+    }
+    
+    if (reset) {
+        clear();
+    }
+}
+
+void AmbientOcclusionFramebuffer::clear() {
+    _occlusionFramebuffer.reset();
+    _occlusionTexture.reset();
+    _occlusionBlurredFramebuffer.reset();
+    _occlusionBlurredTexture.reset();
+}
+
+gpu::TexturePointer AmbientOcclusionFramebuffer::getLinearDepthTexture() {
+    return _linearDepthTexture;
+}
+
+void AmbientOcclusionFramebuffer::allocate() {
+    
+    auto width = _frameSize.x;
+    auto height = _frameSize.y;
+    
+    _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
+   
+    _occlusionBlurredTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
+}
+
+gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionFramebuffer() {
+    if (!_occlusionFramebuffer) {
+        allocate();
+    }
+    return _occlusionFramebuffer;
+}
+
+gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionTexture() {
+    if (!_occlusionTexture) {
+        allocate();
+    }
+    return _occlusionTexture;
+}
+
+gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionBlurredFramebuffer() {
+    if (!_occlusionBlurredFramebuffer) {
+        allocate();
+    }
+    return _occlusionBlurredFramebuffer;
+}
+
+gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionBlurredTexture() {
+    if (!_occlusionBlurredTexture) {
+        allocate();
+    }
+    return _occlusionBlurredTexture;
+}
+
 
 class GaussianDistribution {
 public:
@@ -90,15 +169,11 @@ public:
 
 const int AmbientOcclusionEffect_FrameTransformSlot = 0;
 const int AmbientOcclusionEffect_ParamsSlot = 1;
-const int AmbientOcclusionEffect_DepthMapSlot = 0;
-const int AmbientOcclusionEffect_PyramidMapSlot = 0;
+const int AmbientOcclusionEffect_CameraCorrectionSlot = 2;
+const int AmbientOcclusionEffect_LinearDepthMapSlot = 0;
 const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
 
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
-    FrameTransform frameTransform;
-    _frameTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(FrameTransform), (const gpu::Byte*) &frameTransform));
-    Parameters parameters;
-    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
 void AmbientOcclusionEffect::configure(const Config& config) {
@@ -108,99 +183,81 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
-    if (radius != getRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+    if (radius != _parametersBuffer->getRadius()) {
+        auto& current = _parametersBuffer->radiusInfo;
         current.x = radius;
         current.y = radius * radius;
         current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
     }
 
-    if (config.obscuranceLevel != getObscuranceLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+    if (config.obscuranceLevel != _parametersBuffer->getObscuranceLevel()) {
+        auto& current = _parametersBuffer->radiusInfo;
         current.w = config.obscuranceLevel;
     }
 
-    if (config.falloffBias != getFalloffBias()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.falloffBias != _parametersBuffer->getFalloffBias()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.z = config.falloffBias;
     }
 
-    if (config.edgeSharpness != getEdgeSharpness()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (config.edgeSharpness != _parametersBuffer->getEdgeSharpness()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.x = config.edgeSharpness;
     }
 
-    if (config.blurDeviation != getBlurDeviation()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (config.blurDeviation != _parametersBuffer->getBlurDeviation()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.z = config.blurDeviation;
         shouldUpdateGaussian = true;
     }
 
-    if (config.numSpiralTurns != getNumSpiralTurns()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+    if (config.numSpiralTurns != _parametersBuffer->getNumSpiralTurns()) {
+        auto& current = _parametersBuffer->sampleInfo;
         current.z = config.numSpiralTurns;
     }
 
-    if (config.numSamples != getNumSamples()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+    if (config.numSamples != _parametersBuffer->getNumSamples()) {
+        auto& current = _parametersBuffer->sampleInfo;
         current.x = config.numSamples;
         current.y = 1.0f / config.numSamples;
     }
 
-    const auto& resolutionLevel = config.resolutionLevel;
-    if (resolutionLevel != getResolutionLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
-        current.x = (float)resolutionLevel;
-
-        // Communicate the change to the Framebuffer cache
-        DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(resolutionLevel);
+    if (config.fetchMipsEnabled != _parametersBuffer->isFetchMipsEnabled()) {
+        auto& current = _parametersBuffer->sampleInfo;
+        current.w = (float)config.fetchMipsEnabled;
     }
 
-    if (config.blurRadius != getBlurRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+    if (!_framebuffer) {
+        _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
+    }
+    
+    if (config.perspectiveScale != _parametersBuffer->getPerspectiveScale()) {
+        _parametersBuffer->resolutionInfo.z = config.perspectiveScale;
+    }
+    if (config.resolutionLevel != _parametersBuffer->getResolutionLevel()) {
+        auto& current = _parametersBuffer->resolutionInfo;
+        current.x = (float) config.resolutionLevel;
+    }
+ 
+    if (config.blurRadius != _parametersBuffer->getBlurRadius()) {
+        auto& current = _parametersBuffer->blurInfo;
         current.y = (float)config.blurRadius;
         shouldUpdateGaussian = true;
     }
 
-    if (config.ditheringEnabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.ditheringEnabled != _parametersBuffer->isDitheringEnabled()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.x = (float)config.ditheringEnabled;
     }
 
-    if (config.borderingEnabled != isBorderingEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+    if (config.borderingEnabled != _parametersBuffer->isBorderingEnabled()) {
+        auto& current = _parametersBuffer->ditheringInfo;
         current.w = (float)config.borderingEnabled;
     }
 
     if (shouldUpdateGaussian) {
         updateGaussianDistribution();
     }
-}
-
-const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
-    if (!_pyramidPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(ssao_makePyramid_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AmbientOcclusionEffect_DepthMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-        // Stencil test the pyramid passe for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
-        state->setColorWriteMask(true, false, false, false);
-
-        // Good to go add the brand new pipeline
-        _pyramidPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _pyramidPipeline;
 }
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
@@ -210,9 +267,11 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_PyramidMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
+        
+        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -234,6 +293,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -256,6 +316,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         
@@ -272,76 +333,50 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     return _vBlurPipeline;
 }
 
-
-void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
-    _frameTransformBuffer.edit<FrameTransform>().depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
-}
-
 void AmbientOcclusionEffect::updateGaussianDistribution() {
-    auto coefs = _parametersBuffer.edit<Parameters>()._gaussianCoefs;
-    GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, getBlurRadius(), getBlurDeviation());
+    auto coefs = _parametersBuffer->_gaussianCoefs;
+    GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, _parametersBuffer->getBlurRadius(), _parametersBuffer->getBlurDeviation());
 }
 
-void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-#ifdef FIX_THE_FRAMEBUFFER_CACHE
+void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
-    // FIXME: Different render modes should have different tasks
-    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
-        return;
+    const auto& frameTransform = inputs.get0();
+    const auto& linearDepthFramebuffer = inputs.get2();
+    
+    auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto sourceViewport = args->_viewport;
+    auto occlusionViewport = sourceViewport;
+
+    if (!_framebuffer) {
+        _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
+    }
+    
+    if (_parametersBuffer->getResolutionLevel() > 0) {
+        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+        occlusionViewport = occlusionViewport >> _parametersBuffer->getResolutionLevel();
     }
 
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
-    auto normalBuffer = framebufferCache->getDeferredNormalTexture();
-    auto pyramidFBO = framebufferCache->getDepthPyramidFramebuffer();
-    auto occlusionFBO = framebufferCache->getOcclusionFramebuffer();
-    auto occlusionBlurredFBO = framebufferCache->getOcclusionBlurredFramebuffer();
+    _framebuffer->updateLinearDepth(linearDepthTexture);
+  
+    
+    auto occlusionFBO = _framebuffer->getOcclusionFramebuffer();
+    auto occlusionBlurredFBO = _framebuffer->getOcclusionBlurredFramebuffer();
+    
+    outputs.edit0() = _framebuffer;
+    outputs.edit1() = _parametersBuffer;
 
-    QSize framebufferSize = framebufferCache->getFrameBufferSize();
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
+    auto framebufferSize = _framebuffer->getSourceFrameSize();
+    
+    float sMin = occlusionViewport.x / (float)framebufferSize.x;
+    float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+    float tMin = occlusionViewport.y / (float)framebufferSize.y;
+    float tHeight = occlusionViewport.w / (float)framebufferSize.y;
 
-    auto resolutionLevel = getResolutionLevel();
 
-    // Update the depth info with near and far (same for stereo)
-    setDepthInfo(args->getViewFrustum().getNearClip(), args->getViewFrustum().getFarClip());
-
-    _frameTransformBuffer.edit<FrameTransform>().pixelInfo = args->_viewport;
-    //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
-
-    // Running in stero ?
-    bool isStereo = args->_context->isStereo();
-    if (!isStereo) {
-        // Eval the mono projection
-        mat4 monoProjMat;
-        args->getViewFrustum().evalProjectionMatrix(monoProjMat);
-        _frameTransformBuffer.edit<FrameTransform>().projection[0] = monoProjMat;
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
-
-    } else {
-
-        mat4 projMats[2];
-        mat4 eyeViews[2];
-        args->_context->getStereoProjections(projMats);
-        args->_context->getStereoViews(eyeViews);
-
-        for (int i = 0; i < 2; i++) {
-            // Compose the mono Eye space to Stereo clip space Projection Matrix
-            auto sideViewMat = projMats[i] * eyeViews[i];
-            _frameTransformBuffer.edit<FrameTransform>().projection[i] = sideViewMat;
-        }
-
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-
-    }
-
-    auto pyramidPipeline = getPyramidPipeline();
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
@@ -351,7 +386,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
         _gpuTimer.begin(batch);
 
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(occlusionViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
 
@@ -360,35 +395,22 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
-        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, _frameTransformBuffer);
+        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, _parametersBuffer);
 
-
-        // Pyramid pass
-        batch.setFramebuffer(pyramidFBO);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(args->getViewFrustum().getFarClip(), 0.0f, 0.0f, 0.0f));
-        batch.setPipeline(pyramidPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_DepthMapSlot, depthBuffer);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        // Make pyramid mips
-        batch.generateTextureMips(pyramidFBO->getRenderBuffer(0));
-
-        // Adjust Viewport for rendering resolution
-        if (resolutionLevel > 0) {
-            glm::ivec4 viewport(args->_viewport.x, args->_viewport.y, args->_viewport.z >> resolutionLevel, args->_viewport.w >> resolutionLevel);
-            batch.setViewportTransform(viewport);
-        }
-
+      
+        // We need this with the mips levels  
+        batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+        
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot, pyramidFBO->getRenderBuffer(0));
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
-        if (getBlurRadius() > 0) {
+        if (_parametersBuffer->getBlurRadius() > 0) {
             // Blur 1st pass
             batch.setFramebuffer(occlusionBlurredFBO);
             batch.setPipeline(firstHBlurPipeline);
@@ -402,10 +424,118 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
         
+        
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
+        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
+        
         _gpuTimer.end(batch);
     });
 
     // Update the timer
     std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
-#endif
 }
+
+
+
+DebugAmbientOcclusion::DebugAmbientOcclusion() {
+}
+
+void DebugAmbientOcclusion::configure(const Config& config) {
+
+    _showCursorPixel = config.showCursorPixel;
+
+    auto cursorPos = glm::vec2(_parametersBuffer->pixelInfo);
+    if (cursorPos != config.debugCursorTexcoord) {
+        _parametersBuffer->pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
+    }
+}
+
+const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
+    if (!_debugPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(ssao_debugOcclusion_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("debugAmbientOcclusionBuffer"), 2));
+        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setColorWriteMask(true, true, true, false);
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        // Good to go add the brand new pipeline
+        _debugPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _debugPipeline;
+}
+
+void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+
+    if (!_showCursorPixel) {
+        return;
+    }
+
+    RenderArgs* args = renderContext->args;
+
+    const auto& frameTransform = inputs.get0();
+    const auto& linearDepthFramebuffer = inputs.get2();
+    const auto& ambientOcclusionUniforms = inputs.get3();
+    
+    // Skip if AO is not started yet
+    if (!ambientOcclusionUniforms._buffer) {
+        return;
+    }
+
+    auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto sourceViewport = args->_viewport;
+    auto occlusionViewport = sourceViewport;
+
+    auto resolutionLevel = ambientOcclusionUniforms->getResolutionLevel();
+    
+    if (resolutionLevel > 0) {
+        linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
+        occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
+    }
+        
+
+    auto framebufferSize = glm::ivec2(linearDepthTexture->getDimensions());
+    
+    float sMin = occlusionViewport.x / (float)framebufferSize.x;
+    float sWidth = occlusionViewport.z / (float)framebufferSize.x;
+    float tMin = occlusionViewport.y / (float)framebufferSize.y;
+    float tHeight = occlusionViewport.w / (float)framebufferSize.y;
+    
+    auto debugPipeline = getDebugPipeline();
+    
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.enableStereo(false);
+
+        batch.setViewportTransform(sourceViewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.setViewTransform(Transform());
+
+        Transform model;
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
+        batch.setModelTransform(model);
+
+        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, ambientOcclusionUniforms);
+        batch.setUniformBuffer(2, _parametersBuffer);
+        
+        batch.setPipeline(debugPipeline);
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, linearDepthTexture);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        
+        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);    
+    });
+
+}
+ 

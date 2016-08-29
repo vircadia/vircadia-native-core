@@ -172,7 +172,7 @@ public:
     }
 
     // Fetch the most recently displayed image as a QImage
-    virtual QImage getScreenshot() const = 0;
+    virtual QImage getScreenshot(float aspectRatio = 0.0f) const = 0;
 
     // will query the underlying hmd api to compute the most recent head pose
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }

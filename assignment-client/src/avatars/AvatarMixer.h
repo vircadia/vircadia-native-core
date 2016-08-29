@@ -27,11 +27,11 @@ public:
     ~AvatarMixer();
 public slots:
     /// runs the avatar mixer
-    void run();
+    void run() override;
 
     void nodeKilled(SharedNodePointer killedNode);
-    
-    void sendStatsPacket();
+
+    void sendStatsPacket() override;
 
 private slots:
     void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
@@ -45,14 +45,14 @@ private slots:
 private:
     void broadcastAvatarData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
-    
+
     QThread _broadcastThread;
-    
+
     p_high_resolution_clock::time_point _lastFrameTimestamp;
-    
+
     float _trailingSleepRatio { 1.0f };
     float _performanceThrottlingRatio { 0.0f };
-    
+
     int _sumListeners { 0 };
     int _numStatFrames { 0 };
     int _sumIdentityPackets { 0 };

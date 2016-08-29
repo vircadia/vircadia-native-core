@@ -33,10 +33,10 @@ class ScriptUndoCommand : public QObject, public QUndoCommand {
 public:
     ScriptUndoCommand(QScriptValue undoFunction, QScriptValue undoData, QScriptValue redoFunction, QScriptValue redoData);
 
-    virtual void undo();
-    virtual void redo();
-    virtual bool mergeWith(const QUndoCommand* command) { return false; }
-    virtual int id() const { return -1; }
+    virtual void undo() override;
+    virtual void redo() override;
+    virtual bool mergeWith(const QUndoCommand* command) override { return false; }
+    virtual int id() const override { return -1; }
 
 public slots:
     void doUndo();

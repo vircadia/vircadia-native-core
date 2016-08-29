@@ -24,12 +24,12 @@ class LodToolsDialog : public QDialog {
 public:
     // Sets up the UI
     LodToolsDialog(QWidget* parent);
-    
+
 signals:
     void closed();
 
 public slots:
-    void reject();
+    void reject() override;
     void sizeScaleValueChanged(int value);
     void resetClicked(bool checked);
     void reloadSliders();
@@ -38,7 +38,7 @@ public slots:
 protected:
 
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent* event);
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     QSlider* _lodSize;

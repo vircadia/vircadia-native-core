@@ -1,5 +1,5 @@
 //
-//  MenuItem.qml
+//  InfoItem.qml
 //
 //  Created by Clement on 7/18/16
 //  Copyright 2016 High Fidelity, Inc.
