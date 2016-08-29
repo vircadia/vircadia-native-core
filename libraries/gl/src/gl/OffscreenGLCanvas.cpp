@@ -23,7 +23,8 @@ OffscreenGLCanvas::OffscreenGLCanvas() : _context(new QOpenGLContext), _offscree
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
-    _context->doneCurrent();
+    // A context with logging enabled needs to be current when it's destroyed
+    _context->makeCurrent(_offscreenSurface);
     delete _context;
     _context = nullptr;
 

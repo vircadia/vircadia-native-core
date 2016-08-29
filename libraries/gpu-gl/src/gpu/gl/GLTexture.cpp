@@ -243,15 +243,8 @@ bool GLTexture::isReady() const {
         return false;
     }
 
-    // If we're out of date, but the transfer is in progress, report ready
-    // as a special case
     auto syncState = _syncState.load();
-
-    if (isOutdated()) {
-        return Idle != syncState;
-    }
-
-    if (Idle != syncState) {
+    if (isOutdated() || Idle != syncState) {
         return false;
     }
 
