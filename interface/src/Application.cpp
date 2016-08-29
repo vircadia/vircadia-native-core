@@ -778,8 +778,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+    // Make sure the window is set to the correct size by processing the pending events
+    QCoreApplication::processEvents();
+    _glWidget->createContext();
     _glWidget->makeCurrent();
-    _glWidget->initializeGL();
 
     initializeGL();
     // Make sure we don't time out during slow operations at startup
@@ -1484,7 +1486,7 @@ void Application::initializeGL() {
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
     _chromiumShareContext->setObjectName("ChromiumShareContext");
-    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->create(_glWidget->qglContext());
     _chromiumShareContext->makeCurrent();
     qt_gl_set_global_share_context(_chromiumShareContext->getContext());
 
@@ -1531,7 +1533,7 @@ void Application::initializeGL() {
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->create(_glWidget->qglContext());
     _offscreenContext->makeCurrent();
 
     // update before the first render
@@ -1553,7 +1555,7 @@ void Application::initializeUi() {
 
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_glWidget->context()->contextHandle());
+    offscreenUi->create(_glWidget->qglContext());
 
     auto rootContext = offscreenUi->getRootContext();
 
@@ -5675,7 +5677,7 @@ MainWindow* Application::getPrimaryWindow() {
 }
 
 QOpenGLContext* Application::getPrimaryContext() {
-    return _glWidget->context()->contextHandle();
+    return _glWidget->qglContext();
 }
 
 bool Application::makeRenderingContextCurrent() {

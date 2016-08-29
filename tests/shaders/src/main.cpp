@@ -108,9 +108,7 @@ public:
 
         show();
         makeCurrent();
-
         gpu::Context::init<gpu::gl::GLBackend>();
-        GLDebug::setupLogger(this);
         makeCurrent();
         resize(QSize(800, 600));
     }
