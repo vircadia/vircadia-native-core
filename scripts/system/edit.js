@@ -803,7 +803,7 @@ function setupModelMenus() {
             menuName: "Edit",
             menuItemName: "Delete",
             shortcutKeyEvent: {
-                text: "backspace"
+                text: "delete"
             },
             afterItem: "Entities",
             grouping: "Advanced"
@@ -1215,7 +1215,7 @@ Controller.keyReleaseEvent.connect(function (event) {
         cameraManager.keyReleaseEvent(event);
     }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text === "BACKSPACE" || event.text === "DELETE") {
+    if (event.text === "DELETE") {
         deleteSelectedEntities();
     } else if (event.text === "ESC") {
         selectionManager.clearSelections();
