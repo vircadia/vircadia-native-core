@@ -1426,10 +1426,7 @@ function MyController(hand) {
                     pos3D: rayPickInfo.intersection,
                     normal: rayPickInfo.normal,
                     direction: rayPickInfo.searchRay.direction,
-                    button: "None",
-                    isPrimaryButton: false,
-                    isSecondaryButton: false,
-                    isTertiaryButton: false
+                    button: "None"
                 };
 
                 this.hoverEntity = entity;
@@ -1449,10 +1446,7 @@ function MyController(hand) {
                     pos3D: rayPickInfo.intersection,
                     normal: rayPickInfo.normal,
                     direction: rayPickInfo.searchRay.direction,
-                    button: "None",
-                    isPrimaryButton: false,
-                    isSecondaryButton: false,
-                    isTertiaryButton: false
+                    button: "None"
                 };
 
                 Entities.sendMouseMoveOnEntity(entity, pointerEvent);
@@ -2124,9 +2118,7 @@ function MyController(hand) {
                 normal: intersectInfo.normal,
                 direction: intersectInfo.searchRay.direction,
                 button: "Primary",
-                isPrimaryButton: true,
-                isSecondaryButton: false,
-                isTertiaryButton: false
+                isPrimaryHeld: true
             };
 
             Entities.sendMousePressOnEntity(this.grabbedEntity, pointerEvent);
@@ -2152,15 +2144,12 @@ function MyController(hand) {
                     pos3D: intersectInfo.point,
                     normal: intersectInfo.normal,
                     direction: intersectInfo.searchRay.direction,
-                    button: "Primary",
-                    isPrimaryButton: false,
-                    isSecondaryButton: false,
-                    isTertiaryButton: false
+                    button: "Primary"
                 };
             } else {
                 pointerEvent = this.touchingEnterPointerEvent;
                 pointerEvent.button = "Primary";
-                pointerEvent.isPrimaryButton = false;
+                pointerEvent.isPrimaryHeld = false;
             }
 
             Entities.sendMouseReleaseOnEntity(this.grabbedEntity, pointerEvent);
@@ -2197,9 +2186,7 @@ function MyController(hand) {
                 normal: intersectInfo.normal,
                 direction: intersectInfo.searchRay.direction,
                 button: "NoButtons",
-                isPrimaryButton: true,
-                isSecondaryButton: false,
-                isTertiaryButton: false
+                isPrimaryHeld: true
             };
 
             var POINTER_PRESS_TO_MOVE_DELAY = 0.15; // seconds
