@@ -1176,6 +1176,8 @@ void EntityTreeRenderer::LayeredZones::applyPartial(iterator layer) {
 
     if (layer == begin()) {
         hasSkybox = _entityTreeRenderer->applyZoneAndHasSkybox(layer->zone);
+    } else {
+        hasSkybox = _entityTreeRenderer->layerZoneAndHasSkybox(layer->zone);
     }
 
     if (layer != end()) {
