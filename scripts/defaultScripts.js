@@ -44,7 +44,7 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
-        isChecked: true, // temporary WORKAROUND for Scripts.resolvePath() bug
+        isChecked: false,
         grouping: "Advanced"
     });
 }
