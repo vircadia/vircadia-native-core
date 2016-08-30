@@ -542,7 +542,7 @@ public:
 
         _concept->run(sceneContext, renderContext);
 
-        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000000.0);
+        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
     protected:

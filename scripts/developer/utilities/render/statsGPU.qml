@@ -30,7 +30,7 @@ Item {
 
       
         PlotPerf {
-           title: "Timing"
+           title: "GPU Timing"
            height: parent.evalEvenHeight()
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
@@ -70,7 +70,7 @@ Item {
            ]
         }
         PlotPerf {
-           title: "Timing"
+           title: "Batch Timing"
            height: parent.evalEvenHeight()
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
