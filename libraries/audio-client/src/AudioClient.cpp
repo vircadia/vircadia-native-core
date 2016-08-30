@@ -67,6 +67,11 @@ Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredRe
                                                       DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
 Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
 
+// protect the Qt internal device list
+using Mutex = std::mutex;
+using Lock = std::unique_lock<Mutex>;
+static Mutex _deviceMutex;
+
 // background thread that continuously polls for device changes
 class CheckDevicesThread : public QThread {
 public:
@@ -197,9 +202,8 @@ void AudioClient::audioMixerKilled() {
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
-    static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
-
+    // NOTE: availableDevices() clobbers the Qt internal device list
+    Lock lock(_deviceMutex);
     return QAudioDeviceInfo::availableDevices(mode);
 }
 
@@ -741,7 +745,11 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
     if (!_loopbackOutputDevice && _loopbackAudioOutput) {
         // we didn't have the loopback output device going so set that up now
+
+        // NOTE: device start() uses the Qt internal device list
+        Lock lock(_deviceMutex);
         _loopbackOutputDevice = _loopbackAudioOutput->start();
+        lock.unlock();
 
         if (!_loopbackOutputDevice) {
             return;
@@ -1133,7 +1141,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
                 _inputRingBuffer.resizeForFrameSize(numFrameSamples);
 
+                // NOTE: device start() uses the Qt internal device list
+                Lock lock(_deviceMutex);
                 _inputDevice = _audioInput->start();
+                lock.unlock();
 
                 if (_inputDevice) {
                     connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
@@ -1229,7 +1240,11 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
 
             _audioOutputIODevice.start();
+
+            // NOTE: device start() uses the Qt internal device list
+            Lock lock(_deviceMutex);
             _audioOutput->start(&_audioOutputIODevice);
+            lock.unlock();
 
             qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
