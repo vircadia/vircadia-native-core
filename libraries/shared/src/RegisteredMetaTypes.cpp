@@ -21,17 +21,17 @@
 
 #include "RegisteredMetaTypes.h"
 
-static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
-static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
-static int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
-static int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
-static int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
-static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
-static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
-static int xColorMetaTypeId = qRegisterMetaType<xColor>();
-static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
-static int collisionMetaTypeId = qRegisterMetaType<Collision>();
-static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
+int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
+int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
+int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
+int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
+int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
+int quatMetaTypeId = qRegisterMetaType<glm::quat>();
+int xColorMetaTypeId = qRegisterMetaType<xColor>();
+int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
+int collisionMetaTypeId = qRegisterMetaType<Collision>();
+int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);

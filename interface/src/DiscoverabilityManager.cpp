@@ -15,6 +15,7 @@
 #include <AddressManager.h>
 #include <DomainHandler.h>
 #include <NodeList.h>
+#include <steamworks-wrapper/SteamClient.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -36,19 +37,17 @@ const QString SESSION_ID_KEY = "session_id";
 
 void DiscoverabilityManager::updateLocation() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    
-    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
-        auto addressManager = DependencyManager::get<AddressManager>();
-        DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    auto addressManager = DependencyManager::get<AddressManager>();
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
 
+
+    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
 
         QString pathString = addressManager->currentPath();
-
-        const QString LOCATION_KEY_IN_ROOT = "location";
 
         const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
@@ -79,9 +78,6 @@ void DiscoverabilityManager::updateLocation() {
         const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
         locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
 
-        // if we have a session ID add it now, otherwise add a null value
-        rootObject[SESSION_ID_KEY] = _sessionID.isEmpty() ? QJsonValue() : _sessionID;
-
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
@@ -93,6 +89,7 @@ void DiscoverabilityManager::updateLocation() {
             // we have a changed location, send it now
             _lastLocationObject = locationObject;
 
+            const QString LOCATION_KEY_IN_ROOT = "location";
             rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
             apiPath = API_USER_LOCATION_PATH;
@@ -109,24 +106,23 @@ void DiscoverabilityManager::updateLocation() {
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
-        QJsonObject heartbeatObject;
-        if (!_sessionID.isEmpty()) {
-            heartbeatObject[SESSION_ID_KEY] = _sessionID;
-        } else {
-            heartbeatObject[SESSION_ID_KEY] = QJsonValue();
-        }
-
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
-                                   QNetworkAccessManager::PutOperation, callbackParameters,
-                                   QJsonDocument(heartbeatObject).toJson());
+                                   QNetworkAccessManager::PutOperation, callbackParameters);
     }
+
+    // Update Steam
+    SteamClient::updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
     auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
     if (!dataObject.isEmpty()) {
-        _sessionID = dataObject[SESSION_ID_KEY].toString();
+        auto sessionID = dataObject[SESSION_ID_KEY].toString();
+
+        // give that session ID to the account manager
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->setSessionID(sessionID);
     }
 }
 

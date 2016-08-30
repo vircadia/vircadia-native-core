@@ -36,7 +36,7 @@ public:
         m_collisionFilterGroup = BULLET_COLLISION_GROUP_MY_AVATAR;
         m_collisionFilterMask = BULLET_COLLISION_MASK_MY_AVATAR;
     }
-    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
+    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) override {
         if (rayResult.m_collisionObject == _me) {
             return 1.0f;
         }
@@ -264,6 +264,10 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
+    if (!_flyingAllowed && desiredState == State::Hover) {
+        desiredState = State::InAir;
+    }
+
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
         qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
@@ -397,11 +401,10 @@ glm::vec3 CharacterController::getLinearVelocity() const {
 }
 
 glm::vec3 CharacterController::getVelocityChange() const {
-    glm::vec3 velocity(0.0f);
     if (_rigidBody) {
-        velocity = bulletToGLM(_rigidBody->getLinearVelocity());
+        return bulletToGLM(_velocityChange);
     }
-    return velocity;
+    return glm::vec3(0.0f);
 }
 
 void CharacterController::clearMotors() {
@@ -531,13 +534,14 @@ void CharacterController::preSimulation() {
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
-        btVector3 rayStart = _characterBodyTransform.getOrigin() - _halfHeight * _currentUp;
+        btVector3 rayStart = _characterBodyTransform.getOrigin();
 
         // rayEnd is straight down MAX_FALL_HEIGHT
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
-        const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
+        const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
+        const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
@@ -550,7 +554,7 @@ void CharacterController::preSimulation() {
         bool rayHasHit = rayCallback.hasHit();
         if (rayHasHit) {
             _rayHitStartTime = now;
-            _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
+            _floorDistance = rayLength * rayCallback.m_closestHitFraction - (_radius + _halfHeight);
         } else if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
             rayHasHit = true;
         } else {
@@ -578,7 +582,7 @@ void CharacterController::preSimulation() {
                 _takeoffJumpButtonID = _jumpButtonDownCount;
                 _takeoffToInAirStartTime = now;
                 SET_STATE(State::Takeoff, "jump pressed");
-            } else if (rayHasHit && !_hasSupport && _floorDistance > JUMP_PROXIMITY_THRESHOLD) {
+            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
                 SET_STATE(State::InAir, "falling");
             }
             break;
@@ -592,7 +596,7 @@ void CharacterController::preSimulation() {
             }
             break;
         case State::InAir: {
-            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
+            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
             } else {
                 btVector3 desiredVelocity = _targetVelocity;
@@ -611,7 +615,7 @@ void CharacterController::preSimulation() {
         case State::Hover:
             if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
-            } else if (((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport) && !flyingFast) {
+            } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");
             }
             break;
@@ -643,4 +647,14 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
     avatarRigidBodyPosition = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
     avatarRigidBodyRotation = bulletToGLM(worldTrans.getRotation());
     return true;
+}
+
+void CharacterController::setFlyingAllowed(bool value) {
+    if (_flyingAllowed != value) {
+        _flyingAllowed = value;
+
+        if (!_flyingAllowed && _state == State::Hover) {
+            SET_STATE(State::InAir, "flying not allowed");
+        }
+    }
 }

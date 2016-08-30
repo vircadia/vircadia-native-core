@@ -16,7 +16,7 @@
 #include <QDir>
 #include <ByteCountCoding.h>
 
-#include <BoxEntityItem.h>
+#include <ShapeEntityItem.h>
 #include <EntityItemProperties.h>
 #include <Octree.h>
 #include <PathUtils.h>
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     QFile file(getTestResourceDir() + "packet.bin");
     if (!file.open(QIODevice::ReadOnly)) return -1;
     QByteArray packet = file.readAll();
-    EntityItemPointer item = BoxEntityItem::factory(EntityItemID(), EntityItemProperties());
+    EntityItemPointer item = ShapeEntityItem::boxFactory(EntityItemID(), EntityItemProperties());
     ReadBitstreamToTreeParams params;
     params.bitstreamVersion = 33;
 

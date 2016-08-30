@@ -23,5 +23,5 @@ using namespace VHACD;
 
 int main(int argc, char * argv[]) {
     VHACDUtilApp app(argc, argv);
-    return 0;
+    return app.getReturnCode();
 }

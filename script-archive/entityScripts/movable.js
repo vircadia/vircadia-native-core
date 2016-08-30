@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-(function(){ 
+(function(){
 
     this.entityID = null;
     this.properties = null;
@@ -30,13 +30,13 @@
         "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove2.wav",
         "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove3.wav"
     ];
-    
+
     this.turnSoundURLS = [
 
         "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove1.wav",
         "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove2.wav",
         "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove3.wav"
-    
+
         // TODO: determine if these or other turn sounds work better than move sounds.
         //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn1.wav",
         //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn2.wav",
@@ -50,7 +50,7 @@
     this.turnSound = null;
     this.moveInjector = null;
     this.turnInjector = null;
-    
+
     var debug = false;
     var displayRotateTargets = true; // change to false if you don't want the rotate targets
     var rotateOverlayTargetSize = 10000; // really big target
@@ -61,12 +61,12 @@
     var yawZero;
     var rotationNormal;
     var yawNormal;
-    var stopSoundDelay = 100; // number of msecs of not moving to have sound stop    
-    
+    var stopSoundDelay = 100; // number of msecs of not moving to have sound stop
+
     this.getRandomInt = function(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
-    }    
-    
+    }
+
     this.downloadSounds = function() {
         for (var i = 0; i < this.moveSoundURLS.length; i++) {
             this.moveSounds[i] = SoundCache.getSound(this.moveSoundURLS[i]);
@@ -95,7 +95,7 @@
             if (debug) {
                 print("playMoveSound() --- calling this.moveInjector = Audio.playSound(this.moveSound...)");
             }
-            
+
             if (!this.moveInjector) {
                 this.moveInjector = Audio.playSound(this.moveSound, { position: this.properties.position, loop: true, volume: 0.1 });
             } else {
@@ -148,7 +148,7 @@
         var upVector = { x: 0, y: 1, z: 0 };
         var intersection = this.rayPlaneIntersection(pickRay.origin, pickRay.direction,
                                                      this.properties.position, upVector);
-                                                     
+
         var newPosition = Vec3.sum(intersection, this.graboffset);
         Entities.editEntity(this.entityID, { position: newPosition });
     };
@@ -158,7 +158,7 @@
         var pickRay = Camera.computePickRay(mouseEvent.x, mouseEvent.y)
         var upVector = { x: 0, y: 1, z: 0 };
         var intersection = this.rayPlaneIntersection(pickRay.origin, pickRay.direction,
-                                                     this.properties.position, upVector);                                 
+                                                     this.properties.position, upVector);
         this.graboffset = Vec3.subtract(this.properties.position, intersection);
     };
 
@@ -183,18 +183,18 @@
             this.lastMovedPosition.y = mouseEvent.y;
         }
     }
-        
+
     this.move = function(mouseEvent) {
         this.updatePosition(mouseEvent);
-        if (this.moveInjector === null || !this.moveInjector.isPlaying) {
+        if (this.moveInjector === null || !this.moveInjector.playing) {
             this.playMoveSound();
         }
     };
-    
+
     this.release = function(mouseEvent) {
         this.updatePosition(mouseEvent);
     };
-    
+
     this.rotate = function(mouseEvent) {
         var pickRay = Camera.computePickRay(mouseEvent.x, mouseEvent.y)
         var result = Overlays.findRayIntersection(pickRay);
@@ -205,7 +205,7 @@
             var centerToZero = Vec3.subtract(center, zero);
             var centerToIntersect = Vec3.subtract(center, result.intersection);
             var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-            
+
             var distanceFromCenter = Vec3.distance(center, result.intersection);
             var snapToInner = false;
             // var innerRadius = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -213,10 +213,10 @@
                 angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
                 snapToInner = true;
             }
-            
+
             var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });
             Entities.editEntity(this.entityID, { rotation: Quat.multiply(yawChange, this.originalRotation) });
-            
+
 
             // update the rotation display accordingly...
             var startAtCurrent = 360-angleFromZero;
@@ -245,7 +245,7 @@
             }
         }
 
-        if (this.turnInjector === null || !this.turnInjector.isPlaying) {
+        if (this.turnInjector === null || !this.turnInjector.playing) {
             this.playTurnSound();
         }
     };
@@ -267,7 +267,7 @@
         this.rotateOverlayOuter = null;
         this.rotateOverlayCurrent = null;
     }
-    
+
     this.displayRotateOverlay = function(mouseEvent) {
         var yawOverlayAngles = { x: 90, y: 0, z: 0 };
         var yawOverlayRotation = Quat.fromVec3Degrees(yawOverlayAngles);
@@ -356,14 +356,14 @@
         var pickRay = Camera.computePickRay(mouseEvent.x, mouseEvent.y)
         var result = Overlays.findRayIntersection(pickRay);
         yawZero = result.intersection;
-                
+
     };
-    
+
     this.preload = function(entityID) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
         this.downloadSounds();
     };
-    
+
     this.clickDownOnEntity = function(entityID, mouseEvent) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
         this.grab(mouseEvent);
@@ -372,13 +372,13 @@
         var nowMSecs = nowDate.getTime();
         this.clickedAt = nowMSecs;
         this.firstHolding = true;
-        
+
         this.clicked.x = mouseEvent.x;
         this.clicked.y = mouseEvent.y;
         this.lastMovedPosition.x = mouseEvent.x;
         this.lastMovedPosition.y = mouseEvent.y;
         this.lastMovedMSecs = nowMSecs;
-        
+
         this.pickRandomSounds();
     };
 
@@ -391,7 +391,7 @@
             if (this.clicked.x == mouseEvent.x && this.clicked.y == mouseEvent.y) {
                 var d = new Date();
                 var now = d.getTime();
-        
+
                 if (now - this.clickedAt > 500) {
                     this.displayRotateOverlay(mouseEvent);
                     this.firstHolding = false;
@@ -402,13 +402,13 @@
                 this.firstHolding = false;
             }
         }
-        
+
         if (this.rotateMode) {
             this.rotate(mouseEvent);
         } else {
             this.move(mouseEvent);
         }
-        
+
         this.stopSoundIfNotMoving(mouseEvent);
     };
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
@@ -418,7 +418,7 @@
         } else {
             this.release(mouseEvent);
         }
-        
+
         if (this.rotateOverlayTarget != null) {
             this.cleanupRotateOverlay();
             this.rotateMode = false;

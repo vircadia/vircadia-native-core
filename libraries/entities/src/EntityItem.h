@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QtGui/QWindow>
+
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -26,6 +28,7 @@
 #include <Transform.h>
 #include <Sound.h>
 #include <SpatiallyNestable.h>
+#include <Interpolate.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -41,6 +44,7 @@ class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
 class EntityItemProperties;
 class EntityTree;
+class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
@@ -52,7 +56,7 @@ namespace render {
 }
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
-#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
+#define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
 
 #define debugTime(T, N) qPrintable(QString("%1 [ %2 ago]").arg(T, 16, 10).arg(formatUsecTime(N - T), 15))
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
@@ -283,7 +287,7 @@ public:
 
     void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
 
-    bool getDynamic() const { return _dynamic; }
+    bool getDynamic() const { return SHAPE_TYPE_STATIC_MESH == getShapeType() ? false : _dynamic; }
     void setDynamic(bool value) { _dynamic = value; }
 
     virtual bool shouldBePhysical() const { return false; }
@@ -321,9 +325,7 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
-    // these are only needed because the names don't match
-    virtual const glm::quat getRotation() const { return getOrientation(); }
-    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
+    virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
@@ -348,7 +350,7 @@ public:
     void updateDynamic(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
-    virtual void updateShapeType(ShapeType type) { /* do nothing */ }
+    virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
@@ -372,6 +374,7 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
+    void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
@@ -422,11 +425,26 @@ public:
     /// entity to definitively state if the preload signal should be sent.
     ///
     /// We only want to preload if:
-    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    there is some script, and either the script value or the scriptTimestamp
     ///    value have changed since our last preload
-    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+    bool shouldPreloadScript() const { return !_script.isEmpty() &&
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
+    bool getClientOnly() const { return _clientOnly; }
+    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    // if this entity is client-only, which avatar is it associated with?
+    QUuid getOwningAvatarID() const { return _owningAvatarID; }
+    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+
+    static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
+    static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
+    virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
+
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+    virtual bool wantsKeyboardFocus() const { return false; }
+    virtual void setProxyWindow(QWindow* proxyWindow) {}
+    virtual QObject* getEventHandler() { return nullptr; }
 
 protected:
 
@@ -539,6 +557,27 @@ protected:
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
     QUuid _sourceUUID; /// the server node UUID we came from
+
+    bool _clientOnly { false };
+    QUuid _owningAvatarID;
+
+    // physics related changes from the network to suppress any duplicates and make
+    // sure redundant applications are idempotent
+    glm::vec3 _lastUpdatedPositionValue;
+    glm::quat  _lastUpdatedRotationValue;
+    glm::vec3 _lastUpdatedVelocityValue;
+    glm::vec3 _lastUpdatedAngularVelocityValue;
+    glm::vec3 _lastUpdatedAccelerationValue;
+
+    quint64 _lastUpdatedPositionTimestamp { 0 };
+    quint64 _lastUpdatedRotationTimestamp { 0 };
+    quint64 _lastUpdatedVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAccelerationTimestamp { 0 };
+
+    quint64 _fadeStartTime { usecTimestampNow() };
+    static std::function<bool()> _entitiesShouldFadeFunction;
+    bool _isFading { _entitiesShouldFadeFunction() };
 };
 
 #endif // hifi_EntityItem_h

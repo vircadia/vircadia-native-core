@@ -34,7 +34,7 @@
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
 
-const char SOLO_NODE_TYPES[2] = {
+const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
 };
@@ -52,7 +52,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
-    _thisNodeCanRez(true)
+    _permissions(NodePermissions())
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -130,17 +130,30 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
-void LimitedNodeList::setIsAllowedEditor(bool isAllowedEditor) {
-    if (_isAllowedEditor != isAllowedEditor) {
-        _isAllowedEditor = isAllowedEditor;
-        emit isAllowedEditorChanged(isAllowedEditor);
-    }
-}
+void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
+    NodePermissions originalPermissions = _permissions;
 
-void LimitedNodeList::setThisNodeCanRez(bool canRez) {
-    if (_thisNodeCanRez != canRez) {
-        _thisNodeCanRez = canRez;
-        emit canRezChanged(canRez);
+    _permissions = newPermissions;
+
+    if (originalPermissions.can(NodePermissions::Permission::canAdjustLocks) !=
+        newPermissions.can(NodePermissions::Permission::canAdjustLocks)) {
+        emit isAllowedEditorChanged(_permissions.can(NodePermissions::Permission::canAdjustLocks));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canRezPermanentEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezPermanentEntities)) {
+        emit canRezChanged(_permissions.can(NodePermissions::Permission::canRezPermanentEntities));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canRezTemporaryEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezTemporaryEntities)) {
+        emit canRezTmpChanged(_permissions.can(NodePermissions::Permission::canRezTemporaryEntities));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canWriteToAssetServer) !=
+        newPermissions.can(NodePermissions::Permission::canWriteToAssetServer)) {
+        emit canWriteAssetsChanged(_permissions.can(NodePermissions::Permission::canWriteToAssetServer));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canKick) !=
+        newPermissions.can(NodePermissions::Permission::canKick)) {
+        emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
     }
 }
 
@@ -162,7 +175,11 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
-    return packetVersionMatch(packet) && packetSourceAndHashMatch(packet);
+    // We track bandwidth when doing packet verification to avoid needing to do a node lookup
+    // later when we already do it in packetSourceAndHashMatchAndTrackBandwidth. A node lookup
+    // incurs a lock, so it is ideal to avoid needing to do it 2+ times for each packet
+    // received.
+    return packetVersionMatch(packet) && packetSourceAndHashMatchAndTrackBandwidth(packet);
 }
 
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
@@ -176,9 +193,10 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
 
         bool hasBeenOutput = false;
         QString senderString;
+        const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
+        QUuid sourceID;
 
         if (NON_SOURCED_PACKETS.contains(headerType)) {
-            const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
             hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, headerType);
 
             if (!hasBeenOutput) {
@@ -186,7 +204,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
                 senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
             }
         } else {
-            QUuid sourceID = NLPacket::sourceIDInHeader(packet);
+            sourceID = NLPacket::sourceIDInHeader(packet);
 
             hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, headerType);
 
@@ -201,7 +219,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
                 << senderString << "sent" << qPrintable(QString::number(headerVersion)) << "but"
                 << qPrintable(QString::number(versionForPacketType(headerType))) << "expected.";
 
-            emit packetVersionMismatch(headerType);
+            emit packetVersionMismatch(headerType, senderSockAddr, sourceID);
         }
 
         return false;
@@ -210,11 +228,12 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
     }
 }
 
-bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
+bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet) {
 
     PacketType headerType = NLPacket::typeInHeader(packet);
 
     if (NON_SOURCED_PACKETS.contains(headerType)) {
+        emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
         return true;
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
@@ -245,6 +264,8 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             // No matter if this packet is handled or not, we update the timestamp for the last time we heard
             // from this sending node
             matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+
+            emit dataReceived(matchingNode->getType(), packet.getPayloadSize());
 
             return true;
 
@@ -419,12 +440,8 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QMutexLocker locker(&sendingNode->getMutex());
 
-    NodeData* linkedData = sendingNode->getLinkedData();
-    if (!linkedData && linkedDataCreateCallback) {
-        linkedDataCreateCallback(sendingNode.data());
-    }
+    NodeData* linkedData = getOrCreateLinkedData(sendingNode);
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
@@ -432,6 +449,17 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage
     }
 
     return 0;
+}
+
+NodeData* LimitedNodeList::getOrCreateLinkedData(SharedNodePointer node) {
+    QMutexLocker locker(&node->getMutex());
+
+    NodeData* linkedData = node->getLinkedData();
+    if (!linkedData && linkedDataCreateCallback) {
+        linkedDataCreateCallback(node.data());
+    }
+
+    return node->getLinkedData();
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
@@ -514,23 +542,23 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   bool isAllowedEditor, bool canRez,
+                                                   const NodePermissions& permissions,
                                                    const QUuid& connectionSecret) {
+    QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
     if (it != _nodeHash.end()) {
         SharedNodePointer& matchingNode = it->second;
-
+        
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
-        matchingNode->setIsAllowedEditor(isAllowedEditor);
-        matchingNode->setCanRez(canRez);
+        matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, isAllowedEditor, canRez, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret, this);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
@@ -538,7 +566,33 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
 
+        // if this is a solo node type, we assume that the DS has replaced its assignment and we should kill the previous node
+        if (SOLO_NODE_TYPES.count(newNode->getType())) {
+            // while we still have the read lock, see if there is a previous solo node we'll need to remove
+            auto previousSoloIt = std::find_if(_nodeHash.cbegin(), _nodeHash.cend(), [newNode](const UUIDNodePair& nodePair){
+                return nodePair.second->getType() == newNode->getType();
+            });
+
+            if (previousSoloIt != _nodeHash.cend()) {
+                // we have a previous solo node, switch to a write lock so we can remove it
+                readLocker.unlock();
+
+                QWriteLocker writeLocker(&_nodeMutex);
+
+                auto oldSoloNode = previousSoloIt->second;
+
+                _nodeHash.unsafe_erase(previousSoloIt);
+                handleNodeKill(oldSoloNode);
+
+                // convert the current lock back to a read lock for insertion of new node
+                writeLocker.unlock();
+                readLocker.relock();
+            }
+        }
+
+        // insert the new node and release our read lock
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+        readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;
 

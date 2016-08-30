@@ -1,11 +1,30 @@
 {
     "name": "Hydra to Standard",
     "channels": [
-        { "from": "Hydra.LY", "filters": "invert", "to": "Standard.LY" }, 
-        { "from": "Hydra.LX", "to": "Standard.LX" },
-        { "from": "Hydra.LT", "to": "Standard.LT" }, 
-        { "from": "Hydra.RY", "filters": "invert", "to": "Standard.RY" }, 
-        { "from": "Hydra.RX", "to": "Standard.RX" },
+        { "from": "Hydra.LY", "to": "Standard.LY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "Hydra.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
+        { "from": "Hydra.LT", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
+        { "from": "Hydra.LT", "to": "Standard.LT" },
+
+        { "from": "Hydra.RY", "to": "Standard.RY",
+            "filters": [
+                { "type": "deadZone", "min": 0.05 },
+                "invert"
+            ]
+        },
+        { "from": "Hydra.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
+        { "from": "Hydra.RT", "to": "Standard.RTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
         { "from": "Hydra.RT", "to": "Standard.RT" }, 
 
         { "from": "Hydra.LB", "to": "Standard.LB" }, 
@@ -16,9 +35,10 @@
         { "from": "Hydra.L0", "to": "Standard.Back" },
         { "from": "Hydra.R0", "to": "Standard.Start" },
 
-        { "from": [ "Hydra.L1", "Hydra.L2", "Hydra.L3", "Hydra.L4" ], "to": "Standard.LeftPrimaryThumb" },
-        { "from": [ "Hydra.R1", "Hydra.R2", "Hydra.R3", "Hydra.R4" ], "to": "Standard.RightPrimaryThumb" },
-
+        { "from": [ "Hydra.L1", "Hydra.L3" ], "to": "Standard.LeftPrimaryThumb" },
+        { "from": [ "Hydra.R1", "Hydra.R3" ], "to": "Standard.RightPrimaryThumb" },
+        { "from": [ "Hydra.R2", "Hydra.R4" ], "to": "Standard.RightSecondaryThumb" },
+        { "from": [ "Hydra.L2", "Hydra.L4" ], "to": "Standard.LeftSecondaryThumb" },
         { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
         { "from": "Hydra.RightHand", "to": "Standard.RightHand" }
   ]

@@ -22,9 +22,9 @@ public:
 
     DoubleHashKey() : _hash(0), _hash2(0) { }
 
-    DoubleHashKey(uint32_t value, uint32_t primeIndex = 0) : 
-        _hash(hashFunction(value, primeIndex)), 
-        _hash2(hashFunction2(value)) { 
+    DoubleHashKey(uint32_t value, uint32_t primeIndex = 0) :
+        _hash(hashFunction(value, primeIndex)),
+        _hash2(hashFunction2(value)) {
     }
 
     void clear() { _hash = 0; _hash2 = 0; }

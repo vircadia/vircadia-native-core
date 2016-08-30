@@ -16,12 +16,13 @@
 
 #include <GLMHelpers.h>
 
+#include "Forward.h"
 #include "Batch.h"
-
 #include "Resource.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Framebuffer.h"
+#include "Frame.h"
 
 class QImage;
 
@@ -46,56 +47,18 @@ public:
     ContextStats(const ContextStats& stats) = default;
 };
 
-struct StereoState {
-    bool _enable{ false };
-    bool _skybox{ false };
-    // 0 for left eye, 1 for right eye
-    uint8_t _pass{ 0 };
-    mat4 _eyeViews[2];
-    mat4 _eyeProjections[2];
-};
-
 class Backend {
 public:
     virtual~ Backend() {};
 
-    virtual void render(Batch& batch) = 0;
-    virtual void enableStereo(bool enable) {
-        _stereo._enable = enable;
-    }
+    void setStereoState(const StereoState& stereo) { _stereo = stereo; }
 
-    virtual bool isStereo() {
-        return _stereo._enable;
-    }
-
-    void setStereoProjections(const mat4 eyeProjections[2]) {
-        for (int i = 0; i < 2; ++i) {
-            _stereo._eyeProjections[i] = eyeProjections[i];
-        }
-    }
-
-    void setStereoViews(const mat4 views[2]) {
-        for (int i = 0; i < 2; ++i) {
-            _stereo._eyeViews[i] = views[i];
-        }
-    }
-
-    void getStereoProjections(mat4* eyeProjections) const {
-        for (int i = 0; i < 2; ++i) {
-            eyeProjections[i] = _stereo._eyeProjections[i];
-        }
-    }
-
-    void getStereoViews(mat4* eyeViews) const {
-        for (int i = 0; i < 2; ++i) {
-            eyeViews[i] = _stereo._eyeViews[i];
-        }
-    }
-
+    virtual void render(const Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in TransformCamera.slh
+    // UBO class... layout MUST match the layout in Transform.slh
     class TransformCamera {
     public:
         mutable Mat4 _view;
@@ -104,6 +67,7 @@ public:
         Mat4 _projection;
         mutable Mat4 _projectionInverse;
         Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+        mutable Vec4 _stereoInfo;
 
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
         TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;
@@ -136,14 +100,31 @@ public:
     static void decrementTextureGPUTransferCount();
 
 protected:
-    StereoState  _stereo;
+    virtual bool isStereo() {
+        return _stereo._enable;
+    }
+
+    void getStereoProjections(mat4* eyeProjections) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeProjections[i] = _stereo._eyeProjections[i];
+        }
+    }
+
+    void getStereoViews(mat4* eyeViews) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeViews[i] = _stereo._eyeViews[i];
+        }
+    }
+
+    friend class Context;
     ContextStats _stats;
+    StereoState _stereo;
 };
 
 class Context {
 public:
     using Size = Resource::Size;
-    typedef Backend* (*CreateBackend)();
+    typedef BackendPointer (*CreateBackend)();
     typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
 
 
@@ -160,7 +141,46 @@ public:
     Context();
     ~Context();
 
-    void render(Batch& batch);
+    void beginFrame(const glm::mat4& renderPose = glm::mat4());
+    void appendFrameBatch(Batch& batch);
+    FramePointer endFrame();
+
+    // MUST only be called on the rendering thread
+    // 
+    // Handle any pending operations to clean up (recycle / deallocate) resources no longer in use
+    void recycle() const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Execute a batch immediately, rather than as part of a frame
+    void executeBatch(Batch& batch) const;
+
+    // MUST only be called on the rendering thread
+    // 
+    // Executes a frame, applying any updates contained in the frame batches to the rendering
+    // thread shadow copies.  Either executeFrame or consumeFrameUpdates MUST be called on every frame
+    // generated, IN THE ORDER they were generated.
+    void executeFrame(const FramePointer& frame) const;
+
+    // MUST only be called on the rendering thread. 
+    //
+    // Consuming a frame applies any updates queued from the recording thread and applies them to the 
+    // shadow copy used by the rendering thread.  
+    //
+    // EVERY frame generated MUST be consumed, regardless of whether the frame is actually executed,
+    // or the buffer shadow copies can become unsynced from the recording thread copies.
+    // 
+    // Consuming a frame is idempotent, as the frame encapsulates the updates and clears them out as
+    // it applies them, so calling it more than once on a given frame will have no effect after the 
+    // first time
+    //
+    //
+    // This is automatically called by executeFrame, so you only need to call it if you 
+    // have frames you aren't going to otherwise execute, for instance when a display plugin is
+    // being disabled, or in the null display plugin where no rendering actually occurs
+    void consumeFrameUpdates(const FramePointer& frame) const;
+
+    const BackendPointer& getBackend() const { return _backend; }
 
     void enableStereo(bool enable = true);
     bool isStereo();
@@ -168,7 +188,6 @@ public:
     void setStereoViews(const mat4 eyeViews[2]);
     void getStereoProjections(mat4* eyeProjections) const;
     void getStereoViews(mat4* eyeViews) const;
-    void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
@@ -189,7 +208,10 @@ public:
 protected:
     Context(const Context& context);
 
-    std::unique_ptr<Backend> _backend;
+    std::shared_ptr<Backend> _backend;
+    bool _frameActive { false };
+    FramePointer _currentFrame;
+    StereoState  _stereo;
 
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
@@ -231,11 +253,9 @@ typedef std::shared_ptr<Context> ContextPointer;
 
 template<typename F>
 void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
-    static gpu::Batch::CacheState cacheState;
-    gpu::Batch batch(cacheState);
+    gpu::Batch batch;
     f(batch);
-    context->render(batch);
-    cacheState = batch.getCacheState();
+    context->appendFrameBatch(batch);
 }
 
 };

@@ -29,6 +29,7 @@
 #include <RegisteredMetaTypes.h>
 #include <Rig.h>
 #include <SettingHandle.h>
+#include <UsersScriptingInterface.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -69,10 +70,15 @@ AvatarManager::AvatarManager(QObject* parent) :
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+
+    // when we hear that the user has ignored an avatar by session UUID
+    // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
+    connect(nodeList.data(), &NodeList::ignoredNode, this, &AvatarManager::removeAvatar);
 }
 
 AvatarManager::~AvatarManager() {
@@ -85,7 +91,8 @@ void AvatarManager::init() {
         _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
     }
 
-    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged,
+            this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -322,7 +329,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 const auto characterController = myAvatar->getCharacterController();
                 const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
                 const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
-                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
+                const float MIN_AVATAR_COLLISION_ACCELERATION = 2.4f; // walking speed
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
                 if (!isSound) {
@@ -330,14 +337,24 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 }
                 // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
                 const float energy = velocityChange * velocityChange;
-                const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+                const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
                 const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
 
                 // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+
+                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                    return !injector || injector->isFinished();
+                });
+
+                static const int MAX_INJECTOR_COUNT = 3;
+                if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
+                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
+                                                             myAvatar->getPosition());
+                    _collisionInjectors.emplace_back(injector);
+                }
                 myAvatar->collisionWithEntity(collision);
                 return;
             }
@@ -350,7 +367,7 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
 
     ShapeInfo shapeInfo;
     avatar->computeShapeInfo(shapeInfo);
-    btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
     if (shape) {
         // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
@@ -387,4 +404,77 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
     }
 
     return findAvatar(sessionID);
+}
+
+RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
+                                                                 const QScriptValue& avatarIdsToInclude,
+                                                                 const QScriptValue& avatarIdsToDiscard) {
+    RayToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
+                                  Q_ARG(const PickRay&, ray),
+                                  Q_ARG(const QScriptValue&, avatarIdsToInclude),
+                                  Q_ARG(const QScriptValue&, avatarIdsToDiscard));
+        return result;
+    }
+
+    QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
+    QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
+
+    glm::vec3 normDirection = glm::normalize(ray.direction);
+
+    for (auto avatarData : _avatarHash) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
+            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
+            continue;
+        }
+
+        float distance;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+
+        // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
+        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
+        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        // if (!avatarBounds.findRayIntersection(ray.origin, normDirection, distance, face, surfaceNormal)) {
+        //     // ray doesn't intersect avatar's bounding-box
+        //     continue;
+        // }
+
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
+        if (!intersects) {
+            // ray doesn't intersect avatar's capsule
+            continue;
+        }
+
+        QString extraInfo;
+        intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
+                                                                      distance, face, surfaceNormal, extraInfo, true);
+
+        if (intersects && (!result.intersects || distance < result.distance)) {
+            result.intersects = true;
+            result.avatarID = avatar->getID();
+            result.distance = distance;
+        }
+    }
+
+    if (result.intersects) {
+        result.intersection = ray.origin + normDirection * result.distance;
+    }
+
+    return result;
 }

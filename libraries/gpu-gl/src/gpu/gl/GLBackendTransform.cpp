@@ -14,21 +14,22 @@ using namespace gpu;
 using namespace gpu::gl;
 
 // Transform Stage
-void GLBackend::do_setModelTransform(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
 }
 
-void GLBackend::do_setViewTransform(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
     _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
 }
 
-void GLBackend::do_setProjectionTransform(Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._projection, batch.editData(batch._params[paramOffset]._uint), sizeof(Mat4));
+void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
+    memcpy(&_transform._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
 }
 
-void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
+    memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
     if (!_inRenderTransferPass && !isStereo()) {
         ivec4& vp = _transform._viewport;
@@ -39,7 +40,7 @@ void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
     _transform._invalidViewport = true;
 }
 
-void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
+void GLBackend::do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) {
 
     Vec2 depthRange(batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
 
@@ -82,6 +83,16 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     }
 
     if (_invalidView) {
+        // Apply the correction
+        if (_viewIsCamera && _correction.correction != glm::mat4()) {
+            // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
+            Transform result;
+            _view.mult(result, _view, _correction.correction);
+            if (_skybox) {
+                result.setTranslation(vec3());
+            }
+            _view = result;
+        }
         // This is when the _view matrix gets assigned
         _view.getInverseMatrix(_camera._view);
     }

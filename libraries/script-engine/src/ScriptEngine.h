@@ -30,7 +30,7 @@
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
 
-#include "MouseEvent.h"
+#include "PointerEvent.h"
 #include "ArrayBufferClass.h"
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
@@ -84,7 +84,7 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
-    Q_INVOKABLE void stop();
+    Q_INVOKABLE void stop(bool marshal = false);
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
     void waitTillDoneRunning();
@@ -138,14 +138,18 @@ public:
     static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
+                                            const QStringList& params = QStringList()) override;
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
+
+    // this is used by code in ScriptEngines.cpp during the "reload all" operation
+    bool isStopping() const { return _isStopping; }
 
     bool isDebuggable() const { return _debuggable; }
 
@@ -154,8 +158,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - These are the callback implementations for ScriptUser the get called by ScriptCache when the contents
     // of a script are available.
-    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
-    virtual void errorInLoadingScript(const QUrl& url);
+    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents) override;
+    virtual void errorInLoadingScript(const QUrl& url) override;
 
     // These are currently used by Application to track if a script is user loaded or not. Consider finding a solution
     // inside of Application so that the ScriptEngine class is not polluted by this notion
@@ -164,6 +168,8 @@ public:
 
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+
+    void setEmitScriptUpdatesFunction(std::function<bool()> func) { _emitScriptUpdates = func; }
 
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
@@ -189,6 +195,7 @@ protected:
     QString _parentURL;
     std::atomic<bool> _isFinished { false };
     std::atomic<bool> _isRunning { false };
+    std::atomic<bool> _isStopping { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
@@ -232,6 +239,9 @@ protected:
     QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+
+    std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
+
 };
 
 #endif // hifi_ScriptEngine_h

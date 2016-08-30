@@ -8,7 +8,7 @@ import "."
 import ".."
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
-import "../../../windows-uit"
+import "../../../windows"
 
 Item {
     height: column.height + 2 * 8
@@ -24,6 +24,7 @@ Item {
     Rectangle { color: hifi.colors.baseGray; anchors.fill: parent; radius: 4 }
 
     Component.onCompleted: {
+        jointChooser.model = MyAvatar.jointNames;
         completed = true;
     }
 
@@ -82,7 +83,6 @@ Item {
             HifiControls.ComboBox {
                 id: jointChooser;
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-                model: MyAvatar.jointNames
                 colorScheme: hifi.colorSchemes.dark
                 currentIndex: attachment ? model.indexOf(attachment.jointName) : -1
                 onCurrentIndexChanged: {

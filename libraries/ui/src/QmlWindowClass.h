@@ -24,7 +24,7 @@ class QmlWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition NOTIFY positionChanged)
     Q_PROPERTY(glm::vec2 size READ getSize WRITE setSize NOTIFY sizeChanged)
-    Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibilityChanged)
+    Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged)
 
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
@@ -52,7 +52,7 @@ public slots:
     void sendToQml(const QVariant& message);
 
 signals:
-    void visibilityChanged(bool visible);  // Tool window
+    void visibleChanged();
     void positionChanged();
     void sizeChanged();
     void moved(glm::vec2 position);
@@ -62,6 +62,7 @@ signals:
     void fromQml(const QVariant& message);
 
 protected slots:
+    void hasMoved(QVector2D);
     void hasClosed();
     void qmlToScript(const QVariant& message);
 

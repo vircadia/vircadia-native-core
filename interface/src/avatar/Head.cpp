@@ -54,8 +54,6 @@ Head::Head(Avatar* owningAvatar) :
     _deltaPitch(0.0f),
     _deltaYaw(0.0f),
     _deltaRoll(0.0f),
-    _deltaLeanSideways(0.0f),
-    _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
     _lookingAtMeStarted(0),
@@ -70,7 +68,6 @@ void Head::init() {
 
 void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
-    _leanForward = _leanSideways = 0.0f;
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
@@ -118,13 +115,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             auto eyeTracker = DependencyManager::get<EyeTracker>();
             _isEyeTrackerConnected = eyeTracker->isTracking();
         }
-
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
@@ -301,17 +291,13 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
     }
 }
 
-void Head::relaxLean(float deltaTime) {
+void Head::relax(float deltaTime) {
     // restore rotation, lean to neutral positions
     const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
     float relaxationFactor = 1.0f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.0f);
     _deltaYaw *= relaxationFactor;
     _deltaPitch *= relaxationFactor;
     _deltaRoll *= relaxationFactor;
-    _leanSideways *= relaxationFactor;
-    _leanForward *= relaxationFactor;
-    _deltaLeanSideways *= relaxationFactor;
-    _deltaLeanForward *= relaxationFactor;
 }
 
 void Head::setScale (float scale) {
@@ -418,9 +404,4 @@ float Head::getFinalPitch() const {
 
 float Head::getFinalRoll() const {
     return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
-}
-
-void Head::addLeanDeltas(float sideways, float forward) {
-    _deltaLeanSideways += sideways;
-    _deltaLeanForward += forward;
 }

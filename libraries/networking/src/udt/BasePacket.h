@@ -70,9 +70,9 @@ public:
     
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
-    virtual bool isSequential() const  { return false; }
-    virtual bool reset();
-    virtual qint64 size() const { return _payloadCapacity; }
+    virtual bool isSequential() const override { return false; }
+    virtual bool reset() override;
+    virtual qint64 size() const override { return _payloadCapacity; }
 
     using QIODevice::read; // Bring QIODevice::read methods to scope, otherwise they are hidden by folling method
     QByteArray read(qint64 maxSize);
@@ -94,8 +94,8 @@ protected:
     BasePacket& operator=(BasePacket&& other);
     
     // QIODevice virtual functions
-    virtual qint64 writeData(const char* data, qint64 maxSize);
-    virtual qint64 readData(char* data, qint64 maxSize);
+    virtual qint64 writeData(const char* data, qint64 maxSize) override;
+    virtual qint64 readData(char* data, qint64 maxSize) override;
     
     void adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize = false);
     

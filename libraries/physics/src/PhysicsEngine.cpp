@@ -76,7 +76,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {
             if (!body) {
-                btCollisionShape* shape = motionState->getShape();
+                btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 motionState->setRigidBody(body);
@@ -88,11 +88,12 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             motionState->updateBodyVelocities();
             motionState->updateLastKinematicStep();
             body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
+            motionState->clearInternalKinematicChanges();
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
-            btCollisionShape* shape = motionState->getShape();
+            btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
@@ -119,7 +120,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         default: {
             if (!body) {
                 assert(motionState->getShape());
-                body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
+                body = new btRigidBody(mass, motionState, const_cast<btCollisionShape*>(motionState->getShape()), inertia);
                 motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);

@@ -31,6 +31,7 @@
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <TextureCache.h>
+#include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
 
 #include "Application.h"
@@ -58,6 +59,8 @@ const float DISPLAYNAME_ALPHA = 1.0f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
+const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534;
+
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
         return ItemKey::Builder::opaqueShape();
@@ -83,7 +86,6 @@ Avatar::Avatar(RigPointer rig) :
     _acceleration(0.0f),
     _lastAngularVelocity(0.0f),
     _lastOrientation(),
-    _leanScale(0.5f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
@@ -98,10 +100,23 @@ Avatar::Avatar(RigPointer rig) :
     _headData = static_cast<HeadData*>(new Head(this));
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
 }
 
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
+
+    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+
     if (_motionState) {
         delete _motionState;
         _motionState = nullptr;
@@ -157,6 +172,92 @@ void Avatar::animateScaleChanges(float deltaTime) {
     }
 }
 
+void Avatar::updateAvatarEntities() {
+    // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
+    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
+    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
+    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
+    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
+    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    if (!_avatarEntityDataChanged) {
+        return;
+    }
+
+    if (getID() == QUuid()) {
+        return; // wait until MyAvatar gets an ID before doing this.
+    }
+
+    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return;
+    }
+
+    bool success = true;
+    QScriptEngine scriptEngine;
+    entityTree->withWriteLock([&] {
+        AvatarEntityMap avatarEntities = getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
+            // and either add or update the entity.
+            QByteArray jsonByteArray = avatarEntities.value(entityID);
+            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(jsonByteArray);
+            if (!jsonProperties.isObject()) {
+                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(jsonByteArray.toHex());
+                continue;
+            }
+
+            QVariant variantProperties = jsonProperties.toVariant();
+            QVariantMap asMap = variantProperties.toMap();
+            QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
+            EntityItemProperties properties;
+            EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
+            properties.setClientOnly(true);
+            properties.setOwningAvatarID(getID());
+
+            // there's no entity-server to tell us we're the simulation owner, so always set the
+            // simulationOwner to the owningAvatarID and a high priority.
+            properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
+
+            if (properties.getParentID() == AVATAR_SELF_ID) {
+                properties.setParentID(getID());
+            }
+
+            EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+
+            if (entity) {
+                if (entityTree->updateEntity(entityID, properties)) {
+                    entity->updateLastEditedFromRemote();
+                } else {
+                    success = false;
+                }
+            } else {
+                entity = entityTree->addEntity(entityID, properties);
+                if (!entity) {
+                    success = false;
+                }
+            }
+        }
+
+        AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+        _avatarEntitiesLock.withReadLock([&] {
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
+            }
+        });
+    });
+
+    if (success) {
+        setAvatarEntityDataChanged(false);
+    }
+}
+
+
+
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
@@ -200,12 +301,18 @@ void Avatar::simulate(float deltaTime) {
         {
             PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = getPosition();
-            _skeletonModel->getHeadPosition(headPosition);
+            if (!_skeletonModel->getHeadPosition(headPosition)) {
+                headPosition = getPosition();
+            }
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
             head->simulate(deltaTime, false, !_shouldAnimate);
         }
+    } else {
+        // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+        getHead()->setPosition(getPosition());
+        _skeletonModel->simulate(deltaTime, false);
     }
 
     // update animation for display name fade in/out
@@ -229,6 +336,7 @@ void Avatar::simulate(float deltaTime) {
 
     simulateAttachments(deltaTime);
     updatePalms();
+    updateAvatarEntities();
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -543,10 +651,6 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::updateJointMappings() {
-    // no-op; joint mappings come from skeleton model
-}
-
 float Avatar::getBoundingRadius() const {
     return getBounds().getLargestDimension() / 2.0f;
 }
@@ -678,7 +782,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
 
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, true, true, true);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                 bevelDistance, backgroundColor);
         }
@@ -749,15 +853,33 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
-    glm::quat rotation;
-    _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
-    return Quaternions::Y_180 * rotation;
+    if (index == SENSOR_TO_WORLD_MATRIX_INDEX) {
+        glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+        bool success;
+        Transform avatarTransform;
+        Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+        glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+        return glmExtractRotation(invAvatarMat * sensorToWorldMatrix);
+    } else {
+        glm::quat rotation;
+        _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
+        return Quaternions::Y_180 * rotation;
+    }
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    glm::vec3 translation;
-    _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
-    return Quaternions::Y_180 * translation;
+    if (index == SENSOR_TO_WORLD_MATRIX_INDEX) {
+        glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+        bool success;
+        Transform avatarTransform;
+        Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+        glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+        return extractTranslation(invAvatarMat * sensorToWorldMatrix);
+    } else {
+        glm::vec3 translation;
+        _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
+        return Quaternions::Y_180 * translation;
+    }
 }
 
 int Avatar::getJointIndex(const QString& name) const {
@@ -817,6 +939,17 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
 }
+
+void Avatar::setModelURLFinished(bool success) {
+    if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
+        // we don't redo this every time we receive an identity packet from the avatar with the bad url.
+        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
+                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+    }
+}
+
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {
@@ -987,6 +1120,15 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     shapeInfo.setOffset(uniformScale * _skeletonModel->getBoundingCapsuleOffset());
 }
 
+void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
+    start = getPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    end = getPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    radius = halfExtents.x;
+}
+
 void Avatar::setMotionState(AvatarMotionState* motionState) {
     _motionState = motionState;
 }
@@ -1088,7 +1230,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qDebug() << "Avatar::setParentID failed to reset avatar's location.";
+            qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
         }
     }
 }
@@ -1103,7 +1245,7 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qDebug() << "Avatar::setParentJointIndex failed to reset avatar's location.";
+            qCDebug(interfaceapp) << "Avatar::setParentJointIndex failed to reset avatar's location.";
         }
     }
 }

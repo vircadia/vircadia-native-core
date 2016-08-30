@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <iterator>
 #include <memory>
+#include <set>
 #include <unordered_map>
 
 #ifndef _WIN32
@@ -46,7 +47,7 @@
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
-extern const char SOLO_NODE_TYPES[2];
+extern const std::set<NodeType_t> SOLO_NODE_TYPES;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
@@ -104,12 +105,13 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    bool isAllowedEditor() const { return _isAllowedEditor; }
-    void setIsAllowedEditor(bool isAllowedEditor);
+    void setPermissions(const NodePermissions& newPermissions);
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getThisNodeCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getThisNodeCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
+    bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
-    bool getThisNodeCanRez() const { return _thisNodeCanRez; }
-    void setThisNodeCanRez(bool canRez);
-    
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
 
@@ -131,13 +133,13 @@ public:
 
     std::function<void(Node*)> linkedDataCreateCallback;
 
-    size_t size() const { return _nodeHash.size(); }
+    size_t size() const { QReadLocker readLock(&_nodeMutex); return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool isAllowedEditor = false, bool canRez = false,
+                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
                                       const QUuid& connectionSecret = QUuid());
 
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
@@ -149,6 +151,7 @@ public:
     void processKillNode(ReceivedMessage& message);
 
     int updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer matchingNode);
+    NodeData* getOrCreateLinkedData(SharedNodePointer node);
 
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);
@@ -221,6 +224,10 @@ public:
 
     void setConnectionMaxBandwidth(int maxBandwidth) { _nodeSocket.setConnectionMaxBandwidth(maxBandwidth); }
 
+    void setPacketFilterOperator(udt::PacketFilterOperator filterOperator) { _nodeSocket.setPacketFilterOperator(filterOperator); }
+    bool packetVersionMatch(const udt::Packet& packet);
+    bool isPacketVerified(const udt::Packet& packet);
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -236,7 +243,10 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType type);
+    void dataReceived(quint8 channelType, int bytes);
+
+    // QUuid might be zero for non-sourced packet types.
+    void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -248,6 +258,9 @@ signals:
 
     void isAllowedEditorChanged(bool isAllowedEditor);
     void canRezChanged(bool canRez);
+    void canRezTmpChanged(bool canRezTmp);
+    void canWriteAssetsChanged(bool canWriteAssets);
+    void canKickChanged(bool canKick);
 
 protected slots:
     void connectedForLocalSocketTest();
@@ -267,9 +280,7 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
     
-    bool isPacketVerified(const udt::Packet& packet);
-    bool packetVersionMatch(const udt::Packet& packet);
-    bool packetSourceAndHashMatch(const udt::Packet& packet);
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);
@@ -281,7 +292,7 @@ protected:
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
-    QReadWriteLock _nodeMutex;
+    mutable QReadWriteLock _nodeMutex;
     udt::Socket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
@@ -296,8 +307,7 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
-    bool _isAllowedEditor { false };
-    bool _thisNodeCanRez;
+    NodePermissions _permissions;
 
     QPointer<QTimer> _initialSTUNTimer;
 

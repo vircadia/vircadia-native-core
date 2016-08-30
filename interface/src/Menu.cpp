@@ -34,7 +34,6 @@
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -135,10 +134,10 @@ Menu::Menu() {
     // Edit > My Asset Server
     auto assetServerAction = addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer,
                                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                                           qApp, SLOT(toggleAssetServerWidget()));
+                                                           qApp, SLOT(showAssetServerWidget()));
     auto nodeList = DependencyManager::get<NodeList>();
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, assetServerAction, &QAction::setEnabled);
-    assetServerAction->setEnabled(nodeList->getThisNodeCanRez());
+    QObject::connect(nodeList.data(), &NodeList::canWriteAssetsChanged, assetServerAction, &QAction::setEnabled);
+    assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
 
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
@@ -257,8 +256,7 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Advanced");
 
     // View > Overlays
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true,
-        qApp, SLOT(setOverlaysVisible(bool)));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
@@ -327,12 +325,6 @@ Menu::Menu() {
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
-    // Settings > Input Devices
-    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
-    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
-    inputModeGroup->setExclusive(false);
-
-
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
@@ -345,7 +337,7 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DefaultSkybox, 0, true);
 
     // Developer > Render > Throttle FPS If Not Focus
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true);
@@ -531,9 +523,6 @@ Menu::Menu() {
     // Developer > Network >>>
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
-        qApp->getEntityEditPacketSender(),
-        SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
@@ -548,6 +537,16 @@ Menu::Menu() {
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
         dialogsManager.data(), SLOT(bandwidthDetails()));
+
+    #if (PR_BUILD || DEV_BUILD)
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
+                qApp, SLOT(sendWrongProtocolVersionsSignature(bool)));
+
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongDSConnectVersion, 0, false,
+                                           nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
+    #endif
+
+    
 
 
     // Developer > Timing >>>

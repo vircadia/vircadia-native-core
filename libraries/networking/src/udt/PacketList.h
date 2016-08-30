@@ -54,8 +54,8 @@ public:
     void closeCurrentPacket(bool shouldSendEmpty = false);
 
     // QIODevice virtual functions
-    virtual bool isSequential() const  { return false; }
-    virtual qint64 size() const { return getDataSize(); }
+    virtual bool isSequential() const override { return false; }
+    virtual qint64 size() const override { return getDataSize(); }
     
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
@@ -68,9 +68,9 @@ protected:
     
     void preparePackets(MessageNumber messageNumber);
 
-    virtual qint64 writeData(const char* data, qint64 maxSize);
+    virtual qint64 writeData(const char* data, qint64 maxSize) override;
     // Not implemented, added an assert so that it doesn't get used by accident
-    virtual qint64 readData(char* data, qint64 maxSize) { Q_ASSERT(false); return 0; }
+    virtual qint64 readData(char* data, qint64 maxSize) override { Q_ASSERT(false); return 0; }
     
     PacketType _packetType;
     std::list<std::unique_ptr<Packet>> _packets;

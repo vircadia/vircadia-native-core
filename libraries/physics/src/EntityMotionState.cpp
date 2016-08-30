@@ -46,7 +46,7 @@ bool entityTreeIsLocked() {
 
 
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
-    ObjectMotionState(shape),
+    ObjectMotionState(nullptr),
     _entityPtr(entity),
     _entity(entity.get()),
     _serverPosition(0.0f),
@@ -71,6 +71,9 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     assert(_entity);
     assert(entityTreeIsLocked());
     setMass(_entity->computeMass());
+    // we need the side-effects of EntityMotionState::setShape() so we call it explicitly here
+    // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
+    setShape(shape);
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -85,10 +88,10 @@ void EntityMotionState::updateServerPhysicsVariables() {
         return;
     }
 
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
-    _serverAngularVelocity = _entity->getAngularVelocity();
+    Transform localTransform;
+    _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverPosition = localTransform.getTranslation();
+    _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
     _serverActionData = _entity->getActionData();
 }
@@ -135,7 +138,14 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
         _nextOwnershipBid = 0;
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
-        _body->activate();
+        if (_body->isKinematicObject()) {
+            // only force activate kinematic bodies (dynamic shouldn't need force and
+            // active static bodies are special (see PhysicsEngine::_activeStaticBodies))
+            _body->activate(true);
+            _lastKinematicStep = ObjectMotionState::getWorldSimulationStep();
+        } else {
+            _body->activate();
+        }
     }
 }
 
@@ -151,6 +161,11 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         return MOTION_TYPE_STATIC;
     }
     assert(entityTreeIsLocked());
+
+    if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
+        || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
+        return MOTION_TYPE_STATIC;
+    }
 
     if (_entity->getDynamic()) {
         if (!_entity->getParentID().isNull()) {
@@ -252,11 +267,18 @@ bool EntityMotionState::isReadyToComputeShape() const {
 }
 
 // virtual and protected
-btCollisionShape* EntityMotionState::computeNewShape() {
+const btCollisionShape* EntityMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
     assert(entityTreeIsLocked());
     _entity->computeShapeInfo(shapeInfo);
     return getShapeManager()->getShape(shapeInfo);
+}
+
+void EntityMotionState::setShape(const btCollisionShape* shape) {
+    if (_shape != shape) {
+        ObjectMotionState::setShape(shape);
+        _entity->setCollisionShape(_shape);
+    }
 }
 
 bool EntityMotionState::isCandidateForOwnership() const {
@@ -271,14 +293,25 @@ bool EntityMotionState::isCandidateForOwnership() const {
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // NOTE: we only get here if we think we own the simulation
     assert(_body);
+
+    bool parentTransformSuccess;
+    Transform localToWorld = _entity->getParentTransform(parentTransformSuccess);
+    Transform worldToLocal;
+    Transform worldVelocityToLocal;
+    if (parentTransformSuccess) {
+        localToWorld.evalInverse(worldToLocal);
+        worldVelocityToLocal = worldToLocal;
+        worldVelocityToLocal.setTranslation(glm::vec3(0.0f));
+    }
+
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
-        _serverPosition = bulletToGLM(xform.getOrigin());
-        _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocityGTSigma();
+        _serverPosition = worldToLocal.transform(bulletToGLM(xform.getOrigin()));
+        _serverRotation = worldToLocal.getRotation() * bulletToGLM(xform.getRotation());
+        _serverVelocity = worldVelocityToLocal.transform(getBodyLinearVelocityGTSigma());
         _serverAcceleration = Vectors::ZERO;
-        _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _serverAngularVelocity = worldVelocityToLocal.transform(bulletToGLM(_body->getAngularVelocity()));
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
         _numInactiveUpdates = 1;
@@ -315,11 +348,21 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     _lastStep = simulationStep;
     if (glm::length2(_serverVelocity) > 0.0f) {
-        _serverVelocity += _serverAcceleration * dt;
-        _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
-        // NOTE: we ignore the second-order acceleration term when integrating
-        // the position forward because Bullet also does this.
-        _serverPosition += dt * _serverVelocity;
+        // the entity-server doesn't know where avatars are, so it doesn't do simple extrapolation for children of
+        // avatars.  We are trying to guess what values the entity server has, so we don't do it here, either.  See
+        // related code in EntitySimulation::moveSimpleKinematics.
+        bool ancestryIsKnown;
+        _entity->getMaximumAACube(ancestryIsKnown);
+        bool hasAvatarAncestor = _entity->hasAncestorOfType(NestableType::Avatar);
+
+        if (ancestryIsKnown && !hasAvatarAncestor) {
+            _serverVelocity += _serverAcceleration * dt;
+            _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+
+            // NOTE: we ignore the second-order acceleration term when integrating
+            // the position forward because Bullet also does this.
+            _serverPosition += dt * _serverVelocity;
+        }
     }
 
     if (_entity->actionDataNeedsTransmit()) {
@@ -341,7 +384,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // compute position error
 
     btTransform worldTrans = _body->getWorldTransform();
-    glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
+    glm::vec3 position = worldToLocal.transform(bulletToGLM(worldTrans.getOrigin()));
 
     float dx2 = glm::distance2(position, _serverPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.000004f; // corresponds to 2mm
@@ -376,7 +419,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         }
     }
     const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
-    glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
+    glm::quat actualRotation = worldToLocal.getRotation() * bulletToGLM(worldTrans.getRotation());
 
     #ifdef WANT_DEBUG
         if ((fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT)) {
@@ -403,6 +446,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     assert(_entity);
     assert(_body);
     assert(entityTreeIsLocked());
+
+    if (_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
+        // don't send updates for someone else's avatarEntities
+        return false;
+    }
 
     if (_entity->actionDataNeedsTransmit()) {
         return true;
@@ -476,11 +524,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
 
     // remember properties for local server prediction
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
+    Transform localTransform;
+    _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverPosition = localTransform.getTranslation();
+    _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
-    _serverAngularVelocity = _entity->getAngularVelocity();
     _serverActionData = _entity->getActionData();
 
     EntityItemProperties properties;
@@ -547,8 +595,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
     #endif
 
-    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
-    _entity->setLastBroadcast(usecTimestampNow());
+    EntityTreeElementPointer element = _entity->getElement();
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+
+    properties.setClientOnly(_entity->getClientOnly());
+    properties.setOwningAvatarID(_entity->getOwningAvatarID());
+
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree, id, properties);
+    _entity->setLastBroadcast(now);
 
     // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
     // if they've changed.
@@ -559,8 +613,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());
-                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
-                entityDescendant->setLastBroadcast(usecTimestampNow());
+
+                newQueryCubeProperties.setClientOnly(entityDescendant->getClientOnly());
+                newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
+
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree,
+                                                           descendant->getID(), newQueryCubeProperties);
+                entityDescendant->setLastBroadcast(now);
             }
         }
     });
@@ -574,7 +633,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags();
 
-        if (dirtyFlags | Simulation::DIRTY_SIMULATOR_ID) {
+        if (dirtyFlags & Simulation::DIRTY_SIMULATOR_ID) {
             // when SIMULATOR_ID changes we must check for reinterpretation of asymmetric collision mask
             // bits for the avatar groups (e.g. MY_AVATAR vs OTHER_AVATAR)
             uint8_t entityCollisionMask = _entity->getCollisionless() ? 0 : _entity->getCollisionMask();
@@ -587,8 +646,12 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMovingRelativeToParent();
-        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
-                (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+
+        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) // ||
+            // TODO -- there is opportunity for an optimization here, but this currently causes
+            // excessive re-insertion of the rigid body.
+            // (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)
+            ) {
             dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
         }
     }

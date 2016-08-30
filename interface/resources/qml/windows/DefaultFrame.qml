@@ -1,69 +1,21 @@
+//
+//  DefaultFrame.qml
+//
+//  Created by Bradley Austin Davis on 12 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 
 import "."
-import "../controls"
+import "../styles-uit"
 
 Frame {
-    id: frame
-
-    property bool wideTopMargin: (window && (window.closable || window.title));
-
-    Rectangle {
-        anchors { margins: -iconSize; topMargin: -iconSize * (wideTopMargin ? 2 : 1); }
-        anchors.fill: parent;
-        color: "#7f7f7f7f";
-        radius: 3;
-
-        // Allow dragging of the window
-        MouseArea {
-            anchors.fill: parent
-            drag.target: window
-        }
-
-        Row {
-            id: controlsRow
-            anchors { right: parent.right; top: parent.top; rightMargin: iconSize; topMargin: iconSize / 2; }
-            spacing: iconSize / 4
-            FontAwesome {
-                visible: false
-                text: "\uf08d"
-                style: Text.Outline; styleColor: "white"
-                size: frame.iconSize
-                rotation: !frame.parent ? 90 : frame.parent.pinned ? 0 : 90
-                color: frame.pinned ? "red" : "black"
-                MouseArea {
-                    anchors.fill: parent
-                    propagateComposedEvents: true
-                    onClicked: { frame.pin(); mouse.accepted = false; }
-                }
-            }
-            FontAwesome {
-                visible: window ? window.closable : false
-                text: closeClickArea.containsMouse ? "\uf057" : "\uf05c"
-                style: Text.Outline;
-                styleColor: "white"
-                color: closeClickArea.containsMouse ? "red" : "black"
-                size: frame.iconSize
-                MouseArea {
-                    id: closeClickArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: window.visible = false;
-                }
-            }
-        }
-
-        Text {
-            id: titleText
-            anchors { left: parent.left; leftMargin: iconSize; right: controlsRow.left;  rightMargin: iconSize; top: parent.top; topMargin: iconSize / 2; }
-            text: window ? window.title : ""
-            elide: Text.ElideRight
-            font.bold: true
-            color: (window && window.focus) ? "white" : "gray"
-            style: Text.Outline;
-            styleColor: "black"
-        }
-    }
-
+    HifiConstants { id: hifi }
+    DefaultFrameDecoration {}
 }
 

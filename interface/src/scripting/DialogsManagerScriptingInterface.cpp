@@ -18,9 +18,16 @@
 DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled,
             this, &DialogsManagerScriptingInterface::addressBarToggled);
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarShown,
+            this, &DialogsManagerScriptingInterface::addressBarShown);
 }
 
 void DialogsManagerScriptingInterface::toggleAddressBar() {
     QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
                               "toggleAddressBar", Qt::QueuedConnection);
+}
+
+void DialogsManagerScriptingInterface::showFeed() {
+    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
+        "showFeed", Qt::QueuedConnection);
 }

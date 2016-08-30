@@ -11,6 +11,7 @@
 #include <NumericalConstants.h>
 
 #include "GLTextureTransfer.h"
+#include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -99,7 +100,7 @@ float GLTexture::getMemoryPressure() {
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
-        auto totalGpuMemory = gpu::gl::getDedicatedMemory();
+        auto totalGpuMemory = getDedicatedMemory();
 
         // If no limit has been explicitly set, and the dedicated memory can't be determined, 
         // just use a fallback fixed value of 256 MB
@@ -117,7 +118,9 @@ float GLTexture::getMemoryPressure() {
     return (float)consumedGpuMemory / (float)availableTextureMemory;
 }
 
-GLTexture::DownsampleSource::DownsampleSource(GLTexture* oldTexture) :
+GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<GLBackend>& backend, GLTexture* oldTexture) :
+    _backend(backend),
+    _size(oldTexture ? oldTexture->_size : 0),
     _texture(oldTexture ? oldTexture->takeOwnership() : 0),
     _minMip(oldTexture ? oldTexture->_minMip : 0),
     _maxMip(oldTexture ? oldTexture->_maxMip : 0)
@@ -126,20 +129,22 @@ GLTexture::DownsampleSource::DownsampleSource(GLTexture* oldTexture) :
 
 GLTexture::DownsampleSource::~DownsampleSource() {
     if (_texture) {
-        glDeleteTextures(1, &_texture);
-        Backend::decrementTextureGPUCount();
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseTexture(_texture, _size);
+        }
     }
 }
 
-GLTexture::GLTexture(const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
-    GLObject(texture, id),
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
+    GLObject(backend, texture, id),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
     _maxMip(texture.maxMip()),
     _minMip(texture.minMip()),
     _virtualSize(texture.evalTotalSize()),
     _transferrable(transferrable),
-    _downsampleSource(originalTexture)
+    _downsampleSource(backend, originalTexture)
 {
     if (_transferrable) {
         uint16 mipCount = usedMipLevels();
@@ -156,8 +161,8 @@ GLTexture::GLTexture(const gpu::Texture& texture, GLuint id, GLTexture* original
 
 
 // Create the texture and allocate storage
-GLTexture::GLTexture(const Texture& texture, GLuint id, bool transferrable) :
-    GLTexture(texture, id, nullptr, transferrable)
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
+    GLTexture(backend, texture, id, nullptr, transferrable)
 {
     // FIXME, do during allocation
     //Backend::updateTextureGPUMemoryUsage(0, _size);
@@ -165,8 +170,8 @@ GLTexture::GLTexture(const Texture& texture, GLuint id, bool transferrable) :
 }
 
 // Create the texture and copy from the original higher resolution version
-GLTexture::GLTexture(const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
-    GLTexture(texture, id, originalTexture, originalTexture->_transferrable)
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
+    GLTexture(backend, texture, id, originalTexture, originalTexture->_transferrable)
 {
     Q_ASSERT(_minMip >= originalTexture->_minMip);
     // Set the GPU object last because that implicitly destroys the originalTexture object
@@ -187,8 +192,12 @@ GLTexture::~GLTexture() {
         }
     }
 
-    Backend::decrementTextureGPUCount();
-    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    if (_id) {
+        auto backend = _backend.lock();
+        if (backend) {
+            backend->releaseTexture(_id, _size);
+        }
+    }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }
 
@@ -234,15 +243,8 @@ bool GLTexture::isReady() const {
         return false;
     }
 
-    // If we're out of date, but the transfer is in progress, report ready
-    // as a special case
     auto syncState = _syncState.load();
-
-    if (isOutdated()) {
-        return Idle != syncState;
-    }
-
-    if (Idle != syncState) {
+    if (isOutdated() || Idle != syncState) {
         return false;
     }
 

@@ -21,6 +21,8 @@
 
 using namespace ui;
 
+static QList<QString> groups;
+
 Menu::Menu() {}
 
 void Menu::toggleAdvancedMenus() {
@@ -40,13 +42,23 @@ void Menu::saveSettings() {
 }
 
 void Menu::loadAction(Settings& settings, QAction& action) {
-    if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
+    QString prefix;
+    for (QString group : groups) {
+        prefix += group;
+        prefix += "/";
+    }
+    if (action.isChecked() != settings.value(prefix + action.text(), action.isChecked()).toBool()) {
         action.trigger();
     }
 }
 
 void Menu::saveAction(Settings& settings, QAction& action) {
-    settings.setValue(action.text(),  action.isChecked());
+    QString prefix;
+    for (QString group : groups) {
+        prefix += group;
+        prefix += "/";
+    }
+    settings.setValue(prefix + action.text(), action.isChecked());
 }
 
 void Menu::scanMenuBar(settingsAction modifySetting) {
@@ -57,7 +69,9 @@ void Menu::scanMenuBar(settingsAction modifySetting) {
 }
 
 void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings) {
-    settings.beginGroup(menu.title());
+    groups.push_back(menu.title());
+
+//    settings.beginGroup(menu.title());
     foreach (QAction* action, menu.actions()) {
         if (action->menu()) {
             scanMenu(*action->menu(), modifySetting, settings);
@@ -65,7 +79,9 @@ void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& setting
             modifySetting(settings, *action);
         }
     }
-    settings.endGroup();
+//    settings.endGroup();
+
+    groups.pop_back();
 }
 
 void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName, 

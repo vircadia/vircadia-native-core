@@ -135,6 +135,87 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     return sizeof(quatParts);
 }
 
+#define HI_BYTE(x) (uint8_t)(x >> 8)
+#define LO_BYTE(x) (uint8_t)(0xff & x)
+
+int packOrientationQuatToSixBytes(unsigned char* buffer, const glm::quat& quatInput) {
+
+    // find largest component
+    uint8_t largestComponent = 0;
+    for (int i = 1; i < 4; i++) {
+        if (fabs(quatInput[i]) > fabs(quatInput[largestComponent])) {
+            largestComponent = i;
+        }
+    }
+
+    // ensure that the sign of the dropped component is always negative.
+    glm::quat q = quatInput[largestComponent] > 0 ? -quatInput : quatInput;
+
+    const float MAGNITUDE = 1.0f / sqrtf(2.0f);
+    const uint32_t NUM_BITS_PER_COMPONENT = 15;
+    const uint32_t RANGE = (1 << NUM_BITS_PER_COMPONENT) - 1;
+
+    // quantize the smallest three components into integers
+    uint16_t components[3];
+    for (int i = 0, j = 0; i < 4; i++) {
+        if (i != largestComponent) {
+            // transform component into 0..1 range.
+            float value = (q[i] + MAGNITUDE) / (2.0f * MAGNITUDE);
+
+            // quantize 0..1 into 0..range
+            components[j] = (uint16_t)(value * RANGE);
+            j++;
+        }
+    }
+
+    // encode the largestComponent into the high bits of the first two components
+    components[0] = (0x7fff & components[0]) | ((0x01 & largestComponent) << 15);
+    components[1] = (0x7fff & components[1]) | ((0x02 & largestComponent) << 14);
+
+    buffer[0] = HI_BYTE(components[0]);
+    buffer[1] = LO_BYTE(components[0]);
+    buffer[2] = HI_BYTE(components[1]);
+    buffer[3] = LO_BYTE(components[1]);
+    buffer[4] = HI_BYTE(components[2]);
+    buffer[5] = LO_BYTE(components[2]);
+
+    return 6;
+}
+
+int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& quatOutput) {
+
+    uint16_t components[3];
+    components[0] = ((uint16_t)(0x7f & buffer[0]) << 8) | buffer[1];
+    components[1] = ((uint16_t)(0x7f & buffer[2]) << 8) | buffer[3];
+    components[2] = ((uint16_t)(0x7f & buffer[4]) << 8) | buffer[5];
+
+    // largestComponent is encoded into the highest bits of the first 2 components
+    uint8_t largestComponent = ((0x80 & buffer[2]) >> 6) | ((0x80 & buffer[0]) >> 7);
+
+    const uint32_t NUM_BITS_PER_COMPONENT = 15;
+    const float RANGE = (float)((1 << NUM_BITS_PER_COMPONENT) - 1);
+    const float MAGNITUDE = 1.0f / sqrtf(2.0f);
+    float floatComponents[3];
+    for (int i = 0; i < 3; i++) {
+        floatComponents[i] = ((float)components[i] / RANGE) * (2.0f * MAGNITUDE) - MAGNITUDE;
+    }
+
+    // missingComponent is always negative.
+    float missingComponent = -sqrtf(1.0f - floatComponents[0] * floatComponents[0] - floatComponents[1] * floatComponents[1] - floatComponents[2] * floatComponents[2]);
+
+    for (int i = 0, j = 0; i < 4; i++) {
+        if (i != largestComponent) {
+            quatOutput[i] = floatComponents[j];
+            j++;
+        } else {
+            quatOutput[i] = missingComponent;
+        }
+    }
+
+    return 6;
+}
+
+
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
 // https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -383,6 +464,12 @@ glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& 
     glm::vec3 zAxis = rot * glm::vec3(0.0f, 0.0f, scale.z);
     return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
+}
+
+// cancel out roll 
+glm::quat cancelOutRoll(const glm::quat& q) {
+    glm::vec3 forward = q * Vectors::FRONT;
+    return glm::quat_cast(glm::inverse(glm::lookAt(Vectors::ZERO, forward, Vectors::UP)));
 }
 
 // cancel out roll and pitch

@@ -28,6 +28,8 @@
 #include "Util.h"
 #include "ui/Stats.h"
 #include "ui/AvatarInputs.h"
+#include "OffscreenUi.h"
+#include <QQmlContext>
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 static const float ORTHO_NEAR_CLIP = -1000.0f;
@@ -65,7 +67,9 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     // Execute the batch into our framebuffer
     doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "ApplicationOverlayRender");
         renderArgs->_batch = &batch;
+        batch.enableStereo(false);
 
         int width = _overlayFramebuffer->getWidth();
         int height = _overlayFramebuffer->getHeight();
@@ -99,7 +103,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _uiTexture);
 
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
@@ -119,7 +123,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     // Render the audio scope
     DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
@@ -138,7 +142,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
+    batch.resetViewTransform();
 
     // Render all of the Script based "HUD" aka 2D overlays.
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
@@ -150,7 +154,8 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -163,10 +168,10 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
         
         float screenRatio = ((float)qApp->getDevicePixelRatio());
-        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        float renderRatio = ((float)qApp->getRenderResolutionScale());
         
         auto viewport = qApp->getMirrorViewRect();
         glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
@@ -176,13 +181,11 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
-
-        geometryCache->useSimpleDrawPipeline(batch, true);
         batch.setResourceTexture(0, selfieTexture);
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
+        float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
 
         batch.setResourceTexture(0, renderArgs->_whiteTexture);
-        geometryCache->useSimpleDrawPipeline(batch, false);
     }
 }
 
@@ -227,7 +230,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
         // FIXME: THe line width of CONNECTION_STATUS_BORDER_LINE_WIDTH is not supported anymore, we ll need a workaround
 
@@ -245,10 +248,6 @@ static const auto COLOR_FORMAT = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA)
 static const auto DEFAULT_SAMPLER = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
 static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
 
-std::mutex _textureGuard;
-using Lock = std::unique_lock<std::mutex>;
-std::queue<gpu::TexturePointer> _availableTextures;
-
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
@@ -265,42 +264,15 @@ void ApplicationOverlay::buildFramebufferObject() {
     }
 
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
-        gpu::TexturePointer newColorAttachment;
-        {
-            Lock lock(_textureGuard);
-            if (!_availableTextures.empty()) {
-                newColorAttachment = _availableTextures.front();
-                _availableTextures.pop();
-            }
-        }
-        if (newColorAttachment) {
-            newColorAttachment->resize2D(width, height, newColorAttachment->getNumSamples());
-            _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
-        }
-    }
-
-    // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
-    if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
         _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
     }
 }
 
-gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
+gpu::TexturePointer ApplicationOverlay::getOverlayTexture() {
     if (!_overlayFramebuffer) {
         return gpu::TexturePointer();
     }
-    auto result = _overlayFramebuffer->getRenderBuffer(0);
-    _overlayFramebuffer->setRenderBuffer(0, gpu::TexturePointer());
-    return result;
-}
-
-void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
-    if (texture) {
-        Lock lock(_textureGuard);
-        _availableTextures.push(texture);
-    } else {
-        qWarning() << "Attempted to release null texture";
-    }
+    return _overlayFramebuffer->getRenderBuffer(0);
 }

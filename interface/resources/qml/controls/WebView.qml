@@ -26,7 +26,6 @@ WebEngineView {
     }
 
     onUrlChanged: {
-        console.log("Url changed to " + url);
         var originalUrl = url.toString();
         newUrl = urlHandler.fixupUrl(originalUrl).toString();
         if (newUrl !== originalUrl) {
@@ -56,9 +55,11 @@ WebEngineView {
     }
 
     onNewViewRequested:{
+        if (desktop) {
             var component = Qt.createComponent("../Browser.qml");
             var newWindow = component.createObject(desktop);
-            request.openIn(newWindow.webView)
+            request.openIn(newWindow.webView);
+        }
     }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6

@@ -22,7 +22,7 @@
 
 using namespace gpu;
 
-static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
+int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
@@ -363,6 +363,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     Size expectedSize = evalStoredMipSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     } else if (size > expectedSize) {
@@ -371,6 +372,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipData(level, format, size, bytes);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
         return true;
     }
@@ -674,6 +676,10 @@ void sphericalHarmonicsEvaluateDirection(float * result, int order,  const glm::
 }
 
 bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order) {
+    int width = cubeTexture.getWidth();
+    if(width != cubeTexture.getHeight()) {
+        return false;
+    }
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -681,8 +687,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     std::vector<float> resultR(sqOrder);
     std::vector<float> resultG(sqOrder);
     std::vector<float> resultB(sqOrder);
-
-    int width, height;
 
     // initialize values
     float fWt = 0.0f;
@@ -694,13 +698,16 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     }
     std::vector<float> shBuff(sqOrder);
     std::vector<float> shBuffB(sqOrder);
-    // get width and height
-    width = height = cubeTexture.getWidth();
-    if(width != height) {
-        return false;
-    }
 
-    const float UCHAR_TO_FLOAT = 1.0f / float(std::numeric_limits<unsigned char>::max());
+    // We trade accuracy for speed by breaking the image into 32x32 parts
+    // and approximating the distance for all the pixels in each part to be
+    // the distance to the part's center.
+    int numDivisionsPerSide = 32;
+    if (width < numDivisionsPerSide) {
+        numDivisionsPerSide = width;
+    }
+    int stride = width / numDivisionsPerSide;
+    int halfStride = stride / 2;
 
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
@@ -718,11 +725,11 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
         // step between two texels for range [-1, 1]
         float invWidthBy2 = 2.0f / float(width);
 
-        for(int y=0; y < width; y++) {
+        for(int y=halfStride; y < width-halfStride; y += stride) {
             // texture coordinate V in range [-1 to 1]
             const float fV = negativeBound + float(y) * invWidthBy2;
 
-            for(int x=0; x < width; x++) {
+            for(int x=halfStride; x < width - halfStride; x += stride) {
                 // texture coordinate U in range [-1 to 1]
                 const float fU = negativeBound + float(x) * invWidthBy2;
 
@@ -785,35 +792,37 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 sphericalHarmonicsEvaluateDirection(shBuff.data(), order, dir);
 
                 // index of texel in texture
-                uint pixOffsetIndex = (x + y * width) * numComponents;
 
                 // get color from texture and map to range [0, 1]
-                glm::vec3 clr(float(data[pixOffsetIndex]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+1]) * UCHAR_TO_FLOAT,
-                            float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
-
-                // Gamma correct
-                clr = ColorUtils::sRGBToLinearVec3(clr);
+                float red { 0.0f };
+                float green { 0.0f };
+                float blue { 0.0f };
+                for (int i = 0; i < stride; ++i) {
+                    for (int j = 0; j < stride; ++j) {
+                        int k = (int)(x + i - halfStride + (y + j - halfStride) * width) * numComponents;
+                        red += ColorUtils::sRGB8ToLinearFloat(data[k]);
+                        green += ColorUtils::sRGB8ToLinearFloat(data[k + 1]);
+                        blue += ColorUtils::sRGB8ToLinearFloat(data[k + 2]);
+                    }
+                }
+                glm::vec3 clr(red, green, blue);
 
                 // scale color and add to previously accumulated coefficients
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.r * fDiffSolid);
-                sphericalHarmonicsAdd(resultR.data(), order,
-                        resultR.data(), shBuffB.data());
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.g * fDiffSolid);
-                sphericalHarmonicsAdd(resultG.data(), order,
-                        resultG.data(), shBuffB.data());
-                sphericalHarmonicsScale(shBuffB.data(), order,
-                        shBuff.data(), clr.b * fDiffSolid);
-                sphericalHarmonicsAdd(resultB.data(), order,
-                        resultB.data(), shBuffB.data());
+                // red
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.r * fDiffSolid);
+                sphericalHarmonicsAdd(resultR.data(), order, resultR.data(), shBuffB.data());
+                // green
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.g * fDiffSolid);
+                sphericalHarmonicsAdd(resultG.data(), order, resultG.data(), shBuffB.data());
+                // blue
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.b * fDiffSolid);
+                sphericalHarmonicsAdd(resultB.data(), order, resultB.data(), shBuffB.data());
             }
         }
     }
 
     // final scale for coefficients
-    const float fNormProj = (4.0f * glm::pi<float>()) / fWt;
+    const float fNormProj = (4.0f * glm::pi<float>()) / (fWt * (float)(stride * stride));
     sphericalHarmonicsScale(resultR.data(), order, resultR.data(), fNormProj);
     sphericalHarmonicsScale(resultG.data(), order, resultG.data(), fNormProj);
     sphericalHarmonicsScale(resultB.data(), order, resultB.data(), fNormProj);
@@ -885,11 +894,3 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
-std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
-
-uint32 Texture::getHardwareId() const {
-    if (TEXTURE_ID_RESOLVER) {
-        return TEXTURE_ID_RESOLVER(*this);
-    }
-    return 0;
-}

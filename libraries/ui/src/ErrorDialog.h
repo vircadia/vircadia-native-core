@@ -30,14 +30,13 @@ public:
     QString text() const;
 
 public slots:
-    virtual void setVisible(bool v);
     void setText(const QString& arg);
 
 signals:
     void textChanged();
 
 protected slots:
-    virtual void accept();
+    virtual void accept() override;
 
 private:
     QString _text;

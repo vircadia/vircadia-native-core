@@ -30,7 +30,7 @@ public:
     QString keyword;
 
 protected:
-    void highlightBlock(const QString &text);
+    void highlightBlock(const QString &text) override;
 
 private:
     QTextCharFormat keywordFormat;
@@ -54,8 +54,8 @@ private slots:
     void handleSearchTextChanged(const QString);
 
 protected:
-    void resizeEvent(QResizeEvent*);
-    void showEvent(QShowEvent*);
+    void resizeEvent(QResizeEvent*) override;
+    void showEvent(QShowEvent*) override;
 
 private:
     QPushButton* _searchButton;

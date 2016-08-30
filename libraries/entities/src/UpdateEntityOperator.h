@@ -25,9 +25,9 @@ public:
 
     ~UpdateEntityOperator();
 
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element);
-    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex);
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override;
+    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex) override;
 private:
     EntityTreePointer _tree;
     EntityItemPointer _existingEntity;

@@ -16,11 +16,11 @@
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
-    virtual bool isSupported() const override;
+    bool isSupported() const override;
 
     // Stereo specific methods
-    virtual void resetSensors() override final;
-    virtual void beginFrameRender(uint32_t frameIndex) override;
+    void resetSensors() override final;
+    bool beginFrameRender(uint32_t frameIndex) override;
     float getTargetFrameRate() const override { return _hmdDesc.DisplayRefreshRate; }
     
 
@@ -28,6 +28,7 @@ protected:
     void customizeContext() override;
     bool internalActivate() override;
     void internalDeactivate() override;
+    void updatePresentPose() override;
 
 protected:
     ovrSession _session { nullptr };

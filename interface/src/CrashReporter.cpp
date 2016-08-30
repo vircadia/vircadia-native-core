@@ -10,15 +10,19 @@
 //
 
 
-#ifdef HAS_BUGSPLAT
+#include "Application.h"
 #include "CrashReporter.h"
 
+#ifdef _WIN32
 #include <new.h>
 #include <Windows.h>
+#include <DbgHelp.h>
 
 #include <csignal>
-
 #include <QDebug>
+
+
+#pragma comment(lib, "Dbghelp.lib")
 
 // SetUnhandledExceptionFilter can be overridden by the CRT at the point that an error occurs. More information
 // can be found here: http://www.codeproject.com/Articles/154686/SetUnhandledExceptionFilter-and-the-C-C-Runtime-Li
@@ -77,13 +81,37 @@ BOOL redirectLibraryFunctionToFunction(char* library, char* function, void* fn)
     return bRet;
 }
 
+void printStackTrace(ULONG framesToSkip = 1) {
+    HANDLE process = GetCurrentProcess();
+    SymInitialize(process, NULL, TRUE);
+    void* stack[100];
+    uint16_t frames = CaptureStackBackTrace(framesToSkip, 100, stack, NULL);
+    SYMBOL_INFO* symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+    symbol->MaxNameLen = 255;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    for (uint16_t i = 0; i < frames; ++i) {
+        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+        qWarning() << QString("%1: %2 - 0x%0X").arg(QString::number(frames - i - 1), QString(symbol->Name), QString::number(symbol->Address, 16));
+    }
+
+    free(symbol);
+
+    // Try to force the log to sync to the filesystem
+    auto app = qApp;
+    if (app && app->getLogger()) {
+        app->getLogger()->sync();
+    }
+}
 
 void handleSignal(int signal) {
     // Throw so BugSplat can handle
     throw(signal);
 }
 
-void handlePureVirtualCall() {
+void __cdecl handlePureVirtualCall() {
+    qWarning() << "Pure virtual function call detected";
+    printStackTrace(2);
     // Throw so BugSplat can handle
     throw("ERROR: Pure virtual call");
 }
@@ -106,6 +134,8 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI noop_SetUnhandledExceptionFilter(LPTOP_LEVEL
 _purecall_handler __cdecl noop_set_purecall_handler(_purecall_handler pNew) {
     return nullptr;
 }
+
+#ifdef HAS_BUGSPLAT
 
 static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
 
@@ -132,4 +162,5 @@ CrashReporter::CrashReporter(QString bugSplatDatabase, QString bugSplatApplicati
         qWarning() << "Failed to patch setUnhandledExceptionFilter";
     }
 }
+#endif
 #endif

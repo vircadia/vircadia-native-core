@@ -33,6 +33,7 @@ const uchar MAX_INJECTOR_VOLUME = 255;
 int InjectedAudioStream::parseStreamProperties(PacketType type,
                                                const QByteArray& packetAfterSeqNum,
                                                int& numAudioSamples) {
+
     // setup a data stream to read from this packet
     QDataStream packetStream(packetAfterSeqNum);
 

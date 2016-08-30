@@ -8,8 +8,8 @@
 
 #include "GLWindow.h"
 
+#include <QtCore/QDebug>
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
 
 #include "GLHelpers.h"
 

@@ -7,11 +7,6 @@
 //
 
 #include "SideBySideStereoDisplayPlugin.h"
-#include <GLMHelpers.h>
-#include <CursorManager.h>
-#include <plugins/PluginContainer.h>
-#include <gl/GLWidget.h>
-#include "../CompositorHelper.h"
 
 const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo");
 

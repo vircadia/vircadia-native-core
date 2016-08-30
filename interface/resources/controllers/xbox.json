@@ -1,26 +1,28 @@
 {
     "name": "XBox to Standard",
     "channels": [
-        { "from": "GamePad.LY", "to": "Standard.LY" }, 
-        { "from": "GamePad.LX", "to": "Standard.LX" },
+        { "from": "GamePad.LY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LY" },
+        { "from": "GamePad.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
         { "from": "GamePad.LT", "to": "Standard.LT" }, 
         { "from": "GamePad.LB", "to": "Standard.LB" }, 
         { "from": "GamePad.LS", "to": "Standard.LS" },
 
-        { "from": "GamePad.RY", "to": "Standard.RY" }, 
-        { "from": "GamePad.RX", "to": "Standard.RX" },
+        { "from": "GamePad.RY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RY" },
+        { "from": "GamePad.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
         { "from": "GamePad.RT", "to": "Standard.RT" }, 
         { "from": "GamePad.RB", "to": "Standard.RB" }, 
         { "from": "GamePad.RS", "to": "Standard.RS" },
 
         { "from": "GamePad.Back", "to": "Standard.Back" }, 
         { "from": "GamePad.Start", "to": "Standard.Start" }, 
-        
+
+        { "from": [ "GamePad.DU", "GamePad.DL", "GamePad.DR", "GamePad.DD" ], "to": "Standard.LeftPrimaryThumb", "peek": true },
         { "from": "GamePad.DU", "to": "Standard.DU" },
         { "from": "GamePad.DD", "to": "Standard.DD" }, 
         { "from": "GamePad.DL", "to": "Standard.DL" },
         { "from": "GamePad.DR", "to": "Standard.DR" }, 
 
+        { "from": [ "GamePad.A", "GamePad.B", "GamePad.X", "GamePad.Y" ], "to": "Standard.RightPrimaryThumb", "peek": true },
         { "from": "GamePad.A", "to": "Standard.A" }, 
         { "from": "GamePad.B", "to": "Standard.B" }, 
         { "from": "GamePad.X", "to": "Standard.X" },

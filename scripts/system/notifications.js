@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  notifications.js
 //  Version 0.801
@@ -49,12 +51,14 @@
 //  2. Declare a text string.
 //  3. Call createNotifications(text, NotificationType) parsing the text.
 //  example:
-//  if (key.text === "s") {
+//  if (key.text === "o") {
 //      if (ctrlIsPressed === true) {
-//          noteString = "Snapshot taken.";
-//          createNotification(noteString, NotificationType.SNAPSHOT);
+//          noteString = "Open script";
+//          createNotification(noteString, NotificationType.OPEN_SCRIPT);
 //      }
 //  }
+
+(function() { // BEGIN LOCAL_SCOPE
 
 Script.include("./libraries/soundArray.js");
 
@@ -105,7 +109,7 @@ var NotificationType = {
             return NotificationType.UNKNOWN;
         }
         var preMenuItemName = menuItemName.substr(0, menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length);
-        for (type in this.properties) {
+        for (var type in this.properties) {
             if (this.properties[type].text === preMenuItemName) {
                 return parseInt(type) + 1;
             }
@@ -120,7 +124,7 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-    
+
     randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
@@ -230,11 +234,12 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
     };
 }
 
-//  Pushes data to each array and sets up data for 2nd dimension array 
+//  Pushes data to each array and sets up data for 2nd dimension array
 //  to handle auxiliary data not carried by the overlay class
-//  specifically notification "heights", "times" of creation, and . 
-function notify(notice, button, height) {
-    var noticeWidth,
+//  specifically notification "heights", "times" of creation, and .
+function notify(notice, button, height, imageProperties, image) {
+    var notificationText,
+        noticeWidth,
         noticeHeight,
         positions,
         last;
@@ -246,20 +251,27 @@ function notify(notice, button, height) {
         noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
 
         notice.size = { x: noticeWidth, y: noticeHeight };
-        notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
-        notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
-        notice.bottomMargin = 0;
-        notice.rightMargin = 0;
-        notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
-        notice.isFacingAvatar = false;
+
+        positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
+
+        if (!image) {
+            notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
+            notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
+            notice.bottomMargin = 0;
+            notice.rightMargin = 0;
+            notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
+            notice.isFacingAvatar = false;
+
+            notificationText = Overlays.addOverlay("text3d", notice);
+            notifications.push(notificationText);
+        } else {
+            notifications.push(Overlays.addOverlay("image3d", notice));
+        }
 
         button.url = button.imageURL;
         button.scale = button.width * NOTIFICATION_3D_SCALE;
         button.isFacingAvatar = false;
 
-        positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
-
-        notifications.push((Overlays.addOverlay("text3d", notice)));
         buttons.push((Overlays.addOverlay("image3d", button)));
         overlay3DDetails.push({
             notificationOrientation: positions.notificationOrientation,
@@ -269,23 +281,44 @@ function notify(notice, button, height) {
             height: noticeHeight
         });
     } else {
-        var notificationText = Overlays.addOverlay("text", notice);
-        notifications.push((notificationText));
-        buttons.push((Overlays.addOverlay("image", button)));
+        if (!image) {
+            notificationText = Overlays.addOverlay("text", notice);
+            notifications.push((notificationText));
+        } else {
+            notifications.push(Overlays.addOverlay("image", notice));
+        }
+        buttons.push(Overlays.addOverlay("image", button));
     }
 
     height = height + 1.0;
     heights.push(height);
     times.push(new Date().getTime() / 1000);
-    myAlpha.push(0);
     last = notifications.length - 1;
+    myAlpha.push(notifications[last].alpha);
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
     fadeIn(notifications[last], buttons[last]);
+
+    if (imageProperties && !image) {
+        var imageHeight = notice.width / imageProperties.aspectRatio;
+        notice = {
+            x: notice.x,
+            y: notice.y + height,
+            width: notice.width,
+            height: imageHeight,
+            subImage: { x: 0, y: 0 },
+            color: { red: 255, green: 255, blue: 255},
+            visible: true,
+            imageURL: imageProperties.path,
+            alpha: backgroundAlpha
+        };
+        notify(notice, button, imageHeight, imageProperties, true);
+    }
+
     return notificationText;
 }
 
 //  This function creates and sizes the overlays
-function createNotification(text, notificationType) {
+function createNotification(text, notificationType, imageProperties) {
     var count = (text.match(/\n/g) || []).length,
         breakPoint = 43.0, // length when new line is added
         extraLine = 0,
@@ -308,6 +341,7 @@ function createNotification(text, notificationType) {
 
     level = (stack + 20.0);
     height = height + extraLine;
+
     noticeProperties = {
         x: overlayLocationX,
         y: level,
@@ -336,12 +370,11 @@ function createNotification(text, notificationType) {
     };
 
     if (Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) &&
-        Menu.isOptionChecked(NotificationType.getMenuString(notificationType)))
-    {
+        Menu.isOptionChecked(NotificationType.getMenuString(notificationType))) {
         randomSounds.playRandom();
     }
 
-    return notify(noticeProperties, buttonProperties, height);
+    return notify(noticeProperties, buttonProperties, height, imageProperties);
 }
 
 function deleteNotification(index) {
@@ -362,21 +395,12 @@ function deleteNotification(index) {
 
 //  wraps whole word to newline
 function stringDivider(str, slotWidth, spaceReplacer) {
-    var p,
-        left,
-        right;
+    var left, right;
 
-    if (str.length > slotWidth) {
-        p = slotWidth;
-        while (p > 0 && str[p] !== ' ') {
-            p -= 1;
-        }
-
-        if (p > 0) {
-            left = str.substring(0, p);
-            right = str.substring(p + 1);
-            return left + spaceReplacer + stringDivider(right, slotWidth, spaceReplacer);
-        }
+    if (str.length > slotWidth && slotWidth > 0) {
+        left = str.substring(0, slotWidth);
+        right = str.substring(slotWidth);
+        return left + spaceReplacer + stringDivider(right, slotWidth, spaceReplacer);
     }
     return str;
 }
@@ -504,7 +528,17 @@ function onMuteStateChanged() {
 }
 
 function onDomainConnectionRefused(reason) {
-    createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED );
+    createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
+}
+
+function onSnapshotTaken(path, notify) {
+    if (notify) {
+        var imageProperties = {
+            path: Script.resolvePath("file:///" + path),
+            aspectRatio: Window.innerWidth / Window.innerHeight
+        }
+        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
+    }
 }
 
 //  handles mouse clicks on buttons
@@ -541,13 +575,6 @@ function keyPressEvent(key) {
     if (key.key === 16777249) {
         ctrlIsPressed = true;
     }
-
-    if (key.text === "s") {
-        if (ctrlIsPressed === true) {
-            noteString = "Snapshot taken.";
-            createNotification(noteString, NotificationType.SNAPSHOT);
-        }
-    }
 }
 
 function setup() {
@@ -561,7 +588,7 @@ function setup() {
         isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
     });
     Menu.addSeparator(MENU_NAME, "Play sounds for:");
-    for (type in NotificationType.properties) {
+    for (var type in NotificationType.properties) {
         checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type) + 1));
         checked = checked === '' ? true : checked;
         Menu.addMenuItem({
@@ -597,7 +624,7 @@ LODManager.LODDecreased.connect(function() {
     var warningText = "\n"
             + "Due to the complexity of the content, the \n"
             + "level of detail has been decreased. "
-            + "You can now see: \n" 
+            + "You can now see: \n"
             + LODManager.getLODFeedbackText();
 
     if (lodTextID == false) {
@@ -615,5 +642,8 @@ Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
+Window.snapshotTaken.connect(onSnapshotTaken);
 
 setup();
+
+}()); // END LOCAL_SCOPE

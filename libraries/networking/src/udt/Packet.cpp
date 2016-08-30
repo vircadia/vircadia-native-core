@@ -19,7 +19,7 @@
 
 using namespace udt;
 
-static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
+int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
 
 using Key = uint64_t;
 static const std::array<Key, 4> KEYS {{

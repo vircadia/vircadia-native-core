@@ -24,11 +24,48 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <Finally.h>
+#include <PathUtils.h>
+#include <AbstractUriHandler.h>
+#include <AccountManager.h>
+#include <NetworkAccessManager.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
 #include "GLHelpers.h"
 
+
+QString fixupHifiUrl(const QString& urlString) {
+	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+    QUrl url(urlString);
+	QUrlQuery query(url);
+	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+	    auto accountManager = DependencyManager::get<AccountManager>();
+	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
+	    url.setQuery(query.query());
+	    return url.toString();
+	}
+    return urlString;
+}
+
+class UrlHandler : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE bool canHandleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->canAcceptURL(url);
+    }
+
+    Q_INVOKABLE bool handleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->acceptURL(url);
+    }
+
+    // FIXME hack for authentication, remove when we migrate to Qt 5.6
+    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
+        return fixupHifiUrl(originalUrl);
+    }
+};
 
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
@@ -53,6 +90,22 @@ private:
     friend class OffscreenQmlRenderThread;
     friend class OffscreenQmlSurface;
 };
+
+class QmlNetworkAccessManager : public NetworkAccessManager {
+public:
+    friend class QmlNetworkAccessManagerFactory;
+protected:
+    QmlNetworkAccessManager(QObject* parent) : NetworkAccessManager(parent) { }
+};
+
+class QmlNetworkAccessManagerFactory : public QQmlNetworkAccessManagerFactory {
+public:
+    QNetworkAccessManager* create(QObject* parent) override;
+};
+
+QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
+    return new QmlNetworkAccessManager(parent);
+}
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
@@ -113,7 +166,7 @@ private:
     QMyQuickRenderControl* _renderControl{ nullptr };
     FramebufferPtr _fbo;
     RenderbufferPtr _depthStencil;
-    TextureRecycler _textures;
+    TextureRecycler _textures { true };
     GLTextureEscrow _escrow;
 
     uint64_t _lastRenderTime{ 0 };
@@ -142,6 +195,7 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
 }
 
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
+    _canvas.setObjectName("OffscreenQmlRenderCanvas");
     qDebug() << "Building QML Renderer";
     if (!_canvas.create(shareContext)) {
         qWarning("Failed to create OffscreenGLCanvas");
@@ -346,6 +400,8 @@ void OffscreenQmlRenderThread::render() {
             glGetError();
         }
 
+        Context::Bound(oglplus::Texture::Target::_2D, *texture).GenerateMipmap();
+
         // FIXME probably unecessary
         DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
         _quickWindow->resetOpenGLState();
@@ -396,8 +452,16 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     _renderer->_renderControl->_renderWindow = _proxyWindow;
 
+    connect(_renderer->_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
+
+    _qmlEngine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
+
+    auto importList = _qmlEngine->importPathList();
+    importList.insert(importList.begin(), PathUtils::resourcesPath());
+    _qmlEngine->setImportPathList(importList);
     if (!_qmlEngine->incubationController()) {
         _qmlEngine->setIncubationController(_renderer->_quickWindow->incubationController());
     }
@@ -412,9 +476,12 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
     _updateTimer.setInterval(MIN_TIMER_MS);
     _updateTimer.start();
+
+    auto rootContext = getRootContext();
+    rootContext->setContextProperty("urlHandler", new UrlHandler());
 }
 
-void OffscreenQmlSurface::resize(const QSize& newSize_) {
+void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
     if (!_renderer || !_renderer->_quickWindow) {
         return;
@@ -433,7 +500,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_) {
     }
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();
-    if (newSize == currentSize) {
+    if (newSize == currentSize && !forceResize) {
         return;
     }
 
@@ -716,9 +783,9 @@ QQmlContext* OffscreenQmlSurface::getRootContext() {
 }
 
 Q_DECLARE_METATYPE(std::function<void()>);
-static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
 Q_DECLARE_METATYPE(std::function<QVariant()>);
-static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
 
 
 void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
@@ -742,3 +809,23 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
 
     return function();
 }
+
+void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    if (!object) {
+        setFocusText(false);
+        return;
+    }
+
+    QInputMethodQueryEvent query(Qt::ImEnabled);
+    qApp->sendEvent(object, &query);
+    setFocusText(query.value(Qt::ImEnabled).toBool());
+}
+
+void OffscreenQmlSurface::setFocusText(bool newFocusText) {
+    if (newFocusText != _focusText) {
+        _focusText = newFocusText;
+        emit focusTextChanged(_focusText);
+    }
+}
+
+#include "OffscreenQmlSurface.moc"

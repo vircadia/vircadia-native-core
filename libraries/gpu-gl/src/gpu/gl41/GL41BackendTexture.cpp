@@ -17,9 +17,10 @@
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
+using namespace gpu::gl;
 using namespace gpu::gl41;
 
-using GL41TexelFormat = gl::GLTexelFormat;
+using GL41TexelFormat = GLTexelFormat;
 using GL41Texture = GL41Backend::GL41Texture;
 
 GLuint GL41Texture::allocate() {
@@ -30,16 +31,16 @@ GLuint GL41Texture::allocate() {
 }
 
 GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) {
-    return GL41Texture::getId<GL41Texture>(texture, transfer);
+    return GL41Texture::getId<GL41Texture>(*this, texture, transfer);
 }
 
-gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
-    return GL41Texture::sync<GL41Texture>(texture, transfer);
+GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
+    return GL41Texture::sync<GL41Texture>(*this, texture, transfer);
 }
 
-GL41Texture::GL41Texture(const Texture& texture, bool transferrable) : gl::GLTexture(texture, allocate(), transferrable) {}
+GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) : GLTexture(backend, texture, allocate(), transferrable) {}
 
-GL41Texture::GL41Texture(const Texture& texture, GL41Texture* original) : gl::GLTexture(texture, allocate(), original) {}
+GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GL41Texture* original) : GLTexture(backend, texture, allocate(), original) {}
 
 void GL41Backend::GL41Texture::withPreservedTexture(std::function<void()> f) const  {
     GLint boundTex = -1;
@@ -71,7 +72,7 @@ void GL41Backend::GL41Texture::generateMips() const {
 }
 
 void GL41Backend::GL41Texture::allocateStorage() const {
-    gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
     (void)CHECK_GL_ERROR();
     glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
@@ -131,7 +132,7 @@ void GL41Backend::GL41Texture::updateSize() const {
 // Move content bits from the CPU to the GPU for a given mip / face
 void GL41Backend::GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
-    gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
     //GLenum target = getFaceTargets()[face];
     GLenum target = _target == GL_TEXTURE_2D ? GL_TEXTURE_2D : CUBE_FACE_LAYOUT[face];
     auto size = _gpuObject.evalMipDimensions(mipLevel);
@@ -216,7 +217,7 @@ void GL41Backend::GL41Texture::syncSampler() const {
 
     if (sampler.doComparison()) {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, gl::COMPARISON_TO_GL[sampler.getComparisonFunction()]);
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }

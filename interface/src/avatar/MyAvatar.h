@@ -69,7 +69,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
-
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
     Q_PROPERTY(glm::vec3 rightHandPosition READ getRightHandPosition)
     Q_PROPERTY(glm::vec3 leftHandTipPosition READ getLeftHandTipPosition)
@@ -80,9 +79,10 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
-    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
-
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
+
+    Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
+    Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -94,7 +94,11 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    Q_INVOKABLE void reset(bool andRecenter = false);
+    void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
+
+    Q_INVOKABLE void centerBody(); // thread-safe
+    Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
+
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime) override;
     void preDisplaySide(RenderArgs* renderArgs);
@@ -103,9 +107,6 @@ public:
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
-
-    // thread safe
-    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
@@ -122,9 +123,6 @@ public:
     void updateSensorToWorldMatrix();
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
-
-    void setLeanScale(float scale) { _leanScale = scale; }
-    float getLeanScale() const { return _leanScale; }
 
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
 
@@ -160,6 +158,11 @@ public:
 
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+    Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
+    Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
+
+    Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
+    Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
     // get/set avatar data
     void saveData();
@@ -208,8 +211,8 @@ public:
     virtual void clearJointsData() override;
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
-    Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
-    Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
+    Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
+    Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
     void resetFullAvatarURL();
 
 
@@ -262,6 +265,11 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    bool hasDriveInput() const;
+
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
+    Q_INVOKABLE bool getCharacterControllerEnabled();
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -279,8 +287,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
-
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
@@ -290,7 +296,11 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
-    Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
+
+    QUrl getAnimGraphOverrideUrl() const;  // thread-safe
+    void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
+    QUrl getAnimGraphUrl() const;  // thread-safe
+    void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
@@ -394,8 +404,15 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
-    QUrl _animGraphUrl {""};
+    ThreadSafeValueCache<QUrl> _currentAnimGraphUrl;
+    ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
+    QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
+    bool _clearOverlayWhenMoving { true };
+
+    // working copy of sensorToWorldMatrix.
+    // See AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    glm::mat4 _sensorToWorldMatrix;
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
@@ -408,10 +425,6 @@ private:
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
     glm::mat4 _bodySensorMatrix;
-
-    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
-    glm::mat4 _sensorToWorldMatrix;
-    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
 
     struct FollowHelper {
         FollowHelper();
@@ -466,6 +479,8 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
+
+    bool _hmdLeanRecenterEnabled = true;
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

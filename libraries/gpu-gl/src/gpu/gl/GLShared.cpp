@@ -11,6 +11,7 @@
 
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
+#include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
 
@@ -556,46 +557,67 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
     std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
 
+    struct UniformBlockInfo {
+        using Vector = std::vector<UniformBlockInfo>;
+        const GLuint index{ 0 };
+        const std::string name;
+        GLint binding{ -1 };
+        GLint size{ 0 };
+
+        static std::string getName(GLuint glprogram, GLuint i) {
+            static const GLint NAME_LENGTH = 256;
+            GLint length = 0;
+            GLchar nameBuffer[NAME_LENGTH];
+            glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
+            glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, nameBuffer);
+            return std::string(nameBuffer);
+        }
+
+        UniformBlockInfo(GLuint glprogram, GLuint i) : index(i), name(getName(glprogram, i)) {
+            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_BINDING, &binding);
+            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+        }
+    };
+
+    UniformBlockInfo::Vector uniformBlocks;
+    uniformBlocks.reserve(buffersCount);
     for (int i = 0; i < buffersCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLint binding = -1;
+        uniformBlocks.push_back(UniformBlockInfo(glprogram, i));
+    }
 
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
-        glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-
-        GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
-
-        // CHeck if there is a requested binding for this block
-        auto requestedBinding = slotBindings.find(std::string(name));
+    for (auto& info : uniformBlocks) {
+        auto requestedBinding = slotBindings.find(info.name);
         if (requestedBinding != slotBindings.end()) {
-            // If yes force it
-            if (binding != (*requestedBinding)._location) {
-                binding = (*requestedBinding)._location;
-                glUniformBlockBinding(glprogram, blockIndex, binding);
-            }
-        } else if (binding == 0) {
+            info.binding = (*requestedBinding)._location;
+            glUniformBlockBinding(glprogram, info.index, info.binding);
+            uniformBufferSlotMap[info.binding] = info.index;
+        }
+    }
+
+    for (auto& info : uniformBlocks) {
+        if (slotBindings.count(info.name)) {
+            continue;
+        }
+
+        // If the binding is 0, or the binding maps to an already used binding
+        if (info.binding == 0 || uniformBufferSlotMap[info.binding] != UNUSED_SLOT) {
             // If no binding was assigned then just do it finding a free slot
             auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), isUnusedSlot);
             if (slotIt != uniformBufferSlotMap.end()) {
-                binding = slotIt - uniformBufferSlotMap.begin();
-                glUniformBlockBinding(glprogram, blockIndex, binding);
+                info.binding = slotIt - uniformBufferSlotMap.begin();
+                glUniformBlockBinding(glprogram, info.index, info.binding);
             } else {
                 // This should neve happen, an active ubo cannot find an available slot among the max available?!
-                binding = -1;
+                info.binding = -1;
             }
         }
-        // If binding is valid record it
-        if (binding >= 0) {
-            uniformBufferSlotMap[binding] = blockIndex;
-        }
 
-        Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
-        buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
+        uniformBufferSlotMap[info.binding] = info.index;
+    }
+
+    for (auto& info : uniformBlocks) {
+        static const Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
+        buffers.insert(Shader::Slot(info.name, info.binding, element, Resource::BUFFER, info.size));
     }
     return buffersCount;
 }
@@ -670,11 +692,14 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
 
     // if compilation fails
     if (!compiled) {
+
         // save the source code to a temp file so we can debug easily
-        /* std::ofstream filestream;
+        /*
+        std::ofstream filestream;
         filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-        filestream << shaderSource->source;
+        filestream << srcstr[0];
+        filestream << srcstr[1];
         filestream.close();
         }
         */

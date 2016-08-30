@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptCache.h"
+
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QNetworkAccessManager>
@@ -16,11 +18,12 @@
 #include <QNetworkReply>
 #include <QObject>
 #include <QThread>
+#include <QRegularExpression>
 
 #include <assert.h>
 #include <SharedUtil.h>
 
-#include "ScriptCache.h"
+#include "ScriptEngines.h"
 #include "ScriptEngineLogging.h"
 
 ScriptCache::ScriptCache(QObject* parent) {
@@ -78,22 +81,25 @@ void ScriptCache::scriptDownloaded() {
     QList<ScriptUser*> scriptUsers = _scriptUsers.values(url);
     _scriptUsers.remove(url);
 
-    if (req->getResult() == ResourceRequest::Success) {
-        auto scriptContents = req->getData();
-        _scriptCache[url] = scriptContents;
-        lock.unlock();
-        qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
+    if (!DependencyManager::get<ScriptEngines>()->isStopped()) {
+        if (req->getResult() == ResourceRequest::Success) {
+            auto scriptContents = req->getData();
+            _scriptCache[url] = scriptContents;
+            lock.unlock();
+            qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
-        foreach(ScriptUser* user, scriptUsers) {
-            user->scriptContentsAvailable(url, scriptContents);
-        }
-    } else {
-        lock.unlock();
-        qCWarning(scriptengine) << "Error loading script from URL " << url;
-        foreach(ScriptUser* user, scriptUsers) {
-            user->errorInLoadingScript(url);
+            foreach(ScriptUser* user, scriptUsers) {
+                user->scriptContentsAvailable(url, scriptContents);
+            }
+        } else {
+            lock.unlock();
+            qCWarning(scriptengine) << "Error loading script from URL " << url;
+            foreach(ScriptUser* user, scriptUsers) {
+                user->errorInLoadingScript(url);
+            }
         }
     }
+
     req->deleteLater();
 }
 
@@ -104,9 +110,19 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     QUrl unnormalizedURL(scriptOrURL);
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
 
-    // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the entityScript use case)
-    if (url.scheme().isEmpty() && scriptOrURL.simplified().replace(" ", "").contains("(function(){")) {
+    // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the
+    // entityScript use case)
+    if (unnormalizedURL.scheme().isEmpty() &&
+            scriptOrURL.simplified().replace(" ", "").contains(QRegularExpression(R"(\(function\([a-z]?[\w,]*\){)"))) {
         contentAvailable(scriptOrURL, scriptOrURL, false, true);
+        return;
+    }
+
+    // give a similar treatment to javacript: urls
+    if (unnormalizedURL.scheme() == "javascript") {
+        QString contents { scriptOrURL };
+        contents.replace(QRegularExpression("^javascript:"), "");
+        contentAvailable(scriptOrURL, contents, false, true);
         return;
     }
 
@@ -128,6 +144,7 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
             qCDebug(scriptengine) << "about to call: ResourceManager::createResourceRequest(this, url); on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
             #endif
             auto request = ResourceManager::createResourceRequest(nullptr, url);
+            Q_ASSERT(request);
             request->setCacheEnabled(!forceDownload);
             connect(request, &ResourceRequest::finished, this, &ScriptCache::scriptContentAvailable);
             request->send();
@@ -150,6 +167,7 @@ void ScriptCache::scriptContentAvailable() {
         Lock lock(_containerLock);
         allCallbacks = _contentCallbacks.values(url);
         _contentCallbacks.remove(url);
+        Q_ASSERT(req->getState() == ResourceRequest::Finished);
         success = req->getResult() == ResourceRequest::Success;
 
         if (success) {
@@ -162,9 +180,11 @@ void ScriptCache::scriptContentAvailable() {
         }
     }
 
-    foreach(contentAvailableCallback thisCallback, allCallbacks) {
-        thisCallback(url.toString(), scriptContent, true, success);
-    }
     req->deleteLater();
-}
 
+    if (!DependencyManager::get<ScriptEngines>()->isStopped()) {
+        foreach(contentAvailableCallback thisCallback, allCallbacks) {
+            thisCallback(url.toString(), scriptContent, true, success);
+        }
+    }
+}

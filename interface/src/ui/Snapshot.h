@@ -39,16 +39,10 @@ public:
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
     static Setting::Handle<QString> snapshotsLocation;
+    static Setting::Handle<bool> hasSetSnapshotsLocation;
+    static void uploadSnapshot(const QString& filename);
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
-};
-
-class SnapshotUploader : public QObject{
-    Q_OBJECT
-public:
-    SnapshotUploader(QObject* parent = nullptr) : QObject(parent) {}
-    Q_INVOKABLE QString uploadSnapshot(const QUrl& fileUrl);
-    Q_INVOKABLE QString sendForumPost(const QString& snapshotPath, const QString& notes);
 };
 
 #endif // hifi_Snapshot_h

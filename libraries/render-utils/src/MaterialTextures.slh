@@ -44,7 +44,7 @@ TexMapArray getTexMapArray() {
 <@endfunc@>
 
 
-<@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion)@>
+<@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 
 <@if withAlbedo@>
 uniform sampler2D albedoMap;
@@ -87,10 +87,20 @@ float fetchOcclusionMap(vec2 uv) {
     return texture(occlusionMap, uv).r;
 }
 <@endif@>
+
+<@if withScattering@>
+uniform sampler2D scatteringMap;
+float fetchScatteringMap(vec2 uv) {
+    float scattering = texture(scatteringMap, uv).r; // boolean scattering for now
+    return max(((scattering - 0.1) / 0.9), 0.0);
+    return texture(scatteringMap, uv).r; // boolean scattering for now
+}
+<@endif@>
+
 <@endfunc@>
 
 
-<@func fetchMaterialTextures(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, occlusion)@>
+<@func fetchMaterialTexturesCoord0(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, scattering)@>
 <@if albedo@>
     vec4 <$albedo$> = (((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
 <@endif@>
@@ -106,10 +116,20 @@ float fetchOcclusionMap(vec2 uv) {
 <@if emissive@>
     vec3 <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? fetchEmissiveMap(<$texcoord0$>) : vec3(0.0));
 <@endif@>
-<@if occlusion@>
-    float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord0$>) : 1.0);
+<@if scattering@>
+    float <$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? fetchScatteringMap(<$texcoord0$>) : 0.0);
 <@endif@>
 <@endfunc@>
+
+<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmapVal)@>
+<@if occlusion@>
+    float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord1$>) : 1.0);
+<@endif@>
+<@if lightmapVal@>
+    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
+<@endif@>
+<@endfunc@>
+
 
 
 <@func declareMaterialLightmap()@>
@@ -122,11 +142,6 @@ vec3 fetchLightmapMap(vec2 uv) {
     return (vec3(emissiveParams.x) + emissiveParams.y * texture(emissiveMap, uv).rgb);
 }
 <@endfunc@>
-
-<@func fetchMaterialLightmap(texcoord1, lightmapVal)@>
-    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
-<@endfunc@>
-
 
 <@func tangentToViewSpace(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
 {
@@ -186,6 +201,12 @@ vec3 fetchLightmapMap(vec2 uv) {
 <@func evalMaterialOcclusion(fetchedOcclusion, matKey, occlusion)@>
 {
     <$occlusion$> = <$fetchedOcclusion$>;
+}
+<@endfunc@>
+
+<@func evalMaterialScattering(fetchedScattering, materialScattering, matKey, scattering)@>
+{
+    <$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? <$fetchedScattering$> : <$materialScattering$>);
 }
 <@endfunc@>
 

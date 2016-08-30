@@ -9,13 +9,12 @@
 
 #include "OculusBaseDisplayPlugin.h"
 
-struct SwapFramebufferWrapper;
-using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
-
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
     const QString& getName() const override { return NAME; }
+
+    void init() override;
 
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
@@ -30,9 +29,7 @@ protected:
 
 private:
     static const QString NAME;
-    bool _enablePreview { false };
-    bool _monoPreview { true };
-
-    SwapFboPtr       _sceneFbo;
+    ovrTextureSwapChain _textureSwapChain;
+    gpu::FramebufferPointer _outputFramebuffer;
 };
 

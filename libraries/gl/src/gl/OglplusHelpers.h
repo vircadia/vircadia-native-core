@@ -33,6 +33,13 @@
 #pragma clang diagnostic ignored "-Wpessimizing-move"
 #endif
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#if __GNUC__ >= 5 && __GNUC_MINOR__ >= 1
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+#endif
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -41,6 +48,10 @@
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/shapes/wrapper.hpp>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef _WIN32
 #pragma warning(pop)
@@ -62,10 +73,13 @@ using Mat4Uniform = oglplus::Uniform<mat4>;
 ProgramPtr loadDefaultShader();
 ProgramPtr loadCubemapShader();
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs);
+void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& gs, const std::string& fs);
+
 ShapeWrapperPtr loadSkybox(ProgramPtr program);
 ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect = 1.0f);
-ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 32, int stacks = 32);
-    
+ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 128, int stacks = 128);
+ShapeWrapperPtr loadLaser(const ProgramPtr& program);
+
 
 // A basic wrapper for constructing a framebuffer with a renderbuffer
 // for the depth attachment and an undefined type for the color attachement
@@ -176,6 +190,7 @@ using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
 
 class TextureRecycler {
 public:
+    TextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
     void setSize(const uvec2& size);
     void clear();
     TexturePtr getNextTexture();
@@ -198,4 +213,5 @@ private:
     Map _allTextures;
     Queue _readyTextures;
     uvec2 _size{ 1920, 1080 };
+    bool _useMipmaps;
 };

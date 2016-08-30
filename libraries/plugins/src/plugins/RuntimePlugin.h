@@ -34,3 +34,12 @@ public:
 #define InputProvider_iid "com.highfidelity.plugins.input"
 Q_DECLARE_INTERFACE(InputProvider, InputProvider_iid)
 
+class CodecProvider {
+public:
+    virtual ~CodecProvider() {}
+    virtual CodecPluginList getCodecPlugins() = 0;
+};
+
+#define CodecProvider_iid "com.highfidelity.plugins.codec"
+Q_DECLARE_INTERFACE(CodecProvider, CodecProvider_iid)
+

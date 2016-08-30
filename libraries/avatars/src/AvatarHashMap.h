@@ -19,12 +19,14 @@
 #include <functional>
 #include <memory>
 
+#include <glm/glm.hpp>
+
 #include <DependencyManager.h>
 #include <NLPacket.h>
 #include <Node.h>
 
 #include "AvatarData.h"
-#include <glm/glm.hpp>
+
 
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
@@ -39,6 +41,7 @@ public:
     Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+    int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
 
 signals:
     void avatarAddedEvent(const QUuid& sessionUUID);

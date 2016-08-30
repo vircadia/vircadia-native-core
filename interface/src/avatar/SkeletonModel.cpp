@@ -106,10 +106,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
 
         Rig::HeadParameters headParams;
-        headParams.enableLean = qApp->isHMDMode();
-        headParams.leanSideways = head->getFinalLeanSideways();
-        headParams.leanForward = head->getFinalLeanForward();
-        headParams.torsoTwist = head->getTorsoTwist();
 
         if (qApp->isHMDMode()) {
             headParams.isInHMD = true;
@@ -131,7 +127,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         }
 
-        headParams.leanJointIndex = geometry.leanJointIndex;
         headParams.neckJointIndex = geometry.neckJointIndex;
         headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 

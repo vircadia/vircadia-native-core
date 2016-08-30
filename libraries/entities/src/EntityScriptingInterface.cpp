@@ -32,11 +32,18 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
-    getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
+    getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
+}
+
+void EntityScriptingInterface::resetActivityTracking() {
+    _activityTracking.addedEntityCount = 0;
+    _activityTracking.deletedEntityCount = 0;
+    _activityTracking.editedEntityCount = 0;
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -47,6 +54,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -72,6 +84,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     EntityItemProperties scriptSideProperties = entitySideProperties;
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+    scriptSideProperties.setLocalVelocity(entitySideProperties.getLocalVelocity());
+    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getLocalAngularVelocity());
 
     bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
@@ -82,10 +96,19 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
-    // TODO -- handle velocity and angularVelocity
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity(),
+                                                                      entitySideProperties.getParentID(),
+                                                                      entitySideProperties.getParentJointIndex(),
+                                                                      success);
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                                                    entitySideProperties.getParentID(),
+                                                                                    entitySideProperties.getParentJointIndex(),
+                                                                                    success);
 
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
+    scriptSideProperties.setVelocity(worldVelocity);
+    scriptSideProperties.setAngularVelocity(worldAngularVelocity);
 
     return scriptSideProperties;
 }
@@ -119,13 +142,43 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
         entitySideProperties.setRotation(localRotation);
     }
 
+    if (scriptSideProperties.localVelocityChanged()) {
+        entitySideProperties.setVelocity(scriptSideProperties.getLocalVelocity());
+    } else if (scriptSideProperties.velocityChanged()) {
+        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity(),
+                                                                          entitySideProperties.getParentID(),
+                                                                          entitySideProperties.getParentJointIndex(),
+                                                                          success);
+        entitySideProperties.setVelocity(localVelocity);
+    }
+
+    if (scriptSideProperties.localAngularVelocityChanged()) {
+        entitySideProperties.setAngularVelocity(scriptSideProperties.getLocalAngularVelocity());
+    } else if (scriptSideProperties.angularVelocityChanged()) {
+        glm::vec3 localAngularVelocity =
+            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                           entitySideProperties.getParentID(),
+                                                           entitySideProperties.getParentJointIndex(),
+                                                           success);
+        entitySideProperties.setAngularVelocity(localAngularVelocity);
+    }
+
     return entitySideProperties;
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
+
+    if (clientOnly) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesWithSimID.setClientOnly(clientOnly);
+        propertiesWithSimID.setOwningAvatarID(myNodeID);
+    }
 
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -166,6 +219,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
+                propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
@@ -177,17 +231,25 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     if (success) {
         emit debitEnergySource(cost);
         queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
-    }
 
-    return id;
+        return id;
+    } else {
+        return QUuid();
+    }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
+                                               bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
     properties.setModelURL(modelUrl);
+    properties.setShapeTypeFromString(shapeType);
+    properties.setDynamic(dynamic);
     properties.setPosition(position);
+    properties.setGravity(gravity);
     return addEntity(properties);
 }
 
@@ -243,6 +305,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    _activityTracking.editedEntityCount++;
+
     EntityItemProperties properties = scriptSideProperties;
 
     auto dimensions = properties.getDimensions();
@@ -272,13 +336,21 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (!entity) {
+            return;
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+            // don't edit other avatar's avatarEntities
+            return;
+        }
+
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (!entity) {
-                return;
-            }
+
             //existing entity, retrieve old velocity for check down below
             oldVelocity = entity->getVelocity().length();
 
@@ -296,6 +368,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
+        properties.setClientOnly(entity->getClientOnly());
+        properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;
@@ -353,6 +427,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
+            properties.setLastEdited(entity->getLastEdited());
 
             // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
             // if they've changed.
@@ -375,6 +450,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    _activityTracking.deletedEntityCount++;
+
     EntityItemID entityID(id);
     bool shouldDelete = true;
 
@@ -383,6 +460,14 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
+
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                    // don't delete other avatar's avatarEntities
+                    shouldDelete = false;
+                    return;
+                }
 
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -771,6 +856,11 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         return false;
     }
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
+    EntityItemProperties properties;
+
     EntityItemPointer entity;
     bool doTransmit = false;
     _entityTree->withWriteLock([&] {
@@ -786,15 +876,20 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+            return;
+        }
+
         doTransmit = actor(simulation, entity);
         if (doTransmit) {
+            properties.setClientOnly(entity->getClientOnly());
+            properties.setOwningAvatarID(entity->getOwningAvatarID());
             _entityTree->entityChanged(entity);
         }
     });
 
     // transmit the change
     if (doTransmit) {
-        EntityItemProperties properties;
         _entityTree->withReadLock([&] {
             properties = entity->getProperties();
         });
@@ -1086,6 +1181,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
+    return result;
+}
+
 QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {
     QVector<QUuid> result;
     if (!_entityTree) {
@@ -1111,6 +1227,65 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
             }
         });
     });
+    return result;
+}
+
+QUuid EntityScriptingInterface::getKeyboardFocusEntity() const {
+    QUuid result;
+    QMetaObject::invokeMethod(qApp, "getKeyboardFocusEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
+    return result;
+}
+
+void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
+    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::QueuedConnection, Q_ARG(QUuid, id));
+}
+
+void EntityScriptingInterface::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMousePressOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseMoveOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickDownOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoldingClickOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverEnterEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverOverEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverLeaveEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(id));
+            if (entity) {
+                result = entity->wantsHandControllerPointerEvents();
+            }
+        });
+    }
     return result;
 }
 

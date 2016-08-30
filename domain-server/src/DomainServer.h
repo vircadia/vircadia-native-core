@@ -26,6 +26,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainGatekeeper.h"
+#include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
@@ -40,11 +41,17 @@ class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
 public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
-    
+
+    enum DomainType {
+        NonMetaverse,
+        MetaverseDomain,
+        MetaverseTemporaryDomain
+    };
+
     static int const EXIT_CODE_REBOOT;
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 public slots:
     /// Called by NodeList to inform us a node has been added
@@ -63,7 +70,7 @@ public slots:
     void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
-    
+
 private slots:
     void aboutToQuit();
 
@@ -71,13 +78,15 @@ private slots:
     void sendPendingTransactionsToServer();
 
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
+    void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
     void sendHeartbeatToIceServer();
-    
+
     void handleConnectedNode(SharedNodePointer newNode);
 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
     void handleTempDomainError(QNetworkReply& requestReply);
+
+    void handleMetaverseHeartbeatError(QNetworkReply& requestReply);
 
     void queuedQuit(QString quitMessage, int exitCode);
 
@@ -91,23 +100,32 @@ private slots:
 
 signals:
     void iceServerChanged();
-    
+    void userConnected();
+    void userDisconnected();
+
 private:
-    void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    const QUuid& getID();
+
+    void setupNodeListAndAssignments();
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
 
-    void optionallyGetTemporaryName(const QStringList& arguments);
+    void getTemporaryName(bool force = false);
+
+    static bool packetVersionMatch(const udt::Packet& packet);
 
     bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();
     void setupICEHeartbeatForFullNetworking();
-    void sendHeartbeatToDataServer(const QString& networkAddress);
+    void setupHeartbeatToMetaverse();
+    void sendHeartbeatToMetaverse(const QString& networkAddress);
 
     void randomizeICEServerAddress(bool shouldTriggerHostLookup);
 
     unsigned int countConnectedUsers();
+
+    void handleKillNode(SharedNodePointer nodeToKill);
 
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
@@ -124,7 +142,7 @@ private:
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
-    
+
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
 
@@ -139,7 +157,9 @@ private:
 
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-    
+
+    void setupGroupCacheRefresh();
+
     DomainGatekeeper _gatekeeper;
 
     HTTPManager _httpManager;
@@ -168,7 +188,11 @@ private:
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
-    QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
+    // These will be parented to this, they are not dangling
+    DomainMetadata* _metadata { nullptr };
+    QTimer* _iceHeartbeatTimer { nullptr };
+    QTimer* _metaverseHeartbeatTimer { nullptr };
+    QTimer* _metaverseGroupCacheTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -177,9 +201,10 @@ private:
     int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
 
-    bool _hasAccessToken { false };
+    DomainType _type { DomainType::NonMetaverse };
 
     friend class DomainGatekeeper;
+    friend class DomainMetadata;
 };
 
 

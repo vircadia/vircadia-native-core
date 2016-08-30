@@ -49,6 +49,7 @@
 #include "BatchLoader.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
+#include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptCache.h"
@@ -65,7 +66,7 @@
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
-static int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
+int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     QString message = "";
@@ -294,13 +295,6 @@ void ScriptEngine::waitTillDoneRunning() {
 
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {
-            // NOTE: This will be called on the main application thread from stopAllScripts.
-            //       The application thread will need to continue to process events, because
-            //       the scripts will likely need to marshall messages across to the main thread, e.g.
-            //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
-            QCoreApplication::processEvents();
-
             // If the final evaluation takes too long, then tell the script engine to stop running
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             static const auto MAX_SCRIPT_EVALUATION_TIME = USECS_PER_SECOND;
@@ -324,6 +318,17 @@ void ScriptEngine::waitTillDoneRunning() {
                 if (workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
                     workerThread->terminate();
                 }
+            }
+
+            // NOTE: This will be called on the main application thread from stopAllScripts.
+            //       The application thread will need to continue to process events, because
+            //       the scripts will likely need to marshall messages across to the main thread, e.g.
+            //       if they access Settings or Menu in any of their shutdown code. So:
+            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            QCoreApplication::processEvents();
+            // In some cases (debugging), processEvents may give the thread enough time to shut down, so recheck it.
+            if (!thread()) {
+                break;
             }
 
             // Avoid a pure busy wait
@@ -461,6 +466,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(this, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
     qScriptRegisterSequenceMetaType<QVector<EntityItemID>>(this);
 
@@ -496,6 +502,9 @@ void ScriptEngine::init() {
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
+
+    registerGlobalObject("File", new FileScriptingInterface(this));
+    
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
@@ -718,9 +727,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        using MouseHandler = std::function<void(const EntityItemID&, const MouseEvent&)>;
-        auto makeMouseHandler = [this](QString eventName) -> MouseHandler {
-            return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
+        using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
+        auto makePointerHandler = [this](QString eventName) -> PointerHandler {
+            return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
@@ -736,17 +745,17 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makeMouseHandler("mousePressOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makeMouseHandler("mouseMoveOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makeMouseHandler("mouseReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makePointerHandler("mousePressOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makePointerHandler("mouseMoveOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makePointerHandler("mouseReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makeMouseHandler("clickDownOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makeMouseHandler("holdingClickOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makeMouseHandler("clickReleaseOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makePointerHandler("clickDownOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makePointerHandler("holdingClickOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makePointerHandler("clickReleaseOnEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makeMouseHandler("hoverEnterEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makePointerHandler("hoverEnterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makePointerHandler("hoverOverEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makePointerHandler("hoverLeaveEntity"));
 
         connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, makeCollisionHandler("collisionWithEntity"));
     }
@@ -823,24 +832,47 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
+    std::chrono::microseconds totalUpdates;
+
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
+        auto beforeSleep = clock::now();
+
         // Throttle to SCRIPT_FPS
+        // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will 
+        // calculate a sleepUntil to be the time from our start time until the original target
+        // sleepUntil for this frame.
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
-        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
-        std::this_thread::sleep_until(sleepTime);
+        clock::time_point targetSleepUntil(startTime + thisFrame++ * FRAME_DURATION);
+
+        // However, if our sleepUntil is not at least our average update time into the future
+        // it means our script is taking too long in it's updates, and we want to punish the
+        // script a little bit. So we will force the sleepUntil to be at least our averageUpdate
+        // time into the future.
+        auto averageUpdate = totalUpdates / thisFrame;
+        auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageUpdate);
+
+        // We don't want to actually sleep for too long, because it causes our scripts to hang 
+        // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
+        // purgatory, constantly checking to see if our script was asked to end
+        while (!_isFinished && clock::now() < sleepUntil) {
+            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
+            std::this_thread::sleep_until(thisSleepUntil);
+        }
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
-            auto now = clock::now();
-            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            auto actuallySleptUntil = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(actuallySleptUntil - startTime).count();
             if (seconds > 0) { // avoid division by zero and time travel
                 uint64_t fps = thisFrame / seconds;
                 // Overreporting artificially reduces the reported rate
                 if (thisFrame % SCRIPT_FPS == 0) {
                     qCDebug(scriptengine) <<
                         "Frame:" << thisFrame <<
-                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(actuallySleptUntil - beforeSleep).count() <<
+                        "Avg Updates (us):" << averageUpdate.count() <<
                         "FPS:" << fps;
                 }
             }
@@ -869,10 +901,14 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
+        if (_emitScriptUpdates() && _lastUpdate < now) {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
+                auto preUpdate = clock::now();
                 emit update(deltaTime);
+                auto postUpdate = clock::now();
+                auto elapsed = (postUpdate - preUpdate);
+                totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
             }
         }
         _lastUpdate = now;
@@ -937,7 +973,13 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 
 }
 
-void ScriptEngine::stop() {
+void ScriptEngine::stop(bool marshal) {
+    _isStopping = true; // this can be done on any thread
+
+    if (marshal) {
+        QMetaObject::invokeMethod(this, "stop");
+        return;
+    }
     if (!_isFinished) {
         _isFinished = true;
         emit runningStateChanged();
@@ -1508,7 +1550,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1518,12 +1560,12 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
-                                  Q_ARG(const MouseEvent&, event));
+                                  Q_ARG(const PointerEvent&, event));
         return;
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
+        "entityID:" << entityID << "methodName:" << methodName << "event: pointerEvent";
 #endif
 
     refreshFileScript(entityID);

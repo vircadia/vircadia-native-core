@@ -18,6 +18,7 @@
 
 #include "UserActivityLogger.h"
 #include <DependencyManager.h>
+#include "AddressManager.h"
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
@@ -52,7 +53,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qCDebug(networking) << "Logging activity" << action;
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
@@ -125,6 +125,19 @@ void UserActivityLogger::changedDomain(QString domainURL) {
 }
 
 void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceName) {
+    static QStringList DEVICE_BLACKLIST = {
+        "Desktop",
+        "NullDisplayPlugin",
+        "3D TV - Side by Side Stereo",
+        "3D TV - Interleaved",
+
+        "Keyboard/Mouse"
+    };
+
+    if (DEVICE_BLACKLIST.contains(deviceName)) {
+        return;
+    }
+
     const QString ACTION_NAME = "connected_device";
     QJsonObject actionDetails;
     const QString TYPE_OF_DEVICE = "type_of_device";
@@ -148,12 +161,37 @@ void UserActivityLogger::loadedScript(QString scriptName) {
 
 }
 
-void UserActivityLogger::wentTo(QString destinationType, QString destinationName) {
+void UserActivityLogger::wentTo(AddressManager::LookupTrigger lookupTrigger, QString destinationType, QString destinationName) {
+    // Only accept these types of triggers. Other triggers are usually used internally in AddressManager.
+    QString trigger;
+    switch (lookupTrigger) {
+        case AddressManager::UserInput:
+            trigger = "UserInput";
+            break;
+        case AddressManager::Back:
+            trigger = "Back";
+            break;
+        case AddressManager::Forward:
+            trigger = "Forward";
+            break;
+        case AddressManager::StartupFromSettings:
+            trigger = "StartupFromSettings";
+            break;
+        case AddressManager::Suggestions:
+            trigger = "Suggestions";
+            break;
+        default:
+            return;
+    }
+
+
     const QString ACTION_NAME = "went_to";
     QJsonObject actionDetails;
+    const QString TRIGGER_TYPE_KEY = "trigger";
     const QString DESTINATION_TYPE_KEY = "destination_type";
     const QString DESTINATION_NAME_KEY = "detination_name";
     
+    actionDetails.insert(TRIGGER_TYPE_KEY, trigger);
     actionDetails.insert(DESTINATION_TYPE_KEY, destinationType);
     actionDetails.insert(DESTINATION_NAME_KEY, destinationName);
     

@@ -40,7 +40,6 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
@@ -52,18 +51,22 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-
     ModelPointer getModel(EntityTreeRenderer* renderer);
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
 
+    virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() override;
-    virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
+
+    void setCollisionShape(const btCollisionShape* shape) override;
 
     virtual bool contains(const glm::vec3& point) const override;
+
+    virtual bool shouldBePhysical() const override;
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
@@ -91,10 +94,14 @@ public:
 
     render::ItemID getMetaRenderItem() { return _myMetaItem; }
 
+    // Transparency is handled in ModelMeshPartPayload
+    bool isTransparent() override { return false; }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
+    GeometryResource::Pointer _compoundShapeResource;
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
@@ -103,18 +110,17 @@ private:
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
-    QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
 
     AnimationPropertyGroup _renderAnimationProperties;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
-    bool _showCollisionHull = false;
-
     bool getAnimationFrame();
 
     bool _needsJointSimulation { false };
+    bool _showCollisionGeometry { false };
+    const void* _collisionMeshKey { nullptr };
 };
 
 #endif // hifi_RenderableModelEntityItem_h

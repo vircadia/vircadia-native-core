@@ -15,7 +15,7 @@ WebEngineView {
     id: root
     property var newUrl;
 
-    profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
+    profile.httpUserAgent: "Mozilla/5.0 Chrome/38.0 (HighFidelityInterface)"
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
@@ -24,6 +24,8 @@ WebEngineView {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
     }
+
+
 
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
     Timer {
@@ -35,7 +37,6 @@ WebEngineView {
     }
 
     onUrlChanged: {
-        console.log("Url changed to " + url);
         var originalUrl = url.toString();
         newUrl = urlHandler.fixupUrl(originalUrl).toString();
         if (newUrl !== originalUrl) {
@@ -46,10 +47,6 @@ WebEngineView {
             }
             urlReplacementTimer.start();
         }
-    }
-
-    onFeaturePermissionRequested: {
-        grantFeaturePermission(securityOrigin, feature, true);
     }
 
     onLoadingChanged: {
@@ -64,11 +61,6 @@ WebEngineView {
         }
     }
 
-    onNewViewRequested:{
-            var component = Qt.createComponent("../Browser.qml");
-            var newWindow = component.createObject(desktop);
-            request.openIn(newWindow.webView)
-    }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521

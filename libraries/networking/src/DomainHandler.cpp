@@ -14,6 +14,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
 
+#include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
@@ -28,17 +29,10 @@
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
-    _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _assignmentUUID(),
-    _connectionToken(),
-    _iceDomainID(),
-    _iceClientID(),
-    _iceServerSockAddr(),
     _icePeer(this),
-    _isConnected(false),
-    _settingsObject(),
-    _settingsTimer(this)
+    _settingsTimer(this),
+    _apiRefreshTimer(this)
 {
     _sockAddr.setObjectName("DomainServer");
 
@@ -49,6 +43,16 @@ DomainHandler::DomainHandler(QObject* parent) :
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
     _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
     connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
+
+    // setup the API refresh timer for auto connection information refresh from API when failing to connect
+    const int API_REFRESH_TIMEOUT_MSEC = 2500;
+    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC);
+
+    auto addressManager = DependencyManager::get<AddressManager>();
+    connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);
+
+    // stop the refresh timer if we connect to a domain
+    connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
 }
 
 void DomainHandler::disconnect() {
@@ -97,6 +101,9 @@ void DomainHandler::softReset() {
 
     // cancel the failure timeout for any pending requests for settings
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
+
+    // restart the API refresh timer in case we fail to connect and need to refresh information
+    QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
 }
 
 void DomainHandler::hardReset() {
@@ -105,13 +112,14 @@ void DomainHandler::hardReset() {
     softReset();
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
-    _iceDomainID = QUuid();
+    _pendingDomainID = QUuid();
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
 
-    _hasCheckedForAccessToken = false;
     _domainConnectionRefusals.clear();
+
+    _hasCheckedForAccessToken = false;
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
@@ -140,7 +148,9 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
+void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const QUuid& domainID) {
+
+    _pendingDomainID = domainID;
 
     if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
@@ -172,14 +182,15 @@ void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
-    if (id != _uuid) {
+
+    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
         
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
         
-        _iceDomainID = id;
+        _pendingDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~HifiSockAddr();
@@ -253,6 +264,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
 
             // we've connected to new domain - time to ask it for global settings
             requestDomainSettings();
+
         } else {
             emit disconnectedFromDomain();
         }
@@ -303,6 +315,9 @@ void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> me
     qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {
+        // we're hearing back from this domain-server, no need to refresh API information
+        _apiRefreshTimer.stop();
+
         // for now we're unsafely assuming this came back from the domain
         if (senderSockAddr == _icePeer.getLocalSocket()) {
             qCDebug(networking) << "Connecting to domain using local socket";
@@ -331,9 +346,12 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
         qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
-        // bail on processing this packet if our ice peer doesn't have sockets
+        // bail on processing this packet if our ice peer already has sockets
         return;
     }
+
+    // start or restart the API refresh timer now that we have new information
+    _apiRefreshTimer.start();
 
     QDataStream iceResponseStream(message->getMessage());
 
@@ -341,7 +359,7 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
 
-    if (_icePeer.getUUID() != _iceDomainID) {
+    if (_icePeer.getUUID() != _pendingDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
         _icePeer.reset();
     } else {
@@ -355,34 +373,61 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
+    switch (reasonCode) {
+        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::NotAuthorized:
+            return true;
+    
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
+    }
+    return false;
+}
+
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
+    // we're hearing from this domain-server, don't need to refresh API info
+    _apiRefreshTimer.stop();
+
     // Read deny reason from packet
+    uint8_t reasonCodeWire;
+
+    message->readPrimitive(&reasonCodeWire);
+    ConnectionRefusedReason reasonCode = static_cast<ConnectionRefusedReason>(reasonCodeWire);
     quint16 reasonSize;
     message->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
+    auto reasonText = message->readWithoutCopy(reasonSize);
+    QString reasonMessage = QString::fromUtf8(reasonText);
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reason;
-    qCWarning(networking) << "Make sure you are logged in.";
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
+    if (!_domainConnectionRefusals.contains(reasonMessage)) {
+        _domainConnectionRefusals.insert(reasonMessage);
+        emit domainConnectionRefused(reasonMessage, (int)reasonCode);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    if (!_hasCheckedForAccessToken) {
-        accountManager->checkAndSignalForAccessToken();
-        _hasCheckedForAccessToken = true;
-    }
+    // Some connection refusal reasons imply that a login is required. If so, suggest a new login
+    if (reasonSuggestsLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in.";
 
-    static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+        if (!_hasCheckedForAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForAccessToken = true;
+        }
 
-    // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
-    if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
-        accountManager->generateNewUserKeypair();
-        _connectionDenialsSinceKeypairRegen = 0;
+        static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+        // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
+        if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
+            accountManager->generateNewUserKeypair();
+            _connectionDenialsSinceKeypairRegen = 0;
+        }
     }
 }

@@ -40,9 +40,9 @@ public slots:
 
 protected:
     void setAndSelectCommand(const QString& command);
-    virtual bool eventFilter(QObject* sender, QEvent* event);
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-    virtual void showEvent(QShowEvent* event);
+    virtual bool eventFilter(QObject* sender, QEvent* event) override;
+    virtual void mouseReleaseEvent(QMouseEvent* event) override;
+    virtual void showEvent(QShowEvent* event) override;
 
 protected slots:
     void scrollToBottom();

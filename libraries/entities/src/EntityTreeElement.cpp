@@ -55,7 +55,7 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
 
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-            = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+            = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
         qCDebug(entities) << "    encode data:" << entityTreeElementExtraEncodeData;
     } else {
         qCDebug(entities) << "    encode data: MISSING!!";
@@ -97,7 +97,7 @@ bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamPa
 
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
 
         bool childCompleted = entityTreeElementExtraEncodeData->childCompleted[childIndex];
 
@@ -126,7 +126,7 @@ bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const
 
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
 
         // If we know that ALL subtrees below us have already been recursed, then we don't
         // need to recurse this child.
@@ -140,7 +140,7 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
-                        = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+                        = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
 
         if (childAppendState == OctreeElement::COMPLETED) {
             entityTreeElementExtraEncodeData->childCompleted[childIndex] = true;
@@ -165,7 +165,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
     assert(extraEncodeData->contains(this));
 
     EntityTreeElementExtraEncodeData* thisExtraEncodeData
-                = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+                = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
 
     // Note: this will be called when OUR element has finished running through encodeTreeBitstreamRecursion()
     // which means, it's possible that our parent element hasn't finished encoding OUR data... so
@@ -189,7 +189,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
             // encoud our parent... this might happen.
             if (extraEncodeData->contains(childElement.get())) {
                 EntityTreeElementExtraEncodeData* childExtraEncodeData
-                    = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement.get()));
+                    = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[childElement.get()]);
 
                 if (wantDebug) {
                     qCDebug(entities) << "checking child: " << childElement->_cube;
@@ -241,7 +241,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     bool hadElementExtraData = false;
     if (extraEncodeData && extraEncodeData->contains(this)) {
         entityTreeElementExtraEncodeData =
-            static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+            static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
         hadElementExtraData = true;
     } else {
         // if there wasn't one already, then create one
@@ -268,7 +268,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     //assert(extraEncodeData);
     //assert(extraEncodeData->contains(this));
-    //entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
+    //entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[this]);
 
     LevelDetails elementLevel = packetData->startLevel();
 
@@ -634,8 +634,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                     }
                 } else {
                     // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
-                    // Never intersect with particle effect entities
-                    if (localDistance < distance && EntityTypes::getEntityTypeName(entity->getType()) != "ParticleEffect") {
+                    // Never intersect with particle entities
+                    if (localDistance < distance && entity->getType() != EntityTypes::ParticleEffect) {
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = localSurfaceNormal;

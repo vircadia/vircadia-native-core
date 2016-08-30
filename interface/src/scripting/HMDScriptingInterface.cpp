@@ -15,10 +15,14 @@
 
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
+#include <OffscreenUi.h>
 #include <avatar/AvatarManager.h>
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
+    connect(qApp, &Application::activeDisplayPluginChanged, [this]{
+        emit displayModeChanged(isHMDMode());
+    });
 }
 
 glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
@@ -104,4 +108,34 @@ QString HMDScriptingInterface::preferredAudioInput() const {
 
 QString HMDScriptingInterface::preferredAudioOutput() const {
     return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
+}
+
+bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+    return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
+        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, direction);
+}
+
+void HMDScriptingInterface::disableHandLasers(int hands) const {
+    setHandLasers(hands, false, vec4(0), vec3(0));
+}
+
+bool HMDScriptingInterface::suppressKeyboard() {
+    return qApp->getActiveDisplayPlugin()->suppressKeyboard();
+}
+
+void HMDScriptingInterface::unsuppressKeyboard() {
+    qApp->getActiveDisplayPlugin()->unsuppressKeyboard();
+}
+
+bool HMDScriptingInterface::isKeyboardVisible() {
+    return qApp->getActiveDisplayPlugin()->isKeyboardVisible();
+}
+
+void HMDScriptingInterface::centerUI() {
+    QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
 }

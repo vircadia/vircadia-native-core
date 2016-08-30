@@ -163,8 +163,8 @@ void Rig::destroyAnimGraph() {
 }
 
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
-
     _geometryOffset = AnimPose(geometry.offset);
+    _invGeometryOffset = _geometryOffset.inverse();
     setModelOffset(modelOffset);
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
@@ -193,6 +193,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
 void Rig::reset(const FBXGeometry& geometry) {
     _geometryOffset = AnimPose(geometry.offset);
+    _invGeometryOffset = _geometryOffset.inverse();
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
     _internalPoseSet._relativePoses.clear();
@@ -272,24 +273,6 @@ void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
     }
 }
 
-bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
-    if (isIndexValid(index)) {
-        rotation = _internalPoseSet._relativePoses[index].rot;
-        return !isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
-    } else {
-        return false;
-    }
-}
-
-bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
-    if (isIndexValid(index)) {
-        translation = _internalPoseSet._relativePoses[index].trans;
-        return !isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
-    } else {
-        return false;
-    }
-}
-
 void Rig::clearJointState(int index) {
     if (isIndexValid(index)) {
         _internalPoseSet._overrideFlags[index] = false;
@@ -309,6 +292,19 @@ void Rig::clearJointAnimationPriority(int index) {
     if (isIndexValid(index)) {
         _internalPoseSet._overrideFlags[index] = false;
         _internalPoseSet._overridePoses[index] = _animSkeleton->getRelativeDefaultPose(index);
+    }
+}
+
+void Rig::clearIKJointLimitHistory() {
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            // only report clip nodes as valid roles.
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->clearIKJointLimitHistory();
+            }
+            return true;
+        });
     }
 }
 
@@ -947,11 +943,6 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 }
 
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
-    if (params.enableLean) {
-        updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
-    } else {
-        _animVars.unset("lean");
-    }
     updateNeckJoint(params.neckJointIndex, params);
 
     _animVars.set("isTalking", params.isTalking);
@@ -968,15 +959,6 @@ void Rig::updateFromEyeParameters(const EyeParameters& params) {
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
 static const glm::vec3 Y_AXIS(0.0f, 1.0f, 0.0f);
 static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
-
-void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
-    if (isIndexValid(index)) {
-        glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
-                            glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
-                            glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
-        _animVars.set("lean", absRot);
-    }
-}
 
 void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                   glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const {
@@ -1229,24 +1211,89 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 }
 
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
+
+    const AnimPose geometryToRigPose(_geometryToRigTransform);
+
     jointDataVec.resize((int)getJointStateCount());
     for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
-        data.rotationSet |= getJointStateRotation(i, data.rotation);
-        // geometry offset is used here so that translations are in meters.
-        // this is what the avatar mixer expects
-        data.translationSet |= getJointStateTranslation(i, data.translation);
-        data.translation = _geometryOffset * data.translation;
+        if (isIndexValid(i)) {
+            // rotations are in absolute rig frame.
+            glm::quat defaultAbsRot = geometryToRigPose.rot * _animSkeleton->getAbsoluteDefaultPose(i).rot;
+            data.rotation = _internalPoseSet._absolutePoses[i].rot;
+            data.rotationSet = !isEqual(data.rotation, defaultAbsRot);
+
+            // translations are in relative frame but scaled so that they are in meters,
+            // instead of geometry units.
+            glm::vec3 defaultRelTrans = _geometryOffset.scale * _animSkeleton->getRelativeDefaultPose(i).trans;
+            data.translation = _geometryOffset.scale * _internalPoseSet._relativePoses[i].trans;
+            data.translationSet = !isEqual(data.translation, defaultRelTrans);
+        } else {
+            data.translationSet = false;
+            data.rotationSet = false;
+        }
     }
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    AnimPose invGeometryOffset = _geometryOffset.inverse();
-    for (int i = 0; i < jointDataVec.size(); i++) {
-        const JointData& data = jointDataVec.at(i);
-        setJointRotation(i, data.rotationSet, data.rotation, 1.0f);
-        // geometry offset is used here to undo the fact that avatar mixer translations are in meters.
-        setJointTranslation(i, data.translationSet, invGeometryOffset * data.translation, 1.0f);
+    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
+
+        // transform all the default poses into rig space.
+        const AnimPose geometryToRigPose(_geometryToRigTransform);
+        std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
+
+        // start with the default rotations in absolute rig frame
+        std::vector<glm::quat> rotations;
+        rotations.reserve(_animSkeleton->getAbsoluteDefaultPoses().size());
+        for (auto& pose : _animSkeleton->getAbsoluteDefaultPoses()) {
+            rotations.push_back(geometryToRigPose.rot * pose.rot);
+        }
+
+        // start translations in relative frame but scaled to meters.
+        std::vector<glm::vec3> translations;
+        translations.reserve(_animSkeleton->getRelativeDefaultPoses().size());
+        for (auto& pose : _animSkeleton->getRelativeDefaultPoses()) {
+            translations.push_back(_geometryOffset.scale * pose.trans);
+        }
+
+        ASSERT(overrideFlags.size() == rotations.size());
+
+        // copy over rotations from the jointDataVec, which is also in absolute rig frame
+        for (int i = 0; i < jointDataVec.size(); i++) {
+            if (isIndexValid(i)) {
+                const JointData& data = jointDataVec.at(i);
+                if (data.rotationSet) {
+                    overrideFlags[i] = true;
+                    rotations[i] = data.rotation;
+                }
+                if (data.translationSet) {
+                    overrideFlags[i] = true;
+                    translations[i] = data.translation;
+                }
+            }
+        }
+
+        ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
+
+        // convert resulting rotations into geometry space.
+        const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
+        for (auto& rot : rotations) {
+            rot = rigToGeometryRot * rot;
+        }
+
+        // convert all rotations from absolute to parent relative.
+        _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
+
+        // copy the geometry space parent relative poses into _overridePoses
+        for (int i = 0; i < jointDataVec.size(); i++) {
+            if (overrideFlags[i]) {
+                _internalPoseSet._overrideFlags[i] = true;
+                _internalPoseSet._overridePoses[i].scale = Vectors::ONE;
+                _internalPoseSet._overridePoses[i].rot = rotations[i];
+                // scale translations from meters back into geometry units.
+                _internalPoseSet._overridePoses[i].trans = _invGeometryOffset.scale * translations[i];
+            }
+        }
     }
 }
 

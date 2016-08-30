@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Context.h"
-
+#include "Frame.h"
 using namespace gpu;
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
@@ -18,7 +18,7 @@ std::once_flag Context::_initialized;
 
 Context::Context() {
     if (_createBackendCallback) {
-        _backend.reset(_createBackendCallback());
+        _backend = _createBackendCallback();
     }
 }
 
@@ -28,6 +28,57 @@ Context::Context(const Context& context) {
 Context::~Context() {
 }
 
+void Context::beginFrame(const glm::mat4& renderPose) {
+    assert(!_frameActive);
+    _frameActive = true;
+    _currentFrame = std::make_shared<Frame>();
+    _currentFrame->pose = renderPose;
+}
+
+void Context::appendFrameBatch(Batch& batch) {
+    if (!_frameActive) {
+        qWarning() << "Batch executed outside of frame boundaries";
+        return;
+    }
+    _currentFrame->batches.push_back(batch);
+}
+
+FramePointer Context::endFrame() {
+    assert(_frameActive);
+    auto result = _currentFrame;
+    _currentFrame.reset();
+    _frameActive = false;
+
+    result->stereoState = _stereo;
+    result->finish();
+    return result;
+}
+
+void Context::executeBatch(Batch& batch) const {
+    batch.flush();
+    _backend->render(batch);
+}
+
+void Context::recycle() const {
+    _backend->recycle();
+}
+
+void Context::consumeFrameUpdates(const FramePointer& frame) const {
+    frame->preRender();
+}
+
+void Context::executeFrame(const FramePointer& frame) const {
+    // FIXME? probably not necessary, but safe
+    consumeFrameUpdates(frame);
+    _backend->setStereoState(frame->stereoState);
+    {
+        // Execute the frame rendering commands
+        for (auto& batch : frame->batches) {
+            _backend->render(batch);
+        }
+    }
+}
+
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
@@ -35,45 +86,41 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     return false;
 }
 
-void Context::render(Batch& batch) {
-    PROFILE_RANGE(__FUNCTION__);
-    _backend->render(batch);
-}
-
 void Context::enableStereo(bool enable) {
-    _backend->enableStereo(enable);
+    _stereo._enable = enable;
 }
 
 bool Context::isStereo() {
-    return _backend->isStereo();
+    return _stereo._enable;
 }
 
 void Context::setStereoProjections(const mat4 eyeProjections[2]) {
-    _backend->setStereoProjections(eyeProjections);
+    for (int i = 0; i < 2; ++i) {
+        _stereo._eyeProjections[i] = eyeProjections[i];
+    }
 }
 
-void Context::setStereoViews(const mat4 eyeViews[2]) {
-    _backend->setStereoViews(eyeViews);
+void Context::setStereoViews(const mat4 views[2]) {
+    for (int i = 0; i < 2; ++i) {
+        _stereo._eyeViews[i] = views[i];
+    }
 }
 
 void Context::getStereoProjections(mat4* eyeProjections) const {
-    _backend->getStereoProjections(eyeProjections);
+    for (int i = 0; i < 2; ++i) {
+        eyeProjections[i] = _stereo._eyeProjections[i];
+    }
 }
 
 void Context::getStereoViews(mat4* eyeViews) const {
-    _backend->getStereoViews(eyeViews);
-}
-
-
-void Context::syncCache() {
-    PROFILE_RANGE(__FUNCTION__);
-    _backend->syncCache();
+    for (int i = 0; i < 2; ++i) {
+        eyeViews[i] = _stereo._eyeViews[i];
+    }
 }
 
 void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
-
 
 void Context::getStats(ContextStats& stats) const {
     _backend->getStats(stats);
@@ -91,6 +138,9 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     Mat4 viewUntranslated = _view;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
     _projectionViewUntranslated = _projection * viewUntranslated;
+
+    _stereoInfo = Vec4(0.0f);
+
     return *this;
 }
 
@@ -100,11 +150,13 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
     if (!_stereo._skybox) {
         offsetTransform.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
     } else {
-       // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
+        // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
     result.recomputeDerived(offsetTransform);
- 
+
+    result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
+
     return result;
 }
 
@@ -120,7 +172,7 @@ std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
 void Context::incrementBufferGPUCount() {
     _bufferGPUCount++;
 }
-void Context::decrementBufferGPUCount() { 
+void Context::decrementBufferGPUCount() {
     _bufferGPUCount--;
 }
 void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {

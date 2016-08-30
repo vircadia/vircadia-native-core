@@ -25,6 +25,7 @@
 
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),
+    audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats()
 {
@@ -37,6 +38,14 @@ AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
 
     _frameToSendStats = distribution(numberGenerator);
 }
+
+AudioMixerClientData::~AudioMixerClientData() {
+    if (_codec) {
+        _codec->releaseDecoder(_decoder);
+        _codec->releaseEncoder(_encoder);
+    }
+}
+
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
@@ -100,9 +109,15 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
+                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
+                avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
+                qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
+
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::handleMismatchAudioFormat);
+
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
-                    std::unique_ptr<PositionalAudioStream> { new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()) }
+                    std::unique_ptr<PositionalAudioStream> { avatarAudioStream }
                 );
 
                 micStreamIt = emplaced.first;
@@ -115,7 +130,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             isMicStream = true;
         } else if (packetType == PacketType::InjectAudio) {
             // this is injected audio
-
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));
             QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -129,9 +143,16 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
+                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings());
+
+#if INJECTORS_SUPPORT_CODECS
+                injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
+                qDebug() << "creating new injectorStream... codec:" << _selectedCodecName;
+#endif
+
                 auto emplaced = _audioStreams.emplace(
                     streamIdentifier,
-                    std::unique_ptr<InjectedAudioStream> { new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()) }
+                    std::unique_ptr<InjectedAudioStream> { injectorStream }
                 );
 
                 streamIt = emplaced.first;
@@ -322,4 +343,58 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     result["injectors"] = injectorArray;
 
     return result;
+}
+
+void AudioMixerClientData::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
+    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    sendSelectAudioFormat(node, currentCodec);
+}
+
+void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName) {
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+    replyPacket->writeString(selectedCodecName);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *node);
+}
+
+
+void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
+    cleanupCodec(); // cleanup any previously allocated coders first
+    _codec = codec;
+    _selectedCodecName = codecName;
+    if (codec) {
+        _encoder = codec->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+        _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+    }
+
+    auto avatarAudioStream = getAvatarAudioStream();
+    if (avatarAudioStream) {
+        avatarAudioStream->setupCodec(codec, codecName, AudioConstants::MONO);
+    }
+
+#if INJECTORS_SUPPORT_CODECS
+    // fixup codecs for any active injectors...
+    auto it = _audioStreams.begin();
+    while (it != _audioStreams.end()) {
+        SharedStreamPointer stream = it->second;
+        if (stream->getType() == PositionalAudioStream::Injector) {
+            stream->setupCodec(codec, codecName, stream->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
+        }
+        ++it;
+    }
+#endif
+}
+
+void AudioMixerClientData::cleanupCodec() {
+    // release any old codec encoder/decoder first...
+    if (_codec) {
+        if (_decoder) {
+            _codec->releaseDecoder(_decoder);
+            _decoder = nullptr;
+        }
+        if (_encoder) {
+            _codec->releaseEncoder(_encoder);
+            _encoder = nullptr;
+        }
+    }
 }

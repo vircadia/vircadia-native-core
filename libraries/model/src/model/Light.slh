@@ -98,10 +98,18 @@ float getLightShowContour(Light l) {
     return l._control.w;
 }
 
+// Light is the light source its self, d is the light's distance calculated as length(unnormalized light vector).
 float evalLightAttenuation(Light l, float d) {
     float radius = getLightRadius(l);
     float denom = d / radius + 1.0;
-    float attenuation = min(1.0, 1.0 / (denom * denom));
+    float attenuation = 1.0 / (denom * denom);
+    
+    float cutoff = getLightCutoffRadius(l);
+    
+    // "Fade" the edges of light sources to make things look a bit more attractive.
+    // Note: this tends to look a bit odd at lower exponents.
+    attenuation *= min(1, max(0, -(d - cutoff)));
+    
     return attenuation;
 }
 
@@ -118,28 +126,48 @@ float getLightAmbientMapNumMips(Light l) {
 }
 
 
-<@if GPU_FEATURE_PROFILE == GPU_CORE @>
 uniform lightBuffer {
     Light light;
 };
 Light getLight() {
     return light;
 }
-<@else@>
-uniform vec4 lightBuffer[7];
-Light getLight() {
-    Light light;
-    light._position = lightBuffer[0];
-    light._direction = lightBuffer[1];
-    light._color = lightBuffer[2];
-    light._attenuation = lightBuffer[3];
-    light._spot = lightBuffer[4];
-    light._shadow = lightBuffer[5];
-    light._control = lightBuffer[6];
 
-    return light;
+
+
+
+bool clipFragToLightVolumePoint(Light light, vec3 fragPos, out vec4 fragLightVecLen2) {
+    fragLightVecLen2.xyz = getLightPosition(light) - fragPos.xyz;
+    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+
+    // Kill if too far from the light center
+    if (fragLightVecLen2.w > getLightCutoffSquareRadius(light)) {
+        return false;
+    }
+    return true;
 }
-<@endif@>
+
+bool clipFragToLightVolumeSpot(Light light, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
+    fragLightVecLen2.xyz = getLightPosition(light) - fragPos.xyz;
+    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+
+    // Kill if too far from the light center
+    if (fragLightVecLen2.w > getLightCutoffSquareRadius(light)) {
+        return false;
+    }
+
+    // Allright we re valid in the volume
+    fragLightDirLen.w = length(fragLightVecLen2.xyz);
+    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+
+    // Kill if not in the spot light (ah ah !)
+    cosSpotAngle = max(-dot(fragLightDirLen.xyz, getLightDirection(light)), 0.0);
+    if (cosSpotAngle < getLightSpotAngleCos(light)) {
+        return false;
+    }
+
+    return true;
+}
 
 
 

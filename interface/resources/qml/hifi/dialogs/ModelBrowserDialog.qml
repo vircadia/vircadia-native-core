@@ -9,9 +9,9 @@ import "../models"
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows-uit"
+import "../../windows"
 
-Window {
+ScrollingWindow {
     id: root
     resizable: true
     width: 600

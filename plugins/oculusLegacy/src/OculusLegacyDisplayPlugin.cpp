@@ -25,28 +25,38 @@
 #include <PerfStat.h>
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
+#include <gpu/gl/GLbackend.h>
 
-#include "plugins/PluginContainer.h"
+#include <ui-plugins/PluginContainer.h>
 #include "OculusHelpers.h"
 
 using namespace oglplus;
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Legacy)");
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
+}
+
+void OculusLegacyDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
 }
 
 void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
-    _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
+    withNonPresentThreadLock([&]{
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
@@ -59,17 +69,47 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     }
 
     auto hmd = ovrHmd_Create(0);
+
+    // The Oculus SDK seems to have trouble finding the right screen sometimes, so we have to guess
+    // Guesses, in order of best match:
+    //  - resolution and position match
+    //  - resolution and one component of position match
+    //  - resolution matches
+    //  - position matches
+    // If it still picks the wrong screen, you'll have to mess with your monitor configuration
+    QList<int> matches({ -1, -1, -1, -1 });
     if (hmd) {
         QPoint targetPosition{ hmd->WindowsPos.x, hmd->WindowsPos.y };
+        QSize targetResolution{ hmd->Resolution.w, hmd->Resolution.h };
         auto screens = qApp->screens();
         for(int i = 0; i < screens.size(); ++i) {
             auto screen = screens[i];
             QPoint position = screen->geometry().topLeft();
-            if (position == targetPosition) {
-                _hmdScreen = i;
-                break;
+            QSize resolution = screen->geometry().size();
+
+            if (position == targetPosition && resolution == targetResolution) {
+                matches[0] = i;
+            } else if ((position.x() == targetPosition.x() || position.y() == targetPosition.y()) &&
+                resolution == targetResolution) {
+                matches[1] = i;
+            } else if (resolution == targetResolution) {
+                matches[2] = i;
+            } else if (position == targetPosition) {
+                matches[3] = i;
             }
         }
+    }
+
+    for (int screen : matches) {
+        if (screen != -1) {
+            _hmdScreen = screen;
+            break;
+        }
+    }
+
+    if (_hmdScreen == -1) {
+        qDebug() << "Could not find Rift screen";
+        result = false;
     }
   
     ovr_Shutdown();
@@ -217,13 +257,13 @@ void OculusLegacyDisplayPlugin::hmdPresent() {
     memset(eyePoses, 0, sizeof(ovrPosef) * 2);
     eyePoses[0].Orientation = eyePoses[1].Orientation = ovrRotation;
     
-    GLint texture = oglplus::GetName(_compositeFramebuffer->color);
+    GLint texture = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
     auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush();
     if (_hmdWindow->makeCurrent()) {
         glClearColor(0, 0.4, 0.8, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-        ovrHmd_BeginFrame(_hmd, _currentPresentFrameIndex);
+        ovrHmd_BeginFrame(_hmd, _currentFrame->frameIndex);
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
         ovr_for_each_eye([&](ovrEyeType eye) {

@@ -4,10 +4,6 @@ project(${TARGET_NAME})
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
-if(WIN32)
-    list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
-endif()
-
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -62,6 +58,7 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
+
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
@@ -143,7 +140,7 @@ link_hifi_libraries(shared octree gpu gl gpu-gl procedural model render
                     recording fbx networking model-networking entities avatars
                     audio audio-client animation script-engine physics
                     render-utils entities-renderer ui auto-updater
-                    controllers plugins display-plugins input-plugins)
+                    controllers plugins ui-plugins display-plugins input-plugins steamworks-wrapper)
 
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
@@ -233,6 +230,13 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
+  # copy script files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/scripts"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts
+  )
+
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
@@ -267,6 +271,7 @@ else (APPLE)
 endif (APPLE)
 
 if (SCRIPTS_INSTALL_DIR)
+
   # setup install of scripts beside interface executable
   install(
     DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"

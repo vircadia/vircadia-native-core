@@ -81,37 +81,35 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool needsFixupInScene() const;
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) const {
-        return !_needsReload && isRenderable() && isActive();
-    }
+
+    bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges,
-                    bool showCollisionHull = false) {
+                    render::PendingChanges& pendingChanges) {
         auto getters = render::Item::Status::Getters(0);
-        return addToScene(scene, pendingChanges, getters, showCollisionHull);
+        return addToScene(scene, pendingChanges, getters);
     }
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    render::Item::Status::Getters& statusGetters,
-                    bool showCollisionHull = false);
+                    render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
-    bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && getGeometry()->getGeometry()->getMeshes().empty()); }
+    bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
+    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
 
     bool maybeStartBlender();
 
     /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
+    void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    bool isLoaded() const { return _geometry && _geometry->getGeometry(); }
-    bool isCollisionLoaded() const { return _collisionGeometry && _collisionGeometry->getGeometry(); }
+    bool isLoaded() const { return (bool)_renderGeometry; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
@@ -128,26 +126,21 @@ public:
     virtual void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
 
     /// Returns a reference to the shared geometry.
-    const NetworkGeometry::Pointer& getGeometry() const { return _geometry; }
+    const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
     /// Returns a reference to the shared collision geometry.
-    const NetworkGeometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
+    const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
-    const QVariantMap getTextures() const { assert(isLoaded()); return _geometry->getGeometry()->getTextures(); }
+    const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
-    const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return getGeometry()->getGeometry()->getGeometry(); }
-    /// Provided as a convenience, will crash if !isCollisionLoaded()
-    const FBXGeometry& getCollisionFBXGeometry() const { assert(isCollisionLoaded()); return getCollisionGeometry()->getGeometry()->getGeometry(); }
-
-    // Set the model to use for collisions.
-    // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
-    const QUrl& getCollisionURL() const { return _collisionUrl; }
-
+    const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
 
     bool isActive() const { return isLoaded(); }
+
+    bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
+    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     bool convexHullContains(glm::vec3 point);
 
@@ -180,6 +173,7 @@ public:
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
+
     /// \param jointIndex index of joint in model structure
     /// \param rotation[out] rotation of joint in model-frame
     /// \return true if joint exists
@@ -232,7 +226,21 @@ public:
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
+    // returns 'true' if needs fullUpdate after geometry change
+    bool updateGeometry();
+    void setCollisionMesh(model::MeshPointer mesh);
+
+    void setLoadingPriority(float priority) { _loadingPriority = priority; }
+
+public slots:
+    void loadURLFinished(bool success);
+
+signals:
+    void setURLFinished(bool success);
+    void setCollisionModelURLFinished(bool success);
+
 protected:
+    bool addedToScene() const { return _addedToScene; }
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
     float getPupilDilation() const { return _pupilDilation; }
@@ -252,10 +260,6 @@ protected:
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
 
-    /// Fetches the joint state at the specified index.
-    /// \return whether or not the joint state is "valid" (that is, non-default)
-    bool getJointState(int index, glm::quat& rotation) const;
-
     /// Clear the joint states
     void clearJointState(int index);
 
@@ -267,7 +271,10 @@ protected:
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
-    NetworkGeometry::Pointer _geometry;
+    Geometry::Pointer _renderGeometry; // only ever set by its watcher
+    Geometry::Pointer _collisionGeometry;
+
+    GeometryResourceWatcher _renderWatcher;
 
     glm::vec3 _translation;
     glm::quat _rotation;
@@ -296,9 +303,6 @@ protected:
     QVector<MeshState> _meshStates;
     std::unordered_set<int> _cauterizeBoneSet;
     bool _cauterizeBones;
-
-    // returns 'true' if needs fullUpdate after geometry change
-    bool updateGeometry();
 
     virtual void initJointStates();
 
@@ -334,13 +338,10 @@ protected:
     void deleteGeometry();
     void initJointTransforms();
 
-    NetworkGeometry::Pointer _collisionGeometry;
-
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    QUrl _collisionUrl;
     bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
@@ -363,10 +364,10 @@ protected:
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
-    void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
-    static model::MaterialPointer _collisionHullMaterial;
+    void createRenderItemSet();
+    void createVisibleRenderItemSet();
+    void createCollisionRenderItemSet();
 
-    bool _meshGroupsKnown;
     bool _isWireframe;
 
 
@@ -377,29 +378,35 @@ protected:
 
     static AbstractViewStateInterface* _viewState;
 
-    bool _renderCollisionHull;
-
-
     QSet<std::shared_ptr<MeshPartPayload>> _collisionRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _collisionRenderItems;
 
     QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
 
-    bool _readyWhenAdded { false };
+    bool _addedToScene { false }; // has been added to scene
+    bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    bool _showCollisionHull { false };
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
 
     uint32_t _deleteGeometryCounter { 0 };
+
+    bool _visualGeometryRequestFailed { false };
+    bool _collisionGeometryRequestFailed { false };
+
+    bool _renderItemsNeedUpdate { false };
+
+private:
+    float _loadingPriority { 0.0f };
+
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
-Q_DECLARE_METATYPE(std::weak_ptr<NetworkGeometry>)
+Q_DECLARE_METATYPE(Geometry::WeakPointer)
 
 /// Handle management of pending models that need blending
 class ModelBlender : public QObject, public Dependency {
@@ -412,7 +419,7 @@ public:
     void noteRequiresBlend(ModelPointer model);
 
 public slots:
-    void setBlendedVertices(ModelPointer model, int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
+    void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 private:

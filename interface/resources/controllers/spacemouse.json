@@ -2,11 +2,11 @@
     "name": "Spacemouse to Standard",
     "channels": [
         
-        { "from": "Spacemouse.TranslateX", "to": "Standard.RX" },
+        { "from": "Spacemouse.TranslateX", "to": "Standard.LX" },
         { "from": "Spacemouse.TranslateY", "to": "Standard.LY" },
         { "from": "Spacemouse.TranslateZ", "to": "Standard.RY" },
         
-        { "from": "Spacemouse.RotateZ", "to": "Standard.LX" },
+        { "from": "Spacemouse.RotateZ", "to": "Standard.RX" },
         
         { "from": "Spacemouse.LeftButton", "to": "Standard.LB" },
         { "from": "Spacemouse.RightButton", "to": "Standard.RB" }

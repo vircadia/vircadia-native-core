@@ -26,6 +26,7 @@ enum class RenderItemStatusIcon {
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
     OTHER_SIMULATION_OWNER = 5,
+    CLIENT_ONLY = 6,
     NONE = 255
 };
 
@@ -95,8 +96,17 @@ public: \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); _renderHelper.notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); _renderHelper.notifyChanged(); } \
+    void checkFading() { \
+        bool transparent = isTransparent(); \
+        if (transparent != _prevIsTransparent) { \
+            _renderHelper.notifyChanged(); \
+            _isFading = false; \
+            _prevIsTransparent = transparent; \
+        } \
+    } \
 private: \
-    SimpleRenderableEntityItem _renderHelper;
+    SimpleRenderableEntityItem _renderHelper; \
+    bool _prevIsTransparent { isTransparent() };
 
 
 #endif // hifi_RenderableEntityItem_h

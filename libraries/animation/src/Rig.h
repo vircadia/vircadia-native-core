@@ -42,15 +42,10 @@ public:
     };
 
     struct HeadParameters {
-        float leanSideways = 0.0f; // degrees
-        float leanForward = 0.0f; // degrees
-        float torsoTwist = 0.0f; // degrees
-        bool enableLean = false;
         glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
         glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();     // rig space
         bool isInHMD = false;
-        int leanJointIndex = -1;
         int neckJointIndex = -1;
         bool isTalking = false;
     };
@@ -104,23 +99,17 @@ public:
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
-    // geometry space
-    bool getJointStateRotation(int index, glm::quat& rotation) const;
-
-    // geometry space
-    bool getJointStateTranslation(int index, glm::vec3& translation) const;
-
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
+
+    void clearIKJointLimitHistory();
 
     // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
 
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
-
-    // geometry space
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
     // legacy
@@ -230,7 +219,6 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                  glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
@@ -239,6 +227,7 @@ protected:
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
+    AnimPose _invGeometryOffset;
 
     struct PoseSet {
         AnimPoseVec _relativePoses; // geometry space relative to parent.

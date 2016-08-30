@@ -50,6 +50,15 @@ void DialogsManager::toggleAddressBar() {
     emit addressBarToggled();
 }
 
+void DialogsManager::showAddressBar() {
+    AddressBarDialog::show();
+}
+
+void DialogsManager::showFeed() {
+    AddressBarDialog::show();
+    emit setUseFeed(true);
+}
+
 void DialogsManager::toggleDiskCacheEditor() {
     maybeCreateDialog(_diskCacheEditor);
     _diskCacheEditor->toggle();

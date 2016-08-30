@@ -13,16 +13,16 @@ import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 
-import "windows-uit" as Windows
+import "windows" as Windows
 import "controls-uit" as Controls
 import "styles-uit"
 
-Windows.Window {
+Windows.ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     title: "WebWindow"
     resizable: true
-    visible: false
+    shown: false
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property alias source: webview.url
@@ -38,6 +38,23 @@ Windows.Window {
     // but not having this here results in spurious warnings about a 
     // missing signal
     signal sendToScript(var message);
+
+    signal moved(vector2d position);
+    signal resized(size size);
+
+    function notifyMoved() {
+        moved(Qt.vector2d(x, y));
+    }
+
+    function notifyResized() {
+        resized(Qt.size(width, height));
+    }
+
+    onXChanged: notifyMoved();
+    onYChanged: notifyMoved();
+
+    onWidthChanged: notifyResized();
+    onHeightChanged: notifyResized();
 
     Item {
         width: pane.contentWidth

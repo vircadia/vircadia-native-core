@@ -9,6 +9,7 @@
 #define hifi_gpu_gl_GLQuery_h
 
 #include "GLShared.h"
+#include "GLBackend.h"
 
 namespace gpu { namespace gl {
 
@@ -16,13 +17,13 @@ class GLQuery : public GLObject<Query> {
     using Parent = gpu::gl::GLObject<Query>;
 public:
     template <typename GLQueryType>
-    static GLQueryType* sync(const Query& query) {
+    static GLQueryType* sync(GLBackend& backend, const Query& query) {
         GLQueryType* object = Backend::getGPUObject<GLQueryType>(query);
 
         // need to have a gpu object?
         if (!object) {
             // All is green, assign the gpuobject to the Query
-            object = new GLQueryType(query);
+            object = new GLQueryType(backend.shared_from_this(), query);
             (void)CHECK_GL_ERROR();
             Backend::setGPUObject(query, object);
         }
@@ -31,25 +32,31 @@ public:
     }
 
     template <typename GLQueryType>
-    static GLuint getId(const QueryPointer& query) {
+    static GLuint getId(GLBackend& backend, const QueryPointer& query) {
         if (!query) {
             return 0;
         }
 
-        GLQuery* object = sync<GLQueryType>(*query);
+        GLQuery* object = sync<GLQueryType>(backend, *query);
         if (!object) {
             return 0;
         } 
 
-        return object->_qo;
+        return object->_endqo;
     }
 
-    const GLuint& _qo { _id };
+    const GLuint& _endqo = { _id };
+    const GLuint _beginqo = { 0 };
     GLuint64 _result { (GLuint64)-1 };
 
 protected:
-    GLQuery(const Query& query, GLuint id) : Parent(query, id) {}
-    ~GLQuery() { if (_id) { glDeleteQueries(1, &_id); } }
+    GLQuery(const std::weak_ptr<GLBackend>& backend, const Query& query, GLuint endId, GLuint beginId) : Parent(backend, query, endId), _beginqo(beginId) {}
+    ~GLQuery() {
+        if (_id) {
+            GLuint ids[2] = { _endqo, _beginqo };
+            glDeleteQueries(2, ids);
+        }
+    }
 };
 
 } }

@@ -30,7 +30,7 @@ class OffscreenQmlRenderThread;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
-
+    Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
@@ -38,7 +38,7 @@ public:
     using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
     virtual void create(QOpenGLContext* context);
-    void resize(const QSize& size);
+    void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
     Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
@@ -55,6 +55,7 @@ public:
         _mouseTranslator = mouseTranslator;
     }
 
+    bool isFocusText() const { return _focusText; }
     void pause();
     void resume();
     bool isPaused() const;
@@ -70,6 +71,8 @@ public:
 
 signals:
     void textureUpdated(unsigned int texture);
+    void focusObjectChanged(QObject* newFocus);
+    void focusTextChanged(bool focusText);
 
 public slots:
     void requestUpdate();
@@ -78,6 +81,7 @@ public slots:
 
 protected:
     bool filterEnabled(QObject* originalDestination, QEvent* event) const;
+    void setFocusText(bool newFocusText);
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -85,6 +89,7 @@ private:
 
 private slots:
     void updateQuick();
+    void onFocusObjectChanged(QObject* newFocus);
 
 private:
     friend class OffscreenQmlRenderThread;
@@ -97,6 +102,7 @@ private:
     bool _render{ false };
     bool _polish{ true };
     bool _paused{ true };
+    bool _focusText { false };
     uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };

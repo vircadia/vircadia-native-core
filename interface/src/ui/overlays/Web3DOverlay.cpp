@@ -28,6 +28,7 @@
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
@@ -47,7 +48,7 @@ Web3DOverlay::~Web3DOverlay() {
         _webSurface->disconnect(_connection);
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that 
+        // member variables, since they would implicitly refer to a this that
         // is no longer valid
         auto webSurface = _webSurface;
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
@@ -57,7 +58,11 @@ Web3DOverlay::~Web3DOverlay() {
 }
 
 void Web3DOverlay::update(float deltatime) {
-    applyTransformTo(_transform);
+    if (usecTimestampNow() > _transformExpiry) {
+        Transform transform = getTransform();
+        applyTransformTo(transform);
+        setTransform(transform);
+    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -70,8 +75,8 @@ void Web3DOverlay::render(RenderArgs* args) {
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-        _webSurface->load("WebEntity.qml");
+        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
+        _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
@@ -85,8 +90,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec2 halfSize = size / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
-    applyTransformTo(_transform, true);
-    Transform transform = _transform;
+    Transform transform = getTransform();
+    applyTransformTo(transform, true);
+    setTransform(transform);
     if (glm::length2(getDimensions()) != 1.0f) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }
@@ -100,7 +106,13 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transform);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (color.a < OPAQUE_ALPHA_THRESHOLD) {
+        geometryCache->bindTransparentWebBrowserProgram(batch);
+    } else {
+        geometryCache->bindOpaqueWebBrowserProgram(batch);
+    }
+    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
@@ -163,7 +175,10 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     // FIXME - face and surfaceNormal not being returned
 
     // Make sure position and rotation is updated.
-    applyTransformTo(_transform, true);
+    Transform transform;
+    applyTransformTo(transform, true);
+    setTransform(transform);
+
     vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
     return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), size, distance);

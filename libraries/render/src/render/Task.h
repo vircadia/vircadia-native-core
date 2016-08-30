@@ -11,6 +11,7 @@
 
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
+#include <tuple>
 
 #include <QtCore/qobject.h>
 
@@ -28,21 +29,39 @@
 
 namespace render {
 
+class Varying;
+
+
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
 class Varying {
 public:
     Varying() {}
     Varying(const Varying& var) : _concept(var._concept) {}
+    Varying& operator=(const Varying& var) {
+        _concept = var._concept;
+        return (*this);
+    }
     template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
 
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
+
+    // access potential sub varyings contained in this one.
+    Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
+    uint8_t length() const { return (*_concept).length(); }
+
+    template <class T> Varying getN (uint8_t index) const { return get<T>()[index]; }
+    template <class T> Varying editN (uint8_t index) { return edit<T>()[index]; }
+
 protected:
     class Concept {
     public:
         virtual ~Concept() = default;
+
+        virtual Varying operator[] (uint8_t index) const = 0;
+        virtual uint8_t length() const = 0;
     };
     template <class T> class Model : public Concept {
     public:
@@ -51,10 +70,198 @@ protected:
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
 
+        virtual Varying operator[] (uint8_t index) const override {
+            Varying var;
+            return var;
+        }
+        virtual uint8_t length() const override { return 0; }
+
         Data _data;
     };
 
     std::shared_ptr<Concept> _concept;
+};
+
+using VaryingPairBase = std::pair<Varying, Varying>;
+template < typename T0, typename T1 >
+class VaryingSet2 : public VaryingPairBase {
+public:
+    using Parent = VaryingPairBase;
+    typedef void is_proxy_tag;
+
+    VaryingSet2() : Parent(Varying(T0()), Varying(T1())) {}
+    VaryingSet2(const VaryingSet2& pair) : Parent(pair.first, pair.second) {}
+    VaryingSet2(const Varying& first, const Varying& second) : Parent(first, second) {}
+
+    const T0& get0() const { return first.get<T0>(); }
+    T0& edit0() { return first.edit<T0>(); }
+
+    const T1& get1() const { return second.get<T1>(); }
+    T1& edit1() { return second.edit<T1>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 2; }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+
+template <class T0, class T1, class T2>
+class VaryingSet3 : public std::tuple<Varying, Varying,Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying>;
+
+    VaryingSet3() : Parent(Varying(T0()), Varying(T1()), Varying(T2())) {}
+    VaryingSet3(const VaryingSet3& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src)) {}
+    VaryingSet3(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 3; }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+template <class T0, class T1, class T2, class T3>
+class VaryingSet4 : public std::tuple<Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying>;
+
+    VaryingSet4() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3())) {}
+    VaryingSet4(const VaryingSet4& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src)) {}
+    VaryingSet4(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth) : Parent(first, second, third, fourth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 3) {
+            return std::get<3>((*this));
+        } else if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 4; }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+
+template <class T0, class T1, class T2, class T3, class T4>
+class VaryingSet5 : public std::tuple<Varying, Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying, Varying>;
+
+    VaryingSet5() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3()), Varying(T4())) {}
+    VaryingSet5(const VaryingSet5& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src), std::get<4>(src)) {}
+    VaryingSet5(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth, const Varying& fifth) : Parent(first, second, third, fourth, fifth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
+    T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 4) {
+            return std::get<4>((*this));
+        } else if (index == 3) {
+            return std::get<3>((*this));
+        } else if (index == 2) {
+            return std::get<2>((*this));
+        } else if (index == 1) {
+            return std::get<1>((*this));
+        } else {
+            return std::get<0>((*this));
+        }
+    }
+    virtual uint8_t length() const { return 5; }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+template <class T0, class T1, class T2, class T3, class T4, class T5>
+class VaryingSet6 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying, Varying, Varying>;
+
+    VaryingSet6() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3()), Varying(T4()), Varying(T5())) {}
+    VaryingSet6(const VaryingSet6& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src), std::get<4>(src), std::get<5>(src)) {}
+    VaryingSet6(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth, const Varying& fifth, const Varying& sixth) : Parent(first, second, third, fourth, fifth, sixth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
+    T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+
+    const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
+    T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
+
+    Varying hasVarying() const { return Varying((*this)); }
+};
+
+template < class T, int NUM >
+class VaryingArray : public std::array<Varying, NUM> {
+public:
+    VaryingArray() {
+        for (size_t i = 0; i < NUM; i++) {
+            (*this)[i] = Varying(T());
+        }
+    }
 };
 
 class Job;
@@ -137,6 +344,7 @@ public:
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
+    void setEnabled(bool enable) { enabled = enable; }
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
@@ -154,7 +362,7 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
-    // Running Time measurement 
+    // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
     void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
     quint64 getCPUTRunTime() const { return _CPURunTime; }
@@ -175,8 +383,6 @@ public:
     TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
-    void init(Task* task) { _task = task; }
-
     // getter for qml integration, prefer the templated getter
     Q_INVOKABLE QObject* getConfig(const QString& name) { return QObject::findChild<JobConfig*>(name); }
     // getter for cpp (strictly typed), prefer this getter
@@ -189,6 +395,7 @@ public slots:
     void refresh();
 
 private:
+    friend class Task;
     Task* _task;
 };
 
@@ -250,8 +457,8 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
@@ -259,13 +466,13 @@ public:
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
-            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
+            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
             }
             renderContext->jobConfig.reset();
@@ -305,8 +512,6 @@ public:
 
 // A task is a specialized job to run a collection of other jobs
 // It is defined with JobModel = Task::Model<T>
-//
-// A task with a custom config *must* use the templated constructor
 class Task {
 public:
     using Config = TaskConfig;
@@ -323,22 +528,23 @@ public:
         Varying _input;
         Varying _output;
 
-        const Varying getInput() const { return _input; }
-        const Varying getOutput() const { return _output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
             Concept(nullptr), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
-            _config = _data._config;
-            std::static_pointer_cast<Config>(_config)->init(&_data);
+            // Recreate the Config to use the templated type
+            _data.template createConfiguration<C>();
+            _config = _data.getConfiguration();
             applyConfiguration();
         }
 
-        void applyConfiguration() {
+        void applyConfiguration() override {
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -352,23 +558,19 @@ public:
 
     using Jobs = std::vector<Job>;
 
-    // A task must use its Config for construction
-    Task() : _config{ std::make_shared<Config>() } {}
-    template <class C> Task(std::shared_ptr<C> config) : _config{ config } {}
-
     // Create a new job in the container's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
         _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(input, std::forward<A>(args)...));
         QConfigPointer config = _jobs.back().getConfiguration();
-        config->setParent(_config.get());
+        config->setParent(getConfiguration().get());
         config->setObjectName(name.c_str());
 
         // Connect loaded->refresh
-        QObject::connect(config.get(), SIGNAL(loaded()), _config.get(), SLOT(refresh()));
+        QObject::connect(config.get(), SIGNAL(loaded()), getConfiguration().get(), SLOT(refresh()));
         static const char* DIRTY_SIGNAL = "dirty()";
         if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
             // Connect dirty->refresh if defined
-            QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+            QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
         }
 
         return _jobs.back().getOutput();
@@ -378,16 +580,36 @@ public:
         return addJob<T>(name, input, std::forward<A>(args)...);
     }
 
+    template <class C> void createConfiguration() {
+        auto config = std::make_shared<C>();
+        if (_config) {
+            // Transfer children to the new configuration
+            auto children = _config->children();
+            for (auto& child : children) {
+                child->setParent(config.get());
+                QObject::connect(child, SIGNAL(loaded()), config.get(), SLOT(refresh()));
+                static const char* DIRTY_SIGNAL = "dirty()";
+                if (child->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+                    // Connect dirty->refresh if defined
+                    QObject::connect(child, SIGNAL(dirty()), config.get(), SLOT(refresh()));
+                }
+            }
+        }
+        _config = config;
+        std::static_pointer_cast<Config>(_config)->_task = this;
+    }
+
     std::shared_ptr<Config> getConfiguration() {
-        auto config = std::static_pointer_cast<Config>(_config);
-        // If we are here, we were not made by a Model, so we must initialize our own config
-        config->init(this);
-        return config;
+        if (!_config) {
+            createConfiguration<Config>();
+        }
+        return std::static_pointer_cast<Config>(_config);
     }
 
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();
+
         }
     }
 

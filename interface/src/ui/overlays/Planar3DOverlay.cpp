@@ -28,10 +28,10 @@ Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
 
 AABox Planar3DOverlay::getBounds() const {
     auto halfDimensions = glm::vec3{_dimensions / 2.0f, 0.01f};
-    
+
     auto extents = Extents{-halfDimensions, halfDimensions};
-    extents.transform(_transform);
-    
+    extents.transform(getTransform());
+
     return AABox(extents);
 }
 

@@ -28,6 +28,8 @@
 
 class VrMenu;
 
+#define OFFSCREEN_VISIBILITY_PROPERTY "shown"
+
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
 
@@ -44,9 +46,16 @@ public:
     void setNavigationFocused(bool focused);
     void unfocusWindows();
     void toggleMenu(const QPoint& screenCoordinates);
+
+
+    // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
+    void setPinned(bool pinned = true);
+
+    void togglePinned();
+
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
     void addMenuInitializer(std::function<void(VrMenu*)> f);
-
+    QObject* getFlags();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 
@@ -98,7 +107,7 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton question(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton warning(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
@@ -113,7 +122,9 @@ public:
     static QString getSaveFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
+    Q_INVOKABLE QVariant customInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);
+    QQuickItem* createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QVariant waitForInputDialogResult(QQuickItem* inputDialog);
 
     // Compatibility with QInputDialog::getText
@@ -131,6 +142,7 @@ public:
 
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
+    static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
 
     unsigned int getMenuUserDataId() const;
 

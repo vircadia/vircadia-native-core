@@ -38,17 +38,23 @@ public:
     void parse(const QString& userDataJson);
 
     bool ready();
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size);
+    bool enabled() { return _enabled; }
+    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation);
     const gpu::ShaderPointer& getShader() const { return _shader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
+    quint64 getFadeStartTime() { return _fadeStartTime; }
+    bool isFading() { return _doesFade && _isFading; }
+    void setIsFading(bool isFading) { _isFading = isFading; }
+    void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
     uint8_t _version { 1 };
 
     std::string _vertexSource;
     std::string _fragmentSource;
 
-    gpu::StatePointer _state;
+    gpu::StatePointer _opaqueState { std::make_shared<gpu::State>() };
+    gpu::StatePointer _transparentState { std::make_shared<gpu::State>() };
 
     enum StandardUniforms {
         DATE,
@@ -56,6 +62,7 @@ public:
         FRAME_COUNT,
         SCALE,
         POSITION,
+        ORIENTATION,
         CHANNEL_RESOLUTION,
         NUM_STANDARD_UNIFORMS
     };
@@ -85,7 +92,8 @@ protected:
     UniformLambdas _uniforms;
     int32_t _standardUniformSlots[NUM_STANDARD_UNIFORMS];
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
-    gpu::PipelinePointer _pipeline;
+    gpu::PipelinePointer _opaquePipeline;
+    gpu::PipelinePointer _transparentPipeline;
     gpu::ShaderPointer _vertexShader;
     gpu::ShaderPointer _fragmentShader;
     gpu::ShaderPointer _shader;
@@ -93,6 +101,7 @@ protected:
     // Entity metadata
     glm::vec3 _entityDimensions;
     glm::vec3 _entityPosition;
+    glm::mat3 _entityOrientation;
 
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare
@@ -104,6 +113,11 @@ private:
 
     void setupUniforms();
     void setupChannels(bool shouldCreate);
+
+    quint64 _fadeStartTime;
+    bool _hasStartedFade { false };
+    bool _isFading { false };
+    bool _doesFade { true };
 };
 
 #endif

@@ -28,6 +28,7 @@ public:
     virtual void addMessage(const QString&) override;
     virtual QString getLogData() override;
     virtual void locateLog() override;
+    void sync();
 
 signals:
     void rollingLogFile(QString newFilename);
@@ -47,7 +48,7 @@ signals:
 
 protected:
     void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
-    virtual bool processQueueItems(const Queue& messages);
+    virtual bool processQueueItems(const Queue& messages) override;
 
 private:
     const FileLogger& _logger;

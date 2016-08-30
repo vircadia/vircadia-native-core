@@ -22,6 +22,7 @@
 #include "Image3DOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
+#include "Shape3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
@@ -120,7 +121,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
-        batch.setViewTransform(Transform());
+        batch.resetViewTransform();
 
         thisOverlay->render(renderArgs);
     }
@@ -157,6 +158,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QVariant& propertie
         thisOverlay = std::make_shared<TextOverlay>();
     } else if (type == Text3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Text3DOverlay>();
+    } else if (type == Shape3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Shape3DOverlay>();
     } else if (type == Cube3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Cube3DOverlay>();
     } else if (type == Sphere3DOverlay::TYPE) {
@@ -189,6 +192,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QVariant& propertie
 unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
+    overlay->setOverlayID(thisID);
     _nextOverlayID++;
     if (overlay->is3D()) {
         _overlaysWorld[thisID] = overlay;
@@ -229,6 +233,29 @@ bool Overlays::editOverlay(unsigned int id, const QVariant& properties) {
         return true;
     }
     return false;
+}
+
+bool Overlays::editOverlays(const QVariant& propertiesById) {
+    QVariantMap map = propertiesById.toMap();
+    bool success = true;
+    QWriteLocker lock(&_lock);
+    for (const auto& key : map.keys()) {
+        bool convertSuccess;
+        unsigned int id = key.toUInt(&convertSuccess);
+        if (!convertSuccess) {
+            success = false;
+            continue;
+        }
+
+        Overlay::Pointer thisOverlay = getOverlay(id);
+        if (!thisOverlay) {
+            success = false;
+            continue;
+        }
+        QVariant properties = map[key];
+        thisOverlay->setProperties(properties.toMap());
+    }
+    return success;
 }
 
 void Overlays::deleteOverlay(unsigned int id) {

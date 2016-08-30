@@ -1,9 +1,20 @@
+//
+//  Window.qml
+//
+//  Created by Bradley Austin Davis on 12 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 
 import "."
-import "../styles"
+import "../styles-uit"
 
 // FIXME how do I set the initial position of a window without
 // overriding places where the a individual client of the window
@@ -15,16 +26,39 @@ import "../styles"
 Fadable {
     id: window
     HifiConstants { id: hifi }
+
+    //
+    // Signals
+    //
+    signal windowClosed();
+    signal windowDestroyed();
+    signal mouseEntered();
+    signal mouseExited();
+
+    //
+    // Native properties
+    //
+
     // The Window size is the size of the content, while the frame
     // decorations can extend outside it.
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
     x: desktop.invalid_position; y: desktop.invalid_position;
-    enabled: visible
+    children: [ swallower, frame, content, activator ]
 
-    signal windowDestroyed();
+    //
+    // Custom properties
+    //
 
     property int modality: Qt.NonModal
+    // Corresponds to the window shown / hidden state AS DISTINCT from window visibility.
+    // Window visibility should NOT be used as a proxy for any other behavior.
+    property bool shown: true
+    // FIXME workaround to deal with the face that some visual items are defined here,
+    // when they should be moved to a frame derived type
+    property bool hideBackground: false
+    visible: shown
+    enabled: visible
     readonly property bool topLevelWindow: true
     property string title
     // Should the window be closable control?
@@ -34,16 +68,22 @@ Fadable {
     // Should hitting the close button hide or destroy the window?
     property bool destroyOnCloseButton: true
     // Should hiding the window destroy it or just hide it?
-    property bool destroyOnInvisible: false
-    // FIXME support for pinned / unpinned pending full design
-    // property bool pinnable: false
-    // property bool pinned: false
+    property bool destroyOnHidden: false
+    property bool pinnable: true
+    property bool pinned: false
     property bool resizable: false
+    property bool gradientsSupported: desktop.gradientsSupported
+    property int colorScheme: hifi.colorSchemes.dark
+
     property vector2d minSize: Qt.vector2d(100, 100)
-    property vector2d maxSize: Qt.vector2d(1280, 720)
+    property vector2d maxSize: Qt.vector2d(1280, 800)
 
     // The content to place inside the window, determined by the client
     default property var content
+
+    property var footer: Item { }  // Optional static footer at the bottom of the dialog.
+
+    function setDefaultFocus() {}  // Default function; can be overridden by dialogs.
 
     property var rectifier: Timer {
         property bool executing: false;
@@ -65,24 +105,18 @@ Fadable {
         }
     }
 
-
-    onXChanged: rectifier.begin();
-    onYChanged: rectifier.begin();
-
     // This mouse area serves to raise the window. To function, it must live
     // in the window and have a higher Z-order than the content, but follow
     // the position and size of frame decoration
     property var activator: MouseArea {
-        width: frame.decoration.width
-        height: frame.decoration.height
-        x: frame.decoration.anchors.margins
-        y: frame.decoration.anchors.topMargin
+        width: frame.decoration ? frame.decoration.width : window.width
+        height: frame.decoration ? frame.decoration.height : window.height
+        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
+        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
         propagateComposedEvents: true
-        hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
         onPressed: {
-            //console.log("Pressed on activator area");
             window.raise();
             mouse.accepted = false;
         }
@@ -92,10 +126,10 @@ Fadable {
     // to prevent things like mouse wheel events from reaching the application and changing
     // the camera if the user is scrolling through a list and gets to the end.
     property var swallower: MouseArea {
-        width: frame.decoration.width
-        height: frame.decoration.height
-        x: frame.decoration.anchors.margins
-        y: frame.decoration.anchors.topMargin
+        width: frame.decoration ? frame.decoration.width : window.width
+        height: frame.decoration ? frame.decoration.height : window.height
+        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
+        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
@@ -106,46 +140,111 @@ Fadable {
         onWheel: {}
     }
 
-
     // Default to a standard frame.  Can be overriden to provide custom
     // frame styles, like a full desktop frame to simulate a modal window
-    property var frame: DefaultFrame { }
+    property var frame: DefaultFrame {
+        //window: window
+    }
 
 
-    children: [ swallower, frame, content, activator ]
-
+    //
+    // Handlers
+    //
     Component.onCompleted: {
         window.parentChanged.connect(raise);
-        raise();
-        centerOrReposition();
+        setDefaultFocus();
+        d.centerOrReposition();
+        d.updateVisibility(shown);
     }
     Component.onDestruction: {
         window.parentChanged.disconnect(raise);  // Prevent warning on shutdown
         windowDestroyed();
     }
 
-    function centerOrReposition() {
-        if (x == desktop.invalid_position && y == desktop.invalid_position) {
-            desktop.centerOnVisible(window);
-        } else {
-            desktop.repositionOnVisible(window);
-        }
-    }
+    onXChanged: rectifier.begin();
+    onYChanged: rectifier.begin();
+
+    onShownChanged: d.updateVisibility(shown)
 
     onVisibleChanged: {
-        if (!visible && destroyOnInvisible) {
-            destroy();
-            return;
-        }
-        if (visible) {
-            raise();
-        }
         enabled = visible
-
         if (visible && parent) {
-            centerOrReposition();
+            d.centerOrReposition();
         }
     }
+
+    QtObject {
+        id: d
+
+        readonly property alias pinned: window.pinned
+        readonly property alias shown: window.shown
+        readonly property alias modality: window.modality;
+
+        function getTargetVisibility() {
+            if (!window.shown) {
+                return false;
+            }
+
+            if (modality !== Qt.NonModal) {
+                return true;
+            }
+
+            if (pinned) {
+                return true;
+            }
+
+            if (desktop && !desktop.pinned) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // The force flag causes all windows to fade back in, because a window was shown
+        readonly property alias visible: window.visible
+        function updateVisibility(force) {
+            if (force && !pinned && desktop.pinned) {
+                // Change the pinned state (which in turn will call us again)
+                desktop.pinned = false;
+                return;
+            }
+
+            var targetVisibility = getTargetVisibility();
+            if (targetVisibility === visible) {
+                if (force) {
+                    window.raise();
+                }
+                return;
+            }
+
+            if (targetVisibility) {
+                fadeIn(function() {
+                    if (force) {
+                        window.raise();
+                    }
+                });
+            } else {
+                fadeOut(function() {
+                    if (!window.shown && window.destroyOnHidden) {
+                        window.destroy();
+                    }
+                });
+            }
+        }
+
+        function centerOrReposition() {
+            if (x == desktop.invalid_position && y == desktop.invalid_position) {
+                desktop.centerOnVisible(window);
+            } else {
+                desktop.repositionOnVisible(window);
+            }
+        }
+
+    }
+
+    // When the desktop pinned state changes, automatically handle the current windows
+    Connections { target: desktop;  onPinnedChanged: d.updateVisibility() }
+
 
     function raise() {
         if (visible && parent) {
@@ -153,23 +252,9 @@ Fadable {
         }
     }
 
-    function pin() {
-//        pinned = ! pinned
+    function setPinned() {
+        pinned = !pinned
     }
-
-    // our close function performs the same way as the OffscreenUI class:
-    // don't do anything but manipulate the targetVisible flag and let the other
-    // mechanisms decide if the window should be destroyed after the close
-    // animation completes
-    // FIXME using this close function messes up the visibility signals received by the
-    // type and it's derived types
-//    function close() {
-//        console.log("Closing " + window)
-//        if (destroyOnCloseButton) {
-//            destroyOnInvisible = true
-//        }
-//        visible = false;
-//    }
 
     function framedRect() {
         if (!frame || !frame.decoration) {
@@ -180,7 +265,6 @@ Fadable {
                        window.height - frame.decoration.anchors.topMargin - frame.decoration.anchors.bottomMargin)
     }
 
-
     Keys.onPressed: {
         switch(event.key) {
             case Qt.Key_Control:
@@ -189,10 +273,9 @@ Fadable {
             case Qt.Key_Alt:
                 break;
 
-
             case Qt.Key_W:
                 if (window.closable && (event.modifiers === Qt.ControlModifier)) {
-                    visible = false
+                    shown = false
                     event.accepted = true
                 }
                 // fall through
@@ -206,4 +289,7 @@ Fadable {
                 break;
         }
     }
+
+    onMouseEntered: console.log("Mouse entered " + window)
+    onMouseExited: console.log("Mouse exited " + window)
 }

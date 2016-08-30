@@ -294,7 +294,7 @@ public:
     Stamp getDataStamp() const { return _storage->getStamp(); }
 
     // The theoretical size in bytes of data stored in the texture
-    Size getSize() const { return _size; }
+    Size getSize() const override { return _size; }
 
     // The actual size in bytes of data stored in the texture
     Size getStoredSize() const;
@@ -448,8 +448,6 @@ public:
     void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     const GPUObjectPointer gpuObject {};
-
-    uint32 getHardwareId() const;
 
 protected:
     std::unique_ptr< Storage > _storage;

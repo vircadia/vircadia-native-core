@@ -1863,29 +1863,31 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
-    readFromMap(asMap);
+    bool success = readFromMap(asMap);
     delete[] rawData;
-    return true;
+    return success;
 }
 
-void Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
+bool Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
     // make the sure file extension makes sense
     QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
     QByteArray byteArray = qFileName.toUtf8();
     const char* cFileName = byteArray.constData();
 
+    bool success = false;
     if (persistAsFileType == "svo") {
-        writeToSVOFile(fileName, element);
+        success = writeToSVOFile(fileName, element);
     } else if (persistAsFileType == "json") {
-        writeToJSONFile(cFileName, element);
+        success = writeToJSONFile(cFileName, element);
     } else if (persistAsFileType == "json.gz") {
-        writeToJSONFile(cFileName, element, true);
+        success = writeToJSONFile(cFileName, element, true);
     } else {
         qCDebug(octree) << "unable to write octree to file of type" << persistAsFileType;
     }
+    return success;
 }
 
-void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
+bool Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
     QVariantMap entityDescription;
 
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
@@ -1906,7 +1908,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     bool entityDescriptionSuccess = writeToMap(entityDescription, top, true, true);
     if (!entityDescriptionSuccess) {
         qCritical("Failed to convert Entities to QVariantMap while saving to json.");
-        return;
+        return false;
     }
 
     // convert the QVariantMap to JSON
@@ -1916,22 +1918,26 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     if (doGzip) {
         if (!gzip(jsonData, jsonDataForFile, -1)) {
             qCritical("unable to gzip data while saving to json.");
-            return;
+            return false;
         }
     } else {
         jsonDataForFile = jsonData;
     }
 
     QFile persistFile(fileName);
+    bool success = false;
     if (persistFile.open(QIODevice::WriteOnly)) {
-        persistFile.write(jsonDataForFile);
+        success = persistFile.write(jsonDataForFile) != -1;
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
+
+    return success;
 }
 
-void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
-    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
+bool Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
+    qWarning() << "SVO file format deprecated. Support for reading SVO files is no longer support and will be removed soon.";
+    bool success = false;
 
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
@@ -2010,8 +2016,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         }
 
         releaseSceneEncodeData(&extraEncodeData);
+
+        success = true;
     }
     file.close();
+
+    return success;
 }
 
 unsigned long Octree::getOctreeElementsCount() {

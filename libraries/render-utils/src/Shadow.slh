@@ -87,7 +87,8 @@ float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
 float evalShadowAttenuation(vec4 position) {
 	vec4 shadowTexcoord = evalShadowTexcoord(position);
     if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
-        shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0) {
+        shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0 ||
+        shadowTexcoord.z < 0.0 || shadowTexcoord.z > 1.0) {
         // If a point is not in the map, do not attenuate
         return 1.0;
     }

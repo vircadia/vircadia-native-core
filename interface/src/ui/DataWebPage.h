@@ -18,9 +18,9 @@ class DataWebPage : public QWebPage {
 public:
     DataWebPage(QObject* parent = 0);
 protected:
-    void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID);
-    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type);
-    virtual QString userAgentForUrl(const QUrl& url) const;
+    void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID) override;
+    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type) override;
+    virtual QString userAgentForUrl(const QUrl& url) const override;
 };
 
 #endif // hifi_DataWebPage_h

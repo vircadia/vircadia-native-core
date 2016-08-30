@@ -88,8 +88,23 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "plane", "compound", "capsule-x",
-    "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"};
+const char* shapeTypeNames[] = {
+    "none",
+    "box",
+    "sphere",
+    "capsule-x",
+    "capsule-y",
+    "capsule-z",
+    "cylinder-x",
+    "cylinder-y",
+    "cylinder-z",
+    "hull",
+    "plane",
+    "compound",
+    "simple-hull",
+    "simple-compound",
+    "static-mesh"
+};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -101,15 +116,18 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_NONE);
     addShapeType(SHAPE_TYPE_BOX);
     addShapeType(SHAPE_TYPE_SPHERE);
-    addShapeType(SHAPE_TYPE_ELLIPSOID);
-    addShapeType(SHAPE_TYPE_PLANE);
-    addShapeType(SHAPE_TYPE_COMPOUND);
     addShapeType(SHAPE_TYPE_CAPSULE_X);
     addShapeType(SHAPE_TYPE_CAPSULE_Y);
     addShapeType(SHAPE_TYPE_CAPSULE_Z);
     addShapeType(SHAPE_TYPE_CYLINDER_X);
     addShapeType(SHAPE_TYPE_CYLINDER_Y);
     addShapeType(SHAPE_TYPE_CYLINDER_Z);
+    addShapeType(SHAPE_TYPE_HULL);
+    addShapeType(SHAPE_TYPE_PLANE);
+    addShapeType(SHAPE_TYPE_COMPOUND);
+    addShapeType(SHAPE_TYPE_SIMPLE_HULL);
+    addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 
 QString getCollisionGroupAsString(uint8_t group) {
@@ -307,6 +325,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+
+    CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
+    CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
+
+    CHECK_PROPERTY_CHANGE(PROP_CLIENT_ONLY, clientOnly);
+    CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+
+    CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
+    CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -429,6 +458,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Sphere) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Sphere"));
     }
+    if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
+    }
 
     // FIXME - it seems like ParticleEffect should also support this
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone) {
@@ -465,11 +497,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
     }
 
     // Web only
     if (_type == EntityTypes::Web) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
     }
 
     // PolyVoxel only
@@ -538,6 +574,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+
+    properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
+    properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
 
     // FIXME - I don't think these properties are supported any more
     //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
@@ -669,11 +713,22 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(shape, QString, setShape);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(flyingAllowed, bool, setFlyingAllowed);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
 
     _lastEdited = usecTimestampNow();
 }
@@ -819,11 +874,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>);
+
+        ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
@@ -844,6 +903,11 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
+
+        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
+
+        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -1007,6 +1071,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
+                APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
             if (properties.getType() == EntityTypes::Text) {
@@ -1085,6 +1150,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, properties.getFlyingAllowed());
+                APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, properties.getGhostingAllowed());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1114,7 +1182,13 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
             }
-
+            // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
+            // when encoding/decoding edits because otherwise they can't polymorph to other shape types
+            if (properties.getType() == EntityTypes::Shape ||
+                properties.getType() == EntityTypes::Box ||
+                properties.getType() == EntityTypes::Sphere) {
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
+            }
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
@@ -1179,7 +1253,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     } else {
         packetData->discardSubTree();
     }
-
     return success;
 }
 
@@ -1298,6 +1371,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
     }
 
     if (properties.getType() == EntityTypes::Text) {
@@ -1369,6 +1443,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -1398,6 +1475,14 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+    }
+
+    // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
+    // when encoding/decoding edits because otherwise they can't polymorph to other shape types
+    if (properties.getType() == EntityTypes::Shape || 
+        properties.getType() == EntityTypes::Box ||
+        properties.getType() == EntityTypes::Sphere) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1559,6 +1644,14 @@ void EntityItemProperties::markAllChanged() {
     _jointTranslationsChanged = true;
 
     _queryAACubeChanged = true;
+
+    _flyingAllowedChanged = true;
+    _ghostingAllowedChanged = true;
+
+    _clientOnlyChanged = true;
+    _owningAvatarIDChanged = true;
+
+    _dpiChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -1880,6 +1973,28 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "queryAACube";
     }
 
+    if (clientOnlyChanged()) {
+        out += "clientOnly";
+    }
+    if (owningAvatarIDChanged()) {
+        out += "owningAvatarID";
+    }
+
+    if (flyingAllowedChanged()) {
+        out += "flyingAllowed";
+    }
+    if (ghostingAllowedChanged()) {
+        out += "ghostingAllowed";
+    }
+
+    if (dpiChanged()) {
+        out += "dpi";
+    }
+
+    if (shapeChanged()) {
+        out += "shape";
+    }
+
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
@@ -1889,7 +2004,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 }
 
 bool EntityItemProperties::parentDependentPropertyChanged() const {
-    return localPositionChanged() || positionChanged() || localRotationChanged() || rotationChanged();
+    return localPositionChanged() || positionChanged() ||
+        localRotationChanged() || rotationChanged() ||
+        localVelocityChanged() || localAngularVelocityChanged();
 }
 
 bool EntityItemProperties::parentRelatedPropertyChanged() const {

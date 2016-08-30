@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 18.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="-159 536 960 30" enable-background="new -159 536 960 30" xml:space="preserve">
-<rect x="-159" y="536" fill="#4CC1B8" fill-opacity="0.8039" width="480" height="30"/>
-<rect x="321" y="536" fill="#FFFFFF" fill-opacity="0.8039" width="480" height="30"/>
+	 viewBox="0 0 960 10" enable-background="new -159 536 960 30" xml:space="preserve">
+<defs>
+	<linearGradient id="loadingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+		<stop offset="0%" style="stop-color:rgb(16,128,184);stop-opacity:1" />
+		<stop offset="100%" style="stop-color:rgb(0,180,239);stop-opacity:1" />
+	</linearGradient>
+</defs>
+<rect x="0" y="0" fill="url(#loadingGrad)" width="480" height="10"/>
+<rect x="480" y="0" fill="#000000" fill-opacity="0.8039" width="480" height="10"/>
 </svg>

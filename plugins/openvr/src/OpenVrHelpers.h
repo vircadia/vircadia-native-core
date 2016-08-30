@@ -12,9 +12,19 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-bool isOculusPresent();
+#include <controllers/Forward.h>
+#include <plugins/Forward.h>
+
+bool openVrSupported();
+
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
+void handleOpenVrEvents();
+bool openVrQuitRequested();
+void enableOpenVrKeyboard(PluginContainer* container);
+void disableOpenVrKeyboard();
+bool isOpenVrKeyboardShown();
+
 
 template<typename F>
 void openvr_for_each_eye(F f) {
@@ -38,3 +48,39 @@ inline mat4 toGlm(const vr::HmdMatrix34_t& m) {
         m.m[0][3], m.m[1][3], m.m[2][3], 1.0f);
     return result;
 }
+
+inline vr::HmdMatrix34_t toOpenVr(const mat4& m) {
+    vr::HmdMatrix34_t result;
+    for (uint8_t i = 0; i < 3; ++i) {
+        for (uint8_t j = 0; j < 4; ++j) {
+            result.m[i][j] = m[j][i];
+        }
+    }
+    return result;
+}
+
+struct PoseData {
+    uint32_t frameIndex{ 0 };
+    vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
+    mat4 poses[vr::k_unMaxTrackedDeviceCount];
+    vec3 linearVelocities[vr::k_unMaxTrackedDeviceCount];
+    vec3 angularVelocities[vr::k_unMaxTrackedDeviceCount];
+
+    PoseData() {
+        memset(vrPoses, 0, sizeof(vr::TrackedDevicePose_t) * vr::k_unMaxTrackedDeviceCount);
+    }
+
+    void update(const glm::mat4& resetMat) {
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            if (!vrPoses[i].bPoseIsValid) {
+                continue;
+            }
+            poses[i] = resetMat * toGlm(vrPoses[i].mDeviceToAbsoluteTracking);
+            linearVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vVelocity));
+            angularVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vAngularVelocity));
+        }
+    }
+};
+
+
+controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity);

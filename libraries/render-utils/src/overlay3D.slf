@@ -11,13 +11,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredLighting.slh@>
+
 <@include model/Light.slh@>
+
+<@include LightingModel.slh@>
+
+<@include LightDirectional.slh@>
+<$declareLightingDirectional()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 specular, float roughness, float opacity) {
+vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness, float opacity) {
 
     // Need the light now
     Light light = getLight();
@@ -30,9 +35,12 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 a
 
     vec3 color = opacity * albedo * getLightColor(light) * getLightAmbientIntensity(light);
 
-    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, specular, roughness);
-
-    color += vec3(albedo * shading.w * opacity + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    // Directional
+    vec3 directionalDiffuse;
+    vec3 directionalSpecular;
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
+    color += directionalDiffuse * isDiffuseEnabled() * isDirectionalEnabled();
+    color += directionalSpecular * isSpecularEnabled() * isDirectionalEnabled();
 
     return vec4(color, opacity);
 }

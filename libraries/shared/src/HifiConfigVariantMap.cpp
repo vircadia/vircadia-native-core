@@ -111,6 +111,13 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
 
+    // load the user config - that method replace loadMasterAndUserConfig after the 1.7 migration
+    loadConfig(argumentList);
+
+    mergeMasterAndUserConfigs();
+}
+
+void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
     static const QString USER_CONFIG_FILE_NAME = "config.json";
@@ -159,12 +166,10 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
                 }
             }
         }
-
+        
     }
-
+    
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
-
-    mergeMasterAndUserConfigs();
 }
 
 void HifiConfigVariantMap::mergeMasterAndUserConfigs() {
@@ -213,10 +218,12 @@ QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool 
     if (shouldCreateIfMissing || variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
-        } else if (variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
-            return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
-                                   shouldCreateIfMissing);
         }
+        if (!variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
+            variantMap[firstKey] = QVariantMap();
+        }
+        return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
+                               shouldCreateIfMissing);
     }
 
     return NULL;

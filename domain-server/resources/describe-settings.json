@@ -1,5 +1,5 @@
 {
-  "version": 1.2,
+  "version": 1.7,
   "settings": [
     {
       "name": "metaverse",
@@ -56,6 +56,7 @@
           "label": "Paths",
           "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
           "type": "table",
+          "can_add_new_rows": true,
           "key": {
             "name": "path",
             "label": "Path",
@@ -66,6 +67,290 @@
               "name": "viewpoint",
               "label": "Viewpoint",
               "placeholder": "/0,0,0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "descriptors",
+      "label": "Description",
+      "help": "This data will be queryable from your server. It may be collected by High Fidelity and used to share your domain with others.",
+      "settings": [
+        {
+          "name": "description",
+          "label": "Description",
+          "help": "A description of your domain (256 character limit)."
+        },
+        {
+          "name": "maturity",
+          "label": "Maturity",
+          "help": "A maturity rating, available as a guideline for content on your domain.",
+          "default": "unrated",
+          "type": "select",
+          "options": [
+            {
+              "value": "unrated",
+              "label": "Unrated"
+            },
+            {
+              "value": "everyone",
+              "label": "Everyone"
+            },
+            {
+              "value": "teen",
+              "label": "Teen (13+)"
+            },
+            {
+              "value": "mature",
+              "label": "Mature (17+)"
+            },
+            {
+              "value": "adult",
+              "label": "Adult (18+)"
+            }
+          ]
+
+        },
+        {
+          "name": "hosts",
+          "label": "Hosts",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Usernames of hosts who can reliably show your domain to new visitors.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "host",
+              "label": "Username",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Common categories under which your domain falls.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "tag",
+              "label": "Tag",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "label": "Operating Hours",
+          "help": "\"Open\" domains can be searched using their operating hours. Hours are entered in the local timezone, selected below.",
+
+          "name": "weekday_hours",
+          "caption": "Weekday Hours (Monday-Friday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "name": "weekend_hours",
+          "label": "Weekend Hours (Saturday/Sunday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "label": "Time Zone",
+          "name": "utc_offset",
+          "caption": "Time Zone",
+          "help": "This server's time zone. Used to define your server's operating hours.",
+          "type": "select",
+          "options": [
+            {
+              "value": "-12",
+              "label": "UTC-12:00"
+            },
+            {
+              "value": "-11",
+              "label": "UTC-11:00"
+            },
+            {
+              "value": "-10",
+              "label": "UTC-10:00"
+            },
+            {
+              "value": "-9.5",
+              "label": "UTC-09:30"
+            },
+            {
+              "value": "-9",
+              "label": "UTC-09:00"
+            },
+            {
+              "value": "-8",
+              "label": "UTC-08:00"
+            },
+            {
+              "value": "-7",
+              "label": "UTC-07:00"
+            },
+            {
+              "value": "-6",
+              "label": "UTC-06:00"
+            },
+            {
+              "value": "-5",
+              "label": "UTC-05:00"
+            },
+            {
+              "value": "-4",
+              "label": "UTC-04:00"
+            },
+            {
+              "value": "-3.5",
+              "label": "UTC-03:30"
+            },
+            {
+              "value": "-3",
+              "label": "UTC-03:00"
+            },
+            {
+              "value": "-2",
+              "label": "UTC-02:00"
+            },
+            {
+              "value": "-1",
+              "label": "UTC-01:00"
+            },
+            {
+              "value": "",
+              "label": "UTC±00:00"
+            },
+            {
+              "value": "1",
+              "label": "UTC+01:00"
+            },
+            {
+              "value": "2",
+              "label": "UTC+02:00"
+            },
+            {
+              "value": "3",
+              "label": "UTC+03:00"
+            },
+            {
+              "value": "3.5",
+              "label": "UTC+03:30"
+            },
+            {
+              "value": "4",
+              "label": "UTC+04:00"
+            },
+            {
+              "value": "4.5",
+              "label": "UTC+04:30"
+            },
+            {
+              "value": "5",
+              "label": "UTC+05:00"
+            },
+            {
+              "value": "5.5",
+              "label": "UTC+05:30"
+            },
+            {
+              "value": "5.75",
+              "label": "UTC+05:45"
+            },
+            {
+              "value": "6",
+              "label": "UTC+06:00"
+            },
+            {
+              "value": "6.5",
+              "label": "UTC+06:30"
+            },
+            {
+              "value": "7",
+              "label": "UTC+07:00"
+            },
+            {
+              "value": "8",
+              "label": "UTC+08:00"
+            },
+            {
+              "value": "8.5",
+              "label": "UTC+08:30"
+            },
+            {
+              "value": "8.75",
+              "label": "UTC+08:45"
+            },
+            {
+              "value": "9",
+              "label": "UTC+09:00"
+            },
+            {
+              "value": "9.5",
+              "label": "UTC+09:30"
+            },
+            {
+              "value": "10",
+              "label": "UTC+10:00"
+            },
+            {
+              "value": "10.5",
+              "label": "UTC+10:30"
+            },
+            {
+              "value": "11",
+              "label": "UTC+11:00"
+            },
+            {
+              "value": "12",
+              "label": "UTC+12:00"
+            },
+            {
+              "value": "12.75",
+              "label": "UTC+12:45"
+            },
+            {
+              "value": "13",
+              "label": "UTC+13:00"
+            },
+            {
+              "value": "14",
+              "label": "UTC+14:00"
             }
           ]
         }
@@ -88,54 +373,436 @@
           "value-hidden": true
         },
         {
-          "name": "restricted_access",
-          "type": "checkbox",
-          "label": "Restricted Access",
-          "default": false,
-          "help": "Only users listed in \"Allowed Users\" can enter your domain."
-        },
-        {
-          "name": "allowed_users",
-          "type": "table",
-          "label": "Allowed Users",
-          "help": "You can always connect from the domain-server machine.",
-          "numbered": false,
-          "columns": [
-            {
-              "name": "username",
-              "label": "Username",
-              "can_set": true
-            }
-          ]
-        },
-        {
           "name": "maximum_user_capacity",
           "label": "Maximum User Capacity",
-          "help": "The limit on how many avatars can be connected at once.  0 means no limit.",
+          "help": "The limit on how many users can be connected at once (0 means no limit). Avatars connected from the same machine will not count towards this limit.",
           "placeholder": "0",
           "default": "0",
           "advanced": false
         },
         {
-          "name": "allowed_editors",
+          "name": "standard_permissions",
           "type": "table",
-          "label": "Allowed Editors",
-          "help": "List the High Fidelity names for people you want to be able lock or unlock entities in this domain.<br/>An empty list means everyone.",
-          "numbered": false,
+          "label": "Domain-Wide User Permissions",
+          "help": "Indicate which types of users can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
+          "caption": "Standard Permissions",
+          "can_add_new_rows": false,
+
+          "groups": [
+            {
+              "label": "Type of User",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
           "columns": [
             {
-              "name": "username",
-              "label": "Username",
-              "can_set": true
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ],
+
+          "non-deletable-row-key": "permissions_id",
+          "non-deletable-row-values": ["localhost", "anonymous", "logged-in"]
+        },
+        {
+          "name": "group_permissions",
+          "type": "table",
+          "caption": "Permissions for Users in Groups",
+          "categorize_by_key": "permissions_id",
+          "can_add_new_categories": true,
+          "can_add_new_rows": false,
+          "new_category_placeholder": "Add Group",
+          "new_category_message": "Save and reload to see ranks",
+
+          "groups": [
+            {
+              "label": "Rank",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in, as well as permissions from the previous section.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": "Group Name",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_id",
+              "label": "Rank ID",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "rank_name",
+              "label": "",
+              "readonly": true
+            },
+            {
+              "name": "group_id",
+              "label": "Group ID",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
             }
           ]
         },
         {
-          "name": "editors_are_rezzers",
-          "type": "checkbox",
-          "label": "Only Editors Can Create Entities",
-          "help": "Only users listed in \"Allowed Editors\" can create new entites.",
-          "default": false
+          "name": "group_forbiddens",
+          "type": "table",
+          "caption": "Permissions Denied to Users in Groups",
+          "categorize_by_key": "permissions_id",
+          "can_add_new_categories": true,
+          "can_add_new_rows": false,
+          "new_category_placeholder": "Add Blacklist Group",
+          "new_category_message": "Save and reload to see ranks",
+
+          "groups": [
+            {
+              "label": "Rank",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": "Group Name",
+              "hidden": true
+            },
+            {
+              "name": "rank_id",
+              "label": "Rank ID",
+              "hidden": true
+            },
+            {
+              "name": "rank_order",
+              "label": "Rank Order",
+              "hidden": true
+            },
+            {
+              "name": "rank_name",
+              "label": "",
+              "readonly": true
+            },
+            {
+              "name": "group_id",
+              "label": "Group ID",
+              "readonly": true,
+              "hidden": true
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "ip_permissions",
+          "type": "table",
+          "caption": "Permissions for Users from IP Addresses",
+          "can_add_new_rows": true,
+          "groups": [
+            {
+              "label": "IP Address",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide IP Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users from specific IPs can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific IPs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users from specific IPs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users from specific IPs can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users from specific IPs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users from specific IPs can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific IP will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). IP address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "permissions",
+          "type": "table",
+          "caption": "Permissions for Specific Users",
+          "can_add_new_rows": true,
+
+          "groups": [
+            {
+              "label": "User",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
         }
       ]
     },
@@ -148,6 +815,8 @@
           "type": "table",
           "label": "Persistent Scripts",
           "help": "Add the URLs for scripts that you would like to ensure are always running in your domain.",
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "url",
@@ -207,8 +876,8 @@
           "name": "attenuation_per_doubling_in_distance",
           "label": "Default Domain Attenuation",
           "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
-          "placeholder": "0.18",
-          "default": "0.18",
+          "placeholder": "0.5",
+          "default": "0.5",
           "advanced": false
         },
         {
@@ -232,6 +901,8 @@
           "label": "Zones",
           "help": "In this table you can define a set of zones in which you can specify various audio properties.",
           "numbered": false,
+          "can_add_new_rows": true,
+
           "key": {
             "name": "name",
             "label": "Name",
@@ -283,6 +954,8 @@
           "help": "In this table you can set custom attenuation coefficients between audio zones",
           "numbered": true,
           "can_order": true,
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "source",
@@ -300,7 +973,7 @@
               "name": "coefficient",
               "label": "Attenuation coefficient",
               "can_set": true,
-              "placeholder": "0.18"
+              "placeholder": "0.5"
             }
           ]
         },
@@ -310,6 +983,8 @@
           "label": "Reverb Settings",
           "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet/dry mix of 25%. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet/dry mix of 50%.",
           "numbered": true,
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "zone",
@@ -330,6 +1005,14 @@
               "placeholder": "(in percent)"
             }
           ]
+        },
+        {
+          "name": "codec_preference_order",
+          "label": "Audio Codec Preference Order",
+          "help": "List of codec names in order of preferred usage",
+          "placeholder": "hifiAC, zlib, pcm",
+          "default": "hifiAC,zlib,pcm",
+          "advanced": true
         }
       ]
     },
@@ -410,11 +1093,27 @@
       "assignment-types": [6],
       "settings": [
         {
+          "name": "maxTmpLifetime",
+          "label": "Maximum Lifetime of Temporary Entities",
+          "help": "The maximum number of seconds for the lifetime of an entity which will be considered \"temporary\".",
+          "placeholder": "3600",
+          "default": "3600",
+          "advanced": true
+        },
+        {
           "name": "persistFilePath",
           "label": "Entities File Path",
           "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
+          "advanced": true
+        },
+        {
+          "name": "backupDirectoryPath",
+          "label": "Entities Backup Directory Path",
+          "help": "The path to the directory to store backups in.<br/>If this path is relative it will be relative to the application data directory.",
+          "placeholder": "",
+          "default": "",
           "advanced": true
         },
         {
@@ -431,6 +1130,8 @@
           "label": "Backup Rules",
           "help": "In this table you can define a set of rules for how frequently to backup copies of your entites content file.",
           "numbered": false,
+          "can_add_new_rows": true,
+
           "default":  [
                           {"Name":"Half Hourly Rolling","backupInterval":1800,"format":".backup.halfhourly.%N","maxBackupVersions":5},
                           {"Name":"Daily Rolling","backupInterval":86400,"format":".backup.daily.%N","maxBackupVersions":7},

@@ -14,6 +14,10 @@
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
 }
 
+glm::vec3 ClipboardScriptingInterface::getContentsDimensions() {
+    return qApp->getEntityClipboard()->getContentsDimensions();
+}
+
 float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
     return qApp->getEntityClipboard()->getContentsLargestDimension();
 }

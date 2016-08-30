@@ -125,7 +125,6 @@ Rectangle {
 
     TextField {
         id: addressLine
-        focus: true
         anchors { 
             left: parent.left; right: parent.right;
             top: row.bottom; margins: 16; 

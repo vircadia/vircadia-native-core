@@ -7,1830 +7,558 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
-
 <html>
-<head>
-    <title>Properties</title>
-    <link rel="stylesheet" type="text/css" href="edit-style.css">
-    <link rel="stylesheet" type="text/css" href="css/colpick.css">
-    <script src="jquery-2.1.4.min.js"></script>
-    <script src="colpick.js"></script>
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script type="text/javascript" src="eventBridgeLoader.js"></script>
-    <script type="text/javascript" src="spinButtons.js"></script>
-    <script>
-        var PI = 3.14159265358979;
-        var DEGREES_TO_RADIANS = PI / 180.0;
-        var RADIANS_TO_DEGREES = 180.0 / PI;
-        var ICON_FOR_TYPE = {
-            Box: "V",
-            Sphere: "n",
-            ParticleEffect: "&#xe004;",
-            Model: "&#xe008;",
-            Web: "q",
-            Text: "l",
-            Light: "p",
-            Zone: "o",
-            PolyVox: "&#xe005;",
-            Multiple: "&#xe000;"
-        }
-
-        var colorPickers = [];
-
-        debugPrint = function(message) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    type:"print", 
-                    message: message
-                })
-            );
-        };
-        
-        function enableChildren(el, selector) {
-            els = el.querySelectorAll(selector);
-            for (var i = 0; i < els.length; i++) {
-                els[i].removeAttribute('disabled');
-            }
-        }
-        function disableChildren(el, selector) {
-            els = el.querySelectorAll(selector);
-            for (var i = 0; i < els.length; i++) {
-                els[i].setAttribute('disabled', 'disabled');
-            }
-        }
-
-        function enableProperties() {
-            enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
-            enableChildren(document, ".colpick");
-        }
-
-        function disableProperties() {
-            disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
-            disableChildren(document, ".colpick");
-            for (var i = 0; i < colorPickers.length; i++) {
-                colorPickers[i].colpickHide();
-            }
-        }
-
-        function showElements(els, show) {
-            for (var i = 0; i < els.length; i++) {
-                els[i].style.display = (show) ? 'table' : 'none';
-            }
-        }
-
-        function createEmitCheckedPropertyUpdateFunction(propertyName) {
-            return function() {
-                EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":' + this.checked + '}}'
-                );
-            };
-        }
-
-        function createEmitCheckedToStringPropertyUpdateFunction(checkboxElement, name, propertyName) {
-            var newString = "";
-            if (checkboxElement.checked) {
-                newString += name + "";
-            } else {
-
-            }
-
-        }
-
-        function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
-            return function () {
-                var properties = {};
-                properties[group] = {};
-                properties[group][propertyName] = this.checked;
-                EventBridge.emitWebEvent(
-                    JSON.stringify({
-                        type: "update",
-                        properties: properties
-                    })
-                );
-            };
-        }
-
-        function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
-            decimals = decimals == undefined ? 4 : decimals;
-            return function() {
-                var value = parseFloat(this.value).toFixed(decimals);
-
-                EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
-                );
-            };
-        }
-        function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
-            return function() {
-                var properties = {};
-                properties[group] = {};
-                properties[group][propertyName] = this.value;
-                EventBridge.emitWebEvent(
-                    JSON.stringify({
-                        type: "update",
-                        properties: properties,
-                    })
-                );
-            };
-        }
-
-
-        function createEmitTextPropertyUpdateFunction(propertyName) {
-            return function() {
-                var properties = {};
-                properties[propertyName] = this.value;
-                EventBridge.emitWebEvent(
-                    JSON.stringify({
-                        type: "update",
-                        properties: properties,
-                    })
-                );
-            };
-        }
-
-        function createEmitGroupTextPropertyUpdateFunction(group,propertyName) {
-            return function() {
-                var properties = {};
-                properties[group] = {};
-                properties[group][propertyName] = this.value;
-                EventBridge.emitWebEvent(
-                    JSON.stringify({
-                        type: "update",
-                        properties: properties,
-                    })
-                );
-            };
-        }
-
-        function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
-            return function() {
-                var data = {
-                     type: "update",
-                     properties: {
-                     }
-                };
-                data.properties[property] = {
-                     x: elX.value,
-                     y: elY.value,
-                     z: elZ.value,
-                };
-                EventBridge.emitWebEvent(JSON.stringify(data));
-            }
-        };
-
-        function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, elZ) {
-            return function() {
-                var data = {
-                     type: "update",
-                     properties: {
-                     }
-                };
-                data.properties[group] = { };
-                data.properties[group][property] = {
-                     x: elX.value,
-                     y: elY.value,
-                     z: elZ ? elZ.value : 0,
-                };
-                EventBridge.emitWebEvent(JSON.stringify(data));
-            }
-        };
-
-        function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
-            return function() {
-                var data = {
-                     type: "update",
-                     properties: {
-                     }
-                };
-                data.properties[property] = {
-                     x: elX.value * multiplier,
-                     y: elY.value * multiplier,
-                     z: elZ.value * multiplier,
-                };
-                EventBridge.emitWebEvent(JSON.stringify(data));
-            }
-        };
-
-        function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue) {
-            return function() {
-                emitColorPropertyUpdate(property, elRed.value, elGreen.value, elBlue.value);
-            }
-        };
-
-        function emitColorPropertyUpdate(property, red, green, blue, group) {
-                var data = {
-                     type: "update",
-                     properties: {
-                     }
-                };
-                if (group) {
-                    data.properties[group] = { };
-                    data.properties[group][property] = {
-                         red: red,
-                         green: green,
-                         blue: blue,
-                    };
-                } else {
-                    data.properties[property] = {
-                         red: red,
-                         green: green,
-                         blue: blue,
-                    };
-                }
-                EventBridge.emitWebEvent(JSON.stringify(data));
-        };
-
-
-        function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
-            return function() {
-                var data = {
-                     type: "update",
-                     properties: {
-                     }
-                };
-                data.properties[group] = { };
-
-                data.properties[group][property] = {
-                     red: elRed.value,
-                     green: elGreen.value,
-                     blue: elBlue.value,
-                };
-                EventBridge.emitWebEvent(JSON.stringify(data));
-            }
-        };
-
-        function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
-            if (subPropertyElement.checked) {
-                if (propertyValue.indexOf(subPropertyString)) {
-                    propertyValue += subPropertyString + ',';
-                } 
-            } else {
-                // We've unchecked, so remove 
-                propertyValue = propertyValue.replace(subPropertyString + ",", "");
-            }
-
-            var _properties ={}
-            _properties[propertyName] = propertyValue;
-            
-            EventBridge.emitWebEvent(
-              JSON.stringify({
-                type: "update",
-                properties: _properties
-              })
-            );
-
-        }
-
-        function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
-            var properties = {};
-            var parsedData = {};
-            try {
-                parsedData = JSON.parse(userDataElement.value);
-            } catch(e) {}
-
-            if (!(groupName in parsedData)) {
-                parsedData[groupName] = {}
-            }
-            delete parsedData[groupName][keyName];
-            if (checkBoxElement.checked !== defaultValue) {
-                parsedData[groupName][keyName] = checkBoxElement.checked;
-            }
-
-            if (Object.keys(parsedData[groupName]).length == 0) {
-                delete parsedData[groupName];
-            }
-            if (Object.keys(parsedData).length > 0) {
-                properties['userData'] = JSON.stringify(parsedData);
-            } else {
-                properties['userData'] = '';
-            }
-
-            userDataElement.value = properties['userData'];
-
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    type: "update",
-                    properties: properties,
-                })
-            );
-        };
-
-        function setTextareaScrolling(element) {
-            var isScrolling = element.scrollHeight > element.offsetHeight;
-            element.setAttribute("scrolling", isScrolling ? "true" : "false");
-        }
-
-        function loaded() { 
-            openEventBridge(function() {
-                var allSections = [];
-                var elID = document.getElementById("property-id");
-                var elType = document.getElementById("property-type");
-                var elTypeIcon = document.getElementById("type-icon");
-                var elName = document.getElementById("property-name");
-                var elLocked = document.getElementById("property-locked");
-                var elVisible = document.getElementById("property-visible");
-                var elPositionX = document.getElementById("property-pos-x");
-                var elPositionY = document.getElementById("property-pos-y");
-                var elPositionZ = document.getElementById("property-pos-z");
-                var elMoveSelectionToGrid = document.getElementById("move-selection-to-grid");
-                var elMoveAllToGrid = document.getElementById("move-all-to-grid");
-    
-                var elDimensionsX = document.getElementById("property-dim-x");
-                var elDimensionsY = document.getElementById("property-dim-y");
-                var elDimensionsZ = document.getElementById("property-dim-z");
-                var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
-                var elRescaleDimensionsPct = document.getElementById("dimension-rescale-pct");
-                var elRescaleDimensionsButton = document.getElementById("dimension-rescale-button");
-    
-                var elParentID = document.getElementById("property-parent-id");
-                var elParentJointIndex = document.getElementById("property-parent-joint-index");
-    
-                var elRegistrationX = document.getElementById("property-reg-x");
-                var elRegistrationY = document.getElementById("property-reg-y");
-                var elRegistrationZ = document.getElementById("property-reg-z");
-    
-                var elRotationX = document.getElementById("property-rot-x");
-                var elRotationY = document.getElementById("property-rot-y");
-                var elRotationZ = document.getElementById("property-rot-z");
-    
-                var elLinearVelocityX = document.getElementById("property-lvel-x");
-                var elLinearVelocityY = document.getElementById("property-lvel-y");
-                var elLinearVelocityZ = document.getElementById("property-lvel-z");
-                var elLinearDamping = document.getElementById("property-ldamping");
-    
-                var elAngularVelocityX = document.getElementById("property-avel-x");
-                var elAngularVelocityY = document.getElementById("property-avel-y");
-                var elAngularVelocityZ = document.getElementById("property-avel-z");
-                var elAngularDamping = document.getElementById("property-adamping");
-    
-                var elRestitution = document.getElementById("property-restitution");
-                var elFriction = document.getElementById("property-friction");
-    
-                var elGravityX = document.getElementById("property-grav-x");
-                var elGravityY = document.getElementById("property-grav-y");
-                var elGravityZ = document.getElementById("property-grav-z");
-    
-                var elAccelerationX = document.getElementById("property-lacc-x");
-                var elAccelerationY = document.getElementById("property-lacc-y");
-                var elAccelerationZ = document.getElementById("property-lacc-z");
-    
-                var elDensity = document.getElementById("property-density");
-                var elCollisionless = document.getElementById("property-collisionless");
-                var elDynamic = document.getElementById("property-dynamic" );
-                var elCollideStatic = document.getElementById("property-collide-static");
-                var elCollideDynamic = document.getElementById("property-collide-dynamic");
-                var elCollideKinematic = document.getElementById("property-collide-kinematic");
-                var elCollideMyAvatar = document.getElementById("property-collide-myAvatar");
-                var elCollideOtherAvatar = document.getElementById("property-collide-otherAvatar");
-                var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
-
-                var elGrabbable = document.getElementById("property-grabbable");
-                var elWantsTrigger = document.getElementById("property-wants-trigger");
-                var elIgnoreIK = document.getElementById("property-ignore-ik");
-
-                var elLifetime = document.getElementById("property-lifetime");
-                var elScriptURL = document.getElementById("property-script-url");
-                /*
-                FIXME: See FIXME for property-script-url.
-                var elScriptTimestamp = document.getElementById("property-script-timestamp");
-                */
-                var elReloadScriptButton = document.getElementById("reload-script-button");
-                var elUserData = document.getElementById("property-user-data");
-    
-                var elColorSections = document.querySelectorAll(".color-section");
-                var elColor = document.getElementById("property-color");
-                var elColorRed = document.getElementById("property-color-red");
-                var elColorGreen = document.getElementById("property-color-green");
-                var elColorBlue = document.getElementById("property-color-blue");
-    
-                var elLightSections = document.querySelectorAll(".light-section");
-                allSections.push(elLightSections);
-                var elLightSpotLight = document.getElementById("property-light-spot-light");
-                var elLightColor = document.getElementById("property-light-color");
-                var elLightColorRed = document.getElementById("property-light-color-red");
-                var elLightColorGreen = document.getElementById("property-light-color-green");
-                var elLightColorBlue = document.getElementById("property-light-color-blue");
-    
-                var elLightIntensity = document.getElementById("property-light-intensity");
-                var elLightFalloffRadius = document.getElementById("property-light-falloff-radius");
-                var elLightExponent = document.getElementById("property-light-exponent");
-                var elLightCutoff = document.getElementById("property-light-cutoff");
-    
-                var elModelSections = document.querySelectorAll(".model-section");
-                allSections.push(elModelSections);
-                var elModelURL = document.getElementById("property-model-url");
-                var elShapeType = document.getElementById("property-shape-type");
-                var elCompoundShapeURL = document.getElementById("property-compound-shape-url");
-                var elModelAnimationURL = document.getElementById("property-model-animation-url");
-                var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
-                var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
-                var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
-                var elModelAnimationFirstFrame = document.getElementById("property-model-animation-first-frame");
-                var elModelAnimationLastFrame = document.getElementById("property-model-animation-last-frame");
-                var elModelAnimationLoop = document.getElementById("property-model-animation-loop");
-                var elModelAnimationHold = document.getElementById("property-model-animation-hold");
-                var elModelTextures = document.getElementById("property-model-textures");
-                var elModelOriginalTextures = document.getElementById("property-model-original-textures");
-    
-                var elWebSections = document.querySelectorAll(".web-section");
-                allSections.push(elWebSections);
-                var elWebSourceURL = document.getElementById("property-web-source-url");
-    
-
-                var elHyperlinkHref = document.getElementById("property-hyperlink-href");
-                var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
-                var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
-              
-    
-                var elTextSections = document.querySelectorAll(".text-section");
-                allSections.push(elTextSections);
-                var elTextText = document.getElementById("property-text-text");
-                var elTextLineHeight = document.getElementById("property-text-line-height");
-                var elTextTextColor = document.getElementById("property-text-text-color");
-                var elTextTextColorRed = document.getElementById("property-text-text-color-red");
-                var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
-                var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
-                var elTextBackgroundColor = document.getElementById("property-text-background-color");
-                var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
-                var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
-                var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
-    
-                var elZoneSections = document.querySelectorAll(".zone-section");
-                allSections.push(elZoneSections);
-                var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
-    
-                var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
-                var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
-                var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
-                var elZoneKeyLightColorBlue = document.getElementById("property-zone-key-light-color-blue");
-                var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
-                var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-ambient-intensity");
-                var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
-                var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
-                var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
-                var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
-    
-                var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
-                var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
-                var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
-                var elZoneStageAutomaticHourDay = document.getElementById("property-zone-stage-automatic-hour-day");
-                var elZoneStageDay = document.getElementById("property-zone-stage-day");
-                var elZoneStageHour = document.getElementById("property-zone-stage-hour");
-    
-                var elZoneBackgroundMode = document.getElementById("property-zone-background-mode");
-    
-                var elZoneSkyboxColor = document.getElementById("property-zone-skybox-color");
-                var elZoneSkyboxColorRed = document.getElementById("property-zone-skybox-color-red");
-                var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
-                var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
-                var elZoneSkyboxURL = document.getElementById("property-zone-skybox-url");
-    
-                var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
-                allSections.push(elPolyVoxSections);
-                var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
-                var elVoxelVolumeSizeY = document.getElementById("property-voxel-volume-size-y");
-                var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
-                var elVoxelSurfaceStyle = document.getElementById("property-voxel-surface-style");
-                var elXTextureURL = document.getElementById("property-x-texture-url");
-                var elYTextureURL = document.getElementById("property-y-texture-url");
-                var elZTextureURL = document.getElementById("property-z-texture-url");
-
-                var elPreviewCameraButton = document.getElementById("preview-camera-button");
-
-                if (window.EventBridge !== undefined) {
-                    var properties;
-                    EventBridge.scriptEventReceived.connect(function(data) {
-                        data = JSON.parse(data);
-                        if (data.type == "update") {
-                            if (data.selections.length == 0) {
-                                elTypeIcon.style.display = "none";
-                                elType.innerHTML = "<i>No selection</i>";
-                                elID.innerHTML = "";
-                                disableProperties();
-                            } else if (data.selections.length > 1) {
-                                var selections = data.selections;
-    
-                                var ids = [];
-                                var types = {};
-                                var numTypes = 0;
-    
-                                for (var i = 0; i < selections.length; i++) {
-                                    ids.push(selections[i].id);
-                                    var type = selections[i].properties.type;
-                                    if (types[type] === undefined) {
-                                        types[type] = 0;
-                                        numTypes += 1;
-                                    }
-                                    types[type]++;
-                                }
-
-                                var type;
-                                if (numTypes === 1) {
-                                    type = selections[0].properties.type;
-                                } else {
-                                    type = "Multiple";
-                                }
-                                elType.innerHTML = type + " (" + data.selections.length + ")";
-                                elTypeIcon.innerHTML = ICON_FOR_TYPE[type];
-                                elTypeIcon.style.display = "inline-block";
-
-                                elID.innerHTML = ids.join("<br>");
-
-                                disableProperties();
-                            } else {
-                                var activeElement = document.activeElement;
-    
-                                try {
-                                    var selected = (activeElement
-                                               && activeElement.selectionStart == 0
-                                               && activeElement.selectionEnd == activeElement.value.length);
-                                } catch (e) {
-                                    var  selected = false;
-                                }
-    
-                                properties = data.selections[0].properties;
-    
-                                elID.innerHTML = properties.id;
-    
-                                elType.innerHTML = properties.type;
-                                elTypeIcon.innerHTML = ICON_FOR_TYPE[properties.type];
-                                elTypeIcon.style.display = "inline-block";
-
-                                elLocked.checked = properties.locked;
-    
-                                if (properties.locked) {
-                                    disableProperties();
-                                    elLocked.removeAttribute('disabled');
-                                } else {
-                                    enableProperties();
-                                }
-
-    
-                                elName.value = properties.name;
-    
-                                elVisible.checked = properties.visible;
-    
-                                elPositionX.value = properties.position.x.toFixed(4);
-                                elPositionY.value = properties.position.y.toFixed(4);
-                                elPositionZ.value = properties.position.z.toFixed(4);
-    
-                                elDimensionsX.value = properties.dimensions.x.toFixed(4);
-                                elDimensionsY.value = properties.dimensions.y.toFixed(4);
-                                elDimensionsZ.value = properties.dimensions.z.toFixed(4);
-    
-                                elParentID.value = properties.parentID;
-                                elParentJointIndex.value = properties.parentJointIndex;
-    
-                                elRegistrationX.value = properties.registrationPoint.x.toFixed(4);
-                                elRegistrationY.value = properties.registrationPoint.y.toFixed(4);
-                                elRegistrationZ.value = properties.registrationPoint.z.toFixed(4);
-    
-                                elRotationX.value = properties.rotation.x.toFixed(4);
-                                elRotationY.value = properties.rotation.y.toFixed(4);
-                                elRotationZ.value = properties.rotation.z.toFixed(4);
-    
-                                elLinearVelocityX.value = properties.velocity.x.toFixed(4);
-                                elLinearVelocityY.value = properties.velocity.y.toFixed(4);
-                                elLinearVelocityZ.value = properties.velocity.z.toFixed(4);
-                                elLinearDamping.value = properties.damping.toFixed(2);
-    
-                                elAngularVelocityX.value = (properties.angularVelocity.x * RADIANS_TO_DEGREES).toFixed(4);
-                                elAngularVelocityY.value = (properties.angularVelocity.y * RADIANS_TO_DEGREES).toFixed(4);
-                                elAngularVelocityZ.value = (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(4);
-                                elAngularDamping.value = properties.angularDamping.toFixed(4);
-    
-                                elRestitution.value = properties.restitution.toFixed(4);
-                                elFriction.value = properties.friction.toFixed(4);
-    
-                                elGravityX.value = properties.gravity.x.toFixed(4);
-                                elGravityY.value = properties.gravity.y.toFixed(4);
-                                elGravityZ.value = properties.gravity.z.toFixed(4);
-    
-                                elAccelerationX.value = properties.acceleration.x.toFixed(4);
-                                elAccelerationY.value = properties.acceleration.y.toFixed(4);
-                                elAccelerationZ.value = properties.acceleration.z.toFixed(4);
-    
-                                elDensity.value = properties.density.toFixed(4);
-                                elCollisionless.checked = properties.collisionless;
-                                elDynamic.checked = properties.dynamic;
-
-                                elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
-                                elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
-                                elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
-                                elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
-                                elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
-
-                                elGrabbable.checked = properties.dynamic;
-                                elWantsTrigger.checked = false;
-                                elIgnoreIK.checked = false;
-                                var parsedUserData = {}
-                                try {
-                                    parsedUserData = JSON.parse(properties.userData);
-                                } catch(e) {}
-                                if ("grabbableKey" in parsedUserData) {
-                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
-                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
-                                    }
-                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
-                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
-                                    }
-                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
-                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
-                                    }
-                                }
-
-                                elCollisionSoundURL.value = properties.collisionSoundURL;
-                                elLifetime.value = properties.lifetime;
-                                elScriptURL.value = properties.script;
-                                /*
-                                FIXME: See FIXME for property-script-url.
-                                elScriptTimestamp.value = properties.scriptTimestamp;
-                                */
-                                elUserData.value = properties.userData;
-                                setTextareaScrolling(elUserData);
-    
-                                elHyperlinkHref.value = properties.href;
-                                elHyperlinkDescription.value = properties.description;
-    
-                                for (var i = 0; i < allSections.length; i++) {
-                                    for (var j = 0; j < allSections[i].length; j++) {
-                                        allSections[i][j].style.display = 'none';
-                                    }
-                                }                                    
-
-                                for (var i = 0; i < elHyperlinkSections.length; i++) {
-                                    elHyperlinkSections[i].style.display = 'table';
-                                }
-
-                                if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
-                                    for (var i = 0; i < elColorSections.length; i++) {
-                                        elColorSections[i].style.display = 'table';
-                                    }
-                                    elColorRed.value = properties.color.red;
-                                    elColorGreen.value = properties.color.green;
-                                    elColorBlue.value = properties.color.blue;
-                                    elColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
-                                } else {
-                                    for (var i = 0; i < elColorSections.length; i++) {
-                                        elColorSections[i].style.display = 'none';
-                                    }
-                                }
-    
-                                if (properties.type == "Model") {
-                                    for (var i = 0; i < elModelSections.length; i++) {
-                                        elModelSections[i].style.display = 'table';
-                                    }
-    
-                                    elModelURL.value = properties.modelURL;
-                                    elShapeType.value = properties.shapeType;
-                                    setDropdownText(elShapeType);
-                                    elCompoundShapeURL.value = properties.compoundShapeURL;
-                                    elModelAnimationURL.value = properties.animation.url;
-                                    elModelAnimationPlaying.checked = properties.animation.running;
-                                    elModelAnimationFPS.value = properties.animation.fps;
-                                    elModelAnimationFrame.value = properties.animation.currentFrame;
-                                    elModelAnimationFirstFrame.value = properties.animation.firstFrame;
-                                    elModelAnimationLastFrame.value = properties.animation.lastFrame;
-                                    elModelAnimationLoop.checked = properties.animation.loop;
-                                    elModelAnimationHold.checked = properties.animation.hold;
-                                    elModelTextures.value = properties.textures;
-                                    setTextareaScrolling(elModelTextures);
-                                    elModelOriginalTextures.value = properties.originalTextures;
-                                    setTextareaScrolling(elModelOriginalTextures);
-                                } else if (properties.type == "Web") {
-                                    for (var i = 0; i < elWebSections.length; i++) {
-                                        elWebSections[i].style.display = 'table';
-                                    }
-                                    for (var i = 0; i < elHyperlinkSections.length; i++) {
-                                        elHyperlinkSections[i].style.display = 'none';
-                                    }
-    
-                                    elWebSourceURL.value = properties.sourceUrl;
-                                } else if (properties.type == "Text") {
-                                    for (var i = 0; i < elTextSections.length; i++) {
-                                        elTextSections[i].style.display = 'table';
-                                    }
-    
-                                    elTextText.value = properties.text;
-                                    elTextLineHeight.value = properties.lineHeight.toFixed(4);
-                                    elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
-                                    elTextTextColorRed.value = properties.textColor.red;
-                                    elTextTextColorGreen.value = properties.textColor.green;
-                                    elTextTextColorBlue.value = properties.textColor.blue;
-                                    elTextBackgroundColorRed.value = properties.backgroundColor.red;
-                                    elTextBackgroundColorGreen.value = properties.backgroundColor.green;
-                                    elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
-                                } else if (properties.type == "Light") {
-                                    for (var i = 0; i < elLightSections.length; i++) {
-                                        elLightSections[i].style.display = 'table';
-                                    }
-    
-                                    elLightSpotLight.checked = properties.isSpotlight;
-    
-                                    elLightColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
-                                    elLightColorRed.value = properties.color.red;
-                                    elLightColorGreen.value = properties.color.green;
-                                    elLightColorBlue.value = properties.color.blue;
-    
-                                    elLightIntensity.value = properties.intensity.toFixed(1);
-                                    elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
-                                    elLightExponent.value = properties.exponent.toFixed(2);
-                                    elLightCutoff.value = properties.cutoff.toFixed(2);
-                                } else if (properties.type == "Zone") {
-                                    for (var i = 0; i < elZoneSections.length; i++) {
-                                        elZoneSections[i].style.display = 'table';
-                                    }
-    
-                                    elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
-                                    elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red  + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
-                                    elZoneKeyLightColorRed.value = properties.keyLight.color.red;
-                                    elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
-                                    elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
-                                    elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
-                                    elZoneKeyLightAmbientIntensity.value = properties.keyLight.ambientIntensity.toFixed(2);
-                                    elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
-                                    elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
-                                    elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
-    
-    
-                                    elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
-                                    elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
-                                    elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
-                                    elZoneStageAutomaticHourDay.checked = properties.stage.automaticHourDay;
-                                    elZoneStageDay.value = properties.stage.day;
-                                    elZoneStageHour.value = properties.stage.hour;
-                                    elShapeType.value = properties.shapeType;
-                                    elCompoundShapeURL.value = properties.compoundShapeURL;
-    
-                                    elZoneBackgroundMode.value = properties.backgroundMode;
-                                    setDropdownText(elZoneBackgroundMode);
-    
-                                    elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red  + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
-                                    elZoneSkyboxColorRed.value = properties.skybox.color.red;
-                                    elZoneSkyboxColorGreen.value = properties.skybox.color.green;
-                                    elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
-                                    elZoneSkyboxURL.value = properties.skybox.url;
-    
-                                    showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
-                                } else if (properties.type == "PolyVox") {
-                                    for (var i = 0; i < elPolyVoxSections.length; i++) {
-                                        elPolyVoxSections[i].style.display = 'table';
-                                    }
-    
-                                    elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
-                                    elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
-                                    elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
-                                    elVoxelSurfaceStyle.value = properties.voxelSurfaceStyle;
-                                    setDropdownText(elVoxelSurfaceStyle);
-                                    elXTextureURL.value = properties.xTextureURL;
-                                    elYTextureURL.value = properties.yTextureURL;
-                                    elZTextureURL.value = properties.zTextureURL;
-                                }
-    
-                                if (selected) {
-                                    activeElement.focus();
-                                    activeElement.select();
-                                }
-                            }
-                        }
-                    });
-                }
-    
-                elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
-                elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
-                elHyperlinkHref.addEventListener('change', createEmitTextPropertyUpdateFunction('href'));
-                elHyperlinkDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
-                elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
-    
-                var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'position', elPositionX, elPositionY, elPositionZ);
-                elPositionX.addEventListener('change', positionChangeFunction);
-                elPositionY.addEventListener('change', positionChangeFunction);
-                elPositionZ.addEventListener('change', positionChangeFunction);
-    
-                var dimensionsChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'dimensions', elDimensionsX, elDimensionsY, elDimensionsZ);
-                elDimensionsX.addEventListener('change', dimensionsChangeFunction);
-                elDimensionsY.addEventListener('change', dimensionsChangeFunction);
-                elDimensionsZ.addEventListener('change', dimensionsChangeFunction);
-    
-                elParentID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentID'));
-                elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex'));
-    
-                var registrationChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'registrationPoint', elRegistrationX, elRegistrationY, elRegistrationZ);
-                elRegistrationX.addEventListener('change', registrationChangeFunction);
-                elRegistrationY.addEventListener('change', registrationChangeFunction);
-                elRegistrationZ.addEventListener('change', registrationChangeFunction);
-    
-                var rotationChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'rotation', elRotationX, elRotationY, elRotationZ);
-                elRotationX.addEventListener('change', rotationChangeFunction);
-                elRotationY.addEventListener('change', rotationChangeFunction);
-                elRotationZ.addEventListener('change', rotationChangeFunction);
-    
-                var velocityChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'velocity', elLinearVelocityX, elLinearVelocityY, elLinearVelocityZ);
-                elLinearVelocityX.addEventListener('change', velocityChangeFunction);
-                elLinearVelocityY.addEventListener('change', velocityChangeFunction);
-                elLinearVelocityZ.addEventListener('change', velocityChangeFunction);
-                elLinearDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('damping'));
-    
-                var angularVelocityChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(
-                    'angularVelocity', elAngularVelocityX, elAngularVelocityY, elAngularVelocityZ, DEGREES_TO_RADIANS);
-                elAngularVelocityX.addEventListener('change', angularVelocityChangeFunction);
-                elAngularVelocityY.addEventListener('change', angularVelocityChangeFunction);
-                elAngularVelocityZ.addEventListener('change', angularVelocityChangeFunction);
-                elAngularDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('angularDamping'));
-    
-                elRestitution.addEventListener('change', createEmitNumberPropertyUpdateFunction('restitution'));
-                elFriction.addEventListener('change', createEmitNumberPropertyUpdateFunction('friction'));
-    
-                var gravityChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'gravity', elGravityX, elGravityY, elGravityZ);
-                elGravityX.addEventListener('change', gravityChangeFunction);
-                elGravityY.addEventListener('change', gravityChangeFunction);
-                elGravityZ.addEventListener('change', gravityChangeFunction);
-    
-                var accelerationChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'acceleration', elAccelerationX, elAccelerationY, elAccelerationZ);
-                elAccelerationX.addEventListener('change', accelerationChangeFunction);
-                elAccelerationY.addEventListener('change', accelerationChangeFunction);
-                elAccelerationZ.addEventListener('change', accelerationChangeFunction);
-    
-                elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
-                elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
-                elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
-
-                elCollideDynamic.addEventListener('change', function() {
-                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
-                });
-
-                elCollideKinematic.addEventListener('change', function() {
-                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideKinematic, 'kinematic');
-                });
-
-                elCollideStatic.addEventListener('change', function() {
-                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideStatic, 'static');
-                });
-                elCollideMyAvatar.addEventListener('change', function() {
-                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideMyAvatar, 'myAvatar');
-                });
-                elCollideOtherAvatar.addEventListener('change', function() {
-                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
-                });
-
-                elGrabbable.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
-                });
-                elWantsTrigger.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
-                });
-                elIgnoreIK.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, false);
-                });
-
-                elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
-    
-                elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
-                elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
-                /*
-                FIXME: See FIXME for property-script-url.
-                elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
-                */
-                elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
-    
-                var colorChangeFunction = createEmitColorPropertyUpdateFunction(
-                    'color', elColorRed, elColorGreen, elColorBlue);
-                elColorRed.addEventListener('change', colorChangeFunction);
-                elColorGreen.addEventListener('change', colorChangeFunction);
-                elColorBlue.addEventListener('change', colorChangeFunction);
-                colorPickers.push($('#property-color').colpick({
-                    colorScheme: 'dark',
-                    layout: 'hex',
-                    color: '000000',
-                    onShow: function (colpick) {
-                        $('#property-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#' + hex);
-                        $(el).colpickHide();
-                        emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-                    }
-                }));
-
-                elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
-    
-                var lightColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                    'color', elLightColorRed, elLightColorGreen, elLightColorBlue);
-                elLightColorRed.addEventListener('change', lightColorChangeFunction);
-                elLightColorGreen.addEventListener('change', lightColorChangeFunction);
-                elLightColorBlue.addEventListener('change', lightColorChangeFunction);
-                colorPickers.push($('#property-light-color').colpick({
-                    colorScheme: 'dark',
-                    layout: 'hex',
-                    color: '000000',
-                    onShow: function (colpick) {
-                        $('#property-light-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-light-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#' + hex);
-                        $(el).colpickHide();
-                        emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-                    }
-                }));
-    
-                elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity', 1));
-                elLightFalloffRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('falloffRadius', 1));
-                elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
-                elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
-    
-                elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
-    
-                elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
-                elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
-                elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
-    
-                elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
-                elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
-                elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
-                elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
-                elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
-                elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
-                elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
-                elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
-    
-                elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
-    
-                elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
-                elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
-    
-                var textTextColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                    'textColor', elTextTextColorRed, elTextTextColorGreen, elTextTextColorBlue);
-                elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
-                elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
-                elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
-                colorPickers.push($('#property-text-text-color').colpick({
-                    colorScheme:'dark',
-                    layout:'hex',
-                    color: '000000',
-                    onShow: function (colpick) {
-                        $('#property-text-text-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-text-text-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#'+hex);
-                        $(el).colpickHide();
-                        $(el).attr('active', 'false');
-                        emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
-                    }
-                }));
-    
-                var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                    'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
-                elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
-                elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
-                elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
-                colorPickers.push($('#property-text-background-color').colpick({
-                    colorScheme:'dark',
-                    layout:'hex',
-                    color:'000000',
-                    onShow: function (colpick) {
-                        $('#property-text-background-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-text-background-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#'+hex);
-                        $(el).colpickHide();
-                        emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
-                    }
-                }));
-    
-                elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
-                colorPickers.push($('#property-zone-key-light-color').colpick({
-                    colorScheme:'dark',
-                    layout:'hex',
-                    color:'000000',
-                    onShow: function (colpick) {
-                        $('#property-zone-key-light-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-zone-key-light-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#'+hex);
-                        $(el).colpickHide();
-                        emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
-                    }
-                }));
-                var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight','color', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
-                elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
-                elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
-                elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-                elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
-                elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
-                elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
-                var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
-                elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-                elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-
-                elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
-                elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
-                elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
-                elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','automaticHourDay'));
-                elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
-                elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
-    
-    
-                elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
-                var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox','color',
-                    elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
-                elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
-                elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
-                elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
-                colorPickers.push($('#property-zone-skybox-color').colpick({
-                    colorScheme:'dark',
-                    layout:'hex',
-                    color:'000000',
-                    onShow: function (colpick) {
-                        $('#property-zone-skybox-color').attr('active', 'true');
-                    },
-                    onHide: function (colpick) {
-                        $('#property-zone-skybox-color').attr('active', 'false');
-                    },
-                    onSubmit: function (hsb, hex, rgb, el) {
-                        $(el).css('background-color', '#'+hex);
-                        $(el).colpickHide();
-                        emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
-                    }
-                }));
-    
-                elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
-    
-                var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
-                    'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
-                elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
-                elVoxelVolumeSizeY.addEventListener('change', voxelVolumeSizeChangeFunction);
-                elVoxelVolumeSizeZ.addEventListener('change', voxelVolumeSizeChangeFunction);
-                elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
-                elXTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('xTextureURL'));
-                elYTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('yTextureURL'));
-                elZTextureURL.addEventListener('change', createEmitTextPropertyUpdateFunction('zTextureURL'));
-    
-                elMoveSelectionToGrid.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "moveSelectionToGrid",
-                    }));
-                });
-                elMoveAllToGrid.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "moveAllToGrid",
-                    }));
-                });
-                elResetToNaturalDimensions.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "resetToNaturalDimensions",
-                    }));
-                });
-                elRescaleDimensionsButton.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "rescaleDimensions",
-                        percentage: parseInt(elRescaleDimensionsPct.value),
-                    }));
-                });
-                /*
-                FIXME: See FIXME for property-script-url.
-                elReloadScriptButton.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "reloadScript"
-                    }));
-                });
-                */
-                elPreviewCameraButton.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "previewCamera"
-                    }));
-                });
-
-                window.onblur = function() {
-                    // Fake a change event
-                    var ev = document.createEvent("HTMLEvents");
-                    ev.initEvent("change", true, true);
-                    document.activeElement.dispatchEvent(ev);
-                }
-    
-                // For input and textarea elements, select all of the text on focus
-                // WebKit-based browsers, such as is used with QWebView, have a quirk
-                // where the mouseup event comes after the focus event, causing the
-                // text to be deselected immediately after selecting all of the text.
-                // To make this work we block the first mouseup event after the elements
-                // received focus.  If we block all mouseup events the user will not
-                // be able to click within the selected text.
-                // We also check to see if the value has changed to make sure we aren't
-                // blocking a mouse-up event when clicking on an input spinner.
-                var els = document.querySelectorAll("input, textarea");
-                for (var i = 0; i < els.length; i++) {
-                    var clicked = false;
-                    var originalText;
-                    els[i].onfocus = function() {
-                        originalText = this.value;
-                        this.select();
-                        clicked = false;
-                    };
-                    els[i].onmouseup = function(e) {
-                        if (!clicked && originalText == this.value) {
-                            e.preventDefault();
-                        }
-                        clicked = true;
-                    };
-                }
-            });
-
-            // Collapsible sections
-            var elCollapsible = document.getElementsByClassName("section-header");
-
-            var toggleCollapsedEvent = function (event) {
-                var element = event.target;
-                if (element.nodeName !== "DIV") {
-                    element = element.parentNode;
-                }
-                var isCollapsed = element.getAttribute("collapsed") !== "true";
-                element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-                element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
-            };
-
-            for (var i = 0, length = elCollapsible.length; i < length; i++) {
-                var element = elCollapsible[i];
-                element.addEventListener("click", toggleCollapsedEvent, true);
-            };
-
-
-            // Textarea scrollbars
-            var elTextareas = document.getElementsByTagName("TEXTAREA");
-
-            var textareaOnChangeEvent = function (event) {
-                setTextareaScrolling(event.target);
-            }
-
-            for (var i = 0, length = elTextareas.length; i < length; i++) {
-                var element = elTextareas[i];
-                setTextareaScrolling(element);
-                element.addEventListener("input", textareaOnChangeEvent, false);
-                element.addEventListener("change", textareaOnChangeEvent, false);
-                /* FIXME: Detect and update textarea scrolling attribute on resize. Unfortunately textarea doesn't have a resize
-                event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
-                element.addEventListener("mouseup", textareaOnChangeEvent, false);
-            };
-
-            // Dropdowns
-            // For each dropdown the following replacement is created in place of the oriringal dropdown...
-            // Structure created:
-            //  <dl dropped="true/false">
-            //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>
-            //      <dd>
-            //          <ul>
-            //              <li value="??>display text</li>
-            //              <li>...</li>
-            //          </ul>
-            //      </dd>
-            //  </dl>
-
-            function setDropdownText(dropdown) {
-                var lis = dropdown.parentNode.getElementsByTagName("li");
-                var text = "";
-                for (var i = 0; i < lis.length; i++) {
-                    if (lis[i].getAttribute("value") === dropdown.value) {
-                        text = lis[i].textContent;
-                    }
-                }
-                dropdown.firstChild.textContent = text;
-            }
-
-            function toggleDropdown(event) {
-                var element = event.target;
-                if (element.nodeName !== "DT") {
-                    element = element.parentNode;
-                }
-                element = element.parentNode;
-                var isDropped = element.getAttribute("dropped");
-                element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
-            }
-
-            function setDropdownValue(event) {
-                var dt = event.target.parentNode.parentNode.previousSibling;
-                dt.value = event.target.getAttribute("value");
-                dt.firstChild.textContent = event.target.textContent;
-
-                dt.parentNode.setAttribute("dropped", "false");
-
-                var evt = document.createEvent("HTMLEvents");
-                evt.initEvent("change", true, true);
-                dt.dispatchEvent(evt);
-            }
-
-            var elDropdowns = document.getElementsByTagName("select");
-            for (var i = 0; i < elDropdowns.length; i++) {
-                var options = elDropdowns[i].getElementsByTagName("option");
-                var selectedOption = 0;
-                for (var j = 0; j < options.length; j++) {
-                    if (options[j].getAttribute("selected") === "selected") {
-                        selectedOption = j;
-                    }
-                }
-                var div = elDropdowns[i].parentNode;
-
-                var dl = document.createElement("dl");
-                div.appendChild(dl);
-
-                var dt = document.createElement("dt");
-                dt.name = elDropdowns[i].name;
-                dt.id = elDropdowns[i].id;
-                dt.addEventListener("click", toggleDropdown, true);
-                dl.appendChild(dt);
-
-                var span = document.createElement("span");
-                span.setAttribute("value", options[selectedOption].value);
-                span.textContent = options[selectedOption].firstChild.textContent;
-                dt.appendChild(span);
-
-                var span = document.createElement("span");
-                span.textContent = "5";  // caratDn
-                dt.appendChild(span);
-
-                var dd = document.createElement("dd");
-                dl.appendChild(dd);
-
-                var ul = document.createElement("ul");
-                dd.appendChild(ul);
-
-                for (var j = 0; j < options.length; j++) {
-                    var li = document.createElement("li");
-                    li.setAttribute("value", options[j].value);
-                    li.textContent = options[j].firstChild.textContent;
-                    li.addEventListener("click", setDropdownValue);
-                    ul.appendChild(li);
-                }
-            }
-
-            elDropdowns = document.getElementsByTagName("select");
-            while (elDropdowns.length > 0) {
-                var el = elDropdowns[0];
-                el.parentNode.removeChild(el);
-                elDropdowns = document.getElementsByTagName("select");
-            }
-
-            augmentSpinButtons();
-
-            // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
-            document.addEventListener("contextmenu", function (event) {
-                event.preventDefault();
-            }, false);
-        }
-    </script>
-</head>
-
-<body onload='loaded();'>
-    <div id="properties-list">
-        <div id="properties-header">
-            <div id="type" class="property value">
-                <span id="type-icon"></span><label id="property-type"><i>No selection</i></label>
-            </div>
-            <div class="property checkbox">
-                <input type="checkbox" id="property-locked">
-                <label for="property-locked"><span>&#xe006;</span>&nbsp;Locked</label>
-            </div>
-            <div class="property checkbox">
-                <input type="checkbox" id="property-visible">
-                <label for="property-visible"><span>&#xe007;</span>&nbsp;Visible</label>
-            </div>
-        </div>
-        <hr />
-        <div class="property text">
-            <label for="property-name">Name</label>
-            <input type="text" id="property-name">
-        </div>
-        <div class="property textarea">
-            <label for="property-user-data">User data</label>
-            <textarea id="property-user-data"></textarea>
-        </div>
-        <div id="id" class="property value">
-            <label>ID:</label>
-            <span id="property-id" class="selectable"></span>
-        </div>
-
-
-        <div class="section-header hyperlink-group hyperlink-section">
-            <label>Hyperlink</label><span>M</span>
-        </div>
-        <div class="hyperlink-group hyperlink-section property url">
-            <label for="property-hyperlink-href">Href - hifi://address</label>
-            <input type="text" id="property-hyperlink-href">
-        </div>
-        <div class="hyperlink-group hyperlink-section property text">
-            <label for="property-hyperlink-description">Description</label>
-            <input type="text" id="property-hyperlink-description">
-        </div>
-
-
-        <div class="section-header spatial-group">
-            <label>Spatial</label><span>M</span>
-        </div>
-        <div class="spatial-group property xyz">
-            <label>Dimensions <span class="unit">m</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
-                <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
-            </div>
-        </div>
-        <div class="spatial-group property gen">
-            <label>Scale <span class="unit">%</span></label>
-            <div class="row">
-                <input type="number" id="dimension-rescale-pct" value=100>
-                <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
-                <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
-            </div>
-        </div>
-
-        <hr class="spatial-group" />
-        <div class="spatial-group property pyr">
-            <label>Rotation <span class="unit">deg</span></label>
-            <div class="tuple">
-                <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
-                <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
-                <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
-            </div>
-        </div>
-
-        <hr class="spatial-group" />
-        <div class="spatial-group property xyz">
-            <label>Position <span class="unit">m</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
-                <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
-            </div>
-            <div class="buttons">
-                <input type="button" id="move-selection-to-grid" value="Selection to Grid">
-                <input type="button" id="move-all-to-grid" value="All to Grid">
-                <input type="button" id="preview-camera-button" value="Preview Camera">
-            </div>
-        </div>
-        <div class="spatial-group row">
-            <div class="property text">
-                <label for="property-parent-id">Parent ID</label>
-                <input type="text" id="property-parent-id">
-            </div>
-            <div class="property number">
-                <label for="property-parent-joint-index">Parent joint index</label>
-                <input type="number" id="property-parent-joint-index">
-            </div>
-        </div>
-        <div class="spatial-group property xyz">
-            <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
-                <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
-            </div>
-        </div>
-
-        <hr class="spatial-group poly-vox-section" />
-        <div class="spatial-group poly-vox-section property xyz">
-            <label>Voxel volume size <span class="unit">m</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
-                <div><input type="number" class="y" id="property-voxel-volume-size-y"><label for="property-voxel-volume-size-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-voxel-volume-size-z"><label for="property-voxel-volume-size-z">Z:</label></div>
-            </div>
-        </div>
-        <div class="spatial-group poly-vox-section property dropdown">
-            <label>Surface extractor</label>
-            <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
-                <option value="0">Marching cubes</option>
-                <option value="1">Cubic</option>
-                <option value="2">Edged cubic</option>
-                <option value="3">Edged marching cubes</option>
-            </select>
-        </div>
-        <div class="spatial-group poly-vox-section property url ">
-            <label for="property-x-texture-url">X-axis texture URL</label>
-            <input type="text" id="property-x-texture-url">
-        </div>
-        <div class="spatial-group poly-vox-section property url ">
-            <label for="property-y-texture-url">Y-axis texture URL</label>
-            <input type="text" id="property-y-texture-url">
-        </div>
-        <div class="spatial-group poly-vox-section property url ">
-            <label for="property-z-texture-url">Z-axis texture URL</label>
-            <input type="text" id="property-z-texture-url">
-        </div>
-
-
-        <div class="section-header physical-group">
-            <label>Physical</label><span>M</span>
-        </div>
-        <div class="physical-group property xyz">
-            <label>Linear velocity <span class="unit">m/s</span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
-                <div><input type="number" class="y" id="property-lvel-y"><label for="property-lvel-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-lvel-z"><label for="property-lvel-z">Z:</label></div>
-            </div>
-        </div>
-        <div class="physical-group property number">
-            <label>Linear damping</label>
-            <input type="number" id="property-ldamping">
-        </div>
-        <hr class="physical-group"  />
-        <div class="physical-group property pyr">
-            <label>Angular velocity <span class="unit">deg/s</span></label>
-            <div class="tuple">
-                <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
-                <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
-                <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
-            </div>
-        </div>
-        <div class="physical-group property number">
-            <label>Angular damping</label>
-            <input type="number" id="property-adamping">
-        </div>
-        <hr class="physical-group" />
-        <div class="physical-group property gen">
-            <div class="tuple">
-                <div><label>Restitution</label><input type="number" id="property-restitution"></div>
-                <div><label>Friction</label><input type="number" id="property-friction"></div>
-                <div><label>Density</label><input type="number" id="property-density"></div>
-            </div>
-        </div>
-        <hr class="physical-group" />
-        <div class="physical-group property xyz">
-            <label>Gravity <span class="unit">m/s<sup>2</sup></span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
-                <div><input type="number" class="y" id="property-grav-y"><label for="property-grav-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-grav-z"><label for="property-grav-z">Z:</label></div>
-            </div>
-        </div>
-        <div class="physical-group property xyz">
-            <label>Acceleration <span class="unit">m/s<sup>2</sup></span></label>
-            <div class="tuple">
-                <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
-                <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
-                <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
-            </div>
-        </div>
-        <hr class="physical-group color-section" />
-        <div class="physical-group color-section property rgb">
-            <div id="property-color" class="color-picker"></div>
-            <label>Entity color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
-            </div>
-        </div>
-
-
-        <div class="section-header behavior-group">
-            <label>Behavior</label><span>M</span>
-        </div>
-        <div class="behavior-group property checkbox">
-            <input type="checkbox" id="property-collisionless">
-            <label for="property-collisionless">Collisionless</label>
-        </div>
-        <div class="behavior-group property checkbox">
-            <input type="checkbox" id="property-dynamic">
-            <label for="property-dynamic">Dynamic</label>
-        </div>
-
-        <div class="behavior-group two-column">
-            <div class="column">
-                <div class="sub-section-header">
-                    <span>Collides With</span>
+    <head>
+        <title>Properties</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <link rel="stylesheet" type="text/css" href="css/colpick.css">
+        <link href="css/jsoneditor.css" rel="stylesheet" type="text/css">
+        <script src="js/jquery-2.1.4.min.js"></script>
+        <script src="js/colpick.js"></script>
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/entityProperties.js"></script>
+        <script src="js/jsoneditor.min.js"></script>
+    </head>
+    <body onload='loaded();'>
+        <div id="properties-list">
+            <div id="properties-header">
+                <div id="type" class="property value">
+                    <span id="type-icon"></span><label id="property-type"><i>No selection</i></label>
                 </div>
-                <div class="checkbox-sub-props">
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-collide-static">
-                        <label for="property-collide-static">Static entities</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-collide-dynamic">
-                        <label for="property-collide-dynamic">Dynamic entities</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-collide-kinematic">
-                        <label for="property-collide-kinematic">Kinematic entities</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-collide-myAvatar">
-                        <label for="property-collide-myAvatar">My avatar</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-collide-otherAvatar">
-                        <label for="property-collide-otherAvatar">Other avatars</label>
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="sub-section-header">
-                    <span>Grabbing</span>
-                </div>
-                <div class="checkbox-sub-props">
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-grabbable">
-                        <label for="property-grabbable">Grabbable</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-wants-trigger">
-                        <label for="property-wants-trigger">Triggerable</label>
-                    </div>
-
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-ignore-ik">
-                        <label for="property-ignore-ik">Ignore inverse kinematics</label>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <hr class="behavior-group" />
-        <div class="behavior-group property url ">
-            <label for="property-collision-sound-url">Collision sound URL</label>
-            <input type="text" id="property-collision-sound-url">
-        </div>
-        <div class="behavior-group property number">
-            <label>Lifetime <span class="unit">s</span></label>
-            <input type="number" id="property-lifetime">
-        </div>
-        <hr class="behavior-group" />
-        <div class="behavior-group property url ">
-            <!--
-            FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated
-            code should be removed.
-            <input type="hidden" id="property-script-timestamp" class="value">
-            <input type="button" id="reload-script-button" value="Reload">
-            -->
-            <label for="property-script-url">Script URL</label>
-            <input type="text" id="property-script-url">
-        </div>
-
-
-        <div class="section-header model-group model-section zone-section">
-            <label>Model</label><span>M</span>
-        </div>
-        <div class="model-group model-section property url ">
-            <label for="property-model-url">Model URL</label>
-            <input type="text" id="property-model-url">
-        </div>
-        <div class="model-group model-section zone-section property dropdown">
-            <label>Collision shape type</label>
-            <select name="SelectShapeType" id="property-shape-type">
-                <option value="none">None</option>
-                <option value="box">Box</option>
-                <option value="sphere">Sphere</option>
-                <option value="compound">Compound</option>
-            </select>
-        </div>
-        <div class="model-group model-section zone-section property url ">
-            <label for="property-compound-shape-url">Compound shape URL</label>
-            <input type="text" id="property-compound-shape-url">
-        </div>
-        <hr class="model-group model-section" />
-        <div class="model-group model-section property url ">
-            <label for="property-model-animation-url">Animation URL</label>
-            <input type="text" id="property-model-animation-url">
-        </div>
-
-        <div class="model-group model-section two-column">
-            <div class="column">
                 <div class="property checkbox">
-                    <input type="checkbox" id="property-model-animation-playing">
-                    <label for="property-model-animation-playing">Animation playing</label>
+                    <input type="checkbox" id="property-locked">
+                    <label for="property-locked"><span>&#xe006;</span>&nbsp;Locked</label>
                 </div>
-                <div class="property checkbox indent">
-                    <input type="checkbox" id="property-model-animation-loop">
-                    <label for="property-model-animation-loop">Animation loop</label>
-                </div>
-                <div class="property checkbox indent">
-                    <input type="checkbox" id="property-model-animation-hold">
-                    <label for="property-model-animation-hold">Animation hold</label>
-                </div>
-                <div id="animation-fps" class="property number">
-                    <label>Animation FPS</label>
-                    <input type="number" id="property-model-animation-fps">
+                <div class="property checkbox">
+                    <input type="checkbox" id="property-visible">
+                    <label for="property-visible"><span>&#xe007;</span>&nbsp;Visible</label>
                 </div>
             </div>
-            <div class="column">
+            <hr />
+            <div class="shape-group shape-section property dropdown">
+                <label for="property-shape">Shape</label>
+                <select name="SelectShape" id="property-shape">
+                    <option value="Cube">Box</option>
+                    <option value="Sphere">Sphere</option>
+                    <option value="Tetrahedron">Tetrahedron</option>
+                    <option value="Octahedron">Octahedron</option>
+                    <option value="Icosahedron">Icosahedron</option>
+                    <option value="Dodecahedron">Dodecahedron</option>
+                    <option value="Hexagon">Hexagon</option>
+                    <option value="Triangle">Triangle</option>
+                    <option value="Octagon">Octagon</option>
+                </select>
+            </div>
+            <div class="property text">
+                <label for="property-name">Name</label>
+                <input type="text" id="property-name">
+            </div>
+            <div class="property text">
+                <label for="property-description">Description</label>
+                <input type="text" id="property-description">
+            </div>
+            
+            <div class="property textarea">
+                <label for="property-user-data">User data</label>
+                <br>
+                <div class="row">
+                    <input type="button" class="red" id="userdata-clear" value="Clear User Data">
+                    <input type="button" class="blue" id="userdata-new-editor" value="Edit as JSON">
+                    <input disabled type="button" class="black" id="userdata-save" value="Save User Data">
+                    <span id="userdata-saved">Saved!</span>
+                </div>
+                <div id="static-userdata"></div>
+                <div id="userdata-editor"></div>
+                <textarea id="property-user-data"></textarea>
+            </div>
+            <div id="id" class="property value">
+                <label>ID:</label>
+                <span id="property-id" class="selectable"></span>
+            </div>
+            <div class="section-header hyperlink-group hyperlink-section">
+                <label>Hyperlink</label><span>M</span>
+            </div>
+            <div class="hyperlink-group hyperlink-section property url">
+                <label for="property-hyperlink-href">Href - hifi://address</label>
+                <input type="text" id="property-hyperlink-href">
+            </div>
+            <div class="section-header spatial-group">
+                <label>Spatial</label><span>M</span>
+            </div>
+            <div class="spatial-group property xyz">
+                <label>Position <span class="unit">m</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="spatial-group property pyr">
+                <label>Rotation <span class="unit">deg</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
+                    <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
+                    <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
+                </div>
+            </div>
+            <div class="spatial-group property xyz">
+                <label>Dimensions <span class="unit">m</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="spatial-group property xyz">
+                <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="spatial-group property gen">
+                <label>Scale <span class="unit">%</span></label>
+                <div class="row">
+                    <input type="number" id="dimension-rescale-pct" value=100>
+                    <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
+                    <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
+                </div>
+            </div>
+            <div class="spatial-group row">
+                <div class="property text">
+                    <label for="property-parent-id">Parent ID</label>
+                    <input type="text" id="property-parent-id">
+                </div>
                 <div class="property number">
-                    <label>Animation frame</label>
-                    <input type="number" id="property-model-animation-frame">
-                </div>
-                <div class="property number">
-                    <label>First frame</label>
-                    <input type="number" id="property-model-animation-first-frame">
-                </div>
-                <div class="property number">
-                    <label>Last frame</label>
-                    <input type="number" id="property-model-animation-last-frame">
+                    <label for="property-parent-joint-index">Parent joint index</label>
+                    <input type="number" id="property-parent-joint-index">
                 </div>
             </div>
-        </div>
-        <hr class="model-group model-section" />
-        <div class="model-group model-section property textarea">
-            <label for="property-model-textures">Textures</label>
-            <textarea id="property-model-textures"></textarea>
-        </div>
-        <div class="model-group model-section property textarea">
-            <label for="property-model-original-textures">Original textures</label>
-            <textarea id="property-model-original-textures" readonly></textarea>
-        </div>
-
-
-        <div class="section-header text-group text-section">
-            <label>Text</label><span>M</span>
-        </div>
-        <div class="text-group text-section property text">
-            <label for="property-text-text">Text content</label>
-            <input type="text" id="property-text-text">
-        </div>
-        <div class="text-group text-section property number">
-            <label>Line height <span class="unit">m</span></label>
-            <input type="number" id="property-text-line-height" min="0" step="0.005">
-        </div>
-        <div class="text-group text-section property rgb">
-            <div class="color-picker" id="property-text-text-color"></div>
-            <label>Text color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-text-text-color-red"><label for="property-text-text-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-text-text-color-green"><label for="property-text-text-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
+            <div class="spatial-group ">
+                <div class="property text">
+                    <label>Align</label>
+                </div>
+                <div class="row">
+                    <div class="buttons">
+                        <input type="button" id="move-selection-to-grid" value="Selection to Grid">
+                        <input type="button" id="move-all-to-grid" value="All to Grid">
+                    </div>
+                </div>
+            </div>
+            <hr class="spatial-group poly-vox-section" />
+            <div class="spatial-group poly-vox-section property xyz">
+                <label>Voxel volume size <span class="unit">m</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-voxel-volume-size-y"><label for="property-voxel-volume-size-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-voxel-volume-size-z"><label for="property-voxel-volume-size-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="spatial-group poly-vox-section property dropdown">
+                <label>Surface extractor</label>
+                <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
+                    <option value="0">Marching cubes</option>
+                    <option value="1">Cubic</option>
+                    <option value="2">Edged cubic</option>
+                    <option value="3">Edged marching cubes</option>
+                </select>
+            </div>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-x-texture-url">X-axis texture URL</label>
+                <input type="text" id="property-x-texture-url">
+            </div>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-y-texture-url">Y-axis texture URL</label>
+                <input type="text" id="property-y-texture-url">
+            </div>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-z-texture-url">Z-axis texture URL</label>
+                <input type="text" id="property-z-texture-url">
+            </div>
+            <div class="section-header physical-group">
+                <label>Physical</label><span>M</span>
+            </div>
+            <div class="physical-group property xyz">
+                <label>Linear velocity <span class="unit">m/s</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-lvel-y"><label for="property-lvel-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-lvel-z"><label for="property-lvel-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="physical-group property number">
+                <label>Linear damping</label>
+                <input type="number" id="property-ldamping">
+            </div>
+            <hr class="physical-group"  />
+            <div class="physical-group property pyr">
+                <label>Angular velocity <span class="unit">deg/s</span></label>
+                <div class="tuple">
+                    <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
+                    <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
+                    <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
+                </div>
+            </div>
+            <div class="physical-group property number">
+                <label>Angular damping</label>
+                <input type="number" id="property-adamping">
+            </div>
+            <hr class="physical-group" />
+            <div class="physical-group property gen">
+                <div class="tuple">
+                    <div><label>Restitution</label><input type="number" id="property-restitution"></div>
+                    <div><label>Friction</label><input type="number" id="property-friction"></div>
+                    <div><label>Density</label><input type="number" id="property-density"></div>
+                </div>
+            </div>
+            <hr class="physical-group" />
+            <div class="physical-group property xyz">
+                <label>Gravity <span class="unit">m/s<sup>2</sup></span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-grav-y"><label for="property-grav-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-grav-z"><label for="property-grav-z">Z:</label></div>
+                </div>
+            </div>
+            <div class="physical-group property xyz">
+                <label>Acceleration <span class="unit">m/s<sup>2</sup></span></label>
+                <div class="tuple">
+                    <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
+                    <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
+                    <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
+                </div>
+            </div>
+            <hr class="physical-group color-section" />
+            <div class="physical-group color-section property rgb">
+                <div id="property-color" class="color-picker"></div>
+                <label>Entity color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="section-header behavior-group">
+                <label>Behavior</label><span>M</span>
+            </div>
+            <div class="behavior-group property checkbox">
+                <input type="checkbox" id="property-collisionless">
+                <label for="property-collisionless">Collisionless</label>
+            </div>
+            <div class="behavior-group property checkbox">
+                <input type="checkbox" id="property-dynamic">
+                <label for="property-dynamic">Dynamic</label>
+            </div>
+            <div class="behavior-group two-column">
+                <div class="column">
+                    <div class="sub-section-header">
+                        <span>Collides With</span>
+                    </div>
+                    <div class="checkbox-sub-props">
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-collide-static">
+                            <label for="property-collide-static">Static entities</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-collide-dynamic">
+                            <label for="property-collide-dynamic">Dynamic entities</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-collide-kinematic">
+                            <label for="property-collide-kinematic">Kinematic entities</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-collide-myAvatar">
+                            <label for="property-collide-myAvatar">My avatar</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-collide-otherAvatar">
+                            <label for="property-collide-otherAvatar">Other avatars</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="sub-section-header">
+                        <span>Grabbing</span>
+                    </div>
+                    <div class="checkbox-sub-props">
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-grabbable">
+                            <label for="property-grabbable">Grabbable</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-wants-trigger">
+                            <label for="property-wants-trigger">Triggerable</label>
+                        </div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-ignore-ik">
+                            <label for="property-ignore-ik">Ignore inverse kinematics</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="behavior-group" />
+            <div class="behavior-group property url ">
+                <label for="property-collision-sound-url">Collision sound URL</label>
+                <input type="text" id="property-collision-sound-url">
+            </div>
+            <div class="behavior-group property number">
+                <label>Lifetime <span class="unit">s</span></label>
+                <input type="number" id="property-lifetime">
+            </div>
+            <hr class="behavior-group" />
+            <div class="behavior-group property url ">
+                <!--
+                FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated
+                code should be removed.
+                <input type="hidden" id="property-script-timestamp" class="value">
+                <input type="button" id="reload-script-button" value="Reload">
+                -->
+                <label for="property-script-url">Script URL</label>
+                <input type="text" id="property-script-url">
+            </div>
+            <div class="section-header model-group model-section zone-section">
+                <label>Model</label><span>M</span>
+            </div>
+            <div class="model-group model-section property url ">
+                <label for="property-model-url">Model URL</label>
+                <input type="text" id="property-model-url">
+            </div>
+            <div class="model-group model-section zone-section property dropdown">
+                <label>Collision shape type</label>
+                <select name="SelectShapeType" id="property-shape-type">
+                    <option value="none">None</option>
+                    <option value="box">Box</option>
+                    <option value="sphere">Sphere</option>
+                    <option value="compound">Compound</option>
+                    <option value="simple-hull">One Hull</option>
+                    <option value="simple-compound">Hull Per Submesh</option>
+                    <option value="static-mesh">Static Mesh</option>
+                </select>
+            </div>
+            <div class="model-group model-section zone-section property url ">
+                <label for="property-compound-shape-url">Compound shape URL</label>
+                <input type="text" id="property-compound-shape-url">
+            </div>
+            <hr class="model-group model-section" />
+            <div class="model-group model-section property url ">
+                <label for="property-model-animation-url">Animation URL</label>
+                <input type="text" id="property-model-animation-url">
+            </div>
+            <div class="model-group model-section two-column">
+                <div class="column">
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-model-animation-playing">
+                        <label for="property-model-animation-playing">Animation playing</label>
+                    </div>
+                    <div class="property checkbox indent">
+                        <input type="checkbox" id="property-model-animation-loop">
+                        <label for="property-model-animation-loop">Animation loop</label>
+                    </div>
+                    <div class="property checkbox indent">
+                        <input type="checkbox" id="property-model-animation-hold">
+                        <label for="property-model-animation-hold">Animation hold</label>
+                    </div>
+                    <div id="animation-fps" class="property number">
+                        <label>Animation FPS</label>
+                        <input type="number" id="property-model-animation-fps">
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="property number">
+                        <label>Animation frame</label>
+                        <input type="number" id="property-model-animation-frame">
+                    </div>
+                    <div class="property number">
+                        <label>First frame</label>
+                        <input type="number" id="property-model-animation-first-frame">
+                    </div>
+                    <div class="property number">
+                        <label>Last frame</label>
+                        <input type="number" id="property-model-animation-last-frame">
+                    </div>
+                </div>
+            </div>
+            <hr class="model-group model-section" />
+            <div class="model-group model-section property textarea">
+                <label for="property-model-textures">Textures</label>
+                <textarea id="property-model-textures"></textarea>
+            </div>
+            <div class="model-group model-section property textarea">
+                <label for="property-model-original-textures">Original textures</label>
+                <textarea id="property-model-original-textures" readonly></textarea>
+            </div>
+            <div class="section-header text-group text-section">
+                <label>Text</label><span>M</span>
+            </div>
+            <div class="text-group text-section property text">
+                <label for="property-text-text">Text content</label>
+                <input type="text" id="property-text-text">
+            </div>
+            <div class="text-group text-section property checkbox">
+                <input type="checkbox" id="property-text-face-camera">
+                <label for="property-text-face-camera">&nbsp;Face Camera</label>
+            </div>
+            <div class="text-group text-section property number">
+                <label>Line height <span class="unit">m</span></label>
+                <input type="number" id="property-text-line-height" min="0" step="0.005">
+            </div>
+            <div class="text-group text-section property rgb">
+                <div class="color-picker" id="property-text-text-color"></div>
+                <label>Text color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-text-text-color-red"><label for="property-text-text-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-text-text-color-green"><label for="property-text-text-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="text-group text-section property rgb">
+                <div class="color-picker" id="property-text-background-color"></div>
+                <label>Background color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="section-header zone-group zone-section">
+                <label>Zone</label><span>M</span>
+            </div>
+            <div class="zone-group zone-section property checkbox">
+                <input type="checkbox" id="property-zone-stage-sun-model-enabled">
+                <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
+            </div>
+            <div class="zone-group zone-section property checkbox">
+                <input type="checkbox" id="property-zone-flying-allowed">
+                <label for="property-zone-flying-allowed">Flying allowed</label>
+            </div>
+            <div class="zone-group zone-section property checkbox">
+                <input type="checkbox" id="property-zone-ghosting-allowed">
+                <label for="property-zone-ghosting-allowed">Ghosting allowed</label>
+            </div>
+            <div class="sub-section-header zone-group zone-section keylight-section">
+                <label>Key Light</label>
+            </div>
+            <div class="zone-section keylight-section zone-group property rgb">
+                <div class="color-picker" id="property-zone-key-light-color"></div>
+                <label>Key light color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="zone-section keylight-section zone-group property number">
+                <label>Light intensity</label>
+                <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
+            </div>
+            <div class="zone-group zone-section keylight-section property gen">
+                <div class="tuple">
+                    <div><label>Light altitude <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-x"></div>
+                    <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
+                    <div></div>
+                </div>
+            </div>
+            <div class="zone-group zone-section keylight-section property number">
+                <label>Ambient intensity</label>
+                <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
+            </div>
+            <div class="zone-group zone-section keylight-section property url ">
+                <label for="property-zone-key-ambient-url">Ambient URL</label>
+                <input type="text" id="property-zone-key-ambient-url">
+            </div>
+            <div class="sub-section-header zone-group zone-section stage-section">
+                <label>Stage</label>
+            </div>
+            <div class="zone-group zone-section stage-section property gen">
+                <div class="tuple">
+                    <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
+                    <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
+                    <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
+                </div>
+            </div>
+            <div class="zone-group zone-section stage-section property checkbox">
+                <input type="checkbox" id="property-zone-stage-automatic-hour-day">
+                <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
+            </div>
+            <div class="zone-group zone-section stage-section property gen">
+                <div class="tuple">
+                    <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
+                    <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
+                    <div></div>
+                </div>
+            </div>
+            <div class="sub-section-header zone-group zone-section background-section">
+                <label>Background</label>
+            </div>
+            <div class="zone-group zone-section background-section property dropdown">
+                <label>Background mode</label>
+                <select name="SelectBackgroundMode" id="property-zone-background-mode">
+                    <option value="inherit">Nothing</option>
+                    <option value="skybox">Skybox</option>
+                </select>
+            </div>
+            <div class="sub-section-header zone-group zone-section skybox-section">
+                <label>Skybox</label>
+            </div>
+            <div class="zone-group zone-section skybox-section property rgb">
+                <div class="color-picker" id="property-zone-skybox-color"></div>
+                <label>Skybox color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="zone-group zone-section skybox-section property url ">
+                <label for="property-zone-skybox-url">Skybox URL</label>
+                <input type="text" id="property-zone-skybox-url">
+            </div>
+            <div class="section-header web-group web-section">
+                <label>Web</label><span>M</span>
+            </div>
+            <div class="web-group web-section property url ">
+                <label for="property-web-source-url">Source URL</label>
+                <input type="text" id="property-web-source-url">
+            </div>
+            <div class="web-group web-section property dpi ">
+                <label for="property-web-dpi">Resolution (DPI)</label>
+                <input type="number" id="property-web-dpi">
+            </div>
+            <div class="section-header light-group light-section">
+                <label>Light</label><span>M</span>
+            </div>
+            <div class="light-group light-section property rgb">
+                <div class="color-picker" id="property-light-color"></div>
+                <label>Light color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-light-color-red"><label for="property-light-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-light-color-green"><label for="property-light-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
+                </div>
+            </div>
+            <div class="light-group light-section property gen">
+                <div class="tuple">
+                    <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
+                    <div><label>Fall-off radius <span class="unit">m</span></label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
+                    <div></div>
+                </div>
+            </div>
+            <div class="light-group light-section property checkbox">
+                <input type="checkbox" id="property-light-spot-light">
+                <label for="property-light-spot-light">Spotlight</label>
+            </div>
+            <div class="light-group light-section property gen">
+                <div class="tuple">
+                    <div><label>Spotlight exponent</label><input type="number" id="property-light-exponent" step="0.01"></div>
+                    <div><label>Spotlight cut-off</label><input type="number" id="property-light-cutoff" step="0.01"></div>
+                    <div></div>
+                </div>
             </div>
         </div>
-        <div class="text-group text-section property rgb">
-            <div class="color-picker" id="property-text-background-color"></div>
-            <label>Background color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
-            </div>
-        </div>
-
-
-        <div class="section-header zone-group zone-section">
-            <label>Zone</label><span>M</span>
-        </div>
-        <div class="zone-group zone-section property checkbox">
-            <input type="checkbox" id="property-zone-stage-sun-model-enabled">
-            <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
-        </div>
-
-        <div class="sub-section-header zone-group zone-section keylight-section">
-            <label>Key Light</label>
-        </div>
-        <div class="zone-section keylight-section zone-group property rgb">
-            <div class="color-picker" id="property-zone-key-light-color"></div>
-            <label>Key light color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="zone-section keylight-section zone-group property number">
-            <label>Light intensity</label>
-            <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
-        </div>
-        <div class="zone-group zone-section keylight-section property gen">
-            <div class="tuple">
-                <div><label>Light altitude <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-x"></div>
-                <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
-                <div></div>
-            </div>
-        </div>
-        <div class="zone-group zone-section keylight-section property number">
-            <label>Ambient intensity</label>
-            <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
-        </div>
-        <div class="zone-group zone-section keylight-section property url ">
-            <label for="property-zone-key-ambient-url">Ambient URL</label>
-            <input type="text" id="property-zone-key-ambient-url">
-        </div>
-
-        <div class="sub-section-header zone-group zone-section stage-section">
-            <label>Stage</label>
-        </div>
-        <div class="zone-group zone-section stage-section property gen">
-            <div class="tuple">
-                <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
-                <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
-                <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
-            </div>
-        </div>
-        <div class="zone-group zone-section stage-section property checkbox">
-            <input type="checkbox" id="property-zone-stage-automatic-hour-day">
-            <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
-        </div>
-
-        <div class="zone-group zone-section stage-section property gen">
-            <div class="tuple">
-                <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
-                <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
-                <div></div>
-            </div>
-        </div>
-
-        <div class="sub-section-header zone-group zone-section background-section">
-            <label>Background</label>
-        </div>
-        <div class="zone-group zone-section background-section property dropdown">
-            <label>Background mode</label>
-            <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                <option value="inherit">Nothing</option>
-                <option value="skybox">Skybox</option>
-            </select>
-        </div>
-
-        <div class="sub-section-header zone-group zone-section skybox-section">
-            <label>Skybox</label>
-        </div>
-        <div class="zone-group zone-section skybox-section property rgb">
-            <div class="color-picker" id="property-zone-skybox-color"></div>
-            <label>Skybox color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="zone-group zone-section skybox-section property url ">
-            <label for="property-zone-skybox-url">Skybox URL</label>
-            <input type="text" id="property-zone-skybox-url">
-        </div>
-
-
-        <div class="section-header web-group web-section">
-            <label>Web</label><span>M</span>
-        </div>
-        <div class="web-group web-section property url ">
-            <label for="property-web-source-url">Source URL</label>
-            <input type="text" id="property-web-source-url">
-        </div>
-
-
-        <div class="section-header light-group light-section">
-            <label>Light</label><span>M</span>
-        </div>
-        <div class="light-group light-section property rgb">
-            <div class="color-picker" id="property-light-color"></div>
-            <label>Light color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-light-color-red"><label for="property-light-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-light-color-green"><label for="property-light-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="light-group light-section property gen">
-            <div class="tuple">
-                <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
-                <div><label>Fall-off radius <span class="unit">m</span></label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
-                <div></div>
-            </div>
-        </div>
-        <div class="light-group light-section property checkbox">
-            <input type="checkbox" id="property-light-spot-light">
-            <label for="property-light-spot-light">Spotlight</label>
-        </div>
-        <div class="light-group light-section property gen">
-            <div class="tuple">
-                <div><label>Spotlight exponent</label><input type="number" id="property-light-exponent" step="0.01"></div>
-                <div><label>Spotlight cut-off</label><input type="number" id="property-light-cutoff" step="0.01"></div>
-                <div></div>
-            </div>
-        </div>
-    </div>
-</body>
+    </body>
 </html>

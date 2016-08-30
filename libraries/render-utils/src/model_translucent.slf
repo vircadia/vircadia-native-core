@@ -25,6 +25,7 @@
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 in vec2 _texCoord0;
+in vec2 _texCoord1;
 in vec4 _position;
 in vec3 _normal;
 in vec3 _color;
@@ -35,7 +36,8 @@ out vec4 _fragColor;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex, occlusionTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -48,10 +50,16 @@ void main(void) {
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
+    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
+    if (metallic <= 0.5) {
+        metallic = 0.0;
+    } else {
+        fresnel = albedo;
+        metallic = 1.0;
+    }
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
-
 
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
@@ -61,10 +69,11 @@ void main(void) {
     _fragColor =  vec4(evalGlobalLightingAlphaBlended(
         cam._viewInverse,
         1.0,
-        1.0,
+        occlusionTex,
         fragPosition,
         fragNormal,
         albedo,
+        fresnel,
         metallic,
         emissive,
         roughness, opacity),

@@ -9,7 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXReader.h"
+
 #include <iostream>
+#include <memory>
+
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
@@ -18,9 +22,10 @@
 #include <QtDebug>
 #include <QtEndian>
 #include <QFileInfo>
-#include "FBXReader.h"
+#include <QJsonDocument>
+#include <QJsonObject>
 
-#include <memory>
+#include "ModelFormatLogging.h"
 
 bool FBXMaterial::needTangentSpace() const {
     return !normalTexture.isNull();
@@ -67,9 +72,13 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
     return texture;
 }
 
-void FBXReader::consolidateFBXMaterials() {
-    
-  // foreach (const QString& materialID, materials) {
+void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
+
+    QString materialMapString = mapping.value("materialMap").toString();
+    QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());
+    QJsonObject materialMap = materialMapDocument.object();
+
+    // foreach (const QString& materialID, materials) {
     for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
         FBXMaterial& material = (*it);
 
@@ -186,6 +195,14 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture occlusionTexture;
         QString occlusionTextureID = occlusionTextures.value(material.materialID);
+        if (occlusionTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as AOMap ONLY if the ambientFactor value is > 0.0
+            if (material.ambientFactor > 0.0f) {
+                occlusionTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+
         if (!occlusionTextureID.isNull()) {
             occlusionTexture = getTexture(occlusionTextureID);
             detectDifferentUVs |= (occlusionTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
@@ -198,6 +215,14 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture ambientTexture;
         QString ambientTextureID = ambientTextures.value(material.materialID);
+        if (ambientTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as Lightmap ONLY if the ambientFactor value is set to 0
+            if (material.ambientFactor == 0.0f) {
+                ambientTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+        
         if (_loadLightmaps && !ambientTextureID.isNull()) {
             ambientTexture = getTexture(ambientTextureID);
             detectDifferentUVs |= (ambientTexture.texcoordSet != 0) || (!ambientTexture.transform.isIdentity());
@@ -234,6 +259,24 @@ void FBXReader::consolidateFBXMaterials() {
                         material.albedoTexture = material.emissiveTexture;
                     }
                 }
+            }
+        }
+        qCDebug(modelformat) << " fbx material Name:" << material.name;
+
+        if (materialMap.contains(material.name)) {
+            QJsonObject materialOptions = materialMap.value(material.name).toObject();
+            qCDebug(modelformat) << "Mapping fbx material:" << material.name << " with HifiMaterial: " << materialOptions;
+
+            if (materialOptions.contains("scattering")) {
+                float scattering = (float) materialOptions.value("scattering").toDouble();
+                material._material->setScattering(scattering);
+            }
+
+            if (materialOptions.contains("scatteringMap")) {
+                QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
+                material.scatteringTexture = FBXTexture();
+                material.scatteringTexture.name = material.name + ".scatteringMap";
+                material.scatteringTexture.filename = scatteringMap;
             }
         }
 

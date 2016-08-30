@@ -20,23 +20,6 @@ namespace gpu {
 
 class Backend;
 
-class GPUObject {
-public:
-    virtual ~GPUObject() = default;
-};
-
-class GPUObjectPointer {
-private:
-    using GPUObjectUniquePointer = std::unique_ptr<GPUObject>;
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObjectUniquePointer _gpuObject;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
-    GPUObject* getGPUObject() const { return _gpuObject.get(); }
-
-    friend class Backend;
-};
-
 // Description of a scalar type
 enum Type {
 
@@ -246,6 +229,7 @@ public:
 
     static const Element COLOR_RGBA_32;
     static const Element COLOR_SRGBA_32;
+    static const Element COLOR_R11G11B10;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;

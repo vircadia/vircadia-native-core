@@ -26,6 +26,8 @@
 #include "LogHandler.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
+const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
@@ -310,17 +312,21 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result = NULL;
+    EntityItemProperties props = properties;
 
-    if (getIsClient()) {
-        // if our Node isn't allowed to create entities in this domain, don't try.
-        auto nodeList = DependencyManager::get<NodeList>();
-        if (nodeList && !nodeList->getThisNodeCanRez()) {
-            return NULL;
-        }
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList) {
+        qDebug() << "EntityTree::addEntity -- can't get NodeList";
+        return nullptr;
+    }
+
+    if (!properties.getClientOnly() && getIsClient() &&
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        return nullptr;
     }
 
     bool recordCreationTime = false;
-    if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+    if (props.getCreated() == UNKNOWN_CREATED_TIME) {
         // the entity's creation time was not specified in properties, which means this is a NEW entity
         // and we must record its creation time
         recordCreationTime = true;
@@ -335,8 +341,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     // construct the instance of the entity
-    EntityTypes::EntityType type = properties.getType();
-    result = EntityTypes::constructEntityItem(type, entityID, properties);
+    EntityTypes::EntityType type = props.getType();
+    result = EntityTypes::constructEntityItem(type, entityID, props);
 
     if (result) {
         if (recordCreationTime) {
@@ -717,13 +723,10 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         int index = changedProperties.indexOf("velocity");
         if (index >= 0) {
             glm::vec3 value = properties.getVelocity();
-            QString changeHint = "0";
-            if (value.x + value.y + value.z > 0) {
-                changeHint = "+";
-            } else if (value.x + value.y + value.z < 0) {
-                changeHint = "-";
-            }
-            changedProperties[index] = QString("velocity:") + changeHint;
+            changedProperties[index] = QString("velocity:") +
+                QString::number((int)value.x) + "," +
+                QString::number((int)value.y) + "," +
+                QString::number((int)value.z);
         }
     }
 
@@ -853,6 +856,13 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             QString::number((int)pos.y) + "," +
             QString::number((int)pos.z);
     }
+    if (properties.lifetimeChanged()) {
+        int index = changedProperties.indexOf("lifetime");
+        if (index >= 0) {
+            float value = properties.getLifetime();
+            changedProperties[index] = QString("lifetime:") + QString::number((int)value);
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
@@ -885,10 +895,24 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             EntityItemID entityItemID;
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
-           
+
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
+
+            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+            if ((message.getType() == PacketType::EntityAdd ||
+                 (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
+                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
+                if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
+                    properties.getLifetime() > _maxTmpEntityLifetime) {
+                    properties.setLifetime(_maxTmpEntityLifetime);
+                    // also bump up the lastEdited time of the properties so that the interface that created this edit
+                    // will accept our adjustment to lifetime back into its own entity-tree.
+                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                }
+            }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
@@ -918,7 +942,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
                 } else if (message.getType() == PacketType::EntityAdd) {
-                    if (senderNode->getCanRez()) {
+                    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         startCreate = usecTimestampNow();
@@ -1280,8 +1304,9 @@ void EntityTree::debugDumpMap() {
 
 class ContentsDimensionOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
+    glm::vec3 getDimensions() const { return _contentExtents.size(); }
     float getLargestDimension() const { return _contentExtents.largestDimension(); }
 private:
     Extents _contentExtents;
@@ -1293,6 +1318,12 @@ bool ContentsDimensionOperator::preRecursion(OctreeElementPointer element) {
     return true;
 }
 
+glm::vec3 EntityTree::getContentsDimensions() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getDimensions();
+}
+
 float EntityTree::getContentsLargestDimension() {
     ContentsDimensionOperator theOperator;
     recurseTreeWithOperator(&theOperator);
@@ -1301,8 +1332,8 @@ float EntityTree::getContentsLargestDimension() {
 
 class DebugOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
 };
 
 bool DebugOperator::preRecursion(OctreeElementPointer element) {
@@ -1319,8 +1350,8 @@ void EntityTree::dumpTree() {
 
 class PruneOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element) { return true; }
-    virtual bool postRecursion(OctreeElementPointer element);
+    virtual bool preRecursion(OctreeElementPointer element) override { return true; }
+    virtual bool postRecursion(OctreeElementPointer element) override;
 };
 
 bool PruneOperator::postRecursion(OctreeElementPointer element) {
@@ -1382,8 +1413,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
 
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+        EntityTreePointer tree = entityTreeElement->getTree();
+
         // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
+        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, tree, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->otherTree) {
@@ -1418,6 +1452,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     QVariantList entitiesQList = map["Entities"].toList();
     QScriptEngine scriptEngine;
 
+    if (entitiesQList.length() == 0) {
+        // Empty map or invalidly formed file.
+        return false;
+    }
+
+    bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
@@ -1435,9 +1475,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
+            success = false;
         }
     }
-    return true;
+    return success;
 }
 
 void EntityTree::resetClientEditStats() {

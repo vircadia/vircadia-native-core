@@ -25,6 +25,8 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+const QString DataServerAccountInfo::EMPTY_KEY = QString();
+
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
@@ -33,6 +35,8 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _walletID = otherInfo._walletID;
     _privateKey = otherInfo._privateKey;
     _domainID = otherInfo._domainID;
+    _temporaryDomainID = otherInfo._temporaryDomainID;
+    _temporaryDomainApiKey = otherInfo._temporaryDomainApiKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -51,6 +55,8 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_walletID, otherInfo._walletID);
     swap(_privateKey, otherInfo._privateKey);
     swap(_domainID, otherInfo._domainID);
+    swap(_temporaryDomainID, otherInfo._temporaryDomainID);
+    swap(_temporaryDomainApiKey, otherInfo._temporaryDomainApiKey);
 }
 
 void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
@@ -145,13 +151,14 @@ QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
     out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
-        << info._walletID << info._privateKey << info._domainID;
-
+        << info._walletID << info._privateKey << info._domainID
+        << info._temporaryDomainID << info._temporaryDomainApiKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
     in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey
-        >> info._walletID >> info._privateKey >> info._domainID;
+        >> info._walletID >> info._privateKey >> info._domainID
+        >> info._temporaryDomainID >> info._temporaryDomainApiKey;
     return in;
 }

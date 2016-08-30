@@ -22,10 +22,6 @@ QString ErrorDialog::text() const {
     return _text;
 }
 
-void ErrorDialog::setVisible(bool v) {
-    OffscreenQmlDialog::setVisible(v);
-}
-
 void ErrorDialog::setText(const QString& arg) {
     if (arg != _text) {
         _text = arg;

@@ -61,7 +61,7 @@ public:
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
-        AvatarBillboard,
+        NodeIgnoreRequest,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
@@ -94,7 +94,12 @@ public:
         ICEServerHeartbeatDenied,
         AssetMappingOperation,
         AssetMappingOperationReply,
-        ICEServerHeartbeatACK
+        ICEServerHeartbeatACK,
+        NegotiateAudioFormat,
+        SelectedAudioFormat,
+        MoreEntityShapes,
+        NodeKickRequest,
+        LAST_PACKET_TYPE = NodeKickRequest
     };
 };
 
@@ -106,9 +111,14 @@ typedef char PacketVersion;
 
 extern const QSet<PacketType> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType> NON_SOURCED_PACKETS;
-extern const QSet<PacketType> RELIABLE_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
+QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
+QString protocolVersionsSignatureBase64();
+
+#if (PR_BUILD || DEV_BUILD)
+void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debugging version negotiation
+#endif
 
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
@@ -171,10 +181,45 @@ const PacketVersion VERSION_ENTITITES_HAVE_QUERY_BOX = 54;
 const PacketVersion VERSION_ENTITITES_HAVE_COLLISION_MASK = 55;
 const PacketVersion VERSION_ATMOSPHERE_REMOVED = 56;
 const PacketVersion VERSION_LIGHT_HAS_FALLOFF_RADIUS = 57;
+const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
+const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
+const PacketVersion VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS = 60;
+const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
+const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
+const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
-    SoftAttachmentSupport
+    SoftAttachmentSupport,
+    AvatarEntities,
+    AbsoluteSixByteRotations,
+    SensorToWorldMat
+};
+
+enum class DomainConnectRequestVersion : PacketVersion {
+    NoHostname = 17,
+    HasHostname,
+    HasProtocolVersions
+};
+
+enum class DomainConnectionDeniedVersion : PacketVersion {
+    ReasonMessageOnly = 17,
+    IncludesReasonCode
+};
+
+enum class DomainServerAddedNodeVersion : PacketVersion {
+    PrePermissionsGrid = 17,
+    PermissionsGrid
+};
+
+enum class DomainListVersion : PacketVersion {
+    PrePermissionsGrid = 18,
+    PermissionsGrid
+};
+
+enum class AudioVersion : PacketVersion {
+    HasCompressedAudio = 17,
+    CodecNameInAudioPackets
 };
 
 #endif // hifi_PacketHeaders_h

@@ -340,7 +340,7 @@ function moveRats() {
         var metaRat = getMetaRatByRat(rat);
         if (metaRat !== undefined) {
             if (metaRat.injector !== undefined) {
-                if (metaRat.injector.isPlaying === true) {
+                if (metaRat.injector.playing === true) {
                     metaRat.injector.options = {
                         loop: true,
                         position: ratPosition

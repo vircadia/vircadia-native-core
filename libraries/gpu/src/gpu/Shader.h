@@ -53,19 +53,22 @@ public:
         int32 _location{INVALID_LOCATION};
         Element _element;
         uint16 _resourceType{Resource::BUFFER};
+        uint32 _size { 0 };
  
-        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-        Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
-             _name(name), _location(location), _element(element), _resourceType(resourceType) {}
+        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType), _size(s._size) {}
+        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType), _size(s._size) {}
+        Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER, uint32 size = 0) :
+             _name(name), _location(location), _element(element), _resourceType(resourceType), _size(size) {}
         Slot(const std::string& name) : _name(name) {}
-        
+
         Slot& operator= (const Slot& s) {
             _name = s._name;
             _location = s._location;
             _element = s._element;
             _resourceType = s._resourceType;
-            return (*this); }
+            _size = s._size;
+            return (*this);
+        }
     };
 
     class Binding {
@@ -110,8 +113,10 @@ public:
 
     static Pointer createVertex(const Source& source);
     static Pointer createPixel(const Source& source);
+    static Pointer createGeometry(const Source& source);
 
     static Pointer createProgram(const Pointer& vertexShader, const Pointer& pixelShader);
+    static Pointer createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
 
 
     ~Shader();
@@ -119,6 +124,9 @@ public:
     Type getType() const { return _type; }
     bool isProgram() const { return getType() > NUM_DOMAINS; }
     bool isDomain() const { return getType() < NUM_DOMAINS; }
+
+    void setCompilationHasFailed(bool compilationHasFailed) { _compilationHasFailed = compilationHasFailed; }
+    bool compilationHasFailed() const { return _compilationHasFailed; }
 
     const Source& getSource() const { return _source; }
 
@@ -160,6 +168,7 @@ public:
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, const Pointer& vertex, const Pointer& pixel);
+    Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
 
     Shader(const Shader& shader); // deep copy of the sysmem shader
     Shader& operator=(const Shader& shader); // deep copy of the sysmem texture
@@ -180,6 +189,9 @@ protected:
 
     // The type of the shader, the master key
     Type _type;
+
+    // Whether or not the shader compilation failed
+    bool _compilationHasFailed { false };
 };
 
 typedef Shader::Pointer ShaderPointer;

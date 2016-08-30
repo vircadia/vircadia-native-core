@@ -25,7 +25,8 @@ class AssignmentParentFinder : public SpatialParentFinder {
 public:
     AssignmentParentFinder(EntityTreePointer tree) : _tree(tree) { }
     virtual ~AssignmentParentFinder() { }
-    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success, SpatialParentTree* entityTree = nullptr) const;
+    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success,
+                                              SpatialParentTree* entityTree = nullptr) const override;
 
 protected:
     EntityTreePointer _tree;

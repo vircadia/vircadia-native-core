@@ -39,14 +39,14 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform = _transform;
+        Transform transform = getTransform();
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         batch->setModelTransform(transform);
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = args->_pipeline;
         if (!pipeline) {
-            pipeline = geometryCache->getShapePipeline();
+            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         if (_isSolid) {
@@ -61,6 +61,9 @@ const render::ShapeKey Sphere3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
     }
     return builder.build();
 }

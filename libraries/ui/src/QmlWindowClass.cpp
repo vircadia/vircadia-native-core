@@ -59,9 +59,10 @@ QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
         properties = context->argument(0).toVariant().toMap();
     }
 
-    QString url = properties[SOURCE_PROPERTY].toString();
-    if (!url.startsWith("http") && !url.startsWith("file://") && !url.startsWith("about:")) {
-        properties[SOURCE_PROPERTY] = QUrl::fromLocalFile(url).toString();
+    QUrl url { properties[SOURCE_PROPERTY].toString() };
+    if (url.scheme() != "http" && url.scheme() != "https" && url.scheme() != "file" && url.scheme() != "about" &&
+            url.scheme() != "atp") {
+        properties[SOURCE_PROPERTY] = QUrl::fromLocalFile(url.toString()).toString();
     }
 
     return properties;
@@ -118,11 +119,16 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             }
 
             bool visible = !properties.contains(VISIBILE_PROPERTY) || properties[VISIBILE_PROPERTY].toBool();
-            object->setProperty(VISIBILE_PROPERTY, visible);
+            object->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
             object->setProperty(SOURCE_PROPERTY, _source);
 
             // Forward messages received from QML on to the script
             connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(visibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
+
+            connect(_qmlWindow, SIGNAL(resized(QSizeF)), this, SIGNAL(resized(QSizeF)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(windowClosed()), this, SLOT(hasClosed()), Qt::QueuedConnection);
         });
     }
     Q_ASSERT(_qmlWindow);
@@ -163,8 +169,7 @@ void QmlWindowClass::setVisible(bool visible) {
         QMetaObject::invokeMethod(targetWindow, "showTabForUrl", Qt::QueuedConnection, Q_ARG(QVariant, _source), Q_ARG(QVariant, visible));
     } else {
         DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-            targetWindow->setVisible(visible);
-            //emit visibilityChanged(visible);
+            targetWindow->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
         });
     }
 }
@@ -259,7 +264,12 @@ void QmlWindowClass::close() {
     }
 }
 
+void QmlWindowClass::hasMoved(QVector2D position) {
+    emit moved(glm::vec2(position.x(), position.y()));
+}
+
 void QmlWindowClass::hasClosed() {
+    emit closed();
 }
 
 void QmlWindowClass::raise() {

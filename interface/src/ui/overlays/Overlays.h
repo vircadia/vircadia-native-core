@@ -89,7 +89,11 @@ public slots:
     /// successful edit, if the input id is for an unknown overlay this function will have no effect
     bool editOverlay(unsigned int id, const QVariant& properties);
 
-    /// deletes a particle
+    /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
+    /// successful edit, if the input id is for an unknown overlay this function will have no effect
+    bool editOverlays(const QVariant& propertiesById);
+
+    /// deletes an overlay
     void deleteOverlay(unsigned int id);
 
     /// get the string type of the overlay used in addOverlay

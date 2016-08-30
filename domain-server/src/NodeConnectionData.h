@@ -27,6 +27,9 @@ public:
     HifiSockAddr localSockAddr;
     HifiSockAddr senderSockAddr;
     QList<NodeType_t> interestList;
+    QString placeName;
+
+    QByteArray protocolVersion;
 };
 
 

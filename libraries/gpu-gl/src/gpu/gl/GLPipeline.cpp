@@ -14,7 +14,7 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-GLPipeline* GLPipeline::sync(const Pipeline& pipeline) {
+GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     GLPipeline* object = Backend::getGPUObject<GLPipeline>(pipeline);
 
     // If GPU object already created then good
@@ -24,8 +24,15 @@ GLPipeline* GLPipeline::sync(const Pipeline& pipeline) {
 
     // No object allocated yet, let's see if it's worth it...
     ShaderPointer shader = pipeline.getProgram();
-    GLShader* programObject = GLShader::sync(*shader);
+
+    // If this pipeline's shader has already failed to compile, don't try again
+    if (shader->compilationHasFailed()) {
+        return nullptr;
+    }
+
+    GLShader* programObject = GLShader::sync(backend, *shader);
     if (programObject == nullptr) {
+        shader->setCompilationHasFailed(true);
         return nullptr;
     }
 
@@ -41,6 +48,10 @@ GLPipeline* GLPipeline::sync(const Pipeline& pipeline) {
         Backend::setGPUObject(pipeline, object);
     }
 
+    // Special case for view correction matrices, any pipeline that declares the correction buffer
+    // uniform will automatically have it provided without any client code necessary.
+    // Required for stable lighting in the HMD.
+    object->_cameraCorrection = shader->getBuffers().findLocation("cameraCorrectionBuffer");
     object->_program = programObject;
     object->_state = stateObject;
 

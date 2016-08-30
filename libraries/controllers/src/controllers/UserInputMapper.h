@@ -89,6 +89,8 @@ namespace controller {
         void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
         void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
         void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand);
+        bool triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand);
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);
@@ -140,9 +142,6 @@ namespace controller {
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
         std::vector<float> _lastStandardStates = std::vector<float>();
-
-        int recordDeviceOfType(const QString& deviceName);
-        QHash<const QString&, int> _deviceCounts;
 
         static float getValue(const EndpointPointer& endpoint, bool peek = false);
         static Pose getPose(const EndpointPointer& endpoint, bool peek = false);
@@ -199,6 +198,7 @@ Q_DECLARE_METATYPE(QVector<controller::Input::NamedPair>)
 Q_DECLARE_METATYPE(controller::Input)
 Q_DECLARE_METATYPE(controller::Action)
 Q_DECLARE_METATYPE(QVector<controller::Action>)
+Q_DECLARE_METATYPE(controller::Hand)
 
 // Cheating.
 using UserInputMapper = controller::UserInputMapper;

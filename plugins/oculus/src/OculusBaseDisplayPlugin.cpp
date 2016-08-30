@@ -8,22 +8,45 @@
 #include "OculusBaseDisplayPlugin.h"
 
 #include <ViewFrustum.h>
+#include <controllers/Pose.h>
+#include <display-plugins/CompositorHelper.h>
+#include <gpu/Frame.h>
 
 #include "OculusHelpers.h"
 
 void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterTrackingOrigin(_session);
+
+    _currentRenderFrameInfo.renderPose = glm::mat4(); // identity
 }
 
-void OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
-    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();;
+    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
     auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+
+    std::array<glm::mat4, 2> handPoses;
+    // Make controller poses available to the presentation thread
+    ovr_for_each_hand([&](ovrHandType hand) {
+        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+        if (REQUIRED_HAND_STATUS != (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
+            return;
+        }
+
+        auto correctedPose = ovrControllerPoseToHandPose(hand, trackingState.HandPoses[hand]);
+        static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
+        handPoses[hand] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
+    });
+
+    withNonPresentThreadLock([&] {
+        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
+        _handPoses = handPoses;
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {
@@ -89,4 +112,13 @@ void OculusBaseDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
     releaseOculusSession();
     _session = nullptr;
+}
+
+void OculusBaseDisplayPlugin::updatePresentPose() {
+    //mat4 sensorResetMat;
+    //_currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
+    //_currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, _currentFrame->frameIndex);
+    //auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    //_currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
+    _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }

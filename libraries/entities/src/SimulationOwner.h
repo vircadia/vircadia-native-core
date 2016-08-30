@@ -27,6 +27,7 @@ const quint8 RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
 // When poking objects with scripts an observer will bid at SCRIPT_EDIT priority.
 const quint8 SCRIPT_GRAB_SIMULATION_PRIORITY = 0x80;
 const quint8 SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
+const quint8 AVATAR_ENTITY_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY + 1;
 
 // PERSONAL priority (needs a better name) is the level at which a simulation observer owns its own avatar
 // which really just means: things that collide with it will be bid at a priority level one lower

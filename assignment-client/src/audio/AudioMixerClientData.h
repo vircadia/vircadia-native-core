@@ -16,15 +16,20 @@
 
 #include <AABox.h>
 #include <AudioHRTF.h>
+#include <AudioLimiter.h>
 #include <UUIDHasher.h>
+
+#include <plugins/CodecPlugin.h>
 
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
+
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
     AudioMixerClientData(const QUuid& nodeID);
+    ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
@@ -44,25 +49,43 @@ public:
 
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
-    
-    int parseData(ReceivedMessage& message);
+
+    int parseData(ReceivedMessage& message) override;
 
     void checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
-    
+
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
-    
+
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
     // uses randomization to have the AudioMixer send a stats packet to this node around every second
     bool shouldSendStats(int frameNumber);
 
+    AudioLimiter audioLimiter;
+
+    void setupCodec(CodecPluginPointer codec, const QString& codecName);
+    void cleanupCodec();
+    void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+        if (_encoder) {
+            _encoder->encode(decodedBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = decodedBuffer;
+        }
+    }
+
+    QString getCodecName() { return _selectedCodecName; }
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
+
+public slots:
+    void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
+    void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
     QReadWriteLock _streamsLock;
@@ -77,6 +100,11 @@ private:
     AudioStreamStats _downstreamAudioStreamStats;
 
     int _frameToSendStats { 0 };
+
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder{ nullptr }; // for outbound mixed stream
+    Decoder* _decoder{ nullptr }; // for mic stream
 };
 
 #endif // hifi_AudioMixerClientData_h

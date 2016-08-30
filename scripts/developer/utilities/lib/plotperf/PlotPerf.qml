@@ -16,6 +16,8 @@ Item {
     width: parent.width
     height: 100
 
+    property int hitboxExtension : 20
+    
     // The title of the graph
     property string title
 
@@ -71,6 +73,11 @@ Item {
     Component.onCompleted: {
         createValues();   
     }
+    function resetMax() {
+        for (var i = 0; i < _values.length; i++) {
+            _values[i].valueMax *= 0.25 // Fast reduce the max value  as we click                   
+        }
+    }
 
     function pullFreshValues() {
         // Wait until values are created to begin pulling
@@ -125,6 +132,7 @@ Item {
     Canvas {
         id: mycanvas
         anchors.fill:parent
+        
         onPaint: {
             var lineHeight = 12;
 
@@ -197,6 +205,21 @@ Item {
             }
 
             displayTitle(ctx, title, valueMax)
+        }
+    }
+
+    MouseArea {
+        id: hitbox
+        anchors.fill:mycanvas
+
+        anchors.topMargin: -hitboxExtension
+        anchors.bottomMargin: -hitboxExtension
+        anchors.leftMargin: -hitboxExtension
+        anchors.rightMargin: -hitboxExtension
+
+        onClicked: {
+            print("PerfPlot clicked!")
+            resetMax();
         }
     }
 }

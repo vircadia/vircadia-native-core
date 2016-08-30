@@ -62,7 +62,7 @@ ShapeManager* ObjectMotionState::getShapeManager() {
     return shapeManager;
 }
 
-ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
+ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
     _shape(shape),
     _body(nullptr),
@@ -73,7 +73,7 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
-    releaseShape();
+    setShape(nullptr);
     _type = MOTIONSTATE_TYPE_INVALID;
 }
 
@@ -112,13 +112,6 @@ glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
 
 glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
     return bulletToGLM(_body->getAngularVelocity());
-}
-
-void ObjectMotionState::releaseShape() {
-    if (_shape) {
-        shapeManager->releaseShape(_shape);
-        _shape = nullptr;
-    }
 }
 
 void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
@@ -160,8 +153,18 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         _body = body;
         if (_body) {
             _body->setUserPointer(this);
+            assert(_body->getCollisionShape() == _shape);
         }
         updateCCDConfiguration();
+    }
+}
+
+void ObjectMotionState::setShape(const btCollisionShape* shape) {
+    if (_shape != shape) {
+        if (_shape) {
+            getShapeManager()->releaseShape(_shape);
+        }
+        _shape = shape;
     }
 }
 
@@ -203,35 +206,37 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
         }
     }
 
-    if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
-        btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
-            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+    if (_body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
+            btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
+                if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
-        }
-        _body->setLinearVelocity(newLinearVelocity);
+            _body->setLinearVelocity(newLinearVelocity);
 
-        btVector3 newGravity = glmToBullet(getObjectGravity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newGravity - _body->getGravity()).length();
-            if (delta > ACTIVATION_GRAVITY_DELTA ||
-                    (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            btVector3 newGravity = glmToBullet(getObjectGravity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newGravity - _body->getGravity()).length();
+                if (delta > ACTIVATION_GRAVITY_DELTA ||
+                        (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
+            _body->setGravity(newGravity);
         }
-        _body->setGravity(newGravity);
-    }
-    if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
-        btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
-        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
-            float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
-            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
+            btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
+            if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+                float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
+                if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                    flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+                }
             }
+            _body->setAngularVelocity(newAngularVelocity);
         }
-        _body->setAngularVelocity(newAngularVelocity);
     }
 
     if (flags & Simulation::DIRTY_MATERIAL) {
@@ -249,7 +254,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         if (!isReadyToComputeShape()) {
             return false;
         }
-        btCollisionShape* newShape = computeNewShape();
+        const btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
@@ -263,15 +268,15 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
                 return true;
             }
         }
-        getShapeManager()->releaseShape(_shape);
-        if (_shape != newShape) {
-            _shape = newShape;
-            _body->setCollisionShape(_shape);
-
-            updateCCDConfiguration();
-        } else {
-            // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
+        if (_shape == newShape) {
+            // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~Simulation::DIRTY_SHAPE;
+            // and clear the reference we just created
+            getShapeManager()->releaseShape(_shape);
+        } else {
+            _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
+            setShape(newShape);
+            updateCCDConfiguration();
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {

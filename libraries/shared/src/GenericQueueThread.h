@@ -12,9 +12,10 @@
 
 #include <stdint.h>
 
-#include <QQueue>
-#include <QMutex>
-#include <QWaitCondition>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QMutex>
+#include <QtCore/QQueue>
+#include <QtCore/QWaitCondition>
 
 #include "GenericThread.h"
 #include "NumericalConstants.h"
@@ -35,16 +36,26 @@ public:
         _hasItems.wakeAll();
     }
 
-protected:
-    virtual void queueItemInternal(const T& t) {
-        _items.push_back(t);
+    void waitIdle(uint32_t maxWaitMs = UINT32_MAX) {
+        QElapsedTimer timer;
+        timer.start();
+
+        // FIXME this will work as long as the thread doing the wait
+        // is the only thread which can add work to the queue.  
+        // It would be better if instead we had a queue empty condition to wait on
+        // that would ensure that we get woken as soon as we're idle the very 
+        // first time the queue was empty.
+        while (timer.elapsed() < maxWaitMs) {
+            lock();
+            if (!_items.size()) {
+                unlock();
+                return;
+            }
+            unlock();
+        }
     }
 
-    virtual uint32_t getMaxWait() {
-        return MSECS_PER_SECOND;
-    }
-
-    virtual bool process() {
+    virtual bool process() override {
         lock();
         if (!_items.size()) {
             unlock();
@@ -66,6 +77,17 @@ protected:
         unlock();
         return processQueueItems(processItems);
     }
+
+protected:
+    virtual void queueItemInternal(const T& t) {
+        _items.push_back(t);
+    }
+
+    virtual uint32_t getMaxWait() {
+        return MSECS_PER_SECOND;
+    }
+
+
 
     virtual bool processQueueItems(const Queue& items) = 0;
 

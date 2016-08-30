@@ -15,7 +15,7 @@
 #include "AnimationCache.h"
 #include "AnimationLogging.h"
 
-static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
+int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
 AnimationCache::AnimationCache(QObject* parent) :
     ResourceCache(parent)

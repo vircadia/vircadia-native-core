@@ -19,6 +19,7 @@ class GLMHelpersTests : public QObject {
     Q_OBJECT
 private slots:
     void testEulerDecomposition();
+    void testSixByteOrientationCompression();
 };
 
 float getErrorDifference(const float& a, const float& b);

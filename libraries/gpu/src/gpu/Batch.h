@@ -14,6 +14,7 @@
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <shared/NsightHelpers.h>
 
@@ -25,7 +26,7 @@
 #include "Transform.h"
 
 class QDebug;
-
+#define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
 
 enum ReservedSlot {
@@ -74,7 +75,7 @@ public:
         Function function;
         DrawCallInfoBuffer drawCallInfos;
 
-        size_t count() const { return drawCallInfos.size();  }
+        size_t count() const { return drawCallInfos.size(); }
 
         void process(Batch& batch) {
             if (function) {
@@ -86,8 +87,9 @@ public:
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
     DrawCallInfoBuffer _drawCallInfos;
+    static size_t _drawCallInfosMax;
 
-    std::string _currentNamedCall;
+    mutable std::string _currentNamedCall;
 
     const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
     DrawCallInfoBuffer& getDrawCallInfoBuffer();
@@ -95,43 +97,11 @@ public:
     void captureDrawCallInfo();
     void captureNamedDrawCallInfo(std::string name);
 
-    class CacheState {
-    public:
-        size_t commandsSize;
-        size_t offsetsSize;
-        size_t paramsSize;
-        size_t dataSize;
-
-        size_t buffersSize;
-        size_t texturesSize;
-        size_t streamFormatsSize;
-        size_t transformsSize;
-        size_t pipelinesSize;
-        size_t framebuffersSize;
-        size_t queriesSize;
-
-        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
-            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
-
-        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
-            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
-            size_t framebuffersSize, size_t queriesSize) : 
-            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
-            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
-            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
-    };
-
-    Batch() {}
-    Batch(const CacheState& cacheState);
+    Batch();
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
-    
-    void preExecute();
-
-    CacheState getCacheState();
-
 
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
@@ -200,7 +170,8 @@ public:
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
     // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
-    void setViewTransform(const Transform& view);
+    void resetViewTransform() { setViewTransform(Transform(), false); }
+    void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
@@ -269,6 +240,7 @@ public:
     void _glUniform3fv(int location, int count, const float* value);
     void _glUniform4fv(int location, int count, const float* value);
     void _glUniform4iv(int location, int count, const int* value);
+    void _glUniformMatrix3fv(int location, int count, unsigned char transpose, const float* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glUniform(int location, int v0) {
@@ -289,6 +261,10 @@ public:
 
     void _glUniform(int location, const glm::vec4& v) {
         _glUniform4f(location, v.x, v.y, v.z, v.w);
+    }
+
+    void _glUniform(int location, const glm::mat3& v) {
+        _glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
     }
 
     void _glColor4f(float red, float green, float blue, float alpha);
@@ -348,6 +324,7 @@ public:
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
         COMMAND_glUniform4iv,
+        COMMAND_glUniformMatrix3fv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
@@ -394,19 +371,29 @@ public:
         typedef T Data;
         Data _data;
         Cache<T>(const Data& data) : _data(data) {}
+        static size_t _max;
 
         class Vector {
         public:
             std::vector< Cache<T> > _items;
 
+            Vector() {
+                _items.reserve(_max);
+            }
+
+            ~Vector() {
+                _max = std::max(_items.size(), _max);
+            }
+
+
             size_t size() const { return _items.size(); }
             size_t cache(const Data& data) {
                 size_t offset = _items.size();
-                _items.push_back(Cache<T>(data));
+                _items.emplace_back(data);
                 return offset;
             }
 
-            Data get(uint32 offset) {
+            Data get(uint32 offset) const {
                 if (offset >= _items.size()) {
                     return Data();
                 }
@@ -441,12 +428,26 @@ public:
         return (_data.data() + offset);
     }
 
-    Commands _commands;
-    CommandOffsets _commandOffsets;
-    Params _params;
-    Bytes _data;
+    const Byte* readData(size_t offset) const {
+        if (offset >= _data.size()) {
+            return 0;
+        }
+        return (_data.data() + offset);
+    }
 
-    // SSBO class... layout MUST match the layout in TransformCamera.slh
+    Commands _commands;
+    static size_t _commandsMax;
+
+    CommandOffsets _commandOffsets;
+    static size_t _commandOffsetsMax;
+
+    Params _params;
+    static size_t _paramsMax;
+
+    Bytes _data;
+    static size_t _dataMax;
+
+    // SSBO class... layout MUST match the layout in Transform.slh
     class TransformObject {
     public:
         Mat4 _model;
@@ -457,6 +458,7 @@ public:
     bool _invalidModel { true };
     Transform _currentModel;
     TransformObjects _objects;
+    static size_t _objectsMax;
 
     BufferCaches _buffers;
     TextureCaches _textures;
@@ -475,6 +477,18 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    friend class Context;
+    friend class Frame;
+
+    // Apply all the named calls to the end of the batch
+    // and prepare updates for the render shadow copies of the buffers
+    void finishFrame(BufferUpdates& updates);
+
+    // Directly copy from the main data to the render thread shadow copy
+    // MUST only be called on the render thread
+    // MUST only be called on batches created on the render thread
+    void flush();
+
     void startNamedCall(const std::string& name);
     void stopNamedCall();
 
@@ -483,6 +497,9 @@ protected:
 
     void captureDrawCallInfoImpl();
 };
+
+template <typename T>
+size_t Batch::Cache<T>::_max = BATCH_PREALLOCATE_MIN;
 
 }
 
@@ -504,7 +521,5 @@ private:
 #define PROFILE_RANGE_BATCH(batch, name) 
 
 #endif
-
-QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
 #endif

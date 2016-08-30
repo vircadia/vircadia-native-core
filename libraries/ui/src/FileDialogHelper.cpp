@@ -108,3 +108,22 @@ QStringList FileDialogHelper::drives() {
 void FileDialogHelper::openDirectory(const QString& path) {
     QDesktopServices::openUrl(path);
 }
+
+QList<QUrl> FileDialogHelper::urlToList(const QUrl& url) {
+    QList<QUrl> results;
+    results.push_back(url);
+    return results;
+}
+
+void FileDialogHelper::monitorDirectory(const QString& path) {
+    if (!_fsWatcherPath.isEmpty()) {
+        _fsWatcher.removePath(_fsWatcherPath);
+        _fsWatcherPath = "";
+    }
+
+    if (!path.isEmpty()) {
+        _fsWatcher.addPath(path);
+        _fsWatcherPath = path;
+        connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &FileDialogHelper::contentsChanged);
+    }
+}

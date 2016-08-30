@@ -20,6 +20,8 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <tbb/concurrent_unordered_set.h>
+
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
@@ -68,6 +70,11 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
+    void ignoreNodeBySessionID(const QUuid& nodeID);
+    bool isIgnoringNode(const QUuid& nodeID) const;
+
+    void kickNodeBySessionID(const QUuid& nodeID);
+
 public slots:
     void reset();
     void sendDomainServerCheckIn();
@@ -85,9 +92,15 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
+#if (PR_BUILD || DEV_BUILD)
+    void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
+#endif
+
 signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
+    void ignoredNode(const QUuid& nodeID);
+    
 private slots:
     void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
@@ -99,6 +112,9 @@ private slots:
     void pingPunchForDomainServer();
     
     void sendKeepAlivePings();
+
+    void maybeSendIgnoreSetToNode(SharedNodePointer node);
+    
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -123,6 +139,13 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+
+    mutable QReadWriteLock _ignoredSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+
+#if (PR_BUILD || DEV_BUILD)
+    bool _shouldSendNewerVersion { false };
+#endif
 };
 
 #endif // hifi_NodeList_h

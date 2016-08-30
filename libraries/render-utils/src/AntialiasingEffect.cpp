@@ -32,6 +32,9 @@ Antialiasing::Antialiasing() {
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
+    int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
+    int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
+    
     if (!_antialiasingPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(fxaa_vert));
         auto ps = gpu::Shader::createPixel(std::string(fxaa_frag));
@@ -49,11 +52,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
         // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-          DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
-        auto format = DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-        auto width = _antialiasingBuffer->getWidth();
-        auto height = _antialiasingBuffer->getHeight();
+        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
@@ -62,10 +62,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
     }
 
-    int w = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
-    int h = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
-    if (w != _antialiasingBuffer->getWidth() || h != _antialiasingBuffer->getHeight()) {
-        _antialiasingBuffer->resize(w, h);
+    if (width != _antialiasingBuffer->getWidth() || height != _antialiasingBuffer->getHeight()) {
+        _antialiasingBuffer->resize(width, height);
     }
 
     return _antialiasingPipeline;
@@ -92,7 +90,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     return _blendPipeline;
 }
 
-void Antialiasing::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+void Antialiasing::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -121,12 +119,12 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         args->getViewFrustum().evalProjectionMatrix(projMat);
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
         // FXAA step
         getAntialiasingPipeline();
-        batch.setResourceTexture(0, framebufferCache->getLightingTexture());
+        batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
 
@@ -152,10 +150,11 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
         DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
 
+
         // Blend step
         getBlendPipeline();
         batch.setResourceTexture(0, _antialiasingTexture);
-        batch.setFramebuffer(framebufferCache->getLightingFramebuffer());
+        batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
 
         DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);

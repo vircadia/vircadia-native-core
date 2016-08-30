@@ -18,11 +18,16 @@
 
 namespace AudioConstants {
     const int SAMPLE_RATE = 24000;
+    const int MONO = 1;
+    const int STEREO = 2;
+
 
     typedef int16_t AudioSample;
 
     inline const char* getAudioFrameName() { return "com.highfidelity.recording.Audio"; }
 
+    const int MAX_CODEC_NAME_LENGTH = 30;
+    const int MAX_CODEC_NAME_LENGTH_ON_WIRE = MAX_CODEC_NAME_LENGTH + sizeof(uint32_t);
     const int NETWORK_FRAME_BYTES_STEREO = 1024;
     const int NETWORK_FRAME_SAMPLES_STEREO = NETWORK_FRAME_BYTES_STEREO / sizeof(AudioSample);
     const int NETWORK_FRAME_BYTES_PER_CHANNEL = 512;

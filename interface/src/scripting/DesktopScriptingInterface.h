@@ -22,6 +22,9 @@ class DesktopScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int height READ getHeight)  // Physical height of screen(s) including task bars and system menus
 
 public:
+    Q_INVOKABLE void setOverlayAlpha(float alpha);
+    Q_INVOKABLE void show(const QString& path, const QString&  title);
+
     int getWidth();
     int getHeight();
 };

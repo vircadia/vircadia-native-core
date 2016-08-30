@@ -11,12 +11,9 @@
 
 #include <QSize>
 
-#include <gpu/Framebuffer.h>
+#include <mutex>
+#include <gpu/Forward.h>
 #include <DependencyManager.h>
-
-namespace gpu {
-class Batch;
-}
 
 /// Stores cached textures, including render-to-texture targets.
 class FramebufferCache : public Dependency {
@@ -30,33 +27,6 @@ public:
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
-    /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
-    /// used for scene rendering.
-    gpu::FramebufferPointer getPrimaryFramebuffer();
-
-    gpu::TexturePointer getPrimaryDepthTexture();
-    gpu::TexturePointer getPrimaryColorTexture();
-
-    gpu::FramebufferPointer getDeferredFramebuffer();
-    gpu::FramebufferPointer getDeferredFramebufferDepthColor();
-
-    gpu::TexturePointer getDeferredColorTexture();
-    gpu::TexturePointer getDeferredNormalTexture();
-    gpu::TexturePointer getDeferredSpecularTexture();
-
-    gpu::FramebufferPointer getDepthPyramidFramebuffer();
-    gpu::TexturePointer getDepthPyramidTexture();
-
-    void setAmbientOcclusionResolutionLevel(int level);
-    gpu::FramebufferPointer getOcclusionFramebuffer();
-    gpu::TexturePointer getOcclusionTexture();
-    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
-    gpu::TexturePointer getOcclusionBlurredTexture();
-    
-
-    gpu::TexturePointer getLightingTexture();
-    gpu::FramebufferPointer getLightingFramebuffer();
-
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
 
@@ -68,46 +38,16 @@ public:
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
 
 private:
-    FramebufferCache();
-    virtual ~FramebufferCache();
-
     void createPrimaryFramebuffer();
-
-    gpu::FramebufferPointer _primaryFramebuffer;
-
-    gpu::TexturePointer _primaryDepthTexture;
-    gpu::TexturePointer _primaryColorTexture;
-
-    gpu::FramebufferPointer _deferredFramebuffer;
-    gpu::FramebufferPointer _deferredFramebufferDepthColor;
-
-    gpu::TexturePointer _deferredColorTexture;
-    gpu::TexturePointer _deferredNormalTexture;
-    gpu::TexturePointer _deferredSpecularTexture;
-
-    gpu::TexturePointer _lightingTexture;
-    gpu::FramebufferPointer _lightingFramebuffer;
 
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
-    gpu::FramebufferPointer _depthPyramidFramebuffer;
-    gpu::TexturePointer _depthPyramidTexture;
-    
-    
-    gpu::FramebufferPointer _occlusionFramebuffer;
-    gpu::TexturePointer _occlusionTexture;
-    
-    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
-    gpu::TexturePointer _occlusionBlurredTexture;
-
     QSize _frameBufferSize{ 100, 100 };
-    int _AOResolutionLevel = 1; // AO perform at half res
 
-    // Resize/reallocate the buffers used for AO
-    // the size of the AO buffers is scaled by the AOResolutionScale;
-    void resizeAmbientOcclusionBuffers();
+    std::mutex _mutex;
+    std::list<gpu::FramebufferPointer> _cachedFramebuffers;
 };
 
 #endif // hifi_FramebufferCache_h

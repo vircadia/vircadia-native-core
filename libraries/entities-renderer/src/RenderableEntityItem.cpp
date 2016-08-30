@@ -19,7 +19,7 @@ namespace render {
             if (payload->entity->getType() == EntityTypes::Light) {
                 return ItemKey::Builder::light();
             }
-            if (payload && payload->entity->getType() == EntityTypes::PolyLine) {
+            if (payload && payload->entity->isTransparent()) {
                 return ItemKey::Builder::transparentShape();
             }
         }
@@ -47,6 +47,9 @@ namespace render {
 }
 
 void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status::Getters& statusGetters) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
@@ -81,9 +84,7 @@ void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status:
                                            (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
     });
 
-    statusGetters.push_back([entity] () -> render::Item::Status::Value {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid& myNodeID = nodeList->getSessionUUID();
+    statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
         bool weOwnSimulation = entity->getSimulationOwner().matchesValidID(myNodeID);
         bool otherOwnSimulation = !weOwnSimulation && !entity->getSimulationOwner().isNull();
 
@@ -105,5 +106,19 @@ void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status:
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
                                            (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+    });
+
+    statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
+        if (entity->getClientOnly()) {
+            if (entity->getOwningAvatarID() == myNodeID) {
+                return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
+                                                   (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+            } else {
+                return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
+                                                   (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+            }
+        }
+        return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
+                                           (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
     });
 }

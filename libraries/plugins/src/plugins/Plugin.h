@@ -15,6 +15,7 @@
 #include "Forward.h"
 
 class Plugin : public QObject {
+    Q_OBJECT
 public:
     /// \return human-readable name
     virtual const QString& getName() const = 0;
@@ -62,6 +63,13 @@ public:
 
     virtual void saveSettings() const {}
     virtual void loadSettings() {}
+
+signals:
+    // These signals should be emitted when a device is first known to be available. In some cases this will
+    // be in `init()`, in other cases, like Neuron, this isn't known until activation.
+    // SDL2 isn't a device itself, but can have 0+ subdevices. subdeviceConnected is used in this case.
+    void deviceConnected(QString pluginName) const;
+    void subdeviceConnected(QString pluginName, QString subdeviceName) const;
 
 protected:
     bool _active { false };

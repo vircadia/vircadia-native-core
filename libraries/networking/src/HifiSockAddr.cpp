@@ -16,7 +16,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 
-static int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
+int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
 
 HifiSockAddr::HifiSockAddr() :
     _address(),

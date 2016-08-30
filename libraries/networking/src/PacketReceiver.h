@@ -67,9 +67,6 @@ public:
     void handleVerifiedPacket(std::unique_ptr<udt::Packet> packet);
     void handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> message);
     void handleMessageFailure(HifiSockAddr from, udt::Packet::MessageNumber messageNumber);
-
-signals:
-    void dataReceived(quint8 channelType, int bytes);
     
 private:
     struct Listener {

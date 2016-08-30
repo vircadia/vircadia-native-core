@@ -16,20 +16,23 @@
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
 void ShapeInfo::clear() {
-    _type = SHAPE_TYPE_NONE;
-    _halfExtents = _offset = glm::vec3(0.0f);
+    _url.clear();
+    _pointCollection.clear();
+    _triangleIndices.clear();
+    _halfExtents = glm::vec3(0.0f);
+    _offset = glm::vec3(0.0f);
     _doubleHashKey.clear();
+    _type = SHAPE_TYPE_NONE;
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
     _type = type;
-    _points.clear();
+    _halfExtents = halfExtents;
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
             break;
         case SHAPE_TYPE_BOX:
-            _halfExtents = halfExtents;
             break;
         case SHAPE_TYPE_SPHERE: {
             // sphere radius is max of halfExtents
@@ -38,11 +41,10 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             break;
         }
         case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
             _url = QUrl(url);
-            _halfExtents = halfExtents;
             break;
         default:
-            _halfExtents = halfExtents;
             break;
     }
     _doubleHashKey.clear();
@@ -52,7 +54,6 @@ void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _url = "";
     _type = SHAPE_TYPE_BOX;
     _halfExtents = halfExtents;
-    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -60,21 +61,12 @@ void ShapeInfo::setSphere(float radius) {
     _url = "";
     _type = SHAPE_TYPE_SPHERE;
     _halfExtents = glm::vec3(radius, radius, radius);
-    _points.clear();
     _doubleHashKey.clear();
 }
 
-void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
-    _url = "";
-    _type = SHAPE_TYPE_ELLIPSOID;
-    _halfExtents = halfExtents;
-    _points.clear();
-    _doubleHashKey.clear();
-}
-
-void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
-    _points = points;
-    _type = (_points.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
+    _pointCollection = pointCollection;
+    _type = (_pointCollection.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
     _doubleHashKey.clear();
 }
 
@@ -82,7 +74,6 @@ void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
     _halfExtents = glm::vec3(radius, halfHeight, radius);
-    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -92,13 +83,32 @@ void ShapeInfo::setOffset(const glm::vec3& offset) {
 }
 
 uint32_t ShapeInfo::getNumSubShapes() const {
-    if (_type == SHAPE_TYPE_NONE) {
-        return 0;
-    } else if (_type == SHAPE_TYPE_COMPOUND) {
-        return _points.size();
+    switch (_type) {
+        case SHAPE_TYPE_NONE:
+            return 0;
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+            return _pointCollection.size();
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_STATIC_MESH:
+            assert(_pointCollection.size() == 1);
+            // yes fall through to default
+        default:
+            return 1;
     }
-    return 1;
 }
+
+int ShapeInfo::getLargestSubshapePointCount() const {
+    int numPoints = 0;
+    for (int i = 0; i < _pointCollection.size(); ++i) {
+        int n = _pointCollection[i].size();
+        if (n > numPoints) {
+            numPoints = n;
+        }
+    }
+    return numPoints;
+}
+
 float ShapeInfo::computeVolume() const {
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
@@ -134,10 +144,6 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
     switch(_type) {
         case SHAPE_TYPE_SPHERE:
             return glm::length(point) <= _halfExtents.x;
-        case SHAPE_TYPE_ELLIPSOID: {
-            glm::vec3 scaledPoint = glm::abs(point) / _halfExtents;
-            return glm::length(scaledPoint) <= 1.0f;
-        }
         case SHAPE_TYPE_CYLINDER_X:
             return glm::length(glm::vec2(point.y, point.z)) <= _halfExtents.z;
         case SHAPE_TYPE_CYLINDER_Y:
@@ -182,34 +188,31 @@ const DoubleHashKey& ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_doubleHashKey.isNull() && _type != SHAPE_TYPE_NONE) {
         bool useOffset = glm::length2(_offset) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET;
-        // The key is not yet cached therefore we must compute it!  To this end we bypass the const-ness
-        // of this method by grabbing a non-const pointer to "this" and a non-const reference to _doubleHashKey.
-        ShapeInfo* thisPtr = const_cast<ShapeInfo*>(this);
-        DoubleHashKey& key = thisPtr->_doubleHashKey;
+        // The key is not yet cached therefore we must compute it.
 
         // compute hash1
         // TODO?: provide lookup table for hash/hash2 of _type rather than recompute?
         uint32_t primeIndex = 0;
-        key.computeHash((uint32_t)_type, primeIndex++);
-    
-        // compute hash1 
-        uint32_t hash = key.getHash();
+        _doubleHashKey.computeHash((uint32_t)_type, primeIndex++);
+
+        // compute hash1
+        uint32_t hash = _doubleHashKey.getHash();
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
             hash ^= DoubleHashKey::hashFunction(
-                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), 
+                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f),
                     primeIndex++);
             if (useOffset) {
                 hash ^= DoubleHashKey::hashFunction(
-                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f), 
+                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f),
                         primeIndex++);
             }
         }
-        key.setHash(hash);
-    
+        _doubleHashKey.setHash(hash);
+
         // compute hash2
-        hash = key.getHash2();
+        hash = _doubleHashKey.getHash2();
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
@@ -226,16 +229,18 @@ const DoubleHashKey& ShapeInfo::getHash() const {
             hash += ~(floatHash << 10);
             hash = (hash << 16) | (hash >> 16);
         }
-        key.setHash2(hash);
+        _doubleHashKey.setHash2(hash);
 
-        QString url = _url.toString();
-        if (!url.isEmpty()) {
-            // fold the urlHash into both parts
-            QByteArray baUrl = url.toLocal8Bit();
-            const char *cUrl = baUrl.data();
-            uint32_t urlHash = qChecksum(cUrl, baUrl.count());
-            key.setHash(key.getHash() ^ urlHash);
-            key.setHash2(key.getHash2() ^ urlHash);
+        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_STATIC_MESH) {
+            QString url = _url.toString();
+            if (!url.isEmpty()) {
+                // fold the urlHash into both parts
+                QByteArray baUrl = url.toLocal8Bit();
+                const char *cUrl = baUrl.data();
+                uint32_t urlHash = qChecksum(cUrl, baUrl.count());
+                _doubleHashKey.setHash(_doubleHashKey.getHash() ^ urlHash);
+                _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ urlHash);
+            }
         }
     }
     return _doubleHashKey;

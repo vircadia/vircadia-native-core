@@ -17,10 +17,11 @@
 <@include model/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION, SCATTERING)$>
 
 in vec4 _position;
 in vec2 _texCoord0;
+in vec2 _texCoord1;
 in vec3 _normal;
 in vec3 _tangent;
 in vec3 _color;
@@ -28,7 +29,8 @@ in vec3 _color;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex, occlusionTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex, scatteringTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -47,6 +49,9 @@ void main(void) {
     vec3 viewNormal;
     <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
 
+    float scattering = getMaterialScattering(mat);
+    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
+
     packDeferredFragment(
         viewNormal, 
         opacity,
@@ -54,5 +59,6 @@ void main(void) {
         roughness,
         getMaterialMetallic(mat),
         emissive,
-        occlusionTex);
+        occlusionTex,
+        scattering);
 }

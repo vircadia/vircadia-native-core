@@ -47,6 +47,8 @@
 #include <NodeList.h>
 #include <Node.h>
 #include <OctreeConstants.h>
+#include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
@@ -60,7 +62,7 @@
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
@@ -90,11 +92,70 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+
+const int IEEE754_MANT_BITS = 23;
+const int IEEE754_EXPN_BIAS = 127;
+
+//
+// for x  > 0.0f, returns log2(x)
+// for x <= 0.0f, returns large negative value
+//
+// abs |error| < 8e-3, smooth (exact for x=2^N) for NPOLY=3
+// abs |error| < 2e-4, smooth (exact for x=2^N) for NPOLY=5
+// rel |error| < 0.4 from precision loss very close to 1.0f
+//
+static inline float fastlog2(float x) {
+
+    union { float f; int32_t i; } mant, bits = { x };
+
+    // split into mantissa and exponent
+    mant.i = (bits.i & ((1 << IEEE754_MANT_BITS) - 1)) | (IEEE754_EXPN_BIAS << IEEE754_MANT_BITS);
+    int32_t expn = (bits.i >> IEEE754_MANT_BITS) - IEEE754_EXPN_BIAS;
+
+    mant.f -= 1.0f;
+
+    // polynomial for log2(1+x) over x=[0,1]
+    //x = (-0.346555386f * mant.f + 1.346555386f) * mant.f;
+    x = (((-0.0821307180f * mant.f + 0.321188984f) * mant.f - 0.677784014f) * mant.f + 1.43872575f) * mant.f;
+
+    return x + expn;
+}
+
+//
+// for -126 <= x < 128, returns exp2(x)
+//
+// rel |error| < 3e-3, smooth (exact for x=N) for NPOLY=3
+// rel |error| < 9e-6, smooth (exact for x=N) for NPOLY=5
+//
+static inline float fastexp2(float x) {
+
+    union { float f; int32_t i; } xi;
+
+    // bias such that x > 0
+    x += IEEE754_EXPN_BIAS;
+    //x = MAX(x, 1.0f);
+    //x = MIN(x, 254.9999f);
+
+    // split into integer and fraction
+    xi.i = (int32_t)x;
+    x -= xi.i;
+
+    // construct exp2(xi) as a float
+    xi.i <<= IEEE754_MANT_BITS;
+
+    // polynomial for exp2(x) over x=[0,1]
+    //x = (0.339766028f * x + 0.660233972f) * x + 1.0f;
+    x = (((0.0135557472f * x + 0.0520323690f) * x + 0.241379763f) * x + 0.693032121f) * x + 1.0f;
+
+    return x * xi.f;
+}
 
 float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
                                 const AvatarAudioStream& listeningNodeStream, const glm::vec3& relativePosition, bool isEcho) {
@@ -137,13 +198,14 @@ float AudioMixer::gainForSource(const PositionalAudioStream& streamToAdd,
     }
 
     if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = 1.0f - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                            * attenuationPerDoublingInDistance);
 
-        if (distanceCoefficient < 0) {
-            distanceCoefficient = 0;
-        }
+        // translate the zone setting to gain per log2(distance)
+        float g = 1.0f - attenuationPerDoublingInDistance;
+        g = (g < EPSILON) ? EPSILON : g;
+        g = (g > 1.0f) ? 1.0f : g;
+
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = fastexp2(fastlog2(g) * fastlog2(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE));
 
         // multiply the current attenuation coefficient by the distance coefficient
         gain *= distanceCoefficient;
@@ -189,8 +251,12 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     // check if this is a server echo of a source back to itself
     bool isEcho = (&streamToAdd == &listeningNodeStream);
 
-    // figure out the gain for this source at the listener
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
+
+    // figure out the distance between source and listener
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+
+    // figure out the gain for this source at the listener
     float gain = gainForSource(streamToAdd, listeningNodeStream, relativePosition, isEcho);
 
     // figure out the azimuth to this source at the listener
@@ -236,7 +302,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
 
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+                hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 ++_hrtfSilentRenders;;
@@ -283,7 +349,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // silent frame from source
 
         // we still need to call renderSilent via the HRTF for mono source
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfSilentRenders;
@@ -296,7 +362,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++_hrtfStruggleRenders;
@@ -307,7 +373,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
-    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
+    hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
@@ -321,7 +387,8 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
 
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getLinkedData()) {
+        // make sure that we have audio data for this other node and that it isn't being ignored by our listening node
+        if (otherNode->getLinkedData() && !node->isIgnoringNodeWithID(otherNode->getUUID())) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
@@ -339,21 +406,18 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
         }
     });
 
-    int nonZeroSamples = 0;
+    // use the per listner AudioLimiter to render the mixed data...
+    listenerNodeData->audioLimiter.render(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-    // enumerate the mixed samples and clamp any samples outside the min/max
-    // also check if we ended up with a silent frame
+    // check for silent audio after the peak limitor has converted the samples
+    bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-
-        _clampedSamples[i] = int16_t(glm::clamp(int(_mixedSamples[i] * AudioConstants::MAX_SAMPLE_VALUE),
-                                                AudioConstants::MIN_SAMPLE_VALUE,
-                                                AudioConstants::MAX_SAMPLE_VALUE));
-        if (_clampedSamples[i] != 0.0f) {
-            ++nonZeroSamples;
+        if (_clampedSamples[i] != 0) {
+            hasAudio = true;
+            break;
         }
     }
-
-    return (nonZeroSamples > 0);
+    return hasAudio;
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
@@ -449,6 +513,91 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+DisplayPluginList getDisplayPlugins() {
+    DisplayPluginList result;
+    return result;
+}
+
+InputPluginList getInputPlugins() {
+    InputPluginList result;
+    return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+
+
+void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QStringList availableCodecs;
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    if (codecPlugins.size() > 0) {
+        for (auto& plugin : codecPlugins) {
+            auto codecName = plugin->getName();
+            qDebug() << "Codec available:" << codecName;
+            availableCodecs.append(codecName);
+        }
+    } else {
+        qDebug() << "No Codecs available...";
+    }
+
+    CodecPluginPointer selectedCodec;
+    QString selectedCodecName;
+
+    QStringList codecPreferenceList = _codecPreferenceOrder.split(",");
+
+    // read the codecs requested by the client
+    const int MAX_PREFERENCE = 99999;
+    int preferredCodecIndex = MAX_PREFERENCE;
+    QString preferredCodec;
+    quint8 numberOfCodecs = 0;
+    message->readPrimitive(&numberOfCodecs);
+    qDebug() << "numberOfCodecs:" << numberOfCodecs;
+    QStringList codecList;
+    for (quint16 i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message->readString();
+        int preferenceOfThisCodec = codecPreferenceList.indexOf(requestedCodec);
+        bool codecAvailable = availableCodecs.contains(requestedCodec);
+        qDebug() << "requestedCodec:" << requestedCodec << "preference:" << preferenceOfThisCodec << "available:" << codecAvailable;
+        if (codecAvailable) {
+            codecList.append(requestedCodec);
+            if (preferenceOfThisCodec >= 0 && preferenceOfThisCodec < preferredCodecIndex) {
+                qDebug() << "This codec is preferred...";
+                selectedCodecName  = requestedCodec;
+                preferredCodecIndex = preferenceOfThisCodec;
+            }
+        }
+    }
+    qDebug() << "all requested and available codecs:" << codecList;
+
+    // choose first codec
+    if (!selectedCodecName.isEmpty()) {
+        if (codecPlugins.size() > 0) {
+            for (auto& plugin : codecPlugins) {
+                if (selectedCodecName == plugin->getName()) {
+                    qDebug() << "Selecting codec:" << selectedCodecName;
+                    selectedCodec = plugin;
+                    break;
+                }
+            }
+        }
+    }
+
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+
+    // FIXME - why would we not have client data at this point??
+    if (!clientData) {
+        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
+        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    clientData->setupCodec(selectedCodec, selectedCodecName);
+
+    qDebug() << "selectedCodecName:" << selectedCodecName;
+    clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
+}
+
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     // enumerate the connected listeners to remove HRTF objects for the disconnected node
     auto nodeList = DependencyManager::get<NodeList>();
@@ -459,6 +608,10 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
             clientData->removeHRTFsForNode(node->getUUID());
         }
     });
+}
+
+void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    sendingNode->parseIgnoreRequestMessage(packet);
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
@@ -665,23 +818,35 @@ void AudioMixer::broadcastMixes() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (mixHasAudio) {
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
+                                                             + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
 
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
+
+                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        QByteArray encodedBuffer;
+                        nodeData->encode(decodedBuffer, encodedBuffer);
+
                         // pack mixed audio samples
-                        mixPacket->write(reinterpret_cast<char*>(_clampedSamples),
-                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
                     } else {
-                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
+                        int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         mixPacket->writePrimitive(sequence);
+
+                        // write the codec
+                        QString codecInPacket = nodeData->getCodecName();
+                        mixPacket->writeString(codecInPacket);
 
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
@@ -799,6 +964,12 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
     if (settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
         QJsonObject audioEnvGroupObject = settingsObject[AUDIO_ENV_GROUP_KEY].toObject();
+
+        const QString CODEC_PREFERENCE_ORDER = "codec_preference_order";
+        if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
+            _codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
+            qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
+        }
 
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
         if (audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {

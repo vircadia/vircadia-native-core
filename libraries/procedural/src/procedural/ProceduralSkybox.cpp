@@ -22,7 +22,12 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._vertexSource = skybox_vert;
     _procedural._fragmentSource = skybox_frag;
     // Adjust the pipeline state for background using the stencil test
-    _procedural._state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    _procedural.setDoesFade(false);
+    _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+}
+
+bool ProceduralSkybox::empty() {
+    return !_procedural.enabled() && Skybox::empty();
 }
 
 void ProceduralSkybox::clear() {
@@ -52,7 +57,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     batch.setModelTransform(Transform()); // only for Mac
 
     auto& procedural = skybox._procedural;
-    procedural.prepare(batch, glm::vec3(0), glm::vec3(1));
+    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
     auto textureSlot = procedural.getShader()->getTextures().findLocation("cubeMap");
     auto bufferSlot = procedural.getShader()->getBuffers().findLocation("skyboxBuffer");
     skybox.prepare(batch, textureSlot, bufferSlot);

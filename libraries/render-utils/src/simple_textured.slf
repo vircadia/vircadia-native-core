@@ -29,12 +29,24 @@ void main(void) {
     if (_color.a <= 0.0) {
         texel = colorToLinearRGBA(texel);
     }
-    packDeferredFragment(
-        normalize(_normal.xyz), 
-        texel.a,
-        _color.rgb * texel.rgb,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_EMISSIVE,
-        DEFAULT_OCCLUSION);
+
+    const float ALPHA_THRESHOLD = 0.999;
+    if (_color.a * texel.a < ALPHA_THRESHOLD) {
+        packDeferredFragmentTranslucent(
+            normalize(_normal),
+            _color.a * texel.a,
+            _color.rgb * texel.rgb,
+            DEFAULT_FRESNEL,
+            DEFAULT_ROUGHNESS);
+    } else {
+        packDeferredFragment(
+            normalize(_normal),
+            1.0,
+            _color.rgb * texel.rgb,
+            DEFAULT_ROUGHNESS,
+            DEFAULT_METALLIC,
+            DEFAULT_EMISSIVE,
+            DEFAULT_OCCLUSION,
+            DEFAULT_SCATTERING);
+    }
 }

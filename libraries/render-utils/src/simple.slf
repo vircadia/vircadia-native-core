@@ -41,7 +41,7 @@ void main(void) {
 #ifdef PROCEDURAL_V1
     specular = getProceduralColor().rgb;
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
-    specular = pow(specular, vec3(2.2));
+    //specular = pow(specular, vec3(2.2));
     emissiveAmount = 1.0;
 #else 
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
@@ -49,11 +49,43 @@ void main(void) {
 
 #endif
 
-    if (emissiveAmount > 0.0) {
-        packDeferredFragmentLightmap(
-            normal, 1.0, diffuse, max(0, 1.0 - shininess / 128.0), DEFAULT_METALLIC, specular, specular);
+    const float ALPHA_THRESHOLD = 0.999;
+    if (_color.a < ALPHA_THRESHOLD) {
+        if (emissiveAmount > 0.0) {
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                specular,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        } else {
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                diffuse,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        }
     } else {
-        packDeferredFragment(
-            normal, 1.0, diffuse, max(0, 1.0 - shininess / 128.0), length(specular), DEFAULT_EMISSIVE, DEFAULT_OCCLUSION);
+        if (emissiveAmount > 0.0) {
+            packDeferredFragmentLightmap(
+                normal,
+                1.0,
+                diffuse,
+                max(0, 1.0 - shininess / 128.0),
+                DEFAULT_METALLIC,
+                specular,
+                specular);
+        } else {
+            packDeferredFragment(
+                normal,
+                1.0,
+                diffuse,
+                max(0, 1.0 - shininess / 128.0),
+                length(specular),
+                DEFAULT_EMISSIVE,
+                DEFAULT_OCCLUSION,
+                DEFAULT_SCATTERING);
+        }
     }
 }

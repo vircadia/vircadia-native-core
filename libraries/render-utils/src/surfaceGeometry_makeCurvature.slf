@@ -1,0 +1,232 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/3/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+<@include gpu/PackedNormal.slh@>
+
+struct SurfaceGeometryParams {
+    // Resolution info
+    vec4 resolutionInfo;
+    // Curvature algorithm
+    vec4 curvatureInfo;
+};
+
+uniform surfaceGeometryParamsBuffer {
+    SurfaceGeometryParams params;
+};
+
+float getCurvatureDepthThreshold() {
+    return params.curvatureInfo.x;
+}
+
+float getCurvatureBasisScale() {
+    return params.curvatureInfo.y;
+}
+
+float getCurvatureScale() {
+    return params.curvatureInfo.w;
+}
+
+bool isFullResolution() {
+    return params.resolutionInfo.w == 0.0;
+}
+
+
+uniform sampler2D linearDepthMap;
+float getZEye(ivec2 pixel) {
+    return -texelFetch(linearDepthMap, pixel, 0).x;
+}
+float getZEyeLinear(vec2 texcoord) {
+    return -texture(linearDepthMap, texcoord).x;
+}
+
+vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
+    return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
+}
+
+uniform sampler2D normalMap;
+
+vec3 getRawNormal(vec2 texcoord) {
+    return texture(normalMap, texcoord).xyz;
+}
+
+vec3 getWorldNormal(vec2 texcoord) {
+    vec3 rawNormal = getRawNormal(texcoord);
+    if (isFullResolution()) {
+        return unpackNormal(rawNormal);
+    } else {
+        return normalize((rawNormal - vec3(0.5)) * 2.0);
+    }
+}
+
+vec3 getWorldNormalDiff(vec2 texcoord, vec2 delta) {
+    return getWorldNormal(texcoord + delta) - getWorldNormal(texcoord - delta);
+}
+
+float getEyeDepthDiff(vec2 texcoord, vec2 delta) {
+    return getZEyeLinear(texcoord + delta) - getZEyeLinear(texcoord - delta);
+}
+
+
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+void main(void) {
+    // Pixel being shaded
+    ivec2 pixelPos;
+    vec2 texcoordPos;
+    ivec4 stereoSide;
+    ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
+    vec2 stereoSideClip = vec2(stereoSide.x, (isStereo() ? 0.5 : 1.0));
+
+    // Texcoord to fetch in the deferred texture are the exact UVs comming from vertex shader
+    // sideToFrameTexcoord(stereoSideClip, texcoordPos);
+    vec2 frameTexcoordPos = varTexCoord0;
+
+    // Fetch the z under the pixel (stereo or not)
+    float Zeye = getZEye(framePixelPos);
+    if (Zeye <= -getPosLinearDepthFar()) {
+       outFragColor = vec4(1.0, 0.0, 0.0, 0.0);
+       return;
+    }
+
+    float nearPlaneScale = 0.5 * getProjectionNear();
+
+    vec3 worldNormal = getWorldNormal(frameTexcoordPos);
+
+    // The position of the pixel fragment in Eye space then in world space
+    vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
+  //  vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
+
+  /*  if (texcoordPos.y > 0.5) {
+        outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+    } else {
+        outFragColor = vec4(fract(10.0 * eyePos.xyz), 1.0);
+    }*/
+   // return;
+
+    // Calculate the perspective scale.
+    // Clamp to 0.5
+   // float perspectiveScale = max(0.5, (-getProjScaleEye() / Zeye));
+    float perspectiveScale = max(0.5, (-getCurvatureBasisScale() * getProjectionNear() / Zeye));
+
+    // Calculate dF/du and dF/dv
+    vec2 viewportScale = perspectiveScale * getInvWidthHeight();
+    vec2 du = vec2( viewportScale.x * (stereoSide.w > 0.0 ? 0.5 : 1.0), 0.0f );
+    vec2 dv = vec2( 0.0f, viewportScale.y );
+
+    vec4 dFdu = vec4(getWorldNormalDiff(frameTexcoordPos, du), getEyeDepthDiff(frameTexcoordPos, du));
+    vec4 dFdv = vec4(getWorldNormalDiff(frameTexcoordPos, dv), getEyeDepthDiff(frameTexcoordPos, dv));
+
+    float threshold = getCurvatureDepthThreshold();
+    dFdu *= step(abs(dFdu.w), threshold);
+    dFdv *= step(abs(dFdv.w), threshold); 
+
+     // Calculate ( du/dx, du/dy, du/dz ) and ( dv/dx, dv/dy, dv/dz )
+    // Eval px, py, pz world positions of the basis centered on the world pos of the fragment
+    float axeLength = nearPlaneScale;
+
+    vec3 ax = (frameTransform._view[0].xyz * axeLength);
+    vec3 ay = (frameTransform._view[1].xyz * axeLength);
+    vec3 az = (frameTransform._view[2].xyz * axeLength);
+
+    vec4 px =  vec4(eyePos + ax, 0.0);
+    vec4 py =  vec4(eyePos + ay, 0.0);
+    vec4 pz =  vec4(eyePos + az, 0.0);
+
+
+  /*  if (texcoordPos.y > 0.5) {
+        outFragColor = vec4(fract(px.xyz), 1.0);
+    } else {
+        outFragColor = vec4(fract(eyePos.xyz), 1.0);
+    }*/
+ //   return;
+
+
+    /* IN case the axis end point goes behind mid way near plane, this shouldn't happen
+    if (px.z >= -nearPlaneScale) {
+        outFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
+    } else if (py.z >= -nearPlaneScale) {
+        outFragColor = vec4(0.0, 1.0, 0.0, 1.0);
+        return;
+    } else if (pz.z >= -nearPlaneScale) {
+        outFragColor = vec4(0.0, 0.0, 1.0, 1.0);
+        return;
+    }*/
+    
+
+    // Project px, py pz to homogeneous clip space
+   // mat4 viewProj = getProjection(stereoSide.x);
+    mat4 viewProj = getProjectionMono();
+    px = viewProj * px;
+    py = viewProj * py;
+    pz = viewProj * pz;
+
+
+    // then to normalized clip space
+    px.xy /= px.w;
+    py.xy /= py.w;
+    pz.xy /= pz.w;
+
+    vec2 nclipPos = (texcoordPos - 0.5) * 2.0;
+
+
+    //vec4 clipPos = frameTransform._projection[stereoSide.x] * vec4(eyePos, 1.0);
+    vec4 clipPos = getProjectionMono() * vec4(eyePos, 1.0);
+    nclipPos = clipPos.xy / clipPos.w;
+
+  /*  if (texcoordPos.y > 0.5) {
+     //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+        outFragColor = vec4(fract(10.0 * (nclipPos)), 0.0, 1.0);
+
+    } else {
+        outFragColor = vec4(fract(10.0 * (clipPos.xy / clipPos.w)), 0.0, 1.0);
+      //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
+    }*/
+    //return;
+
+
+    float pixPerspectiveScaleInv = 1.0 / (perspectiveScale);
+    px.xy = (px.xy - nclipPos) * pixPerspectiveScaleInv;
+    py.xy = (py.xy - nclipPos) * pixPerspectiveScaleInv;
+    pz.xy = (pz.xy - nclipPos) * pixPerspectiveScaleInv;
+    
+  /*  if (texcoordPos.y > 0.5) {
+        //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+        outFragColor = vec4(fract(10.0 * (px.xy)), 0.0, 1.0);
+
+    } else {
+        outFragColor = vec4(fract(10.0 * (py.xy)), 0.0, 1.0);
+        //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
+    }*/
+  //  return;
+
+    // Calculate dF/dx, dF/dy and dF/dz using chain rule
+    vec4 dFdx = dFdu * px.x + dFdv * px.y;
+    vec4 dFdy = dFdu * py.x + dFdv * py.y;
+    vec4 dFdz = dFdu * pz.x + dFdv * pz.y;
+
+    vec3 trace = vec3(dFdx.x, dFdy.y, dFdz.z);
+
+    /*if (dot(trace, trace) > params.curvatureInfo.w) {
+        outFragColor = vec4(dFdx.x, dFdy.y, dFdz.z, 1.0);
+        return;
+    }*/
+
+    // Calculate the mean curvature
+    float meanCurvature = ((trace.x + trace.y + trace.z) * 0.33333333333333333) * params.curvatureInfo.w;
+
+    outFragColor = vec4(vec3(worldNormal + 1.0) * 0.5, (meanCurvature + 1.0) * 0.5);
+}

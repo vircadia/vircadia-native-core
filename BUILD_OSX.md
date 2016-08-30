@@ -3,22 +3,23 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 ###Homebrew
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all High Fidelity dependencies very simple.
 
-    brew install cmake openssl qt5
+    brew tap homebrew/versions
+    brew install cmake openssl qt55
 
-We no longer require install of qt5 via our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas). Versions of Qt that are 5.5.x and above provide a mechanism to disable the wireless scanning we previously had a custom patch for.
+We no longer require install of qt5 via our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas). Versions of Qt that are 5.5.x provide a mechanism to disable the wireless scanning we previously had a custom patch for.
 
 ###OpenSSL and Qt
 
 Assuming you've installed OpenSSL or Qt 5 using the homebrew instructions above, you'll need to set OPENSSL_ROOT_DIR and QT_CMAKE_PREFIX_PATH so CMake can find your installations.
 For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR:
 
-    export OPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2d_1
+    export OPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2h_1/
     
 For Qt 5.5.1 installed via homebrew, set QT_CMAKE_PREFIX_PATH as follows.
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.5.1_2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt55/5.5.1/lib/cmake
 
-Not that these use the versions from homebrew formulae at the time of this writing, and the version in the path will likely change.
+Note that these use the versions from homebrew formulae at the time of this writing, and the version in the path will likely change.
 
 ###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.

@@ -1005,6 +1005,56 @@ SelectionDisplay = (function() {
     var activeTool = null;
     var grabberTools = {};
 
+    // We get mouseMoveEvents from the handControllers, via handControllerPointer.
+    // But we dont' get mousePressEvents.
+    that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+    Script.scriptEnding.connect(that.triggerMapping.disable);
+    that.TRIGGER_GRAB_VALUE = 0.85;  //  From handControllerGrab/Pointer.js. Should refactor.
+    that.TRIGGER_ON_VALUE = 0.4;
+    that.TRIGGER_OFF_VALUE = 0.15;
+    that.triggered = false;
+    var activeHand = Controller.Standard.RightHand;
+    function makeTriggerHandler(hand) {
+        return function (value) {
+            if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
+                that.triggered = true;
+                if (activeHand !== hand) {
+                    // No switching while the other is already triggered, so no need to release.
+                    activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+                }
+                var eventResult = that.mousePressEvent({});
+                if (!eventResult || (eventResult === 'selectionBox')) {
+                    var pickRay = controllerComputePickRay();
+                    if (pickRay) {
+                        var entityIntersection = Entities.findRayIntersection(pickRay, true);
+                        var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                        if (entityIntersection.intersects &&
+                            (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
+                            selectionManager.setSelections([entityIntersection.entityID]);
+                        }
+                    }
+                }
+            } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
+                that.triggered = false;
+                that.mouseReleaseEvent({});
+            }
+        };
+    }
+    that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
+    that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+    function controllerComputePickRay() {
+        var controllerPose = Controller.getPoseValue(activeHand);
+        if (controllerPose.valid && that.triggered) {
+            var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
+                                              MyAvatar.position);
+            // This gets point direction right, but if you want general quaternion it would be more complicated:
+            var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
+            return {origin: controllerPosition, direction: controllerDirection};
+        }
+    }
+    function generalComputePickRay(x, y) {
+        return controllerComputePickRay() || Camera.computePickRay(x, y);
+    }
     function addGrabberTool(overlay, tool) {
         grabberTools[overlay] = {
             mode: tool.mode,
@@ -1047,7 +1097,7 @@ SelectionDisplay = (function() {
         lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
-            pickRay = Camera.computePickRay(event.x, event.y);
+            pickRay = generalComputePickRay(event.x, event.y);
 
             var wantDebug = false;
             if (wantDebug) {
@@ -1059,9 +1109,6 @@ SelectionDisplay = (function() {
 
         }
 
-        Entities.editEntity(entityID, {
-            localRenderAlpha: 0.1
-        });
         Overlays.editOverlay(highlightBox, {
             visible: false
         });
@@ -2269,7 +2316,7 @@ SelectionDisplay = (function() {
             startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
 
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
@@ -2312,7 +2359,7 @@ SelectionDisplay = (function() {
         },
         onMove: function(event) {
             var wantDebug = false;
-            pickRay = Camera.computePickRay(event.x, event.y);
+            pickRay = generalComputePickRay(event.x, event.y);
 
             var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
@@ -2422,6 +2469,9 @@ SelectionDisplay = (function() {
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
+                if (!properties) {
+                    continue;
+                }
                 var newPosition = Vec3.sum(properties.position, {
                     x: vector.x,
                     y: 0,
@@ -2448,7 +2498,7 @@ SelectionDisplay = (function() {
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event) {
-            pickRay = Camera.computePickRay(event.x, event.y);
+            pickRay = generalComputePickRay(event.x, event.y);
 
             upDownPickNormal = Quat.getFront(lastCameraOrientation);
             // Remove y component so the y-axis lies along the plane we picking on - this will
@@ -2481,7 +2531,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections(duplicatedEntityIDs);
         },
         onMove: function(event) {
-            pickRay = Camera.computePickRay(event.x, event.y);
+            pickRay = generalComputePickRay(event.x, event.y);
 
             // translate mode left/right based on view toward entity
             var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
@@ -2690,7 +2740,7 @@ SelectionDisplay = (function() {
                 }
             }
             planeNormal = Vec3.multiplyQbyV(rotation, planeNormal);
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             lastPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
@@ -2726,7 +2776,7 @@ SelectionDisplay = (function() {
                 rotation = SelectionManager.worldRotation;
             }
 
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             newPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
@@ -2782,10 +2832,10 @@ SelectionDisplay = (function() {
                 var wantDebug = false;
                 if (wantDebug) {
                     print(stretchMode);
-                    Vec3.print("        newIntersection:", newIntersection);
+                    //Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
-                    Vec3.print("           oldPOS:", oldPOS);
-                    Vec3.print("                newPOS:", newPOS);
+                    //Vec3.print("           oldPOS:", oldPOS);
+                    //Vec3.print("                newPOS:", newPOS);
                     Vec3.print("            changeInDimensions:", changeInDimensions);
                     Vec3.print("                 newDimensions:", newDimensions);
 
@@ -3350,7 +3400,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
                 ignoreRayIntersection: true,
                 visible: false
@@ -3520,7 +3570,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
                 ignoreRayIntersection: true,
                 visible: false
@@ -3682,7 +3732,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var pickRay = Camera.computePickRay(event.x, event.y);
+            var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
                 ignoreRayIntersection: true,
                 visible: false
@@ -3797,13 +3847,13 @@ SelectionDisplay = (function() {
 
     that.mousePressEvent = function(event) {
         var wantDebug = false; 
-        if (!event.isLeftButton) {
+        if (!event.isLeftButton && !that.triggered) {
             // if another mouse button than left is pressed ignore it
             return false;
         }
 
         var somethingClicked = false;
-        var pickRay = Camera.computePickRay(event.x, event.y);
+        var pickRay = generalComputePickRay(event.x, event.y);
 
         // before we do a ray test for grabbers, disable the ray intersection for our selection box
         Overlays.editOverlay(selectionBox, {
@@ -3837,7 +3887,7 @@ SelectionDisplay = (function() {
             if (tool) {
                 activeTool = tool;
                 mode = tool.mode;
-                somethingClicked = true;
+                somethingClicked = 'tool';
                 if (activeTool && activeTool.onBegin) {
                     activeTool.onBegin(event);
                 }
@@ -3845,7 +3895,7 @@ SelectionDisplay = (function() {
                 switch (result.overlayID) {
                     case grabberMoveUp:
                         mode = "TRANSLATE_UP_DOWN";
-                        somethingClicked = true;
+                        somethingClicked = mode;
 
                         // in translate mode, we hide our stretch handles...
                         for (var i = 0; i < stretchHandles.length; i++) {
@@ -3860,34 +3910,34 @@ SelectionDisplay = (function() {
                     case grabberEdgeTN: // TODO: maybe this should be TOP+NEAR stretching?
                     case grabberEdgeBN: // TODO: maybe this should be BOTTOM+FAR stretching?
                         mode = "STRETCH_NEAR";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
 
                     case grabberFAR:
                     case grabberEdgeTF: // TODO: maybe this should be TOP+FAR stretching?
                     case grabberEdgeBF: // TODO: maybe this should be BOTTOM+FAR stretching?
                         mode = "STRETCH_FAR";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
                     case grabberTOP:
                         mode = "STRETCH_TOP";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
                     case grabberBOTTOM:
                         mode = "STRETCH_BOTTOM";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
                     case grabberRIGHT:
                     case grabberEdgeTR: // TODO: maybe this should be TOP+RIGHT stretching?
                     case grabberEdgeBR: // TODO: maybe this should be BOTTOM+RIGHT stretching?
                         mode = "STRETCH_RIGHT";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
                     case grabberLEFT:
                     case grabberEdgeTL: // TODO: maybe this should be TOP+LEFT stretching?
                     case grabberEdgeBL: // TODO: maybe this should be BOTTOM+LEFT stretching?
                         mode = "STRETCH_LEFT";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         break;
 
                     default:
@@ -3955,7 +4005,7 @@ SelectionDisplay = (function() {
                 if (tool) {
                     activeTool = tool;
                     mode = tool.mode;
-                    somethingClicked = true;
+                    somethingClicked = 'tool';
                     if (activeTool && activeTool.onBegin) {
                         activeTool.onBegin(event);
                     }
@@ -3963,7 +4013,7 @@ SelectionDisplay = (function() {
                 switch (result.overlayID) {
                     case yawHandle:
                         mode = "ROTATE_YAW";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         overlayOrientation = yawHandleRotation;
                         overlayCenter = yawCenter;
                         yawZero = result.intersection;
@@ -3973,7 +4023,7 @@ SelectionDisplay = (function() {
                     case pitchHandle:
                         mode = "ROTATE_PITCH";
                         initialPosition = SelectionManager.worldPosition;
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         overlayOrientation = pitchHandleRotation;
                         overlayCenter = pitchCenter;
                         pitchZero = result.intersection;
@@ -3982,7 +4032,7 @@ SelectionDisplay = (function() {
 
                     case rollHandle:
                         mode = "ROTATE_ROLL";
-                        somethingClicked = true;
+                        somethingClicked = mode;
                         overlayOrientation = rollHandleRotation;
                         overlayCenter = rollCenter;
                         rollZero = result.intersection;
@@ -4156,7 +4206,7 @@ SelectionDisplay = (function() {
                         
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
-                        somethingClicked = true;
+                        somethingClicked = 'selectionBox';
                         break;
                     default:
                         if (wantDebug) {
@@ -4169,7 +4219,7 @@ SelectionDisplay = (function() {
         }
 
         if (somethingClicked) {
-            pickRay = Camera.computePickRay(event.x, event.y);
+            pickRay = generalComputePickRay(event.x, event.y);
             if (wantDebug) {
                 print("mousePressEvent()...... " + overlayNames[result.overlayID]);
             }
@@ -4201,7 +4251,7 @@ SelectionDisplay = (function() {
         }
 
         // if no tool is active, then just look for handles to highlight...
-        var pickRay = Camera.computePickRay(event.x, event.y);
+        var pickRay = generalComputePickRay(event.x, event.y);
         var result = Overlays.findRayIntersection(pickRay);
         var pickedColor;
         var pickedAlpha;
@@ -4320,7 +4370,7 @@ SelectionDisplay = (function() {
     that.updateHandleSizes = function() {
         if (selectionManager.hasSelection()) {
             var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
-            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 2;
+            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
             var dimensions = SelectionManager.worldDimensions;
             var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
             grabberSize = Math.min(grabberSize, avgDimension / 10);

@@ -285,6 +285,10 @@ function openFileBrowser(path) {
     }
 }
 
+function openLogDirectory() {
+    openFileBrowser(logPath);
+}
+
 // NOTE: this looks like it does nothing, but it's very important.
 // Without it the default behaviour is to quit the app once all windows closed
 // which is absolutely not what we want for a taskbar application.
@@ -309,6 +313,7 @@ global.homeServer = null;
 global.domainServer = null;
 global.acMonitor = null;
 global.userConfig = userConfig;
+global.openLogDirectory = openLogDirectory;
 
 var LogWindow = function(ac, ds) {
     this.ac = ac;
@@ -514,6 +519,20 @@ function maybeInstallDefaultContentSet(onComplete) {
         onComplete();
         return;
     }
+
+    console.log("Found contentPath:" + argv.contentPath);
+    if (argv.contentPath) {
+        fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
+            if (err) {
+                console.log('Could not copy home content: ' + err);
+                return console.error(err)
+            }
+            console.log('Copied home content over to: ' + getRootHifiDataDirectory());
+            onComplete();
+        });
+        return;
+    }
+
 
     // Show popup
     var window = new BrowserWindow({

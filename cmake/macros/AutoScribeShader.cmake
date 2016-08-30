@@ -23,13 +23,13 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
 
     #Extract the unique include shader paths
     set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
-	#message(Hifi for includes ${INCLUDES})
-	foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
+    #message(${TARGET_NAME} Hifi for includes ${INCLUDES})
+    foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
       list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
     endforeach()
 
     list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
-	#message(ready for includes ${SHADER_INCLUDES_PATHS})
+    #message(ready for includes ${SHADER_INCLUDES_PATHS})
 
     # make the scribe include arguments
     set(SCRIBE_INCLUDES)
@@ -44,6 +44,8 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
     elseif(${SHADER_EXT} STREQUAL .slf) 
         set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+    elseif(${SHADER_EXT} STREQUAL .slg) 
+        set(SHADER_TARGET ${SHADER_TARGET}_geom.h)
     endif()
 
     set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
@@ -75,6 +77,7 @@ endfunction()
 
 
 macro(AUTOSCRIBE_SHADER_LIB)
+  set(HIFI_LIBRARIES_SHADER_INCLUDE_FILES "")
   file(RELATIVE_PATH RELATIVE_LIBRARY_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}")
   foreach(HIFI_LIBRARY ${ARGN})    
     #if (NOT TARGET ${HIFI_LIBRARY})
@@ -84,22 +87,23 @@ macro(AUTOSCRIBE_SHADER_LIB)
     #file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src/*.slh)
     list(APPEND HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src)
   endforeach()
-  #message(${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
+  #message("${TARGET_NAME} ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES}")
 
   file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
-  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)
+  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf src/*.slg)
 
   #make the shader folder
   set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
   file(MAKE_DIRECTORY ${SHADERS_DIR})
 
-  #message(${SHADER_INCLUDE_FILES})
+  #message("${TARGET_NAME} ${SHADER_INCLUDE_FILES}")
+  set(AUTOSCRIBE_SHADER_SRC "")
   foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
       AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
       file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
       list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
   endforeach()
-  #message(${AUTOSCRIBE_SHADER_SRC})
+  #message(${TARGET_NAME} ${AUTOSCRIBE_SHADER_SRC})
 
   if (WIN32)
     source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})

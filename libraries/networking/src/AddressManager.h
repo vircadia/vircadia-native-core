@@ -38,7 +38,9 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
+    Q_PROPERTY(QString placename READ getPlaceName)
 public:
+    Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;
 
@@ -48,16 +50,23 @@ public:
         Forward,
         StartupFromSettings,
         DomainPathResponse,
-        Internal
+        Internal,
+        AttemptedRefresh,
+        Suggestions
     };
 
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    const QUrl currentAddress() const;
-    const QString currentPath(bool withOrientation = true) const;
+    QUrl currentAddress() const;
+    QUrl currentFacingAddress() const;
+    QUrl currentShareableAddress() const;
+    QUrl currentFacingShareableAddress() const;
+    QString currentPath(bool withOrientation = true) const;
+    QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
+    const QString& getPlaceName() const { return _placeName; }
 
     const QString& getHost() const { return _host; }
 
@@ -75,7 +84,7 @@ public:
                                    std::function<void()> localSandboxNotRunningDoThat);
 
 public slots:
-    void handleLookupString(const QString& lookupString);
+    void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
@@ -88,17 +97,21 @@ public slots:
 
     void goToUser(const QString& username);
 
+    void refreshPreviousLookup();
+
     void storeCurrentAddress();
 
     void copyAddress();
     void copyPath();
+
+    void lookupShareableNameForDomainID(const QUuid& domainID);
 
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
 
-    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort);
+    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
     void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
 
     void locationChangeRequired(const glm::vec3& newPosition,
@@ -115,6 +128,8 @@ protected:
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
+
+    void handleShareableNameAPIResponse(QNetworkReply& requestReply);
 
 private:
     void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
@@ -141,15 +156,20 @@ private:
 
     QString _host;
     quint16 _port;
+    QString _placeName;
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
+
+    QString _shareablePlaceName;
 
     QStack<QUrl> _backStack;
     QStack<QUrl> _forwardStack;
     quint64 _lastBackPush = 0;
 
     QString _newHostLookupPath;
+    
+    QUrl _previousLookup;
 };
 
 #endif // hifi_AddressManager_h
