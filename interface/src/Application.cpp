@@ -4348,8 +4348,7 @@ namespace render {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
-                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
+                    sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
                     sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
                     // fall through: render defaults skybox
                 } else {
