@@ -16,7 +16,7 @@
 // grab the toolbar
 var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
-var ASSETS_PATH = Script.resolvePath("assets"
+var ASSETS_PATH = Script.resolvePath("assets");
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
 function buttonImageURL() {
