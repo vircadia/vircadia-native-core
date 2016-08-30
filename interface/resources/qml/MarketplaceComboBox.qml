@@ -48,15 +48,12 @@ Rectangle {
         property var autoCancel: 'var element = $("a.btn.cancel");
                                   element.click();'
 
-        onNewViewRequested: {
-            var component = Qt.createComponent("Browser.qml");
-            var newWindow = component.createObject(desktop);
-            request.openIn(newWindow.webView);
+        newWindowHook: function (component, newWindow) {
             if (File.isZippedFbx(desktop.currentUrl)) {
+                runJavaScript(autoCancel);
                 zipTimer.handler = function() {
                     newWindow.destroy();
-                    runJavaScript(autoCancel);
-                }
+                };
                 zipTimer.start();
             }
         }
