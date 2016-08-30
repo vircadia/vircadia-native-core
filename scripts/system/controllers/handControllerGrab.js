@@ -1926,7 +1926,15 @@ function MyController(hand) {
         } else {
             // grab entity via parenting
             this.actionID = null;
-            var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+            var handJointIndex;
+            if (this.ignoreIK) {
+                handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                        "_CONTROLLER_RIGHTHAND" :
+                                                        "_CONTROLLER_LEFTHAND");
+            } else {
+                handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+            }
+
             var reparentProps = {
                 parentID: MyAvatar.sessionUUID,
                 parentJointIndex: handJointIndex,
@@ -2043,11 +2051,23 @@ function MyController(hand) {
             this.lastUnequipCheckTime = now;
 
             if (props.parentID == MyAvatar.sessionUUID) {
-                var handPosition = this.getHandPosition();
+                var heldItemPosition;
+                var heldItemRotation;
+                if (this.ignoreIK) {
+                    var heldItemLocation = this.getControllerLocation();
+                    heldItemPosition = heldItemLocation.position;
+                    heldItemRotation = heldItemLocation.orientation;
+                } else {
+                    heldItemPosition = this.getHandPosition();
+                    heldItemRotation = this.getHandRotation();
+                }
+
+                heldItemPosition = Vec3.sum(heldItemPosition, Vec3.multiplyQbyV(heldItemRotation, this.offsetPosition));
+
                 // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
                 // need to fail the findEntities test.
                 var TEAR_AWAY_DISTANCE = 0.04;
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
+                var nearPickedCandidateEntities = Entities.findEntities(heldItemPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
@@ -2429,6 +2449,10 @@ function MyController(hand) {
         // unhook them.
         var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                          "_CONTROLLER_RIGHTHAND" :
+                                                          "_CONTROLLER_LEFTHAND");
+        children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children.forEach(function(childID) {
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
             Entities.editEntity(childID, {
