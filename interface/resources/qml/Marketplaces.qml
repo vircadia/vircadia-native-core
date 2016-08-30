@@ -90,6 +90,7 @@ Rectangle {
             width: 150
             text: "See all markets"
             //onClicked: webview.url = "file:///E:/GitHub/hifi/scripts/system/html/marketplaces.html"
+            //hello
             onClicked: webview.url = "../../../scripts/system/html/marketplaces.html"
         }
 
