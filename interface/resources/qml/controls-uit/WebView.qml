@@ -61,13 +61,6 @@ WebEngineView {
         }
     }
 
-    property var newWindowHook: function (component, newWindow, request) { }; // override if you need to
-    onNewViewRequested:{
-        var component = Qt.createComponent("../Browser.qml");
-        var newWindow = component.createObject(desktop);
-        request.openIn(newWindow.webView)
-        newWindowHook(component, newWindow, request);
-    }
 
     // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
     // See https://bugreports.qt.io/browse/QTBUG-49521

@@ -28,7 +28,7 @@ Rectangle {
     color: hifi.colors.baseGrayShadow
     property var currentUrl: "https://metaverse.highfidelity.com/marketplace"
 
-    Controls.WebView {
+    Controls.BaseWebView {
         id: webview
         url: currentUrl
         anchors.top: switchMarketView.bottom
@@ -48,12 +48,15 @@ Rectangle {
         property var autoCancel: 'var element = $("a.btn.cancel");
                                   element.click();'
 
-        newWindowHook: function (component, newWindow) {
+        onNewViewRequested: {
+            var component = Qt.createComponent("Browser.qml");
+            var newWindow = component.createObject(desktop);
+            request.openIn(newWindow.webView);
             if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(autoCancel);
                 zipTimer.handler = function() {
                     newWindow.destroy();
-                };
+                    runJavaScript(autoCancel);
+                }
                 zipTimer.start();
             }
         }
