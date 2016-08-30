@@ -365,24 +365,26 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                                   const QAudioFormat& desiredAudioFormat,
                                   QAudioFormat& adjustedAudioFormat) {
 
-    // FIXME: directly using 24khz has a bug somewhere that causes channels to be swapped.
-    // Continue using our internal resampler, for now.
     qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
 
-    const int FORTY_FOUR = 44100;
-    const int FORTY_EIGHT = 48000;
     adjustedAudioFormat = desiredAudioFormat;
 
 #ifdef Q_OS_ANDROID
-    adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+    adjustedAudioFormat.setSampleRate(44100);
 #else
 
-    if (audioDevice.supportedSampleRates().contains(FORTY_EIGHT)) {
-        // use 48000, which is a simple downsample, upsample
-        adjustedAudioFormat.setSampleRate(FORTY_EIGHT);
-    } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
-        // use 44100, resample
-        adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+    //
+    // Attempt to set the device sample rate in decreasing order of preference.
+    // On Windows, using WASAPI shared mode, only a match with the hardware sample rate will succeed.
+    //
+    if (audioDevice.supportedSampleRates().contains(48000)) {
+        adjustedAudioFormat.setSampleRate(48000);
+    } else if (audioDevice.supportedSampleRates().contains(44100)) {
+        adjustedAudioFormat.setSampleRate(44100);
+    } else if (audioDevice.supportedSampleRates().contains(32000)) {
+        adjustedAudioFormat.setSampleRate(32000);
+    } else if (audioDevice.supportedSampleRates().contains(24000)) {
+        adjustedAudioFormat.setSampleRate(24000);
     }
 #endif
 
