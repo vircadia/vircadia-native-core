@@ -2233,3 +2233,35 @@ bool MyAvatar::didTeleport() {
 bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
 }
+
+glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    switch(index) {
+        case CONTROLLER_LEFTHAND_INDEX: {
+            auto leftHandPose = getLeftHandControllerPoseInWorldFrame();
+            return leftHandPose.getRotation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            auto rightHandPose = getRightHandControllerPoseInWorldFrame();
+            return rightHandPose.getRotation();
+        }
+        default: {
+            return Avatar::getAbsoluteJointRotationInObjectFrame(index);
+        }
+    }
+}
+
+glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    switch(index) {
+        case CONTROLLER_LEFTHAND_INDEX: {
+            auto leftHandPose = getLeftHandControllerPoseInWorldFrame();
+            return leftHandPose.getTranslation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            auto rightHandPose = getRightHandControllerPoseInWorldFrame();
+            return rightHandPose.getTranslation();
+        }
+        default: {
+            return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
+        }
+    }
+}

@@ -275,6 +275,9 @@ public:
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
     Q_INVOKABLE bool getCharacterControllerEnabled();
 
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
 public slots:
     void increaseSize();
     void decreaseSize();
