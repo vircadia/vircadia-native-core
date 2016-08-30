@@ -100,7 +100,7 @@ float GLTexture::getMemoryPressure() {
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
-        auto totalGpuMemory = gpu::gl::getDedicatedMemory();
+        auto totalGpuMemory = getDedicatedMemory();
 
         // If no limit has been explicitly set, and the dedicated memory can't be determined, 
         // just use a fallback fixed value of 256 MB
@@ -118,7 +118,7 @@ float GLTexture::getMemoryPressure() {
     return (float)consumedGpuMemory / (float)availableTextureMemory;
 }
 
-GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend, GLTexture* oldTexture) :
+GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<GLBackend>& backend, GLTexture* oldTexture) :
     _backend(backend),
     _size(oldTexture ? oldTexture->_size : 0),
     _texture(oldTexture ? oldTexture->takeOwnership() : 0),
@@ -161,7 +161,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture
 
 
 // Create the texture and allocate storage
-GLTexture::GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLTexture(backend, texture, id, nullptr, transferrable)
 {
     // FIXME, do during allocation
@@ -170,7 +170,7 @@ GLTexture::GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture&
 }
 
 // Create the texture and copy from the original higher resolution version
-GLTexture::GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
     GLTexture(backend, texture, id, originalTexture, originalTexture->_transferrable)
 {
     Q_ASSERT(_minMip >= originalTexture->_minMip);
@@ -243,15 +243,8 @@ bool GLTexture::isReady() const {
         return false;
     }
 
-    // If we're out of date, but the transfer is in progress, report ready
-    // as a special case
     auto syncState = _syncState.load();
-
-    if (isOutdated()) {
-        return Idle != syncState;
-    }
-
-    if (Idle != syncState) {
+    if (isOutdated() || Idle != syncState) {
         return false;
     }
 

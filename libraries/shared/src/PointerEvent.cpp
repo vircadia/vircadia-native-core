@@ -81,28 +81,43 @@ QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEve
     direction.setProperty("z", event._direction.z);
     obj.setProperty("pos3D", direction);
 
+    bool isPrimaryButton = false;
+    bool isSecondaryButton = false;
+    bool isTertiaryButton = false;
     switch (event._button) {
     case NoButtons:
         obj.setProperty("button", "None");
         break;
     case PrimaryButton:
         obj.setProperty("button", "Primary");
+        isPrimaryButton = true;
         break;
     case SecondaryButton:
         obj.setProperty("button", "Secondary");
+        isSecondaryButton = true;
         break;
     case TertiaryButton:
         obj.setProperty("button", "Tertiary");
+        isTertiaryButton = true;
         break;
     }
 
-    obj.setProperty("isLeftButton", areFlagsSet(event._buttons, PrimaryButton));
-    obj.setProperty("isRightButton", areFlagsSet(event._buttons, SecondaryButton));
-    obj.setProperty("isMiddleButton", areFlagsSet(event._buttons, TertiaryButton));
+    if (isPrimaryButton) {
+        obj.setProperty("isPrimaryButton", isPrimaryButton);
+        obj.setProperty("isLeftButton", isPrimaryButton);
+    }
+    if (isSecondaryButton) {
+        obj.setProperty("isSecondaryButton", isSecondaryButton);
+        obj.setProperty("isRightButton", isSecondaryButton);
+    }
+    if (isTertiaryButton) {
+        obj.setProperty("isTertiaryButton", isTertiaryButton);
+        obj.setProperty("isMiddleButton", isTertiaryButton);
+    }
 
-    obj.setProperty("isPrimaryButton", areFlagsSet(event._buttons, PrimaryButton));
-    obj.setProperty("isSecondaryButton", areFlagsSet(event._buttons, SecondaryButton));
-    obj.setProperty("isTertiaryButton", areFlagsSet(event._buttons, TertiaryButton));
+    obj.setProperty("isPrimaryHeld", areFlagsSet(event._buttons, PrimaryButton));
+    obj.setProperty("isSecondaryHeld", areFlagsSet(event._buttons, SecondaryButton));
+    obj.setProperty("isTertiaryHeld", areFlagsSet(event._buttons, TertiaryButton));
 
     return obj;
 }
@@ -146,9 +161,9 @@ void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& eve
             event._button = NoButtons;
         }
 
-        bool primary = object.property("isPrimary").toBool() || object.property("isLeftButton").toBool();
-        bool secondary = object.property("isSecondary").toBool() || object.property("isRightButton").toBool();
-        bool tertiary = object.property("isTertiary").toBool() || object.property("isMiddleButton").toBool();
+        bool primary = object.property("isPrimaryHeld").toBool();
+        bool secondary = object.property("isSecondaryHeld").toBool();
+        bool tertiary = object.property("isTertiaryHeld").toBool();
         event._buttons = 0;
         if (primary) {
             event._buttons |= PrimaryButton;
