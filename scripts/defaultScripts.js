@@ -65,8 +65,7 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
 
 function runDefaultsTogether() {
     for (var j in DEFAULT_SCRIPTS) {
-       print('trying to include:'+DEFAULT_SCRIPTS[j])
-        Script.include(DEFAULT_SCRIPTS[j]+"?"+Math.random());
+        Script.include(DEFAULT_SCRIPTS[j] + "?" + Math.random());
     }
 }
 
@@ -106,18 +105,16 @@ function menuItemEvent(menuItem) {
 
 
 function stopLoadedScripts() {
-   
         // remove debug script loads
-        var runningScripts = ScriptDiscoveryService.getRunning();
-        for (var i in runningScripts) {
-            var scriptName = runningScripts[i].name;
-            for (var j in DEFAULT_SCRIPTS) {
-                if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
-                    ScriptDiscoveryService.stopScript(runningScripts[i].url);
-                }
+    var runningScripts = ScriptDiscoveryService.getRunning();
+    for (var i in runningScripts) {
+        var scriptName = runningScripts[i].name;
+        for (var j in DEFAULT_SCRIPTS) {
+            if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
+                ScriptDiscoveryService.stopScript(runningScripts[i].url);
             }
         }
-
+    }
 }
 
 function removeMenuItem() {
