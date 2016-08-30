@@ -374,7 +374,7 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 #else
 
     //
-    // Attempt to set the device sample rate in decreasing order of preference.
+    // Attempt the device sample rate in decreasing order of preference.
     // On Windows, using WASAPI shared mode, only a match with the hardware sample rate will succeed.
     //
     if (audioDevice.supportedSampleRates().contains(48000)) {
@@ -385,6 +385,16 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
         adjustedAudioFormat.setSampleRate(32000);
     } else if (audioDevice.supportedSampleRates().contains(24000)) {
         adjustedAudioFormat.setSampleRate(24000);
+    } else if (audioDevice.supportedSampleRates().contains(16000)) {
+        adjustedAudioFormat.setSampleRate(16000);
+    } else if (audioDevice.supportedSampleRates().contains(96000)) {
+        adjustedAudioFormat.setSampleRate(96000);
+    } else if (audioDevice.supportedSampleRates().contains(192000)) {
+        adjustedAudioFormat.setSampleRate(192000);
+    } else if (audioDevice.supportedSampleRates().contains(88200)) {
+        adjustedAudioFormat.setSampleRate(88200);
+    } else if (audioDevice.supportedSampleRates().contains(176400)) {
+        adjustedAudioFormat.setSampleRate(176400);
     }
 #endif
 
