@@ -5,70 +5,79 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
+body {
+    background: white;
+    padding: 0 0 0 0;
+}
 .marketplaces-container {
-    width: 100%;
+    color: black;
+    width: 94%;
+    margin-left: 3%;
+    height: 100%;
+}
+.marketplaces-title {
+    margin-top: 45px;
+    margin-bottom: 20px;
+}
+.marketplaces-intro-text {
+    margin-bottom: 60px;
 }
 .marketplace-tile {
+    width: 100%;
+}
+.marketplace-tile-first-column {
     text-align: center;
     float: left;
-    width: 25%;
-    margin: 10%;
+    width: 34%;
 }
-.marketplace-tile-title {
-    width: 100%;
-    white-space: nowrap;
-    font-size: 2em;
-    margin-bottom: 2%;
+.marketplace-tile-second-column {
+    float: left;
+    width: 66%;
 }
-.marketplace-tile-image-container {
+.exploreButton {
+    width: 200px !important;
+    height: 45px !important;
+    margin-top: 20px;
+    margin-bottom: 30px;
 }
-.marketplace-tile-image {
-    height: auto;
-    max-width: 100%;
+.tile-divider {
+    width: 90%;
+    margin-left: 5%;
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid lightgrey;
+    margin: 1em 0;
+    padding: 0;
+    margin-bottom: 30px;
 }
 .marketplace-tile-description {
-    margin-top: 2%;
-    font-size: 1.2em;
-    margin-bottom: 5%;
+    margin-top: 15px;
+    margin-bottom: 50px;
 }
-@media only screen and (max-width:768px) {
-    .marketplace-tile {
-        text-align: center;
+.marketplace-tile-image {
+    max-width: 256px;
+    height: 128px;
+    -webkit-box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+    -moz-box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+    box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+}
+.marketplace-clara-steps {
+    padding-left: 15px;
+}
+.marketplace-clara-steps > li {
+    margin-top: 5px;
+}
+@media (max-width:768px) {
+    .marketplace-tile-first-column {
         float: left;
         width: 100%;
-        margin: 0 0 0 0%;
     }
-}
-/*.clara-image {
-    cursor: pointer;
-}
-*/
-
-.claraHowTo {
-    background-color: rgba(0,0,0,0.7);
-    width:94%;
-    height:auto;
-    margin-top:6%;
-    margin-left:3%;
-    clear: both;
-}
-
-
-.clara-title-slug{
-    padding-top:20px;
-    text-align: center
-}
-
-.clara-list{
-    margin:20px 0 20px 7.5%;
-}
-
-.clara-list > li{
-    margin-bottom: 10px;
-}
-
-#goToClara{
-    width:94%;
-    margin-left:3%;
-    margin-bottom:20px;
+    .marketplace-tile-second-column {
+        float: left;
+        width: 100%;
+    }
+    .exploreButton {
+        margin-left: 25%;
+    }
 }

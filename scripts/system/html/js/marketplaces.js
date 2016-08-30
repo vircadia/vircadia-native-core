@@ -1,35 +1,12 @@
 function loaded() {
-    bindClaraImage();
-    bindClaraButton();
+bindExploreButtons();
 }
 
-function hideList() {
-    $('.marketplace-tile').hide();
-}
-
-function showList() {
-    $('.marketplace-tile').show();
-}
-
-function showClaraHowTo() {
-    $('.claraHowTo').show();
-}
-
-function hideClaraHowTo() {
-    $('.claraHowTo').hide();
-}
-
-var claraVisible = false;
-
-function bindClaraImage() {
-    $('.clara-image').on('click', function() {
-        showClaraHowTo();
-       // hideList();
-    })
-}
-
-function bindClaraButton() {
-    $('#goToClara').on('click', function() {
+function bindExploreButtons() {
+    $('#exploreClaraMarketplace').on('click', function() {
         window.location = "http://www.clara.io"
+    })
+    $('#exploreHifiMarketplace').on('click', function() {
+        window.location = "http://www.highfidelity.com/marketplace"
     })
 }
