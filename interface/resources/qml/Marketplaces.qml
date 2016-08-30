@@ -29,7 +29,7 @@ Rectangle {
     property int statusBarHeight: 50
     property int statusMargin: 50
 
-    Controls.WebView {
+    Controls.BaseWebView {
         id: webview
         url: currentUrl
         anchors.top: marketplace.top
