@@ -7,30 +7,52 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <QtGlobal>
 
 #include "GLWidget.h"
 
+#include "Config.h"
+
 #include <mutex>
 
+#include <QtGlobal>
 #include <QtCore/QMimeData>
 #include <QtCore/QUrl>
 #include <QtCore/QCoreApplication>
 
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QKeyEvent>
+#include <QtGui/QPaintEngine>
 #include <QtGui/QWindow>
 
-
+#include "Context.h"
 #include "GLHelpers.h"
 
+class GLPaintEngine : public QPaintEngine {
+    bool begin(QPaintDevice *pdev) override { return true; }
+    bool end() override { return true; } 
+    void updateState(const QPaintEngineState &state) override { }
+    void drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr) override { }
+    Type type() const override { return OpenGL2; }
+};
 
-GLWidget::GLWidget() : QGLWidget(getDefaultGLFormat()) {
+GLWidget::GLWidget() {
 #ifdef Q_OS_LINUX
     // Cause GLWidget::eventFilter to be called.
     // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
     qApp->installEventFilter(this);
 #endif
+    setAttribute(Qt::WA_AcceptTouchEvents);
+    setAttribute(Qt::WA_NativeWindow);
+    setAttribute(Qt::WA_PaintOnScreen);
+    setAttribute(Qt::WA_NoSystemBackground);
+    setAutoFillBackground(false);
+    grabGesture(Qt::PinchGesture);
+    setAcceptDrops(true);
+    _paintEngine = new GLPaintEngine();
+}
+
+GLWidget::~GLWidget() {
+    delete _paintEngine;
+    _paintEngine = nullptr;
 }
 
 int GLWidget::getDeviceWidth() const {
@@ -41,31 +63,25 @@ int GLWidget::getDeviceHeight() const {
     return height() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
-void GLWidget::initializeGL() {
-    setAttribute(Qt::WA_AcceptTouchEvents);
-    grabGesture(Qt::PinchGesture);
-    setAcceptDrops(true);
-    // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
-    setAutoBufferSwap(false);
-
-    makeCurrent();
-    if (isValid() && context() && context()->contextHandle()) {
-#if defined(Q_OS_WIN)
-        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");
-#elif defined(Q_OS_MAC)
-        _vsyncSupported = true;
-#else
-        // TODO: write the proper code for linux
-#endif
-    }
+void GLWidget::createContext() {
+    _context = new gl::Context();
+    _context->setWindow(windowHandle());
+    _context->create();
+    _context->clear();
+    _context->makeCurrent();
 }
 
-void GLWidget::paintEvent(QPaintEvent* event) {
-    QWidget::paintEvent(event);
+bool GLWidget::makeCurrent() {
+    gl::Context::makeCurrent(_context->qglContext(), windowHandle());
+    return _context->makeCurrent();
 }
 
-void GLWidget::resizeEvent(QResizeEvent* event) {
-    QWidget::resizeEvent(event);
+QOpenGLContext* GLWidget::qglContext() {
+    return _context->qglContext();
+}
+
+void GLWidget::doneCurrent() {
+    _context->doneCurrent();
 }
 
 bool GLWidget::event(QEvent* event) {
@@ -94,9 +110,8 @@ bool GLWidget::event(QEvent* event) {
         default:
             break;
     }
-    return QGLWidget::event(event);
+    return QWidget::event(event);
 }
-
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
 // SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
@@ -119,7 +134,7 @@ bool GLWidget::eventFilter(QObject*, QEvent* event) {
                 } else if (event->type() == QEvent::KeyRelease) {
                     keyReleaseEvent(keyEvent);
                 } else {
-                    QGLWidget::event(event);
+                    QWidget::event(event);
                 }
                 return true;
             }
@@ -130,7 +145,22 @@ bool GLWidget::eventFilter(QObject*, QEvent* event) {
     return false;
 }
 
-bool GLWidget::isVsyncSupported() const {
-    return _vsyncSupported;
+
+bool GLWidget::nativeEvent(const QByteArray &eventType, void *message, long *result) {
+#ifdef Q_OS_WIN32
+    MSG* win32message = static_cast<MSG*>(message);
+    switch (win32message->message) {
+        case WM_ERASEBKGND:
+            *result = 1L;
+            return TRUE;
+
+        default: 
+            break;
+    }
+#endif
+    return QWidget::nativeEvent(eventType, message, result);
 }
 
+QPaintEngine* GLWidget::paintEngine() const {
+    return _paintEngine;
+}

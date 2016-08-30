@@ -69,7 +69,9 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
 #else
     glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
+    if (!batch._objects.empty()) {
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
+    }
 #endif
 
     CHECK_GL_ERROR();

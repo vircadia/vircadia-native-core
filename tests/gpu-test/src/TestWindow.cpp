@@ -73,7 +73,6 @@ void TestWindow::initGl() {
     DependencyManager::set<DeferredLightingEffect>();
     resize(QSize(800, 600));
 
-    GLDebug::setupLogger(this);
 #ifdef DEFERRED_LIGHTING
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     deferredLightingEffect->init();

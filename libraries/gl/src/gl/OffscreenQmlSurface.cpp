@@ -195,6 +195,7 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
 }
 
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
+    _canvas.setObjectName("OffscreenQmlRenderCanvas");
     qDebug() << "Building QML Renderer";
     if (!_canvas.create(shareContext)) {
         qWarning("Failed to create OffscreenGLCanvas");
