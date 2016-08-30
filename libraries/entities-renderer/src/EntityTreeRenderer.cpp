@@ -113,17 +113,19 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
 
+    // unload and stop the engine
     if (_entitiesScriptEngine) {
-        // Unload and stop the engine here (instead of in its deleter) to
-        // avoid marshalling unload signals back to this thread
+        // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
     }
 
+    // reset the engine
     if (_wantScripts && !_shuttingDown) {
         resetEntitiesScriptEngine();
     }
 
+    // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
     foreach(auto entity, _entitiesInScene) {
@@ -131,6 +133,10 @@ void EntityTreeRenderer::clear() {
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    // reset the zone to the default (while we load the next scene)
+    _bestZone = nullptr;
+    applyZonePropertiesToScene(_bestZone);
 
     OctreeRenderer::clear();
 }

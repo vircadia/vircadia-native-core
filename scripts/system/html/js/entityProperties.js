@@ -333,7 +333,13 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
     var properties = {};
     var parsedData = {};
     try {
-        parsedData = JSON.parse(userDataElement.value);
+        if ($('#userdata-editor').css('height') !== "0px") {
+            //if there is an expanded, we want to use its json.
+            parsedData = getEditorJSON();
+        } else {
+            parsedData = JSON.parse(userDataElement.value);
+        }
+
     } catch (e) {}
 
     if (!(groupName in parsedData)) {
@@ -441,7 +447,11 @@ function hideUserDataTextArea() {
 function showStaticUserData() {
     $('#static-userdata').show();
     $('#static-userdata').css('height', $('#userdata-editor').height())
-    $('#static-userdata').text(editor.getText());
+    if (editor !== null) {
+        $('#static-userdata').text(editor.getText());
+    }
+
+
 };
 
 function removeStaticUserData() {
@@ -450,7 +460,10 @@ function removeStaticUserData() {
 
 function setEditorJSON(json) {
     editor.set(json)
-    editor.expandAll();
+    if (editor.hasOwnProperty('expandAll')) {
+        editor.expandAll();
+    }
+
 };
 
 function getEditorJSON() {
@@ -745,11 +758,13 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== properties.id && lastEntityID !== null && editor !== null) {
+
+                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
+                        //the event bridge and json parsing handle our avatar id string differently.  
 
-                        lastEntityID = properties.id;
+                        lastEntityID = '"' + properties.id + '"';
                         elID.innerHTML = properties.id;
 
                         elType.innerHTML = properties.type;
@@ -840,26 +855,27 @@ function loaded() {
                         FIXME: See FIXME for property-script-url.
                         elScriptTimestamp.value = properties.scriptTimestamp;
                         */
-                        hideUserDataTextArea();
+
                         var json = null;
                         try {
                             json = JSON.parse(properties.userData);
-                  
+                        } catch (e) {
+                            //normal text
+                            deleteJSONEditor();
+                            elUserData.value = properties.userData;
+                            showUserDataTextArea();
+                            showNewJSONEditorButton();
+                            hideSaveUserDataButton();
+                        }
+                        if (json !== null) {
                             if (editor === null) {
                                 createJSONEditor();
                             }
 
                             setEditorJSON(json);
                             showSaveUserDataButton();
+                            hideUserDataTextArea();
                             hideNewJSONEditorButton();
-
-                        } catch (e) {
-                            //normal text
-
-                            elUserData.value = properties.userData;
-                            showUserDataTextArea();
-                            showNewJSONEditorButton();
-                            hideSaveUserDataButton();
                         }
 
                         elHyperlinkHref.value = properties.href;
