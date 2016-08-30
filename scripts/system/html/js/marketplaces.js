@@ -1,12 +1,12 @@
 function loaded() {
-    bindExploreButtons();
+bindExploreButtons();
 }
 
 function bindExploreButtons() {
-    $('#exploreClaraMarketplace').on('click', function () {
+    $('#exploreClaraMarketplace').on('click', function() {
         window.location = "https://clara.io/library?public=true"
     })
-    $('#exploreHifiMarketplace').on('click', function () {
+    $('#exploreHifiMarketplace').on('click', function() {
         window.location = "http://www.highfidelity.com/marketplace"
     })
 }

@@ -90,8 +90,7 @@ Rectangle {
             width: 150
             text: "See all markets"
             //onClicked: webview.url = "file:///E:/GitHub/hifi/scripts/system/html/marketplaces.html"
-            //hello again
-            onClicked: webview.url = "../../../scripts/system/html/marketplaces.html"
+            onClicked: webview.url = "../../scripts/system/html/marketplaces.html"
         }
 
         Controls.Label {
