@@ -1167,11 +1167,13 @@ void EntityTreeRenderer::LayeredZones::applyPartial(iterator layer) {
     bool hasSkybox = false;
     _skyboxLayer = end();
 
-    // empty
     if (layer == end()) {
-        assert(layer == begin());
-        _entityTreeRenderer->applyZoneAndHasSkybox(nullptr);
-        return;
+        if (empty()) {
+            _entityTreeRenderer->applyZoneAndHasSkybox(nullptr);
+            return;
+        } else { // a layer was removed - reapply from beginning
+            layer = begin();
+        }
     }
 
     if (layer == begin()) {
@@ -1190,5 +1192,10 @@ void EntityTreeRenderer::LayeredZones::applyPartial(iterator layer) {
 }
 
 bool EntityTreeRenderer::LayeredZones::contains(const LayeredZones& other) {
-    return std::equal(other.begin(), other._skyboxLayer, begin());
+    bool result = std::equal(other.begin(), other._skyboxLayer, begin());
+    if (result) {
+        // if valid, set the _skyboxLayer from the other LayeredZones
+        _skyboxLayer = std::next(begin(), std::distance(other.begin(), other._skyboxLayer));
+    }
+    return result;
 }
