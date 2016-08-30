@@ -58,7 +58,6 @@ public:
         // If we just did a transfer, return the object after doing post-transfer work
         if (GLSyncState::Transferred == object->getSyncState()) {
             object->postTransfer();
-            return object;
         }
 
         if (object->isOutdated()) {

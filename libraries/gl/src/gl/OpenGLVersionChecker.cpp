@@ -10,27 +10,46 @@
 //
 
 #include "OpenGLVersionChecker.h"
-
-#include <QMessageBox>
-#include <QRegularExpression>
-#include <QJsonObject>
-
 #include "Config.h"
-#include "GLWidget.h"
+
+#include <mutex>
+
+#include <QtCore/QRegularExpression>
+#include <QtCore/QJsonObject>
+#include <QtWidgets/QMessageBox>
+#include <QtOpenGL/QGLWidget>
+
 #include "GLHelpers.h"
 
-#define MINIMUM_GL_VERSION 410
+#define MINIMUM_GL_VERSION 0x0401
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {
 }
 
+const QGLFormat& getDefaultGLFormat() {
+    // Specify an OpenGL 3.3 format using the Core profile.
+    // That is, no old-school fixed pipeline functionality
+    static QGLFormat glFormat;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        setGLFormatVersion(glFormat);
+        glFormat.setProfile(QGLFormat::CoreProfile); // Requires >=Qt-4.8.0
+        glFormat.setSampleBuffers(false);
+        glFormat.setDepth(false);
+        glFormat.setStencil(false);
+        QGLFormat::setDefaultFormat(glFormat);
+    });
+    return glFormat;
+}
+
+
 QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     valid = true;
     override = false;
 
-    GLWidget* glWidget = new GLWidget();
+    QGLWidget* glWidget = new QGLWidget();
     valid = glWidget->isValid();
     // Inform user if no OpenGL support
     if (!valid) {
@@ -46,7 +65,8 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     }
     
     // Retrieve OpenGL version
-    glWidget->initializeGL();
+    // glWidget->initializeGL();
+    glWidget->makeCurrent();
     QJsonObject glData = getGLContextData();
     delete glWidget;
 
@@ -60,8 +80,8 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
-    int minimumMajorNumber = MINIMUM_GL_VERSION / 100;
-    int minimumMinorNumber = (MINIMUM_GL_VERSION - minimumMajorNumber * 100) / 10;
+    int minimumMajorNumber = (MINIMUM_GL_VERSION >> 16);
+    int minimumMinorNumber = (MINIMUM_GL_VERSION & 0xFF);
     valid = (majorNumber > minimumMajorNumber
         || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 
