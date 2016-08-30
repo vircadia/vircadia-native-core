@@ -63,14 +63,6 @@ protected:
 using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;
 
 using LinearDepthPassConfig = render::GPUJobConfig;
-/*
-class LinearDepthPassConfig : public render::GPUJobConfig {
-    Q_OBJECT
-public:
-    LinearDepthPassConfig() : render::GPUJobConfig(true) {}
-signals:
-    void dirty();
-};*/
 
 class LinearDepthPass {
 public:

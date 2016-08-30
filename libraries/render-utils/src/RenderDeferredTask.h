@@ -193,17 +193,6 @@ public:
 };
 
 using RenderDeferredTaskConfig = render::GPUTaskConfig;
-/**
-class RenderDeferredTaskConfig : public render::Task::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-public:
-    double getGpuTime() { return gpuTime; }
-
-protected:
-    friend class RenderDeferredTask;
-    double gpuTime;
-};*/
 
 class RenderDeferredTask : public render::Task {
 public:
