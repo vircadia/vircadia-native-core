@@ -66,12 +66,16 @@ using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;
 class LinearDepthPassConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(double gpuTime READ getGpuTime)
+    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
+
 public:
     LinearDepthPassConfig() : render::Job::Config(true) {}
 
     double getGpuTime() { return gpuTime; }
+    double getGpuBatchTime() { return gpuBatchTime; }
 
     double gpuTime{ 0.0 };
+    double gpuBatchTime { 0.0 };
 
 signals:
     void dirty();
@@ -159,6 +163,8 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_PROPERTY(float diffuseDepthThreshold MEMBER diffuseDepthThreshold NOTIFY dirty)
 
     Q_PROPERTY(double gpuTime READ getGpuTime)
+    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
+
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
 
@@ -170,8 +176,10 @@ public:
     float diffuseDepthThreshold{ 1.0f };
 
     double getGpuTime() { return gpuTime; }
+    double getGpuBatchTime() { return gpuBatchTime; }
 
-    double gpuTime{ 0.0 };
+    double gpuTime { 0.0 };
+    double gpuBatchTime { 0.0 };
 
 signals:
     void dirty();

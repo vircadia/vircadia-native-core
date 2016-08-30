@@ -733,5 +733,6 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     });
     
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverage();
+    config->gpuTime = _gpuTimer.getAverageGPU();
+    config->gpuBatchTime = _gpuTimer.getAverageCPU();
 }

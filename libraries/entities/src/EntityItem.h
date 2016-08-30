@@ -446,6 +446,9 @@ public:
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
 
+    bool isFading() const { return _isFading; }
+    float getFadingRatio() const { return (isFading() ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f); }
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }

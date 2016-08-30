@@ -25,69 +25,29 @@ EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityI
     return entity;
 }
 
-RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityItemID) : LightEntityItem(entityItemID),
-    _light(std::make_shared<model::Light>()),
-    _lightStamp(-1)
+RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityItemID) : LightEntityItem(entityItemID)
 {
 }
 
-namespace render {
-    template <> const ItemKey payloadGetKey(const LightPayload::Pointer& payload) {
-        return ItemKey::Builder::light();
+void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pendingChanges) {
+    if (!render::Item::isValidID(_myItem)) {
+        return;
     }
 
-    template <> const Item::Bound payloadGetBound(const LightPayload::Pointer& payload) {
-        if (payload) {
-            return payload->_bound;
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const LightPayload::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            if (payload) {
-                payload->render(args);
-            }
-        }
-    }
+
+    pendingChanges.updateItem<LightRenderItem>(_myItem, [this](LightRenderItem& data) {
+        data.updateLightFromEntity(this);
+    });
 }
-
-void RenderableLightEntityItem::updateLightFromEntity() {
-    _light->setPosition(getPosition());
-    _light->setOrientation(getRotation());
-
-    glm::vec3 dimensions = getDimensions();
-    float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
-    _light->setMaximumRadius(largestDiameter / 2.0f);
-
-    _light->setColor(toGlm(getXColor()));
-
-    float intensity = getIntensity() * (_isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f);
-    _light->setIntensity(intensity);
-
-    _light->setFalloffRadius(getFalloffRadius());
-
-
-    float exponent = getExponent();
-    float cutoff = glm::radians(getCutoff());
-    if (!_isSpotlight) {
-        _light->setType(model::Light::POINT);
-    } else {
-        _light->setType(model::Light::SPOT);
-
-        _light->setSpotAngle(cutoff);
-        _light->setSpotExponent(exponent);
-    }
-}
-
+/*
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
     checkFading();
 
 
-    updateLightFromEntity();
 
-    DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
+   // DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
 
 #ifdef WANT_DEBUG
     Q_ASSERT(args->_batch);
@@ -96,6 +56,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
 #endif
 };
+*/
 
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
@@ -109,3 +70,77 @@ bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     // fix this mechanism.
     return _lightsArePickable;
 }
+
+
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const LightRenderItem::Pointer& payload) {
+        return ItemKey::Builder::light();
+    }
+
+    template <> const Item::Bound payloadGetBound(const LightRenderItem::Pointer& payload) {
+        if (payload) {
+            return payload->_bound;
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const LightRenderItem::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload) {
+                payload->render(args);
+            }
+        }
+    }
+}
+
+LightRenderItem::LightRenderItem() :
+_light(std::make_shared<model::Light>())
+{
+}
+
+void LightRenderItem::updateLightFromEntity(RenderableLightEntityItem* entity) {
+    _light->setPosition(entity->getPosition());
+    _light->setOrientation(entity->getRotation());
+
+    bool success;
+    _bound = entity->getAABox(success);
+    if (!success) {
+        _bound = render::Item::Bound();
+    }
+
+    glm::vec3 dimensions = entity->getDimensions();
+    float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
+    _light->setMaximumRadius(largestDiameter / 2.0f);
+
+    _light->setColor(toGlm(entity->getXColor()));
+
+    float intensity = entity->getIntensity();//* entity->getFadingRatio();
+    _light->setIntensity(intensity);
+
+    _light->setFalloffRadius(entity->getFalloffRadius());
+
+
+    float exponent = entity->getExponent();
+    float cutoff = glm::radians(entity->getCutoff());
+    if (!entity->getIsSpotlight()) {
+        _light->setType(model::Light::POINT);
+    } else {
+        _light->setType(model::Light::SPOT);
+
+        _light->setSpotAngle(cutoff);
+        _light->setSpotExponent(exponent);
+    }
+
+}
+
+
+void LightRenderItem::render(RenderArgs* args) {
+
+    //updateLightFromEntity();
+
+    DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
+
+}
+
+
+

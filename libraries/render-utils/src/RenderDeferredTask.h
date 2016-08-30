@@ -33,12 +33,19 @@ protected:
 class GPURangeTimerConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(double gpuTime READ getGpuTime)
+    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
 public:
     double getGpuTime() { return gpuTime; }
+    double getGpuBatchTime() { return gpuBatchTime; }
     
+    void setTime(double gpu, double batch) {
+        gpuTime = gpu;
+        gpuBatchTime = batch;
+    }
+
 protected:
-    friend class EndGPURangeTimer;
     double gpuTime;
+    double gpuBatchTime;
 };
   
 class EndGPURangeTimer {
@@ -143,16 +150,7 @@ protected:
     gpu::PipelinePointer getOpaquePipeline();
 };
 
-class DrawBackgroundDeferredConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-public:
-    double getGpuTime() { return gpuTime; }
-
-protected:
-    friend class DrawBackgroundDeferred;
-    double gpuTime;
-};
+using DrawBackgroundDeferredConfig = GPURangeTimerConfig;
 
 class DrawBackgroundDeferred {
 public:

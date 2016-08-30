@@ -16,6 +16,7 @@
 #include <model/Light.h>
 #include "RenderableEntityItem.h"
 
+class RenderableLightEntityItem;
 
 class LightRenderItem {
 public:
@@ -26,7 +27,11 @@ public:
 
     render::Item::Bound _bound;
 
+    LightRenderItem();
     void render(RenderArgs* args);
+
+    void updateLightFromEntity(RenderableLightEntityItem* entity);
+
 };
 
 namespace render {
@@ -40,18 +45,22 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableLightEntityItem(const EntityItemID& entityItemID);
 
-    virtual void render(RenderArgs* args) override;
+
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
                          BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const override;
 
-    void updateLightFromEntity();
+    void updateLightFromEntity(render::PendingChanges& pendingChanges);
 
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override {
         _myItem = scene->allocateID();
-        auto renderPayload = std::make_shared<LightRenderItem::Payload>();
+
+        auto renderItem = std::make_shared<LightRenderItem>();
+        renderItem->updateLightFromEntity(this);
+
+        auto renderPayload = std::make_shared<LightRenderItem::Payload>(renderItem);
 
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(self, statusGetters);
@@ -69,6 +78,25 @@ public:
 
     virtual void locationChanged(bool tellPhysics = true) override {
         EntityItem::locationChanged(tellPhysics);
+        notifyChanged();
+    }
+
+    virtual void dimensionsChanged() override {
+        EntityItem::dimensionsChanged();
+        notifyChanged();
+    }
+
+    void checkFading() {
+        bool transparent = isTransparent();
+        if (transparent != _prevIsTransparent) {
+            notifyChanged();
+            _isFading = false;
+            _prevIsTransparent = transparent;
+        }
+    }
+
+    void notifyChanged() {
+
         if (!render::Item::isValidID(_myItem)) {
             return;
         }
@@ -76,28 +104,12 @@ public:
         render::PendingChanges pendingChanges;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-        pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
-        });
+        updateLightFromEntity(pendingChanges);
 
         scene->enqueuePendingChanges(pendingChanges);
     }
 
-    virtual void dimensionsChanged() override {
-        EntityItem::dimensionsChanged();
-        _renderHelper.notifyChanged();
-    }
-
-    void checkFading() {
-        bool transparent = isTransparent();
-        if (transparent != _prevIsTransparent) {
-            _renderHelper.notifyChanged();
-            _isFading = false;
-            _prevIsTransparent = transparent;
-        }
-    }
-
 private:
-    SimpleRenderableEntityItem _renderHelper;
     bool _prevIsTransparent { isTransparent() };
     render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
 

@@ -69,6 +69,7 @@ class AmbientOcclusionEffectConfig : public render::Job::Config::Persistent {
     Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel WRITE setResolutionLevel)
     Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
     Q_PROPERTY(double gpuTime READ getGpuTime)
+    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
 public:
     AmbientOcclusionEffectConfig() : render::Job::Config::Persistent("Ambient Occlusion", false) {}
 
@@ -85,6 +86,7 @@ public:
     void setResolutionLevel(int level) { resolutionLevel = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL)); emit dirty(); }
     void setBlurRadius(int radius) { blurRadius = std::max(0, std::min(MAX_BLUR_RADIUS, radius)); emit dirty(); }
     double getGpuTime() { return gpuTime; }
+    double getGpuBatchTime() { return gpuBatchTime; }
 
     float radius{ 0.5f };
     float perspectiveScale{ 1.0f };
@@ -99,7 +101,8 @@ public:
     bool ditheringEnabled{ true }; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true
     bool fetchMipsEnabled{ true }; // fetch taps in sub mips to otpimize cache, should always be true
-    double gpuTime{ 0.0 };
+    double gpuTime { 0.0 };
+    double gpuBatchTime { 0.0 };
 
 signals:
     void dirty();
