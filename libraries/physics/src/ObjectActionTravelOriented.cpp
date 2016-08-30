@@ -58,17 +58,18 @@ void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
         if (speed < TRAVEL_ORIENTED_TOO_SLOW) {
             return;
         }
-        velocity = glm::normalize(velocity);
+        glm::vec3 direction = glm::normalize(velocity);
 
         // find current angle of "forward"
         btQuaternion bodyRotation = rigidBody->getOrientation();
         glm::quat orientation = bulletToGLM(bodyRotation);
         glm::vec3 forwardInWorldFrame = glm::normalize(orientation * _forward);
 
-        // find the rotation that would line up velocity and forward
-        glm::quat neededRotation = ::rotationBetween(forwardInWorldFrame, velocity);
-        glm::quat rotationalTarget = orientation * neededRotation;
-        btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
+        // find the rotation that would line up direction and forward
+        glm::quat neededRotation = glm::rotation(forwardInWorldFrame, direction);
+        glm::quat rotationalTarget = neededRotation * orientation;
+
+        btVector3 targetAngularVelocity(0.0f, 0.0f, 0.0f);
 
         auto alignmentDot = bodyRotation.dot(glmToBullet(rotationalTarget));
         const float ALMOST_ONE = 0.99999f;
@@ -86,13 +87,13 @@ void ObjectActionTravelOriented::updateActionWorker(btScalar deltaTimeStep) {
             //      dQ = Q1 * Q0^
             btQuaternion deltaQ = target * bodyRotation.inverse();
             float speed = deltaQ.getAngle() / _angularTimeScale;
-            targetVelocity = speed * deltaQ.getAxis();
+            targetAngularVelocity = speed * deltaQ.getAxis();
             if (speed > rigidBody->getAngularSleepingThreshold()) {
                 rigidBody->activate();
             }
         }
         // this action is aggresively critically damped and defeats the current velocity
-        rigidBody->setAngularVelocity(targetVelocity);
+        rigidBody->setAngularVelocity(targetAngularVelocity);
     });
 }
 
