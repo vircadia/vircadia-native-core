@@ -75,7 +75,7 @@ Item {
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
            valueScale: 1
-           valueNumDigits: "4"
+           valueNumDigits: "3"
            plots: [
             {
                    object: Render.getConfig("OpaqueRangeTimer"),

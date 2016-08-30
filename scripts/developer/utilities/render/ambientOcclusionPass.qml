@@ -75,7 +75,7 @@ Column {
             object: Render.getConfig("AmbientOcclusion")
             valueUnit: "ms"
             valueScale: 1
-            valueNumDigits: "4"
+            valueNumDigits: "3"
             plots: [
             {
                    prop: "gpuRunTime",

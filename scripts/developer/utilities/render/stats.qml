@@ -214,7 +214,7 @@ Item {
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
            valueScale: 1
-           valueNumDigits: "1"
+           valueNumDigits: "2"
            plots: [
                {
                    object: Render.getConfig("DrawOpaqueDeferred"),
