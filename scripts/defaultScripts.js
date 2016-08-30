@@ -37,35 +37,76 @@ var DEFAULT_SCRIPTS = [
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
-var debuggingDefaultScripts = false;
+
+var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
+var previousSetting = Settings.getValue(SETTINGS_KEY);
+
+if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
+    previousSetting = false;
+}
+
+if (previousSetting === true || previousSetting === 'true') {
+    previousSetting = true;
+}
+
+
+
+var debuggingDefaultScripts = previousSetting;
 
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
     Menu.addMenuItem({
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
-        isChecked: false,
+        isChecked: previousSetting,
         grouping: "Advanced"
     });
 }
 
+function runDefaultsTogether() {
+    for (var j in DEFAULT_SCRIPTS) {
+       print('trying to include:'+DEFAULT_SCRIPTS[j])
+        Script.include(DEFAULT_SCRIPTS[j]+"?"+Math.random());
+    }
+}
+
+function runDefaultsSeparately() {
+    for (var i in DEFAULT_SCRIPTS) {
+        Script.load(DEFAULT_SCRIPTS[i]);
+    }
+}
 // start all scripts
 if (Menu.isOptionChecked(MENU_ITEM)) {
     // we're debugging individual default scripts
     // so we load each into its own ScriptEngine instance
     debuggingDefaultScripts = true;
-    for (var i in DEFAULT_SCRIPTS) {
-        Script.load(DEFAULT_SCRIPTS[i]);
-    }
+    runDefaultsSeparately();
 } else {
     // include all default scripts into this ScriptEngine
-    for (var j in DEFAULT_SCRIPTS) {
-        Script.include(DEFAULT_SCRIPTS[j]);
+    runDefaultsTogether();
+}
+
+function menuItemEvent(menuItem) {
+    if (menuItem == MENU_ITEM) {
+        isChecked = Menu.isOptionChecked(MENU_ITEM);
+        if (isChecked === true) {
+            Settings.setValue(SETTINGS_KEY, true);
+            debuggingDefaultScripts = true;
+            stopLoadedScripts();
+            runDefaultsSeparately();
+        } else if (isChecked === false) {
+            Settings.setValue(SETTINGS_KEY, false);
+            debuggingDefaultScripts = false;
+            stopLoadedScripts();
+            runDefaultsTogether();
+        }
     }
 }
 
+
+
 function stopLoadedScripts() {
-    if (debuggingDefaultScripts) {
+   
         // remove debug script loads
         var runningScripts = ScriptDiscoveryService.getRunning();
         for (var i in runningScripts) {
@@ -76,10 +117,18 @@ function stopLoadedScripts() {
                 }
             }
         }
-        if (!Menu.isOptionChecked(MENU_ITEM)) {
-            Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
-        }
+
+}
+
+function removeMenuItem() {
+    if (!Menu.isOptionChecked(MENU_ITEM)) {
+        Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
     }
 }
 
-Script.scriptEnding.connect(stopLoadedScripts);
+Script.scriptEnding.connect(function() {
+    stopLoadedScripts();
+    removeMenuItem();
+});
+
+Menu.menuItemEvent.connect(menuItemEvent);
