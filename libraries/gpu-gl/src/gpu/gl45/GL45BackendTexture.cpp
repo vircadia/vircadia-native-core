@@ -12,14 +12,15 @@
 
 #include <unordered_set>
 #include <unordered_map>
+
 #include <QtCore/QThread>
 
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
+using namespace gpu::gl;
 using namespace gpu::gl45;
 
-using GLTexelFormat = gl::GLTexelFormat;
 using GL45Texture = GL45Backend::GL45Texture;
 
 GLuint GL45Texture::allocate(const Texture& texture) {
@@ -33,15 +34,15 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
     return GL45Texture::getId<GL45Texture>(*this, texture, transfer);
 }
 
-gl::GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
+GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
     return GL45Texture::sync<GL45Texture>(*this, texture, transfer);
 }
 
-GL45Backend::GL45Texture::GL45Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, bool transferrable)
-    : gl::GLTexture(backend, texture, allocate(texture), transferrable) {}
+GL45Backend::GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
+    : GLTexture(backend, texture, allocate(texture), transferrable) {}
 
-GL45Backend::GL45Texture::GL45Texture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLTexture* original)
-    : gl::GLTexture(backend, texture, allocate(texture), original) {}
+GL45Backend::GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLTexture* original)
+    : GLTexture(backend, texture, allocate(texture), original) {}
 
 void GL45Backend::GL45Texture::withPreservedTexture(std::function<void()> f) const {
     f();
@@ -53,7 +54,7 @@ void GL45Backend::GL45Texture::generateMips() const {
 }
 
 void GL45Backend::GL45Texture::allocateStorage() const {
-    gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
     glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
     if (_gpuObject.getTexelFormat().isCompressed()) {
@@ -79,7 +80,7 @@ void GL45Backend::GL45Texture::updateSize() const {
 // Move content bits from the CPU to the GPU for a given mip / face
 void GL45Backend::GL45Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
-    gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
     auto size = _gpuObject.evalMipDimensions(mipLevel);
     if (GL_TEXTURE_2D == _target) {
         glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
@@ -167,7 +168,7 @@ void GL45Backend::GL45Texture::syncSampler() const {
     
     if (sampler.doComparison()) {
         glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-        glTextureParameteri(_id, GL_TEXTURE_COMPARE_FUNC, gl::COMPARISON_TO_GL[sampler.getComparisonFunction()]);
+        glTextureParameteri(_id, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }

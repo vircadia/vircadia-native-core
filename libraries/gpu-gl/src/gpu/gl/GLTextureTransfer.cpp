@@ -7,10 +7,8 @@
 //
 #include "GLTextureTransfer.h"
 
-#ifdef THREADED_TEXTURE_TRANSFER
-#include <gl/OffscreenGLCanvas.h>
-#include <gl/QOpenGLContextWrapper.h>
-#endif
+#include <gl/GLHelpers.h>
+#include <gl/Context.h>
 
 #include "GLShared.h"
 #include "GLTexture.h"
@@ -20,15 +18,9 @@ using namespace gpu::gl;
 
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER
-    _canvas = QSharedPointer<OffscreenGLCanvas>(new OffscreenGLCanvas(), &QObject::deleteLater);
-    _canvas->create(QOpenGLContextWrapper::currentContext());
-    if (!_canvas->makeCurrent()) {
-        qFatal("Unable to create texture transfer context");
-    }
-    _canvas->doneCurrent();
+    setObjectName("TextureTransferThread");
+    _context.create();
     initialize(true, QThread::LowPriority);
-    _canvas->moveToThreadWithContext(_thread);
-
     // Clean shutdown on UNIX, otherwise _canvas is freed early
     connect(qApp, &QCoreApplication::aboutToQuit, [&] { terminate(); });
 #endif
@@ -63,17 +55,9 @@ void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texture
 }
 
 void GLTextureTransferHelper::setup() {
-#ifdef THREADED_TEXTURE_TRANSFER
-    _canvas->makeCurrent();
-#endif
 }
 
 void GLTextureTransferHelper::shutdown() {
-#ifdef THREADED_TEXTURE_TRANSFER
-    _canvas->doneCurrent();
-    _canvas->moveToThreadWithContext(qApp->thread());
-    _canvas.reset();
-#endif
 }
 
 void GLTextureTransferHelper::do_transfer(GLTexture& texture) {
@@ -84,6 +68,9 @@ void GLTextureTransferHelper::do_transfer(GLTexture& texture) {
 }
 
 bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
+#ifdef THREADED_TEXTURE_TRANSFER
+    _context.makeCurrent();
+#endif
     for (auto package : messages) {
         TexturePointer texturePointer = package.texture.lock();
         // Texture no longer exists, move on to the next
@@ -92,21 +79,39 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
         }
 
         if (package.fence) {
-            glClientWaitSync(package.fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+            auto result = glClientWaitSync(package.fence, 0, 0);
+            while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
+                // Minimum sleep
+                QThread::usleep(1);
+                result = glClientWaitSync(package.fence, 0, 0);
+            }
+            assert(GL_CONDITION_SATISFIED == result || GL_ALREADY_SIGNALED == result);
             glDeleteSync(package.fence);
             package.fence = 0;
         }
 
         GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
+
         do_transfer(*object);
         glBindTexture(object->_target, 0);
 
-        auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        glClientWaitSync(writeSync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
-        glDeleteSync(writeSync);
+        {
+            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            assert(fence);
+            auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+            while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
+                // Minimum sleep
+                QThread::usleep(1);
+                result = glClientWaitSync(fence, 0, 0);
+            }
+            glDeleteSync(package.fence);
+        }
 
         object->_contentStamp = texturePointer->getDataStamp();
         object->setSyncState(GLSyncState::Transferred);
     }
+#ifdef THREADED_TEXTURE_TRANSFER
+    _context.doneCurrent();
+#endif
     return true;
 }

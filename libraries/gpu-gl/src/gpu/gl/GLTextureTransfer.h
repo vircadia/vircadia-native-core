@@ -13,13 +13,13 @@
 
 #include <GenericQueueThread.h>
 
+#include <gl/Context.h>
+
 #include "GLShared.h"
 
 #ifdef Q_OS_WIN
 #define THREADED_TEXTURE_TRANSFER
 #endif
-
-class OffscreenGLCanvas;
 
 namespace gpu { namespace gl {
 
@@ -43,7 +43,7 @@ protected:
     void do_transfer(GLTexture& texturePointer);
 
 private:
-    QSharedPointer<OffscreenGLCanvas> _canvas;
+    ::gl::OffscreenContext _context;
 };
 
 } }

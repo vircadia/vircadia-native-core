@@ -27,19 +27,9 @@ template<class F>
 void setGLFormatVersion(F& format, int major = 4, int minor = 5) { format.setVersion(major, minor); }
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
-const QGLFormat& getDefaultGLFormat();
 QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);
 
 bool isRenderThread();
-
-
-class GLDebug {
-public:
-    static bool enabled();
-    static void log(const QOpenGLDebugMessage& debugMessage);
-    static void setupLogger(QObject* window = nullptr);
-};
-
 
 #endif

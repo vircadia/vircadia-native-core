@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget* parent) :
     _windowGeometry("WindowGeometry"),
     _windowState("WindowState", 0)
 {
+    setAttribute(Qt::WA_NoSystemBackground);
     setAcceptDrops(true);
 }
 
