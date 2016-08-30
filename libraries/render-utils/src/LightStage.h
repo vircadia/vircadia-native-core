@@ -36,7 +36,7 @@ namespace indexed_elements {
         Index _nextNewIndex { 0 };
 
         bool checkIndex(Index index) const { return ((index >= 0) && (index < _nextNewIndex)); }
-        Index getNumIndices() const { return _nextNewIndex - _freeIndices.size(); }
+        Index getNumIndices() const { return _nextNewIndex - (Index) _freeIndices.size(); }
 
         Index allocateIndex() {
             if (_freeIndices.empty()) {
