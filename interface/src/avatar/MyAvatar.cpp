@@ -2237,12 +2237,10 @@ bool MyAvatar::hasDriveInput() const {
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     switch(index) {
         case CONTROLLER_LEFTHAND_INDEX: {
-            auto leftHandPose = getLeftHandControllerPoseInWorldFrame();
-            return leftHandPose.getRotation();
+            return getLeftHandControllerPoseInAvatarFrame().getRotation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
-            auto rightHandPose = getRightHandControllerPoseInWorldFrame();
-            return rightHandPose.getRotation();
+            return getRightHandControllerPoseInAvatarFrame().getRotation();
         }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
@@ -2253,12 +2251,10 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     switch(index) {
         case CONTROLLER_LEFTHAND_INDEX: {
-            auto leftHandPose = getLeftHandControllerPoseInWorldFrame();
-            return leftHandPose.getTranslation();
+            return getLeftHandControllerPoseInAvatarFrame().getTranslation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
-            auto rightHandPose = getRightHandControllerPoseInWorldFrame();
-            return rightHandPose.getTranslation();
+            return getRightHandControllerPoseInAvatarFrame().getTranslation();
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);

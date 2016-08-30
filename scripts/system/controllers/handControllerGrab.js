@@ -714,14 +714,16 @@ function MyController(hand) {
         }
     };
     // controllerLocation is where the controller would be, in-world.
-    this.getControllerLocation = function () {
+    this.getControllerLocation = function (doOffset) {
         var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var pose = Controller.getPoseValue(standardControllerValue);
 
         var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
         var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
         // add to the real position so the grab-point is out in front of the hand, a bit
-        position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
+        if (doOffset) {
+            position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
+        }
 
         return {position: position, orientation: orientation};
     };
@@ -1067,7 +1069,7 @@ function MyController(hand) {
         }
         if (!this.waitForTriggerRelease && this.triggerSmoothedSqueezed()) {
             this.lastPickTime = 0;
-            this.startingHandRotation = this.getControllerLocation().orientation;
+            this.startingHandRotation = this.getControllerLocation(true).orientation;
             if (this.triggerSmoothedSqueezed()) {
                 this.setState(STATE_SEARCHING, "trigger squeeze detected");
                 return;
@@ -1117,7 +1119,7 @@ function MyController(hand) {
     // @returns {object} returns object with two keys entityID and distance
     //
     this.calcRayPickInfo = function(hand) {
-        var controllerLocation = this.getControllerLocation();
+        var controllerLocation = this.getControllerLocation(true);
         var worldHandPosition = controllerLocation.position;
         var worldHandRotation = controllerLocation.orientation;
 
@@ -1413,7 +1415,7 @@ function MyController(hand) {
         }
 
         // var handPosition = this.getHandPosition();
-        var handPosition = this.getControllerLocation().position;
+        var handPosition = this.getControllerLocation(true).position;
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
@@ -1598,7 +1600,7 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
-        var worldControllerPosition = this.getControllerLocation().position;
+        var worldControllerPosition = this.getControllerLocation(true).position;
 
         // transform the position into room space
         var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
@@ -1664,7 +1666,7 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
 
-        var controllerLocation = this.getControllerLocation();
+        var controllerLocation = this.getControllerLocation(true);
         var worldControllerPosition = controllerLocation.position;
         var worldControllerRotation = controllerLocation.orientation;
 
@@ -1801,7 +1803,7 @@ function MyController(hand) {
     };
 
     this.dropGestureProcess = function(deltaTime) {
-        var worldHandRotation = this.getControllerLocation().orientation;
+        var worldHandRotation = this.getControllerLocation(true).orientation;
         var localHandUpAxis = this.hand === RIGHT_HAND ? {
             x: 1,
             y: 0,
@@ -1879,11 +1881,9 @@ function MyController(hand) {
         var handRotation;
         var handPosition;
         if (this.ignoreIK) {
-            var controllerLocation = this.getControllerLocation();
+            var controllerLocation = this.getControllerLocation(false);
             handRotation = controllerLocation.orientation;
-            // subtract off the GRAB_POINT_SPHERE_OFFSET that was added in getControllerLocation
-            handPosition = Vec3.subtract(controllerLocation.position,
-                                         Vec3.multiplyQbyV(handRotation, GRAB_POINT_SPHERE_OFFSET));
+            handPosition = controllerLocation.position;
         } else {
             handRotation = this.getHandRotation();
             handPosition = this.getHandPosition();
@@ -2059,7 +2059,7 @@ function MyController(hand) {
                 var heldItemPosition;
                 var heldItemRotation;
                 if (this.ignoreIK) {
-                    var heldItemLocation = this.getControllerLocation();
+                    var heldItemLocation = this.getControllerLocation(false);
                     heldItemPosition = heldItemLocation.position;
                     heldItemRotation = heldItemLocation.orientation;
                 } else {
@@ -2067,6 +2067,7 @@ function MyController(hand) {
                     heldItemRotation = this.getHandRotation();
                 }
 
+                // figure out where the center of the held object should be
                 heldItemPosition = Vec3.sum(heldItemPosition, Vec3.multiplyQbyV(heldItemRotation, this.offsetPosition));
 
                 // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
@@ -2207,7 +2208,7 @@ function MyController(hand) {
 
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation());
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
         if (intersectInfo) {
             var pointerEvent = {
                 type: "Press",
@@ -2232,7 +2233,7 @@ function MyController(hand) {
 
     this.entityTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation());
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
         if (intersectInfo) {
             var pointerEvent;
             if (this.deadspotExpired) {
@@ -2270,7 +2271,7 @@ function MyController(hand) {
         }
 
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation());
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
         if (intersectInfo) {
 
             if (Entities.keyboardFocusEntity != this.grabbedEntity) {
