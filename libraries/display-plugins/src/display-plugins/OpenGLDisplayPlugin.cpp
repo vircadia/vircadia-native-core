@@ -29,6 +29,7 @@
 #include <gl/GLWidget.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
+#include <gl/Context.h>
 
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
@@ -108,7 +109,7 @@ public:
         }
     }
 
-    void setContext(QGLContext * context) {
+    void setContext(gl::Context* context) {
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
@@ -126,7 +127,6 @@ public:
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         _context->makeCurrent();
-        Q_ASSERT(isCurrentContext(_context->contextHandle()));
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 PROFILE_RANGE("MainThreadOp") 
@@ -250,7 +250,7 @@ private:
     bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
-    QGLContext* _context { nullptr };
+    gl::Context* _context { nullptr };
 };
 
 bool OpenGLDisplayPlugin::activate() {
@@ -649,8 +649,8 @@ float OpenGLDisplayPlugin::presentRate() const {
 }
 
 void OpenGLDisplayPlugin::swapBuffers() {
-    static auto widget = _container->getPrimaryWidget();
-    widget->swapBuffers();
+    static auto context = _container->getPrimaryWidget()->context();
+    context->swapBuffers();
 }
 
 void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
