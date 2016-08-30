@@ -14,7 +14,7 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
-var qml = Script.resolvePath("../../../resources/qml/MarketplaceComboBox.qml")
+var qml = Script.resolvePath("../../../resources/qml/Marketplaces.qml")
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 

@@ -5,21 +5,92 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
-
+body {
+    background: white;
+    padding: 0 0 0 0;
+}
 .marketplaces-container {
-    width: 100%;
+    display: inline-block;
+    color: black;
+    width: 94%;
+    margin-left: 3%;
+    height: 100%;
+}
+.marketplaces-title {
+    margin-top: 45px;
+    margin-bottom: 20px;
+}
+.marketplaces-intro-text {
+    margin-bottom: 60px;
 }
 .marketplace-tile {
-    float: left;
-    width: 50%;
-}
-.marketplace-tile-title {
+    float:left;
     width: 100%;
-    height: 10%;
 }
-.marketplace-tile-image-container {
+.marketplace-tile-first-column {
+    text-align: center;
+    float: left;
+    width: 33%;
 }
-.marketplace-tile-image {
+.marketplace-tile-second-column {
+    float: left;
+    margin-left:4%;
+    width: 62%;
+}
+.exploreButton {
+    width: 200px !important;
+    height: 45px !important;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+.tile-divider {
+    width: 100%;
+    margin-left: 0%;
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid lightgrey;
+    margin: 1em 0;
+    padding: 0;
+    margin-bottom: 30px;
 }
 .marketplace-tile-description {
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+.marketplace-tile-image {
+    margin-top:15px;
+    max-width: 256px;
+    height: 128px;
+    margin-bottom:60px;
+    -webkit-box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+    -moz-box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+    box-shadow: -1px 4px 16px 0px rgba(0, 0, 0, 0.48);
+}
+.marketplace-clara-steps {
+    padding-left: 15px;
+}
+.marketplace-clara-steps > li {
+    margin-top: 5px;
+}
+@media (max-width:768px) {
+    .marketplace-tile-first-column {
+        float: left;
+        width: 100%;
+    }
+    .marketplace-tile-second-column {
+        float: left;
+        width: 100%;
+    }
+    .exploreButton-holder {
+        width:100%;
+        text-align:center;
+    }
+    .tile-divider {
+    width: 100%;
+    margin-left: 0%;
+}
+.marketplace-tile-image{
+    margin-bottom:15px;
+}
 }

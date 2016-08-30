@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 //  marketplaces.html
 //
 //  Copyright 2016 High Fidelity, Inc.
@@ -7,39 +7,60 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
 <html>
-    <head>
-        <title>Marketplaces</title>
-        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
-        <link rel="stylesheet" type="text/css" href="css/marketplaces.css">
-        <script src="js/jquery-2.1.4.min.js"></script>
-        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
-        <script src="js/marketplaces.js"></script>
-    </head>
-    <body onload='loaded();'>
-        <div class="marketplaces-container">
-            <div class="marketplace-tile">
-                <div class="marketplace-tile-title">Hifi Marketplace</div>
-                <div class="marketplace-tile-image-container">
-                    <a href="http://highfidelity.io/marketplace">
-                        <img  class="marketplace-tile-image" src="http://lorempixel.com/1000/1000">
-                    </a>
-                </div>
-                <div class="marketplace-tile-description">This is the Hifi Marketplace</div>
-            </div>
-            <div class="marketplace-tile">
-                      <div class="marketplace-tile">
-                <div class="marketplace-tile-title">Clara</div>
-                <div class="marketplace-tile-image-container">
-                    <a href="http://clara.io:">
-                        <img  class="marketplace-tile-image" src="http://lorempixel.com/1000/1000">
-                    </a>
-                </div>
-                <div class="marketplace-tile-description">This is the Clara Marketplace</div>
-                </div>
-            </div>
+<head>
+    <title>Marketplaces</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="css/marketplaces.css">
+    <script src="js/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+    <script src="js/marketplaces.js"></script>
+</head>
+<body onload='loaded();'>
+    <div class="marketplaces-container">
+        <h2 class="marketplaces-title">
+            Marketplaces
+        </h2>
+        <div class="marketplaces-intro-text">
+            <p>
+                You can bring content into High Fidelity forom anywhere you want.  Here are a few places that support direct import of content right now.  If you'd like to suggest a Market to include here, <a href="mailto:contact@highfidelity.io">let us know.</a>
+            </p>
         </div>
-        
-    </body>
+        <div class="marketplace-tile">
+            <div class="marketplace-tile-first-column">
+                <img class="marketplace-tile-image" src="img/hifi-marketplace-tile.png">
+            </div>
+            <div class="marketplace-tile-second-column">
+                <p class="marketplace-tile-description">This is the default High Fidelity marketplace.  Viewing and downloading content from here is fully supported in Interface.</p>
+                <div class="exploreButton-holder">
+                    <input class="blue exploreButton" type="button" value="Explore" id="exploreHifiMarketplace"></input>
+                </div>
+            </div>
+            <hr class="tile-divider">
+        </div>
+        <div class="marketplace-tile">
+            <div class="marketplace-tile-first-column">
+                <img class="marketplace-tile-image" src="img/clara-tile.png">
+            </div>
+            <div class="marketplace-tile-second-column">
+                <p class="marketplace-tile-description">Clara.io has thousands of models available for importing into High Fidelity.  Follow these steps for the best experience:</p>
+                <ol class="marketplace-clara-steps">
+                    <li><a href="http://www.clara.io/signup">Create an account here </a>or log in as an existing user.</li>
+                    <li>Choose a model from the list and click Download -> Autodesk FBX.</li>
+                    <li>After the file processes, click Download.</li>
+                    <li>Add the model to your asset server, then find it from the list and choose Add To World.</li>
+                </ol>
+                <div class="exploreButton-holder">
+                    <input class="blue exploreButton" type="button" value="Explore" id="exploreClaraMarketplace"></input>
+                </div>
+            </div>
+            <hr class="tile-divider">
+        </div>
+    </div>
+
+
+
+    </div>
+</body>
 </html>
