@@ -227,10 +227,12 @@ private:
 
     LayeredZones _layeredZones;
     QString _zoneUserData;
-    NetworkTexturePointer _skyboxTexture;
     NetworkTexturePointer _ambientTexture;
-    bool _pendingSkyboxTexture { false };
+    NetworkTexturePointer _skyboxTexture;
+    QString _ambientTextureURL;
+    QString _skyboxTextureURL;
     bool _pendingAmbientTexture { false };
+    bool _pendingSkyboxTexture { false };
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz

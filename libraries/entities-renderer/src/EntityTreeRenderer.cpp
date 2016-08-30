@@ -137,9 +137,6 @@ void EntityTreeRenderer::clear() {
 
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
-    _pendingAmbientTexture = _pendingSkyboxTexture = false;
-    _ambientTexture.clear();
-    _skyboxTexture.clear();
     applyZoneAndHasSkybox(nullptr);
 
     OctreeRenderer::clear();
@@ -197,8 +194,8 @@ void EntityTreeRenderer::update() {
         // If we haven't already updated and previously attempted to load a texture,
         // check if the texture loaded and apply it
         if (!updated &&
-            ((_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
-            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
+            ((_pendingAmbientTexture && (!_ambientTexture || _ambientTexture->isLoaded())) ||
+            (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())))) {
             applySkyboxAndHasAmbient();
         }
 
@@ -388,12 +385,12 @@ bool EntityTreeRenderer::applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityI
     }
 
     // Set the ambient texture
-    if (zone->getKeyLightProperties().getAmbientURL().isEmpty()) {
+    _ambientTextureURL = zone->getKeyLightProperties().getAmbientURL();
+    if (_ambientTextureURL.isEmpty()) {
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
     } else {
         _pendingAmbientTexture = true;
-        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), NetworkTexture::CUBE_TEXTURE);
     }
 
     // Set the skybox texture
@@ -412,33 +409,36 @@ bool EntityTreeRenderer::layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityI
 
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_SKYBOX:
+            hasSkybox = true;
+
             skybox->setColor(zone->getSkyboxProperties().getColorVec3());
+
             if (_zoneUserData != zone->getUserData()) {
                 _zoneUserData = zone->getUserData();
                 std::dynamic_pointer_cast<ProceduralSkybox>(skybox)->parse(_zoneUserData);
             }
-            if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                skybox->setCubemap(nullptr);
+
+            _skyboxTextureURL = zone->getSkyboxProperties().getURL();
+            if (_skyboxTextureURL.isEmpty()) {
                 _pendingSkyboxTexture = false;
                 _skyboxTexture.clear();
             } else {
-                // Update the Texture of the Skybox with the one pointed by this zone
-                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), NetworkTexture::CUBE_TEXTURE);
                 _pendingSkyboxTexture = true;
             }
+
             applySkyboxAndHasAmbient();
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
-            hasSkybox = true;
+
             break;
 
         case BACKGROUND_MODE_INHERIT:
         default:
             // Clear the skybox to release its textures
-            _zoneUserData = QString();
             skybox->clear();
+            _zoneUserData = QString();
 
-            _skyboxTexture.clear();
             _pendingSkyboxTexture = false;
+            _skyboxTexture.clear();
 
             // Let the application background through
             if (applySkyboxAndHasAmbient()) {
@@ -446,6 +446,7 @@ bool EntityTreeRenderer::layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityI
             } else {
                 skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE);
             }
+
             break;
     }
 
@@ -461,6 +462,9 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
     auto skybox = skyStage->getSkybox();
 
     bool isAmbientSet = false;
+    if (_pendingAmbientTexture && !_ambientTexture) {
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, NetworkTexture::CUBE_TEXTURE);
+    }
     if (_ambientTexture && _ambientTexture->isLoaded()) {
         _pendingAmbientTexture = false;
 
@@ -474,6 +478,9 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
         }
     }
 
+    if (_pendingSkyboxTexture && !_skyboxTexture) {
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, NetworkTexture::CUBE_TEXTURE);
+    }
     if (_skyboxTexture && _skyboxTexture->isLoaded()) {
         _pendingSkyboxTexture = false;
 
