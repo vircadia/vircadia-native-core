@@ -127,37 +127,20 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             if (pose.isValid()) {
                 linearVelocity = pose.getVelocity();
                 angularVelocity = pose.getAngularVelocity();
+
+                if (isRightHand) {
+                    pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInAvatarFrame();
+                } else {
+                    pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInAvatarFrame();
+                }
             }
 
             if (_ignoreIK && pose.isValid()) {
-                // We cannot ignore other avatars IK and this is not the point of this option
-                // This is meant to make the grabbing behavior more reactive.
-
-                // The avatar moves between prepareForPhysicsSimulation and this, so do some stuff to avoid jitter:
-                // - transform the pose's world-position into the space relative to the old rigid-body
-                // - then transform this relative position back into world-space via the new rigid-body's transform
-
-                Transform poseTransform;
-                poseTransform.setTranslation(pose.getTranslation());
-                poseTransform.setRotation(pose.getRotation());
-
-                Transform preStepAvatarTransform;
-                preStepAvatarTransform.setTranslation(_preStepAvatarPosition);
-                preStepAvatarTransform.setRotation(_preStepAvatarRotation);
-                Transform inversePreStepAvatarTransform = Transform(preStepAvatarTransform.getInverseMatrix());
-
                 Transform avatarTransform;
-                glm::vec3 avatarRigidBodyPosition;
-                glm::quat avatarRigidBodyRotation;
-                getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
-                avatarTransform.setTranslation(avatarRigidBodyPosition);
-                avatarTransform.setRotation(avatarRigidBodyRotation);
-
-                glm::mat4 adjustedMatrix = avatarTransform.getMatrix() *
-                    (inversePreStepAvatarTransform.getMatrix() * poseTransform.getMatrix());
-                Transform adjustedTransform = Transform(adjustedMatrix);
-                palmPosition = adjustedTransform.getTranslation();
-                palmRotation = adjustedTransform.getRotation();
+                auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+                avatarTransform = myAvatar->getTransform();
+                palmPosition = avatarTransform.transform(pose.getTranslation());
+                palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;
                 glm::quat avatarRigidBodyRotation;
