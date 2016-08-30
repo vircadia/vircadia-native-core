@@ -121,9 +121,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
         resetAccountManagerAccessToken();
-    }
 
-    setupAutomaticNetworking();
+        setupAutomaticNetworking();
+    }
 
     if (!getID().isNull() && _type != NonMetaverse) {
         // setup periodic heartbeats to metaverse API
