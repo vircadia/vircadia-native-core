@@ -213,7 +213,7 @@ Item {
            height: parent.evalEvenHeight()
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
-           valueScale: 1000
+           valueScale: 1
            valueNumDigits: "1"
            plots: [
                {

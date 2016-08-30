@@ -78,7 +78,7 @@ Column {
             valueNumDigits: "4"
             plots: [
             {
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
                    label: "gpu",
                    color: "#FFFFFF"
                }
