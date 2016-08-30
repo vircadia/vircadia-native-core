@@ -82,8 +82,8 @@ public:
 
     void run() override {
         while (!_quit) {
-            _audioClient->checkDevices();
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
+            _audioClient->checkDevices();
         }
     }
 
@@ -195,10 +195,17 @@ void AudioClient::audioMixerKilled() {
     emit disconnected();
 }
 
+// thread-safe
+QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+
+    return QAudioDeviceInfo::availableDevices(mode);
+}
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
-    foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+    foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
             break;
@@ -262,7 +269,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
 
 QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef __APPLE__
-    if (QAudioDeviceInfo::availableDevices(mode).size() > 1) {
+    if (getAvailableDevices(mode).size() > 1) {
         AudioDeviceID defaultDeviceID = 0;
         uint32_t propertySize = sizeof(AudioDeviceID);
         AudioObjectPropertyAddress propertyAddress = {
@@ -292,7 +299,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
             if (!getPropertyError && propertySize) {
                 // find a device in the list that matches the name we have and return it
-                foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+                foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
                     if (audioDevice.deviceName() == CFStringGetCStringPtr(deviceName, kCFStringEncodingMacRoman)) {
                         return audioDevice;
                     }
@@ -601,7 +608,7 @@ QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
 
 QVector<QString> AudioClient::getDeviceNames(QAudio::Mode mode) {
     QVector<QString> deviceNames;
-    foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
+    foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
         deviceNames << audioDevice.deviceName().trimmed();
     }
     return deviceNames;
