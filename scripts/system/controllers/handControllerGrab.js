@@ -1078,11 +1078,11 @@ function MyController(hand) {
 
         this.grabPointSphereOn();
 
-        var candidateEntities = Entities.findEntities(this.getHandPosition(), MAX_EQUIP_HOTSPOT_RADIUS);
+        var candidateEntities = Entities.findEntities(this.getControllerLocation(true).position, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
-            this.updateEquipHaptics(potentialEquipHotspot, this.getHandPosition());
+            this.updateEquipHaptics(potentialEquipHotspot, this.getControllerLocation(true).position);
         }
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
@@ -1367,7 +1367,7 @@ function MyController(hand) {
             return _this.collectEquipHotspots(entityID);
         })).filter(function(hotspot) {
             return (_this.hotspotIsEquippable(hotspot) &&
-                Vec3.distance(hotspot.worldPosition, _this.getHandPosition()) < hotspot.radius + distance);
+                Vec3.distance(hotspot.worldPosition, _this.getControllerLocation(true).position) < hotspot.radius + distance);
         });
         return equippableHotspots;
     };
@@ -1378,8 +1378,8 @@ function MyController(hand) {
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var aDistance = Vec3.distance(a.worldPosition, this.getHandPosition());
-                var bDistance = Vec3.distance(b.worldPosition, this.getHandPosition());
+                var aDistance = Vec3.distance(a.worldPosition, this.getControllerLocation(true).position);
+                var bDistance = Vec3.distance(b.worldPosition, this.getControllerLocation(true).position);
                 return aDistance - bDistance;
             });
             return equippableHotspots[0];
@@ -1414,7 +1414,6 @@ function MyController(hand) {
             return;
         }
 
-        // var handPosition = this.getHandPosition();
         var handPosition = this.getControllerLocation(true).position;
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
