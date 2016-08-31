@@ -168,7 +168,7 @@ if (WIN32)
 endif()
 
 if (NOT ANDROID)
-  set(${NON_ANDROID_LIBRARIES} controllers ui-plugins display-plugins input-plugins steamworks-wrapper)
+  set(${NON_ANDROID_LIBRARIES} steamworks-wrapper)
 endif ()
 
 # link required hifi libraries
@@ -178,6 +178,7 @@ link_hifi_libraries(
   audio audio-client animation script-engine physics
   render-utils entities-renderer ui auto-updater
   controllers plugins
+  ui-plugins display-plugins input-plugins
   ${NON_ANDROID_LIBRARIES}
 )
 

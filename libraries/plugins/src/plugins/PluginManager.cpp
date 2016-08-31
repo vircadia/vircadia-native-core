@@ -115,6 +115,8 @@ const LoaderList& getLoadedPlugins() {
 PluginManager::PluginManager() {
 }
 
+#ifndef Q_OS_ANDROID
+
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
@@ -136,6 +138,7 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
     std::call_once(once, [&] {
         // Grab the built in plugins
         displayPlugins = ::getDisplayPlugins();
+
 
         // Now grab the dynamic plugins
         for (auto loader : getLoadedPlugins()) {
@@ -270,3 +273,5 @@ void PluginManager::disableInputs(const QStringList& inputs) {
 void PluginManager::saveSettings() {
     saveInputPluginSettings(getInputPlugins());
 }
+
+#endif
