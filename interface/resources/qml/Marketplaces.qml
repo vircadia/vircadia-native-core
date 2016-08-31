@@ -59,12 +59,10 @@ Rectangle {
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
-            if (File.isClaraLink(desktop.currentUrl)) {
-                //runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
-                if (File.isZippedFbx(desktop.currentUrl)) {
-                    runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
-                }
-            } 
+            runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
+            if (File.isZippedFbx(desktop.currentUrl)) {
+                runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
+            }
         }
 
         onLoadingChanged: {
