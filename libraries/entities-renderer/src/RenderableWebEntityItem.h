@@ -58,6 +58,7 @@ private:
     bool _pressed{ false };
     QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
+    QTouchDevice _touchDevice;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

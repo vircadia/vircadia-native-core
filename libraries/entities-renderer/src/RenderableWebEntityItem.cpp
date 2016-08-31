@@ -46,6 +46,11 @@ EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID,
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
     WebEntityItem(entityItemID) {
     qDebug() << "Created web entity " << getID();
+
+    _touchDevice.setCapabilities(QTouchDevice::Position);
+    _touchDevice.setType(QTouchDevice::TouchScreen);
+    _touchDevice.setName("RenderableWebEntityItemTouchDevice");
+    _touchDevice.setMaximumTouchPoints(4);
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
@@ -93,10 +98,19 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             point.setState(Qt::TouchPointReleased);
             glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
             QPointF windowPoint(windowPos.x, windowPos.y);
-            point.setPos(windowPoint);
+            auto item = _webSurface->getRootItem()->childAt(windowPos.x, windowPos.y);
+            QPointF localPoint = windowPoint;
+            if (item) {
+                localPoint = item->mapFromScene(windowPoint);
+            }
+            point.setScenePos(windowPoint);
+            point.setPos(localPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
             QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            touchEvent->setWindow(_webSurface->getWindow());
+            touchEvent->setDevice(&_touchDevice);
+            touchEvent->setTarget(_webSurface->getRootItem());
             QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
         }
     });
@@ -211,6 +225,12 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
+    auto item = _webSurface->getRootItem()->childAt(windowPos.x, windowPos.y);
+    QPointF localPoint = windowPoint;
+    if (item) {
+        localPoint = item->mapFromScene(windowPoint);
+    }
+
     if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to webSurface
         QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
@@ -246,15 +266,15 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         QTouchEvent::TouchPoint point;
         point.setId(event.getID());
         point.setState(touchPointState);
-        point.setPos(windowPoint);
+        point.setPos(localPoint);
         point.setScreenPos(windowPoint);
         QList<QTouchEvent::TouchPoint> touchPoints;
         touchPoints.push_back(point);
 
         QTouchEvent* touchEvent = new QTouchEvent(type);
-        touchEvent->setWindow(nullptr);
-        touchEvent->setDevice(nullptr);
-        touchEvent->setTarget(nullptr);
+        touchEvent->setWindow(_webSurface->getWindow());
+        touchEvent->setDevice(&_touchDevice);
+        touchEvent->setTarget(_webSurface->getRootItem());
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
