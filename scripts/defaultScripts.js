@@ -51,7 +51,6 @@ if (previousSetting === true || previousSetting === 'true') {
 
 
 
-var debuggingDefaultScripts = previousSetting;
 
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
     Menu.addMenuItem({
@@ -87,19 +86,16 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
 
 function menuItemEvent(menuItem) {
     if (menuItem == MENU_ITEM) {
+
         isChecked = Menu.isOptionChecked(MENU_ITEM);
         if (isChecked === true) {
             Settings.setValue(SETTINGS_KEY, true);
-            debuggingDefaultScripts = true;
-            stopLoadedScripts();
-            runDefaultsSeparately();
         } else if (isChecked === false) {
             Settings.setValue(SETTINGS_KEY, false);
-            debuggingDefaultScripts = false;
-            stopLoadedScripts();
-            runDefaultsTogether();
         }
     }
+        Window.alert('You must reload all scripts for this to take effect.')
+
 }
 
 
