@@ -124,7 +124,6 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-
     randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
@@ -317,6 +316,8 @@ function notify(notice, button, height, imageProperties, image) {
     return notificationText;
 }
 
+var CLOSE_NOTIFICATION_ICON = Script.resolvePath("assets/images/close-small-light.svg");
+
 //  This function creates and sizes the overlays
 function createNotification(text, notificationType, imageProperties) {
     var count = (text.match(/\n/g) || []).length,
@@ -363,7 +364,7 @@ function createNotification(text, notificationType, imageProperties) {
         width: 10.0,
         height: 10.0,
         subImage: { x: 0, y: 0, width: 10, height: 10 },
-        imageURL: Script.resolvePath("assets/images/close-small-light.svg"),
+        imageURL: CLOSE_NOTIFICATION_ICON,
         color: { red: 255, green: 255, blue: 255},
         visible: true,
         alpha: backgroundAlpha
@@ -534,7 +535,7 @@ function onDomainConnectionRefused(reason) {
 function onSnapshotTaken(path, notify) {
     if (notify) {
         var imageProperties = {
-            path: Script.resolvePath("file:///" + path),
+            path: "file:///" + path,
             aspectRatio: Window.innerWidth / Window.innerHeight
         }
         createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
