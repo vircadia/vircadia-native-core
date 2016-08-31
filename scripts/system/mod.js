@@ -20,7 +20,7 @@ var ASSETS_PATH = Script.resolvePath("assets");
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
 function buttonImageURL() {
-    return TOOLS_PATH + (Users.canKick ? 'kick.svg' : 'ignore.svg'));
+    return TOOLS_PATH + (Users.canKick ? 'kick.svg' : 'ignore.svg');
 }
 
 // setup the mod button and add it to the toolbar
