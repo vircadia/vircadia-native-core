@@ -185,8 +185,11 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 
 #fixme find a way to express faceshift as a plugin
 target_bullet()
-target_glew()
 target_opengl()
+
+if (NOT ANDROID)
+  target_glew()
+endif ()
 
 if (WIN32 OR APPLE)
   target_faceshift()
