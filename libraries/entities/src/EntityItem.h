@@ -90,7 +90,14 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
 
     /// returns true if something changed
+    // THis function calls setSubClass properties and detects if any property changes value.
+    // If something changed then the "somethingChangedNotification" calls happens
     virtual bool setProperties(const EntityItemProperties& properties);
+
+    // Set properties for sub class so they can add their own properties
+    // it does nothing in the root  eclass
+    virtual bool setSubClassProperties(const EntityItemProperties& properties) { return false; }
+
     // Update properties with empty parent id and globalized/absolute values (applying offset), and apply (non-empty) log template to args id, name-or-type, parent id.
     void globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate = QString(), const glm::vec3& offset = glm::vec3(0.0f)) const;
 

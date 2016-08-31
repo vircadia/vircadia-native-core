@@ -45,7 +45,6 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableLightEntityItem(const EntityItemID& entityItemID);
 
-
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
@@ -69,6 +68,13 @@ public:
         pendingChanges.resetItem(_myItem, renderPayload);
 
         return true;
+    }
+
+    virtual void somethingChangedNotification() override {
+        if (_lightPropertiesChanged) {
+            notifyChanged();
+        }
+        LightEntityItem::somethingChangedNotification();
     }
 
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override {
@@ -113,7 +119,7 @@ private:
     bool _prevIsTransparent { isTransparent() };
     render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
 
-
+    // Dirty flag turn true when either setSubClassProperties or readEntitySubclassDataFromBuffer is changing a value 
 
 };
 

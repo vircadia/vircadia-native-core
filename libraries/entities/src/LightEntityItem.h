@@ -31,9 +31,16 @@ public:
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
     virtual void setDimensions(const glm::vec3& value) override;
 
+    virtual bool setProperties(const EntityItemProperties& properties) override;
+    virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
+
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
-    virtual bool setProperties(const EntityItemProperties& properties) override;
+
+    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// has changed. This will be called with properties change or when new data is loaded from a stream
+    /// Overriding this function to capture the information that a light properties has changed
+    virtual void somethingChangedNotification() override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
@@ -60,6 +67,7 @@ public:
             _color[RED_INDEX] = value.red;
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
+            _lightPropertiesChanged = true;
     }
 
     bool getIsSpotlight() const { return _isSpotlight; }
@@ -69,13 +77,19 @@ public:
     void setIgnoredAttenuation(float value) { }
 
     float getIntensity() const { return _intensity; }
-    void setIntensity(float value) { _intensity = value; }
+    void setIntensity(float value) {
+        _intensity = value; 
+        _lightPropertiesChanged = true;
+    }
 
     float getFalloffRadius() const { return _falloffRadius; }
     void setFalloffRadius(float value);
 
     float getExponent() const { return _exponent; }
-    void setExponent(float value) { _exponent = value; }
+    void setExponent(float value) {
+        _exponent = value;
+        _lightPropertiesChanged = true;
+    }
 
     float getCutoff() const { return _cutoff; }
     void setCutoff(float value);
@@ -85,6 +99,7 @@ public:
     
 protected:
 
+
     // properties of a light
     rgbColor _color;
     bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
@@ -92,6 +107,11 @@ protected:
     float _falloffRadius { DEFAULT_FALLOFF_RADIUS };
     float _exponent { DEFAULT_EXPONENT };
     float _cutoff { DEFAULT_CUTOFF };
+
+    // Dirty flag turn true when either light properties is changing values.
+    // THis gets back to false in the somethingChangedNotification() call
+    // Which is called after a setProperties() or a readEntitySubClassFromBUfferCall on the entity.
+    bool _lightPropertiesChanged { false };
 
     static bool _lightsArePickable;
 };

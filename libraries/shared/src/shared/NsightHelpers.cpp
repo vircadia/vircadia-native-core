@@ -22,7 +22,8 @@ bool nsightActive() {
 }
 
 ProfileRange::ProfileRange(const char *name) {
-    _rangeId = nvtxRangeStart(name);
+    //_rangeId = nvtxRangeStart(name);
+    _rangeId = nvtxRangePush(name);
 }
 
 ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payload) {
@@ -36,11 +37,13 @@ ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payloa
     eventAttrib.payload.llValue = payload;
     eventAttrib.payloadType = NVTX_PAYLOAD_TYPE_UNSIGNED_INT64;
 
-    _rangeId = nvtxRangeStartEx(&eventAttrib);
+    //_rangeId = nvtxRangeStartEx(&eventAttrib);
+    _rangeId = nvtxRangePushEx(&eventAttrib);
 }
 
 ProfileRange::~ProfileRange() {
-    nvtxRangeEnd(_rangeId);
+  //  nvtxRangeEnd(_rangeId);
+    nvtxRangePop();
 }
 
 #else

@@ -1313,6 +1313,10 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
+    // Now check the sub classes 
+    somethingChanged |= setSubClassProperties(properties);
+
+    // Finally notify if change detected
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG

@@ -70,6 +70,7 @@ EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredP
 
 void LightEntityItem::setFalloffRadius(float value) {
     _falloffRadius = glm::max(value, 0.0f);
+    _lightPropertiesChanged = true;
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
@@ -85,6 +86,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
             float maxDimension = glm::max(dimensions.x, dimensions.y, dimensions.z);
             setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
         }
+        _lightPropertiesChanged = true;
     }
 }
 
@@ -98,10 +100,26 @@ void LightEntityItem::setCutoff(float value) {
         const float width = length * glm::sin(glm::radians(_cutoff));
         setDimensions(glm::vec3(width, width, length));
     }
+    _lightPropertiesChanged = true;
 }
 
 bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - getLastEdited();
+            qCDebug(entities) << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+                "now=" << now << " getLastEdited()=" << getLastEdited();
+        }
+        setLastEdited(properties.getLastEdited());
+    }
+    return somethingChanged;
+}
+
+bool LightEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
@@ -110,18 +128,9 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cutoff, setCutoff);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(falloffRadius, setFalloffRadius);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
     return somethingChanged;
 }
+
 
 int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
@@ -192,4 +201,9 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_EXPONENT, getExponent());
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, getCutoff());
     APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
+}
+
+void LightEntityItem::somethingChangedNotification() {
+    EntityItem::somethingChangedNotification();
+    _lightPropertiesChanged = false;
 }
