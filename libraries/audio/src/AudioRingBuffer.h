@@ -63,13 +63,13 @@ public:
     int writeData(const char* source, int maxSize);
 
     /// Returns a reference to the index-th sample offset from the current read sample
-    int16_t& operator[](const int index);
-    const int16_t& operator[] (const int index) const;
+    int16_t& operator[](const int index) { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
+    const int16_t& operator[] (const int index) const { return *shiftedPositionAccomodatingWrap(_nextOutput, index); }
 
     /// Essentially discards the next numSamples from the ring buffer
     /// NOTE: This is not checked - it is possible to shift past written data
     ///       Use samplesAvailable() to see the distance a valid shift can go
-    void shiftReadPosition(unsigned int numSamples);
+    void shiftReadPosition(unsigned int numSamples) { _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, numSamples); }
 
     int samplesAvailable() const;
     int framesAvailable() const { return (_numFrameSamples == 0) ? 0 : samplesAvailable() / _numFrameSamples; }
