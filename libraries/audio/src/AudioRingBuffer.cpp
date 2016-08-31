@@ -187,6 +187,7 @@ int16_t* AudioRingBuffer::shiftedPositionAccomodatingWrap(int16_t* position, int
 }
 
 float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
+    // FIXME: This is a bad measure of loudness - normal estimation uses sqrt(sum(x*x))
     float loudness = 0.0f;
     const int16_t* sampleAt = frameStart;
     const int16_t* bufferLastAt = _buffer + _bufferLength - 1;
