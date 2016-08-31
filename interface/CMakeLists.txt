@@ -168,7 +168,7 @@ if (WIN32)
 endif()
 
 if (NOT ANDROID)
-  set(${STEAM_WRAPPER} steamworks-wrapper)
+  set(${NON_ANDROID_LIBRARIES} controllers ui-plugins display-plugins input-plugins steamworks-wrapper)
 endif ()
 
 # link required hifi libraries
@@ -177,8 +177,8 @@ link_hifi_libraries(
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer ui auto-updater
-  controllers plugins ui-plugins display-plugins input-plugins
-  ${STEAM_WRAPPER}
+  controllers plugins
+  ${NON_ANDROID_LIBRARIES}
 )
 
 # include the binary directory of render-utils for shader includes

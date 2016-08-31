@@ -245,6 +245,7 @@ endif()
 if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(interface)
   add_subdirectory(gvr-interface)
+  add_subdirectory(plugins)
 endif ()
 
 if (DEFINED ENV{HIFI_MEMORY_DEBUGGING})
