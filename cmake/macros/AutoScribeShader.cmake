@@ -66,7 +66,7 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
 
     if (NOT NATIVE_SCRIBE)
       message(FATAL_ERROR "The High Fidelity scribe tool is required for shader pre-processing. \
-        Please compile scribe using your native toolchain and set SCRIBE_PATH to the location of the executable in your ENV.\
+        Please compile scribe using your native toolchain and set SCRIBE_PATH to the path containing the scribe executable in your ENV.\
       ")
     endif ()
 
