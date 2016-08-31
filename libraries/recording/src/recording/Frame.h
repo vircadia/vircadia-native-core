@@ -13,7 +13,7 @@
 #include "Forward.h"
 
 #include <functional>
-#include <stdint.h>
+#include <limits>
 
 #include <QtCore/QObject>
 
@@ -22,7 +22,7 @@ namespace recording {
 struct FrameHeader {
     using Time = uint32_t;
 
-    static const Time INVALID_TIME = UINT32_MAX;
+    static const Time INVALID_TIME = std::numeric_limits<uint32_t>::max();
     static const FrameType TYPE_INVALID = 0xFFFF;
     static const FrameType TYPE_HEADER = 0x0;
 
@@ -51,7 +51,7 @@ public:
     QByteArray data;
 
     Frame() {}
-    Frame(FrameType type, float timeOffset, const QByteArray& data) 
+    Frame(FrameType type, float timeOffset, const QByteArray& data)
         : FrameHeader(type, timeOffset), data(data) { }
 
     static FrameType registerFrameType(const QString& frameTypeName);
