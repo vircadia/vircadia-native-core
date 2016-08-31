@@ -164,9 +164,10 @@ function toggleMarketplace() {
     }
 }
 
+var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
+
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
-    var TOOL_ICON_URL = Script.resolvePath("assets/images/tools/");
     var that = {},
         toolBar,
         systemToolbar,
@@ -199,7 +200,7 @@ var toolBar = (function () {
     }
 
     function addButton(name, image, handler) {
-        var imageUrl = TOOL_ICON_URL + image;
+        var imageUrl = TOOLS_PATH + image;
         var button = toolBar.addButton({
             objectName: name,
             imageURL: imageUrl,
@@ -232,7 +233,7 @@ var toolBar = (function () {
         systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
         activeButton = systemToolbar.addButton({
             objectName: EDIT_TOGGLE_BUTTON,
-            imageURL: TOOL_ICON_URL + "edit.svg",
+            imageURL: TOOLS_PATH + "edit.svg",
             visible: true,
             alpha: 0.9,
             buttonState: 1,
@@ -1326,13 +1327,14 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
 
+var ENTITY_PROPERTIES_URL = Script.resolvePath('html/entityProperties.html');
+
 var PropertiesTool = function (opts) {
     var that = {};
 
-    var url = Script.resolvePath('html/entityProperties.html');
     var webView = new OverlayWebWindow({
         title: 'Entity Properties',
-        source: url,
+        source: ENTITY_PROPERTIES_URL,
         toolWindow: true
     });
 
