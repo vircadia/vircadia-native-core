@@ -69,6 +69,8 @@ public:
     virtual bool wantVsync() const { return true; }
     void setVsyncEnabled(bool vsyncEnabled) { _vsyncEnabled = vsyncEnabled; }
     bool isVsyncEnabled() const { return _vsyncEnabled; }
+    // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
+    int getRequiredThreadCount() const override { return 3; }
 
 protected:
     friend class PresentThread;
