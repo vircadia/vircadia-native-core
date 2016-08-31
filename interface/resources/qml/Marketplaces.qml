@@ -73,6 +73,19 @@ Rectangle {
             }
         }
 
+        onNewViewRequested: {
+            var component = Qt.createComponent("Browser.qml");
+            var newWindow = component.createObject(desktop);
+            request.openIn(newWindow.webView);
+            if (File.isZippedFbx(desktop.currentUrl)) {
+                zipTimer.handler = function() {
+                    newWindow.destroy();
+                    runJavaScript(autoCancel);
+                }
+                zipTimer.start();
+            }
+        }
+
     }
 
     Rectangle {
