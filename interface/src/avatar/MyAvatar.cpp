@@ -532,8 +532,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
-void MyAvatar::updateJointFromController(glm::mat4& previousSensorToWorldInverseMatrix, controller::Action poseKey,
-                                         ThreadSafeValueCache<glm::mat4>& matrixCache) {
+void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
     assert(QThread::currentThread() == thread());
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
@@ -548,9 +547,6 @@ void MyAvatar::updateJointFromController(glm::mat4& previousSensorToWorldInverse
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
-
-    glm::mat4 previousSensorToWorldInverse = glm::inverse(_sensorToWorldMatrix);
-
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -565,8 +561,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
 
-    updateJointFromController(previousSensorToWorldInverse, controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
-    updateJointFromController(previousSensorToWorldInverse, controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
+    updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
+    updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
 }
 
 //  Update avatar head rotation with sensor data

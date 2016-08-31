@@ -119,8 +119,7 @@ public:
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // read the location of a hand controller and save the transform
-    void updateJointFromController(glm::mat4& previousSensorToWorldInverseMatrix, controller::Action poseKey,
-                                   ThreadSafeValueCache<glm::mat4>& matrixCache);
+    void updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
