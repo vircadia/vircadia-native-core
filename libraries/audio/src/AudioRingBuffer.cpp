@@ -25,12 +25,11 @@
 
 static const QString RING_BUFFER_OVERFLOW_DEBUG { "AudioRingBuffer::writeData has overflown the buffer. Overwriting old data." };
 
-AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
+AudioRingBuffer::AudioRingBuffer(int numFrameSamples, int numFramesCapacity) :
     _frameCapacity(numFramesCapacity),
     _sampleCapacity(numFrameSamples * numFramesCapacity),
     _bufferLength(numFrameSamples * (numFramesCapacity + 1)),
     _numFrameSamples(numFrameSamples),
-    _randomAccessMode(randomAccessMode),
     _overflowCount(0)
 {
     if (numFrameSamples) {
@@ -63,9 +62,6 @@ void AudioRingBuffer::resizeForFrameSize(int numFrameSamples) {
     _numFrameSamples = numFrameSamples;
     _buffer = new int16_t[_bufferLength];
     memset(_buffer, 0, _bufferLength * sizeof(int16_t));
-    if (_randomAccessMode) {
-        memset(_buffer, 0, _bufferLength * sizeof(int16_t));
-    }
     reset();
 }
 
@@ -86,9 +82,6 @@ int AudioRingBuffer::readData(char *data, int maxSize) {
     // If we're in random access mode, then we consider our number of available read samples slightly
     // differently. Namely, if anything has been written, we say we have as many samples as they ask for
     // otherwise we say we have nothing available
-    if (_randomAccessMode) {
-        numReadSamples = _endOfLastWrite ? (maxSize / sizeof(int16_t)) : 0;
-    }
 
     if (_nextOutput + numReadSamples > _buffer + _bufferLength) {
         // we're going to need to do two reads to get this data, it wraps around the edge
@@ -96,21 +89,12 @@ int AudioRingBuffer::readData(char *data, int maxSize) {
         // read to the end of the buffer
         int numSamplesToEnd = (_buffer + _bufferLength) - _nextOutput;
         memcpy(data, _nextOutput, numSamplesToEnd * sizeof(int16_t));
-        if (_randomAccessMode) {
-            memset(_nextOutput, 0, numSamplesToEnd * sizeof(int16_t)); // clear it
-        }
 
         // read the rest from the beginning of the buffer
         memcpy(data + (numSamplesToEnd * sizeof(int16_t)), _buffer, (numReadSamples - numSamplesToEnd) * sizeof(int16_t));
-        if (_randomAccessMode) {
-            memset(_buffer, 0, (numReadSamples - numSamplesToEnd) * sizeof(int16_t)); // clear it
-        }
     } else {
         // read the data
         memcpy(data, _nextOutput, numReadSamples * sizeof(int16_t));
-        if (_randomAccessMode) {
-            memset(_nextOutput, 0, numReadSamples * sizeof(int16_t)); // clear it
-        }
     }
 
     // push the position of _nextOutput by the number of samples read

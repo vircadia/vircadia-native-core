@@ -23,7 +23,7 @@ const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
 class AudioRingBuffer {
 public:
-    AudioRingBuffer(int numFrameSamples, bool randomAccessMode = false, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
+    AudioRingBuffer(int numFrameSamples, int numFramesCapacity = DEFAULT_RING_BUFFER_FRAME_CAPACITY);
     ~AudioRingBuffer();
 
     void reset();
@@ -73,7 +73,6 @@ protected:
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
-    bool _randomAccessMode; /// will this ringbuffer be used for random access? if so, do some special processing
 
     int _overflowCount; /// how many times has the ring buffer has overwritten old data
 
