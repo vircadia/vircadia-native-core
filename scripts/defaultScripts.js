@@ -93,8 +93,9 @@ function menuItemEvent(menuItem) {
         } else if (isChecked === false) {
             Settings.setValue(SETTINGS_KEY, false);
         }
+         Window.alert('You must reload all scripts for this to take effect.')
     }
-        Window.alert('You must reload all scripts for this to take effect.')
+
 
 }
 
