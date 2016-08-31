@@ -164,24 +164,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };
 
-
-class RenderDeferredConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
-public:
-    RenderDeferredConfig() : render::Job::Config(true) {}
-
-    double getGpuTime() { return gpuTime; }
-    double getGpuBatchTime() { return gpuBatchTime; }
-    
-    double gpuTime { 0.0 };
-    double gpuBatchTime { 0.0 };
-
-signals:
-    void dirty();
-};
-
+using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:

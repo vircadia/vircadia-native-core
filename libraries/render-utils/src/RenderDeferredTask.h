@@ -29,25 +29,8 @@ protected:
     gpu::RangeTimerPointer _gpuTimer;
 };
 
+using GPURangeTimerConfig = render::GPUJobConfig;
 
-class GPURangeTimerConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
-public:
-    double getGpuTime() { return gpuTime; }
-    double getGpuBatchTime() { return gpuBatchTime; }
-    
-    void setTime(double gpu, double batch) {
-        gpuTime = gpu;
-        gpuBatchTime = batch;
-    }
-
-protected:
-    double gpuTime;
-    double gpuBatchTime;
-};
-  
 class EndGPURangeTimer {
 public:
     using Config = GPURangeTimerConfig;
@@ -150,7 +133,7 @@ protected:
     gpu::PipelinePointer getOpaquePipeline();
 };
 
-using DrawBackgroundDeferredConfig = GPURangeTimerConfig;
+using DrawBackgroundDeferredConfig = render::GPUJobConfig;
 
 class DrawBackgroundDeferred {
 public:
@@ -209,16 +192,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
-class RenderDeferredTaskConfig : public render::Task::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-public:
-    double getGpuTime() { return gpuTime; }
-
-protected:
-    friend class RenderDeferredTask;
-    double gpuTime;
-};
+using RenderDeferredTaskConfig = render::GPUTaskConfig;
 
 class RenderDeferredTask : public render::Task {
 public:

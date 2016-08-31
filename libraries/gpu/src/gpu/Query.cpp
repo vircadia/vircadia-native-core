@@ -24,17 +24,16 @@ Query::~Query()
 {
 }
 
-double Query::getElapsedTime() const {
+double Query::getGPUElapsedTime() const {
     return ((double)_queryResult) / 1000000.0;
 }
-
-double Query::getBatchPerformTime() const {
-    return _batchPerformTime;
+double Query::getBatchElapsedTime() const {
+    return ((double)_usecBatchElapsedTime) / 1000000.0;
 }
 
-void Query::triggerReturnHandler(uint64_t queryResult, double cpuTime) {
+void Query::triggerReturnHandler(uint64_t queryResult, uint64_t batchElapsedTime) {
     _queryResult = queryResult;
-    _batchPerformTime = cpuTime;
+    _usecBatchElapsedTime = batchElapsedTime;
 
     if (_returnHandler) {
         _returnHandler(*this);
@@ -46,11 +45,9 @@ RangeTimer::RangeTimer() {
     for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
         _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
             _tailIndex ++;
-            auto elapsedTime = query.getElapsedTime();
-            _movingAverageGPU.addSample(elapsedTime);
 
-            auto elapsedTimeCPU = query.getBatchPerformTime();
-            _movingAverageCPU.addSample(elapsedTimeCPU);
+            _movingAverageGPU.addSample(query.getGPUElapsedTime());
+            _movingAverageBatch.addSample(query.getBatchElapsedTime());
         }));
     }
 }
@@ -75,10 +72,10 @@ void RangeTimer::end(gpu::Batch& batch) {
     }
 }
 
-double RangeTimer::getAverageGPU() const {
+double RangeTimer::getGPUAverage() const {
     return _movingAverageGPU.average;
 }
 
-double RangeTimer::getAverageCPU() const {
-    return _movingAverageCPU.average;
+double RangeTimer::getBatchAverage() const {
+    return _movingAverageBatch.average;
 }

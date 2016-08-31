@@ -433,8 +433,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     // Update the timer
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverageGPU();
-    config->gpuBatchTime = _gpuTimer.getAverageCPU();
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
 }
 
 

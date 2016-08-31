@@ -201,9 +201,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
     });
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverageGPU();
-    config->gpuBatchTime = _gpuTimer.getAverageCPU();
-
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
 }
 
 
@@ -526,8 +524,8 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
        
  
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverageGPU();
-    config->gpuBatchTime = _gpuTimer.getAverageCPU(); }
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+}
 
 
 const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {

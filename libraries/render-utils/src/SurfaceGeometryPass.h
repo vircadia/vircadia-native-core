@@ -62,24 +62,7 @@ protected:
 
 using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;
 
-
-class LinearDepthPassConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
-
-public:
-    LinearDepthPassConfig() : render::Job::Config(true) {}
-
-    double getGpuTime() { return gpuTime; }
-    double getGpuBatchTime() { return gpuBatchTime; }
-
-    double gpuTime{ 0.0 };
-    double gpuBatchTime { 0.0 };
-
-signals:
-    void dirty();
-};
+using LinearDepthPassConfig = render::GPUJobConfig;
 
 class LinearDepthPass {
 public:
@@ -152,7 +135,7 @@ protected:
 
 using SurfaceGeometryFramebufferPointer = std::shared_ptr<SurfaceGeometryFramebuffer>;
 
-class SurfaceGeometryPassConfig : public render::Job::Config {
+class SurfaceGeometryPassConfig : public render::GPUJobConfig {
     Q_OBJECT
     Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty)
     Q_PROPERTY(float basisScale MEMBER basisScale NOTIFY dirty)
@@ -162,11 +145,8 @@ class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_PROPERTY(float diffuseFilterScale MEMBER diffuseFilterScale NOTIFY dirty)
     Q_PROPERTY(float diffuseDepthThreshold MEMBER diffuseDepthThreshold NOTIFY dirty)
 
-    Q_PROPERTY(double gpuTime READ getGpuTime)
-    Q_PROPERTY(double gpuBatchTime READ getGpuBatchTime)
-
 public:
-    SurfaceGeometryPassConfig() : render::Job::Config(true) {}
+    SurfaceGeometryPassConfig() : render::GPUJobConfig(true) {}
 
     float depthThreshold{ 5.0f }; // centimeters
     float basisScale{ 1.0f };
@@ -174,12 +154,6 @@ public:
     int resolutionLevel{ 1 };
     float diffuseFilterScale{ 0.2f };
     float diffuseDepthThreshold{ 1.0f };
-
-    double getGpuTime() { return gpuTime; }
-    double getGpuBatchTime() { return gpuBatchTime; }
-
-    double gpuTime { 0.0 };
-    double gpuBatchTime { 0.0 };
 
 signals:
     void dirty();
