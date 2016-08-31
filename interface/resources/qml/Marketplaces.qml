@@ -25,27 +25,19 @@ Rectangle {
     HifiConstants { id: hifi }
     id: marketplace
     anchors.fill: parent
-    property var currentUrl: "https://metaverse.highfidelity.com/marketplace"
+    property var marketplacesUrl: "../../scripts/system/html/marketplaces.html"
     property int statusBarHeight: 50
     property int statusMargin: 50
+    property string standardMessage: "Check out other marketplaces"
+    property string claraMessage: "Choose a model from the list and click Download -> Autodesk FBX"
 
     Controls.BaseWebView {
         id: webview
-        url: currentUrl
+        url: marketplacesUrl
         anchors.top: marketplace.top
         width: parent.width
         height: parent.height - statusBarHeight
         focus: true
-        newWindowHook: function (component, newWindow) {
-            if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(autoCancel);                
-                zipTimer.handler = function() {
-                    console.log("timer started", newWindow)
-                    newWindow.destroy();
-                }
-                zipTimer.start();
-            }
-        }
 
         Timer {
             id: zipTimer
@@ -63,13 +55,24 @@ Rectangle {
                                       element.removeClass("download-file");
                                       element.removeAttr("download");'
 
+        property var checkFileType: "$('[data-extension]:not([data-extension=\"fbx\"])').parent().remove()"
+
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
-            // add an error message for non-fbx files
-            if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(simpleDownload, function(){console.log("ran the JS");});
-            }
+            if (File.isClaraLink(desktop.currentUrl)) {
+                //runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
+                if (File.isZippedFbx(desktop.currentUrl)) {
+                    runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
+                }
+            } 
+        }
 
+        onLoadingChanged: {
+            if (File.isClaraLink(webview.url)) {
+                statusLabel.text = claraMessage;
+            } else {
+                statusLabel.text = standardMessage;
+            }
         }
 
     }
@@ -89,8 +92,10 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: 150
             text: "See all markets"
-            //onClicked: webview.url = "file:///E:/GitHub/hifi/scripts/system/html/marketplaces.html"
-            onClicked: webview.url = "../../scripts/system/html/marketplaces.html"
+            onClicked: {
+                webview.url = "../../scripts/system/html/marketplaces.html";
+                statusLabel.text = standardMessage;
+            }
         }
 
         Controls.Label {
@@ -99,7 +104,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: statusMargin
             color: hifi.colors.white
-            text: "Check out other marketplaces"
+            text: standardMessage
         }
 
         HiFiGlyphs {

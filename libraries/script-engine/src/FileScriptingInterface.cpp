@@ -69,6 +69,11 @@ bool FileScriptingInterface::isTempDir(QString tempDir) {
     return false;
 }
 
+bool FileScriptingInterface::isClaraLink(QUrl url) {
+    if (url.toString().contains("clara") && !url.toString().contains("clara.io/signup")) return true;
+    return false;
+}
+
 bool FileScriptingInterface::isZippedFbx(QUrl url) {
     if (url.toString().contains(".zip") && url.toString().contains("fbx")) return true;
     return false;
