@@ -237,7 +237,6 @@ endif()
 
 if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(interface)
-  add_subdirectory(tools)
   add_subdirectory(gvr-interface)
 endif ()
 
