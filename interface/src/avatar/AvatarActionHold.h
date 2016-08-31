@@ -68,9 +68,6 @@ private:
     static const int velocitySmoothFrames;
     QVector<glm::vec3> _measuredLinearVelocities;
     int _measuredLinearVelocitiesIndex { 0 };
-
-    glm::vec3 _preStepAvatarPosition;
-    glm::quat _preStepAvatarRotation;
 };
 
 #endif // hifi_AvatarActionHold_h

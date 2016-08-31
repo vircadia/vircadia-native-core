@@ -59,8 +59,6 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         glm::vec3 avatarRigidBodyPosition;
         glm::quat avatarRigidBodyRotation;
         getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
-        _preStepAvatarPosition = avatarRigidBodyPosition;
-        _preStepAvatarRotation = avatarRigidBodyRotation;
 
         if (_ignoreIK) {
             return;
