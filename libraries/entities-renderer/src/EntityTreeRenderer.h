@@ -76,7 +76,7 @@ public:
     Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f);
 
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
     void releaseModel(ModelPointer model);
