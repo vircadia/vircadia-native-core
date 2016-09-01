@@ -17,7 +17,7 @@ if (NOT ANDROID)
       INSTALL_COMMAND ""
       LOG_DOWNLOAD 1
     )
-  elseif ()
+  else ()
     ExternalProject_Add(
       ${EXTERNAL_NAME}
       URL http://s3.amazonaws.com/hifi-public/dependencies/codecSDK-linux.zip
