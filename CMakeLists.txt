@@ -4,7 +4,7 @@ if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
   set(ANDROID_NATIVE_API_LEVEL 19)
   set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.5)
-  set(ANDROID_STL c++_static)
+  set(ANDROID_STL c++_shared)
 endif ()
 
 if (WIN32)
