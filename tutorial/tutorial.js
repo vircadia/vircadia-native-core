@@ -290,6 +290,12 @@ stepRaiseAboveHead.prototype = {
     }
 };
 
+function setControllerVisible(name, visible) {
+    Messages.sendLocalMessage('Controller-Display', JSON.stringify({
+        name: name,
+        visible: visible,
+    }));
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -304,6 +310,7 @@ var stepNearGrab = function(name) {
 }
 stepNearGrab.prototype = {
     start: function(onFinish) {
+        setControllerVisible("trigger", true);
         var tag = this.tag;
 
         // Spawn content set
@@ -353,6 +360,7 @@ stepNearGrab.prototype = {
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
+        setControllerVisible("trigger", false);
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }
@@ -375,6 +383,7 @@ var stepFarGrab = function(name) {
 }
 stepFarGrab.prototype = {
     start: function(onFinish) {
+        setControllerVisible("trigger", true);
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             farGrabEnabled: true,
         }));
@@ -431,6 +440,7 @@ stepFarGrab.prototype = {
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
+        setControllerVisible("trigger", false);
         hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
     }
@@ -452,6 +462,7 @@ var stepEquip = function(name) {
 }
 stepEquip.prototype = {
     start: function(onFinish) {
+        setControllerVisible("trigger", true);
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,
         }));
@@ -523,6 +534,7 @@ stepEquip.prototype = {
                         loop: false
                     });
                     Script.setTimeout(onHit.bind(this), 1000);
+                    return;
                 }
             }
         }
@@ -542,6 +554,7 @@ stepEquip.prototype = {
         //}
     },
     cleanup: function() {
+        setControllerVisible("trigger", false);
         try {
             Messages.messageReceived.disconnect(this.onMessage);
         } catch(e) {
@@ -595,6 +608,7 @@ var stepTeleport = function(name) {
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
+        setControllerVisible("teleport", true);
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         Menu.setIsOptionChecked("Overlays", true);
 
@@ -624,6 +638,7 @@ stepTeleport.prototype = {
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
+        setControllerVisible("teleport", false);
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }
@@ -761,3 +776,8 @@ Controller.keyReleaseEvent.connect(function (event) {
         startTutorial();
     }
 });
+
+// Messages.sendLocalMessage('Controller-Display', JSON.stringify({
+//     name: "menu",
+//     visible: false,
+// }));

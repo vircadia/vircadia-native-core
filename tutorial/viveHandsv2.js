@@ -234,7 +234,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 
             dimensions: viveNaturalDimensions,
 
-            annotationTextRotation: Quat.fromPitchYawRollDegrees(20, -90, 0),
+            annotationTextRotation: Quat.fromPitchYawRollDegrees(45, -90, 0),
             annotations: {
 //                red: {
 //                    debug: true,
@@ -277,11 +277,12 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 //                    color: { red: 255, green: 255, blue: 255 },
 //                },
 
-                center: {
-                    position: zeroPosition,
-                    direction: "center",
-                    color: { red: 100, green: 255, blue: 255 },
-                },
+                // center: {
+                //     position: zeroPosition,
+                //     direction: "center",
+                //     color: { red: 100, green: 255, blue: 255 },
+                // },
+
                 trigger: {
                     position: {
                         x: 0,
@@ -309,7 +310,8 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                     direction: "left",
                     color: { red: 255, green: 100, blue: 100 },
                 },
-                pad: {
+                teleport: {
+                    textOffset: { x: -0.015, y: 0.004, z: -0.005 },
                     position: {
                         x: 0,
                         y: 0.00378,
@@ -344,9 +346,8 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 z: 0.06380049744620919
             },
 
-            annotationTextRotation: Quat.fromPitchYawRollDegrees(20, -90, 0),
+            annotationTextRotation: Quat.fromPitchYawRollDegrees(180 + 45, 90, 180),
             annotations: {
-
                 trigger: {
                     position: {
                         x: 0,
@@ -374,7 +375,8 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                     direction: "left",
                     color: { red: 255, green: 100, blue: 100 },
                 },
-                pad: {
+                teleport: {
+                    textOffset: { x: -0.015, y: 0.004, z: -0.005 },
                     position: {
                         x: 0,
                         y: 0.00378,
@@ -397,7 +399,8 @@ var VIVE_CONTROLLER_CONFIGURATION = {
     ]
 }
 
-var DEBUG = true;
+var DEBUG = false;
+var VISIBLE_BY_DEFAULT = false;
 
 function setupController(config) {
     var controllerDisplay = {
@@ -445,16 +448,20 @@ function setupController(config) {
                     });
                     controllerDisplay.overlays.push(overlayID);
 
-                    controllerDisplay.annotations[key] = {
-                        overlay: overlayID,
-                    };
                 }
 
+                var ANNOTATION_TEXT_OFFSET = 0.1;
                 var sign = annotation.direction == "right" ? 1 : -1;
-                var textOffset = annotation.direction == "right" ? 0.04 : -0.01;
+                var textOffset = annotation.direction == "right" ? 0.08 : 0.02;
+                if (annotation.textOffset) {
+                    var pos = Vec3.sum(annotationPosition, Vec3.multiplyQbyV(controller.rotation, annotation.textOffset));
+                } else {
+                    var pos = Vec3.sum(annotationPosition, Vec3.multiplyQbyV(controller.rotation, { x: textOffset, y: 0, z: -0.005 }));
+                }
                 var textOverlayID = Overlays.addOverlay("text3d", {
+                    visible: VISIBLE_BY_DEFAULT, 
                     text: key,
-                    localPosition: Vec3.sum(annotationPosition, Vec3.multiplyQbyV(controller.rotation, { x: textOffset, y: 0, z: 0.0 })),
+                    localPosition: pos,
                     localRotation: controller.annotationTextRotation,
                     lineHeight: 0.01,
                     leftMargin: 0,
@@ -469,9 +476,16 @@ function setupController(config) {
                     parentID: PARENT_ID,
                     parentJointIndex: controller.jointIndex,
                 });
-                controllerDisplay.overlays.push(textOverlayID);
 
-                var offset = { x: 0, y: 0, z: annotation.direction == "right" ? -0.1 : 0.1 };
+                controllerDisplay.overlays.push(textOverlayID);
+                if (key in controllerDisplay.annotations) {
+                    controllerDisplay.annotations[key].push(textOverlayID);
+                } else {
+                    controllerDisplay.annotations[key] = [textOverlayID];
+                }
+
+                var ANNOTATION_OFFSET = 0.5;
+                var offset = { x: 0, y: 0, z: annotation.direction == "right" ? -1 * ANNOTATION_OFFSET : ANNOTATION_OFFSET };
                 var lineOverlayID = Overlays.addOverlay("line3d", {
                     visible: false,
                     localPosition: annotationPosition,
@@ -500,78 +514,32 @@ function deleteControllerDisplay(controllerDisplay) {
     Controller.disableMapping(controllerDisplay.mappingName);
 }
 
-// var triggerAnnotationOverlayID = Overlays.addOverlay("text3d", {
-//     text: "Trigger",
-//     lineHeight: 0.025,
-//     backgroundAlpha: 0.0,
-//     dimensions: {
-//         x: 0.2,
-//         y: 0.2,
-//     },
-//     localPosition: Vec3.sum(leftBasePosition, { x: -0.09, y: -0.025, z: 0.03 }),
-//     localRotation: Quat.multiply(Quat.fromPitchYawRollDegrees(180, 0, 90), leftBaseRotation),
-//     parentID: MyAvatar.sessionUUID,
-//     parentJointIndex: MyAvatar.getJointIndex("LeftHand")
-// });
-
-// var leftOverlayID = Overlays.addOverlay("model", {
-//     url: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vr_controller_vive_1_5.obj",
-//     dimensions: naturalDimensions,
-//     localRotation: leftBaseRotation,
-//     localPosition: leftBasePosition,
-//     parentID: PARENT_ID,
-//     parentJointIndex: LEFT_JOINT_INDEX
-// });
-//
-// var leftTriggerOverlayID = Overlays.addOverlay("model", {
-//     url: "C:/Users/Ryan/Assets/controller/touch_l_trigger.fbx",
-//     visible: false,
-//     localRotation: leftBaseRotation,
-//     localPosition: Vec3.sum(leftBasePosition, { x: -0.05, y: -0.025, z: 0.02 }),
-//     parentID: PARENT_ID,
-//     parentJointIndex: LEFT_JOINT_INDEX
-// });
-
-// var rightOverlayID = Overlays.addOverlay("model", {
-//     url: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vr_controller_vive_1_5.obj",
-//     dimensions: naturalDimensions,
-//     localRotation: rightBaseRotation,
-//     localPosition: rightBasePosition,
-//     parentID: PARENT_ID,
-//     parentJointIndex: RIGHT_JOINT_INDEX
-// });
-//
-// var rightTriggerOverlayID = Overlays.addOverlay("model", {
-//     url: "C:/Users/Ryan/Assets/controller/touch_r_trigger.fbx",
-//     visible: false,
-//     localRotation: rightBaseRotation,
-//     localPosition: Vec3.sum(rightBasePosition, { x: 0.05, y: -0.025, z: 0.02 }),
-//     parentID: PARENT_ID,
-//     parentJointIndex: RIGHT_JOINT_INDEX
-// });
-//
 var overlays = [
-    // leftOverlayID,
-    // leftTriggerOverlayID,
-    // triggerAnnotationOverlayID,
-
-    // rightOverlayID,
-    // rightTriggerOverlayID,
 ];
-//
-// Script.setInterval(function() {
-//     // var pose = MyAvatar.getLeftHandControllerPoseInWorldFrame();
-//     // Overlays.editOverlay(leftOverlayID, {
-//     //     position: pose.translation,
-//     //     rotation: pose.rotation
-//     // });
-//     // pose = MyAvatar.getRightHandControllerPoseInWorldFrame();
-//     // Overlays.editOverlay(rightOverlayID, {
-//     //     position: pose.translation,
-//     //     rotation: pose.rotation
-//     // });
-// }, 10);
 
+
+Messages.subscribe('Controller-Display');
+var handleMessages = function(channel, message, sender) {
+    print("MESSASGE>>>>", channel, message, sender);
+    if (sender === MyAvatar.sessionUUID) {
+        if (channel === 'Controller-Display') {
+            print('here');
+            var data = JSON.parse(message);
+            var name = data.name;
+            var visible = data.visible;
+            //c.setDisplayAnnotation(name, visible);
+            if (name in c.annotations) {
+                print("hiding");
+                for (var i = 0; i < c.annotations[name].length; ++i) {
+                    print("hiding", i);
+                    Overlays.editOverlay(c.annotations[name][i], { visible: visible });
+                }
+            }
+        }
+    }
+}
+
+Messages.messageReceived.connect(handleMessages);
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab.disable";
 var mapping = Controller.newMapping(MAPPING_NAME);
