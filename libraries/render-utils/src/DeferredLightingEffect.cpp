@@ -218,10 +218,10 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
     
     if (lightVolume) {
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setCullMode(gpu::State::CULL_FRONT);
+        state->setDepthTest(true, false, gpu::GREATER_EQUAL);
 
-        state->setDepthClampEnable(true);
+        //state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);

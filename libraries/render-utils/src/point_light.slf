@@ -46,10 +46,10 @@ void main(void) {
     }
 
     // Kill if in front of the light volume
-    float depth = frag.depthVal;
+/*    float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {
         discard;
-    }
+    }*/
 
     // Need the light now
     Light light = getLight();
