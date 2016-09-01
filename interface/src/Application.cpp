@@ -4318,18 +4318,14 @@ namespace render {
 
         switch (backgroundMode) {
             case model::SunSkyStage::SKY_DEFAULT: {
-                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
-                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
-                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
-
                 auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                 auto sceneKeyLight = scene->getKeyLight();
+
                 scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
+                sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
                 // fall through: render a skybox (if available), or the defaults (if requested)
            }
 
@@ -4348,8 +4344,7 @@ namespace render {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
-                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
+                    sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
                     sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
                     // fall through: render defaults skybox
                 } else {
