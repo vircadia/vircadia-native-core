@@ -15,8 +15,9 @@
 
 using namespace gpu;
 
-Query::Query(const Handler& returnHandler) :
-    _returnHandler(returnHandler)
+Query::Query(const Handler& returnHandler, const std::string& name) :
+    _returnHandler(returnHandler),
+    _name(name)
 {
 }
 
@@ -41,14 +42,15 @@ void Query::triggerReturnHandler(uint64_t queryResult, uint64_t batchElapsedTime
 }
 
 
-RangeTimer::RangeTimer() {
+RangeTimer::RangeTimer(const std::string& name) :
+    _name(name) {
     for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
         _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
             _tailIndex ++;
 
             _movingAverageGPU.addSample(query.getGPUElapsedTime());
             _movingAverageBatch.addSample(query.getBatchElapsedTime());
-        }));
+        }, _name));
     }
 }
 

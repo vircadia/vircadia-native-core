@@ -219,8 +219,9 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
+        state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -598,11 +599,11 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
                 // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                 // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-                if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
+          /*      if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                     sphereParam.w = 0.0f;
                     batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else {
+                } else*/ {
                     sphereParam.w = 1.0f;
                     batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
                     
@@ -647,12 +648,12 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                 // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
                 const float OVER_CONSERVATIVE_SCALE = 1.1f;
-                if ((eyeHalfPlaneDistance > -nearRadius) &&
+           /*     if ((eyeHalfPlaneDistance > -nearRadius) &&
                     (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
                     coneParam.w = 0.0f;
                     batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else {
+                } else*/ {
                     coneParam.w = 1.0f;
                     batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
@@ -720,8 +721,12 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto subsurfaceScatteringResource = inputs.get5();
     auto args = renderContext->args;
 
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-       _gpuTimer.begin(batch);
+       _gpuTimer->begin(batch);
     });
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
@@ -731,9 +736,9 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     cleanupJob.run(sceneContext, renderContext);
     
      gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-         _gpuTimer.end(batch);
+         _gpuTimer->end(batch);
     });
     
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }

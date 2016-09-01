@@ -25,7 +25,10 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
+        PROFILE_RANGE_BEGIN(glquery->_profileRangeId, query->getName().c_str(), 0xFFFF7F00);
+
+        //glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
+        glquery->_batchElapsedTime = usecTimestampNow() * 1000;
         if (timeElapsed) {
             glBeginQuery(GL_TIME_ELAPSED, glquery->_endqo);
         } else {
@@ -45,8 +48,12 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
             glQueryCounter(glquery->_endqo, GL_TIMESTAMP);
         }
         GLint64 now;
-        glGetInteger64v(GL_TIMESTAMP, &now);
+        //glGetInteger64v(GL_TIMESTAMP, &now);
+        now = usecTimestampNow() * 1000;
+
         glquery->_batchElapsedTime = now - glquery->_batchElapsedTime;
+
+        PROFILE_RANGE_END(glquery->_profileRangeId);
 
         (void)CHECK_GL_ERROR();
     }

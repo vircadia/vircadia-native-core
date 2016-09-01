@@ -21,8 +21,26 @@ bool nsightActive() {
     return nsightLaunched;
 }
 
+
+uint64_t ProfileRange::beginRange(const char* name, uint32_t argbColor) {
+    nvtxEventAttributes_t eventAttrib = { 0 };
+    eventAttrib.version = NVTX_VERSION;
+    eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+    eventAttrib.colorType = NVTX_COLOR_ARGB;
+    eventAttrib.color = argbColor;
+    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
+    eventAttrib.message.ascii = name;
+    return nvtxRangeStartEx(&eventAttrib);
+  //  return nvtxRangePushEx(&eventAttrib);
+}
+
+void ProfileRange::endRange(uint64_t rangeId) {
+    nvtxRangeEnd(rangeId);
+   // nvtxRangePop();
+}
+
 ProfileRange::ProfileRange(const char *name) {
-    //_rangeId = nvtxRangeStart(name);
+   // _rangeId = nvtxRangeStart(name);
     _rangeId = nvtxRangePush(name);
 }
 
@@ -42,7 +60,7 @@ ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payloa
 }
 
 ProfileRange::~ProfileRange() {
-  //  nvtxRangeEnd(_rangeId);
+   // nvtxRangeEnd(_rangeId);
     nvtxRangePop();
 }
 

@@ -12,6 +12,7 @@
 #ifndef hifi_AmbientOcclusionEffect_h
 #define hifi_AmbientOcclusionEffect_h
 
+#include <string>
 #include <DependencyManager.h>
 
 #include "render/DrawTask.h"
@@ -188,7 +189,7 @@ private:
 
     AmbientOcclusionFramebufferPointer _framebuffer;
     
-    gpu::RangeTimer _gpuTimer;
+    gpu::RangeTimerPointer _gpuTimer;
 
     friend class DebugAmbientOcclusion;
 };

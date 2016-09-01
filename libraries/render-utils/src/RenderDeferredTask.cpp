@@ -101,7 +101,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
    // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
-    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer");
+    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
     const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
@@ -146,8 +146,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-		surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
-	
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
+    
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
@@ -159,7 +159,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer");
+    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
@@ -174,9 +174,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
-		// Debugging Deferred buffer job
-		const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-		addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+        // Debugging Deferred buffer job
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
 

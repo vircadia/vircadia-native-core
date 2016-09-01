@@ -183,7 +183,7 @@ public:
     RenderDeferredCleanup cleanupJob;
 
 protected:
-    gpu::RangeTimer _gpuTimer;
+    gpu::RangeTimerPointer _gpuTimer;
 };
 
 #endif // hifi_DeferredLightingEffect_h

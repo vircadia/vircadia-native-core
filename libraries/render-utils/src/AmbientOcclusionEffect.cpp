@@ -351,6 +351,10 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto sourceViewport = args->_viewport;
     auto occlusionViewport = sourceViewport;
 
+    if (!_gpuTimer) {
+        _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
+    }
+
     if (!_framebuffer) {
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
@@ -384,7 +388,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        _gpuTimer.begin(batch);
+        _gpuTimer->begin(batch);
 
         batch.setViewportTransform(occlusionViewport);
         batch.setProjectionTransform(glm::mat4());
@@ -428,12 +432,12 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
         
-        _gpuTimer.end(batch);
+        _gpuTimer->end(batch);
     });
 
     // Update the timer
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
+    config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
 
