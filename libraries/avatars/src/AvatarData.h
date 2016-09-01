@@ -373,6 +373,8 @@ public slots:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
+    float getTargetScale() { return _targetScale; }
+
 protected:
     glm::vec3 _handPosition;
 

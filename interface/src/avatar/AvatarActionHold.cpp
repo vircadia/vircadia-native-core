@@ -137,7 +137,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
                 Transform avatarTransform;
                 auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(pose.getTranslation());
+                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getTargetScale());
                 palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;
