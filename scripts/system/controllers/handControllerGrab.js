@@ -189,7 +189,6 @@ var STATE_ENTITY_TOUCHING = 7;
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
 var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
-var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 
 var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
 var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
@@ -417,6 +416,18 @@ function removeMyAvatarFromCollidesWith(origCollidesWith) {
     }
     return collidesWithSplit.join();
 }
+
+function removeAvatarsFromCollidesWith(origCollidesWith) {
+    var collidesWithSplit = origCollidesWith.split(",");
+    // remove myAvatar from the array
+    for (var i = collidesWithSplit.length - 1; i >= 0; i--) {
+        if (collidesWithSplit[i] === "myAvatar" || collidesWithSplit[i] === "otherAvatar") {
+            collidesWithSplit.splice(i, 1);
+        }
+    }
+    return collidesWithSplit.join();
+}
+
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
@@ -2442,7 +2453,7 @@ function MyController(hand) {
                 // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
                 // the collision mask hinges on who the physics simulation owner is.
                 Entities.editEntity(entityID, {
-                    "collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED
+                    "collidesWith": removeAvatarsFromCollidesWith(grabbedProperties.collidesWith)
                 });
             }
         }
