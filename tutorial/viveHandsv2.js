@@ -1,4 +1,4 @@
-var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
+var PARENT_ID = MyAvatar.sessionUUID;
 var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
 var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
 //var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("LeftHand");
