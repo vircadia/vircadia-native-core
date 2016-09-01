@@ -28,8 +28,9 @@ Rectangle {
     property var marketplacesUrl: "../../scripts/system/html/marketplaces.html"
     property int statusBarHeight: 50
     property int statusMargin: 50
-    property string standardMessage: "Check out other marketplaces"
-    property string claraMessage: "Choose a model from the list and click Download -> Autodesk FBX"
+    property string standardMessage: "Check out other marketplaces."
+    property string claraMessage: "Choose a model and click Download -> Autodesk FBX."
+    property string claraError: "High Fidelity only supports Autodesk FBX models."
 
     Controls.BaseWebView {
         id: webview
@@ -48,18 +49,48 @@ Rectangle {
             onTriggered: handler();
         }
 
+        Timer {
+            id: alertTimer
+            running: false
+            repeat: false
+            interval: 9000
+            property var handler;
+            onTriggered: handler();
+        }
+
         property var autoCancel: 'var element = $("a.btn.cancel");
                                   element.click();'
 
         property var simpleDownload: 'var element = $("a.download-file");
                                       element.removeClass("download-file");
                                       element.removeAttr("download");'
+        
+        function displayErrorStatus() {
+            alertTimer.handler = function() {
+                statusLabel.text = claraMessage;
+                statusBar.color = hifi.colors.blueHighlight;
+                statusIcon.text = hifi.glyphs.info;
+            }
+            alertTimer.start();
+        }
 
-        property var checkFileType: "$('[data-extension]:not([data-extension=\"fbx\"])').parent().remove()"
+        property var notFbxHandler:     'var element = $("a.btn.btn-primary.viewer-button.download-file")
+                                         element.click();'
+
+        // this code is for removing other file types from Clara.io's download options
+        //property var checkFileType: "$('[data-extension]:not([data-extension=\"fbx\"])').parent().remove()"
 
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
-            runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
+            //runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
+
+            if (File.isNotFbx(desktop.currentUrl)) {
+                statusLabel.text = claraError;
+                statusBar.color = hifi.colors.redHighlight;
+                statusIcon.text = hifi.glyphs.alert;
+                runJavaScript(notFbxHandler, displayErrorStatus());
+            }
+
             if (File.isZippedFbx(desktop.currentUrl)) {
                 runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
             }
@@ -71,6 +102,8 @@ Rectangle {
             } else {
                 statusLabel.text = standardMessage;
             }
+            statusBar.color = hifi.colors.blueHighlight;
+            statusIcon.text = hifi.glyphs.info;
         }
 
         onNewViewRequested: {
@@ -78,9 +111,9 @@ Rectangle {
             var newWindow = component.createObject(desktop);
             request.openIn(newWindow.webView);
             if (File.isZippedFbx(desktop.currentUrl)) {
+                runJavaScript(autoCancel);
                 zipTimer.handler = function() {
                     newWindow.destroy();
-                    runJavaScript(autoCancel);
                 }
                 zipTimer.start();
             }
@@ -116,6 +149,7 @@ Rectangle {
             anchors.leftMargin: statusMargin
             color: hifi.colors.white
             text: standardMessage
+            size: 18
         }
 
         HiFiGlyphs {

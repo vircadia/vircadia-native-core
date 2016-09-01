@@ -8,6 +8,7 @@
 body {
     background: white;
     padding: 0 0 0 0;
+    font-family:Raleway-SemiBold;
 }
 .marketplaces-container {
     display: inline-block;
@@ -38,6 +39,7 @@ body {
     width: 62%;
 }
 .exploreButton {
+    font-size: 16px !important;
     width: 200px !important;
     height: 45px !important;
     margin-top: 20px;

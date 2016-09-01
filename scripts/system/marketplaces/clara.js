@@ -21,8 +21,8 @@ var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
     source: qml,
-    width: 900,
-    height: 700,
+    width: 1000,
+    height: 900,
     toolWindow: false,
     visible: false,
 });

@@ -69,8 +69,15 @@ bool FileScriptingInterface::isTempDir(QString tempDir) {
     return false;
 }
 
+// checks whether the webview is displaying a Clara.io page for Marketplaces.qml
 bool FileScriptingInterface::isClaraLink(QUrl url) {
     if (url.toString().contains("clara") && !url.toString().contains("clara.io/signup")) return true;
+    return false;
+}
+
+// checks whether a user tries to download a file that is not in .fbx format
+bool FileScriptingInterface::isNotFbx(QUrl url) {
+    if (url.toString().contains(".zip") && !(url.toString().contains("fbx") )) return true;
     return false;
 }
 
