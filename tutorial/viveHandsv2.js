@@ -1,8 +1,8 @@
 var PARENT_ID = MyAvatar.sessionUUID;
 var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
 var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
-var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("LeftHand");
-var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("RightHand");
+//var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("LeftHand");
+//var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("RightHand");
 
 var zeroPosition = { x: 0, y: 0, z: 0 };
 var zeroRotation = { x: 0, y: 0, z: 0, w: 1 };
@@ -25,7 +25,6 @@ var naturalPositionR = {
     z: 0.06380049744620919
 };
 
-// THe CONTROLLER_LEFTHAND
 var leftBasePosition = {
     x: CONTROLLER_LENGTH_OFFSET / 2,
     y: CONTROLLER_LENGTH_OFFSET * 2,
@@ -221,13 +220,13 @@ var viveNaturalPosition = {
     y: -0.034076502197422087,
     z: 0.06380049744620919
 };
+var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive2.fbx";
 
 var VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
     controllers: [
         {
-            modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vr_controller_vive_1_5.obj",
-            modelURL: "C:\\Users\\Ryan\\Assets\\controller\\vive2.fbx",
+            modelURL: viveModelURL,
             jointIndex: MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND"),
             naturalPosition: viveNaturalPosition,
             rotation: leftBaseRotation,
@@ -331,15 +330,9 @@ var VIVE_CONTROLLER_CONFIGURATION = {
             },
         },
         {
-            modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vr_controller_vive_1_5.obj",
-            modelURL: "C:\\Users\\Ryan\\Assets\\controller\\vive2.fbx",
+            modelURL: viveModelURL,
             jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
-            //rotation: rightBaseRotation,
-            //position: rightBasePosition,
-            //position: Vec3.sum(Vec3.multiplyQbyV(rightBaseRotation, naturalPositionR), rightBasePositionVive),
 
-            //rotation: zeroRotation,
-            //position: zeroPosition,
             rotation: rightBaseRotation,
             position: Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 0, -45), rightBasePosition),
 
@@ -350,8 +343,6 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 y: -0.034076502197422087,
                 z: 0.06380049744620919
             },
-            //rotation: touchRightBaseRotation,
-            //position: rightBasePosition,
 
             annotationTextRotation: Quat.fromPitchYawRollDegrees(20, -90, 0),
             annotations: {
