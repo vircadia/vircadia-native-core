@@ -21,7 +21,7 @@ Script.include("/~/system/libraries/Xform.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_STATE = true;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 //
@@ -2159,6 +2159,7 @@ function MyController(hand) {
                 };
             } else {
                 pointerEvent = this.touchingEnterPointerEvent;
+                pointerEvent.type = "Release";
                 pointerEvent.button = "Primary";
                 pointerEvent.isPrimaryButton = false;
             }

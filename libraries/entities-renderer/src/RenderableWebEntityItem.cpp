@@ -37,6 +37,12 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
+void WebEntityQMLAPIHelper::synthesizeKeyPress(QString key) {
+    if (_ptr) {
+        _ptr->synthesizeKeyPress(key);
+    }
+}
+
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
     entity->setProperties(properties);
@@ -51,9 +57,12 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
+
+    _webEntityQMLAPIHelper.setPtr(this);
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
+    _webEntityQMLAPIHelper.setPtr(nullptr);
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
 }
@@ -76,6 +85,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+    _webSurface->getRootContext()->setContextProperty("webEntity", &_webEntityQMLAPIHelper);
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
@@ -98,13 +108,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             point.setState(Qt::TouchPointReleased);
             glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
             QPointF windowPoint(windowPos.x, windowPos.y);
-            auto item = _webSurface->getRootItem()->childAt(windowPos.x, windowPos.y);
-            QPointF localPoint = windowPoint;
-            if (item) {
-                localPoint = item->mapFromScene(windowPoint);
-            }
             point.setScenePos(windowPoint);
-            point.setPos(localPoint);
+            point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
             QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
@@ -224,13 +229,6 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
 
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
-
-    auto item = _webSurface->getRootItem()->childAt(windowPos.x, windowPos.y);
-    QPointF localPoint = windowPoint;
-    if (item) {
-        localPoint = item->mapFromScene(windowPoint);
-    }
-
     if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to webSurface
         QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
@@ -266,7 +264,7 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         QTouchEvent::TouchPoint point;
         point.setId(event.getID());
         point.setState(touchPointState);
-        point.setPos(localPoint);
+        point.setPos(windowPoint);
         point.setScreenPos(windowPoint);
         QList<QTouchEvent::TouchPoint> touchPoints;
         touchPoints.push_back(point);
@@ -322,4 +320,12 @@ void RenderableWebEntityItem::update(const quint64& now) {
 bool RenderableWebEntityItem::isTransparent() {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
+}
+
+void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
+    auto utf8Key = key.toUtf8();
+    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, (int)utf8Key[0], Qt::NoModifier, key);
+    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, (int)utf8Key[0], Qt::NoModifier, key);
+    QCoreApplication::postEvent(getEventHandler(), pressEvent);
+    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }

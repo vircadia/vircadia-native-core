@@ -22,6 +22,19 @@ class OffscreenQmlSurface;
 class QWindow;
 class QObject;
 class EntityTreeRenderer;
+class RenderableWebEntityItem;
+
+class WebEntityQMLAPIHelper : public QObject {
+    Q_OBJECT
+public:
+    void setPtr(RenderableWebEntityItem* ptr) {
+        _ptr = ptr;
+    }
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
+
+protected:
+    RenderableWebEntityItem* _ptr{ nullptr };
+};
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -46,6 +59,9 @@ public:
 
     virtual bool isTransparent() override;
 
+public:
+    void synthesizeKeyPress(QString key);
+
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
     void destroyWebSurface();
@@ -59,12 +75,12 @@ private:
     QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
     QTouchDevice _touchDevice;
+    WebEntityQMLAPIHelper _webEntityQMLAPIHelper;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
 };
-
 
 #endif // hifi_RenderableWebEntityItem_h

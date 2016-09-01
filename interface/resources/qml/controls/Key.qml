@@ -11,22 +11,40 @@ Item {
         id: mouseArea1
         anchors.fill: parent
         hoverEnabled: true
+
+        onCanceled: {
+            keyItem.state = ""
+        }
+
+        onClicked: {
+            mouse.accepted = true
+            webEntity.synthesizeKeyPress(glyph)
+        }
+
+        onDoubleClicked: {
+            mouse.accepted = true
+        }
+
         onEntered: {
             keyItem.state = "mouseOver"
         }
+
         onExited: {
             keyItem.state = ""
         }
+
         onPressed: {
             keyItem.state = "mouseClicked"
+            mouse.accepted = true
         }
+
         onReleased: {
-            keyItem.state = ""
-        }
-        onClicked: {
-        }
-        onCanceled: {
-            keyItem.state = ""
+            if (containsMouse) {
+                keyItem.state = "mouseOver"
+            } else {
+                keyItem.state = ""
+            }
+            mouse.accepted = true
         }
     }
 

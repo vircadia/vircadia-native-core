@@ -6,7 +6,12 @@ Item {
 
     WebEngineView {
         id: root
-        anchors.fill: parent
+
+        x: 0
+        y: 0
+        width: parent.width
+        height: parent.height - keyboard1.height
+
         property string newUrl: ""
 
         profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"

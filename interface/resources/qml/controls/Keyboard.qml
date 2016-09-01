@@ -2,6 +2,7 @@ import QtQuick 2.0
 
 Item {
     id: keyboardBase
+    height: 200
     Rectangle {
         id: leftRect
         y: 0
