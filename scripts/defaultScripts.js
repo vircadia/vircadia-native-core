@@ -64,7 +64,7 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
 
 function runDefaultsTogether() {
     for (var j in DEFAULT_SCRIPTS) {
-        Script.include(DEFAULT_SCRIPTS[j] + "?" + Math.random());
+        Script.include(DEFAULT_SCRIPTS[j]);
     }
 }
 
