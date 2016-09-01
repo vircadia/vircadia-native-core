@@ -344,7 +344,7 @@ function entityHasActions(entityID) {
 }
 
 function findRayIntersection(pickRay, precise, include, exclude) {
-    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude, true);
     var overlays = Overlays.findRayIntersection(pickRay);
     if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
         return entities;
@@ -1155,9 +1155,9 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = findRayIntersection(pickRay, true, [], blacklist);
+            intersection = findRayIntersection(pickRay, true, [], blacklist, true);
         } else {
-            intersection = findRayIntersection(pickRay, true);
+            intersection = findRayIntersection(pickRay, true, [], [], true);
         }
 
         if (intersection.intersects) {
@@ -2211,7 +2211,7 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = findRayIntersection(pickRay, true);
+            var intersection = findRayIntersection(pickRay, true, [], [], true);
             if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {

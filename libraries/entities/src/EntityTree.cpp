@@ -572,7 +572,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
                                     OctreeElementPointer& element, float& distance, 
                                     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, entityIdsToDiscard, intersectedObject, false, precisionPicking };
+    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, intersectedObject, false, precisionPicking };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;

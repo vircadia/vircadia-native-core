@@ -279,7 +279,7 @@ function Teleporter() {
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 50));
 
 
-        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
+        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity], true);
 
         if (rightIntersection.intersects) {
             if (this.tooClose === true) {
@@ -342,7 +342,7 @@ function Teleporter() {
         var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 50));
 
 
-        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
+        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity], true);
 
         if (leftIntersection.intersects) {
 
