@@ -1,4 +1,33 @@
+
+if (!Function.prototype.bind) {
+  Function.prototype.bind = function(oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs   = Array.prototype.slice.call(arguments, 1),
+        fToBind = this,
+        fNOP    = function() {},
+        fBound  = function() {
+          return fToBind.apply(this instanceof fNOP
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
+
+    if (this.prototype) {
+      // Function.prototype doesn't have a prototype property
+      fNOP.prototype = this.prototype; 
+    }
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}
 Script.include("entityData.js");
+
 //
 // var FAR_GRAB_INPUTS = [
 //     Controller.Standard.RT
@@ -89,8 +118,11 @@ findEntities = function(properties, searchRadius, filterFn) {
 // On start tutorial...
 
 // Load assets
-var BOX_SPAWN_NAME = "tutorial/box_spawn";
-var BASKET_COLLIDER_NAME = "tutorial/basket_collider";
+var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
+var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
+var NEAR_BASKET_COLLIDER_NAME = "tutorial/nearGrab/basket_collider";
+var FAR_BASKET_COLLIDER_NAME = "tutorial/farGrab/basket_collider";
+var GUN_BASKET_COLLIDER_NAME = "tutorial/equip/basket_collider";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
 var GUN_AMMO_NAME = "Tutorial Ping Pong Ball"
 
@@ -113,6 +145,7 @@ function spawn(entityData, transform, modifyFn) {
         }
         var id = Entities.addEntity(data);
         ids.push(id);
+        print("data:", JSON.stringify(data));
     }
     return ids;
 }
@@ -132,9 +165,32 @@ function spawnWithTag(entityData, transform, tag) {
         var userData = parseJSON(data.userData);
         userData.tag = tag;
         data.userData = JSON.stringify(userData);
+        print("In modify", tag, userData, data.userData);
         return data;
     }
     return spawn(entityData, transform, modifyFn);
+}
+
+function deleteEntitiesWithTag(tag) {
+        print("searching for...:", tag);
+    var entityIDs = findEntitiesWithTag(tag);
+    for (var i = 0; i < entityIDs.length; ++i) {
+        print("Deleteing:", entityIDs[i]);
+        Entities.deleteEntity(entityIDs[i]);
+    }
+}
+function editEntitiesWithTag(tag, propertiesOrFn) {
+    print("Editing:", tag);
+    var entityIDs = findEntitiesWithTag(tag);
+    print("Editing...", entityIDs);
+    for (var i = 0; i < entityIDs.length; ++i) {
+        print("Editing...", entityIDs[i]);
+        if (isFunction(propertiesOrFn)) {
+            Entities.editEntity(entityIDs[i], propertiesOrFn(entityIDs[i]));
+        } else {
+            Entities.editEntity(entityIDs[i], propertiesOrFn);
+        }
+    }
 }
 
 function findEntitiesWithTag(tag) {
@@ -142,6 +198,12 @@ function findEntitiesWithTag(tag) {
         data = parseJSON(value);
         return data.tag == tag;
     }); 
+}
+
+// From http://stackoverflow.com/questions/5999998/how-can-i-check-if-a-javascript-variable-is-function-type
+function isFunction(functionToCheck) {
+    var getType = {};
+    return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -176,6 +238,7 @@ stepDisableControllers.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepRaiseAboveHead = function(name) {
     this.tag = name;
+    this.tempTag = name + "-temporary";
 }
 stepRaiseAboveHead.prototype = {
     start: function(onFinish) {
@@ -196,13 +259,17 @@ stepRaiseAboveHead.prototype = {
         };
 
         // Spawn content set
-        spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
+        //spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
+        print("raise hands...", this.tag);
+        editEntitiesWithTag(this.tag, { visible: true });
 
-        var checkIntervalID = null;
+
+        this.checkIntervalID = null;
         function checkForHandsAboveHead() {
             print("Checking...");
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
-                Script.clearInterval(checkIntervalID);
+                Script.clearInterval(this.checkIntervalID);
+                this.checkIntervalID = null;
                 this.soundInjector = Audio.playSound(successSound, {
                     position: defaultTransform.position,
                     volume: 0.7,
@@ -211,15 +278,14 @@ stepRaiseAboveHead.prototype = {
                 onFinish();
             }
         }
-        checkIntervalID = Script.setInterval(checkForHandsAboveHead, 500);
+        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
     },
     cleanup: function() {
-        var entityIDs = findEntitiesWithTag(this.tag);
-        print("entities: ", entityIDs.length);
-        for (var i = 0; i < entityIDs.length; ++i) {
-            print("Deleting: ", entityIDs[i]);
-            Entities.deleteEntity(entityIDs[i]);
+        if (this.checkIntervalID != null) {
+            Script.clearInterval(this.checkIntervalID);
         }
+        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
+        deleteEntitiesWithTag(this.tempTag);
     }
 };
 
@@ -233,32 +299,34 @@ stepRaiseAboveHead.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepNearGrab = function(name) {
     this.tag = name;
+    this.tempTag = name + "-temporary";
 }
 stepNearGrab.prototype = {
     start: function(onFinish) {
         var tag = this.tag;
 
         // Spawn content set
-        spawnWithTag(Step1EntityData, null, tag);
+        //spawnWithTag(Step1EntityData, null, tag);
+        editEntitiesWithTag(this.tag, { visible: true });
 
-        var basketColliderID = findEntity({ name: BASKET_COLLIDER_NAME }, 10000); 
+        var basketColliderID = findEntity({ name: NEAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
         function createBlock() {
-            var boxSpawnID = findEntity({ name: BOX_SPAWN_NAME }, 10000);
+            var boxSpawnID = findEntity({ name: NEAR_BOX_SPAWN_NAME }, 10000);
             if (!boxSpawnID) {
                 print("Error creating block, cannot find spawn");
                 return null;
             }
 
             Step1BlockData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
-            return spawnWithTag([Step1BlockData], null, tag)[0];
+            return spawnWithTag([Step1BlockData], null, this.tempTag)[0];
         }
 
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var boxID = createBlock();
+        var boxID = createBlock.bind(this)();
         print("Created", boxID);
 
         function onHit() {
@@ -268,7 +336,7 @@ stepNearGrab.prototype = {
         // When block collides with basket start step 2
         var checkCollidesTimer = null;
         function checkCollides() {
-            print("CHECKING...");
+            print(this.tag, "CHECKING...");
             if (Vec3.distance(basketPosition, Entities.getEntityProperties(boxID, 'position').position) < 0.1) {
                 Script.clearInterval(checkCollidesTimer);
                 this.soundInjector = Audio.playSound(successSound, {
@@ -276,20 +344,16 @@ stepNearGrab.prototype = {
                     volume: 0.7,
                     loop: false
                 });
-                Script.setTimeout(onHit, 1000);
+                Script.setTimeout(onHit.bind(this), 1000);
             }
         }
-        checkCollidesTimer = Script.setInterval(checkCollides, 500);
+        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
-        var entityIDs = findEntitiesWithTag(this.tag);
-        print("entities: ", entityIDs.length);
-        for (var i = 0; i < entityIDs.length; ++i) {
-            print("Deleting: ", entityIDs[i]);
-            Entities.deleteEntity(entityIDs[i]);
-        }
+        editEntitiesWithTag(this.tag, { visible: false});
+        deleteEntitiesWithTag(this.tempTag);
     }
 };
 
@@ -303,6 +367,7 @@ stepNearGrab.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepFarGrab = function(name) {
     this.tag = name;
+    this.tempTag = name + "-temporary";
 }
 stepFarGrab.prototype = {
     start: function(onFinish) {
@@ -316,26 +381,27 @@ stepFarGrab.prototype = {
         }
 
         // Spawn content set
-        spawnWithTag(Step1EntityData, transform, tag);
+        //spawnWithTag(Step1EntityData, transform, tag);
+        editEntitiesWithTag(this.tag, { visible: true});
 
-        var basketColliderID = findEntity({ name: BASKET_COLLIDER_NAME }, 10000); 
+        var basketColliderID = findEntity({ name: FAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
         function createBlock() {
-            var boxSpawnID = findEntity({ name: BOX_SPAWN_NAME }, 10000);
+            var boxSpawnID = findEntity({ name: FAR_BOX_SPAWN_NAME }, 10000);
             if (!boxSpawnID) {
                 print("Error creating block, cannot find spawn");
                 return null;
             }
 
             Step1BlockData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
-            return spawnWithTag([Step1BlockData], null, tag)[0];
+            return spawnWithTag([Step1BlockData], null, this.tempTag)[0];
         }
 
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var boxID = createBlock();
+        var boxID = createBlock.bind(this)();
         print("Created", boxID);
 
         function onHit() {
@@ -353,20 +419,16 @@ stepFarGrab.prototype = {
                     volume: 0.7,
                     loop: false
                 });
-                Script.setTimeout(onHit, 1000);
+                Script.setTimeout(onHit.bind(this), 1000);
             }
         }
-        checkCollidesTimer = Script.setInterval(checkCollides, 500);
+        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
-        var entityIDs = findEntitiesWithTag(this.tag);
-        print("entities: ", entityIDs.length);
-        for (var i = 0; i < entityIDs.length; ++i) {
-            print("Deleting: ", entityIDs[i]);
-            Entities.deleteEntity(entityIDs[i]);
-        }
+        editEntitiesWithTag(this.tag, { visible: false});
+        deleteEntitiesWithTag(this.tempTag);
     }
 };
 
@@ -380,6 +442,7 @@ stepFarGrab.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepEquip = function(name) {
     this.tag = name;
+    this.tempTag = name + "-temporary";
 }
 stepEquip.prototype = {
     start: function(onFinish) {
@@ -404,9 +467,10 @@ stepEquip.prototype = {
         };
 
         // Spawn content set
-        spawnWithTag(StepGunData, defaultTransform, tag);
+        //spawnWithTag(StepGunData, defaultTransform, tag);
+        editEntitiesWithTag(this.tag, { visible: true});
 
-        var basketColliderID = findEntity({ name: BASKET_COLLIDER_NAME }, 10000); 
+        var basketColliderID = findEntity({ name: GUN_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
         function createGun() {
@@ -419,13 +483,13 @@ stepEquip.prototype = {
             GunData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
             Vec3.print("spawn", GunData.position);
             print("Adding: ", JSON.stringify(GunData));
-            return spawnWithTag([GunData], null, tag)[0];
+            return spawnWithTag([GunData], null, this.tempTag)[0];
         }
 
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var gunID = createGun();
+        var gunID = createGun.bind(this)();
         print("Created", gunID);
 
         function onHit() {
@@ -445,21 +509,17 @@ stepEquip.prototype = {
                         volume: 0.7,
                         loop: false
                     });
-                    Script.setTimeout(onHit, 1000);
+                    Script.setTimeout(onHit.bind(this), 1000);
                 }
             }
         }
-        checkCollidesTimer = Script.setInterval(checkCollides, 500);
+        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
-        var entityIDs = findEntitiesWithTag(this.tag);
-        print("entities: ", entityIDs.length);
-        for (var i = 0; i < entityIDs.length; ++i) {
-            print("Deleting: ", entityIDs[i]);
-            Entities.deleteEntity(entityIDs[i]);
-        }
+        editEntitiesWithTag(this.tag, { visible: false});
+        deleteEntitiesWithTag(this.tempTag);
     }
 };
 
@@ -473,21 +533,44 @@ stepEquip.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepTeleport = function(name) {
     this.tag = name;
+    this.tempTag = name + "-temporary";
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         Menu.setIsOptionChecked("Overlays", false);
+
+        editEntitiesWithTag(this.tag, { visible: true });
     },
     cleanup: function() {
-        var entityIDs = findEntitiesWithTag(this.tag);
-        print("entities: ", entityIDs.length);
-        for (var i = 0; i < entityIDs.length; ++i) {
-            print("Deleting: ", entityIDs[i]);
-            Entities.deleteEntity(entityIDs[i]);
-        }
+        editEntitiesWithTag(this.tag, { visible: false });
+        deleteEntitiesWithTag(this.tempTag);
     }
 };
+
+function showEntitiesWithTag(tag) {
+    editEntitiesWithTag(tag, function(entityID) {
+        var userData = Entities.getEntityProperties(entityID, "userData").userData;
+        var data = parseJSON(userData);
+        var newProperties = {
+            visible: data.visible == false ? false : true,
+            collisionless: data.collisionless == false ? false : true,
+        };
+        Entities.editEntity(entityID, newProperties);
+    });
+}
+function hideEntitiesWithTag(tag) {
+    editEntitiesWithTag(tag, function(entityID) {
+        var userData = Entities.getEntityProperties(entityID, "userData").userData;
+        var data = parseJSON(userData);
+        var newProperties = {
+            visible: false,
+            collisionless: 1,
+            ignoreForCollisions: 1,
+        };
+        Entities.editEntity(entityID, newProperties);
+    });
+}
 
 
 
@@ -501,11 +584,11 @@ function startTutorial() {
     currentStepNum = -1;
     currentStep = null;
     STEPS = [
-        new stepDisableControllers("step0"),
-        //new stepRaiseAboveHead("step1"),
-        new stepNearGrab("step2"),
-        new stepFarGrab("step3"),
-        new stepEquip("step4"),
+        //new stepDisableControllers("step0"),
+        new stepRaiseAboveHead("raiseHands"),
+        new stepNearGrab("nearGrab"),
+        new stepFarGrab("farGrab"),
+        new stepEquip("equip"),
         new stepTeleport("teleport"),
     ]
     startNextStep();
@@ -513,7 +596,7 @@ function startTutorial() {
 
 function startNextStep() {
     if (currentStep) {
-        //currentStep.cleanup();
+        currentStep.cleanup();
     }
 
     ++currentStepNum;
@@ -525,7 +608,6 @@ function startNextStep() {
         print("Starting step", currentStepNum);
         currentStep = STEPS[currentStepNum];
         currentStep.start(startNextStep);
-        startNextStep();
     }
 }
 
@@ -536,6 +618,8 @@ function stopTutorial() {
     if (currentStep) {
         currentStep.cleanup();
     }
+    currentStepNum = -1;
+    currentStep = null;
 }
 
 location = "/tutorial";
@@ -543,3 +627,15 @@ startTutorial();
 
 Script.scriptEnding.connect(stopTutorial);
 
+
+
+Controller.keyReleaseEvent.connect(function (event) {
+    if (event.text == ",") {
+        startNextStep();
+    } else if (event.text == ".") {
+        stopTutorial();
+    } else if (event.text == "r") {
+        stopTutorial();
+        startTutorial();
+    }
+});
