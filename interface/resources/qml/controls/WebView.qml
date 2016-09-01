@@ -1,8 +1,16 @@
 import QtQuick 2.5
 import QtWebEngine 1.1
+import QtWebChannel 1.0
 
 Item {
     property alias url: root.url
+    property alias eventBridge: eventBridgeWrapper.eventBridge
+
+    QtObject {
+        id: eventBridgeWrapper
+        WebChannel.id: "eventBridgeWrapper"
+        property var eventBridge;
+    }
 
     WebEngineView {
         id: root
@@ -15,6 +23,8 @@ Item {
         property string newUrl: ""
 
         profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
+
+        webChannel.registeredObjects: [eventBridgeWrapper]
 
         Component.onCompleted: {
             console.log("Connecting JS messaging to Hifi Logging")
@@ -76,6 +86,7 @@ Item {
         //profile: desktop.browserProfile
     }
 
+    // virtual keyboard
     Keyboard {
         id: keyboard1
         x: 197

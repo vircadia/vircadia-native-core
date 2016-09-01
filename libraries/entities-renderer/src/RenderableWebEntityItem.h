@@ -24,13 +24,21 @@ class QObject;
 class EntityTreeRenderer;
 class RenderableWebEntityItem;
 
-class WebEntityQMLAPIHelper : public QObject {
+class WebEntityAPIHelper : public QObject {
     Q_OBJECT
 public:
     void setPtr(RenderableWebEntityItem* ptr) {
         _ptr = ptr;
     }
     Q_INVOKABLE void synthesizeKeyPress(QString key);
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
 
 protected:
     RenderableWebEntityItem* _ptr{ nullptr };
@@ -55,6 +63,8 @@ public:
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
+    void emitScriptEvent(const QVariant& message);
+
     SIMPLE_RENDERABLE();
 
     virtual bool isTransparent() override;
@@ -75,7 +85,7 @@ private:
     QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
     QTouchDevice _touchDevice;
-    WebEntityQMLAPIHelper _webEntityQMLAPIHelper;
+    WebEntityAPIHelper _webEntityAPIHelper;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

@@ -37,9 +37,25 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
-void WebEntityQMLAPIHelper::synthesizeKeyPress(QString key) {
+void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
     if (_ptr) {
         _ptr->synthesizeKeyPress(key);
+    }
+}
+
+void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit webEventReceived(message);
     }
 }
 
@@ -58,11 +74,18 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
 
-    _webEntityQMLAPIHelper.setPtr(this);
+    _webEntityAPIHelper.setPtr(this);
+    _webEntityAPIHelper.moveToThread(qApp->thread());
+
+    // forward web events to EntityScriptingInterface
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    QObject::connect(&_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
+        emit entities->webEventReceived(entityItemID, message);
+    });
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
-    _webEntityQMLAPIHelper.setPtr(nullptr);
+    _webEntityAPIHelper.setPtr(nullptr);
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
 }
@@ -83,9 +106,10 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml");
     _webSurface->resume();
+    _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(&_webEntityAPIHelper));
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-    _webSurface->getRootContext()->setContextProperty("webEntity", &_webEntityQMLAPIHelper);
+    _webSurface->getRootContext()->setContextProperty("webEntity", &_webEntityAPIHelper);
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
@@ -328,4 +352,8 @@ void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
     QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, (int)utf8Key[0], Qt::NoModifier, key);
     QCoreApplication::postEvent(getEventHandler(), pressEvent);
     QCoreApplication::postEvent(getEventHandler(), releaseEvent);
+}
+
+void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
+    _webEntityAPIHelper.emitScriptEvent(message);
 }
