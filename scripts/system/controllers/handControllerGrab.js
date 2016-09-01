@@ -1595,7 +1595,7 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler','both');
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
@@ -2308,7 +2308,7 @@ function MyController(hand) {
     };
 
     this.release = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler','none');
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2334,17 +2334,17 @@ function MyController(hand) {
                     noVelocity = true;
                 }
             }
+
+            this.deactivateEntity(this.grabbedEntity, noVelocity);
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.grabbedEntity,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
         }
 
-        this.deactivateEntity(this.grabbedEntity, noVelocity);
         this.actionID = null;
-
-        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
-            action: 'release',
-            grabbedEntity: this.grabbedEntity,
-            joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
-        }));
-
         this.grabbedEntity = null;
         this.grabbedHotspot = null;
 
@@ -2644,9 +2644,13 @@ function update(deltaTime) {
 
     if (handToDisable !== LEFT_HAND && handToDisable !== 'both') {
         leftController.update(deltaTime, timestamp);
+    } else {
+        leftController.release();
     }
     if (handToDisable !== RIGHT_HAND && handToDisable !== 'both') {
         rightController.update(deltaTime, timestamp);
+    } else {
+        rightController.release();
     }
     equipHotspotBuddy.update(deltaTime, timestamp);
     entityPropertiesCache.update();
