@@ -610,11 +610,11 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly) {
 
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard, visibleOnly);
 }
 
 // FIXME - we should remove this API and encourage all users to use findRayIntersection() instead. We've changed
@@ -630,7 +630,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
                                                                                     Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly) {
 
 
     RayToEntityIntersectionResult result;
@@ -638,7 +638,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-            result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, (void**)&intersectedEntity, lockType, &result.accurate,
+            result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();

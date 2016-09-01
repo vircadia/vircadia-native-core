@@ -366,6 +366,8 @@ controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat
     auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
     auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
 
+    //qDebug() << "TRANSLATION OFFSET: " << isLeftHand << ", " << translationOffset.x << ", " << translationOffset.y << ", " << translationOffset.z;
+
     glm::vec3 position = extractTranslation(mat);
     glm::quat rotation = glm::normalize(glm::quat_cast(mat));
 

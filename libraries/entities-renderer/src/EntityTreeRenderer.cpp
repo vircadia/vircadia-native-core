@@ -591,7 +591,7 @@ void EntityTreeRenderer::deleteReleasedModels() {
 
 RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                                     bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
-                                                                                    const QVector<EntityItemID>& entityIdsToDiscard) {
+                                                                                    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
@@ -599,7 +599,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, 
-                                                            result.face, result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard,
+                                                            result.face, result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly,
                                                             (void**)&intersectedEntity, lockType, &result.accurate,
                                                             precisionPicking);
         if (result.intersects && intersectedEntity) {

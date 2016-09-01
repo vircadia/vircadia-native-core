@@ -1605,7 +1605,6 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
@@ -1869,12 +1868,12 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
-        if (this.hand === 0) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
-        }
-        if (this.hand === 1) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
-        }
+        //if (this.hand === 0) {
+            //Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
+        //}
+        //if (this.hand === 1) {
+            //Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
+        //}
         this.grabPointSphereOff();
         this.lineOff();
         this.overlayLineOff();
@@ -2340,7 +2339,6 @@ function MyController(hand) {
     };
 
     this.release = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2710,6 +2708,20 @@ var handleHandMessages = function(channel, message, sender) {
 
                 }
                 handToDisable = message;
+            }
+        } else if (channel === 'Hifi-Grab-Disable') {
+            data = JSON.parse(message);
+            if (data.holdEnabled !== undefined) {
+                print("holdEnabled: ", data.holdEnabled);
+                holdEnabled = data.holdEnabled;
+            }
+            if (data.nearGrabEnabled !== undefined) {
+                print("nearGrabEnabled: ", data.nearGrabEnabled);
+                nearGrabEnabled = data.nearGrabEnabled;
+            }
+            if (data.farGrabEnabled !== undefined) {
+                print("farGrabEnabled: ", data.farGrabEnabled);
+                farGrabEnabled = data.farGrabEnabled;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
