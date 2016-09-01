@@ -22,7 +22,7 @@ macro(SETUP_HIFI_PROJECT)
     endif ()
   endforeach()
 
-  add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+  add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOSCRIBE_SHADER_LIB_SRC})
 
   # include the generated application version header
   target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")

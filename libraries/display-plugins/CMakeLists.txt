@@ -7,4 +7,6 @@ target_opengl()
 
 GroupSources("src/display-plugins")
 
-target_oglplus()
+if (NOT ANDROID)
+  target_oglplus()
+endif ()
