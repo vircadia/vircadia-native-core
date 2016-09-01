@@ -14,7 +14,7 @@
 
 #include <functional>
 
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
 #include <stdint.h>
 #else
 #include <limits>
@@ -28,7 +28,7 @@ struct FrameHeader {
     using Time = uint32_t;
 
 // until we use a version of visual studio that has constexpr support, we can't use numeric_limits at compile time
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
     static const Time INVALID_TIME = UINT32_MAX;
 #else
     static const Time INVALID_TIME = std::numeric_limits<uint32_t>::max();
