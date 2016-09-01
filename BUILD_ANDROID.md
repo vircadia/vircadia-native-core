@@ -7,7 +7,7 @@ You will need the following tools to build our Android targets.
 * [cmake](http://www.cmake.org/download/) ~> 3.5.1
 * [Qt](http://www.qt.io/download-open-source/#) ~> 5.5.1
 * [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
-* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r11b
+* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r10d
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.4.1.1
   * Install the latest Platform-tools
   * Install the latest Build-tools
