@@ -125,6 +125,7 @@ var FAR_BASKET_COLLIDER_NAME = "tutorial/farGrab/basket_collider";
 var GUN_BASKET_COLLIDER_NAME = "tutorial/equip/basket_collider";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
 var GUN_AMMO_NAME = "Tutorial Ping Pong Ball"
+var TELEPORT_PAD_NAME = "tutorial/teleport/pad"
 
 function spawn(entityData, transform, modifyFn) {
     print("Creating: ", entityData);
@@ -145,7 +146,7 @@ function spawn(entityData, transform, modifyFn) {
         }
         var id = Entities.addEntity(data);
         ids.push(id);
-        print("data:", JSON.stringify(data));
+        print(id, "data:", JSON.stringify(data));
     }
     return ids;
 }
@@ -307,7 +308,7 @@ stepNearGrab.prototype = {
 
         // Spawn content set
         //spawnWithTag(Step1EntityData, null, tag);
-        editEntitiesWithTag(this.tag, { visible: true });
+        showEntitiesWithTag(this.tag, { visible: true });
 
         var basketColliderID = findEntity({ name: NEAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
@@ -334,11 +335,11 @@ stepNearGrab.prototype = {
         }
 
         // When block collides with basket start step 2
-        var checkCollidesTimer = null;
         function checkCollides() {
             print(this.tag, "CHECKING...");
             if (Vec3.distance(basketPosition, Entities.getEntityProperties(boxID, 'position').position) < 0.1) {
-                Script.clearInterval(checkCollidesTimer);
+                Script.clearInterval(this.checkCollidesTimer);
+                this.checkCollidesTimer = null;
                 this.soundInjector = Audio.playSound(successSound, {
                     position: basketPosition,
                     volume: 0.7,
@@ -347,12 +348,15 @@ stepNearGrab.prototype = {
                 Script.setTimeout(onHit.bind(this), 1000);
             }
         }
-        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
-        editEntitiesWithTag(this.tag, { visible: false});
+        if (this.checkCollidesTimer) {
+            Script.clearInterval(this.checkCollidesTimer);
+        }
+        hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -382,7 +386,7 @@ stepFarGrab.prototype = {
 
         // Spawn content set
         //spawnWithTag(Step1EntityData, transform, tag);
-        editEntitiesWithTag(this.tag, { visible: true});
+        showEntitiesWithTag(this.tag);
 
         var basketColliderID = findEntity({ name: FAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
@@ -427,7 +431,7 @@ stepFarGrab.prototype = {
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     cleanup: function() {
-        editEntitiesWithTag(this.tag, { visible: false});
+        hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -442,6 +446,8 @@ stepFarGrab.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 var stepEquip = function(name) {
     this.tag = name;
+    this.tagPart1 = name + "-part1";
+    this.tagPart2 = name + "-part2";
     this.tempTag = name + "-temporary";
 }
 stepEquip.prototype = {
@@ -468,7 +474,8 @@ stepEquip.prototype = {
 
         // Spawn content set
         //spawnWithTag(StepGunData, defaultTransform, tag);
-        editEntitiesWithTag(this.tag, { visible: true});
+        showEntitiesWithTag(this.tag);
+        showEntitiesWithTag(this.tagPart1);
 
         var basketColliderID = findEntity({ name: GUN_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
@@ -481,6 +488,7 @@ stepEquip.prototype = {
             }
 
             GunData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
+            GunData.rotation = Entities.getEntityProperties(boxSpawnID, 'rotation').rotation;
             Vec3.print("spawn", GunData.position);
             print("Adding: ", JSON.stringify(GunData));
             return spawnWithTag([GunData], null, this.tempTag)[0];
@@ -489,21 +497,26 @@ stepEquip.prototype = {
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var gunID = createGun.bind(this)();
-        print("Created", gunID);
+        this.gunID = createGun.bind(this)();
+        print("Created", this.gunID);
+        this.onFinish = onFinish;
 
         function onHit() {
-            onFinish();
+            hideEntitiesWithTag(this.tagPart1);
+            showEntitiesWithTag(this.tagPart2);
+            print("HIT, wiating for unequip...");
+            Messages.subscribe('Hifi-Object-Manipulation');
+            Messages.messageReceived.connect(this.onMessage.bind(this));
         }
 
         // When block collides with basket start step 2
-        var checkCollidesTimer = null;
         function checkCollides() {
-            print("CHECKING...");
+            print("CHECKING FOR PING PONG...");
             var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
             for (var i = 0; i < ammoIDs.length; ++i) {
                 if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.2) {
-                    Script.clearInterval(checkCollidesTimer);
+                    Script.clearInterval(this.checkCollidesTimer);
+                    this.checkCollidesTimer = null;
                     this.soundInjector = Audio.playSound(successSound, {
                         position: basketPosition,
                         volume: 0.7,
@@ -513,15 +526,60 @@ stepEquip.prototype = {
                 }
             }
         }
-        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
+    onMessage: function(channel, message, sender) {
+        print("Got message", channel, message, sender, MyAvatar.sessionUUID);
+        //if (sender === MyAvatar.sessionUUID) {
+            var data = parseJSON(message);
+            print("Here", data.action, data.grabbedEntity, this.gunID);
+            if (data.action == 'release' && data.grabbedEntity == this.gunID) {
+                print("FINISHED");
+                this.onFinish();
+            }
+        //}
+    },
     cleanup: function() {
-        editEntitiesWithTag(this.tag, { visible: false});
+        try {
+            Messages.messageReceived.disconnect(this.onMessage);
+        } catch(e) {
+            print("error disconnecting");
+        }
+        if (this.checkCollidesTimer) {
+            Script.clearInterval(this.checkCollidesTimer);
+        }
+        hideEntitiesWithTag(this.tagPart1);
+        hideEntitiesWithTag(this.tagPart2);
+        hideEntitiesWithTag(this.tag);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: Turn Around                                                         //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+var stepTurnAround = function(name) {
+    this.tag = name;
+    this.tempTag = name + "-temporary";
+}
+stepTurnAround.prototype = {
+    start: function(onFinish) {
+        showEntitiesWithTag(this.tag);
+    },
+    cleanup: function() {
+        hideEntitiesWithTag(this.tag);
+        deleteEntitiesWithTag(this.tempTag);
+    }
+};
+
 
 
 
@@ -538,15 +596,70 @@ var stepTeleport = function(name) {
 stepTeleport.prototype = {
     start: function(onFinish) {
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
-        Menu.setIsOptionChecked("Overlays", false);
+        Menu.setIsOptionChecked("Overlays", true);
 
-        editEntitiesWithTag(this.tag, { visible: true });
+        // Wait until touching teleport pad...
+        var padID = findEntity({ name: TELEPORT_PAD_NAME }, 100);
+        print(padID);
+        var padProps = Entities.getEntityProperties(padID, ["position", "dimensions"]);
+        print(Object.keys(padProps));
+        var xMin = padProps.position.x - padProps.dimensions.x / 2;
+        var xMax = padProps.position.x + padProps.dimensions.x / 2;
+        var zMin = padProps.position.z - padProps.dimensions.z / 2;
+        var zMax = padProps.position.z + padProps.dimensions.z / 2;
+        function checkCollides() {
+            print("Checking if on pad...");
+            var pos = MyAvatar.position;
+            print('x', pos.x, xMin, xMax);
+            print('z', pos.z, zMin, zMax);
+            if (pos.x > xMin && pos.x < xMax && pos.z > zMin && pos.z < zMax) {
+                print("On pad!!");
+                Script.clearInterval(this.checkCollidesTimer);
+                this.checkCollidesTimer = null;
+                onFinish();
+            }
+        }
+        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+
+        showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
-        editEntitiesWithTag(this.tag, { visible: false });
+        if (this.checkCollidesTimer) {
+            Script.clearInterval(this.checkCollidesTimer);
+        }
+        hideEntitiesWithTag(this.tag);
         deleteEntitiesWithTag(this.tempTag);
     }
 };
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: Finish                                                              //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+var stepFinish = function(name) {
+    this.tag = name;
+    this.tempTag = name + "-temporary";
+}
+stepFinish.prototype = {
+    start: function(onFinish) {
+        showEntitiesWithTag(this.tag);
+    },
+    cleanup: function() {
+        hideEntitiesWithTag(this.tag);
+        deleteEntitiesWithTag(this.tempTag);
+    }
+};
+
+
+
+
+
 
 function showEntitiesWithTag(tag) {
     editEntitiesWithTag(tag, function(entityID) {
@@ -554,7 +667,8 @@ function showEntitiesWithTag(tag) {
         var data = parseJSON(userData);
         var newProperties = {
             visible: data.visible == false ? false : true,
-            collisionless: data.collisionless == false ? false : true,
+            collisionless: data.visible == false ? true : false ,
+            //collisionless: data.collisionless == true ? true : false,
         };
         Entities.editEntity(entityID, newProperties);
     });
@@ -584,12 +698,14 @@ function startTutorial() {
     currentStepNum = -1;
     currentStep = null;
     STEPS = [
-        //new stepDisableControllers("step0"),
+        new stepDisableControllers("step0"),
         new stepRaiseAboveHead("raiseHands"),
         new stepNearGrab("nearGrab"),
         new stepFarGrab("farGrab"),
         new stepEquip("equip"),
+        new stepTurnAround("turnAround"),
         new stepTeleport("teleport"),
+        new stepFinish("finish"),
     ]
     startNextStep();
 }
@@ -604,10 +720,14 @@ function startNextStep() {
     if (currentStepNum >= STEPS.length) {
         // Done
         print("DONE WITH TUTORIAL");
+        currentStepNum = -1;
+        currentStep = null;
+        return false;
     } else {
         print("Starting step", currentStepNum);
         currentStep = STEPS[currentStepNum];
         currentStep.start(startNextStep);
+        return true;
     }
 }
 
@@ -631,7 +751,9 @@ Script.scriptEnding.connect(stopTutorial);
 
 Controller.keyReleaseEvent.connect(function (event) {
     if (event.text == ",") {
-        startNextStep();
+        if (!startNextStep()) {
+            startTutorial();
+        }
     } else if (event.text == ".") {
         stopTutorial();
     } else if (event.text == "r") {
