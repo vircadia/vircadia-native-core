@@ -2044,7 +2044,7 @@ function MyController(hand) {
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
                                                                       "position", "rotation", "dimensions"]);
         if (!props.position) {
-            // server may have reset, taking our equipped entity with it.  move back to "off" stte
+            // server may have reset, taking our equipped entity with it.  move back to "off" state
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.setState(STATE_OFF, "entity has no position property");
             return;
@@ -2175,10 +2175,9 @@ function MyController(hand) {
             return;
         }
 
-        var handPosition = this.getHandPosition();
         var pickRay = {
-            origin: handPosition,
-            direction: Quat.getUp(this.getControllerRotation())
+            origin: this.getControllerLocation().position,
+            direction: Quat.getUp(this.getControllerLocation().orientation)
         };
 
         var now = Date.now();
