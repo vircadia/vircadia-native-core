@@ -2051,7 +2051,7 @@ function MyController(hand) {
         }
 
         var now = Date.now();
-        if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
+        if (this.state == STATE_HOLD && now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
             this.lastUnequipCheckTime = now;
 
             if (props.parentID == MyAvatar.sessionUUID) {
