@@ -37,6 +37,13 @@ Light& Light::operator= (const Light& light) {
 Light::~Light() {
 }
 
+void Light::setType(Type type) {
+    editSchema()._control.x = float(type);
+    updateLightRadius();
+    updateVolumeGeometry();
+}
+
+
 void Light::setPosition(const Vec3& position) {
     _transform.setTranslation(position);
     editSchema()._position = Vec4(position, 1.f);
@@ -82,6 +89,7 @@ void Light::setMaximumRadius(float radius) {
     }
     editSchema()._attenuation.y = radius;
     updateLightRadius();
+    updateVolumeGeometry();
 }
 
 void Light::updateLightRadius() {
@@ -117,6 +125,8 @@ void Light::setSpotAngle(float angle) {
     editSchema()._spot.x = (float) std::abs(cosAngle);
     editSchema()._spot.y = (float) std::abs(sinAngle);
     editSchema()._spot.z = (float) angle;
+
+    updateVolumeGeometry();
 }
 
 void Light::setSpotExponent(float exponent) {
@@ -152,4 +162,16 @@ void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
 
 void Light::setAmbientMapNumMips(uint16_t numMips) {
     editSchema()._ambientMapNumMips = (float)numMips;
+}
+
+void Light::updateVolumeGeometry() {
+    // enlarge the scales slightly to account for tesselation
+    const float SCALE_EXPANSION = 0.05f;
+    glm::vec4 volumeGeometry(0.0f, 0.0f, 0.0f, 1.0f); // getMaximumRadius() * (1.0f + SCALE_EXPANSION));
+
+    if (getType() == SPOT) {
+        const float TANGENT_LENGTH_SCALE = 0.666f;
+        volumeGeometry = glm::vec4(getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * getSpotAngle()), volumeGeometry.w);
+    }
+    editSchema()._volumeGeometry = volumeGeometry;
 }

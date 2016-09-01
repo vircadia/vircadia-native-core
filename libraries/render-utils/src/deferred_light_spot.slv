@@ -18,13 +18,15 @@
 
 <$declareStandardTransform()$>
 
-uniform vec4 coneParam;
+<@include model/Light.slh@>
+
 
 out vec4 _texCoord0;
 
 void main(void) {
     vec4 coneVertex = inPosition;
-    if (coneParam.w != 0.0) {
+  //  if (coneParam.w != 0.0) {
+    vec4 coneParam = getLightVolumeGeometry(getLight());
         if(coneVertex.z >= 0.0) {
             // Evaluate the true position of the spot volume
             vec2 dir =  float(coneVertex.z < 0.5f) * (coneParam.xy
@@ -38,6 +40,7 @@ void main(void) {
             coneVertex.z = 0.0;
         }
 
+        coneVertex.xyz *= coneParam.w;
 
         // standard transform
         TransformCamera cam = getTransformCamera();
@@ -50,7 +53,7 @@ void main(void) {
             projected.x = 0.5 * (projected.x + cam_getStereoSide());
         }
         _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
-    } else {
+ /*   } else {
         const float depth = -1.0; //Draw at near plane
         const vec4 UNIT_QUAD[4] = vec4[4](
             vec4(-1.0, -1.0, depth, 1.0),
@@ -65,5 +68,5 @@ void main(void) {
             _texCoord0.x = 0.5 * (_texCoord0.x + cam_getStereoSide());
         }
         gl_Position = pos;
-    }
+    }*/
 }

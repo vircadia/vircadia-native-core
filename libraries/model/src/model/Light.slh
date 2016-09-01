@@ -56,6 +56,8 @@ struct Light {
     vec4 _shadow;
     vec4 _control;
 
+    vec4 _volumeGeometry;
+
     SphericalHarmonics _ambientSphere;
 };
 
@@ -96,6 +98,10 @@ float getLightCutoffSquareRadius(Light l) {
 
 float getLightShowContour(Light l) {
     return l._control.w;
+}
+
+vec4 getLightVolumeGeometry(Light l) {
+    return l._volumeGeometry;
 }
 
 // Light is the light source its self, d is the light's distance calculated as length(unnormalized light vector).

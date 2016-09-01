@@ -594,18 +594,18 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 // IN DEBUG: light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
-                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-                glm::vec4 sphereParam(expandedRadius, 0.0f, 0.0f, 1.0f);
+                       float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
+               // glm::vec4 sphereParam(expandedRadius, 0.0f, 0.0f, 1.0f);
 
                 // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                 // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-          /*      if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
+              /*  if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                     sphereParam.w = 0.0f;
                     batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
                 } else*/ {
-                    sphereParam.w = 1.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
+                //    sphereParam.w = 1.0f;
+                //    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
                     
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
@@ -638,7 +638,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 // light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
 
-                auto eyeLightPos = eyePoint - light->getPosition();
+            /*    auto eyeLightPos = eyePoint - light->getPosition();
                 auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
 
                 const float TANGENT_LENGTH_SCALE = 0.666f;
@@ -648,19 +648,19 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                 // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
                 const float OVER_CONSERVATIVE_SCALE = 1.1f;
-           /*     if ((eyeHalfPlaneDistance > -nearRadius) &&
+                if ((eyeHalfPlaneDistance > -nearRadius) &&
                     (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
                     coneParam.w = 0.0f;
                     batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
                 } else*/ {
-                    coneParam.w = 1.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
+                  //  coneParam.w = 1.0f;
+                 //   batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
                     Transform model;
                     model.setTranslation(light->getPosition());
                     model.postRotate(light->getOrientation());
-                    model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
+                //    model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
 
                     batch.setModelTransform(model);
 

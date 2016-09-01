@@ -54,7 +54,7 @@ public:
     Light& operator= (const Light& light);
     virtual ~Light();
 
-    void setType(Type type) { editSchema()._control.x = float(type); }
+    void setType(Type type);
     Type getType() const { return Type((int) getSchema()._control.x); }
 
     void setPosition(const Vec3& position);
@@ -126,8 +126,11 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
+
         float _ambientMapNumMips{ 0.0f };
         Vec3 _control{ 0.0f, 0.0f, 0.0f };
+
+        Vec4 _volumeGeometry { 1.f };
 
         gpu::SphericalHarmonics _ambientSphere;
     };
@@ -146,6 +149,8 @@ protected:
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
 
     void updateLightRadius();
+    void updateVolumeGeometry();
+
 };
 typedef std::shared_ptr< Light > LightPointer;
 
