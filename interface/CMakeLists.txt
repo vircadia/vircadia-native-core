@@ -48,7 +48,7 @@ endif ()
 find_package(
   Qt5 COMPONENTS
   Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
-  ${QT_WEBENGINE_COMPONENTS}
+  ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
 
@@ -168,7 +168,7 @@ if (WIN32)
 endif()
 
 if (NOT ANDROID)
-  set(${NON_ANDROID_LIBRARIES} steamworks-wrapper)
+  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
 endif ()
 
 # link required hifi libraries
