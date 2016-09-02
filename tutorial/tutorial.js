@@ -791,6 +791,7 @@ function startTutorial() {
         new stepTeleport("teleport"),
         new stepFinish("finish"),
     ]
+    location = "/tutorial";
     startNextStep();
 }
 
@@ -832,7 +833,6 @@ function stopTutorial() {
     currentStep = null;
 }
 
-location = "/tutorial";
 startTutorial();
 
 var DISABLE_SPIN_MAPPING = "com.highfidelity.spin.disable";
