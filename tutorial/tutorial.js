@@ -644,6 +644,7 @@ stepTurnAround.prototype = {
                     Script.clearInterval(this.interval);
                     this.interval = null;
                     print("DONE");
+                    playSuccessSound();
                     onFinish();
                 }
             }
@@ -697,6 +698,7 @@ stepTeleport.prototype = {
                 print("On pad!!");
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
+                playSuccessSound();
                 onFinish();
             }
         }
