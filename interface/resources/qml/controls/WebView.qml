@@ -62,7 +62,6 @@ Item {
         }
 
         onUrlChanged: {
-            keyboardRaised = false;
             var originalUrl = url.toString();
             root.newUrl = urlHandler.fixupUrl(originalUrl).toString();
             if (root.newUrl !== originalUrl) {
@@ -80,6 +79,8 @@ Item {
         }
 
         onLoadingChanged: {
+            keyboardRaised = false;
+
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
                 var url = loadRequest.url.toString();
