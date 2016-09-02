@@ -83,17 +83,18 @@ Rectangle {
         onLinkHovered: {
             desktop.currentUrl = hoveredUrl;
             //runJavaScript(checkFileType, function(){console.log("Remove filetypes JS injection");});
+            if (File.isZippedFbx(desktop.currentUrl)) {
+                runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
+                return;
+            }
 
-            if (File.isNotFbx(desktop.currentUrl)) {
+            if (File.isZipped(desktop.currentUrl)) {
                 statusLabel.text = claraError;
                 statusBar.color = hifi.colors.redHighlight;
                 statusIcon.text = hifi.glyphs.alert;
                 runJavaScript(notFbxHandler, displayErrorStatus());
             }
-
-            if (File.isZippedFbx(desktop.currentUrl)) {
-                runJavaScript(simpleDownload, function(){console.log("Download JS injection");});
-            }
+            
         }
 
         onLoadingChanged: {

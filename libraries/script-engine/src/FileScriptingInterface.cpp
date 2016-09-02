@@ -73,13 +73,13 @@ bool FileScriptingInterface::isClaraLink(QUrl url) {
     return (url.toString().contains("clara.io") && !url.toString().contains("clara.io/signup"));
 }
 
-// checks whether a user tries to download a file that is not in .fbx format
-bool FileScriptingInterface::isNotFbx(QUrl url) {
-    return (url.toString().endsWith(".zip") && !(url.toString().contains("fbx") ));
-}
-
 bool FileScriptingInterface::isZippedFbx(QUrl url) {
     return (url.toString().endsWith("fbx.zip"));
+}
+
+// checks whether a user tries to download a file that is not in .fbx format
+bool FileScriptingInterface::isZipped(QUrl url) {
+    return (url.toString().endsWith(".zip"));
 }
 
 // this function is not in use

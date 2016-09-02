@@ -24,8 +24,8 @@ public:
 
 
 public slots:
-    bool isNotFbx(QUrl url);
     bool isZippedFbx(QUrl url);
+    bool isZipped(QUrl url);
     bool isClaraLink(QUrl url);
     QString convertUrlToPath(QUrl url);
     void runUnzip(QString path, QUrl url);
