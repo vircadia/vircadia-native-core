@@ -28,7 +28,7 @@ Rectangle {
     color: hifi.colors.baseGrayShadow
     property var currentUrl: "https://metaverse.highfidelity.com/marketplace"
 
-    Controls.WebView {
+    Controls.BaseWebView {
         id: webview
         url: currentUrl
         anchors.top: switchMarketView.bottom

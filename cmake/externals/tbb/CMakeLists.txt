@@ -3,9 +3,9 @@ set(EXTERNAL_NAME tbb)
 include(ExternalProject)
 
 if (ANDROID)
-  
+
   find_program(NDK_BUILD_COMMAND NAMES ndk-build DOC "Path to the ndk-build command")
-      
+
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150316oss_src.tgz
@@ -20,7 +20,7 @@ if (ANDROID)
   )
 elseif (APPLE)
   find_program(MAKE_COMMAND NAMES make DOC "Path to the make command")
-  
+
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150316oss_src.tgz
@@ -37,11 +37,11 @@ else ()
   if (WIN32)
     set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150316oss_win.zip)
     set(DOWNLOAD_MD5 d250d40bb93b255f75bcbb19e976a440)
-  else () 
+  else ()
     set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150316oss_lin.tgz)
     set(DOWNLOAD_MD5 7830ba2bc62438325fba2ec0c95367a5)
   endif ()
-  
+
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL ${DOWNLOAD_URL}
@@ -60,11 +60,11 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-if (APPLE) 
+if (APPLE)
   set(_TBB_LIB_DIR "${SOURCE_DIR}/lib")
   set(_LIB_PREFIX "lib")
   set(_LIB_EXT "dylib")
-  
+
   ExternalProject_Add_Step(
     ${EXTERNAL_NAME}
     change-install-name
@@ -74,7 +74,7 @@ if (APPLE)
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1
   )
-  
+
 elseif (WIN32)
   if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
     set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/intel64/vc12")
@@ -91,18 +91,18 @@ elseif (ANDROID)
 elseif (UNIX)
   set(_LIB_PREFIX "lib")
   set(_LIB_EXT "so")
-  
+
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(_TBB_ARCH_DIR "intel64")
   else()
     set(_TBB_ARCH_DIR "ia32")
   endif()
-  
+
   execute_process(
     COMMAND ${CMAKE_C_COMPILER} -dumpversion
     OUTPUT_VARIABLE GCC_VERSION
   )
-  
+
   if (GCC_VERSION VERSION_GREATER 4.4 OR GCC_VERSION VERSION_EQUAL 4.4)
     set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/${_TBB_ARCH_DIR}/gcc4.4")
   elseif (GCC_VERSION VERSION_GREATER 4.1 OR GCC_VERSION VERSION_EQUAL 4.1)
@@ -110,9 +110,9 @@ elseif (UNIX)
   else ()
     message(STATUS "Could not find a compatible version of Threading Building Blocks library for your compiler.")
   endif ()
-  
-  
-endif () 
+
+
+endif ()
 
 if (DEFINED _TBB_LIB_DIR)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb_debug.${_LIB_EXT} CACHE FILEPATH "TBB debug library location")

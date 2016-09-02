@@ -46,7 +46,7 @@ else ()
   if (ANDROID)
     set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=19")
   endif ()
-  
+
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://www.libsdl.org/release/SDL2-2.0.3.tar.gz
@@ -60,7 +60,6 @@ endif ()
 
 # Hide this external target (for ide users)
 set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
-
 
 if (APPLE)
 
@@ -78,9 +77,9 @@ elseif (WIN32)
     set(${EXTERNAL_NAME_UPPER}_LIBRARY_TEMP ${SOURCE_DIR}/lib/x86/SDL2.lib CACHE FILEPATH "Path to SDL2 library")
     set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/lib/x86 CACHE PATH "Location of SDL2 DLL")
   endif()
-  
+
   add_paths_to_fixup_libs(${${EXTERNAL_NAME_UPPER}_DLL_PATH})
-  
+
 else ()
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)

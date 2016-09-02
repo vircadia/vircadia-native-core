@@ -187,7 +187,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     btIndexedMesh mesh;
     const int32_t VERTICES_PER_TRIANGLE = 3;
     mesh.m_numTriangles = numIndices / VERTICES_PER_TRIANGLE;
-    if (numIndices < INT16_MAX) {
+    if (numIndices < std::numeric_limits<int16_t>::max()) {
         // small number of points so we can use 16-bit indices
         mesh.m_triangleIndexBase = new unsigned char[sizeof(int16_t) * (size_t)numIndices];
         mesh.m_indexType = PHY_SHORT;
@@ -211,7 +211,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
         vertexData[j + 1] = point.y;
         vertexData[j + 2] = point.z;
     }
-    if (numIndices < INT16_MAX) {
+    if (numIndices < std::numeric_limits<int16_t>::max()) {
         int16_t* indices = static_cast<int16_t*>((void*)(mesh.m_triangleIndexBase));
         for (int32_t i = 0; i < numIndices; ++i) {
             indices[i] = (int16_t)triangleIndices[i];

@@ -285,6 +285,19 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+    // render info related items
+    size_t getRenderInfoVertexCount() const { return _renderInfoVertexCount; }
+    void setRenderInfoVertexCount(size_t value) { _renderInfoVertexCount = value; }
+    int getRenderInfoTextureCount() const { return _renderInfoTextureCount; }
+    void setRenderInfoTextureCount(int value) { _renderInfoTextureCount = value; }
+    size_t getRenderInfoTextureSize() const { return _renderInfoTextureSize; }
+    void setRenderInfoTextureSize(size_t value) { _renderInfoTextureSize = value; }
+    int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
+    void setRenderInfoDrawCalls(int value) { _renderInfoDrawCalls = value; }
+    bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
+    void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
+
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
@@ -307,6 +320,12 @@ private:
     QVariantMap _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    size_t _renderInfoVertexCount { 0 };
+    int _renderInfoTextureCount { 0 };
+    size_t _renderInfoTextureSize { 0 };
+    int _renderInfoDrawCalls { 0 };
+    bool _renderInfoHasTransparent { false };
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };

@@ -59,6 +59,7 @@ public:
     TextureMap() {}
 
     void setTextureSource(gpu::TextureSourcePointer& textureSource);
+    gpu::TextureSourcePointer getTextureSource() const { return _textureSource; }
 
     bool isDefined() const;
     gpu::TextureView getTextureView() const;

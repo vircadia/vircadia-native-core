@@ -548,6 +548,15 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     if (_originalTexturesRead) {
         properties.setTextureNames(_originalTextures);
     }
+
+    if (_model) {
+        properties.setRenderInfoVertexCount(_model->getRenderInfoVertexCount());
+        properties.setRenderInfoTextureCount(_model->getRenderInfoTextureCount());
+        properties.setRenderInfoTextureSize(_model->getRenderInfoTextureSize());
+        properties.setRenderInfoDrawCalls(_model->getRenderInfoDrawCalls());
+        properties.setRenderInfoHasTransparent(_model->getRenderInfoHasTransparent());
+    }
+
     return properties;
 }
 
