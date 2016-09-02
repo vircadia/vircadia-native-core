@@ -64,6 +64,7 @@ public:
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
     void emitScriptEvent(const QVariant& message);
+    void setKeyboardRaised(bool raised);
 
     SIMPLE_RENDERABLE();
 

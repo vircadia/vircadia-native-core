@@ -55,7 +55,14 @@ void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
-        emit webEventReceived(message);
+        // special case to handle raising and lowering the virtual keyboard
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _ptr) {
+            _ptr->setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _ptr) {
+            _ptr->setKeyboardRaised(false);
+        } else {
+            emit webEventReceived(message);
+        }
     }
 }
 
@@ -356,4 +363,8 @@ void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
     _webEntityAPIHelper.emitScriptEvent(message);
+}
+
+void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
+    _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(raised));
 }

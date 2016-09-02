@@ -5,6 +5,7 @@ import QtWebChannel 1.0
 Item {
     property alias url: root.url
     property alias eventBridge: eventBridgeWrapper.eventBridge
+    property bool keyboardRaised: false
 
     QtObject {
         id: eventBridgeWrapper
@@ -17,7 +18,7 @@ Item {
         x: 0
         y: 0
         width: parent.width
-        height: parent.height - keyboard1.height
+        height: keyboardRaised ? parent.height - keyboard.height : parent.height
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -61,6 +62,7 @@ Item {
         }
 
         onUrlChanged: {
+            keyboardRaised = false;
             var originalUrl = url.toString();
             root.newUrl = urlHandler.fixupUrl(originalUrl).toString();
             if (root.newUrl !== originalUrl) {
@@ -104,9 +106,11 @@ Item {
 
     // virtual keyboard
     Keyboard {
-        id: keyboard1
-        x: 197
-        y: 182
+        id: keyboard
+        y: keyboardRaised ? parent.height : 0
+        height: keyboardRaised ? 200 : 0
+        visible: keyboardRaised
+        enabled: keyboardRaised
         anchors.right: parent.right
         anchors.rightMargin: 0
         anchors.left: parent.left
