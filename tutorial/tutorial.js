@@ -623,6 +623,9 @@ var stepTurnAround = function(name) {
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
+        setControllerVisible("left", true);
+        setControllerVisible("right", true);
+
         showEntitiesWithTag(this.tag);
         var hasTurnedAround = false;
         this.interval = Script.setInterval(function() {
@@ -646,6 +649,9 @@ stepTurnAround.prototype = {
         }.bind(this), 100);
     },
     cleanup: function() {
+        setControllerVisible("left", false);
+        setControllerVisible("right", false);
+
         if (this.interval) {
             Script.clearInterval(this.interval);
         }

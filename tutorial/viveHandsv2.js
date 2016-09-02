@@ -283,6 +283,28 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 //     color: { red: 100, green: 255, blue: 255 },
                 // },
 
+                left: {
+                    textOffset: { x: -0.035, y: 0.004, z: -0.005 },
+                    position: {
+                        x: 0,
+                        y: 0.00378,
+                        z: 0.04920
+                    },
+                    direction: "left",
+                    color: { red: 255, green: 100, blue: 100 },
+                },
+                right: {
+                    textOffset: { x: 0.023, y: 0.004, z: -0.005 },
+                    position: {
+                        x: 0,
+                        y: 0.00378,
+                        z: 0.04920
+                    },
+                    direction: "left",
+                    color: { red: 255, green: 100, blue: 100 },
+                },
+
+
                 trigger: {
                     position: {
                         x: 0.0055,
@@ -348,6 +370,28 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 
             annotationTextRotation: Quat.fromPitchYawRollDegrees(180 + 45, 90, 180),
             annotations: {
+
+                left: {
+                    textOffset: { x: -0.035, y: 0.004, z: -0.005 },
+                    position: {
+                        x: 0,
+                        y: 0.00378,
+                        z: 0.04920
+                    },
+                    direction: "left",
+                    color: { red: 255, green: 100, blue: 100 },
+                },
+                right: {
+                    textOffset: { x: 0.023, y: 0.004, z: -0.005 },
+                    position: {
+                        x: 0,
+                        y: 0.00378,
+                        z: 0.04920
+                    },
+                    direction: "left",
+                    color: { red: 255, green: 100, blue: 100 },
+                },
+
                 trigger: {
                     position: {
                         x: -0.075,
