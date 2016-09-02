@@ -223,7 +223,7 @@ public:
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
-    bool isHMDMode() const;
+    virtual bool isHMDMode() const override;
     glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;

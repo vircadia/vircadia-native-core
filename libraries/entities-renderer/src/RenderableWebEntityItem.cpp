@@ -396,5 +396,9 @@ void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
 }
 
 void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
-    _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(raised));
+
+    // raise the keyboard only while in HMD mode and it's being requested.
+    bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
+
+    _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(value));
 }
