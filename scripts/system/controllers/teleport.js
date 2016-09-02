@@ -459,7 +459,7 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.tooClose = isTooCloseToTeleport(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.targetOverlay, {
@@ -480,7 +480,7 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.tooClose = isTooCloseToTeleport(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.cancelOverlay, {
@@ -627,8 +627,11 @@ function isMoving() {
     }
 };
 
-function isTooCloseToTeleport(position) {
-    return Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
+function isTooCloseToTeleport(position, surfaceNormal) {
+    var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
+    var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+    //print(angleUp);
+    return angleUp < 80 || angleUp > 110 || Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 };
 
 function registerMappings() {
