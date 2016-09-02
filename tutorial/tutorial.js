@@ -837,18 +837,34 @@ function stopTutorial() {
 
 startTutorial();
 
-var DISABLE_SPIN_MAPPING = "com.highfidelity.spin.disable";
-var mapping = Controller.newMapping(DISABLE_SPIN_MAPPING);
-function noop(value) { }
-mapping.from([Controller.Standard.RY]).to(noop);
+var TUTORIAL_DISABLE_MAPPING = "com.highfidelity.tutorial.disable";
+var mapping = Controller.newMapping(TUTORIAL_DISABLE_MAPPING);
+
+function noop(value) {
+    print("NOOP");
+}
+
+mapping.from([
+        Controller.Vive.LSCenter,
+        Controller.Vive.LeftApplicationMenu,
+        Controller.Standard.LeftSecondaryThumb,
+        Controller.Standard.LeftPrimraryThumb
+    ]).to(noop);
+mapping.from([]).to(noop);
+mapping.from([]).to(noop);
+
+Controller.enableMapping(TUTORIAL_DISABLE_MAPPING);
+
+Script.scriptEnding.connect(function() {
+    Controller.disableMapping(TUTORIAL_DISABLE_MAPPING);
+});
+Controller.disableMapping('handControllerPointer-click');
+
+//mapping.from([Controller.Standard.RY]).to(noop);
+        //{ "from": "Vive.LeftApplicationMenu", "to": "Standard.LeftSecondaryThumb" },
 //mapping.from([Controller.Standard.RY]).when("Controller.Application.Grounded").to(noop);
 //mapping.from([Controller.Standard.RY]).when(Controller.Application.Grounded).to(noop);
 
-Controller.enableMapping(DISABLE_SPIN_MAPPING);
-
-Script.scriptEnding.connect(function() {
-    Controller.disableMapping(DISABLE_SPIN_MAPPING);
-});
 
 Script.scriptEnding.connect(stopTutorial);
 
