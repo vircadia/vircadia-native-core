@@ -400,7 +400,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 }
 
 var DEBUG = false;
-var VISIBLE_BY_DEFAULT = true;
+var VISIBLE_BY_DEFAULT = false;
 
 function setupController(config) {
     var controllerDisplay = {

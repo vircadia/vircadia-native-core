@@ -239,6 +239,7 @@ var stepDisableControllers = function(name) {
 }
 stepDisableControllers.prototype = {
     start: function(onFinish) {
+        editEntitiesWithTag('door', { visible: true });
         Menu.setIsOptionChecked("Overlays", false);
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
@@ -341,22 +342,26 @@ stepNearGrab.prototype = {
         var basketColliderID = findEntity({ name: NEAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
+        var boxSpawnID = findEntity({ name: NEAR_BOX_SPAWN_NAME }, 10000);
+        if (!boxSpawnID) {
+            print("Error creating block, cannot find spawn");
+            return null;
+        }
+        var boxSpawnPosition = Entities.getEntityProperties(boxSpawnID, 'position').position;
         function createBlock() {
-            var boxSpawnID = findEntity({ name: NEAR_BOX_SPAWN_NAME }, 10000);
-            if (!boxSpawnID) {
-                print("Error creating block, cannot find spawn");
-                return null;
-            }
-
-            Step1BlockData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
+            Step1BlockData.position = boxSpawnPosition;
             return spawnWithTag([Step1BlockData], null, this.tempTag)[0];
         }
 
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var boxID = createBlock.bind(this)();
-        print("Created", boxID);
+        this.boxID = createBlock.bind(this)();
+        print("Created", this.boxID);
+
+        //function posChecker() {
+            //Vec3.distance(
+        //}
 
         function onHit() {
             onFinish();
@@ -365,7 +370,7 @@ stepNearGrab.prototype = {
         // When block collides with basket start step 2
         function checkCollides() {
             print(this.tag, "CHECKING...");
-            if (Vec3.distance(basketPosition, Entities.getEntityProperties(boxID, 'position').position) < 0.1) {
+            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.1) {
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
                 this.soundInjector = Audio.playSound(successSound, {
@@ -435,8 +440,8 @@ stepFarGrab.prototype = {
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        var boxID = createBlock.bind(this)();
-        print("Created", boxID);
+        this.boxID = createBlock.bind(this)();
+        print("Created", this.boxID);
 
         function onHit() {
             onFinish();
@@ -446,7 +451,7 @@ stepFarGrab.prototype = {
         var checkCollidesTimer = null;
         function checkCollides() {
             print("CHECKING...");
-            if (Vec3.distance(basketPosition, Entities.getEntityProperties(boxID, 'position').position) < 0.1) {
+            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.1) {
                 Script.clearInterval(checkCollidesTimer);
                 this.soundInjector = Audio.playSound(successSound, {
                     position: basketPosition,
@@ -548,7 +553,7 @@ stepEquip.prototype = {
             print("CHECKING FOR PING PONG...");
             var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
             for (var i = 0; i < ammoIDs.length; ++i) {
-                if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.2) {
+                if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
                     Script.clearInterval(this.checkCollidesTimer);
                     this.checkCollidesTimer = null;
                     this.soundInjector = Audio.playSound(successSound, {
@@ -561,7 +566,7 @@ stepEquip.prototype = {
                 }
             }
         }
-        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 100);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
@@ -718,6 +723,7 @@ var stepFinish = function(name) {
 }
 stepFinish.prototype = {
     start: function(onFinish) {
+        editEntitiesWithTag('door', { visible: false });
         Menu.setIsOptionChecked("Overlays", true);
         showEntitiesWithTag(this.tag);
     },
