@@ -685,10 +685,10 @@ var stepFinish = function(name) {
 stepFinish.prototype = {
     start: function(onFinish) {
         editEntitiesWithTag('door', { visible: false });
-        Menu.setIsOptionChecked("Overlays", true);
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
+        //Menu.setIsOptionChecked("Overlays", true);
         hideEntitiesWithTag(this.tag);
         deleteEntitiesWithTag(this.tempTag);
     }
