@@ -1,4 +1,3 @@
-
 if (!Function.prototype.bind) {
   Function.prototype.bind = function(oThis) {
     if (typeof this !== 'function') {
@@ -27,53 +26,6 @@ if (!Function.prototype.bind) {
   };
 }
 Script.include("entityData.js");
-
-//
-// var FAR_GRAB_INPUTS = [
-//     Controller.Standard.RT
-//     Controller.Standard.RTClick
-//     Controller.Standard.LT
-//     Controller.Standard.LTClick
-// ];
-//
-// var TELEPORT_INPUTS = [
-//     Controller.Standard.LeftPrimaryThumb
-//     Controller.Standard.RightPrimaryThumb
-// ];
-//
-// function noop(value) { }
-// var FAR_GRAB_MAPPING_NAME = "com.highfidelity.farGrab.disable";
-// var farGrabMapping = Controller.newMapping(FAR_GRAB_MAPPING_NAME);
-// for (var i = 0; i < FAR_GRAB_INPUTS.length; ++i) {
-//     mapping.from([FAR_GRAB_INPUTS[i]]).to(noop);
-// }
-//
-// var TELEPORT_MAPPING_NAME = "com.highfidelity.teleport.disable";
-// var teleportMapping = Controller.newMapping(TELEPORT_MAPPING_NAME);
-// for (var i = 0; i < FAR_GRAB_INPUTS.length; ++i) {
-//     mapping.from([TELEPORT_INPUTS[i]]).to(noop);
-// }
-//
-// mapping.from([Controller.Standard.RT]).to(noop);
-// mapping.from([Controller.Standard.RTClick]).to(noop);
-//
-// mapping.from([Controller.Standard.LT]).to(noop);
-// mapping.from([Controller.Standard.LTClick]).to(noop);
-//
-// mapping.from([Controller.Standard.RB]).to(noop);
-// mapping.from([Controller.Standard.LB]).to(noop);
-// mapping.from([Controller.Standard.LeftGrip]).to(noop);
-// mapping.from([Controller.Standard.RightGrip]).to(noop);
-//
-// mapping.from([Controller.Standard.LeftPrimaryThumb]).to(noop);
-// mapping.from([Controller.Standard.RightPrimaryThumb]).to(noop);
-//
-// Script.scriptEnding.connect(function() {
-//     Controller.disableMapping(MAPPING_NAME);
-// });
-//
-// Controller.enableMapping(MAPPING_NAME);
-//{ "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
 var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
 var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
@@ -837,26 +789,8 @@ function stopTutorial() {
 
 startTutorial();
 
-var TUTORIAL_DISABLE_MAPPING = "com.highfidelity.tutorial.disable";
-var mapping = Controller.newMapping(TUTORIAL_DISABLE_MAPPING);
-
-function noop(value) {
-    print("NOOP");
-}
-
-mapping.from([
-        Controller.Vive.LSCenter,
-        Controller.Vive.LeftApplicationMenu,
-        Controller.Standard.LeftSecondaryThumb,
-        Controller.Standard.LeftPrimraryThumb
-    ]).to(noop);
-mapping.from([]).to(noop);
-mapping.from([]).to(noop);
-
-Controller.enableMapping(TUTORIAL_DISABLE_MAPPING);
-
 Script.scriptEnding.connect(function() {
-    Controller.disableMapping(TUTORIAL_DISABLE_MAPPING);
+    Controller.enableMapping('handControllerPointer-click');
 });
 Controller.disableMapping('handControllerPointer-click');
 
