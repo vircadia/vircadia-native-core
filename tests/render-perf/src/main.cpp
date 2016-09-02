@@ -526,7 +526,6 @@ public:
         _octree->init();
         // Prevent web entities from rendering
         REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
-//        REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, LightEntityItem::factory);
 
         DependencyManager::set<ParentFinder>(_octree->getTree());
         getEntities()->setViewFrustum(_viewFrustum);
