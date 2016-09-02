@@ -178,6 +178,8 @@ public:
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
 
     virtual float devicePixelRatio() { return 1.0f; }
+    // Rate at which we render frames
+    virtual float renderRate() const { return -1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
     // Rate at which new frames are being presented to the display device

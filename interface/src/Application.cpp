@@ -1685,7 +1685,6 @@ void Application::paintGL() {
     Finally clearFlag([this] { _inPaint = false; });
 
     _frameCount++;
-    _frameCounter.increment();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
@@ -1922,6 +1921,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+        _frameCounter.increment();
         displayPlugin->submitFrame(frame);
     }
 
