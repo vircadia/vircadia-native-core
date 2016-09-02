@@ -20,53 +20,36 @@
 
 <@include model/Light.slh@>
 
-
 out vec4 _texCoord0;
 
 void main(void) {
     vec4 coneVertex = inPosition;
-  //  if (coneParam.w != 0.0) {
     vec4 coneParam = getLightVolumeGeometry(getLight());
-        if(coneVertex.z >= 0.0) {
-            // Evaluate the true position of the spot volume
-            vec2 dir =  float(coneVertex.z < 0.5f) * (coneParam.xy
-                            +   vec2(coneParam.y, -coneParam.x) * coneParam.z * float(coneVertex.z > 0.0f))
-                     +  float(coneVertex.z > 0.5f) * (vec2(1.0, 0.0)
-                            +   vec2(0.0, coneParam.z) * float(coneVertex.z < 1.0f));
 
-            coneVertex.xy *= dir.y;
-            coneVertex.z = -dir.x;
-        } else {
-            coneVertex.z = 0.0;
-        }
+    if(coneVertex.z >= 0.0) {
+        // Evaluate the true position of the spot volume
+        vec2 dir =  float(coneVertex.z < 0.5f) * (coneParam.xy
+                        +   vec2(coneParam.y, -coneParam.x) * coneParam.z * float(coneVertex.z > 0.0f))
+                    +  float(coneVertex.z > 0.5f) * (vec2(1.0, 0.0)
+                        +   vec2(0.0, coneParam.z) * float(coneVertex.z < 1.0f));
 
-        coneVertex.xyz *= coneParam.w;
+        coneVertex.xy *= dir.y;
+        coneVertex.z = -dir.x;
+    } else {
+        coneVertex.z = 0.0;
+    }
 
-        // standard transform
-        TransformCamera cam = getTransformCamera();
-        TransformObject obj = getTransformObject();
-        <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>;
-            vec4 projected = gl_Position / gl_Position.w;
-        projected.xy = (projected.xy + 1.0) * 0.5;
+    coneVertex.xyz *= coneParam.w;
 
-        if (cam_isStereo()) {
-            projected.x = 0.5 * (projected.x + cam_getStereoSide());
-        }
-        _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
- /*   } else {
-        const float depth = -1.0; //Draw at near plane
-        const vec4 UNIT_QUAD[4] = vec4[4](
-            vec4(-1.0, -1.0, depth, 1.0),
-            vec4(1.0, -1.0, depth, 1.0),
-            vec4(-1.0, 1.0, depth, 1.0),
-            vec4(1.0, 1.0, depth, 1.0)
-        );
-        vec4 pos = UNIT_QUAD[gl_VertexID];
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>;
+        vec4 projected = gl_Position / gl_Position.w;
+    projected.xy = (projected.xy + 1.0) * 0.5;
 
-        _texCoord0 = vec4((pos.xy + 1) * 0.5, 0.0, 1.0);
-        if (cam_isStereo()) {
-            _texCoord0.x = 0.5 * (_texCoord0.x + cam_getStereoSide());
-        }
-        gl_Position = pos;
-    }*/
+    if (cam_isStereo()) {
+        projected.x = 0.5 * (projected.x + cam_getStereoSide());
+    }
+    _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
 }

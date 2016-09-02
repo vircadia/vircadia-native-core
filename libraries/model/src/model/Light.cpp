@@ -167,7 +167,7 @@ void Light::setAmbientMapNumMips(uint16_t numMips) {
 void Light::updateVolumeGeometry() {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
-    glm::vec4 volumeGeometry(0.0f, 0.0f, 0.0f, 1.0f); // getMaximumRadius() * (1.0f + SCALE_EXPANSION));
+    glm::vec4 volumeGeometry(0.0f, 0.0f, 0.0f, getMaximumRadius() * (1.0f + SCALE_EXPANSION));
 
     if (getType() == SPOT) {
         const float TANGENT_LENGTH_SCALE = 0.666f;

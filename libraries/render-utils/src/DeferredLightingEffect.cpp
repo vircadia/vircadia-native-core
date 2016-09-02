@@ -245,11 +245,50 @@ void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
     globalLight->setAmbientMap(light->getAmbientMap());
 }
 
+#include <shared/Shapes.h>
+
+model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
+    if (!_pointLightMesh) {
+        _pointLightMesh = std::make_shared<model::Mesh>();
+
+        // let's use a icosahedron
+        auto solid = geometry::icosahedron();
+        solid.fitDimension(1.05f); // scaled to 1.05 meters, it will be scaled by the shader accordingly to the light size
+
+        int verticesSize = solid.vertices.size() * 3 * sizeof(float);
+        float* vertexData = (float*) solid.vertices.data();
+
+        _pointLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(verticesSize, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
+
+        auto nbIndices = solid.faces.size() * 3;
+
+        gpu::uint16* indexData = new gpu::uint16[nbIndices];
+        gpu::uint16* index = indexData;
+        for (auto face : solid.faces) {
+            *(index++) = face[0];
+            *(index++) = face[1];
+            *(index++) = face[2];
+        }
+
+        _pointLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(unsigned short) * nbIndices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
+        delete[] indexData;
+
+
+        std::vector<model::Mesh::Part> parts;
+        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::TRIANGLES));
+        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::LINE_STRIP)); // outline version
+
+
+        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+    }
+    return _pointLightMesh;
+}
+
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
         _spotLightMesh = std::make_shared<model::Mesh>();
 
-        int slices = 32;
+        int slices = 16;
         int rings = 3;
         int vertices = 2 + rings * slices;
         int originVertex = vertices - 2;
@@ -544,41 +583,30 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
-        auto monoViewport = args->_viewport;
+        auto viewport = args->_viewport;
 
         // The view frustum is the mono frustum base
         auto viewFrustum = args->getViewFrustum();
 
         // Eval the mono projection
-        mat4 monoProjMat;
-        viewFrustum.evalProjectionMatrix(monoProjMat);
+        mat4 projMat;
+        viewFrustum.evalProjectionMatrix(projMat);
 
-        // The mono view transform
-        Transform monoViewTransform;
-        viewFrustum.evalViewTransform(monoViewTransform);
+        // The view transform
+        Transform viewTransform;
+        viewFrustum.evalViewTransform(viewTransform);
 
-        // THe mono view matrix coming from the mono view transform
-        glm::mat4 monoViewMat;
-        monoViewTransform.getMatrix(monoViewMat);
-
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-
-        auto eyePoint = viewFrustum.getPosition();
-        float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
 
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
-        // Render in this side's viewport
-        batch.setViewportTransform(monoViewport);
-        batch.setStateScissorRect(monoViewport);
+        // Render in this viewport
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
 
-        // enlarge the scales slightly to account for tesselation
-        const float SCALE_EXPANSION = 0.05f;
+        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
-
-        batch.setProjectionTransform(monoProjMat);
-        batch.setViewTransform(monoViewTransform, true);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewTransform, true);
 
         // Splat Point lights
         if (points && !deferredLightingEffect->_pointLights.empty()) {
@@ -586,32 +614,26 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             batch.setPipeline(deferredLightingEffect->_pointLight);
             batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
+            // Pojnt mesh
+            auto mesh = deferredLightingEffect->getPointLightMesh();
+            batch.setIndexBuffer(mesh->getIndexBuffer());
+            batch.setInputBuffer(0, mesh->getVertexBuffer());
+            batch.setInputFormat(mesh->getVertexFormat());
+            auto& spherePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+
             for (auto lightID : deferredLightingEffect->_pointLights) {
                 auto light = deferredLightingEffect->getLightStage().getLight(lightID);
                 if (!light) {
                     continue;
                 }
-                // IN DEBUG: light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_pointLightLocations->lightBufferUnit, light->getSchemaBuffer());
-
-                       float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-               // glm::vec4 sphereParam(expandedRadius, 0.0f, 0.0f, 1.0f);
-
-                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-              /*  if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
-                    sphereParam.w = 0.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else*/ {
-                //    sphereParam.w = 1.0f;
-                //    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->sphereParam, 1, reinterpret_cast< const float* >(&sphereParam));
-                    
+                {
                     Transform model;
                     model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
-                    batch.setModelTransform(model.postScale(expandedRadius));
-                    batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-                    geometryCache->renderSphere(batch);
+                    batch.setModelTransform(model);
+
+                    batch.drawIndexed(model::Mesh::topologyToPrimitive(spherePart._topology), spherePart._numIndices, spherePart._startIndex);
+
                 }
             }
         }
@@ -634,34 +656,12 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 if (!light) {
                     continue;
                 }
-                // IN DEBUG: 
-                // light->setShowContour(true);
                 batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, light->getSchemaBuffer());
-
-            /*    auto eyeLightPos = eyePoint - light->getPosition();
-                auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
-
-                const float TANGENT_LENGTH_SCALE = 0.666f;
-                glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
-
-                float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-                // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
-                // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-                const float OVER_CONSERVATIVE_SCALE = 1.1f;
-                if ((eyeHalfPlaneDistance > -nearRadius) &&
-                    (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
-                    coneParam.w = 0.0f;
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
-                } else*/ {
-                  //  coneParam.w = 1.0f;
-                 //   batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
+                {
 
                     Transform model;
                     model.setTranslation(light->getPosition());
                     model.postRotate(light->getOrientation());
-                //    model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
-
                     batch.setModelTransform(model);
 
                     batch.drawIndexed(model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);

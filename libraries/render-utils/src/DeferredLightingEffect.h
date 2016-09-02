@@ -73,6 +73,8 @@ private:
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
 
+    model::MeshPointer _pointLightMesh;
+    model::MeshPointer getPointLightMesh();
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
 

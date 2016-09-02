@@ -40,7 +40,7 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
 
     if (isShowLightContour() > 0.0) {
         // Show edges
-        float edgeDistR = (getLightRadius(light) - fragLightDistance);
+        float edgeDistR = (getLightCutoffRadius(light) - fragLightDistance);
         float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
         float edgeDist = min(edgeDistR, edgeDistS);
         float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);

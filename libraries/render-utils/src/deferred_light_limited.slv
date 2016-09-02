@@ -18,27 +18,27 @@
 
 <$declareStandardTransform()$>
 
-<!<@include model/Light.slh@>!>
+<@include model/Light.slh@>
 
 
 out vec4 _texCoord0;
 
 void main(void) {
     vec4 sphereVertex = inPosition;
-  //  vec4 sphereParam = getLightVolumeGeometry(getLight());
+    vec4 sphereParam = getLightVolumeGeometry(getLight());
 
-   // sphereVertex.xyz *= sphereParam.w;
+    sphereVertex.xyz *= sphereParam.w;
 
     // standard transform
-        TransformCamera cam = getTransformCamera();
-        TransformObject obj = getTransformObject();
-        <$transformModelToClipPos(cam, obj, sphereVertex, gl_Position)$>;
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, sphereVertex, gl_Position)$>;
 
-        vec4 projected = gl_Position / gl_Position.w;
-        projected.xy = (projected.xy + 1.0) * 0.5;
+    vec4 projected = gl_Position / gl_Position.w;
+    projected.xy = (projected.xy + 1.0) * 0.5;
 
-        if (cam_isStereo()) {
-            projected.x = 0.5 * (projected.x + cam_getStereoSide());
-        }
-        _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
+    if (cam_isStereo()) {
+        projected.x = 0.5 * (projected.x + cam_getStereoSide());
+    }
+    _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
 }

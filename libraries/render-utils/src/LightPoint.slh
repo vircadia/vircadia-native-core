@@ -39,10 +39,10 @@ void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
 
     if (isShowLightContour() > 0.0) {
         // Show edge
-        float edge = abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
+        float edge = abs(2.0 * ((getLightCutoffRadius(light) - fragLightDistance) / (0.1)) - 1.0);
         if (edge < 1) {
             float edgeCoord = exp2(-8.0*edge*edge);
-            diffuse = vec3(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light));
+            diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));
         }
     }
 }
