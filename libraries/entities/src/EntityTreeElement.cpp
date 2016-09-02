@@ -638,7 +638,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                     if (localDistance < distance && entity->getType() != EntityTypes::ParticleEffect) {
                         distance = localDistance;
                         face = localFace;
-                        surfaceNormal = localSurfaceNormal;
+                        surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
                         *intersectedObject = (void*)entity.get();
                         somethingIntersected = true;
                     }
