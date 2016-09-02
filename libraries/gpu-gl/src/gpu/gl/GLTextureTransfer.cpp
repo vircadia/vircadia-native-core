@@ -13,6 +13,18 @@
 #include "GLShared.h"
 #include "GLTexture.h"
 
+#ifdef HAVE_NSIGHT
+#include "nvToolsExt.h"
+std::unordered_map<TexturePointer, nvtxRangeId_t> _map;
+#endif
+
+//#define TEXTURE_TRANSFER_PBOS
+
+#ifdef TEXTURE_TRANSFER_PBOS
+#define TEXTURE_TRANSFER_BLOCK_SIZE (64 * 1024)
+#define TEXTURE_TRANSFER_PBO_COUNT 128
+#endif
+
 using namespace gpu;
 using namespace gpu::gl;
 
@@ -36,82 +48,126 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
     GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
-    Backend::incrementTextureGPUTransferCount();
-#ifdef THREADED_TEXTURE_TRANSFER
-    GLsync fence { 0 };
-    //fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    //glFlush();
 
-    TextureTransferPackage package { texturePointer, fence };
+#ifdef THREADED_TEXTURE_TRANSFER
+    Backend::incrementTextureGPUTransferCount();
     object->setSyncState(GLSyncState::Pending);
-    queueItem(package);
+    Lock lock(_mutex);
+    _pendingTextures.push_back(texturePointer);
 #else
-    object->withPreservedTexture([&] {
-        do_transfer(*object);
-    });
+    for (object->startTransfer(); object->continueTransfer(); ) { }
+    object->finishTransfer();
     object->_contentStamp = texturePointer->getDataStamp();
     object->setSyncState(GLSyncState::Transferred);
 #endif
 }
 
 void GLTextureTransferHelper::setup() {
+#ifdef THREADED_TEXTURE_TRANSFER
+    _context.makeCurrent();
+    glCreateRenderbuffers(1, &_drawRenderbuffer);
+    glNamedRenderbufferStorage(_drawRenderbuffer, GL_RGBA8, 128, 128);
+    glCreateFramebuffers(1, &_drawFramebuffer);
+    glNamedFramebufferRenderbuffer(_drawFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _drawRenderbuffer);
+    glCreateFramebuffers(1, &_readFramebuffer);
+#ifdef TEXTURE_TRANSFER_PBOS
+    std::array<GLuint, TEXTURE_TRANSFER_PBO_COUNT> pbos;
+    glCreateBuffers(TEXTURE_TRANSFER_PBO_COUNT, &pbos[0]);
+    for (uint32_t i = 0; i < TEXTURE_TRANSFER_PBO_COUNT; ++i) {
+        TextureTransferBlock newBlock;
+        newBlock._pbo = pbos[i];
+        glNamedBufferStorage(newBlock._pbo, TEXTURE_TRANSFER_BLOCK_SIZE, 0, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        newBlock._mapped = glMapNamedBufferRange(newBlock._pbo, 0, TEXTURE_TRANSFER_BLOCK_SIZE, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        _readyQueue.push(newBlock);
+    }
+#endif
+#endif
 }
 
 void GLTextureTransferHelper::shutdown() {
-}
-
-void GLTextureTransferHelper::do_transfer(GLTexture& texture) {
-    texture.createTexture();
-    texture.transfer();
-    texture.updateSize();
-    Backend::decrementTextureGPUTransferCount();
-}
-
-bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
 #ifdef THREADED_TEXTURE_TRANSFER
     _context.makeCurrent();
+
+    glNamedFramebufferRenderbuffer(_drawFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, 0);
+    glDeleteFramebuffers(1, &_drawFramebuffer);
+    _drawFramebuffer = 0;
+    glDeleteFramebuffers(1, &_readFramebuffer);
+    _readFramebuffer = 0;
+
+    glNamedFramebufferTexture(_readFramebuffer, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0);
+    glDeleteRenderbuffers(1, &_drawRenderbuffer);
+    _drawRenderbuffer = 0;
 #endif
-    for (auto package : messages) {
-        TexturePointer texturePointer = package.texture.lock();
-        // Texture no longer exists, move on to the next
-        if (!texturePointer) {
+}
+
+bool GLTextureTransferHelper::process() {
+#ifdef THREADED_TEXTURE_TRANSFER
+    // Take any new textures off the queue
+    TextureList newTransferTextures;
+    {
+        Lock lock(_mutex);
+        newTransferTextures.swap(_pendingTextures);
+    }
+
+    if (!newTransferTextures.empty()) {
+        for (auto& texturePointer : newTransferTextures) {
+#ifdef HAVE_NSIGHT
+            _map[texturePointer] = nvtxRangeStart("TextureTansfer");
+#endif
+            GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
+            object->startTransfer();
+            _transferringTextures.push_back(texturePointer);
+            _textureIterator = _transferringTextures.begin();
+        }
+    }
+
+    // No transfers in progress, sleep
+    if (_transferringTextures.empty()) {
+        QThread::usleep(1);
+        return true;
+    }
+
+    static auto lastReport = usecTimestampNow();
+    auto now = usecTimestampNow();
+    auto lastReportInterval = now - lastReport;
+    if (lastReportInterval > USECS_PER_SECOND * 4) {
+        lastReport = now;
+        qDebug() << "Texture list " << _transferringTextures.size();
+    }
+
+    for (auto _textureIterator = _transferringTextures.begin(); _textureIterator != _transferringTextures.end();) {
+        auto texture = *_textureIterator;
+        GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
+        if (gltexture->continueTransfer()) {
+            ++_textureIterator;
             continue;
         }
 
-        if (package.fence) {
-            auto result = glClientWaitSync(package.fence, 0, 0);
-            while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
-                // Minimum sleep
-                QThread::usleep(1);
-                result = glClientWaitSync(package.fence, 0, 0);
-            }
-            assert(GL_CONDITION_SATISFIED == result || GL_ALREADY_SIGNALED == result);
-            glDeleteSync(package.fence);
-            package.fence = 0;
-        }
-
-        GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
-
-        do_transfer(*object);
-        glBindTexture(object->_target, 0);
-
-        {
-            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            assert(fence);
-            auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-            while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
-                // Minimum sleep
-                QThread::usleep(1);
-                result = glClientWaitSync(fence, 0, 0);
-            }
-            glDeleteSync(fence);
-        }
-
-        object->_contentStamp = texturePointer->getDataStamp();
-        object->setSyncState(GLSyncState::Transferred);
+        gltexture->finishTransfer();
+        glNamedFramebufferTexture(_readFramebuffer, GL_COLOR_ATTACHMENT0, gltexture->_id, 0);
+        glBlitNamedFramebuffer(_readFramebuffer, _drawFramebuffer, 0, 0, 1, 1, 0, 0, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glFinish();
+        gltexture->_contentStamp = gltexture->_gpuObject.getDataStamp();
+        gltexture->updateSize();
+        gltexture->setSyncState(gpu::gl::GLSyncState::Transferred);
+        Backend::decrementTextureGPUTransferCount();
+#ifdef HAVE_NSIGHT
+        // Mark the texture as transferred
+        nvtxRangeEnd(_map[texture]);
+        _map.erase(texture);
+#endif
+        _textureIterator = _transferringTextures.erase(_textureIterator);
     }
-#ifdef THREADED_TEXTURE_TRANSFER
-    _context.doneCurrent();
+
+    if (!_transferringTextures.empty()) {
+        // Don't saturate the GPU
+        glFinish();
+    } else {
+        // Don't saturate the CPU
+        QThread::msleep(1);
+    }
+#else
+    QThread::msleep(1);
 #endif
     return true;
 }
