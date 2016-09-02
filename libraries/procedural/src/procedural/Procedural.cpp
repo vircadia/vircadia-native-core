@@ -100,7 +100,9 @@ bool Procedural::parseVersion(const QJsonValue& version) {
     return (_version == 1 || _version == 2);
 }
 
-bool Procedural::parseUrl(const QUrl& shaderUrl) {
+bool Procedural::parseShader(const QUrl& shaderPath) {
+    auto shaderUrl = ResourceManager::normalizeURL(shaderPath);
+
     if (!shaderUrl.isValid()) {
         if (!shaderUrl.isEmpty()) {
             qWarning() << "Invalid shader URL: " << shaderUrl;
@@ -168,7 +170,6 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 
     auto version = proceduralData[VERSION_KEY];
     auto shaderUrl = proceduralData[URL_KEY].toString();
-    shaderUrl = ResourceManager::normalizeURL(shaderUrl);
     auto uniforms = proceduralData[UNIFORMS_KEY].toObject();
     auto channels = proceduralData[CHANNELS_KEY].toArray();
 
@@ -176,7 +177,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 
     // Run through parsing regardless of validity to clear old cached resources
     isValid = parseVersion(version) && isValid;
-    isValid = parseUrl(shaderUrl) && isValid;
+    isValid = parseShader(shaderUrl) && isValid;
     isValid = parseUniforms(uniforms) && isValid;
     isValid = parseTextures(channels) && isValid;
 
@@ -221,6 +222,7 @@ bool Procedural::ready() {
         _hasStartedFade = true;
         _isFading = true;
     }
+
     return true;
 }
 

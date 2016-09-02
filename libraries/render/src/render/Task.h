@@ -334,9 +334,9 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
-    Q_PROPERTY(quint64 cpuRunTime READ getCPUTRunTime NOTIFY newStats())
+    Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
 
-    quint64 _CPURunTime{ 0 };
+    double _msCPURunTime{ 0.0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
@@ -364,8 +364,8 @@ public:
 
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
-    quint64 getCPUTRunTime() const { return _CPURunTime; }
+    void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
+    double getCPURunTime() const { return _msCPURunTime; }
 
 public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
@@ -418,6 +418,46 @@ template <class T, class I, class O> void jobRun(T& data, const SceneContextPoin
     data.run(sceneContext, renderContext, input, output);
 }
 
+class GPUJobConfig : public JobConfig {
+    Q_OBJECT
+    Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+    Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+    double _msGPURunTime { 0.0 };
+    double _msBatchRunTime { 0.0 };
+public:
+    using Persistent = PersistentConfig<GPUJobConfig>;
+
+    GPUJobConfig() = default;
+    GPUJobConfig(bool enabled) : JobConfig(enabled) {}
+
+    // Running Time measurement on GPU and for Batch execution
+    void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+    double getGPURunTime() const { return _msGPURunTime; }
+    double getBatchRunTime() const { return _msBatchRunTime; }
+};
+
+class GPUTaskConfig : public TaskConfig {
+    Q_OBJECT
+    Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+    Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+    double _msGPURunTime { 0.0 };
+    double _msBatchRunTime { 0.0 };
+public:
+
+    using Persistent = PersistentConfig<GPUTaskConfig>;
+
+
+    GPUTaskConfig() = default;
+    GPUTaskConfig(bool enabled) : TaskConfig(enabled) {}
+
+    // Running Time measurement on GPU and for Batch execution
+    void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+    double getGPURunTime() const { return _msGPURunTime; }
+    double getBatchRunTime() const { return _msBatchRunTime; }
+};
+
 class Job {
 public:
     using Config = JobConfig;
@@ -439,7 +479,7 @@ public:
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
     protected:
-        void setCPURunTime(quint64 ustime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(ustime); }
+        void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
 
         QConfigPointer _config;
 
@@ -502,7 +542,7 @@ public:
 
         _concept->run(sceneContext, renderContext);
 
-        _concept->setCPURunTime(usecTimestampNow() - start);
+        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
     protected:

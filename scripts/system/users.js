@@ -13,6 +13,10 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+// resolve these paths immediately
+var MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+var BASE_URL = Script.resolvePath("assets/images/tools/");
+
 var PopUpMenu = function (properties) {
     var value = properties.value,
         promptOverlay,
@@ -25,8 +29,7 @@ var PopUpMenu = function (properties) {
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
-        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
-        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
 
     function positionDisplayOptions() {
         var y,
@@ -223,8 +226,7 @@ var PopUpMenu = function (properties) {
 
 var usersWindow = (function () {
 
-    var baseURL = Script.resolvePath("assets/images/tools/"),
-        WINDOW_WIDTH = 260,
+    var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
         WINDOW_FONT = {
@@ -261,7 +263,7 @@ var usersWindow = (function () {
         WINDOW_BORDER_ALPHA = 0.5,
         windowBorder,
 
-        MIN_MAX_BUTTON_SVG = baseURL + "min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = BASE_URL + "min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -293,7 +295,7 @@ var usersWindow = (function () {
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
         FRIENDS_BUTTON_SPACER = 6, // Space before add/remove friends button
-        FRIENDS_BUTTON_SVG = baseURL + "add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG = BASE_URL + "add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,

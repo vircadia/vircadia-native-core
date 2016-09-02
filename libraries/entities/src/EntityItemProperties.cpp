@@ -582,15 +582,16 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Rendering info
     if (!skipDefaults) {
-        /*
-        renderInfo.setProperty("verticesCount", QScriptValue(randIntInRange(6, 1000)));
-        renderInfo.setProperty("texturesCount", QScriptValue(randIntInRange(0, 10)));
-        renderInfo.setProperty("texturesSize", QScriptValue(randIntInRange(0, 2048)));
-        renderInfo.setProperty("hasTransparent", QScriptValue(randIntInRange(0, 1)));
-        renderInfo.setProperty("drawCalls", QScriptValue(randIntInRange(10, 5000)));
-        */
-
         QScriptValue renderInfo = engine->newObject();
+
+        // currently only supported by models
+        if (_type == EntityTypes::Model) {
+            renderInfo.setProperty("verticesCount", (int)getRenderInfoVertexCount()); // FIXME - theoretically the number of vertex could be > max int
+            renderInfo.setProperty("texturesSize", (int)getRenderInfoTextureSize()); // FIXME - theoretically the size of textures could be > max int
+            renderInfo.setProperty("hasTransparent", getRenderInfoHasTransparent());
+            renderInfo.setProperty("drawCalls", getRenderInfoDrawCalls());
+        }
+
         if (_type == EntityTypes::Model || _type == EntityTypes::PolyLine || _type == EntityTypes::ParticleEffect) {
             renderInfo.setProperty("texturesCount", QScriptValue(_textureNames.count()));
         }

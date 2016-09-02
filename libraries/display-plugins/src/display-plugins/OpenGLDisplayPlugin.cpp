@@ -29,6 +29,7 @@
 #include <gl/GLWidget.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
+#include <gl/Context.h>
 
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
@@ -108,7 +109,7 @@ public:
         }
     }
 
-    void setContext(QGLContext * context) {
+    void setContext(gl::Context* context) {
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
@@ -126,7 +127,6 @@ public:
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         _context->makeCurrent();
-        Q_ASSERT(isCurrentContext(_context->contextHandle()));
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 PROFILE_RANGE("MainThreadOp") 
@@ -250,7 +250,7 @@ private:
     bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
-    QGLContext* _context { nullptr };
+    gl::Context* _context { nullptr };
 };
 
 bool OpenGLDisplayPlugin::activate() {
@@ -475,32 +475,28 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 }
 
 void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
-    if (_lockCurrentTexture) {
-        return;
-    }
-
     withNonPresentThreadLock([&] {
         _newFrameQueue.push(newFrame);
     });
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
+    if (_lockCurrentTexture) {
+        return;
+    }
     withPresentThreadLock([&] {
-        gpu::FramePointer oldFrame = _currentFrame;
-        uint32_t skippedCount = 0;
         if (!_newFrameQueue.empty()) {
             // We're changing frames, so we can cleanup any GL resources that might have been used by the old frame
             _gpuContext->recycle();
+        }
+        if (_newFrameQueue.size() > 1) {
+            _droppedFrameRate.increment(_newFrameQueue.size() - 1);
         }
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
             _newFrameQueue.pop();
             _gpuContext->consumeFrameUpdates(_currentFrame);
-            if (_currentFrame && oldFrame) {
-                skippedCount += (_currentFrame->frameIndex - oldFrame->frameIndex) - 1;
-            }
         }
-        _droppedFrameRate.increment(skippedCount);
     });
 }
 
@@ -598,6 +594,7 @@ void OpenGLDisplayPlugin::internalPresent() {
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
     swapBuffers();
+    _presentRate.increment();
 }
 
 void OpenGLDisplayPlugin::present() {
@@ -612,6 +609,13 @@ void OpenGLDisplayPlugin::present() {
 
     if (_currentFrame) {
         {
+            withPresentThreadLock([&] {
+                _renderRate.increment();
+                if (_currentFrame != _lastFrame) {
+                    _newFrameRate.increment();
+                }
+                _lastFrame = _currentFrame;
+            });
             // Execute the frame rendering commands
             PROFILE_RANGE_EX("execute", 0xff00ff00, (uint64_t)presentCount())
             _gpuContext->executeFrame(_currentFrame);
@@ -628,7 +632,6 @@ void OpenGLDisplayPlugin::present() {
             PROFILE_RANGE_EX("internalPresent", 0xff00ffff, (uint64_t)presentCount())
             internalPresent();
         }
-        _presentRate.increment();
     }
 }
 
@@ -637,20 +640,21 @@ float OpenGLDisplayPlugin::newFramePresentRate() const {
 }
 
 float OpenGLDisplayPlugin::droppedFrameRate() const {
-    float result;
-    withNonPresentThreadLock([&] {
-        result = _droppedFrameRate.rate();
-    });
-    return result;
+    return _droppedFrameRate.rate();
 }
 
 float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
 }
 
+float OpenGLDisplayPlugin::renderRate() const { 
+    return _renderRate.rate();
+}
+
+
 void OpenGLDisplayPlugin::swapBuffers() {
-    static auto widget = _container->getPrimaryWidget();
-    widget->swapBuffers();
+    static auto context = _container->getPrimaryWidget()->context();
+    context->swapBuffers();
 }
 
 void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
