@@ -147,7 +147,13 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 79
+                anchors.leftMargin: 0
+
+                Key {
+                    id: key27
+                    width: 79
+                    glyph: "⇪"
+                }
 
                 Key {
                     id: key20
@@ -183,12 +189,45 @@ Item {
                     id: key26
                     glyph: "m"
                 }
+
+                Key {
+                    id: key28
+                    width: 85
+                    glyph: "←"
+                }
+
             }
 
             Row {
                 id: row4
                 width: 480
                 height: 50
+                anchors.left: parent.left
+                anchors.leftMargin: 59
+
+                Key {
+                    id: key30
+                    width: 45
+                    glyph: "⁂"
+                }
+
+                Key {
+                    id: key29
+                    width: 200
+                    glyph: " "
+                }
+
+                Key {
+                    id: key31
+                    glyph: "."
+                }
+
+                Key {
+                    id: key32
+                    width: 65
+                    glyph: "⏎"
+                }
+
             }
         }
     }
@@ -204,6 +243,19 @@ Item {
         anchors.rightMargin: 0
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
+    }
+
+    Rectangle {
+        id: rectangle1
+        color: "#ffffff"
+        anchors.bottom: keyboardRect.top
+        anchors.bottomMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.top: parent.top
+        anchors.topMargin: 0
     }
 
 }

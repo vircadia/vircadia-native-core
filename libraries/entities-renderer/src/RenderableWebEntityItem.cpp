@@ -353,10 +353,40 @@ bool RenderableWebEntityItem::isTransparent() {
     return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
 }
 
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t ERASE_TO_THE_LEFT[] = { 0xE2, 0x8C, 0xAB, 0x00 }; // backspace
+static const uint8_t LONG_LEFTWARDS_ARROW[] = { 0xE2, 0x9F, 0xB5, 0x00 };  // backspace
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90 }; // backspace
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    for (int i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
     auto utf8Key = key.toUtf8();
-    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, (int)utf8Key[0], Qt::NoModifier, key);
-    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, (int)utf8Key[0], Qt::NoModifier, key);
+
+    int scanCode = (int)utf8Key[0];
+    QString keyString = key;
+    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM)) {
+        return;  // ignore
+    } else if (equals(utf8Key, ERASE_TO_THE_LEFT) || equals(utf8Key, LONG_LEFTWARDS_ARROW) | equals(utf8Key, LEFT_ARROW)) {
+        scanCode = Qt::Key_Backspace;
+        keyString = "\x08";
+    } else if (equals(utf8Key, RETURN_SYMBOL)) {
+        scanCode = Qt::Key_Return;
+        keyString = "\x0d";
+    }
+
+    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
     QCoreApplication::postEvent(getEventHandler(), pressEvent);
     QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }
