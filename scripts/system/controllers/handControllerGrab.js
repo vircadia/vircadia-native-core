@@ -2453,7 +2453,8 @@ function MyController(hand) {
                 // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
                 // the collision mask hinges on who the physics simulation owner is.
                 Entities.editEntity(entityID, {
-                    "collidesWith": removeAvatarsFromCollidesWith(grabbedProperties.collidesWith)
+                    // "collidesWith": removeAvatarsFromCollidesWith(grabbedProperties.collidesWith)
+                    collisionless: true
                 });
             }
         }
@@ -2712,7 +2713,7 @@ var handleHandMessages = function(channel, message, sender) {
                 selectedController.nearGrabbingEnter();
 
             } catch (e) {
-                print("WARNING: error parsing Hifi-Hand-Grab message");
+                print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-Grab message: " + message);
             }
 
         } else if (channel === 'Hifi-Hand-RayPick-Blacklist') {
@@ -2732,7 +2733,7 @@ var handleHandMessages = function(channel, message, sender) {
                 }
 
             } catch (e) {
-                print("WARNING: error parsing Hifi-Hand-RayPick-Blacklist message");
+                print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
             }
         }
     }
