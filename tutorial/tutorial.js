@@ -73,6 +73,7 @@ Script.include("entityData.js");
 // });
 //
 // Controller.enableMapping(MAPPING_NAME);
+//{ "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
 var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
 var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
@@ -813,6 +814,12 @@ function startNextStep() {
         return true;
     }
 }
+function restartStep() {
+    if (currentStep) {
+        currentStep.cleanup();
+        currentStep.start(startNextStep);
+    }
+}
 
 function skipTutorial() {
 }
@@ -828,17 +835,31 @@ function stopTutorial() {
 location = "/tutorial";
 startTutorial();
 
+var DISABLE_SPIN_MAPPING = "com.highfidelity.spin.disable";
+var mapping = Controller.newMapping(DISABLE_SPIN_MAPPING);
+function noop(value) { }
+mapping.from([Controller.Standard.RY]).to(noop);
+//mapping.from([Controller.Standard.RY]).when("Controller.Application.Grounded").to(noop);
+//mapping.from([Controller.Standard.RY]).when(Controller.Application.Grounded).to(noop);
+
+Controller.enableMapping(DISABLE_SPIN_MAPPING);
+
+Script.scriptEnding.connect(function() {
+    Controller.disableMapping(DISABLE_SPIN_MAPPING);
+});
+
 Script.scriptEnding.connect(stopTutorial);
 
 
 
 Controller.keyReleaseEvent.connect(function (event) {
+    print(event.text);
     if (event.text == ",") {
         if (!startNextStep()) {
             startTutorial();
         }
-    } else if (event.text == ".") {
-        stopTutorial();
+    } else if (event.text == "F12") {
+        restartStep();
     } else if (event.text == "r") {
         stopTutorial();
         startTutorial();
