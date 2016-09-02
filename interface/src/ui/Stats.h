@@ -32,8 +32,13 @@ class Stats : public QQuickItem {
     Q_PROPERTY(float audioPacketlossDownstream READ getAudioPacketLossDownstream)
 
     STATS_PROPERTY(int, serverCount, 0)
+    // How often the app is creating new gpu::Frames
+    STATS_PROPERTY(float, framerate, 0)
+    // How often the display plugin is executing a given frame
     STATS_PROPERTY(float, renderrate, 0)
+    // How often the display plugin is presenting to the device
     STATS_PROPERTY(float, presentrate, 0)
+    
     STATS_PROPERTY(float, presentnewrate, 0)
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, simrate, 0)
@@ -116,6 +121,7 @@ public slots:
     void forceUpdateStats() { updateStats(true); }
 
 signals:
+    void framerateChanged();
     void expandedChanged();
     void timingExpandedChanged();
     void serverCountChanged();

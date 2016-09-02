@@ -62,6 +62,8 @@ public:
 
     float droppedFrameRate() const override;
 
+    float renderRate() const override;
+
     bool beginFrameRender(uint32_t frameIndex) override;
 
     virtual bool wantVsync() const { return true; }
@@ -109,8 +111,10 @@ protected:
     RateCounter<> _droppedFrameRate;
     RateCounter<> _newFrameRate;
     RateCounter<> _presentRate;
+    RateCounter<> _renderRate;
 
     gpu::FramePointer _currentFrame;
+    gpu::FramePointer _lastFrame;
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::PipelinePointer _overlayPipeline;
     gpu::PipelinePointer _simplePipeline;
