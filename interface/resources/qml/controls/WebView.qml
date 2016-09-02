@@ -14,11 +14,28 @@ Item {
 
     WebEngineView {
         id: root
-
         x: 0
         y: 0
         width: parent.width
         height: parent.height - keyboard1.height
+
+        // creates a global EventBridge object.
+        WebEngineScript {
+            id: createGlobalEventBridge
+            sourceUrl: resourceDirectoryUrl + "/html/createGlobalEventBridge.js"
+            injectionPoint: WebEngineScript.DocumentCreation
+            worldId: WebEngineScript.MainWorld
+        }
+
+        // detects when to raise and lower virtual keyboard
+        WebEngineScript {
+            id: raiseAndLowerKeyboard
+            injectionPoint: WebEngineScript.Deferred
+            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+            worldId: WebEngineScript.MainWorld
+        }
+
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
 
         property string newUrl: ""
 
@@ -30,9 +47,8 @@ Item {
             console.log("Connecting JS messaging to Hifi Logging")
             // Ensure the JS from the web-engine makes it to our logging
             root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
+                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
-
         }
 
         // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6

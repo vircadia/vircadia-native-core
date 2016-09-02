@@ -479,6 +479,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     auto rootContext = getRootContext();
     rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
