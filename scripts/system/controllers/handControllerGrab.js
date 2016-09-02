@@ -708,6 +708,7 @@ var equipHotspotBuddy = new EquipHotspotBuddy();
 
 function MyController(hand) {
     this.hand = hand;
+    this.autoUnequipCounter = 0;
 
     // handPosition is where the avatar's hand appears to be, in-world.
     this.getHandPosition = function () {
@@ -2087,6 +2088,12 @@ function MyController(hand) {
                 var TEAR_AWAY_DISTANCE = 0.04;
                 var nearPickedCandidateEntities = Entities.findEntities(heldItemPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
+                    this.autoUnequipCounter += 1;
+                } else {
+                    this.autoUnequipCounter = 0;
+                }
+
+                if (this.autoUnequipCounter > 1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
                         props.parentID + " " + vec3toStr(props.position));
@@ -2388,6 +2395,8 @@ function MyController(hand) {
     };
 
     this.activateEntity = function(entityID, grabbedProperties, wasLoaded) {
+        this.autoUnequipCounter = 0;
+
         if (this.entityActivated) {
             return;
         }
