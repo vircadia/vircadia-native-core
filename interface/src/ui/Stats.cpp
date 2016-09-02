@@ -117,10 +117,12 @@ void Stats::updateStats(bool force) {
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, (int)nodeList->size());
-    STAT_UPDATE(renderrate, qApp->getFps());
+    STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
-        STAT_UPDATE(presentrate, qApp->getActiveDisplayPlugin()->presentRate());
-        STAT_UPDATE(presentnewrate, qApp->getActiveDisplayPlugin()->newFramePresentRate());
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        STAT_UPDATE(renderrate, displayPlugin->renderRate());
+        STAT_UPDATE(presentrate, displayPlugin->presentRate());
+        STAT_UPDATE(presentnewrate, displayPlugin->newFramePresentRate());
         STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
     } else {
         STAT_UPDATE(presentrate, -1);
