@@ -285,7 +285,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 
                 trigger: {
                     position: {
-                        x: 0,
+                        x: 0.0055,
                         y: -0.023978,
                         z: 0.04546
                     },
@@ -350,7 +350,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
             annotations: {
                 trigger: {
                     position: {
-                        x: 0,
+                        x: -0.075,
                         y: -0.023978,
                         z: 0.04546
                     },
@@ -400,7 +400,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
 }
 
 var DEBUG = false;
-var VISIBLE_BY_DEFAULT = false;
+var VISIBLE_BY_DEFAULT = true;
 
 function setupController(config) {
     var controllerDisplay = {

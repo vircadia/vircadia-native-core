@@ -207,6 +207,27 @@ function isFunction(functionToCheck) {
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
 }
 
+        var defaultTransform = {
+            position: {
+                x: 0.2459,
+                y: 0.9011,
+                z: 0.7266
+            },
+            rotation: {
+                x: 0,
+                y: 0,
+                z: 0,
+                w: 1
+            }
+        };
+function playSuccessSound() {
+    this.soundInjector = Audio.playSound(successSound, {
+        position: defaultTransform.position,
+        volume: 0.7,
+        loop: false
+    });
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -488,6 +509,8 @@ stepEquip.prototype = {
         showEntitiesWithTag(this.tag);
         showEntitiesWithTag(this.tagPart1);
 
+        this.hasFinished = false;
+
         var basketColliderID = findEntity({ name: GUN_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
@@ -543,13 +566,23 @@ stepEquip.prototype = {
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     onMessage: function(channel, message, sender) {
+        if (this.hasFinished) {
+            return;
+        }
         print("Got message", channel, message, sender, MyAvatar.sessionUUID);
         //if (sender === MyAvatar.sessionUUID) {
             var data = parseJSON(message);
             print("Here", data.action, data.grabbedEntity, this.gunID);
             if (data.action == 'release' && data.grabbedEntity == this.gunID) {
+                try {
+                    Messages.messageReceived.disconnect(this.onMessage);
+                } catch(e) {
+                }
+                playSuccessSound();
                 print("FINISHED");
-                this.onFinish();
+                Script.setTimeout(this.onFinish.bind(this), 1500);
+                this.hasFinished = true;
+                //this.onFinish();
             }
         //}
     },
@@ -586,8 +619,31 @@ var stepTurnAround = function(name) {
 stepTurnAround.prototype = {
     start: function(onFinish) {
         showEntitiesWithTag(this.tag);
+        var hasTurnedAround = false;
+        this.interval = Script.setInterval(function() {
+            var dir = Quat.getFront(MyAvatar.orientation);
+            var angle = Math.atan2(dir.z, dir.x);
+            var angleDegrees = ((angle / Math.PI) * 180);
+            print("CHECK");
+            if (!hasTurnedAround) {
+                if (Math.abs(angleDegrees) > 100) {
+                    hasTurnedAround = true;
+                    print("half way there...");
+                }
+            } else {
+                if (Math.abs(angleDegrees) < 30) {
+                    Script.clearInterval(this.interval);
+                    this.interval = null;
+                    print("DONE");
+                    onFinish();
+                }
+            }
+        }.bind(this), 100);
     },
     cleanup: function() {
+        if (this.interval) {
+            Script.clearInterval(this.interval);
+        }
         hideEntitiesWithTag(this.tag);
         deleteEntitiesWithTag(this.tempTag);
     }
@@ -610,7 +666,6 @@ stepTeleport.prototype = {
     start: function(onFinish) {
         setControllerVisible("teleport", true);
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
-        Menu.setIsOptionChecked("Overlays", true);
 
         // Wait until touching teleport pad...
         var padID = findEntity({ name: TELEPORT_PAD_NAME }, 100);
@@ -663,6 +718,7 @@ var stepFinish = function(name) {
 }
 stepFinish.prototype = {
     start: function(onFinish) {
+        Menu.setIsOptionChecked("Overlays", true);
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
