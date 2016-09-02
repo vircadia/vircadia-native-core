@@ -104,7 +104,7 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
                 QThread::usleep(1);
                 result = glClientWaitSync(fence, 0, 0);
             }
-            glDeleteSync(package.fence);
+            glDeleteSync(fence);
         }
 
         object->_contentStamp = texturePointer->getDataStamp();

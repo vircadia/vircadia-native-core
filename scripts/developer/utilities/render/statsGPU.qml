@@ -30,7 +30,7 @@ Item {
 
       
         PlotPerf {
-           title: "Timing"
+           title: "GPU Timing"
            height: parent.evalEvenHeight()
            object: parent.drawOpaqueConfig
            valueUnit: "ms"
@@ -39,31 +39,71 @@ Item {
            plots: [
             {
                    object: Render.getConfig("OpaqueRangeTimer"),
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
                    label: "Opaque",
                    color: "#FFFFFF"
                }, 
                {
                    object: Render.getConfig("LinearDepth"),
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
                    label: "LinearDepth",
                    color: "#00FF00"
                },{
                    object: Render.getConfig("SurfaceGeometry"),
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
                    label: "SurfaceGeometry",
                    color: "#00FFFF"
                },
                {
                    object: Render.getConfig("RenderDeferred"),
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
                    label: "DeferredLighting",
                    color: "#FF00FF"
                }
                ,
                {
                    object: Render.getConfig("ToneAndPostRangeTimer"),
-                   prop: "gpuTime",
+                   prop: "gpuRunTime",
+                   label: "tone and post",
+                   color: "#FF0000"
+               }
+           ]
+        }
+        PlotPerf {
+           title: "Batch Timing"
+           height: parent.evalEvenHeight()
+           object: parent.drawOpaqueConfig
+           valueUnit: "ms"
+           valueScale: 1
+           valueNumDigits: "3"
+           plots: [
+            {
+                   object: Render.getConfig("OpaqueRangeTimer"),
+                   prop: "batchRunTime",
+                   label: "Opaque",
+                   color: "#FFFFFF"
+               }, 
+               {
+                   object: Render.getConfig("LinearDepth"),
+                   prop: "batchRunTime",
+                   label: "LinearDepth",
+                   color: "#00FF00"
+               },{
+                   object: Render.getConfig("SurfaceGeometry"),
+                   prop: "batchRunTime",
+                   label: "SurfaceGeometry",
+                   color: "#00FFFF"
+               },
+               {
+                   object: Render.getConfig("RenderDeferred"),
+                   prop: "batchRunTime",
+                   label: "DeferredLighting",
+                   color: "#FF00FF"
+               }
+               ,
+               {
+                   object: Render.getConfig("ToneAndPostRangeTimer"),
+                   prop: "batchRunTime",
                    label: "tone and post",
                    color: "#FF0000"
                }

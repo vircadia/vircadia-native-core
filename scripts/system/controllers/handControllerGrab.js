@@ -11,7 +11,7 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, vec3toStr, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4 */
+/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4 */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -137,6 +137,12 @@ var ZERO_VEC = {
     z: 0
 };
 
+var ONE_VEC = {
+    x: 1,
+    y: 1,
+    z: 1
+};
+
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
 // these control how long an abandoned pointer line or action will hang around
@@ -242,6 +248,25 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
     exitMethod: "entityTouchingExit",
     updateMethod: "entityTouching"
 };
+
+function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
+    var entityXform = new Xform(entityProps.rotation, entityProps.position);
+    var localPoint = entityXform.inv().xformPoint(point);
+    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
+    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
+    var localMin = Vec3.subtract(entityXform.trans, minOffset);
+    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
+
+    return Vec3.distance(v, localPoint);
+}
 
 function angleBetween(a, b) {
     return Math.acos(Vec3.dot(Vec3.normalize(a), Vec3.normalize(b)));
@@ -416,18 +441,6 @@ function removeMyAvatarFromCollidesWith(origCollidesWith) {
     }
     return collidesWithSplit.join();
 }
-
-function removeAvatarsFromCollidesWith(origCollidesWith) {
-    var collidesWithSplit = origCollidesWith.split(",");
-    // remove myAvatar from the array
-    for (var i = collidesWithSplit.length - 1; i >= 0; i--) {
-        if (collidesWithSplit[i] === "myAvatar" || collidesWithSplit[i] === "otherAvatar") {
-            collidesWithSplit.splice(i, 1);
-        }
-    }
-    return collidesWithSplit.join();
-}
-
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
@@ -2056,7 +2069,8 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
-                                                                      "position", "rotation", "dimensions"]);
+                                                                      "position", "rotation", "dimensions",
+                                                                      "registrationPoint"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" state
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -2069,34 +2083,25 @@ function MyController(hand) {
             this.lastUnequipCheckTime = now;
 
             if (props.parentID == MyAvatar.sessionUUID) {
-                var heldItemPosition;
-                var heldItemRotation;
+                var handPosition;
                 if (this.ignoreIK) {
-                    var heldItemLocation = this.getControllerLocation(false);
-                    heldItemPosition = heldItemLocation.position;
-                    heldItemRotation = heldItemLocation.orientation;
+                    handPosition = this.getControllerLocation(false).position;
                 } else {
-                    heldItemPosition = this.getHandPosition();
-                    heldItemRotation = this.getHandRotation();
+                    handPosition = this.getHandPosition();
                 }
 
-                // figure out where the center of the held object should be
-                heldItemPosition = Vec3.sum(heldItemPosition, Vec3.multiplyQbyV(heldItemRotation, this.offsetPosition));
-
-                // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
-                // need to fail the findEntities test.
-                var TEAR_AWAY_DISTANCE = 0.04;
-                var nearPickedCandidateEntities = Entities.findEntities(heldItemPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
-                if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
+                var TEAR_AWAY_DISTANCE = 0.1;
+                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
+                if (dist > TEAR_AWAY_DISTANCE) {
                     this.autoUnequipCounter += 1;
                 } else {
                     this.autoUnequipCounter = 0;
                 }
 
                 if (this.autoUnequipCounter > 1) {
-                    // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+                        // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                        props.parentID + " " + vec3toStr(props.position));
+                        props.parentID + ", dist = " + dist);
 
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");

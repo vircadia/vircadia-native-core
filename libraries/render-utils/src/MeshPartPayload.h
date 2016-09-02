@@ -64,6 +64,13 @@ public:
     mutable model::Box _worldBound;
     
     bool _hasColorAttrib = false;
+
+    size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
+    size_t getMaterialTextureSize() { return _materialTextureSize; }
+    bool calculateMaterialSize();
+
+protected:
+    size_t _materialTextureSize { 0 };
 };
 
 namespace render {
