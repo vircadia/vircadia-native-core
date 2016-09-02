@@ -556,14 +556,13 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
     return model;
 }
 
-ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl, const QString& collisionUrl) {
+ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl) {
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(ModelPointer, model),
-                Q_ARG(const QString&, newUrl),
-                Q_ARG(const QString&, collisionUrl));
+                Q_ARG(const QString&, newUrl));
 
         return model;
     }
