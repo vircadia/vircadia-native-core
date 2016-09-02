@@ -125,6 +125,12 @@ var ZERO_VEC = {
     z: 0
 };
 
+var ONE_VEC = {
+    x: 1,
+    y: 1,
+    z: 1
+};
+
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 
 // these control how long an abandoned pointer line or action will hang around
@@ -231,6 +237,25 @@ CONTROLLER_STATE_MACHINE[STATE_ENTITY_TOUCHING] = {
     exitMethod: "entityTouchingExit",
     updateMethod: "entityTouching"
 };
+
+function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
+    var entityXform = new Xform(entityProps.rotation, entityProps.position);
+    var localPoint = entityXform.inv().xformPoint(point);
+    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
+    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
+    var localMin = Vec3.subtract(entityXform.trans, minOffset);
+    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
+
+    return Vec3.distance(v, localPoint);
+}
 
 function angleBetween(a, b) {
     return Math.acos(Vec3.dot(Vec3.normalize(a), Vec3.normalize(b)));
@@ -1960,7 +1985,8 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID",
-                                                                      "position", "rotation", "dimensions"]);
+                                                                      "position", "rotation", "dimensions",
+                                                                      "registrationPoint"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1974,14 +2000,12 @@ function MyController(hand) {
 
             if (props.parentID == MyAvatar.sessionUUID) {
                 var handPosition = this.getHandPosition();
-                // the center of the equipped object being far from the hand isn't enough to auto-unequip -- we also
-                // need to fail the findEntities test.
-                var TEAR_AWAY_DISTANCE = 0.04;
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS + TEAR_AWAY_DISTANCE);
-                if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
-                    // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+
+                var TEAR_AWAY_DISTANCE = 0.1;
+                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
+                if (dist > TEAR_AWAY_DISTANCE) {
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                        props.parentID + " " + vec3toStr(props.position));
+                        props.parentID + ", dist = " + dist);
 
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
