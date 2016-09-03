@@ -63,7 +63,7 @@ public:
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
-    void emitScriptEvent(const QVariant& message);
+    virtual void emitScriptEvent(const QVariant& message) override;
     void setKeyboardRaised(bool raised);
 
     SIMPLE_RENDERABLE();
