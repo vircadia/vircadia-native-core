@@ -3288,7 +3288,7 @@ void Application::init() {
 
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
-        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+        auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
             return 0.0f;
