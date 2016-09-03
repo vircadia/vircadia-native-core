@@ -161,6 +161,8 @@ public:
 
     gpu::BufferView _spotLightsBuffer;
 
+    RenderDeferredLocals();
+
 };
 
 

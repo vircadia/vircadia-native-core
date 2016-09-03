@@ -97,7 +97,7 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
-    loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
+    loadLightProgram(deferred_light_vert, spot_light_frag, false, _spotLight, _spotLightLocations);
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
@@ -571,6 +571,11 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     
 }
 
+RenderDeferredLocals::RenderDeferredLocals() :
+_spotLightsBuffer(std::make_shared<gpu::Buffer>()) {
+
+}
+
 void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
@@ -585,6 +590,8 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
     }
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        // Framebuffer copy operations cannot function as multipass stereo operations.
+        batch.enableStereo(false);
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
         auto viewport = args->_viewport;
@@ -609,9 +616,46 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewTransform, true);
+      //  batch.setProjectionTransform(projMat);
+       // batch.setViewTransform(viewTransform, true);
 
+        // gather lights
+        auto& srcPointLights = deferredLightingEffect->_pointLights;
+        auto& srcSpotLights = deferredLightingEffect->_spotLights;
+        std::vector<int> lightIndices(srcPointLights.size() + srcSpotLights.size() + 1);
+        lightIndices[0] = 0;
+
+        if (points && !srcPointLights.empty()) {
+            memcpy(lightIndices.data() + (lightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
+            lightIndices[0] += srcPointLights.size();
+        }
+        if (spots && !srcSpotLights.empty()) {
+            memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
+            lightIndices[0] += srcSpotLights.size();
+        }
+
+        if (lightIndices[0] > 0) {
+            _spotLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
+            _spotLightsBuffer._size = lightIndices.size() * sizeof(int);
+
+            // Spot light pipeline
+            batch.setPipeline(deferredLightingEffect->_spotLight);
+            batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
+
+            // Spot mesh
+            auto mesh = deferredLightingEffect->getSpotLightMesh();
+            batch.setIndexBuffer(mesh->getIndexBuffer());
+            batch.setInputBuffer(0, mesh->getVertexBuffer());
+            batch.setInputFormat(mesh->getVertexFormat());
+            auto& conePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+
+
+            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightIndexBufferUnit, _spotLightsBuffer);
+            // batch.drawIndexedInstanced(deferredLightingEffect->_spotLights.size(), model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
+
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            /*
         // Splat Point lights
         if (points && !deferredLightingEffect->_pointLights.empty()) {
             // POint light pipeline
@@ -645,9 +689,11 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         // Splat spot lights
         if (spots && !deferredLightingEffect->_spotLights.empty()) {
-
-
-            _spotLightsBuffer._buffer->setData(deferredLightingEffect->_spotLights.size() * sizeof(int), (const gpu::Byte*) deferredLightingEffect->_spotLights.data());
+            std::vector<int> again(deferredLightingEffect->_spotLights.size() + 1);
+            again[0] = deferredLightingEffect->_spotLights.size();
+            memcpy(again.data() + 1, deferredLightingEffect->_spotLights.data(), deferredLightingEffect->_spotLights.size() * sizeof(int));
+            _spotLightsBuffer._buffer->setData(again.size() * sizeof(int), (const gpu::Byte*) again.data());
+            _spotLightsBuffer._size = again.size() * sizeof(int);
 
             // Spot light pipeline
             batch.setPipeline(deferredLightingEffect->_spotLight);
@@ -663,7 +709,9 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
             batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
             batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightIndexBufferUnit, _spotLightsBuffer);
-            batch.drawIndexedInstanced(deferredLightingEffect->_spotLights.size(), model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
+           // batch.drawIndexedInstanced(deferredLightingEffect->_spotLights.size(), model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
+           
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
             /*
             for (auto lightID : deferredLightingEffect->_spotLights) {
                 auto light = deferredLightingEffect->getLightStage().getLight(lightID);

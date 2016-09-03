@@ -60,6 +60,11 @@ struct Light {
 
     SphericalHarmonics _ambientSphere;
 };
+const int LIGHT_SPOT = 2;
+
+bool light_isSpot(Light l) {
+    return bool(l._control.y >= 2.f);
+}
 
 vec3 getLightPosition(Light l) { return l._position.xyz; }
 vec3 getLightDirection(Light l) { return l._direction.xyz; } // direction is -Z axis

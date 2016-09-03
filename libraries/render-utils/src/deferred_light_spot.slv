@@ -21,12 +21,16 @@
 <@include model/Light.slh@>
 <$declareLightBuffer(32)$>
 
+uniform lightIndexBuffer {
+    int lightIndex[32];
+};
 out vec4 _texCoord0;
+flat out int instanceID;
 
 void main(void) {
     vec4 coneVertex = inPosition;
-
-    Light light = getLight(gl_InstanceID);
+    instanceID = lightIndex[gl_InstanceID];
+    Light light = getLight(instanceID);
     vec3 lightPos = getLightPosition(light);
     vec4 coneParam = getLightVolumeGeometry(light);
 
