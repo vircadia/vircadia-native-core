@@ -413,6 +413,9 @@ void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message
 }
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
