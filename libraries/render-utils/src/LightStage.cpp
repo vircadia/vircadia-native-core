@@ -114,9 +114,30 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
 
             // INsert the light and its index in the reverese map
             _lightMap.insert(LightMap::value_type(light, lightId));
+
+            updateLightArrayBuffer(lightId);
         }
         return lightId;
     } else {
         return (*found).second;
     }
 }
+
+void LightStage::updateLightArrayBuffer(Index lightId) {
+    if (!_lightArrayBuffer) {
+        _lightArrayBuffer = std::make_shared<gpu::Buffer>();
+    }
+
+    assert(checkLightId(lightId));
+    auto lightSize = sizeof(model::Light::Schema);
+
+    if (lightId > _lightArrayBuffer->getTypedSize<model::Light::Schema>()) {
+        _lightArrayBuffer->resize(lightSize * (lightId + 10));
+    }
+
+    // lightArray is big enough so we can remap
+    auto& light = _lights._elements[lightId];
+    auto lightSchema = light->getSchemaBuffer().get<model::Light::Schema>();
+    _lightArrayBuffer->setSubData<model::Light::Schema>(lightId, lightSchema);
+}
+

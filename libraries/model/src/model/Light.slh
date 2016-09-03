@@ -131,13 +131,27 @@ float getLightAmbientMapNumMips(Light l) {
     return l._control.x;
 }
 
+<@func declareLightBuffer(N)@>
 
+<@if N@>
+uniform lightBuffer {
+    Light lightArray[<$N$>];
+};
+
+Light getLight(int index) {
+    return lightArray[index];
+}
+<@else@>
 uniform lightBuffer {
     Light light;
 };
 Light getLight() {
     return light;
 }
+
+<@endif@>
+
+<@endfunc@>
 
 
 

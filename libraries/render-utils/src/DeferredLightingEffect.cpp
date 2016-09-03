@@ -44,9 +44,8 @@ struct LightLocations {
     int radius{ -1 };
     int ambientSphere{ -1 };
     int lightBufferUnit{ -1 };
+    int lightIndexBufferUnit { -1 };
     int texcoordFrameTransform{ -1 };
-    int sphereParam{ -1 };
-    int coneParam{ -1 };
     int deferredFrameTransformBuffer{ -1 };
     int subsurfaceScatteringParametersBuffer{ -1 };
     int shadowTransformBuffer{ -1 };
@@ -60,6 +59,7 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
     SHADOW_MAP_UNIT = 5,
     SKYBOX_MAP_UNIT = 6,
+    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
     DEFERRED_BUFFER_CURVATURE_UNIT,
     DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
     SCATTERING_LUT_UNIT,
@@ -71,6 +71,7 @@ enum DeferredShader_BufferSlot {
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_INDEX_GPU_SLOT,
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -184,6 +185,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
@@ -195,6 +197,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
     
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -203,10 +206,9 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
-    locations->sphereParam = program->getUniforms().findLocation("sphereParam");
-    locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
@@ -496,6 +498,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, surfaceGeometryFramebuffer->getLinearDepthTexture());
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
             batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
@@ -571,7 +574,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
-    const LightingModelPointer& lightingModel) {
+    const LightingModelPointer& lightingModel,
+    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer) {
 
     bool points = lightingModel->isPointLightEnabled();
     bool spots = lightingModel->isSpotLightEnabled();
@@ -638,8 +642,13 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             }
         }
 
+
         // Splat spot lights
         if (spots && !deferredLightingEffect->_spotLights.empty()) {
+
+
+            _spotLightsBuffer._buffer->setData(deferredLightingEffect->_spotLights.size() * sizeof(int), (const gpu::Byte*) deferredLightingEffect->_spotLights.data());
+
             // Spot light pipeline
             batch.setPipeline(deferredLightingEffect->_spotLight);
             batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
@@ -651,6 +660,11 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             batch.setInputFormat(mesh->getVertexFormat());
             auto& conePart = mesh->getPartBuffer().get<model::Mesh::Part>(0);
 
+
+            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightIndexBufferUnit, _spotLightsBuffer);
+            batch.drawIndexedInstanced(deferredLightingEffect->_spotLights.size(), model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
+            /*
             for (auto lightID : deferredLightingEffect->_spotLights) {
                 auto light = deferredLightingEffect->getLightStage().getLight(lightID);
                 if (!light) {
@@ -666,7 +680,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
                     batch.drawIndexed(model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex);
                 }
-            }
+            }*/
         }
     });
 }
@@ -681,6 +695,7 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
 
+        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(SCATTERING_LUT_UNIT, nullptr);
@@ -731,7 +746,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
+    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer);
 
     cleanupJob.run(sceneContext, renderContext);
     

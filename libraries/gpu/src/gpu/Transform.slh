@@ -128,6 +128,14 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+
+<@func transformWorldToClipPos(cameraTransform, worldPos, clipPos)@>
+    { // transformWorldToClipPos
+        vec4 eyeWAPos = <$worldPos$> - vec4(<$cameraTransform$>._viewInverse[3].xyz, 0.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+    }
+<@endfunc@>
+
 <@func transformModelToWorldPos(objectTransform, modelPos, worldPos)@>
     { // transformModelToWorldPos
         <$worldPos$> = (<$objectTransform$>._model * <$modelPos$>);

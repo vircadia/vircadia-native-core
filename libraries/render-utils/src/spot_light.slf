@@ -19,6 +19,7 @@
 
 // Everything about light
 <@include model/Light.slh@>
+<$declareLightBuffer(32)$>
 
 <@include LightingModel.slh@>
 
@@ -27,34 +28,44 @@
 
 uniform vec4 texcoordFrameTransform;
 
+
+
 in vec4 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
+//    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
 
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
     texCoord *= texcoordFrameTransform.zw;
     texCoord += texcoordFrameTransform.xy;
-    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
 
-    if (frag.mode == FRAG_MODE_UNLIT) {
-        discard;
-    }
+    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
 
     // Need the light now
-    Light light = getLight();
+    Light light = getLight(0);
 
     // Frag pos in world
     mat4 invViewMat = getViewInverse();
-    vec4 fragPos = invViewMat * frag.position;
+    vec4 fragPos = invViewMat * fragPosition;
 
     // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
     vec4 fragLightVecLen2;
     vec4 fragLightDirLen;
     float cosSpotAngle;
     if (!clipFragToLightVolumeSpot(light, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
+        discard;
+    }
+
+  //  _fragColor.rgb = vec3(0.0, 1.0, 1.0);
+   // return;
+
+    DeferredFragment frag = unpackDeferredFragmentNoPositionNoAmbient(texCoord);
+   // frag.depthVal = depthValue;
+    frag.position = fragPosition;
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
         discard;
     }
 

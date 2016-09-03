@@ -240,6 +240,9 @@ public:
     LightMap _lightMap;
     Descs _descs;
 
+    gpu::BufferPointer _lightArrayBuffer;
+    void updateLightArrayBuffer(Index lightId);
+
     Shadows _shadows;
 };
 

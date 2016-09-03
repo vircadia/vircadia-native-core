@@ -106,6 +106,7 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
+
     
     friend class RenderDeferredSetup;
     friend class RenderDeferredLocals;
@@ -155,7 +156,11 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
-        const LightingModelPointer& lightingModel);
+        const LightingModelPointer& lightingModel,
+        const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer);
+
+    gpu::BufferView _spotLightsBuffer;
+
 };
 
 

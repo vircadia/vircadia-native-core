@@ -13,6 +13,7 @@
 //
 
 <@include model/Light.slh@>
+<$declareLightBuffer()$>
 
 <@include LightingModel.slh@>
 

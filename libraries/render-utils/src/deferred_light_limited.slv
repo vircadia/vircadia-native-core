@@ -19,6 +19,7 @@
 <$declareStandardTransform()$>
 
 <@include model/Light.slh@>
+<$declareLightBuffer()$>
 
 
 out vec4 _texCoord0;

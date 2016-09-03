@@ -19,12 +19,16 @@
 <$declareStandardTransform()$>
 
 <@include model/Light.slh@>
+<$declareLightBuffer(32)$>
 
 out vec4 _texCoord0;
 
 void main(void) {
     vec4 coneVertex = inPosition;
-    vec4 coneParam = getLightVolumeGeometry(getLight());
+
+    Light light = getLight(gl_InstanceID);
+    vec3 lightPos = getLightPosition(light);
+    vec4 coneParam = getLightVolumeGeometry(light);
 
     if(coneVertex.z >= 0.0) {
         // Evaluate the true position of the spot volume
@@ -37,15 +41,21 @@ void main(void) {
         coneVertex.z = -dir.x;
     } else {
         coneVertex.z = 0.0;
-    }
+    } 
 
     coneVertex.xyz *= coneParam.w;
 
+    coneVertex.xyz += lightPos;
+
     // standard transform
     TransformCamera cam = getTransformCamera();
-    TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>;
-        vec4 projected = gl_Position / gl_Position.w;
+    
+   <! TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>; !>
+
+    <$transformWorldToClipPos(cam, coneVertex, gl_Position)$>;
+
+    vec4 projected = gl_Position / gl_Position.w;
     projected.xy = (projected.xy + 1.0) * 0.5;
 
     if (cam_isStereo()) {
