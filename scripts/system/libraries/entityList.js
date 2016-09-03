@@ -48,6 +48,10 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
+    function valueIfDefined(value) {
+        return value !== undefined ? value : "";
+    }
+
     that.sendUpdate = function() {
         var entities = [];
         var ids = Entities.findEntities(MyAvatar.position, searchRadius);
@@ -61,11 +65,11 @@ EntityListTool = function(opts) {
                 url: properties.type == "Model" ? properties.modelURL : "",
                 locked: properties.locked,
                 visible: properties.visible,
-                verticesCount: properties.renderInfo.verticesCount,
-                texturesCount: properties.renderInfo.texturesCount ? properties.renderInfo.texturesCount : "",
-                texturesSize: properties.renderInfo.texturesSize ? properties.renderInfo.texturesSize : "",
-                hasTransparent: properties.renderInfo.hasTransparent,
-                drawCalls: properties.renderInfo.drawCalls,
+                verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
+                texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
+                texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
+                hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
+                drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
                 hasScript: properties.script !== ""
             });
         }
