@@ -130,7 +130,7 @@ protected:
     void evalVertexStream();
 
 };
-typedef std::shared_ptr< Mesh > MeshPointer;
+using MeshPointer = std::shared_ptr< Mesh >;
 
 
 class Geometry {

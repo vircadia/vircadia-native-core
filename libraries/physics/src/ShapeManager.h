@@ -26,7 +26,7 @@ public:
     ~ShapeManager();
 
     /// \return pointer to shape
-    btCollisionShape* getShape(const ShapeInfo& info);
+    const btCollisionShape* getShape(const ShapeInfo& info);
 
     /// \return true if shape was found and released
     bool releaseShape(const btCollisionShape* shape);
@@ -43,11 +43,12 @@ public:
 private:
     bool releaseShapeByKey(const DoubleHashKey& key);
 
-    struct ShapeReference {
+    class ShapeReference {
+    public:
         int refCount;
-        btCollisionShape* shape;
+        const btCollisionShape* shape;
         DoubleHashKey key;
-        ShapeReference() : refCount(0), shape(NULL) {}
+        ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
     btHashMap<DoubleHashKey, ShapeReference> _shapeMap;

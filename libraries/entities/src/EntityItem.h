@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QtGui/QWindow>
+
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -42,6 +44,7 @@ class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
 class EntityItemProperties;
 class EntityTree;
+class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
@@ -322,6 +325,8 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
+    virtual void setCollisionShape(const btCollisionShape* shape) {}
+
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
@@ -435,6 +440,11 @@ public:
     static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
     static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
     virtual bool isTransparent() { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
+
+    virtual bool wantsHandControllerPointerEvents() const { return false; }
+    virtual bool wantsKeyboardFocus() const { return false; }
+    virtual void setProxyWindow(QWindow* proxyWindow) {}
+    virtual QObject* getEventHandler() { return nullptr; }
 
 protected:
 

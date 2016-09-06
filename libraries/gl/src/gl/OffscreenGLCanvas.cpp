@@ -23,7 +23,8 @@ OffscreenGLCanvas::OffscreenGLCanvas() : _context(new QOpenGLContext), _offscree
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
-    _context->doneCurrent();
+    // A context with logging enabled needs to be current when it's destroyed
+    _context->makeCurrent(_offscreenSurface);
     delete _context;
     _context = nullptr;
 
@@ -59,7 +60,6 @@ bool OffscreenGLCanvas::makeCurrent() {
         qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
         qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-        GLDebug::setupLogger(this);
     });
 
     return result;

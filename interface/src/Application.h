@@ -43,6 +43,7 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
+#include <ThreadSafeValueCache.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
@@ -249,10 +250,25 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    
+    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
+    void shareSnapshot(const QString& filename);
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
+
+    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -263,6 +279,7 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -318,6 +335,10 @@ public slots:
     void rotationModeChanged() const;
 
     static void runTests();
+
+    QUuid getKeyboardFocusEntity() const;  // thread-safe
+    void setKeyboardFocusEntity(QUuid id);
+    void setKeyboardFocusEntity(EntityItemID entityItemID);
 
 private slots:
     void showDesktop();
@@ -378,8 +399,6 @@ private:
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
-
-    void takeSnapshot();
 
     MyAvatar* getMyAvatar() const;
 
@@ -531,7 +550,7 @@ private:
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
-    EntityItemID _keyboardFocusedItem;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;

@@ -18,7 +18,8 @@
 #include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
-#include <MouseEvent.h>
+#include <QMouseEvent>
+#include <PointerEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>
@@ -64,7 +65,6 @@ public:
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
     virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) override;
 
     /// clears the tree
     virtual void clear() override;
@@ -73,7 +73,7 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl, float loadingPriority = 0.0f);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f);
 
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
     Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
@@ -95,21 +95,21 @@ public:
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
-    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _bestZone; }
+    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
 
 signals:
-    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
-    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mousePressOffEntity();
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -138,9 +138,12 @@ private:
     void resetEntitiesScriptEngine();
 
     void addEntityToScene(EntityItemPointer entity);
-    bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
+    bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
-    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
+    bool applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
+    bool layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
+    bool applySkyboxAndHasAmbient();
+
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
     QList<ModelPointer> _releasedModels;
@@ -156,14 +159,8 @@ private:
     void leaveAllEntities();
     void forceRecheckEntities();
 
-    glm::vec3 _lastAvatarPosition { 0.0f };
+    glm::vec3 _avatarPosition { 0.0f };
     QVector<EntityItemID> _currentEntitiesInside;
-
-    bool _pendingSkyboxTexture { false };
-    NetworkTexturePointer _skyboxTexture;
-
-    bool _pendingAmbientTexture { false };
-    NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
@@ -174,8 +171,8 @@ private:
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
                                   const EntityItemID& id, const Collision& collision);
 
-    bool _lastMouseEventValid;
-    MouseEvent _lastMouseEvent;
+    bool _lastPointerEventValid;
+    PointerEvent _lastPointerEvent;
     AbstractViewStateInterface* _viewState;
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;
@@ -185,25 +182,61 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    std::shared_ptr<ZoneEntityItem> _bestZone;
-    float _bestZoneVolume;
+    class LayeredZone {
+    public:
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone, QUuid id, float volume) : zone(zone), id(id), volume(volume) {}
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : LayeredZone(zone, zone->getID(), zone->getVolumeEstimate()) {}
 
+        bool operator<(const LayeredZone& r) const { return std::tie(volume, id) < std::tie(r.volume, r.id); }
+        bool operator==(const LayeredZone& r) const { return id == r.id; }
+        bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
+
+        std::shared_ptr<ZoneEntityItem> zone;
+        QUuid id;
+        float volume;
+    };
+
+    class LayeredZones : public std::set<LayeredZone> {
+    public:
+        LayeredZones(EntityTreeRenderer* parent) : _entityTreeRenderer(parent) {}
+        LayeredZones(LayeredZones&& other);
+
+        // avoid accidental misconstruction
+        LayeredZones() = delete;
+        LayeredZones(const LayeredZones&) = delete;
+        LayeredZones& operator=(const LayeredZones&) = delete;
+        LayeredZones& operator=(LayeredZones&&) = delete;
+
+        void clear();
+        std::pair<iterator, bool> insert(const LayeredZone& layer);
+
+        void apply();
+        void update(std::shared_ptr<ZoneEntityItem> zone);
+
+        bool contains(const LayeredZones& other);
+
+        std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
+
+    private:
+        void applyPartial(iterator layer);
+
+        std::map<QUuid, iterator> _map;
+        iterator _skyboxLayer{ end() };
+        EntityTreeRenderer* _entityTreeRenderer;
+    };
+
+    LayeredZones _layeredZones;
     QString _zoneUserData;
+    NetworkTexturePointer _ambientTexture;
+    NetworkTexturePointer _skyboxTexture;
+    QString _ambientTextureURL;
+    QString _skyboxTextureURL;
+    bool _pendingAmbientTexture { false };
+    bool _pendingSkyboxTexture { false };
 
     quint64 _lastZoneCheck { 0 };
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
-
-    glm::vec3 _previousKeyLightColor;
-    float _previousKeyLightIntensity;
-    float _previousKeyLightAmbientIntensity;
-    glm::vec3 _previousKeyLightDirection;
-    bool _previousStageSunModelEnabled;
-    float _previousStageLongitude;
-    float _previousStageLatitude;
-    float _previousStageAltitude;
-    float _previousStageHour;
-    int _previousStageDay;
 
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities

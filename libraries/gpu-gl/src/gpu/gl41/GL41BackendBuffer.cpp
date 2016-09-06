@@ -10,7 +10,7 @@
 
 namespace gpu {
     namespace gl41 {
-        class GL41Buffer : public gl::GLBuffer {
+        class GL41Buffer : public gpu::gl::GLBuffer {
             using Parent = gpu::gl::GLBuffer;
             static GLuint allocate() {
                 GLuint result;
@@ -55,6 +55,7 @@ namespace gpu {
 }
 
 using namespace gpu;
+using namespace gpu::gl;
 using namespace gpu::gl41;
 
 
@@ -62,6 +63,6 @@ GLuint GL41Backend::getBufferID(const Buffer& buffer) {
     return GL41Buffer::getId<GL41Buffer>(*this, buffer);
 }
 
-gl::GLBuffer* GL41Backend::syncGPUObject(const Buffer& buffer) {
+GLBuffer* GL41Backend::syncGPUObject(const Buffer& buffer) {
     return GL41Buffer::sync<GL41Buffer>(*this, buffer);
 }

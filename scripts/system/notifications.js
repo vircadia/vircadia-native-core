@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  notifications.js
 //  Version 0.801
@@ -56,6 +58,8 @@
 //      }
 //  }
 
+(function() { // BEGIN LOCAL_SCOPE
+
 Script.include("./libraries/soundArray.js");
 
 var width = 340.0; //width of notification overlay
@@ -105,7 +109,7 @@ var NotificationType = {
             return NotificationType.UNKNOWN;
         }
         var preMenuItemName = menuItemName.substr(0, menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length);
-        for (type in this.properties) {
+        for (var type in this.properties) {
             if (this.properties[type].text === preMenuItemName) {
                 return parseInt(type) + 1;
             }
@@ -120,7 +124,6 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-    
     randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
@@ -230,9 +233,9 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
     };
 }
 
-//  Pushes data to each array and sets up data for 2nd dimension array 
+//  Pushes data to each array and sets up data for 2nd dimension array
 //  to handle auxiliary data not carried by the overlay class
-//  specifically notification "heights", "times" of creation, and . 
+//  specifically notification "heights", "times" of creation, and .
 function notify(notice, button, height, imageProperties, image) {
     var notificationText,
         noticeWidth,
@@ -313,6 +316,8 @@ function notify(notice, button, height, imageProperties, image) {
     return notificationText;
 }
 
+var CLOSE_NOTIFICATION_ICON = Script.resolvePath("assets/images/close-small-light.svg");
+
 //  This function creates and sizes the overlays
 function createNotification(text, notificationType, imageProperties) {
     var count = (text.match(/\n/g) || []).length,
@@ -359,7 +364,7 @@ function createNotification(text, notificationType, imageProperties) {
         width: 10.0,
         height: 10.0,
         subImage: { x: 0, y: 0, width: 10, height: 10 },
-        imageURL: Script.resolvePath("assets/images/close-small-light.svg"),
+        imageURL: CLOSE_NOTIFICATION_ICON,
         color: { red: 255, green: 255, blue: 255},
         visible: true,
         alpha: backgroundAlpha
@@ -527,12 +532,14 @@ function onDomainConnectionRefused(reason) {
     createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
 }
 
-function onSnapshotTaken(path) {
-    var imageProperties = {
-        path: Script.resolvePath("file:///" + path),
-        aspectRatio: Window.innerWidth / Window.innerHeight
+function onSnapshotTaken(path, notify) {
+    if (notify) {
+        var imageProperties = {
+            path: "file:///" + path,
+            aspectRatio: Window.innerWidth / Window.innerHeight
+        }
+        createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
     }
-    createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
 }
 
 //  handles mouse clicks on buttons
@@ -582,7 +589,7 @@ function setup() {
         isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
     });
     Menu.addSeparator(MENU_NAME, "Play sounds for:");
-    for (type in NotificationType.properties) {
+    for (var type in NotificationType.properties) {
         checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type) + 1));
         checked = checked === '' ? true : checked;
         Menu.addMenuItem({
@@ -618,7 +625,7 @@ LODManager.LODDecreased.connect(function() {
     var warningText = "\n"
             + "Due to the complexity of the content, the \n"
             + "level of detail has been decreased. "
-            + "You can now see: \n" 
+            + "You can now see: \n"
             + LODManager.getLODFeedbackText();
 
     if (lodTextID == false) {
@@ -639,3 +646,5 @@ Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
 
 setup();
+
+}()); // END LOCAL_SCOPE

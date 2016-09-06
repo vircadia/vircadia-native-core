@@ -54,6 +54,7 @@ typedef unsigned long long quint64;
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
 #include <Packed.h>
+#include <ThreadSafeValueCache.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -170,6 +171,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
+    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
 
 public:
 
@@ -351,6 +354,9 @@ public:
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
+    // thread safe
+    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -424,6 +430,9 @@ protected:
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
+
+    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
+    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

@@ -32,6 +32,9 @@ public:
         DOWN,
         BACK,
         FORWARD,
+        MLEFT,
+        MMIDDLE,
+        MRIGHT,
         KEYS_SIZE,
         INVALID = -1,
     };

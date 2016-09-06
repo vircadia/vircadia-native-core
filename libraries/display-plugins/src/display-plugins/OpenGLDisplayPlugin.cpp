@@ -29,6 +29,7 @@
 #include <gl/GLWidget.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
+#include <gl/Context.h>
 
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
@@ -108,7 +109,7 @@ public:
         }
     }
 
-    void setContext(QGLContext * context) {
+    void setContext(gl::Context* context) {
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
@@ -126,7 +127,6 @@ public:
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         _context->makeCurrent();
-        Q_ASSERT(isCurrentContext(_context->contextHandle()));
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 PROFILE_RANGE("MainThreadOp") 
@@ -250,7 +250,7 @@ private:
     bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
-    QGLContext* _context { nullptr };
+    gl::Context* _context { nullptr };
 };
 
 bool OpenGLDisplayPlugin::activate() {
@@ -649,8 +649,8 @@ float OpenGLDisplayPlugin::presentRate() const {
 }
 
 void OpenGLDisplayPlugin::swapBuffers() {
-    static auto widget = _container->getPrimaryWidget();
-    widget->swapBuffers();
+    static auto context = _container->getPrimaryWidget()->context();
+    context->swapBuffers();
 }
 
 void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
@@ -659,12 +659,26 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
     _container->makeRenderingContextCurrent();
 }
 
-QImage OpenGLDisplayPlugin::getScreenshot() const {
+QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     auto size = _compositeFramebuffer->getSize();
+    if (isHmd()) {
+        size.x /= 2;
+    }
+    auto bestSize = size;
+    uvec2 corner(0);
+    if (aspectRatio != 0.0f) { // Pick out the largest piece of the center that produces the requested width/height aspectRatio
+        if (ceil(size.y * aspectRatio) < size.x) {
+            bestSize.x = round(size.y * aspectRatio);
+        } else {
+            bestSize.y = round(size.x / aspectRatio);
+        }
+        corner.x = round((size.x - bestSize.x) / 2.0f);
+        corner.y = round((size.y - bestSize.y) / 2.0f);
+    }
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
-    QImage screenshot(size.x, size.y, QImage::Format_ARGB32);
+    QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
     withMainThreadContext([&] {
-        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(uvec2(0), size), screenshot);
+        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     });
     return screenshot.mirrored(false, true);
 }

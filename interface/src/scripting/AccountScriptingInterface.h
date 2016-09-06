@@ -26,6 +26,7 @@ public slots:
     static AccountScriptingInterface* getInstance();
     QString getUsername();
     bool isLoggedIn();
+    bool checkAndSignalForAccessToken();
 };
 
 #endif // hifi_AccountScriptingInterface_h

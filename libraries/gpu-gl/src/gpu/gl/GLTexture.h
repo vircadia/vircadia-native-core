@@ -21,6 +21,9 @@ struct GLFilterMode {
 
 class GLTexture : public GLObject<Texture> {
 public:
+    static const uint16_t INVALID_MIP { (uint16_t)-1 };
+    static const uint8_t INVALID_FACE { (uint8_t)-1 };
+
     static void initTextureTransferHelper();
     static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
 
@@ -55,21 +58,26 @@ public:
         // If we just did a transfer, return the object after doing post-transfer work
         if (GLSyncState::Transferred == object->getSyncState()) {
             object->postTransfer();
-            return object;
         }
 
-        if (object->isReady()) {
-            // Do we need to reduce texture memory usage?
-            if (object->isOverMaxMemory() && texturePointer->incremementMinMip()) {
-                // WARNING, this code path will essentially `delete this`, 
-                // so no dereferencing of this instance should be done past this point
-                object = new GLTextureType(backend.shared_from_this(), texture, object);
-                _textureTransferHelper->transferTexture(texturePointer);
-            }
-        } else if (object->isOutdated()) {
+        if (object->isOutdated()) {
             // Object might be outdated, if so, start the transfer
             // (outdated objects that are already in transfer will have reported 'true' for ready()
             _textureTransferHelper->transferTexture(texturePointer);
+            return nullptr;
+        }
+
+        if (!object->isReady()) {
+            return nullptr;
+        }
+
+        // Do we need to reduce texture memory usage?
+        if (object->isOverMaxMemory() && texturePointer->incremementMinMip()) {
+            // WARNING, this code path will essentially `delete this`, 
+            // so no dereferencing of this instance should be done past this point
+            object = new GLTextureType(backend.shared_from_this(), texture, object);
+            _textureTransferHelper->transferTexture(texturePointer);
+            return nullptr;
         }
 
         return object;

@@ -38,7 +38,7 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
     }
 
     if (!batch._objects.empty()) {
-        glNamedBufferData(_transform._objectBuffer, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
+        glNamedBufferData(_transform._objectBuffer, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_STREAM_DRAW);
     }
 
     if (!batch._namedData.empty()) {

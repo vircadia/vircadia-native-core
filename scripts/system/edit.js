@@ -1,3 +1,5 @@
+"use strict";
+
 //  newEditEntities.js
 //  examples
 //
@@ -11,13 +13,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 var EDIT_TOOLBAR = "com.highfidelity.interface.toolbar.edit";
 
-/* globals SelectionDisplay, SelectionManager, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Toolbars,
-           progressDialog, tooltip, ParticleExplorerTool */
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -94,7 +96,6 @@ var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain.";
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain.";
 
-var mode = 0;
 var isActive = false;
 
 var IMPORTING_SVO_OVERLAY_WIDTH = 144;
@@ -143,7 +144,6 @@ function showMarketplace(marketplaceID) {
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    print("setting marketplace URL to " + url);
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
@@ -164,9 +164,10 @@ function toggleMarketplace() {
     }
 }
 
+var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
+
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
-    var TOOL_ICON_URL = Script.resolvePath("assets/images/tools/");
     var that = {},
         toolBar,
         systemToolbar,
@@ -199,7 +200,7 @@ var toolBar = (function () {
     }
 
     function addButton(name, image, handler) {
-        var imageUrl = TOOL_ICON_URL + image;
+        var imageUrl = TOOLS_PATH + image;
         var button = toolBar.addButton({
             objectName: name,
             imageURL: imageUrl,
@@ -216,7 +217,6 @@ var toolBar = (function () {
     }
 
     function initialize() {
-        print("QQQ creating edit toolbar");
         Script.scriptEnding.connect(cleanup);
 
         Window.domainChanged.connect(function () {
@@ -233,7 +233,7 @@ var toolBar = (function () {
         systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
         activeButton = systemToolbar.addButton({
             objectName: EDIT_TOGGLE_BUTTON,
-            imageURL: TOOL_ICON_URL + "edit.svg",
+            imageURL: TOOLS_PATH + "edit.svg",
             visible: true,
             alpha: 0.9,
             buttonState: 1,
@@ -503,8 +503,6 @@ var selectedEntityID;
 var orientation;
 var intersection;
 
-
-var SCALE_FACTOR = 200.0;
 
 function rayPlaneIntersection(pickRay, point, normal) { //
     //
@@ -794,7 +792,6 @@ var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
 
 function setupModelMenus() {
-    print("setupModelMenus()");
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
@@ -803,19 +800,16 @@ function setupModelMenus() {
         grouping: "Advanced"
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
-        print("no delete... adding ours");
         Menu.addMenuItem({
             menuName: "Edit",
             menuItemName: "Delete",
             shortcutKeyEvent: {
-                text: "backspace"
+                text: "delete"
             },
             afterItem: "Entities",
             grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
-    } else {
-        print("delete exists... don't add ours");
     }
 
     Menu.addMenuItem({
@@ -1046,8 +1040,6 @@ function deleteSelectedEntities() {
         }
         SelectionManager.clearSelections();
         pushCommandForSelections([], savedProperties);
-    } else {
-        print("  Delete Entity.... not holding...");
     }
 }
 
@@ -1163,7 +1155,6 @@ function getPositionToImportEntity() {
     return position;
 }
 function importSVO(importURL) {
-    print("Import URL requested: " + importURL);
     if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
@@ -1225,7 +1216,7 @@ Controller.keyReleaseEvent.connect(function (event) {
         cameraManager.keyReleaseEvent(event);
     }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text === "BACKSPACE" || event.text === "DELETE") {
+    if (event.text === "DELETE") {
         deleteSelectedEntities();
     } else if (event.text === "ESC") {
         selectionManager.clearSelections();
@@ -1336,13 +1327,14 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
 
+var ENTITY_PROPERTIES_URL = Script.resolvePath('html/entityProperties.html');
+
 var PropertiesTool = function (opts) {
     var that = {};
 
-    var url = Script.resolvePath('html/entityProperties.html');
     var webView = new OverlayWebWindow({
         title: 'Entity Properties',
-        source: url,
+        source: ENTITY_PROPERTIES_URL,
         toolWindow: true
     });
 
@@ -1379,7 +1371,13 @@ var PropertiesTool = function (opts) {
     });
 
     webView.webEventReceived.connect(function (data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        }
+        catch(e) {
+            print('Edit.js received web event that was not valid json.')
+            return;
+        }
         var i, properties, dY, diff, newPosition;
         if (data.type === "print") {
             if (data.message) {
@@ -1427,6 +1425,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if(data.type === 'saveUserData'){
+            //the event bridge and json parsing handle our avatar id string differently.
+            var actualID = data.id.split('"')[1];
+            Entities.editEntity(actualID, data.properties);
         } else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
@@ -1733,3 +1735,5 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         }
     }
 });
+
+}()); // END LOCAL_SCOPE

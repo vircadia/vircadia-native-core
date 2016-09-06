@@ -1,3 +1,5 @@
+"use strict";
+
 //
 //  firstPersonHMD.js
 //  system
@@ -9,9 +11,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+(function() { // BEGIN LOCAL_SCOPE
+
 // Automatically enter first person mode when entering HMD mode
 HMD.displayModeChanged.connect(function(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
     }
 });
+
+}()); // END LOCAL_SCOPE

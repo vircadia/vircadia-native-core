@@ -12,8 +12,11 @@
 
 #include <GLMHelpers.h>
 
+#include <gl/Context.h>
+
 #include <gpu/Frame.h>
 #include <gpu/gl/GLBackend.h>
+
 
 #include <ViewFrustum.h>
 #include <PathUtils.h>
@@ -56,7 +59,7 @@ public:
     using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
     friend class OpenVrDisplayPlugin;
-    OffscreenGLCanvas _canvas;
+    std::shared_ptr<gl::OffscreenContext> _canvas;
     BasicFramebufferWrapperPtr _framebuffer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
@@ -68,9 +71,7 @@ public:
 
 
     OpenVrSubmitThread(OpenVrDisplayPlugin& plugin) : _plugin(plugin) { 
-        _canvas.create(plugin._container->getPrimaryContext());
-        _canvas.doneCurrent();
-        _canvas.moveToThreadWithContext(this);
+        setObjectName("OpenVR Submit Thread");
     }
 
     void updateReprojectionProgram() {
@@ -111,12 +112,17 @@ public:
         _plugin.withNonPresentThreadLock([&] {
             while (!_queue.empty()) {
                 auto& front = _queue.front();
+
                 auto result = glClientWaitSync(front.fence, 0, 0);
-                if (GL_TIMEOUT_EXPIRED == result && GL_WAIT_FAILED == result) {
+
+                if (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
                     break;
+                } else if (GL_CONDITION_SATISFIED == result || GL_ALREADY_SIGNALED == result) {
+                    glDeleteSync(front.fence);
+                } else {
+                    assert(false);
                 }
 
-                glDeleteSync(front.fence);
                 front.fence = 0;
                 _current = front;
                 _queue.pop();
@@ -126,19 +132,19 @@ public:
 
     void run() override {
         QThread::currentThread()->setPriority(QThread::Priority::TimeCriticalPriority);
-        _canvas.makeCurrent();
+        _canvas->makeCurrent();
         glDisable(GL_DEPTH_TEST);
         glViewport(0, 0, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
         _framebuffer = std::make_shared<BasicFramebufferWrapper>();
         _framebuffer->Init(_plugin._renderTargetSize);
         updateReprojectionProgram();
         _plane = loadPlane(_program);
-        _canvas.doneCurrent();
+        _canvas->doneCurrent();
         while (!_quit) {
-            _canvas.makeCurrent();
+            _canvas->makeCurrent();
             updateSource();
             if (!_current.texture) {
-                _canvas.doneCurrent();
+                _canvas->doneCurrent();
                 QThread::usleep(1);
                 continue;
             }
@@ -194,15 +200,14 @@ public:
                     _presented.notify_one();
                 });
             }
-            _canvas.doneCurrent();
+            _canvas->doneCurrent();
         }
 
-        _canvas.makeCurrent();
+        _canvas->makeCurrent();
         _plane.reset();
         _program.reset();
         _framebuffer.reset();
-        _canvas.doneCurrent();
-
+        _canvas->doneCurrent();
     }
 
     void update(const CompositeInfo& newCompositeInfo) {
@@ -302,10 +307,14 @@ bool OpenVrDisplayPlugin::internalActivate() {
     }
 
 #if OPENVR_THREADED_SUBMIT
-    withMainThreadContext([&] {
-        _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
-    });
-    _submitThread->setObjectName("OpenVR Submit Thread");
+    _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
+    if (!_submitCanvas) {
+        withMainThreadContext([&] {
+            _submitCanvas = std::make_shared<gl::OffscreenContext>();
+            _submitCanvas->create();
+            _submitCanvas->doneCurrent();
+        });
+    }
 #endif
 
     return Parent::internalActivate();
@@ -343,6 +352,7 @@ void OpenVrDisplayPlugin::customizeContext() {
         }
         _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
     }
+    _submitThread->_canvas = _submitCanvas;
     _submitThread->start(QThread::HighPriority);
 #endif
 }
@@ -353,6 +363,7 @@ void OpenVrDisplayPlugin::uncustomizeContext() {
 #if OPENVR_THREADED_SUBMIT
     _submitThread->_quit = true;
     _submitThread->wait();
+    _submitThread.reset();
 #endif
 }
 
@@ -455,6 +466,16 @@ void OpenVrDisplayPlugin::compositeLayers() {
 
 #if OPENVR_THREADED_SUBMIT
     newComposite.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    // https://www.opengl.org/registry/specs/ARB/sync.txt:
+    // > The simple flushing behavior defined by
+    // > SYNC_FLUSH_COMMANDS_BIT will not help when waiting for a fence
+    // > command issued in another context's command stream to complete.
+    // > Applications which block on a fence sync object must take
+    // > additional steps to assure that the context from which the
+    // > corresponding fence command was issued has flushed that command
+    // > to the graphics pipeline.
+    glFlush();
+
     if (!newComposite.textureID) {
         newComposite.textureID = getGLBackend()->getTextureID(newComposite.texture, false);
     }

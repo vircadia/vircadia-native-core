@@ -27,13 +27,11 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::disconnectedFromDomain);
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::connectedToDomain);
 
-    // Connect to AddressManager::hostChanged
-    auto addressManager = DependencyManager::get<AddressManager>();
-    connect(addressManager.data(), &AddressManager::hostChanged, this, &ConnectionMonitor::hostChanged);
-
     _timer.setSingleShot(true);
     _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
-    _timer.start();
+    if (!domainHandler.isConnected()) {
+        _timer.start();
+    }
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::showAddressBar);
@@ -45,8 +43,4 @@ void ConnectionMonitor::disconnectedFromDomain() {
 
 void ConnectionMonitor::connectedToDomain(const QString& name) {
     _timer.stop();
-}
-
-void ConnectionMonitor::hostChanged(const QString& name) {
-    _timer.start();
 }
