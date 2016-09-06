@@ -977,6 +977,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     left: 0;
 }
 
+#entity-table th#entity-hasScript .glyph {
+    text-transform: none;
+}
+
 #entity-table thead .sort-order {
     display: inline-block;
     width: 8px;
