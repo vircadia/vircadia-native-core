@@ -325,7 +325,6 @@ QString UserInputMapper::getActionName(Action action) const {
     return QString();
 }
 
-
 QVector<QString> UserInputMapper::getActionNames() const {
     Locker locker(_lock);
     QVector<QString> result;
@@ -334,6 +333,12 @@ QVector<QString> UserInputMapper::getActionNames() const {
     }
     return result;
 }
+
+Pose UserInputMapper::getPoseState(Action action) const {
+    assert(QThread::currentThread() == thread());
+    return _poseStates[toInt(action)];
+}
+
 
 bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
     Locker locker(_lock);

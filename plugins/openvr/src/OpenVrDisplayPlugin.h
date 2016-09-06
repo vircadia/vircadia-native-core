@@ -58,6 +58,9 @@ public:
     void unsuppressKeyboard() override;
     bool isKeyboardVisible() override;
 
+    // Needs an additional thread for VR submission
+    int getRequiredThreadCount() const override { return Parent::getRequiredThreadCount() + 1; }
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;

@@ -14,6 +14,7 @@
 #include <avatar/AvatarActionHold.h>
 #include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
+#include <ObjectActionTravelOriented.h>
 #include <LogHandler.h>
 
 #include "InterfaceActionFactory.h"
@@ -29,6 +30,8 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& i
             return std::make_shared<ObjectActionSpring>(id, ownerEntity);
         case ACTION_TYPE_HOLD:
             return std::make_shared<AvatarActionHold>(id, ownerEntity);
+        case ACTION_TYPE_TRAVEL_ORIENTED:
+            return std::make_shared<ObjectActionTravelOriented>(id, ownerEntity);
     }
 
     Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity action type");

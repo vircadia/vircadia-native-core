@@ -14,15 +14,15 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
-var qml = Script.resolvePath("../../../resources/qml/MarketplaceComboBox.qml")
+var qml = Script.resolvePath("../../../resources/qml/Marketplaces.qml")
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 
 var marketplaceWindow = new OverlayWindow({
     title: "Marketplace",
     source: qml,
-    width: 900,
-    height: 700,
+    width: 1000,
+    height: 900,
     toolWindow: false,
     visible: false,
 });
