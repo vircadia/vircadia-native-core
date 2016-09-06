@@ -257,12 +257,12 @@ model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
         auto solid = geometry::icosahedron();
         solid.fitDimension(1.05f); // scaled to 1.05 meters, it will be scaled by the shader accordingly to the light size
 
-        int verticesSize = solid.vertices.size() * 3 * sizeof(float);
+        int verticesSize = (int) (solid.vertices.size() * 3 * sizeof(float));
         float* vertexData = (float*) solid.vertices.data();
 
         _pointLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(verticesSize, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
 
-        auto nbIndices = solid.faces.size() * 3;
+        int nbIndices = (int) solid.faces.size() * 3;
 
         gpu::uint16* indexData = new gpu::uint16[nbIndices];
         gpu::uint16* index = indexData;
@@ -628,11 +628,11 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         if (points && !srcPointLights.empty()) {
             memcpy(lightIndices.data() + (lightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
-            lightIndices[0] += srcPointLights.size();
+            lightIndices[0] += (int) srcPointLights.size();
         }
         if (spots && !srcSpotLights.empty()) {
             memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
-            lightIndices[0] += srcSpotLights.size();
+            lightIndices[0] += (int) srcSpotLights.size();
         }
 
         if (lightIndices[0] > 0) {

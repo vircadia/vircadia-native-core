@@ -177,7 +177,7 @@ protected:
 
 public:
     using Size = Resource::Size;
-    using Index = int;
+    using Index = int32_t;
 
     BufferPointer _buffer;
     Size _offset { 0 };
