@@ -1116,17 +1116,34 @@ function MyController(hand) {
 
         this.grabPointSphereOn();
 
-        var candidateEntities = Entities.findEntities(this.getControllerLocation(true).position, MAX_EQUIP_HOTSPOT_RADIUS);
+        var controllerLocation = this.getControllerLocation(true);
+        var worldHandPosition = controllerLocation.position;
+
+        var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
         if (!this.waitForTriggerRelease) {
-            this.updateEquipHaptics(potentialEquipHotspot, this.getControllerLocation(true).position);
+            this.updateEquipHaptics(potentialEquipHotspot, worldHandPosition);
         }
 
         var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntities, EQUIP_HOTSPOT_RENDER_RADIUS);
         equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
         if (potentialEquipHotspot) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
+        }
+
+        // when the grab-point enters a grabable entity, give a haptic pulse
+        candidateEntities = Entities.findEntities(worldHandPosition, NEAR_GRAB_RADIUS);
+        var grabbableEntities = candidateEntities.filter(function(entity) {
+            return _this.entityIsNearGrabbable(entity, worldHandPosition, NEAR_GRAB_MAX_DISTANCE);
+        });
+        if (grabbableEntities.length > 0) {
+            if (!this.grabPointIntersectsEntity) {
+                Controller.triggerHapticPulse(1, 20, this.hand);
+                this.grabPointIntersectsEntity = true;
+            }
+        } else {
+            this.grabPointIntersectsEntity = false;
         }
     };
 
@@ -1477,17 +1494,6 @@ function MyController(hand) {
         var grabbableEntities = candidateEntities.filter(function(entity) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
-
-        // before including any ray-picked entities, give a haptic pulse if the grab-point has hit something grabbable
-        if (grabbableEntities.length > 0) {
-            if (!this.grabPointIntersectsEntity) {
-                // Controller.triggerHapticPulse(1, 20, this.hand);
-                Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                this.grabPointIntersectsEntity = true;
-            }
-        } else {
-            this.grabPointIntersectsEntity = false;
-        }
 
         if (rayPickInfo.entityID) {
             this.intersectionDistance = rayPickInfo.distance;
