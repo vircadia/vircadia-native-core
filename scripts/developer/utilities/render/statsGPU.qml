@@ -109,47 +109,6 @@ Item {
                }
            ]
         }
-
-        PlotPerf {
-           title: "Batch Timing"
-           height: parent.evalEvenHeight()
-           object: parent.drawOpaqueConfig
-           valueUnit: "ms"
-           valueScale: 1
-           valueNumDigits: "4"
-           plots: [
-            {
-                   object: Render.getConfig("OpaqueRangeTimer"),
-                   prop: "gpuBatchTime",
-                   label: "Opaque",
-                   color: "#FFFFFF"
-               }, 
-               {
-                   object: Render.getConfig("LinearDepth"),
-                   prop: "gpuBatchTime",
-                   label: "LinearDepth",
-                   color: "#00FF00"
-               },{
-                   object: Render.getConfig("SurfaceGeometry"),
-                   prop: "gpuBatchTime",
-                   label: "SurfaceGeometry",
-                   color: "#00FFFF"
-               },
-               {
-                   object: Render.getConfig("RenderDeferred"),
-                   prop: "gpuBatchTime",
-                   label: "DeferredLighting",
-                   color: "#FF00FF"
-               }
-               ,
-               {
-                   object: Render.getConfig("ToneAndPostRangeTimer"),
-                   prop: "gpuBatchTime",
-                   label: "tone and post",
-                   color: "#FF0000"
-               }
-           ]
-        }
     }
 
 }

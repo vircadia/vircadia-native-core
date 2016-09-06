@@ -425,7 +425,6 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
     outputs.edit0() = _deferredFramebuffer;
     outputs.edit1() = _deferredFramebuffer->getLightingFramebuffer();
 
-
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
@@ -457,7 +456,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    auto& batch = (*args->_batch);
+   // gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         
         // Framebuffer copy operations cannot function as multipass stereo operations.
         batch.enableStereo(false);
@@ -567,7 +567,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
         }
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
-    });
+   // });
     
 }
 
@@ -589,9 +589,10 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         return;
     }
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    auto& batch = (*args->_batch);
+ //   gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         // Framebuffer copy operations cannot function as multipass stereo operations.
-        batch.enableStereo(false);
+     ///   batch.enableStereo(false);
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
         auto viewport = args->_viewport;
@@ -730,12 +731,13 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                 }
             }*/
         }
-    });
+ //   });
 }
 
 void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    auto& batch = (*args->_batch);
+   // gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
         batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
@@ -752,7 +754,7 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
    //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
-    });
+   // });
     
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
@@ -788,9 +790,14 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
     }
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    auto previousBatch = args->_batch;
+    gpu::Batch batch;
+  //  f(batch);
+    args->_batch = &batch;
+
+  //  gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
        _gpuTimer->begin(batch);
-    });
+  //  });
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
@@ -798,10 +805,14 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 
     cleanupJob.run(sceneContext, renderContext);
     
-     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+  //   gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
          _gpuTimer->end(batch);
-    });
+ //   });
     
+     args->_context->appendFrameBatch(batch);
+     args->_batch = previousBatch;
+
+
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }

@@ -13,32 +13,9 @@
 #define hifi_RenderableLightEntityItem_h
 
 #include <LightEntityItem.h>
-#include <model/Light.h>
+#include <LightPayload.h>
 #include "RenderableEntityItem.h"
 
-class RenderableLightEntityItem;
-
-class LightRenderItem {
-public:
-    using Payload = render::Payload<LightRenderItem>;
-    using Pointer = Payload::DataPointer;
-
-    model::LightPointer _light;
-
-    render::Item::Bound _bound;
-
-    LightRenderItem();
-    void render(RenderArgs* args);
-
-    void updateLightFromEntity(RenderableLightEntityItem* entity);
-
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const LightRenderItem::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const LightRenderItem::Pointer& payload);
-    template <> void payloadRender(const LightRenderItem::Pointer& payload, RenderArgs* args);
-}
 
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
@@ -53,73 +30,26 @@ public:
 
     void updateLightFromEntity(render::PendingChanges& pendingChanges);
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override {
-        _myItem = scene->allocateID();
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
-        auto renderItem = std::make_shared<LightRenderItem>();
-        renderItem->updateLightFromEntity(this);
+    virtual void somethingChangedNotification() override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
-        auto renderPayload = std::make_shared<LightRenderItem::Payload>(renderItem);
+    virtual void locationChanged(bool tellPhysics = true) override;
 
-        render::Item::Status::Getters statusGetters;
-        makeEntityItemStatusGetters(self, statusGetters);
-        renderPayload->addStatusGetters(statusGetters);
+    virtual void dimensionsChanged() override;
 
-        pendingChanges.resetItem(_myItem, renderPayload);
+    void checkFading();
 
-        return true;
-    }
-
-    virtual void somethingChangedNotification() override {
-        if (_lightPropertiesChanged) {
-            notifyChanged();
-        }
-        LightEntityItem::somethingChangedNotification();
-    }
-
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override {
-        pendingChanges.removeItem(_myItem);
-        render::Item::clearID(_myItem);
-    }
-
-    virtual void locationChanged(bool tellPhysics = true) override {
-        EntityItem::locationChanged(tellPhysics);
-        notifyChanged();
-    }
-
-    virtual void dimensionsChanged() override {
-        EntityItem::dimensionsChanged();
-        notifyChanged();
-    }
-
-    void checkFading() {
-        bool transparent = isTransparent();
-        if (transparent != _prevIsTransparent) {
-            notifyChanged();
-            _isFading = false;
-            _prevIsTransparent = transparent;
-        }
-    }
-
-    void notifyChanged() {
-
-        if (!render::Item::isValidID(_myItem)) {
-            return;
-        }
-
-        render::PendingChanges pendingChanges;
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-        updateLightFromEntity(pendingChanges);
-
-        scene->enqueuePendingChanges(pendingChanges);
-    }
+    void notifyChanged();
 
 private:
     bool _prevIsTransparent { isTransparent() };
     render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
 
     // Dirty flag turn true when either setSubClassProperties or readEntitySubclassDataFromBuffer is changing a value 
+
+    void updateRenderItemFromEntity(LightPayload* lightPayload);
 
 };
 

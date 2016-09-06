@@ -47,7 +47,7 @@ void main(void) {
     texCoord += texcoordFrameTransform.xy;*/
 
     vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
-    DeferredFragment frag = unpackDeferredFragmentNoPositionNoAmbient(texCoord);
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
 
     if (frag.mode == FRAG_MODE_UNLIT) {
         discard;

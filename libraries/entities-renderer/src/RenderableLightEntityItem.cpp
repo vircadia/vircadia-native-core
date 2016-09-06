@@ -11,9 +11,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/Batch.h>
 
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <PerfStat.h>
 
@@ -29,16 +27,68 @@ RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityI
 {
 }
 
-void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pendingChanges) {
+bool RenderableLightEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    _myItem = scene->allocateID();
+
+    auto renderItem = std::make_shared<LightPayload>();
+    updateRenderItemFromEntity(renderItem.get());
+
+    auto renderPayload = std::make_shared<LightPayload::Payload>(renderItem);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(self, statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
+    pendingChanges.resetItem(_myItem, renderPayload);
+
+    return true;
+}
+
+void RenderableLightEntityItem::somethingChangedNotification() {
+    if (_lightPropertiesChanged) {
+        notifyChanged();
+    }
+    LightEntityItem::somethingChangedNotification();
+}
+
+void RenderableLightEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myItem);
+    render::Item::clearID(_myItem);
+}
+
+void RenderableLightEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
+    notifyChanged();
+}
+
+void RenderableLightEntityItem::dimensionsChanged() {
+    EntityItem::dimensionsChanged();
+    notifyChanged();
+}
+
+void RenderableLightEntityItem::checkFading() {
+    bool transparent = isTransparent();
+    if (transparent != _prevIsTransparent) {
+        notifyChanged();
+        _isFading = false;
+        _prevIsTransparent = transparent;
+    }
+}
+
+void RenderableLightEntityItem::notifyChanged() {
+
     if (!render::Item::isValidID(_myItem)) {
         return;
     }
 
+    render::PendingChanges pendingChanges;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    pendingChanges.updateItem<LightRenderItem>(_myItem, [this](LightRenderItem& data) {
-        data.updateLightFromEntity(this);
-    });
+    updateLightFromEntity(pendingChanges);
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
+
 /*
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
@@ -72,75 +122,54 @@ bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 }
 
 
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const LightRenderItem::Pointer& payload) {
-        return ItemKey::Builder::light();
+void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pendingChanges) {
+    if (!render::Item::isValidID(_myItem)) {
+        return;
     }
 
-    template <> const Item::Bound payloadGetBound(const LightRenderItem::Pointer& payload) {
-        if (payload) {
-            return payload->_bound;
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const LightRenderItem::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            if (payload) {
-                payload->render(args);
-            }
-        }
-    }
+
+    pendingChanges.updateItem<LightPayload>(_myItem, [this](LightPayload& data) {
+        this->updateRenderItemFromEntity(&data);
+    });
 }
 
-LightRenderItem::LightRenderItem() :
-_light(std::make_shared<model::Light>())
-{
-}
-
-void LightRenderItem::updateLightFromEntity(RenderableLightEntityItem* entity) {
-    _light->setPosition(entity->getPosition());
-    _light->setOrientation(entity->getRotation());
+void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload* lightPayload) {
+    auto entity = this;
+    auto light = lightPayload->editLight();
+    light->setPosition(entity->getPosition());
+    light->setOrientation(entity->getRotation());
 
     bool success;
-    _bound = entity->getAABox(success);
+    lightPayload->editBound() = entity->getAABox(success);
     if (!success) {
-        _bound = render::Item::Bound();
+        lightPayload->editBound() = render::Item::Bound();
     }
 
     glm::vec3 dimensions = entity->getDimensions();
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
-    _light->setMaximumRadius(largestDiameter / 2.0f);
+    light->setMaximumRadius(largestDiameter / 2.0f);
 
-    _light->setColor(toGlm(entity->getXColor()));
+    light->setColor(toGlm(entity->getXColor()));
 
     float intensity = entity->getIntensity();//* entity->getFadingRatio();
-    _light->setIntensity(intensity);
+    light->setIntensity(intensity);
 
-    _light->setFalloffRadius(entity->getFalloffRadius());
+    light->setFalloffRadius(entity->getFalloffRadius());
 
 
     float exponent = entity->getExponent();
     float cutoff = glm::radians(entity->getCutoff());
     if (!entity->getIsSpotlight()) {
-        _light->setType(model::Light::POINT);
+        light->setType(model::Light::POINT);
     } else {
-        _light->setType(model::Light::SPOT);
+        light->setType(model::Light::SPOT);
 
-        _light->setSpotAngle(cutoff);
-        _light->setSpotExponent(exponent);
+        light->setSpotAngle(cutoff);
+        light->setSpotExponent(exponent);
     }
 
 }
 
-
-void LightRenderItem::render(RenderArgs* args) {
-
-    //updateLightFromEntity();
-
-    DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
-
-}
 
 
 
