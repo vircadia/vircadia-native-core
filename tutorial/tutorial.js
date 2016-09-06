@@ -724,10 +724,6 @@ function hideEntitiesWithTag(tag) {
     });
 }
 
-
-
-
-
 var STEPS;
 
 var currentStepNum = -1;

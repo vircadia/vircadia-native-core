@@ -368,6 +368,20 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 z: 0.06380049744620919
             },
 
+            parts: {
+                {
+                    type: "linear",
+                    modelURL: "",
+                    input: Controller.Hardware.Vive.RT,
+                    minValue: 0.0,
+                    maxValue: 1.0,
+                    textOffset: { x: -0.035, y: 0.004, z: -0.005 },
+                    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
+                    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
+                }
+
+            },
+
             annotationTextRotation: Quat.fromPitchYawRollDegrees(180 + 45, 90, 180),
             annotations: {
 
