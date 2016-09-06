@@ -118,11 +118,17 @@ bool TransferState::increment() {
     return false;
 }
 
+#define DEFAULT_GL_PIXEL_ALIGNMENT 4
 void TransferState::populatePage(uint8_t* dst) {
     uvec3 pageSize = currentPageSize();
+    auto bytesPerPageLine = _bytesPerPixel * pageSize.x;
+    if (0 != (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT)) {
+        bytesPerPageLine += DEFAULT_GL_PIXEL_ALIGNMENT - (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT);
+        assert(0 == (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT));
+    }
     for (uint32_t y = 0; y < pageSize.y; ++y) {
         uint32_t srcOffset = (_bytesPerLine * (_mipOffset.y + y)) + (_bytesPerPixel * _mipOffset.x);
-        uint32_t dstOffset = (_bytesPerPixel * pageSize.x) * y;
+        uint32_t dstOffset = bytesPerPageLine * y;
         memcpy(dst + dstOffset, _srcPointer + srcOffset, pageSize.x * _bytesPerPixel);
     }
 }
