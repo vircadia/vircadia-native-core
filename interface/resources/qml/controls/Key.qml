@@ -5,7 +5,8 @@ Item {
     width: 45
     height: 50
     property string glyph: "a"
-
+    property bool toggle: false   // does this button have the toggle behaivor?
+    property bool toggled: false  // is this button currently toggled?
 
     MouseArea {
         id: mouseArea1
@@ -19,6 +20,9 @@ Item {
         onClicked: {
             mouse.accepted = true
             webEntity.synthesizeKeyPress(glyph)
+            if (toggle) {
+                toggled = !toggled
+            }
         }
 
         onDoubleClicked: {
@@ -30,7 +34,11 @@ Item {
         }
 
         onExited: {
-            keyItem.state = ""
+            if (toggled) {
+                keyItem.state = "mouseDepressed"
+            } else {
+                keyItem.state = ""
+            }
         }
 
         onPressed: {
@@ -42,7 +50,11 @@ Item {
             if (containsMouse) {
                 keyItem.state = "mouseOver"
             } else {
-                keyItem.state = ""
+                if (toggled) {
+                    keyItem.state = "mouseDepressed"
+                } else {
+                    keyItem.state = ""
+                }
             }
             mouse.accepted = true
         }
@@ -92,6 +104,19 @@ Item {
             PropertyChanges {
                 target: roundedRect
                 color: "#e95a52"
+            }
+        },
+        State {
+            name: "mouseDepressed"
+
+            PropertyChanges {
+                target: roundedRect
+                color: "#393939"
+            }
+
+            PropertyChanges {
+                target: letter
+                color: "#fbfbfb"
             }
         }
     ]

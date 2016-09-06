@@ -153,6 +153,10 @@ Item {
                     id: key27
                     width: 79
                     glyph: "⇪"
+                    toggle: true
+                    onToggledChanged: {
+                        console.log("AJT: toggled" + toggled);
+                    }
                 }
 
                 Key {
