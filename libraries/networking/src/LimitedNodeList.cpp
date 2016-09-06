@@ -43,7 +43,7 @@ const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AudioMixer
 };
 
-LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
+LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _sessionUUID(),
     _nodeHash(),
     _nodeMutex(QReadWriteLock::Recursive),
@@ -66,11 +66,11 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     }
 
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
-    auto port = (socketListenPort != 0) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
+    auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);
     qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
 
-    if (dtlsListenPort > 0) {
+    if (dtlsListenPort != INVALID_PORT) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
 

@@ -33,7 +33,7 @@
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
-NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
+NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
