@@ -388,7 +388,6 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
-        const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
 
         glm::mat4 projMat;
         Transform viewMat;
