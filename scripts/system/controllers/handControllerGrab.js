@@ -106,7 +106,7 @@ var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
-var NEAR_GRAB_RADIUS = 0.07; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_RADIUS = 0.04; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
@@ -118,7 +118,7 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.0, y: 0.2, z: 0.0 };
+var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: -0.04 };
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
@@ -722,6 +722,7 @@ var equipHotspotBuddy = new EquipHotspotBuddy();
 function MyController(hand) {
     this.hand = hand;
     this.autoUnequipCounter = 0;
+    this.grabPointIntersectsEntity = false;
 
     // handPosition is where the avatar's hand appears to be, in-world.
     this.getHandPosition = function () {
@@ -738,6 +739,18 @@ function MyController(hand) {
             return MyAvatar.getLeftPalmRotation();
         }
     };
+
+    this.getGrabPointSphereOffset = function() {
+        if (hand === RIGHT_HAND) {
+            return GRAB_POINT_SPHERE_OFFSET;
+        }
+        return {
+            x: GRAB_POINT_SPHERE_OFFSET.x * -1,
+            y: GRAB_POINT_SPHERE_OFFSET.y,
+            z: GRAB_POINT_SPHERE_OFFSET.z * -1
+        };
+    };
+
     // controllerLocation is where the controller would be, in-world.
     this.getControllerLocation = function (doOffset) {
         var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -747,7 +760,7 @@ function MyController(hand) {
         var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
         // add to the real position so the grab-point is out in front of the hand, a bit
         if (doOffset) {
-            position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, GRAB_POINT_SPHERE_OFFSET));
+            position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, this.getGrabPointSphereOffset()));
         }
 
         return {position: position, orientation: orientation};
@@ -866,7 +879,7 @@ function MyController(hand) {
         }
         if (!this.grabPointSphere) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
-                localPosition: GRAB_POINT_SPHERE_OFFSET,
+                localPosition: this.getGrabPointSphereOffset(),
                 localRotation: { x: 0, y: 0, z: 0, w: 1 },
                 dimensions: GRAB_POINT_SPHERE_RADIUS,
                 color: GRAB_POINT_SPHERE_COLOR,
@@ -1465,6 +1478,16 @@ function MyController(hand) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
 
+        // before including any ray-picked entities, give a haptic pulse if the grab-point has hit something grabbable
+        if (grabbableEntities.length > 0) {
+            if (!this.grabPointIntersectsEntity) {
+                Controller.triggerHapticPulse(1, 20, this.hand);
+                this.grabPointIntersectsEntity = true;
+            }
+        } else {
+            this.grabPointIntersectsEntity = false;
+        }
+
         if (rayPickInfo.entityID) {
             this.intersectionDistance = rayPickInfo.distance;
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
@@ -1683,6 +1706,15 @@ function MyController(hand) {
 
         if (!this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
+
+            // if we distance hold something and keep it very still before releasing it, it ends up
+            // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+            var velocity = Entities.getEntityProperties(this.grabbedEntity, ["velocity"]).velocity;
+            if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+                velocity = { x: 0.0, y: 0.2, z:0.0 };
+                Entities.editEntity(this.grabbedEntity, { velocity: velocity });
+            }
+
             this.setState(STATE_OFF, "trigger released");
             return;
         }
