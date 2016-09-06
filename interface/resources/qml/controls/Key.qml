@@ -10,11 +10,16 @@ Item {
 
     MouseArea {
         id: mouseArea1
+        width: 36
         anchors.fill: parent
         hoverEnabled: true
 
         onCanceled: {
-            keyItem.state = ""
+            if (toggled) {
+                keyItem.state = "mouseDepressed"
+            } else {
+                keyItem.state = ""
+            }
         }
 
         onClicked: {
@@ -62,8 +67,10 @@ Item {
 
     Rectangle {
         id: roundedRect
-        color: "#e2e2e2"
-        radius: 10
+        width: 30
+        color: "#121212"
+        radius: 2
+        border.color: "#00000000"
         anchors.right: parent.right
         anchors.rightMargin: 4
         anchors.left: parent.left
@@ -76,8 +83,12 @@ Item {
 
     Text {
         id: letter
+        y: 6
         width: 50
+        color: "#ffffff"
         text: glyph
+        style: Text.Normal
+        font.family: "Tahoma"
         anchors.right: parent.right
         anchors.rightMargin: 0
         anchors.left: parent.left
@@ -85,9 +96,9 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
         anchors.top: parent.top
-        anchors.topMargin: 4
+        anchors.topMargin: 8
         horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 32
+        font.pixelSize: 28
     }
 
     states: [
@@ -96,27 +107,47 @@ Item {
 
             PropertyChanges {
                 target: roundedRect
-                color: "#ffff29"
+                color: "#121212"
+                radius: 3
+                border.width: 2
+                border.color: "#00b4ef"
+            }
+
+            PropertyChanges {
+                target: letter
+                color: "#00b4ef"
+                style: Text.Normal
             }
         },
         State {
             name: "mouseClicked"
             PropertyChanges {
                 target: roundedRect
-                color: "#e95a52"
-            }
-        },
-        State {
-            name: "mouseDepressed"
-
-            PropertyChanges {
-                target: roundedRect
-                color: "#393939"
+                color: "#1080b8"
+                border.width: 2
+                border.color: "#00b4ef"
             }
 
             PropertyChanges {
                 target: letter
-                color: "#fbfbfb"
+                color: "#121212"
+                styleColor: "#00000000"
+                style: Text.Normal
+            }
+        },
+        State {
+            name: "mouseDepressed"
+            PropertyChanges {
+                target: roundedRect
+                color: "#0578b1"
+                border.width: 0
+            }
+
+            PropertyChanges {
+                target: letter
+                color: "#121212"
+                styleColor: "#00000000"
+                style: Text.Normal
             }
         }
     ]
