@@ -106,7 +106,7 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
         if (lightId != INVALID_INDEX) {
 
             // Allocate the matching Desc to the light
-            if (lightId >= _descs.size()) {
+            if (lightId >= (Index) _descs.size()) {
                 _descs.emplace_back(Desc());
             } else {
                 _descs.emplace(_descs.begin() + lightId, Desc());
@@ -131,7 +131,7 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
     assert(checkLightId(lightId));
     auto lightSize = sizeof(model::Light::Schema);
 
-    if (lightId > _lightArrayBuffer->getTypedSize<model::Light::Schema>()) {
+    if (lightId > (Index) _lightArrayBuffer->getNumTypedElements<model::Light::Schema>()) {
         _lightArrayBuffer->resize(lightSize * (lightId + 10));
     }
 

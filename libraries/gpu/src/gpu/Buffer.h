@@ -60,7 +60,7 @@ public:
     // The size in bytes of data stored in the buffer
     Size getSize() const override;
     template <typename T>
-    Size getTypedSize() const { return getSize() / sizeof(T); };
+    Size getNumTypedElements() const { return getSize() / sizeof(T); };
 
     const Byte* getData() const { return getSysmem().readData(); }
     
