@@ -35,6 +35,7 @@ function loaded() {
       elToggleLocked = document.getElementById("locked");
       elToggleVisible = document.getElementById("visible");
       elDelete = document.getElementById("delete");
+      elFilter = document.getElementById("filter");
       elTeleport = document.getElementById("teleport");
       elRadius = document.getElementById("radius");
       elFooter = document.getElementById("footer-text");
@@ -203,7 +204,7 @@ function loaded() {
       function refreshEntityListObject() {
           refreshEntityListTimer = null;
           entityList.sort(currentSortColumn, { order: currentSortOrder });
-          entityList.search(document.getElementById("filter").value);
+          entityList.search(elFilter.value);
       }
       
       function updateSelectedEntities(selectedEntities) {
@@ -339,6 +340,7 @@ function loaded() {
       };
 
       window.onresize = resize;
+      elFilter.onchange = resize;
       resize();
   });
 
