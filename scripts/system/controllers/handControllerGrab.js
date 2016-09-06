@@ -118,7 +118,9 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: 0.04 };
+// var GRAB_POINT_SPHERE_OFFSET = { x: 0, y: 0.2, z: 0 };
+// var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: 0.04 };
+var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.32, z: 0.04 };
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
