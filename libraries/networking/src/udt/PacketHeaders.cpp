@@ -47,12 +47,12 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_WEB_ENTITIES_SUPPORT_DPI;
+            return VERSION_ENTITIES_ARROW_ACTION;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SensorToWorldMat);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerJoints);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
