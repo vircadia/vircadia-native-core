@@ -27,10 +27,14 @@ Skybox::Skybox() {
 
 void Skybox::setColor(const Color& color) {
     _schemaBuffer.edit<Schema>().color = color;
+    _empty = false;
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     _cubemap = cubemap;
+    if (cubemap) {
+        _empty = false;
+    }
 }
 
 void Skybox::updateSchemaBuffer() const {
@@ -51,7 +55,8 @@ void Skybox::updateSchemaBuffer() const {
 
 void Skybox::clear() {
     _schemaBuffer.edit<Schema>().color = vec3(0);
-    setCubemap(nullptr);
+    _cubemap = nullptr;
+    _empty = true;
 }
 
 void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {

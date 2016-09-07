@@ -3,5 +3,8 @@ setup_hifi_library()
 link_hifi_libraries(shared gl gpu)
 GroupSources("src")
 
-target_glew()
 target_opengl()
+
+if (NOT ANDROID)
+  target_glew()
+endif ()

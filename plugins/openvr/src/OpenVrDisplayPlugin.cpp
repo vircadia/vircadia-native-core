@@ -12,8 +12,11 @@
 
 #include <GLMHelpers.h>
 
+#include <gl/Context.h>
+
 #include <gpu/Frame.h>
 #include <gpu/gl/GLBackend.h>
+
 
 #include <ViewFrustum.h>
 #include <PathUtils.h>
@@ -56,7 +59,7 @@ public:
     using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
     friend class OpenVrDisplayPlugin;
-    std::shared_ptr<OffscreenGLCanvas> _canvas;
+    std::shared_ptr<gl::OffscreenContext> _canvas;
     BasicFramebufferWrapperPtr _framebuffer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
@@ -129,7 +132,6 @@ public:
 
     void run() override {
         QThread::currentThread()->setPriority(QThread::Priority::TimeCriticalPriority);
-        assert(_canvas->thread() == QThread::currentThread());
         _canvas->makeCurrent();
         glDisable(GL_DEPTH_TEST);
         glViewport(0, 0, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
@@ -172,6 +174,7 @@ public:
                 vr::Texture_t texture{ (void*)oglplus::GetName(_framebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
+                _plugin._presentRate.increment();
                 PoseData nextRender, nextSim;
                 nextRender.frameIndex = _plugin.presentCount();
                 vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
@@ -190,7 +193,6 @@ public:
 
                 nextRender.update(sensorResetMat);
                 nextSim.update(sensorResetMat);
-
                 _plugin.withNonPresentThreadLock([&] {
                     _nextRender = nextRender;
                     _nextSim = nextSim;
@@ -206,7 +208,6 @@ public:
         _program.reset();
         _framebuffer.reset();
         _canvas->doneCurrent();
-        _canvas->moveToThreadWithContext(qApp->thread());
     }
 
     void update(const CompositeInfo& newCompositeInfo) {
@@ -309,14 +310,11 @@ bool OpenVrDisplayPlugin::internalActivate() {
     _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
     if (!_submitCanvas) {
         withMainThreadContext([&] {
-            _submitCanvas = std::make_shared<OffscreenGLCanvas>();
-            _submitCanvas->setObjectName("OpenVRSubmitContext");
-            _submitCanvas->create(_container->getPrimaryContext());
+            _submitCanvas = std::make_shared<gl::OffscreenContext>();
+            _submitCanvas->create();
             _submitCanvas->doneCurrent();
         });
     }
-    _submitCanvas->moveToThreadWithContext(_submitThread.get());
-    assert(_submitCanvas->thread() == _submitThread.get());
 #endif
 
     return Parent::internalActivate();
@@ -354,7 +352,6 @@ void OpenVrDisplayPlugin::customizeContext() {
         }
         _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
     }
-    assert(_submitCanvas->thread() == _submitThread.get());
     _submitThread->_canvas = _submitCanvas;
     _submitThread->start(QThread::HighPriority);
 #endif
@@ -367,7 +364,6 @@ void OpenVrDisplayPlugin::uncustomizeContext() {
     _submitThread->_quit = true;
     _submitThread->wait();
     _submitThread.reset();
-    assert(_submitCanvas->thread() == qApp->thread());
 #endif
 }
 

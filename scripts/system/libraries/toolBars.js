@@ -130,8 +130,6 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
             if (update) {
                 if (selectable) {
                     this.toggle();
-                } else if (properties.showButtonDown) {
-                    this.buttonDown(true);
                 }
             }
             return true;

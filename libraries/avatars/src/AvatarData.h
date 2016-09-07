@@ -173,6 +173,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
     Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
+    Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
+    Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
 public:
 
@@ -356,6 +358,8 @@ public:
 
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+    Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
+    Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
 public slots:
     void sendAvatarDataPacket();
@@ -368,6 +372,8 @@ public slots:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+
+    float getTargetScale() { return _targetScale; }
 
 protected:
     glm::vec3 _handPosition;
@@ -433,6 +439,10 @@ protected:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _controllerLeftHandMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
+
+    int getFauxJointIndex(const QString& name) const;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -518,6 +528,11 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+// faux joint indexes (-1 means invalid)
+const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2
+const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
+const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
 
 
 #endif // hifi_AvatarData_h

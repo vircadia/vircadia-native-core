@@ -52,7 +52,7 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property int options; // <-- FIXME unused
 
-    property string iconText: text !== "" ? hifi.glyphs.scriptUpload : ""
+    property string iconText: root.title !== "" ? hifi.glyphs.scriptUpload : ""
     property int iconSize: 40
 
     property bool selectDirectory: false;

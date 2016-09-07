@@ -30,14 +30,17 @@ namespace gpu {
         Query(const Handler& returnHandler);
         ~Query();
 
-        double getElapsedTime() const;
+        double getGPUElapsedTime() const;
+        double getBatchElapsedTime() const;
 
+        // Only for gpu::Context
         const GPUObjectPointer gpuObject {};
-        void triggerReturnHandler(uint64_t queryResult);
+        void triggerReturnHandler(uint64_t queryResult, uint64_t batchElapsedTime);
     protected:
         Handler _returnHandler;
 
-        uint64_t _queryResult = 0;
+        uint64_t _queryResult { 0 };
+        uint64_t _usecBatchElapsedTime { 0 };
     };
     
     typedef std::shared_ptr<Query> QueryPointer;
@@ -53,7 +56,8 @@ namespace gpu {
         void begin(gpu::Batch& batch);
         void end(gpu::Batch& batch);
         
-        double getAverage() const;
+        double getGPUAverage() const;
+        double getBatchAverage() const;
 
     protected:
         
@@ -62,7 +66,8 @@ namespace gpu {
         gpu::Queries _timerQueries;
         int _headIndex = -1;
         int _tailIndex = -1;
-        MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverage;
+        MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverageGPU;
+        MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverageBatch;
         
         int rangeIndex(int index) const { return (index % QUERY_QUEUE_SIZE); }
     };

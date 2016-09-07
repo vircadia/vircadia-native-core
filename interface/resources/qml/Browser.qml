@@ -223,12 +223,12 @@ ScrollingWindow {
                 var newWindow = component.createObject(desktop);
                 request.openIn(newWindow.webView)
             }
-	        Component.onCompleted: {
-		        desktop.initWebviewProfileHandlers(webview.profile)
-	        }
-			
 
-            //profile: desktop.browserProfile
+            Component.onCompleted: {
+                desktop.initWebviewProfileHandlers(webview.profile)
+            }
+
+            profile: desktop.browserProfile
         }
 
     } // item

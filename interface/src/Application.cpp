@@ -133,7 +133,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/ToolbarScriptingInterface.h"
@@ -176,8 +175,6 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
 // 2 logical cores available for time sensitive tasks.
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
-static const int PROCESSING_THREAD_POOL_SIZE = std::max(MIN_PROCESSING_THREAD_POOL_SIZE,
-                                                        QThread::idealThreadCount() - 2);
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -537,7 +534,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    QThreadPool::globalInstance()->setMaxThreadCount(PROCESSING_THREAD_POOL_SIZE);
+    QThreadPool::globalInstance()->setMaxThreadCount(MIN_PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
@@ -707,6 +704,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
+    connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
+
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
@@ -778,8 +777,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+    // Make sure the window is set to the correct size by processing the pending events
+    QCoreApplication::processEvents();
+    _glWidget->createContext();
     _glWidget->makeCurrent();
-    _glWidget->initializeGL();
 
     initializeGL();
     // Make sure we don't time out during slow operations at startup
@@ -1484,7 +1485,7 @@ void Application::initializeGL() {
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
     _chromiumShareContext->setObjectName("ChromiumShareContext");
-    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->create(_glWidget->qglContext());
     _chromiumShareContext->makeCurrent();
     qt_gl_set_global_share_context(_chromiumShareContext->getContext());
 
@@ -1531,7 +1532,7 @@ void Application::initializeGL() {
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->create(_glWidget->qglContext());
     _offscreenContext->makeCurrent();
 
     // update before the first render
@@ -1553,7 +1554,7 @@ void Application::initializeUi() {
 
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_glWidget->context()->contextHandle());
+    offscreenUi->create(_glWidget->qglContext());
 
     auto rootContext = offscreenUi->getRootContext();
 
@@ -1683,7 +1684,6 @@ void Application::paintGL() {
     Finally clearFlag([this] { _inPaint = false; });
 
     _frameCount++;
-    _frameCounter.increment();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
@@ -1920,6 +1920,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+        _frameCounter.increment();
         displayPlugin->submitFrame(frame);
     }
 
@@ -4316,18 +4317,14 @@ namespace render {
 
         switch (backgroundMode) {
             case model::SunSkyStage::SKY_DEFAULT: {
-                static const glm::vec3 DEFAULT_SKYBOX_COLOR{ 255.0f / 255.0f, 220.0f / 255.0f, 194.0f / 255.0f };
-                static const float DEFAULT_SKYBOX_INTENSITY{ 0.2f };
-                static const float DEFAULT_SKYBOX_AMBIENT_INTENSITY{ 2.0f };
-                static const glm::vec3 DEFAULT_SKYBOX_DIRECTION{ 0.0f, 0.0f, -1.0f };
-
                 auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                 auto sceneKeyLight = scene->getKeyLight();
+
                 scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(DEFAULT_SKYBOX_COLOR);
-                sceneKeyLight->setIntensity(DEFAULT_SKYBOX_INTENSITY);
-                sceneKeyLight->setAmbientIntensity(DEFAULT_SKYBOX_AMBIENT_INTENSITY);
-                sceneKeyLight->setDirection(DEFAULT_SKYBOX_DIRECTION);
+                sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
+                sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
+                sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
+                sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
                 // fall through: render a skybox (if available), or the defaults (if requested)
            }
 
@@ -4346,8 +4343,7 @@ namespace render {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    // set the ambient sphere uniformly - the defaultSkyboxAmbientTexture has peaks that cause flashing when turning
-                    sceneKeyLight->setAmbientSphere(DependencyManager::get<TextureCache>()->getWhiteTexture()->getIrradiance());
+                    sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
                     sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
                     // fall through: render defaults skybox
                 } else {
@@ -4861,7 +4857,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
@@ -5037,6 +5032,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
@@ -5675,7 +5671,7 @@ MainWindow* Application::getPrimaryWindow() {
 }
 
 QOpenGLContext* Application::getPrimaryContext() {
-    return _glWidget->context()->contextHandle();
+    return _glWidget->qglContext();
 }
 
 bool Application::makeRenderingContextCurrent() {
@@ -5729,4 +5725,19 @@ void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
 void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
     EntityItemID entityItemID(id);
     emit getEntities()->hoverLeaveEntity(entityItemID, event);
+}
+
+// FIXME?  perhaps two, one for the main thread and one for the offscreen UI rendering thread?
+static const int UI_RESERVED_THREADS = 1;
+// Windows won't let you have all the cores
+static const int OS_RESERVED_THREADS = 1;
+
+void Application::updateThreadPoolCount() const {
+    auto reservedThreads = UI_RESERVED_THREADS + OS_RESERVED_THREADS + _displayPlugin->getRequiredThreadCount();
+    auto availableThreads = QThread::idealThreadCount() - reservedThreads;
+    auto threadPoolSize = std::max(MIN_PROCESSING_THREAD_POOL_SIZE, availableThreads);
+    qDebug() << "Ideal Thread Count " << QThread::idealThreadCount();
+    qDebug() << "Reserved threads " << reservedThreads;
+    qDebug() << "Setting thread pool size to " << threadPoolSize;
+    QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }

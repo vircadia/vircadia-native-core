@@ -20,7 +20,7 @@
 const int STARVE_HISTORY_CAPACITY = 50;
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings) :
-    _ringBuffer(numFrameSamples, false, numFramesCapacity),
+    _ringBuffer(numFrameSamples, numFramesCapacity),
     _lastPopSucceeded(false),
     _lastPopOutput(),
     _dynamicJitterBuffers(settings._dynamicJitterBuffers),

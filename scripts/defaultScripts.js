@@ -37,49 +37,92 @@ var DEFAULT_SCRIPTS = [
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
-var debuggingDefaultScripts = false;
+
+var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
+var previousSetting = Settings.getValue(SETTINGS_KEY);
+
+if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
+    previousSetting = false;
+}
+
+if (previousSetting === true || previousSetting === 'true') {
+    previousSetting = true;
+}
+
+
+
 
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
     Menu.addMenuItem({
         menuName: MENU_CATEGORY,
         menuItemName: MENU_ITEM,
         isCheckable: true,
-        isChecked: false,
+        isChecked: previousSetting,
         grouping: "Advanced"
     });
 }
 
-// start all scripts
-if (Menu.isOptionChecked(MENU_ITEM)) {
-    // we're debugging individual default scripts
-    // so we load each into its own ScriptEngine instance
-    debuggingDefaultScripts = true;
-    for (var i in DEFAULT_SCRIPTS) {
-        Script.load(DEFAULT_SCRIPTS[i]);
-    }
-} else {
-    // include all default scripts into this ScriptEngine
+function runDefaultsTogether() {
     for (var j in DEFAULT_SCRIPTS) {
         Script.include(DEFAULT_SCRIPTS[j]);
     }
 }
 
-function stopLoadedScripts() {
-    if (debuggingDefaultScripts) {
-        // remove debug script loads
-        var runningScripts = ScriptDiscoveryService.getRunning();
-        for (var i in runningScripts) {
-            var scriptName = runningScripts[i].name;
-            for (var j in DEFAULT_SCRIPTS) {
-                if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
-                    ScriptDiscoveryService.stopScript(runningScripts[i].url);
-                }
-            }
+function runDefaultsSeparately() {
+    for (var i in DEFAULT_SCRIPTS) {
+        Script.load(DEFAULT_SCRIPTS[i]);
+    }
+}
+// start all scripts
+if (Menu.isOptionChecked(MENU_ITEM)) {
+    // we're debugging individual default scripts
+    // so we load each into its own ScriptEngine instance
+    debuggingDefaultScripts = true;
+    runDefaultsSeparately();
+} else {
+    // include all default scripts into this ScriptEngine
+    runDefaultsTogether();
+}
+
+function menuItemEvent(menuItem) {
+    if (menuItem == MENU_ITEM) {
+
+        isChecked = Menu.isOptionChecked(MENU_ITEM);
+        if (isChecked === true) {
+            Settings.setValue(SETTINGS_KEY, true);
+        } else if (isChecked === false) {
+            Settings.setValue(SETTINGS_KEY, false);
         }
-        if (!Menu.isOptionChecked(MENU_ITEM)) {
-            Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
+         Window.alert('You must reload all scripts for this to take effect.')
+    }
+
+
+}
+
+
+
+function stopLoadedScripts() {
+        // remove debug script loads
+    var runningScripts = ScriptDiscoveryService.getRunning();
+    for (var i in runningScripts) {
+        var scriptName = runningScripts[i].name;
+        for (var j in DEFAULT_SCRIPTS) {
+            if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
+                ScriptDiscoveryService.stopScript(runningScripts[i].url);
+            }
         }
     }
 }
 
-Script.scriptEnding.connect(stopLoadedScripts);
+function removeMenuItem() {
+    if (!Menu.isOptionChecked(MENU_ITEM)) {
+        Menu.removeMenuItem(MENU_CATEGORY, MENU_ITEM);
+    }
+}
+
+Script.scriptEnding.connect(function() {
+    stopLoadedScripts();
+    removeMenuItem();
+});
+
+Menu.menuItemEvent.connect(menuItemEvent);

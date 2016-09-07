@@ -29,7 +29,9 @@ void ConnectionMonitor::init() {
 
     _timer.setSingleShot(true);
     _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
-    _timer.start();
+    if (!domainHandler.isConnected()) {
+        _timer.start();
+    }
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::showAddressBar);

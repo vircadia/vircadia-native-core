@@ -532,11 +532,21 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
+void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
+    assert(QThread::currentThread() == thread());
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
+    Transform transform;
+    transform.setTranslation(controllerPose.getTranslation());
+    transform.setRotation(controllerPose.getRotation());
+    glm::mat4 controllerMatrix = transform.getMatrix();
+    matrixCache.set(controllerMatrix);
+}
+
 // best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
-
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -545,10 +555,14 @@ void MyAvatar::updateSensorToWorldMatrix() {
     lateUpdatePalms();
 
     if (_enableDebugDrawSensorToWorldMatrix) {
-        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix), extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
+        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix),
+                                           extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
+
+    updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
+    updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
 }
 
 //  Update avatar head rotation with sensor data
@@ -2214,4 +2228,32 @@ bool MyAvatar::didTeleport() {
 
 bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+}
+
+glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    switch(index) {
+        case CONTROLLER_LEFTHAND_INDEX: {
+            return getLeftHandControllerPoseInAvatarFrame().getRotation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            return getRightHandControllerPoseInAvatarFrame().getRotation();
+        }
+        default: {
+            return Avatar::getAbsoluteJointRotationInObjectFrame(index);
+        }
+    }
+}
+
+glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    switch(index) {
+        case CONTROLLER_LEFTHAND_INDEX: {
+            return getLeftHandControllerPoseInAvatarFrame().getTranslation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            return getRightHandControllerPoseInAvatarFrame().getTranslation();
+        }
+        default: {
+            return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
+        }
+    }
 }

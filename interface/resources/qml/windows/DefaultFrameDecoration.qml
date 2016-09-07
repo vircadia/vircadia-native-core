@@ -109,7 +109,7 @@ Decoration {
         verticalOffset: 2
         samples: 2
         color: hifi.colors.baseGrayShadow60
-        visible: (window && window.focus)
+        visible: (desktop.gradientsSupported && window && window.focus)
         cached: true
     }
 }

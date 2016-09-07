@@ -32,25 +32,25 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
     if (isEmpty()) {
         return PacketPointer();
     }
-    
+
     // Find next non empty channel
     if (_channels[nextIndex()].empty()) {
         nextIndex();
     }
     auto& channel = _channels[_currentIndex];
     Q_ASSERT(!channel.empty());
-    
+
     // Take front packet
     auto packet = std::move(channel.front());
     channel.pop_front();
-    
+
     // Remove now empty channel (Don't remove the main channel)
     if (channel.empty() && _currentIndex != 0) {
         channel.swap(_channels.back());
         _channels.pop_back();
         --_currentIndex;
     }
-    
+
     return packet;
 }
 
@@ -68,7 +68,7 @@ void PacketQueue::queuePacketList(PacketListPointer packetList) {
     if (packetList->isOrdered()) {
         packetList->preparePackets(getNextMessageNumber());
     }
-    
+
     LockGuard locker(_packetsLock);
     _channels.push_back(std::move(packetList->_packets));
 }

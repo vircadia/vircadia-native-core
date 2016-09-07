@@ -62,6 +62,11 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
+                        text: "Frame Rate: " + root.framerate.toFixed(2);
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
                         text: "Render Rate: " + root.renderrate.toFixed(2);
                     }
                     Text {

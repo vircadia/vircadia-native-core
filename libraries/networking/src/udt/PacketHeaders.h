@@ -187,13 +187,15 @@ const PacketVersion VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS = 60;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
+const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
     AvatarEntities,
     AbsoluteSixByteRotations,
-    SensorToWorldMat
+    SensorToWorldMat,
+    HandControllerJoints
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

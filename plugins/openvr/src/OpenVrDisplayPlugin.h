@@ -18,6 +18,9 @@ const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device p
 #define OPENVR_THREADED_SUBMIT 1
 
 #if OPENVR_THREADED_SUBMIT
+namespace gl {
+    class OffscreenContext;
+}
 class OpenVrSubmitThread;
 class OffscreenGLCanvas;
 static const size_t COMPOSITING_BUFFER_SIZE = 3;
@@ -55,6 +58,9 @@ public:
     void unsuppressKeyboard() override;
     bool isKeyboardVisible() override;
 
+    // Needs an additional thread for VR submission
+    int getRequiredThreadCount() const override { return Parent::getRequiredThreadCount() + 1; }
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -79,7 +85,7 @@ private:
     CompositeInfo::Array _compositeInfos;
     size_t _renderingIndex { 0 };
     std::shared_ptr<OpenVrSubmitThread> _submitThread;
-    std::shared_ptr<OffscreenGLCanvas> _submitCanvas;
+    std::shared_ptr<gl::OffscreenContext> _submitCanvas;
     friend class OpenVrSubmitThread;
 #endif
 };

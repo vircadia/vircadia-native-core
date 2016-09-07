@@ -245,7 +245,7 @@ void EndGPURangeTimer::run(const render::SceneContextPointer& sceneContext, cons
     });
     
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = timer->getAverage();
+    config->setGPUBatchRunTime(timer->getGPUAverage(), timer->getBatchAverage());
 }
 
 
