@@ -174,6 +174,7 @@ public:
                 vr::Texture_t texture{ (void*)oglplus::GetName(_framebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
+                _plugin._presentRate.increment();
                 PoseData nextRender, nextSim;
                 nextRender.frameIndex = _plugin.presentCount();
                 vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
@@ -192,7 +193,6 @@ public:
 
                 nextRender.update(sensorResetMat);
                 nextSim.update(sensorResetMat);
-
                 _plugin.withNonPresentThreadLock([&] {
                     _nextRender = nextRender;
                     _nextSim = nextSim;

@@ -139,6 +139,7 @@ void OculusDisplayPlugin::hmdPresent() {
             logWarning("Failed to present");
         }
     }
+    _presentRate.increment();
 }
 
 bool OculusDisplayPlugin::isHmdMounted() const {

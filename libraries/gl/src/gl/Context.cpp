@@ -205,8 +205,10 @@ void Context::create() {
         formatAttribs.push_back(24);
         formatAttribs.push_back(WGL_STENCIL_BITS_ARB);
         formatAttribs.push_back(8);
-        formatAttribs.push_back(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
-        formatAttribs.push_back(GL_TRUE);
+#ifdef NATIVE_SRGB_FRAMEBUFFER
+     //   formatAttribs.push_back(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
+     //   formatAttribs.push_back(GL_TRUE);
+#endif
         // terminate the list
         formatAttribs.push_back(0);
         UINT numFormats;

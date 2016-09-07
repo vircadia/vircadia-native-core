@@ -18,6 +18,7 @@
 #include <QtGui/QVector3D>
 #include <QtGui/QQuaternion>
 #include <glm/gtc/quaternion.hpp>
+#include <QAbstractSocket>
 
 #include "RegisteredMetaTypes.h"
 
@@ -32,6 +33,7 @@ int xColorMetaTypeId = qRegisterMetaType<xColor>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
 int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
+int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);

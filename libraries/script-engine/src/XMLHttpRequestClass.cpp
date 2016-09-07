@@ -45,6 +45,7 @@ XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
     _timer(this),
     _numRedirects(0) {
 
+    _request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     _timer.setSingleShot(true);
 }
 

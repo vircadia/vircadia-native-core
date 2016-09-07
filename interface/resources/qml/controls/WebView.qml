@@ -41,7 +41,7 @@ Item {
 
         property string newUrl: ""
 
-        profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
+        profile: desktop.browserProfile
 
         webChannel.registeredObjects: [eventBridgeWrapper]
 
@@ -102,10 +102,6 @@ Item {
                 request.openIn(newWindow.webView);
             }
         }
-
-        // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
-        // See https://bugreports.qt.io/browse/QTBUG-49521
-        //profile: desktop.browserProfile
     }
 
     // virtual keyboard, letters

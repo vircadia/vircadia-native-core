@@ -128,6 +128,7 @@ public:
         Present = QEvent::User + 1
     };
 
+    virtual int getRequiredThreadCount() const { return 0; }
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
     /// By default, all HMDs are stereo
@@ -178,6 +179,8 @@ public:
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
 
     virtual float devicePixelRatio() { return 1.0f; }
+    // Rate at which we render frames
+    virtual float renderRate() const { return -1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
     // Rate at which new frames are being presented to the display device

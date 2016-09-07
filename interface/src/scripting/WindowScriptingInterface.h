@@ -16,9 +16,6 @@
 #include <QtCore/QString>
 #include <QtScript/QScriptValue>
 
-class WebWindowClass;
-
-
 class CustomPromptResult {
 public:
     QVariant value;
@@ -64,9 +61,6 @@ signals:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
     void snapshotTaken(const QString& path, bool notify);
     void snapshotShared(const QString& error);
-
-private slots:
-    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
 
 private:
     QString getPreviousBrowseLocation() const;
