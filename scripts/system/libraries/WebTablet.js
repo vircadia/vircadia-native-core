@@ -11,7 +11,7 @@
 var RAD_TO_DEG = 180 / Math.PI;
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 30;
+var DEFAULT_DPI = 32;
 var DEFAULT_WIDTH = 0.5;
 
 var TABLET_URL = "https://s3.amazonaws.com/hifi-public/tony/tablet.fbx";
