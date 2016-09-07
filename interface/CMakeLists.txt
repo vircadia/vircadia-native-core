@@ -159,6 +159,7 @@ if (WIN32)
   add_dependency_external_projects(sdl2)
   add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
+  add_dependency_external_projects(wasapi)
 endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
