@@ -81,18 +81,20 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
 
-    _webEntityAPIHelper.setPtr(this);
-    _webEntityAPIHelper.moveToThread(qApp->thread());
+    _webEntityAPIHelper = new WebEntityAPIHelper;
+    _webEntityAPIHelper->setPtr(this);
+    _webEntityAPIHelper->moveToThread(qApp->thread());
 
     // forward web events to EntityScriptingInterface
     auto entities = DependencyManager::get<EntityScriptingInterface>();
-    QObject::connect(&_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
+    QObject::connect(_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
         emit entities->webEventReceived(entityItemID, message);
     });
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
-    _webEntityAPIHelper.setPtr(nullptr);
+    _webEntityAPIHelper->setPtr(nullptr);
+    _webEntityAPIHelper->deleteLater();
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
 }
@@ -113,10 +115,10 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml");
     _webSurface->resume();
-    _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(&_webEntityAPIHelper));
+    _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-    _webSurface->getRootContext()->setContextProperty("webEntity", &_webEntityAPIHelper);
+    _webSurface->getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
@@ -402,7 +404,7 @@ void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
 }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
-    _webEntityAPIHelper.emitScriptEvent(message);
+    _webEntityAPIHelper->emitScriptEvent(message);
 }
 
 void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
