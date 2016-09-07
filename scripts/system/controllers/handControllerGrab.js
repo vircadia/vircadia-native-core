@@ -11,12 +11,13 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4 */
+/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation */
 
 (function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/Xform.js");
+Script.include("/~/system/libraries/controllers.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -110,17 +111,12 @@ var NEAR_GRAB_RADIUS = 0.04; // radius used for palm vs object for near grabbing
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
-
-var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
 // if an equipped item is "adjusted" to be too far from the hand it's in, it will be unequipped.
 var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
-// var GRAB_POINT_SPHERE_OFFSET = { x: 0, y: 0.2, z: 0 };
-// var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: 0.04 };
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.32, z: 0.04 };
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
@@ -742,30 +738,8 @@ function MyController(hand) {
         }
     };
 
-    this.getGrabPointSphereOffset = function() {
-        if (hand === RIGHT_HAND) {
-            return GRAB_POINT_SPHERE_OFFSET;
-        }
-        return {
-            x: GRAB_POINT_SPHERE_OFFSET.x * -1,
-            y: GRAB_POINT_SPHERE_OFFSET.y,
-            z: GRAB_POINT_SPHERE_OFFSET.z
-        };
-    };
-
-    // controllerLocation is where the controller would be, in-world.
-    this.getControllerLocation = function (doOffset) {
-        var standardControllerValue = (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-        var pose = Controller.getPoseValue(standardControllerValue);
-
-        var orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
-        var position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
-        // add to the real position so the grab-point is out in front of the hand, a bit
-        if (doOffset) {
-            position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, this.getGrabPointSphereOffset()));
-        }
-
-        return {position: position, orientation: orientation};
+    this.handToController = function() {
+        return (hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
     };
 
     this.actionID = null; // action this script created...
@@ -881,7 +855,7 @@ function MyController(hand) {
         }
         if (!this.grabPointSphere) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
-                localPosition: this.getGrabPointSphereOffset(),
+                localPosition: getGrabPointSphereOffset(this.handToController()),
                 localRotation: { x: 0, y: 0, z: 0, w: 1 },
                 dimensions: GRAB_POINT_SPHERE_RADIUS,
                 color: GRAB_POINT_SPHERE_COLOR,
@@ -1109,7 +1083,7 @@ function MyController(hand) {
         }
         if (!this.waitForTriggerRelease && this.triggerSmoothedSqueezed()) {
             this.lastPickTime = 0;
-            this.startingHandRotation = this.getControllerLocation(true).orientation;
+            this.startingHandRotation = getControllerWorldLocation(this.handToController(), true).orientation;
             if (this.triggerSmoothedSqueezed()) {
                 this.setState(STATE_SEARCHING, "trigger squeeze detected");
                 return;
@@ -1118,7 +1092,7 @@ function MyController(hand) {
 
         this.grabPointSphereOn();
 
-        var controllerLocation = this.getControllerLocation(true);
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
 
         var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -1176,7 +1150,7 @@ function MyController(hand) {
     // @returns {object} returns object with two keys entityID and distance
     //
     this.calcRayPickInfo = function(hand) {
-        var controllerLocation = this.getControllerLocation(true);
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
         var worldHandRotation = controllerLocation.orientation;
 
@@ -1199,9 +1173,6 @@ function MyController(hand) {
             return result;
         }
         this.lastPickTime = now;
-
-        var directionNormalized = Vec3.normalize(pickRay.direction);
-        var directionBacked = Vec3.multiply(directionNormalized, PICK_BACKOFF_DISTANCE);
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
@@ -1420,7 +1391,8 @@ function MyController(hand) {
             return _this.collectEquipHotspots(entityID);
         })).filter(function(hotspot) {
             return (_this.hotspotIsEquippable(hotspot) &&
-                Vec3.distance(hotspot.worldPosition, _this.getControllerLocation(true).position) < hotspot.radius + distance);
+                    Vec3.distance(hotspot.worldPosition, getControllerWorldLocation(_this.handToController(), true).position) <
+                    hotspot.radius + distance);
         });
         return equippableHotspots;
     };
@@ -1431,8 +1403,9 @@ function MyController(hand) {
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var aDistance = Vec3.distance(a.worldPosition, this.getControllerLocation(true).position);
-                var bDistance = Vec3.distance(b.worldPosition, this.getControllerLocation(true).position);
+                var handControllerLocation = getControllerWorldLocation(this.handToController(), true);
+                var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
+                var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
                 return aDistance - bDistance;
             });
             return equippableHotspots[0];
@@ -1467,7 +1440,7 @@ function MyController(hand) {
             return;
         }
 
-        var handPosition = this.getControllerLocation(true).position;
+        var handPosition = getControllerWorldLocation(this.handToController(), true).position;
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
@@ -1652,7 +1625,7 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
-        var worldControllerPosition = this.getControllerLocation(true).position;
+        var worldControllerPosition = getControllerWorldLocation(this.handToController(), true).position;
 
         // transform the position into room space
         var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
@@ -1727,7 +1700,7 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
 
-        var controllerLocation = this.getControllerLocation(true);
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldControllerPosition = controllerLocation.position;
         var worldControllerRotation = controllerLocation.orientation;
 
@@ -1864,7 +1837,7 @@ function MyController(hand) {
     };
 
     this.dropGestureProcess = function(deltaTime) {
-        var worldHandRotation = this.getControllerLocation(true).orientation;
+        var worldHandRotation = getControllerWorldLocation(this.handToController(), true).orientation;
         var localHandUpAxis = this.hand === RIGHT_HAND ? {
             x: 1,
             y: 0,
@@ -1942,7 +1915,7 @@ function MyController(hand) {
         var handRotation;
         var handPosition;
         if (this.ignoreIK) {
-            var controllerLocation = this.getControllerLocation(false);
+            var controllerLocation = getControllerWorldLocation(this.handToController(), false);
             handRotation = controllerLocation.orientation;
             handPosition = controllerLocation.position;
         } else {
@@ -2122,7 +2095,7 @@ function MyController(hand) {
             if (props.parentID == MyAvatar.sessionUUID) {
                 var handPosition;
                 if (this.ignoreIK) {
-                    handPosition = this.getControllerLocation(false).position;
+                    handPosition = getControllerWorldLocation(this.handToController(), false).position;
                 } else {
                     handPosition = this.getHandPosition();
                 }
@@ -2238,8 +2211,8 @@ function MyController(hand) {
         }
 
         var pickRay = {
-            origin: this.getControllerLocation().position,
-            direction: Quat.getUp(this.getControllerLocation().orientation)
+            origin: getControllerWorldLocation(this.handToController(), false).position,
+            direction: Quat.getUp(getControllerWorldLocation(this.handToController(), false).orientation)
         };
 
         var now = Date.now();
@@ -2268,7 +2241,8 @@ function MyController(hand) {
 
     this.entityTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity,
+                                                     getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
             var pointerEvent = {
                 type: "Press",
@@ -2293,7 +2267,8 @@ function MyController(hand) {
 
     this.entityTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity,
+                                                     getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
             var pointerEvent;
             if (this.deadspotExpired) {
@@ -2331,7 +2306,8 @@ function MyController(hand) {
         }
 
         // test for intersection between controller laser and web entity plane.
-        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity, this.getControllerLocation(true));
+        var intersectInfo = handLaserIntersectEntity(this.grabbedEntity,
+                                                     getControllerWorldLocation(this.handToController(), true));
         if (intersectInfo) {
 
             if (Entities.keyboardFocusEntity != this.grabbedEntity) {

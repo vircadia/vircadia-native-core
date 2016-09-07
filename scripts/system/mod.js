@@ -10,6 +10,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* global Toolbars, Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation */
+
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -144,7 +146,7 @@ AvatarList.avatarRemovedEvent.connect(function(avatarID){
 function handleSelectedOverlay(clickedOverlay) {
     // see this is one of our mod overlays
 
-    var modOverlayKeys = Object.keys(modOverlays)
+    var modOverlayKeys = Object.keys(modOverlays);
     for (var i = 0; i < modOverlayKeys.length; ++i) {
         var avatarID = modOverlayKeys[i];
         var modOverlay = modOverlays[avatarID];
@@ -187,13 +189,9 @@ Controller.mousePressEvent.connect(function(event){
 var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 
 function controllerComputePickRay(hand) {
-    var controllerPose = Controller.getPoseValue(hand);
+    var controllerPose = getControllerWorldLocation(hand, true);
     if (controllerPose.valid) {
-        var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
-                                          MyAvatar.position);
-        // This gets point direction right, but if you want general quaternion it would be more complicated:
-        var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
-        return { origin: controllerPosition, direction: controllerDirection };
+        return { origin: controllerPose.position, direction: controllerPose.orientation };
     }
 }
 
