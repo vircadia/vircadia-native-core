@@ -8,7 +8,7 @@ Item {
 
     function resetShiftMode(mode) {
         shiftMode = mode
-        key23.resetToggledMode(mode)
+        shiftKey.resetToggledMode(mode)
     }
 
     function toUpper(str) {
@@ -35,19 +35,41 @@ Item {
         }
     }
 
-    onShiftModeChanged: {
+    function forEachKey(func) {
         var i, j;
         for (i = 0; i < column1.children.length; i++) {
             var row = column1.children[i];
             for (j = 0; j < row.children.length; j++) {
                 var key = row.children[j];
-                if (shiftMode) {
-                    key.glyph = keyboardBase.toUpper(key.glyph);
-                } else {
-                    key.glyph = keyboardBase.toLower(key.glyph);
-                }
+                func(key);
             }
         }
+    }
+
+    onShiftModeChanged: {
+        forEachKey(function (key) {
+            if (shiftMode) {
+                key.glyph = keyboardBase.toUpper(key.glyph);
+            } else {
+                key.glyph = keyboardBase.toLower(key.glyph);
+            }
+        });
+    }
+
+    function alphaKeyClickedHandler(mouseArea) {
+        // reset shift mode to false after first keypress
+        if (shiftMode) {
+            resetShiftMode(false)
+        }
+    }
+
+    Component.onCompleted: {
+        // hook up callbacks to every ascii key
+        forEachKey(function (key) {
+            if (/^[a-z]+$/i.test(key.glyph)) {
+                key.mouseArea.onClicked.connect(alphaKeyClickedHandler);
+            }
+        });
     }
 
     Rectangle {

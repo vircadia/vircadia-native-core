@@ -10,7 +10,7 @@ Item {
     property alias mouseArea: mouseArea1
 
     function resetToggledMode(mode) {
-        toggled: mode
+        toggled = mode
         if (toggled) {
             state = "mouseDepressed"
         } else {
