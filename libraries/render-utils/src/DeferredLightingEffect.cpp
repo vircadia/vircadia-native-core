@@ -86,6 +86,7 @@ void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
 
+    _localLightLocations = std::make_shared<LightLocations>();
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
