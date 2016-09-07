@@ -7,12 +7,22 @@ Item {
     property string glyph: "a"
     property bool toggle: false   // does this button have the toggle behaivor?
     property bool toggled: false  // is this button currently toggled?
+    property alias mouseArea: mouseArea1
 
     MouseArea {
         id: mouseArea1
         width: 36
         anchors.fill: parent
         hoverEnabled: true
+
+        function resetToggledMode(mode) {
+            toggled: mode
+            if (toggled) {
+                keyItem.state = "mouseDepressed"
+            } else {
+                keyItem.state = ""
+            }
+        }
 
         onCanceled: {
             if (toggled) {

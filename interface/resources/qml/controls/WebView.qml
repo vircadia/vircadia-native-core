@@ -6,6 +6,7 @@ Item {
     property alias url: root.url
     property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardRaised: false
+    property bool punctuationMode: false
 
     QtObject {
         id: eventBridgeWrapper
@@ -18,7 +19,7 @@ Item {
         x: 0
         y: 0
         width: parent.width
-        height: keyboardRaised ? parent.height - keyboard.height : parent.height
+        height: keyboardRaised ? parent.height - keyboard1.height : parent.height
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -80,6 +81,8 @@ Item {
 
         onLoadingChanged: {
             keyboardRaised = false;
+            punctuationMode = false;
+            keyboard1.resetShiftMode(false);
 
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
@@ -105,13 +108,27 @@ Item {
         //profile: desktop.browserProfile
     }
 
-    // virtual keyboard
+    // virtual keyboard, letters
     Keyboard {
-        id: keyboard
+        id: keyboard1
         y: keyboardRaised ? parent.height : 0
         height: keyboardRaised ? 200 : 0
-        visible: keyboardRaised
-        enabled: keyboardRaised
+        visible: keyboardRaised && !punctuationMode
+        enabled: keyboardRaised && !punctuationMode
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+    }
+
+    KeyboardPunctuation {
+        id: keyboard2
+        y: keyboardRaised ? parent.height : 0
+        height: keyboardRaised ? 200 : 0
+        visible: keyboardRaised && punctuationMode
+        enabled: keyboardRaised && punctuationMode
         anchors.right: parent.right
         anchors.rightMargin: 0
         anchors.left: parent.left
