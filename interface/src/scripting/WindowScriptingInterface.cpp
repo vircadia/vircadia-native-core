@@ -21,7 +21,6 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "OffscreenUi.h"
-#include "WebWindowClass.h"
 
 #include "WindowScriptingInterface.h"
 
@@ -59,10 +58,6 @@ WindowScriptingInterface::WindowScriptingInterface() {
             OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
         }
     });
-}
-
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
-    return new WebWindowClass(title, url, width, height);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {

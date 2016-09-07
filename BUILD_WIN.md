@@ -27,17 +27,17 @@ We expect nmake.exe to be located at the following path.
 ###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
 
-* [Download the online installer](http://qt-project.org/downloads)
+* [Download the online installer](http://www.qt.io/download-open-source/#section-2)
     * When it asks you to select components, ONLY select one of the following, 32- or 64-bit to match your build preference:
-        * Qt > Qt 5.5.1 > **msvc2013 32-bit**
-        * Qt > Qt 5.5.1 > **msvc2013 64-bit**
+        * Qt > Qt 5.6.1 > **msvc2013 32-bit**
+        * Qt > Qt 5.6.1 > **msvc2013 64-bit**
 
 * Download the offline installer, 32- or 64-bit to match your build preference:
-    * [32-bit](http://download.qt.io/official_releases/qt/5.5/5.5.1/qt-opensource-windows-x86-msvc2013-5.5.1.exe)
-    * [64-bit](http://download.qt.io/official_releases/qt/5.5/5.5.1/qt-opensource-windows-x86-msvc2013_64-5.5.1.exe)
+    * [32-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013-5.6.1-1.exe)
+    * [64-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.5.1\msvc2013\lib\cmake` or `Qt\5.5.1\msvc2013_64\lib\cmake` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.6.1\msvc2013\lib\cmake` or `Qt\5.6.1\msvc2013_64\lib\cmake` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 
 ###External Libraries
