@@ -836,6 +836,7 @@ void AddressManager::ifLocalSandboxRunningElse(std::function<void()> localSandbo
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest sandboxStatus(SANDBOX_STATUS_URL);
+    sandboxStatus.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     sandboxStatus.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(sandboxStatus);
 
