@@ -909,10 +909,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 10%;
 }
 #col-name {
-    width: 20%;
+    width: 19%;
 }
 #col-url {
-    width: 20%;
+    width: 19%;
 }
 #col-locked, #col-visible {
     width: 4%;
@@ -933,7 +933,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 8%;
 }
 #col-hasScript {
-    width: 4%;
+    width: 6%;
 }
 
 .verticesCount, .texturesCount, .texturesSize, .drawCalls {
@@ -1003,9 +1003,16 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #entity-table th #info-toggle {
+    display: inline-block;
     position: absolute;
     left: initial;
-    right: 4px;
+    right: 0;
+    width: 11px;
+    background-color: #1c1c1c;
+}
+#entity-table th #info-toggle span {
+    position: relative;
+    left: 0;
 }
 
 #entity-table td {
