@@ -42,12 +42,12 @@ endif ()
 if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets WebKitWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
 endif ()
 
 find_package(
   Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
+  Gui Multimedia Network OpenGL Qml Quick Script Svg
   ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
@@ -123,7 +123,8 @@ if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
   # make sure the output name for the .app bundle is correct
-  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 elseif (WIN32)
   # configure an rc file for the chosen icon
   set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
@@ -241,15 +242,9 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
-  Qt5::Qml Qt5::Quick Qt5::Script Qt5::ScriptTools Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::WebChannel Qt5::WebEngine 
 )
-
-# Issue causes build failure unless we add this directory.
-# See https://bugreports.qt.io/browse/QTBUG-43351
-if (WIN32)
-  add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
-endif()
 
 if (UNIX)
     target_link_libraries(${TARGET_NAME} pthread)
