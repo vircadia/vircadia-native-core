@@ -9,20 +9,20 @@ Item {
     property bool toggled: false  // is this button currently toggled?
     property alias mouseArea: mouseArea1
 
+    function resetToggledMode(mode) {
+        toggled: mode
+        if (toggled) {
+            state = "mouseDepressed"
+        } else {
+            state = ""
+        }
+    }
+
     MouseArea {
         id: mouseArea1
         width: 36
         anchors.fill: parent
         hoverEnabled: true
-
-        function resetToggledMode(mode) {
-            toggled: mode
-            if (toggled) {
-                keyItem.state = "mouseDepressed"
-            } else {
-                keyItem.state = ""
-            }
-        }
 
         onCanceled: {
             if (toggled) {

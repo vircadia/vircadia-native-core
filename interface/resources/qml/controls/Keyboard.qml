@@ -308,8 +308,8 @@ Item {
 
                 Key {
                     id: key30
-                    width: 44
-                    glyph: "⁂"
+                    width: 89
+                    glyph: "&123"
                     mouseArea.onClicked: {
                         keyboardBase.parent.punctuationMode = true
                     }

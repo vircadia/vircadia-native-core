@@ -355,19 +355,22 @@ bool RenderableWebEntityItem::isTransparent() {
 
 // UTF-8 encoded symbols
 static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
-static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90 }; // backspace
-static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6 }; // left arrow
-static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8 }; // right arrow
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
 static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
 static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
 
 static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
-    for (int i = 0; i < byteArray.size(); i++) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
         if ((char)ptr[i] != byteArray[i]) {
             return false;
         }
     }
-    return true;
+    return ptr[i] == 0x00;
 }
 
 void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
@@ -375,7 +378,8 @@ void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
 
     int scanCode = (int)utf8Key[0];
     QString keyString = key;
-    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM)) {
+    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
         return;  // ignore
     } else if (equals(utf8Key, LEFT_ARROW)) {
         scanCode = Qt::Key_Backspace;
