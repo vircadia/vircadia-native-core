@@ -19,6 +19,7 @@
 #include <Sound.h>
 
 #include <controllers/Pose.h>
+#include <controllers/Actions.h>
 
 #include "Avatar.h"
 #include "AtRestDetector.h"
@@ -116,6 +117,9 @@ public:
     // This can also update the avatar's position to follow the HMD
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    // read the location of a hand controller and save the transform
+    void updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -270,6 +274,9 @@ public:
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
     Q_INVOKABLE bool getCharacterControllerEnabled();
 
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -410,9 +417,8 @@ private:
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
 
-    // working copy of sensorToWorldMatrix.
-    // See AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
-    glm::mat4 _sensorToWorldMatrix;
+    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

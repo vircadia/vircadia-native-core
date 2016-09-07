@@ -527,9 +527,11 @@ void HmdDisplayPlugin::compositeExtra() {
             if (_presentHandPoses[index] == IDENTITY_MATRIX) {
                 return;
             }
-            const auto& points = _presentHandLaserPoints[index];
-            const auto& lasers = _presentHandLasers[index];
-            geometryCache->renderGlowLine(batch, points.first, points.second, lasers.color);
+            const auto& laser = _presentHandLasers[index];
+            if (laser.valid()) {
+                const auto& points = _presentHandLaserPoints[index];
+                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color);
+            }
         });
     });
 }

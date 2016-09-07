@@ -133,7 +133,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/ToolbarScriptingInterface.h"
@@ -176,8 +175,6 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
 // 2 logical cores available for time sensitive tasks.
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
-static const int PROCESSING_THREAD_POOL_SIZE = std::max(MIN_PROCESSING_THREAD_POOL_SIZE,
-                                                        QThread::idealThreadCount() - 2);
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -537,7 +534,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    QThreadPool::globalInstance()->setMaxThreadCount(PROCESSING_THREAD_POOL_SIZE);
+    QThreadPool::globalInstance()->setMaxThreadCount(MIN_PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
@@ -706,6 +703,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+
+    connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
 
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
@@ -4858,7 +4857,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
@@ -5034,6 +5032,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
@@ -5726,4 +5725,19 @@ void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
 void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
     EntityItemID entityItemID(id);
     emit getEntities()->hoverLeaveEntity(entityItemID, event);
+}
+
+// FIXME?  perhaps two, one for the main thread and one for the offscreen UI rendering thread?
+static const int UI_RESERVED_THREADS = 1;
+// Windows won't let you have all the cores
+static const int OS_RESERVED_THREADS = 1;
+
+void Application::updateThreadPoolCount() const {
+    auto reservedThreads = UI_RESERVED_THREADS + OS_RESERVED_THREADS + _displayPlugin->getRequiredThreadCount();
+    auto availableThreads = QThread::idealThreadCount() - reservedThreads;
+    auto threadPoolSize = std::max(MIN_PROCESSING_THREAD_POOL_SIZE, availableThreads);
+    qDebug() << "Ideal Thread Count " << QThread::idealThreadCount();
+    qDebug() << "Reserved threads " << reservedThreads;
+    qDebug() << "Setting thread pool size to " << threadPoolSize;
+    QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }

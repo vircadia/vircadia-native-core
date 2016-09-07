@@ -89,6 +89,7 @@ Rectangle {
     property int dropSamples: 9;
     property int dropSpread: 0;
     DropShadow {
+        visible: desktop.gradientsSupported;
         source: place;
         anchors.fill: place;
         horizontalOffset: dropHorizontalOffset;
@@ -99,6 +100,7 @@ Rectangle {
         spread: dropSpread;
     }
     DropShadow {
+        visible: desktop.gradientsSupported;
         source: users;
         anchors.fill: users;
         horizontalOffset: dropHorizontalOffset;

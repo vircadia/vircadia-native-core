@@ -282,6 +282,7 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     });
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
+    netRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
     if (!qApp || aboutToQuit) {
         netReply->deleteLater();

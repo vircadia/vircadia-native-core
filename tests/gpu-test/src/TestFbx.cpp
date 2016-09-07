@@ -56,6 +56,7 @@ public:
     explicit FileDownloader(QUrl imageUrl, QObject *parent = 0) : QObject(parent) {
         connect(&m_WebCtrl, SIGNAL(finished(QNetworkReply*)), this, SLOT(fileDownloaded(QNetworkReply*)));
         QNetworkRequest request(imageUrl);
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         m_WebCtrl.get(request);
     }
 
