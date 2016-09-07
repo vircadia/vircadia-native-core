@@ -11,7 +11,7 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation */
+/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -1090,10 +1090,15 @@ function MyController(hand) {
             }
         }
 
-        this.grabPointSphereOn();
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
+
+        if (controllerLocation.valid) {
+            this.grabPointSphereOn();
+        } else {
+            this.grabPointSphereOff();
+        }
 
         var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
@@ -1431,8 +1436,6 @@ function MyController(hand) {
         this.isInitialGrab = false;
         this.shouldResetParentOnRelease = false;
 
-        this.grabPointSphereOn();
-
         this.checkForStrayChildren();
 
         if (this.triggerSmoothedReleased()) {
@@ -1440,7 +1443,14 @@ function MyController(hand) {
             return;
         }
 
-        var handPosition = getControllerWorldLocation(this.handToController(), true).position;
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var handPosition = controllerLocation.position;
+
+        if (controllerLocation.valid) {
+            this.grabPointSphereOn();
+        } else {
+            this.grabPointSphereOff();
+        }
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
