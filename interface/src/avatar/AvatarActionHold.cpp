@@ -244,14 +244,18 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             //     3 -- ignore i of 0 1 2
             //     4 -- ignore i of 1 2 3
             //     5 -- ignore i of 2 3 4
-            if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
-                continue;
-            }
+
+            // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
+            //     continue;
+            // }
+
             measuredLinearVelocity += _measuredLinearVelocities[i];
         }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3); // 3 because of the 3 we skipped, above
+        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
+                                          // - 3  // 3 because of the 3 we skipped, above
+                                          );
 
         if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
