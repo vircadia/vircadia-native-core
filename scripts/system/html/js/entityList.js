@@ -315,6 +315,7 @@ function loaded() {
           // Take up available window space
           elEntityTableScroll.style.height = window.innerHeight - 207;
 
+          var SCROLLABAR_WIDTH = 21;
           var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
           var ths = document.querySelectorAll("#entity-table thead th");
           if (tds.length >= ths.length) {
@@ -324,18 +325,18 @@ function loaded() {
               }
           } else {
               // Reasonable widths if nothing is displayed
-              var tableWidth = document.getElementById("entity-table").offsetWidth;
+              var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
               ths[0].width = 0.10 * tableWidth;
               ths[1].width = 0.20 * tableWidth;
               ths[2].width = 0.20 * tableWidth;
               ths[3].width = 0.04 * tableWidth;
               ths[4].width = 0.04 * tableWidth;
-              ths[5].width = 0.10 * tableWidth;
-              ths[6].width = 0.10 * tableWidth;
+              ths[5].width = 0.08 * tableWidth;
+              ths[6].width = 0.08 * tableWidth;
               ths[7].width = 0.10 * tableWidth;
               ths[8].width = 0.04 * tableWidth;
-              ths[9].width = 0.10 * tableWidth;
-              ths[10].width = 0.04 * tableWidth;
+              ths[9].width = 0.08 * tableWidth;
+              ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
           }
       };
 
