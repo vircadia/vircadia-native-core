@@ -1228,21 +1228,3 @@ int AudioSRC::getMaxInput(int outputFrames) {
         return (int)(((int64_t)outputFrames * _step) >> 32);
     }
 }
-
-// the input frames that will produce exactly outputFrames
-int AudioSRC::getExactInput(int outputFrames) {
-    //
-    // For upsampling, a correct implementation is more complicated
-    // because it requires early exit of the multirate filter.
-    // This is not currently supported.
-    //
-    if (_upFactor > _downFactor) {
-        return -1;
-    }
-    if (_step == 0) {
-        int64_t offset = ((int64_t)_phase * _downFactor) % _upFactor;
-        return (int)(((int64_t)outputFrames * _downFactor + offset) / _upFactor);
-    } else {
-        return (int)(((int64_t)outputFrames * _step + _offset) >> 32);
-    }
-}
