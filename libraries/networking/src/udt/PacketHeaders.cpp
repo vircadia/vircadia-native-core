@@ -77,7 +77,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::InjectAudio:
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
-            return static_cast<PacketVersion>(AudioVersion::CodecNameInAudioPackets);
+            return static_cast<PacketVersion>(AudioVersion::Exactly10msAudioPackets);
 
         default:
             return 17;
