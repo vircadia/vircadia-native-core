@@ -894,8 +894,9 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
     background-color: #1c1c1c;
-}
 
+    height: 100px;
+}
 
 #entity-table {
     margin-top: -28px;
@@ -903,41 +904,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     table-layout: fixed;
     border: none;
     background-color: #1c1c1c;
-}
-
-#col-type {
-    width: 10%;
-}
-#col-name {
-    width: 19%;
-}
-#col-url {
-    width: 19%;
-}
-#col-locked, #col-visible {
-    width: 4%;
-}
-#col-verticesCount {
-    width: 8%;
-}
-#col-texturesCount {
-    width: 8%;
-}
-#col-texturesSize {
-    width: 10%;
-}
-#col-hasTransparent {
-    width: 4%;
-}
-#col-drawCalls {
-    width: 8%;
-}
-#col-hasScript {
-    width: 6%;
-}
-
-.verticesCount, .texturesCount, .texturesSize, .drawCalls {
-    text-align: right;
 }
 
 #entity-table thead tr, #entity-table thead tr th,
@@ -963,6 +929,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     word-wrap: nowrap;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.verticesCount, .texturesCount, .texturesSize, .drawCalls {
+    text-align: right;
 }
 
 #entity-table th {
@@ -1009,10 +979,11 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     right: 0;
     width: 11px;
     background-color: #1c1c1c;
+    z-index: 100;
 }
 #entity-table th #info-toggle span {
     position: relative;
-    left: 0;
+    left: -2px;
 }
 
 #entity-table td {
@@ -1035,6 +1006,82 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     left: 0;
     width: 100%;
 }
+
+
+#col-type {
+    width: 16%;
+}
+#col-name {
+    width: 34%;
+}
+#col-url {
+    width: 34%;
+}
+#col-locked, #col-visible {
+    width: 9%;
+}
+#col-verticesCount, #col-texturesCount, #col-texturesSize, #col-hasTransparent, #col-drawCalls, #col-hasScript {
+    width: 0;
+}
+
+.showExtraInfo #col-type {
+    width: 10%;
+}
+.showExtraInfo #col-name {
+    width: 19%;
+}
+.showExtraInfo #col-url {
+    width: 19%;
+}
+.showExtraInfo #col-locked, .showExtraInfo #col-visible {
+    width: 4%;
+}
+.showExtraInfo #col-verticesCount {
+    width: 8%;
+}
+.showExtraInfo #col-texturesCount {
+    width: 8%;
+}
+.showExtraInfo #col-texturesSize {
+    width: 10%;
+}
+.showExtraInfo #col-hasTransparent {
+    width: 4%;
+}
+.showExtraInfo #col-drawCalls {
+    width: 8%;
+}
+.showExtraInfo #col-hasScript {
+    width: 6%;
+}
+
+th#entity-verticesCount, th#entity-texturesCount, th#entity-texturesSize, th#entity-hasTransparent, th#entity-drawCalls, 
+th#entity-hasScript {
+    display: none;
+}
+
+.verticesCount, .texturesCount, .texturesSize, .hasTransparent, .drawCalls, .hasScript {
+    display: none;
+}
+
+#entity-visible {
+    border: none;
+}
+
+.showExtraInfo #entity-verticesCount, .showExtraInfo #entity-texturesCount, .showExtraInfo #entity-texturesSize, 
+.showExtraInfo #entity-hasTransparent, .showExtraInfo #entity-drawCalls, .showExtraInfo #entity-hasScript {
+    display: inline-block;
+}
+
+.showExtraInfo .verticesCount, .showExtraInfo .texturesCount, .showExtraInfo .texturesSize, .showExtraInfo .hasTransparent, 
+.showExtraInfo .drawCalls, .showExtraInfo .hasScript {
+    display: table-cell;
+}
+
+.showExtraInfo #entity-visible {
+    border-right: 1px solid #575757;
+}
+
 
 #no-entities {
     display: none;

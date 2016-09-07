@@ -38,6 +38,9 @@ function loaded() {
       elFilter = document.getElementById("filter");
       elTeleport = document.getElementById("teleport");
       elRadius = document.getElementById("radius");
+      elEntityTable = document.getElementById("entity-table");
+      elInfoToggle = document.getElementById("info-toggle");
+      elInfoToggleGlyph = elInfoToggle.firstChild;
       elFooter = document.getElementById("footer-text");
       elNoEntitiesMessage = document.getElementById("no-entities");
       elNoEntitiesRadius = document.getElementById("no-entities-radius");
@@ -274,7 +277,7 @@ function loaded() {
           refreshEntities();
           elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
       }
-      
+
       if (window.EventBridge !== undefined) {
           EventBridge.scriptEventReceived.connect(function(data) {
               data = JSON.parse(data);
@@ -326,22 +329,51 @@ function loaded() {
           } else {
               // Reasonable widths if nothing is displayed
               var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
-              ths[0].width = 0.10 * tableWidth;
-              ths[1].width = 0.20 * tableWidth;
-              ths[2].width = 0.20 * tableWidth;
-              ths[3].width = 0.04 * tableWidth;
-              ths[4].width = 0.04 * tableWidth;
-              ths[5].width = 0.08 * tableWidth;
-              ths[6].width = 0.08 * tableWidth;
-              ths[7].width = 0.10 * tableWidth;
-              ths[8].width = 0.04 * tableWidth;
-              ths[9].width = 0.08 * tableWidth;
-              ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
+              if (showExtraInfo) {
+                  ths[0].width = 0.10 * tableWidth;
+                  ths[1].width = 0.20 * tableWidth;
+                  ths[2].width = 0.20 * tableWidth;
+                  ths[3].width = 0.04 * tableWidth;
+                  ths[4].width = 0.04 * tableWidth;
+                  ths[5].width = 0.08 * tableWidth;
+                  ths[6].width = 0.08 * tableWidth;
+                  ths[7].width = 0.10 * tableWidth;
+                  ths[8].width = 0.04 * tableWidth;
+                  ths[9].width = 0.08 * tableWidth;
+                  ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
+              } else {
+                  ths[0].width = 0.16 * tableWidth;
+                  ths[1].width = 0.34 * tableWidth;
+                  ths[2].width = 0.34 * tableWidth;
+                  ths[3].width = 0.08 * tableWidth;
+                  ths[4].width = 0.08 * tableWidth;
+              }
           }
       };
 
       window.onresize = resize;
       elFilter.onchange = resize;
+
+
+      var showExtraInfo = false;
+      var COLLAPSE_EXTRA_INFO = "E";
+      var EXPAND_EXTRA_INFO = "D";
+
+      function toggleInfo(event) {
+          showExtraInfo = !showExtraInfo;
+          if (showExtraInfo) {
+              elEntityTable.className = "showExtraInfo";
+              elInfoToggleGlyph.innerHTML = COLLAPSE_EXTRA_INFO;
+          } else {
+              elEntityTable.className = "";
+              elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
+          }
+          resize();
+          event.stopPropagation();
+      }
+      elInfoToggle.addEventListener("click", toggleInfo, true);
+
+
       resize();
   });
 
