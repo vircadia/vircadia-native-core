@@ -41,5 +41,15 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
       POST_BUILD
       COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} ${EXTRA_DEPLOY_OPTIONS} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> $<TARGET_FILE:${TARGET_NAME}>"
     )
+
+    set(QTAUDIO_PATH $<TARGET_FILE_DIR:${TARGET_NAME}>/audio)
+
+    # if present, replace qtaudio_windows.dll with qtaudio_wasapi.dll 
+    add_custom_command(
+      TARGET ${TARGET_NAME}
+      POST_BUILD
+      COMMAND if exist ${QTAUDIO_PATH}/qtaudio_windows.dll ( ${CMAKE_COMMAND} -E remove ${QTAUDIO_PATH}/qtaudio_windows.dll && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.dll ${QTAUDIO_PATH} && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.pdb ${QTAUDIO_PATH} )
+    )
+
   endif ()
 endmacro()

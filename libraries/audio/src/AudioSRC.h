@@ -48,6 +48,8 @@ public:
     int getMinInput(int outputFrames);
     int getMaxInput(int outputFrames);
 
+    int getExactInput(int outputFrames);
+
 private:
     float* _polyphaseFilter;
     int* _stepTable;
