@@ -19,14 +19,21 @@
 <$declareStandardTransform()$>
 
 <@include model/Light.slh@>
-<$declareLightBuffer()$>
 
+<$declareLightBuffer(120)$>
+
+uniform lightIndexBuffer {
+    int lightIndex[120];
+};
 
 out vec4 _texCoord0;
 
 void main(void) {
+
+    instanceID = lightIndex[gl_InstanceID];
+    Light light = getLight(instanceID);
     vec4 sphereVertex = inPosition;
-    vec4 sphereParam = getLightVolumeGeometry(getLight());
+    vec4 sphereParam = getLightVolumeGeometry(light);
 
     sphereVertex.xyz *= sphereParam.w;
 

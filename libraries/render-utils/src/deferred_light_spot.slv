@@ -19,10 +19,10 @@
 <$declareStandardTransform()$>
 
 <@include model/Light.slh@>
-<$declareLightBuffer(32)$>
+<$declareLightBuffer(120)$>
 
 uniform lightIndexBuffer {
-    int lightIndex[32];
+    int lightIndex[120];
 };
 out vec4 _texCoord0;
 flat out int instanceID;

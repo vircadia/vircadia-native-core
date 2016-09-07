@@ -13,7 +13,7 @@
 //
 
 // Everything about deferred buffer
-<@include DeferredBufferRead.slh@>
+<!<@include DeferredBufferRead.slh@>
 
 <$declareDeferredCurvature()$>
 
@@ -31,21 +31,23 @@ uniform lightIndexBuffer {
 <$declareLightingSpot(supportScattering)$>
 
 //uniform vec4 texcoordFrameTransform;
+!>
 
 
-
-in vec4 _texCoord0;
+//in vec4 _texCoord0;
 //flat in int instanceID;
 out vec4 _fragColor;
 
 void main(void) {
+    _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
 //    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
-
+    
     // Grab the fragment data from the uv
-    vec2 texCoord = _texCoord0.st;/* / _texCoord0.q;
-    texCoord *= texcoordFrameTransform.zw;
+    //vec2 texCoord = _texCoord0.st;/* / _texCoord0.q;
+    /*texCoord *= texcoordFrameTransform.zw;
     texCoord += texcoordFrameTransform.xy;*/
-
+    /*
     vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
     DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
 
@@ -108,5 +110,6 @@ void main(void) {
         _fragColor.rgb += diffuse;
         _fragColor.rgb += specular;
     }
+    */
 }
 
