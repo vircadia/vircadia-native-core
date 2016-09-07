@@ -1202,16 +1202,12 @@ function MyController(hand) {
 
         var directionNormalized = Vec3.normalize(pickRay.direction);
         var directionBacked = Vec3.multiply(directionNormalized, PICK_BACKOFF_DISTANCE);
-        var pickRayBacked = {
-            origin: Vec3.subtract(pickRay.origin, directionBacked),
-            direction: pickRay.direction
-        };
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = findRayIntersection(pickRayBacked, true, [], blacklist);
+            intersection = findRayIntersection(pickRay, true, [], blacklist);
         } else {
-            intersection = findRayIntersection(pickRayBacked, true);
+            intersection = findRayIntersection(pickRay, true);
         }
 
         if (intersection.intersects) {
