@@ -23,30 +23,6 @@
 
 namespace gpu { namespace gl {
 
-using VoidLambda = std::function<void()>;
-    
-#if 0
-struct TextureTransferPackage {
-    std::weak_ptr<Texture> texture;
-    GLsync fence;
-};
-
-struct TextureTransferBlock {
-    GLuint _pbo { 0 };
-    void* _mapped { nullptr };
-    GLsync _fence;
-    std::function<void()> _transferCallback;
-    bool isSignaled();
-    void transfer();
-};
-
-using CommandQueue = std::list<VoidLambda>;
-struct FencedLambda {
-    GLsync _fence { 0 };
-    VoidLambda _callback;
-};
-#endif
-
 using TextureList = std::list<TexturePointer>;
 using TextureListIterator = TextureList::iterator;
 

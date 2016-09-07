@@ -66,7 +66,6 @@ public:
         void allocateMip(uint16_t mipLevel, uint8_t face = 0) const;
         void allocateStorage() const override;
         void updateSize() const override;
-//        void transfer() const override;
         void syncSampler() const override;
         void generateMips() const override;
         void withPreservedTexture(std::function<void()> f) const override;
