@@ -35,6 +35,7 @@
 #include "directional_ambient_light_shadow_frag.h"
 #include "directional_skybox_light_shadow_frag.h"
 
+#include "local_lights_shading_frag.h"
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -96,6 +97,7 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
+    loadLightProgram(deferred_light_vert, local_lights_shading_frag, false, _localLight, _localLightLocations);
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(deferred_light_vert, spot_light_frag, false, _spotLight, _spotLightLocations);
 
@@ -570,7 +572,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 }
 
 RenderDeferredLocals::RenderDeferredLocals() :
-_spotLightsBuffer(std::make_shared<gpu::Buffer>()) {
+_localLightsBuffer(std::make_shared<gpu::Buffer>()) {
 
 }
 
@@ -628,16 +630,16 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         }
 
         if (lightIndices[0] > 0) {
-            _spotLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
-            _spotLightsBuffer._size = lightIndices.size() * sizeof(int);
+            _localLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
+            _localLightsBuffer._size = lightIndices.size() * sizeof(int);
 
             // Spot light pipeline
-            batch.setPipeline(deferredLightingEffect->_spotLight);
-            batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+            batch.setPipeline(deferredLightingEffect->_localLight);
+            batch._glUniform4fv(deferredLightingEffect->_localLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
             // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
-            batch.setUniformBuffer(deferredLightingEffect->_spotLightLocations->lightIndexBufferUnit, _spotLightsBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, _localLightsBuffer);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     }

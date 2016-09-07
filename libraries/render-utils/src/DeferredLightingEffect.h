@@ -86,6 +86,8 @@ private:
     gpu::PipelinePointer _directionalAmbientSphereLightShadow;
     gpu::PipelinePointer _directionalLightShadow;
 
+    gpu::PipelinePointer _localLight;
+
     gpu::PipelinePointer _pointLight;
     gpu::PipelinePointer _spotLight;
 
@@ -97,6 +99,7 @@ private:
     LightLocationsPtr _directionalAmbientSphereLightShadowLocations;
     LightLocationsPtr _directionalLightShadowLocations;
 
+    LightLocationsPtr _localLightLocations;
     LightLocationsPtr _pointLightLocations;
     LightLocationsPtr _spotLightLocations;
 
@@ -159,7 +162,7 @@ public:
         const LightingModelPointer& lightingModel,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer);
 
-    gpu::BufferView _spotLightsBuffer;
+    gpu::BufferView _localLightsBuffer;
 
     RenderDeferredLocals();
 

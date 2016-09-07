@@ -1,0 +1,102 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  local_lights_shading.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 9/6/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// Everything about deferred buffer
+<@include DeferredBufferRead.slh@>
+
+<$declareDeferredCurvature()$>
+
+// Everything about light
+<@include model/Light.slh@>
+<$declareLightBuffer(32)$>
+uniform lightIndexBuffer {
+    int lightIndex[32];
+};
+<@include LightingModel.slh@>
+
+<@include LightPoint.slh@>
+<$declareLightingPoint(supportScattering)$>
+<@include LightSpot.slh@>
+<$declareLightingSpot(supportScattering)$>
+
+in vec4 _texCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+
+    // Grab the fragment data from the uv
+    vec2 texCoord = _texCoord0.st;
+
+    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texCoord);
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    }
+
+    frag.position = fragPosition;
+
+    vec4 midNormalCurvature;
+    vec4 lowNormalCurvature;
+    if (frag.mode == FRAG_MODE_SCATTERING) {
+        unpackMidLowNormalCurvature(texCoord, midNormalCurvature, lowNormalCurvature);
+    }
+
+    // Frag pos in world
+    mat4 invViewMat = getViewInverse();
+    vec4 fragPos = invViewMat * fragPosition;
+
+    // Frag to eye vec
+    vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
+    vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+
+    int numLights = lightIndex[0];
+    for (int i = 0; i < numLights; i++) {
+        // Need the light now
+        Light light = getLight(lightIndex[i + 1]);
+        bool isSpot = light_isSpot(light);
+        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
+        vec4 fragLightVecLen2;
+        vec4 fragLightDirLen;
+        float cosSpotAngle;
+        if (isSpot) {
+            if (!clipFragToLightVolumeSpot(light, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
+                continue;
+            }
+        } else {
+            if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
+                continue;
+            }
+        }
+
+        vec3 diffuse;
+        vec3 specular;
+
+        if (isSpot) {
+            evalLightingSpot(diffuse, specular, light,
+                fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
+                frag.metallic, frag.fresnel, frag.albedo, 1.0,
+                frag.scattering, midNormalCurvature, lowNormalCurvature);
+        } else {
+            evalLightingPoint(diffuse, specular, light,
+                fragLightVecLen2.xyz, fragEyeDir, frag.normal, frag.roughness,
+                frag.metallic, frag.fresnel, frag.albedo, 1.0,
+                frag.scattering, midNormalCurvature, lowNormalCurvature);
+        }
+
+        _fragColor.rgb += diffuse;
+        _fragColor.rgb += specular;
+    }
+}
+
