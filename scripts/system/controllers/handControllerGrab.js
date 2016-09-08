@@ -1653,7 +1653,8 @@ function MyController(hand) {
         this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
         this.grabRadialVelocity = 0.0;
 
-        // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
+        // compute a constant based on the initial conditions which we use below to exagerate hand motion
+        // onto the held object
         this.radiusScalar = Math.log(this.grabRadius + 1.0);
         if (this.radiusScalar < 1.0) {
             this.radiusScalar = 1.0;
@@ -1679,7 +1680,7 @@ function MyController(hand) {
         this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
 
         if (this.actionID !== null) {
-            this.activateEntity(this.grabbedEntity, grabbedProperties, false);
+            this.activateEntity(this.grabbedEntity, grabbedProperties, false, true);
             this.callEntityMethodOnGrabbed("startDistanceGrab");
         }
 
@@ -1708,7 +1709,6 @@ function MyController(hand) {
         }
 
         this.heartBeat(this.grabbedEntity);
-
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldControllerPosition = controllerLocation.position;
@@ -1913,7 +1913,7 @@ function MyController(hand) {
         }
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-        this.activateEntity(this.grabbedEntity, grabbedProperties, false);
+        this.activateEntity(this.grabbedEntity, grabbedProperties, false, false);
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
         if (FORCE_IGNORE_IK) {
@@ -2422,7 +2422,7 @@ function MyController(hand) {
         this.deactivateEntity(entityID, false);
     };
 
-    this.activateEntity = function(entityID, grabbedProperties, wasLoaded) {
+    this.activateEntity = function(entityID, grabbedProperties, wasLoaded, collideWithStatic) {
         this.autoUnequipCounter = 0;
 
         if (this.entityActivated) {
@@ -2463,15 +2463,10 @@ function MyController(hand) {
                 data.parentJointIndex = grabbedProperties.parentJointIndex;
 
                 var whileHeldProperties = {
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    // bummer, it isn't easy to do bitwise collisionMask operations like this:
-                    // "collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
-                    // when using string values
-                    "collidesWith": COLLIDES_WITH_WHILE_GRABBED
+                    gravity: { x: 0, y: 0, z: 0 },
+                    "collidesWith": collideWithStatic ?
+                        COLLIDES_WITH_WHILE_GRABBED + ",static" :
+                        COLLIDES_WITH_WHILE_GRABBED
                 };
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data.refCount > 1) {
@@ -2480,7 +2475,7 @@ function MyController(hand) {
                     // deactivate it before grabbing.
                     this.resetAbandonedGrab(entityID);
                     grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-                    return this.activateEntity(entityID, grabbedProperties, wasLoaded);
+                    return this.activateEntity(entityID, grabbedProperties, wasLoaded, false);
                 }
 
                 this.isInitialGrab = false;
