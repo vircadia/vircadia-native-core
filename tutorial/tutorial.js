@@ -866,6 +866,8 @@ Controller.keyReleaseEvent.connect(function (event) {
         }
     } else if (event.text == "F12") {
         restartStep();
+    } else if (event.text == "F10") {
+        MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
     } else if (event.text == "r") {
         stopTutorial();
         startTutorial();

@@ -199,7 +199,7 @@ var viveNaturalPosition = {
     z: 0.06380049744620919
 };
 var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive2.fbx";
-var viveModelURL = "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_body.fbx";
+var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_body.fbx",
 
 var VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
@@ -935,7 +935,6 @@ var c = setupController(VIVE_CONTROLLER_CONFIGURATION);
 //c.setPartVisible("touchpad", false);
 //c.setPartVisible("touchpad_teleport", false);
 
-//MyAvatar.shouldRenderLocally = false;
 Script.scriptEnding.connect(function() {
     deleteControllerDisplay(c);
     MyAvatar.shouldRenderLocally = true;
