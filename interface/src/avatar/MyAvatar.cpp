@@ -416,10 +416,6 @@ void MyAvatar::simulate(float deltaTime) {
         updatePosition(deltaTime);
     }
 
-    // update sensorToWorldMatrix for camera and hand controllers
-    // before we perform rig animations and IK.
-    updateSensorToWorldMatrix();
-
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime);
@@ -1305,9 +1301,10 @@ void MyAvatar::prepareForPhysicsSimulation() {
 
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
-        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput());
+        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix);
     } else {
         _follow.deactivate();
+        getCharacterController()->disableFollow();
     }
 }
 
@@ -1318,7 +1315,10 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         _characterController.getPositionAndOrientation(position, orientation);
     }
     nextAttitude(position, orientation);
-    _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
+
+    // compute new _bodyToSensorMatrix
+    glm::mat4 bodyToWorldMatrix = createMatFromQuatAndPos(orientation, position);
+    _bodySensorMatrix = glm::inverse(_sensorToWorldMatrix) * bodyToWorldMatrix;
 
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
@@ -2050,64 +2050,47 @@ MyAvatar::FollowHelper::FollowHelper() {
 }
 
 void MyAvatar::FollowHelper::deactivate() {
-    for (int i = 0; i < NumFollowTypes; i++) {
-        deactivate((FollowType)i);
-    }
+    _activeBits = 0;
 }
 
 void MyAvatar::FollowHelper::deactivate(FollowType type) {
     assert(type >= 0 && type < NumFollowTypes);
-    _timeRemaining[(int)type] = 0.0f;
+    _activeBits &= ~(uint8_t)(0x01 << (int)type);
 }
 
 void MyAvatar::FollowHelper::activate(FollowType type) {
     assert(type >= 0 && type < NumFollowTypes);
-    // TODO: Perhaps, the follow time should be proportional to the displacement.
-    _timeRemaining[(int)type] = FOLLOW_TIME;
+    _activeBits |= (uint8_t)(0x01 << (int)type);
 }
 
 bool MyAvatar::FollowHelper::isActive(FollowType type) const {
     assert(type >= 0 && type < NumFollowTypes);
-    return _timeRemaining[(int)type] > 0.0f;
+    return (bool)(_activeBits & (uint8_t)(0x01 << (int)type));
 }
 
 bool MyAvatar::FollowHelper::isActive() const {
-    for (int i = 0; i < NumFollowTypes; i++) {
-        if (isActive((FollowType)i)) {
-            return true;
-        }
-    }
-    return false;
+    return (bool)_activeBits;
 }
 
-float MyAvatar::FollowHelper::getMaxTimeRemaining() const {
-    float max = 0.0f;
-    for (int i = 0; i < NumFollowTypes; i++) {
-        if (_timeRemaining[i] > max) {
-            max = _timeRemaining[i];
-        }
-    }
-    return max;
-}
-
-void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
-    for (int i = 0; i < NumFollowTypes; i++) {
-        _timeRemaining[i] -= dt;
-    }
-}
-
-bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+void MyAvatar::FollowHelper::updateRotationActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
     auto cameraMode = qApp->getCamera()->getMode();
     if (cameraMode == CAMERA_MODE_THIRD_PERSON) {
-        return false;
+        deactivate(Rotation);
     } else {
         const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
+        const float STOP_FOLLOW_ROTATION_THRESHOLD = 0.99f;
         glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+        if (isActive(Rotation)) {
+            if (glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) > STOP_FOLLOW_ROTATION_THRESHOLD) {
+                deactivate(Rotation);
+            }
+        } else if (glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD) {
+            activate(Rotation);
+        }
     }
 }
 
-bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+void MyAvatar::FollowHelper::updateHorizontalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
 
     // -z axis of currentBodyMatrix in world space.
     glm::vec3 forward = glm::normalize(glm::vec3(-currentBodyMatrix[0][2], -currentBodyMatrix[1][2], -currentBodyMatrix[2][2]));
@@ -2116,85 +2099,74 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
 
     float forwardLeanAmount = glm::dot(forward, offset);
-    float lateralLeanAmount = glm::dot(right, offset);
+    float lateralLeanAmount = fabsf(glm::dot(right, offset));
 
     const float MAX_LATERAL_LEAN = 0.3f;
     const float MAX_FORWARD_LEAN = 0.15f;
     const float MAX_BACKWARD_LEAN = 0.1f;
+    const float MIN_LEAN = 0.02f;
 
-    if (forwardLeanAmount > 0 && forwardLeanAmount > MAX_FORWARD_LEAN) {
-        return true;
-    } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
-        return true;
+    if (isActive(Horizontal)) {
+        if (fabsf(forwardLeanAmount) < MIN_LEAN && lateralLeanAmount < MIN_LEAN) {
+            deactivate(Horizontal);
+        }
+    } else {
+        if (forwardLeanAmount > MAX_FORWARD_LEAN ||
+                forwardLeanAmount < -MAX_BACKWARD_LEAN ||
+                lateralLeanAmount > MAX_LATERAL_LEAN) {
+            activate(Horizontal);
+        }
     }
-
-    return fabs(lateralLeanAmount) > MAX_LATERAL_LEAN;
 }
 
-bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-
+void MyAvatar::FollowHelper::updateVerticalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
+    const float MIN_VERTICAL_OFFSET = 0.02f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+    if (isActive(Vertical)) {
+        if (fabsf(offset.y) < MIN_VERTICAL_OFFSET) {
+            deactivate(Vertical);
+        }
+    } else if (offset.y > CYLINDER_TOP || offset.y < CYLINDER_BOTTOM) {
+        activate(Vertical);
+    }
 }
 
-void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
+void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
     _desiredBodyMatrix = desiredBodyMatrix;
 
     if (myAvatar.getHMDLeanRecenterEnabled()) {
-        if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
-            activate(Rotation);
+        updateRotationActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+        updateHorizontalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+        updateVerticalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+
+        glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
+        glm::mat4 currentWorldMatrix = createMatFromQuatAndPos(myAvatar.getOrientation(), myAvatar.getPosition());
+
+        AnimPose followWorldPose(currentWorldMatrix);
+        if (isActive(Rotation)) {
+            followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
         }
-        if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
-            activate(Horizontal);
+        if (isActive(Horizontal)) {
+            glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
+            followWorldPose.trans.x = desiredTranslation.x;
+            followWorldPose.trans.z = desiredTranslation.z;
         }
-        if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-            activate(Vertical);
+        if (isActive(Vertical)) {
+            glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
+            followWorldPose.trans.y = desiredTranslation.y;
         }
-    }
 
-    glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
-    glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
-
-    AnimPose followWorldPose(currentWorldMatrix);
-    if (isActive(Rotation)) {
-        followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
-    }
-    if (isActive(Horizontal)) {
-        glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-        followWorldPose.trans.x = desiredTranslation.x;
-        followWorldPose.trans.z = desiredTranslation.z;
-    }
-    if (isActive(Vertical)) {
-        glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-        followWorldPose.trans.y = desiredTranslation.y;
-    }
-
-    myAvatar.getCharacterController()->setFollowParameters(followWorldPose, getMaxTimeRemaining());
-}
-
-glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix) {
-    if (isActive()) {
-        float dt = myAvatar.getCharacterController()->getFollowTime();
-        decrementTimeRemaining(dt);
-
-        // apply follow displacement to the body matrix.
-        glm::vec3 worldLinearDisplacement = myAvatar.getCharacterController()->getFollowLinearDisplacement();
-        glm::quat worldAngularDisplacement = myAvatar.getCharacterController()->getFollowAngularDisplacement();
-        glm::quat sensorToWorld = glmExtractRotation(myAvatar.getSensorToWorldMatrix());
-        glm::quat worldToSensor = glm::inverse(sensorToWorld);
-
-        glm::vec3 sensorLinearDisplacement = worldToSensor * worldLinearDisplacement;
-        glm::quat sensorAngularDisplacement = worldToSensor * worldAngularDisplacement * sensorToWorld;
-
-        glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
-                                                       sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
-        return newBodyMat;
-
+        if (isActive()) {
+            myAvatar.getCharacterController()->setFollowParameters(followWorldPose);
+        } else {
+            myAvatar.getCharacterController()->disableFollow();
+        }
     } else {
-        return currentBodyMatrix;
+        deactivate();
+        myAvatar.getCharacterController()->disableFollow();
     }
 }
 

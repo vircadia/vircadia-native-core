@@ -70,7 +70,6 @@ CharacterController::CharacterController() {
 
     _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     _followDesiredBodyTransform.setIdentity();
-    _followTimeRemaining = 0.0f;
     _jumpSpeed = JUMP_SPEED;
     _state = State::Hover;
     _isPushingUp = false;
@@ -199,16 +198,24 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     // Rather than add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
 
-    const float MINIMUM_TIME_REMAINING = 0.005f;
-    const float MAX_DISPLACEMENT = 0.5f * _radius;
-    _followTimeRemaining -= dt;
-    if (_followTimeRemaining >= MINIMUM_TIME_REMAINING) {
+    if (_following) {
+        // HACK these copied form elsewhere
+        const float NORMAL_WALKING_SPEED = 0.5f;
+        const float FOLLOW_TIME = 0.8f;
+        const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);
+
+        const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIME;
+
         btTransform bodyTransform = _rigidBody->getWorldTransform();
 
         btVector3 startPos = bodyTransform.getOrigin();
         btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
-        btVector3 vel = deltaPos / _followTimeRemaining;
-        btVector3 linearDisplacement = clampLength(vel * dt, MAX_DISPLACEMENT);  // clamp displacement to prevent tunneling.
+        btVector3 vel = deltaPos * (0.5f / dt);
+        btScalar speed = vel.length();
+        if (speed > NORMAL_WALKING_SPEED) {
+            vel *= NORMAL_WALKING_SPEED / speed;
+        }
+        btVector3 linearDisplacement = vel * dt;
         btVector3 endPos = startPos + linearDisplacement;
 
         btQuaternion startRot = bodyTransform.getRotation();
@@ -216,7 +223,10 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
         glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
         float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularSpeed = deltaAngle / _followTimeRemaining;
+        float angularSpeed = 0.5f * deltaAngle / dt;
+        if (angularSpeed > MAX_ANGULAR_SPEED) {
+            angularSpeed *= MAX_ANGULAR_SPEED / angularSpeed;
+        }
         float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
         btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
@@ -229,8 +239,8 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
 
         _rigidBody->setWorldTransform(btTransform(endRot, endPos));
+        _followTime += dt;
     }
-    _followTime += dt;
 }
 
 void CharacterController::jump() {
@@ -371,9 +381,9 @@ void CharacterController::setParentVelocity(const glm::vec3& velocity) {
     _parentVelocity = glmToBullet(velocity);
 }
 
-void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix, float timeRemaining) {
-    _followTimeRemaining = timeRemaining;
+void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix) {
     _followDesiredBodyTransform = glmToBullet(desiredWorldBodyMatrix) * btTransform(btQuaternion::getIdentity(), glmToBullet(_shapeLocalOffset));
+    _following = true;
 }
 
 glm::vec3 CharacterController::getFollowLinearDisplacement() const {
@@ -626,7 +636,7 @@ void CharacterController::preSimulation() {
     _pendingFlags &= ~PENDING_FLAG_JUMP;
 
     _followTime = 0.0f;
-    _followLinearDisplacement = btVector3(0, 0, 0);
+    _followLinearDisplacement = btVector3(0.0f, 0.0f, 0.0f);
     _followAngularDisplacement = btQuaternion::getIdentity();
 }
 
