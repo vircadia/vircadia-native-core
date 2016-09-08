@@ -26,6 +26,7 @@
 #include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
+#include "EntitiesRendererLogging.h"
 
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
@@ -106,6 +107,20 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     }
     qDebug() << "Building web surface";
 
+    QString javaScriptToInject;
+    QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+        createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+
+        // concatenate these js files
+        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    } else {
+        qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
+    }
+
     ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
@@ -113,7 +128,9 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface = new OffscreenQmlSurface();
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
-    _webSurface->load("WebView.qml");
+    _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
+        context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+    });
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);

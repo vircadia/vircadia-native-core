@@ -24,7 +24,7 @@ Item {
         // creates a global EventBridge object.
         WebEngineScript {
             id: createGlobalEventBridge
-            sourceUrl: resourceDirectoryUrl + "/html/createGlobalEventBridge.js"
+            sourceCode: eventBridgeJavaScriptToInject
             injectionPoint: WebEngineScript.DocumentCreation
             worldId: WebEngineScript.MainWorld
         }
