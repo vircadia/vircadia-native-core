@@ -199,7 +199,7 @@ class IntPreference : public TypedPreference<int> {
 
 public:
     IntPreference(const QString& category, const QString& name, Getter getter, Setter setter)
-    : TypedPreference(category, name, getter, setter) { }
+        : TypedPreference(category, name, getter, setter) { }
 
     float getMin() const { return _min; }
     void setMin(float min) { _min = min; };
