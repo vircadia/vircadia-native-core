@@ -80,26 +80,11 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
 
 const char no_light_frag[] =
 R"SCRIBE(
-//PC 410 core
-//  Generated on Wed Sep 07 12:11:58 2016
-//
-//  point_light.frag
-//  fragment shader
-//
-//  Created by Sam Gateau on 9/18/15.
-//  Copyright 2014 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
 out vec4 _fragColor;
 
 void main(void) {
     _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
-
-    }
-
-
+}
 )SCRIBE"
 ;
 
@@ -201,8 +186,7 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
     }
 }
-
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
     auto VS = gpu::Shader::createVertex(std::string(vertSource));
     auto PS = gpu::Shader::createPixel(std::string(fragSource));
     
@@ -244,6 +228,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
+
+    return program;
+}
+
+static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+
+    gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
@@ -276,47 +267,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 
 static void loadLightVolumeProgram(const char* vertSource, const char* fragSource, bool front, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
-    auto VS = gpu::Shader::createVertex(std::string(vertSource));
-    auto PS = gpu::Shader::createPixel(std::string(fragSource));
-
-    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
-
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("obscuranceMap"), DEFERRED_BUFFER_OBSCURANCE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
-
-    slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
-
-
-    slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
-
-
-    gpu::Shader::makeProgram(*program, slotBindings);
-
-    locations->radius = program->getUniforms().findLocation("radius");
-    locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
-
-    locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
-
-    locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
-    locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
-    locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
-    locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
+    gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 
     auto state = std::make_shared<gpu::State>();
    // state->setColorWriteMask(true, true, true, false);
