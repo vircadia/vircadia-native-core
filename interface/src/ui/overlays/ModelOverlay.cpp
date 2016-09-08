@@ -123,17 +123,19 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto texturesValue = properties["textures"];
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         QVariantMap textureMap = texturesValue.toMap();
-        foreach(const QString& key, textureMap.keys()) {
-
-            QUrl newTextureURL = textureMap[key].toUrl();
-            qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
-
-            QMetaObject::invokeMethod(_model.get(), "setTextureWithNameToURL", Qt::AutoConnection,
-                                      Q_ARG(const QString&, key),
-                                      Q_ARG(const QUrl&, newTextureURL));
-
-            _modelTextures[key] = newTextureURL;  // Keep local track of textures for getProperty()
-        }
+        QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
+                                    Q_ARG(const QVariantMap&, textureMap));
+//        foreach(const QString& key, textureMap.keys()) {
+//
+//            QUrl newTextureURL = textureMap[key].toUrl();
+//            qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+//
+//            QMetaObject::invokeMethod(_model.get(), "setTextureWithNameToURL", Qt::AutoConnection,
+//                                      Q_ARG(const QString&, key),
+//                                      Q_ARG(const QUrl&, newTextureURL));
+//
+//            _modelTextures[key] = newTextureURL;  // Keep local track of textures for getProperty()
+//        }
     }
 }
 
