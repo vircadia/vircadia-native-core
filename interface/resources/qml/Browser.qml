@@ -1,6 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.2
-import QtWebEngine 1.1
+import QtWebEngine 1.2
 
 import "controls-uit"
 import "styles" as HifiStyles
@@ -222,6 +222,9 @@ ScrollingWindow {
                 var component = Qt.createComponent("Browser.qml");
                 var newWindow = component.createObject(desktop);
                 request.openIn(newWindow.webView)
+            }
+            onWindowCloseRequested: {
+                root.destroy();
             }
 
             Component.onCompleted: {
