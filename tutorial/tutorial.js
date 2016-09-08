@@ -29,7 +29,8 @@ Script.include("entityData.js");
 
 var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
 var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
-var successSound = SoundCache.getSound(Script.resolvePath("success48.wav"));
+//var successSound = SoundCache.getSound(Script.resolvePath("success48.wav"));
+var successSound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/good_one.L.wav");
 
 function beginsWithFilter(value, key) {
     return value.indexOf(properties[key]) == 0;
@@ -200,6 +201,11 @@ stepDisableControllers.prototype = {
             holdEnabled: false,
             farGrabEnabled: false,
         }));
+        setControllerPartsVisible({
+            touchpad: true,
+            touchpad_teleport: false,
+            touchpad_arrows: false
+        });
         onFinish();
     },
     cleanup: function() {
@@ -217,10 +223,11 @@ var stepWelcome = function(name) {
 }
 stepWelcome.prototype = {
     start: function(onFinish) {
-        Script.setTimeout(onFinish, 8000);
+        this.timerID = Script.setTimeout(onFinish, 8000);
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
+        Script.clearTimeout(this.timerID);
         hideEntitiesWithTag(this.tag);
     }
 };
@@ -291,6 +298,10 @@ function setControllerVisible(name, visible) {
     }));
 }
 
+function setControllerPartsVisible(parts) {
+    Messages.sendLocalMessage('Controller-Display-Parts', JSON.stringify(parts));
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -341,8 +352,9 @@ stepNearGrab.prototype = {
 
         // When block collides with basket start step 2
         function checkCollides() {
-            print(this.tag, "CHECKING...");
-            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.1) {
+            var dist = Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position);
+            print(this.tag, "CHECKING...", dist);
+            if (dist < 0.1) {
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
                 this.soundInjector = Audio.playSound(successSound, {
@@ -423,7 +435,7 @@ stepFarGrab.prototype = {
         var checkCollidesTimer = null;
         function checkCollides() {
             print("CHECKING...");
-            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.1) {
+            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.2) {
                 Script.clearInterval(checkCollidesTimer);
                 this.soundInjector = Audio.playSound(successSound, {
                     position: basketPosition,
@@ -598,6 +610,12 @@ stepTurnAround.prototype = {
         setControllerVisible("left", true);
         setControllerVisible("right", true);
 
+        setControllerPartsVisible({
+            touchpad: false,
+            touchpad_teleport: false,
+            touchpad_arrows: true
+        });
+
         showEntitiesWithTag(this.tag);
         var hasTurnedAround = false;
         this.interval = Script.setInterval(function() {
@@ -625,6 +643,12 @@ stepTurnAround.prototype = {
         setControllerVisible("left", false);
         setControllerVisible("right", false);
 
+        setControllerPartsVisible({
+            touchpad: true,
+            touchpad_teleport: false,
+            touchpad_arrows: false
+        });
+
         if (this.interval) {
             Script.clearInterval(this.interval);
         }
@@ -648,7 +672,14 @@ var stepTeleport = function(name) {
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
-        setControllerVisible("teleport", true);
+        //setControllerVisible("teleport", true);
+
+        setControllerPartsVisible({
+            touchpad: false,
+            touchpad_teleport: true,
+            touchpad_arrows: false
+        });
+
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
 
         // Wait until touching teleport pad...
@@ -678,7 +709,14 @@ stepTeleport.prototype = {
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
-        setControllerVisible("teleport", false);
+        //setControllerVisible("teleport", false);
+
+        setControllerPartsVisible({
+            touchpad: true,
+            touchpad_teleport: false,
+            touchpad_arrows: false
+        });
+
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }
