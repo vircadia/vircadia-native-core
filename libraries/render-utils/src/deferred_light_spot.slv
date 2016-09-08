@@ -25,11 +25,10 @@ uniform lightIndexBuffer {
     int lightIndex[120];
 };
 out vec4 _texCoord0;
-flat out int instanceID;
 
 void main(void) {
     vec4 coneVertex = inPosition;
-    instanceID = lightIndex[gl_InstanceID];
+    int instanceID = lightIndex[gl_InstanceID];
     Light light = getLight(instanceID);
     vec3 lightPos = getLightPosition(light);
     vec4 coneParam = getLightVolumeGeometry(light);
@@ -53,10 +52,6 @@ void main(void) {
 
     // standard transform
     TransformCamera cam = getTransformCamera();
-    
-   <! TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>; !>
-
     <$transformWorldToClipPos(cam, coneVertex, gl_Position)$>;
 
     vec4 projected = gl_Position / gl_Position.w;

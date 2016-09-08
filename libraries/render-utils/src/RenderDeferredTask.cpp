@@ -390,7 +390,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
         state->setColorWriteMask(0);
 
         _opaquePipeline = gpu::Pipeline::create(program, state);

@@ -78,6 +78,31 @@ enum DeferredShader_BufferSlot {
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 static void loadLightVolumeProgram(const char* vertSource, const char* fragSource, bool front, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
+const char no_light_frag[] =
+R"SCRIBE(
+//PC 410 core
+//  Generated on Wed Sep 07 12:11:58 2016
+//
+//  point_light.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 9/18/15.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+out vec4 _fragColor;
+
+void main(void) {
+    _fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+    }
+
+
+)SCRIBE"
+;
+
 void DeferredLightingEffect::init() {
     _directionalLightLocations = std::make_shared<LightLocations>();
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
@@ -99,12 +124,12 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
-    loadLightProgram(deferred_light_vert, local_lights_shading_frag, false, _localLight, _localLightLocations);
+    loadLightProgram(deferred_light_vert, local_lights_shading_frag, true, _localLight, _localLightLocations);
 
-    loadLightVolumeProgram(deferred_light_point_vert, point_light_frag, false, _pointLightBack, _pointLightLocations);
-    loadLightVolumeProgram(deferred_light_point_vert, point_light_frag, true, _pointLightFront, _pointLightLocations);
-    loadLightVolumeProgram(deferred_light_spot_vert, spot_light_frag, false, _spotLightBack, _spotLightLocations);
-    loadLightVolumeProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLightFront, _spotLightLocations);
+    loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, false, _pointLightBack, _pointLightLocations);
+    loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, true, _pointLightFront, _pointLightLocations);
+    loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, false, _spotLightBack, _spotLightLocations);
+    loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, true, _spotLightFront, _spotLightLocations);
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
@@ -223,12 +248,14 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
 
-    // Stencil test all the light passes for objects pixels only, not the background
-    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+   // state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
     
     if (lightVolume) {
-        state->setCullMode(gpu::State::CULL_FRONT);
-        state->setDepthTest(true, false, gpu::GREATER_EQUAL);
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(1, 0xFF, gpu::GREATER_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+       
+        state->setCullMode(gpu::State::CULL_BACK);
+   //     state->setCullMode(gpu::State::CULL_FRONT);
+     //   state->setDepthTest(true, false, gpu::GREATER_EQUAL);
 
         //state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
@@ -236,6 +263,9 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     } else {
+        // Stencil test all the light passes for objects pixels only, not the background
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(0, 0x01, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+
         state->setCullMode(gpu::State::CULL_BACK);
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -289,25 +319,25 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
-    state->setColorWriteMask(true, true, true, false);
- //   state->setColorWriteMask(false, false, false, false);
+   // state->setColorWriteMask(true, true, true, false);
+    state->setColorWriteMask(false, false, false, false);
 
     // Stencil test all the light passes for objects pixels only, not the background
 
     if (front) {
-        state->setCullMode(gpu::State::CULL_FRONT);
+        state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_DECR));
 
-        //state->setDepthClampEnable(true);
+      //  state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
        // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     } else {
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::GREATER_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR));
+        state->setCullMode(gpu::State::CULL_FRONT);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR));
         // additive blending
        // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
@@ -690,6 +720,9 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewTransform, true);
+
         // gather lights
         auto& srcPointLights = deferredLightingEffect->_pointLights;
         auto& srcSpotLights = deferredLightingEffect->_spotLights;
@@ -720,8 +753,8 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
 
             // before we get to the real lighting, let s try to cull down the number of pixels
-            {
-              /*  if (numPointLights > 0) {
+            if (false) {
+                if (numPointLights > 0) {
                     auto mesh = deferredLightingEffect->getPointLightMesh();
                     batch.setIndexBuffer(mesh->getIndexBuffer());
                     batch.setInputBuffer(0, mesh->getVertexBuffer());
@@ -730,16 +763,14 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
                     // Point light pipeline
                     batch.setPipeline(deferredLightingEffect->_pointLightBack);
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                     batch.drawIndexedInstanced(numPointLights, model::Mesh::topologyToPrimitive(pointPart._topology), pointPart._numIndices, pointPart._startIndex, offsetPointLights);
 
                     batch.setPipeline(deferredLightingEffect->_pointLightFront);
-                    batch._glUniform4fv(deferredLightingEffect->_pointLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                     batch.drawIndexedInstanced(numPointLights, model::Mesh::topologyToPrimitive(pointPart._topology), pointPart._numIndices, pointPart._startIndex, offsetPointLights);
-                } */
-                /*
+                }
+                
                 if (numSpotLights > 0) {
                     auto mesh = deferredLightingEffect->getSpotLightMesh();
                     batch.setIndexBuffer(mesh->getIndexBuffer());
@@ -749,15 +780,13 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
                     // Spot light pipeline
                     batch.setPipeline(deferredLightingEffect->_spotLightBack);
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                     batch.drawIndexedInstanced(numSpotLights, model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex, offsetSpotLights);
 
                     batch.setPipeline(deferredLightingEffect->_spotLightFront);
-                    batch._glUniform4fv(deferredLightingEffect->_spotLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                     batch.drawIndexedInstanced(numSpotLights, model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex, offsetSpotLights);
-                }*/
+                }
             }
 
             // Local light pipeline

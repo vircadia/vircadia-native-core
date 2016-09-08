@@ -143,7 +143,8 @@ public:
     bool enablePointLight{ true };
     bool enableSpotLight{ true };
 
-    bool showLightContour{ false }; // false by default
+ //   bool showLightContour { false }; // false by default
+    bool showLightContour { true }; // false by default
 
 signals:
     void dirty();

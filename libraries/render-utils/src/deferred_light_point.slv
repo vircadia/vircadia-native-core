@@ -30,17 +30,19 @@ out vec4 _texCoord0;
 
 void main(void) {
 
-    instanceID = lightIndex[gl_InstanceID];
+    int instanceID = lightIndex[gl_InstanceID];
     Light light = getLight(instanceID);
     vec4 sphereVertex = inPosition;
+    vec3 lightOrigin = getLightPosition(light);
     vec4 sphereParam = getLightVolumeGeometry(light);
 
     sphereVertex.xyz *= sphereParam.w;
 
+    sphereVertex.xyz += lightOrigin;
+
     // standard transform
     TransformCamera cam = getTransformCamera();
-    TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, sphereVertex, gl_Position)$>;
+    <$transformWorldToClipPos(cam, sphereVertex, gl_Position)$>;
 
     vec4 projected = gl_Position / gl_Position.w;
     projected.xy = (projected.xy + 1.0) * 0.5;
