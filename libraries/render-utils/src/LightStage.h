@@ -110,5 +110,5 @@ public:
 
     Shadows _shadows;
 };
-
+using LightStagePointer = std::shared_ptr<LightStage>;
 #endif
