@@ -81,28 +81,6 @@ var TOUCH_CONTROLLER_CONFIGURATION = {
     name: "Touch",
     controllers: [
         {
-            modelURL: "C:/Users/Ryan/Assets/controller/touch_l_full.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND"),
-            rotation: touchLeftBaseRotation,
-            //position: Vec3.sum(leftBasePosition, { x: 0.032, y: 0.0, z: -0.02 }),
-            position: Vec3.sum(leftBasePosition, { x: 0.0, y: -0.016, z: -0.02 }),
-            //dimensions: naturalDimensions,
-        },
-        {
-            modelURL: "C:/Users/Ryan/Assets/controller/touch_r_full.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
-            rotation: touchRightBaseRotation,
-            //position: rightBasePosition,
-            position: Vec3.sum(rightBasePosition, { x: 0.0, y: -0.016, z: -0.02 }),
-            //dimensions: naturalDimensions,
-        }
-    ]
-}
-
-var TOUCH_2_CONTROLLER_CONFIGURATION = {
-    name: "Touch",
-    controllers: [
-        {
             modelURL: "C:/Users/Ryan/Assets/controller/oculus_touch_l.fbx",
             naturalPosition: {
                 x: 0.016486000269651413,
@@ -221,6 +199,7 @@ var viveNaturalPosition = {
     z: 0.06380049744620919
 };
 var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive2.fbx";
+var viveModelURL = "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_body.fbx";
 
 var VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
@@ -369,17 +348,59 @@ var VIVE_CONTROLLER_CONFIGURATION = {
             },
 
             parts: {
-                {
-                    type: "linear",
-                    modelURL: "",
-                    input: Controller.Hardware.Vive.RT,
+                //{
+                //    type: "linear",
+                //    modelURL: "",
+                //    input: "Controller.Hardware.Vive.RT",
+                //    minValue: 0.0,
+                //    maxValue: 1.0,
+                //    textOffset: { x: -0.035, y: 0.004, z: -0.005 },
+                //    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
+                //    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
+                //},
+
+                // The touchpad type draws a dot indicating the current touch/thumb position
+                // and swaps in textures based on the thumb position.
+                touchpad: {
+                    type: "touchpad",
+                    modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
+                    visibleInput: "Vive.RSTouch",
+                    xInput: "Vive.RX",
+                    yInput: "Vive.RY",
+                    naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
                     minValue: 0.0,
                     maxValue: 1.0,
-                    textOffset: { x: -0.035, y: 0.004, z: -0.005 },
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                }
+                    textureName: "Tex.touchpad-blank",
+                    areas: [
+                        {
+                            textureURL: "c:%5CUsers%5CRyan%5CAssets%5Ccontroller%5Cvive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
+                            minX: 0,
+                            maxX: 50,
+                            minY: 0,
+                            maxY: 50
+                        },
+                        {
+                            textureURL: "...",
+                            minX: 0,
+                            maxX: 50,
+                            minY: 0,
+                            maxY: 50
+                        }
+                    ]
+                },
 
+                trigger: {
+                    type: "rotational",
+                    modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trigger.fbx",
+                    input: Controller.Standard.RT,
+                    naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
+                    minValue: 0.0,
+                    maxValue: 1.0,
+                    axis: { x: -1, y: 0, z: 0 },
+                    maxAngle: 90,
+                }
             },
 
             annotationTextRotation: Quat.fromPitchYawRollDegrees(180 + 45, 90, 180),
@@ -463,10 +484,24 @@ var VISIBLE_BY_DEFAULT = false;
 function setupController(config) {
     var controllerDisplay = {
         overlays: [],
+        partOverlays: {
+        },
         annotations: {
         },
-        mappingName: ""
+        mappingName: "mapping-display",
+
+        hidePart: function(partName) {
+            Overlays.editOverlay(this.partOverlays[partName], {
+                visible: false
+            });
+        },
+        showPart: function(partName) {
+            Overlays.editOverlay(this.partOverlays[partName], {
+                visible: true
+            });
+        },
     };
+    var mapping = Controller.newMapping(controllerDisplay.mappingName);
     for (var i = 0; i < config.controllers.length; ++i) {
         var controller = config.controllers[i];
         var position = controller.position;
@@ -558,7 +593,88 @@ function setupController(config) {
                 controllerDisplay.overlays.push(lineOverlayID);
             }
         }
+
+        function clamp(value, min, max) {
+            if (value < min) {
+                return min;
+            } else if (value > max) {
+                return max
+            }
+            return value;
+        }
+
+        if (controller.parts) {
+            for (var partName in controller.parts) {
+                var part = controller.parts[partName];
+                var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
+                var innerRotation = controller.rotation
+
+                Vec3.print("controller", controller.position);
+                Vec3.print("part", partPosition);
+
+                var overlayID = Overlays.addOverlay("model", {
+                    url: part.modelURL,
+                    localPosition: partPosition,
+                    localRotation: innerRotation,
+                    parentID: PARENT_ID,
+                    parentJointIndex: controller.jointIndex,
+                    ignoreRayIntersection: true,
+                });
+
+                if (part.type == "rotational") {
+                    var range = part.maxValue - part.minValue;
+                    mapping.from([part.input]).peek().to(function(value) {
+                        print(value);
+
+                        value = clamp(value, part.minValue, part.maxValue);
+
+                        var pct = (value - part.minValue) / part.maxValue;
+                        var angle = pct * part.maxAngle;
+                        var rotation = Quat.angleAxis(angle, part.axis);
+                        print(value, pct, angle);
+
+                        Overlays.editOverlay(overlayID, {
+                            localRotation: Quat.multiply(innerRotation, rotation)
+                        });
+                    });
+                } else if (part.type == "touchpad") {
+                    function resolveHardware(path) {
+                        var parts = path.split(".");
+                        function resolveInner(base, path, i) {
+                            print(path[i]);
+                            if (i >= path.length) {
+                                return base;
+                            }
+                            return resolveInner(base[path[i]], path, ++i);
+                        }
+                        return resolveInner(Controller.Hardware, parts, 0);
+                    }
+
+                    var visibleInput = resolveHardware(part.visibleInput);
+                    var xinput = resolveHardware(part.xInput);
+                    var yinput = resolveHardware(part.yInput);
+
+                    print("visible:", visibleInput);
+
+                    mapping.from([visibleInput]).peek().to(function(value) {
+                        print("visible", value);
+                    });
+                    mapping.from([xinput]).peek().to(function(value) {
+                        print("X", value);
+                    });
+                    mapping.from([yinput]).peek().invert().to(function(value) {
+                        print("Y", value);
+                    });
+                } else {
+                    print("TYPE NOT SUPPORTED: ", part.type);
+                }
+
+                controllerDisplay.overlays.push(overlayID);
+                controllerDisplay.partOverlays[partName] = overlayID;
+            }
+        }
     }
+    Controller.enableMapping(controllerDisplay.mappingName);
     return controllerDisplay;
 }
 
@@ -616,7 +732,6 @@ mapping.from([Controller.Standard.RT]).to(function(value) {
 Controller.enableMapping(MAPPING_NAME);
 
 //var c = setupController(TOUCH_CONTROLLER_CONFIGURATION);
-//var c = setupController(TOUCH_2_CONTROLLER_CONFIGURATION);
 var c = setupController(VIVE_CONTROLLER_CONFIGURATION);
 //MyAvatar.shouldRenderLocally = false;
 Script.scriptEnding.connect(function() {
