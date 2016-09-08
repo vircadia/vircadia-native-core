@@ -176,7 +176,7 @@ function isFunction(functionToCheck) {
         };
 function playSuccessSound() {
     this.soundInjector = Audio.playSound(successSound, {
-        position: defaultTransform.position,
+        position: MyAvatar.position,
         volume: 0.7,
         loop: false
     });
