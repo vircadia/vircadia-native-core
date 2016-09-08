@@ -79,11 +79,10 @@ void ModelOverlay::render(RenderArgs* args) {
         _model->removeFromScene(scene, pendingChanges);
         _model->addToScene(scene, pendingChanges);
     }
-    scene->enqueuePendingChanges(pendingChanges);
 
-    if (!_visible) {
-        return;
-    }
+    _model->setVisibleInScene(_visible, scene);
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
