@@ -209,6 +209,25 @@ stepDisableControllers.prototype = {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
+// STEP: Welcome                                                             //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+var stepWelcome = function(name) {
+    this.tag = name;
+}
+stepWelcome.prototype = {
+    start: function(onFinish) {
+        Script.setTimeout(onFinish, 8000);
+        showEntitiesWithTag(this.tag);
+    },
+    cleanup: function() {
+        hideEntitiesWithTag(this.tag);
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
 // STEP: Raise hands above head                                              //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
@@ -733,6 +752,7 @@ function startTutorial() {
     currentStep = null;
     STEPS = [
         new stepDisableControllers("step0"),
+        new stepWelcome("welcome"),
         new stepRaiseAboveHead("raiseHands"),
         new stepNearGrab("nearGrab"),
         new stepFarGrab("farGrab"),
