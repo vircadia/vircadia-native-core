@@ -199,7 +199,7 @@ var viveNaturalPosition = {
     z: 0.06380049744620919
 };
 var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive2.fbx";
-var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_body.fbx",
+var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_body.fbx";
 
 var VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
