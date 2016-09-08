@@ -867,7 +867,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #search-area {
-    padding-right: 148px;
+    padding-right: 168px;
     padding-bottom: 24px;
 }
 
@@ -875,13 +875,23 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 98%;
 }
 
+#inView {
+    position: absolute;
+    right: 126px;
+}
+
 #radius-and-unit {
     float: right;
-    margin-right: -148px;
+    margin-right: -168px;
     position: relative;
     top: -17px;
 }
-
+#radius-and-unit label {
+    margin-left: 2px;
+}
+#radius-and-unit input {
+    width: 120px;
+}
 
 #entity-table-scroll {
     /* Height is set by JavaScript. */
