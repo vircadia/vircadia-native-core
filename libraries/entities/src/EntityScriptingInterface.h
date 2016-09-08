@@ -129,6 +129,10 @@ public slots:
 
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
+    Q_INVOKABLE QVector<QUuid> findEntitiesInView(const glm::vec3& center, float radius) const;
+
+    /// finds models within the box specified by the corner and dimensions
+    /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results

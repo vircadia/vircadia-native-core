@@ -9,7 +9,7 @@ EntityListTool = function(opts) {
     });
 
 
-
+    var filterInView = false;
     var searchRadius = 100;
 
     var visible = false;
@@ -54,7 +54,14 @@ EntityListTool = function(opts) {
 
     that.sendUpdate = function() {
         var entities = [];
-        var ids = Entities.findEntities(MyAvatar.position, searchRadius);
+
+        var ids;
+        if (filterInView) {
+            ids = Entities.findEntitiesInView(MyAvatar.position, searchRadius);
+        } else {
+            ids = Entities.findEntities(MyAvatar.position, searchRadius);
+        }
+
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var properties = Entities.getEntityProperties(id);
@@ -115,9 +122,10 @@ EntityListTool = function(opts) {
             toggleSelectedEntitiesLocked();
         } else if (data.type == "toggleVisible") {
             toggleSelectedEntitiesVisible();
+        } else if (data.type === "filterInView") {
+            filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
-            that.sendUpdate();
         }
     });
 

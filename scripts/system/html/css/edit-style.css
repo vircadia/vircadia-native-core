@@ -366,6 +366,10 @@ input[type=button]:disabled {
     background: linear-gradient(#575757 20%, #252525 100%);
 }
 
+input[type=button][pressed=pressed] {
+    color: #00b4ef;
+}
+
 input[type=checkbox] {
     display: none;
 }
@@ -861,11 +865,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
-#entity-list .glyph {
-    font-family: HiFi-Glyphs;
-    font-size: 15px;
-}
-
 #search-area {
     padding-right: 168px;
     padding-bottom: 24px;
@@ -875,7 +874,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 98%;
 }
 
-#inView {
+#in-view {
     position: absolute;
     right: 126px;
 }
@@ -904,8 +903,11 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
     background-color: #1c1c1c;
+}
 
-    height: 100px;
+#entity-table-scroll .glyph {
+    font-family: HiFi-Glyphs;
+    font-size: 15px;
 }
 
 #entity-table {

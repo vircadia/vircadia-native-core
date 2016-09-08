@@ -36,13 +36,15 @@ function loaded() {
       elToggleVisible = document.getElementById("visible");
       elDelete = document.getElementById("delete");
       elFilter = document.getElementById("filter");
-      elTeleport = document.getElementById("teleport");
+      elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
+      elTeleport = document.getElementById("teleport");
       elEntityTable = document.getElementById("entity-table");
       elInfoToggle = document.getElementById("info-toggle");
       elInfoToggleGlyph = elInfoToggle.firstChild;
       elFooter = document.getElementById("footer-text");
       elNoEntitiesMessage = document.getElementById("no-entities");
+      elNoEntitiesInView = document.getElementById("no-entities-in-view");
       elNoEntitiesRadius = document.getElementById("no-entities-radius");
       elEntityTableScroll = document.getElementById("entity-table-scroll");
       
@@ -271,6 +273,22 @@ function loaded() {
           }
       }, false);
       
+      var isFilterInView = false;
+      var FILTER_IN_VIEW_ATTRIBUTE = "pressed";
+      elNoEntitiesInView.style.display = "none";
+      elInView.onclick = function () {
+          isFilterInView = !isFilterInView;
+          if (isFilterInView) {
+              elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
+              elNoEntitiesInView.style.display = "inline";
+          } else {
+              elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
+              elNoEntitiesInView.style.display = "none";
+          }
+          EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
+          refreshEntities();
+      }
+
       elRadius.onchange = function () {
           elRadius.value = Math.max(elRadius.value, 0);
           EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));

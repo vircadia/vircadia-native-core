@@ -550,6 +550,14 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::findEntitiesInView(const glm::vec3& center, float radius) const {
+    QVector<QUuid> result;
+
+    // TODO
+
+    return result;
+}
+
 QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
     QVector<QUuid> result;
     if (_entityTree) {
