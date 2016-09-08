@@ -1398,8 +1398,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = maxSize;
     }
 
-    int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
-    if (!bytesAudioOutputUnplayed) {
+    bool wasBufferStarved = _audio->_audioOutput->bufferSize() == _audio->_audioOutput->bytesFree();
+    if (wasBufferStarved) {
         _unfulfilledReads++;
     }
 
