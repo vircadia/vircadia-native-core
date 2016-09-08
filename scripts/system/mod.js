@@ -15,6 +15,8 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+Script.include("/~/system/libraries/controllers.js");
+
 // grab the toolbar
 var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 

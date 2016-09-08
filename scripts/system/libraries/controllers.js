@@ -25,7 +25,7 @@ getGrabPointSphereOffset = function(handController) {
     };
 };
 
-// controllerLocation is where the controller would be, in-world.
+// controllerWorldLocation is where the controller would be, in-world, with an added offset
 getControllerWorldLocation = function (handController, doOffset) {
     var orientation;
     var position;
