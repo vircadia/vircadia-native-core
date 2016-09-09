@@ -27,8 +27,8 @@ class RenderableWebEntityItem;
 class WebEntityAPIHelper : public QObject {
     Q_OBJECT
 public:
-    void setPtr(RenderableWebEntityItem* ptr) {
-        _ptr = ptr;
+    void setRenderableWebEntityItem(RenderableWebEntityItem* renderableWebEntityItem) {
+        _renderableWebEntityItem = renderableWebEntityItem;
     }
     Q_INVOKABLE void synthesizeKeyPress(QString key);
 
@@ -41,7 +41,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
 protected:
-    RenderableWebEntityItem* _ptr{ nullptr };
+    RenderableWebEntityItem* _renderableWebEntityItem{ nullptr };
 };
 
 class RenderableWebEntityItem : public WebEntityItem  {

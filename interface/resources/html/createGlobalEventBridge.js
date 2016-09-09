@@ -18,11 +18,13 @@ var EventBridge;
         this._callbacks = [];
         this._messages = [];
         this.scriptEventReceived = {
-            connect: function (cb) { self._callbacks.push(cb); }
+            connect: function (callback) {
+                self._callbacks.push(callback);
+            }
         };
         this.emitWebEvent = function (message) {
             self._messages.push(message);
-        }
+        };
     };
 
     EventBridge = new TempEventBridge();
@@ -31,11 +33,11 @@ var EventBridge;
         // replace the TempEventBridge with the real one.
         var tempEventBridge = EventBridge;
         EventBridge = channel.objects.eventBridgeWrapper.eventBridge;
-        tempEventBridge._callbacks.forEach(function (cb) {
-            EventBridge.scriptEventReceived.connect(cb);
+        tempEventBridge._callbacks.forEach(function (callback) {
+            EventBridge.scriptEventReceived.connect(callback);
         });
-        tempEventBridge._messages.forEach(function (msg) {
-            EventBridge.emitWebEvent(msg);
+        tempEventBridge._messages.forEach(function (message) {
+            EventBridge.emitWebEvent(message);
         });
     });
 })();

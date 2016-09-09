@@ -13,7 +13,18 @@
     var numWarnings = 0;
 
     function shouldRaiseKeyboard() {
-        return document.activeElement.nodeName == "INPUT" || document.activeElement.nodeName == "TEXTAREA";
+        if (document.activeElement.nodeName == "INPUT" || document.activeElement.nodeName == "TEXTAREA") {
+            return true;
+        } else {
+            // check for contenteditable attribute
+            for (var i = 0; i < document.activeElement.attributes.length; i++) {
+                if (document.activeElement.attributes[i].name === "contenteditable" &&
+                    document.activeElement.attributes[i].value === "true") {
+                    return true;
+                }
+            }
+            return false;
+        }
     };
 
     setInterval(function () {

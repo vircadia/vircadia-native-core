@@ -39,8 +39,8 @@ static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
-    if (_ptr) {
-        _ptr->synthesizeKeyPress(key);
+    if (_renderableWebEntityItem) {
+        _renderableWebEntityItem->synthesizeKeyPress(key);
     }
 }
 
@@ -57,10 +57,10 @@ void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
         // special case to handle raising and lowering the virtual keyboard
-        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _ptr) {
-            _ptr->setKeyboardRaised(true);
-        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _ptr) {
-            _ptr->setKeyboardRaised(false);
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(false);
         } else {
             emit webEventReceived(message);
         }
@@ -83,7 +83,7 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setMaximumTouchPoints(4);
 
     _webEntityAPIHelper = new WebEntityAPIHelper;
-    _webEntityAPIHelper->setPtr(this);
+    _webEntityAPIHelper->setRenderableWebEntityItem(this);
     _webEntityAPIHelper->moveToThread(qApp->thread());
 
     // forward web events to EntityScriptingInterface
@@ -94,7 +94,7 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
-    _webEntityAPIHelper->setPtr(nullptr);
+    _webEntityAPIHelper->setRenderableWebEntityItem(nullptr);
     _webEntityAPIHelper->deleteLater();
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();

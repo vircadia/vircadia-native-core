@@ -507,7 +507,7 @@ public:
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<AddressManager>();
-        DependencyManager::set<NodeList>(NodeType::Agent, 0);
+        DependencyManager::set<NodeList>(NodeType::Agent);
         DependencyManager::set<DeferredLightingEffect>();
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();

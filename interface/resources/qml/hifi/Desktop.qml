@@ -46,8 +46,20 @@ OriginalDesktop.Desktop {
         }
     }
 
-    property var toolbars: ({})
     Component { id: toolbarBuilder; Toolbar { } }
+    // This used to create sysToolbar dynamically with a call to getToolbar() within onCompleted.
+    // Beginning with QT 5.6, this stopped working, as anything added to toolbars too early got
+    // wiped during startup.
+    Toolbar {
+        id: sysToolbar;
+        objectName: "com.highfidelity.interface.toolbar.system";
+        // Magic: sysToolbar.x and y come from settings, and are bound before the properties specified here are applied.
+        x: sysToolbar.x;
+        y: sysToolbar.y;
+    }
+    property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
+        map[sysToolbar.objectName] = sysToolbar;
+        return map; })({});
 
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
@@ -55,7 +67,6 @@ OriginalDesktop.Desktop {
         WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
-        var sysToolbar = desktop.getToolbar("com.highfidelity.interface.toolbar.system");
         var toggleHudButton = sysToolbar.addButton({
             objectName: "hudToggle",
             imageURL: "../../../icons/hud.svg",

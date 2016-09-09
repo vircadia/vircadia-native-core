@@ -116,10 +116,10 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
     
 private:
-    NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
-    NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
-    NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+    void operator=(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
