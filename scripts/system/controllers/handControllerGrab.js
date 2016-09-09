@@ -2271,6 +2271,7 @@ function MyController(hand) {
                 };
             } else {
                 pointerEvent = this.touchingEnterPointerEvent;
+                pointerEvent.type = "Release";
                 pointerEvent.button = "Primary";
                 pointerEvent.isPrimaryHeld = false;
             }

@@ -205,6 +205,8 @@ public slots:
 
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
+    Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -231,6 +233,8 @@ signals:
     void addingEntity(const EntityItemID& entityID);
     void clearingEntities();
     void debitEnergySource(float value);
+
+    void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);

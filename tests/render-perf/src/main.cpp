@@ -497,6 +497,10 @@ protected:
         _postUpdateLambdas[key] = func;
     }
 
+    bool isHMDMode() const override {
+        return false;
+    }
+
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
     static void setup() {
