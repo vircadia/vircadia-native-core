@@ -769,7 +769,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
     QScriptValue result = engine->newObject();
-	return result;
+    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {

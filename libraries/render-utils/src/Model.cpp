@@ -161,22 +161,33 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-size_t Model::getRenderInfoTextureSize() {
-    if (!_hasCalculatedTextureSize && isLoaded() && getGeometry()->areTexturesLoaded()) {
+void Model::calculateTextureInfo() {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded()) {
         size_t textureSize = 0;
+        int textureCount = 0;
         bool allTexturesLoaded = true;
         foreach(auto renderItem, _modelMeshRenderItemsSet) {
             auto meshPart = renderItem.get();
             bool allTexturesForThisMesh = meshPart->calculateMaterialSize();
             allTexturesLoaded = allTexturesLoaded & allTexturesForThisMesh;
             textureSize += meshPart->getMaterialTextureSize();
+            textureCount += meshPart->getMaterialTextureCount();
         }
         _renderInfoTextureSize = textureSize;
-        _hasCalculatedTextureSize = allTexturesLoaded; // only do this once
+        _renderInfoTextureCount = textureCount;
+        _hasCalculatedTextureInfo = allTexturesLoaded; // only do this once
     }
+}
+
+size_t Model::getRenderInfoTextureSize() {
+    calculateTextureInfo();
     return _renderInfoTextureSize;
 }
 
+int Model::getRenderInfoTextureCount() {
+    calculateTextureInfo();
+    return _renderInfoTextureCount;
+}
 
 void Model::updateRenderItems() {
     if (!_addedToScene) {
