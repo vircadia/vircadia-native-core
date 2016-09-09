@@ -44,7 +44,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 var TELEPORT_CANCEL_RANGE = 1;
 var USE_COOL_IN = true;
 var COOL_IN_DURATION = 500;
-var MAX_HMD_AVATAR_SEPARATION = 10.0f;
+var MAX_HMD_AVATAR_SEPARATION = 10.0;
 
 function ThumbPad(hand) {
     this.hand = hand;
