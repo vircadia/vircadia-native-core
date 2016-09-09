@@ -201,11 +201,7 @@ stepDisableControllers.prototype = {
             holdEnabled: false,
             farGrabEnabled: false,
         }));
-        setControllerPartsVisible({
-            touchpad: true,
-            touchpad_teleport: false,
-            touchpad_arrows: false
-        });
+        setControllerPartLayer('touchpad', 'blank');
         onFinish();
     },
     cleanup: function() {
@@ -300,6 +296,12 @@ function setControllerVisible(name, visible) {
 
 function setControllerPartsVisible(parts) {
     Messages.sendLocalMessage('Controller-Display-Parts', JSON.stringify(parts));
+}
+
+function setControllerPartLayer(part, layer) {
+    data = {};
+    data[part] = layer;
+    Messages.sendLocalMessage('Controller-Set-Part-Layer', JSON.stringify(data));
 }
 
 
@@ -610,11 +612,7 @@ stepTurnAround.prototype = {
         setControllerVisible("left", true);
         setControllerVisible("right", true);
 
-        setControllerPartsVisible({
-            touchpad: false,
-            touchpad_teleport: false,
-            touchpad_arrows: true
-        });
+        setControllerPartLayer('touchpad', 'arrows');
 
         showEntitiesWithTag(this.tag);
         var hasTurnedAround = false;
@@ -643,11 +641,7 @@ stepTurnAround.prototype = {
         setControllerVisible("left", false);
         setControllerVisible("right", false);
 
-        setControllerPartsVisible({
-            touchpad: true,
-            touchpad_teleport: false,
-            touchpad_arrows: false
-        });
+        setControllerPartLayer('touchpad', 'blank');
 
         if (this.interval) {
             Script.clearInterval(this.interval);
@@ -674,11 +668,7 @@ stepTeleport.prototype = {
     start: function(onFinish) {
         //setControllerVisible("teleport", true);
 
-        setControllerPartsVisible({
-            touchpad: false,
-            touchpad_teleport: true,
-            touchpad_arrows: false
-        });
+        setControllerPartLayer('touchpad', 'teleport');
 
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
 
@@ -711,11 +701,7 @@ stepTeleport.prototype = {
     cleanup: function() {
         //setControllerVisible("teleport", false);
 
-        setControllerPartsVisible({
-            touchpad: true,
-            touchpad_teleport: false,
-            touchpad_arrows: false
-        });
+        setControllerPartLayer('touchpad', 'blank');
 
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);

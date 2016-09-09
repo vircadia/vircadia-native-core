@@ -232,73 +232,39 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                     //modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
                     modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
                     visibleInput: "Vive.RSTouch",
-                    xInput: "Vive.RX",
-                    yInput: "Vive.RY",
+                    xInput: "Vive.LX",
+                    yInput: "Vive.LY",
                     naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
                     minValue: 0.0,
                     maxValue: 1.0,
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     textureName: "Tex.touchpad-blank",
-                },
 
-                touchpad_teleport: {
-                    type: "touchpad",
-                    //modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
-                    visibleInput: "Vive.RSTouch",
-                    xInput: "Vive.RX",
-                    yInput: "Vive.RY",
-                    naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
-                    minValue: 0.0,
-                    maxValue: 1.0,
-                    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
-                    defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
-                },
-
-                touchpad_arrows: {
-                    type: "touchpad",
-                    //modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
-                    visibleInput: "Vive.RSTouch",
-                    xInput: "Vive.RX",
-                    yInput: "Vive.RY",
-                    naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
-                    minValue: 0.0,
-                    maxValue: 1.0,
-                    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
-                    defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
-                    areas: [
-                        {
-                            textureURL: "c:%5CUsers%5CRyan%5CAssets%5Ccontroller%5Cvive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
-                            minX: 0,
-                            maxX: 50,
-                            minY: 0,
-                            maxY: 50
+                    defaultTextureLayer: "blank",
+                    textureLayers: {
+                        blank: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
-                        {
-                            textureURL: "...",
-                            minX: 0,
-                            maxX: 50,
-                            minY: 0,
-                            maxY: 50
+                        teleport: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
+                        },
+                        arrows: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
                         }
-                    ]
+                    }
                 },
 
                 trigger: {
                     type: "rotational",
                     modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trigger.fbx",
-                    input: Controller.Standard.RT,
+                    input: Controller.Standard.LT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
+                    origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
                     axis: { x: -1, y: 0, z: 0 },
-                    maxAngle: 90,
+                    maxAngle: 25,
                 },
 
                 l_grip: {
@@ -404,9 +370,10 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 trigger: {
                     position: {
                         x: 0.0055,
-                        y: -0.023978,
+                        y: -0.032978,
                         z: 0.04546
                     },
+                    lineHeight: 0.013,
                     direction: "left",
                     color: { red: 255, green: 100, blue: 100 },
                 },
@@ -491,54 +458,19 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     textureName: "Tex.touchpad-blank",
-                },
 
-                touchpad_teleport: {
-                    type: "touchpad",
-                    //modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
-                    visibleInput: "Vive.RSTouch",
-                    xInput: "Vive.RX",
-                    yInput: "Vive.RY",
-                    naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
-                    minValue: 0.0,
-                    maxValue: 1.0,
-                    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
-                    defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
-                },
-
-                touchpad_arrows: {
-                    type: "touchpad",
-                    //modelURL: "file:///C:\\Users\\Ryan\\Assets\\controller\\vive_trackpad.fbx",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
-                    visibleInput: "Vive.RSTouch",
-                    xInput: "Vive.RX",
-                    yInput: "Vive.RY",
-                    naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
-                    minValue: 0.0,
-                    maxValue: 1.0,
-                    minPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
-                    defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
-                    areas: [
-                        {
-                            textureURL: "c:%5CUsers%5CRyan%5CAssets%5Ccontroller%5Cvive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
-                            minX: 0,
-                            maxX: 50,
-                            minY: 0,
-                            maxY: 50
+                    defaultTextureLayer: "blank",
+                    textureLayers: {
+                        blank: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
-                        {
-                            textureURL: "...",
-                            minX: 0,
-                            maxX: 50,
-                            minY: 0,
-                            maxY: 50
+                        teleport: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
+                        },
+                        arrows: {
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
                         }
-                    ]
+                    }
                 },
 
                 trigger: {
@@ -546,10 +478,11 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                     modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trigger.fbx",
                     input: Controller.Standard.RT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
+                    origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
                     axis: { x: -1, y: 0, z: 0 },
-                    maxAngle: 90,
+                    maxAngle: 25,
                 },
 
                 l_grip: {
@@ -609,9 +542,10 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                 trigger: {
                     position: {
                         x: -0.075,
-                        y: -0.023978,
+                        y: -0.032978,
                         z: 0.04546
                     },
+                    lineHeight: 0.013,
                     direction: "left",
                     color: { red: 255, green: 100, blue: 100 },
                 },
@@ -665,6 +599,8 @@ function setupController(config) {
         overlays: [],
         partOverlays: {
         },
+        parts: {
+        },
         annotations: {
         },
         mappingName: "mapping-display",
@@ -680,6 +616,29 @@ function setupController(config) {
                 }
             }
         },
+
+        setLayerForPart: function(partName, layerName) {
+            print("Setting layer...", partName, layerName);
+            if (partName in this.parts) {
+                var part = this.parts[partName];
+                print("FOnd", JSON.stringify(part));
+                if (layerName in part.textureLayers) {
+                    print("got it", layerName);
+                    var layer = part.textureLayers[layerName];
+                    var textures = {};
+                    if (layer.defaultTextureURL) {
+                        print("default texture");
+                        textures[part.textureName] = layer.defaultTextureURL;
+                    }
+                    for (var i = 0; i < this.partOverlays[partName].length; ++i) {
+                        print("updating", JSON.stringify(textures));
+                        Overlays.editOverlay(this.partOverlays[partName][i], {
+                            textures: textures
+                        });
+                    }
+                }
+            }
+        }
     };
     var mapping = Controller.newMapping(controllerDisplay.mappingName);
     for (var i = 0; i < config.controllers.length; ++i) {
@@ -736,7 +695,7 @@ function setupController(config) {
                     text: key,
                     localPosition: pos,
                     localRotation: controller.annotationTextRotation,
-                    lineHeight: 0.01,
+                    lineHeight: annotation.lineHeight ? annotation.lineHeight : 0.01,
                     leftMargin: 0,
                     rightMargin: 0,
                     topMargin: 0,
@@ -792,6 +751,8 @@ function setupController(config) {
                 Vec3.print("controller", controller.position);
                 Vec3.print("part", partPosition);
 
+                controllerDisplay.parts[partName] = controller.parts[partName];
+
                 var overlayID = Overlays.addOverlay("model", {
                     url: part.modelURL,
                     localPosition: partPosition,
@@ -804,20 +765,36 @@ function setupController(config) {
 
                 if (part.type == "rotational") {
                     var range = part.maxValue - part.minValue;
-                    mapping.from([part.input]).peek().to(function(value) {
-                        print(value);
+                    mapping.from([part.input]).peek().to(function(controller, overlayID, part) {
+                        return function(value) {
+                            //print(value);
+                            //print(JSON.stringify(part));
 
-                        value = clamp(value, part.minValue, part.maxValue);
+                            value = clamp(value, part.minValue, part.maxValue);
 
-                        var pct = (value - part.minValue) / part.maxValue;
-                        var angle = pct * part.maxAngle;
-                        var rotation = Quat.angleAxis(angle, part.axis);
-                        print(value, pct, angle);
+                            var pct = (value - part.minValue) / part.maxValue;
+                            var angle = pct * part.maxAngle;
+                            var rotation = Quat.angleAxis(angle, part.axis);
+                            print(value, pct, angle);
 
-                        Overlays.editOverlay(overlayID, {
-                            localRotation: Quat.multiply(innerRotation, rotation)
-                        });
-                    });
+                            var offset = { x: 0, y: 0, z: 0 };
+                            if (part.origin) {
+                                //print(rotation.x, rotation.y, rotation.z, rotation.w);
+                                var offset = Vec3.multiplyQbyV(rotation, part.origin);
+                                offset = Vec3.subtract(offset, part.origin);
+                                Vec3.print('offset', offset);
+                                //partPosition = Vec3.sum(partPosition, offset);
+                            }
+
+                            var partPosition = Vec3.sum(controller.position,
+                                    Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
+
+                            Overlays.editOverlay(overlayID, {
+                                localPosition: partPosition,
+                                localRotation: Quat.multiply(controller.rotation, rotation)
+                            });
+                        }
+                    }(controller, overlayID, part));
                 } else if (part.type == "touchpad") {
                     function resolveHardware(path) {
                         var parts = path.split(".");
@@ -907,6 +884,12 @@ var handleMessages = function(channel, message, sender) {
                 var visible = data[name];
                 c.setPartVisible(name, visible);
             }
+        } else if (channel === 'Controller-Set-Part-Layer') {
+            var data = JSON.parse(message);
+            for (var name in data) {
+                var layer = data[name];
+                c.setLayerForPart(name, layer);
+            }
         }
     }
 }
@@ -934,6 +917,13 @@ Controller.enableMapping(MAPPING_NAME);
 var c = setupController(VIVE_CONTROLLER_CONFIGURATION);
 //c.setPartVisible("touchpad", false);
 //c.setPartVisible("touchpad_teleport", false);
+//layers = ["blank", "teleport", 'arrows'];
+//num = 0;
+//Script.setInterval(function() {
+//    print('num', num);
+//    num = (num + 1) % layers.length;
+//    c.setLayerForPart("touchpad", layers[num]);
+//}, 2000);
 
 Script.scriptEnding.connect(function() {
     deleteControllerDisplay(c);
