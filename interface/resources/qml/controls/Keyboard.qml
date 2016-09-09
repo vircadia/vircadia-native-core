@@ -7,8 +7,8 @@ Item {
     property bool shiftMode: false
 
     function resetShiftMode(mode) {
-        shiftMode = mode
-        shiftKey.resetToggledMode(mode)
+        shiftMode = mode;
+        shiftKey.resetToggledMode(mode);
     }
 
     function toUpper(str) {
@@ -59,7 +59,7 @@ Item {
     function alphaKeyClickedHandler(mouseArea) {
         // reset shift mode to false after first keypress
         if (shiftMode) {
-            resetShiftMode(false)
+            resetShiftMode(false);
         }
     }
 
@@ -333,7 +333,7 @@ Item {
                     width: 89
                     glyph: "&123"
                     mouseArea.onClicked: {
-                        keyboardBase.parent.punctuationMode = true
+                        keyboardBase.parent.punctuationMode = true;
                     }
                 }
 

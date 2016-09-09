@@ -10,11 +10,11 @@ Item {
     property alias mouseArea: mouseArea1
 
     function resetToggledMode(mode) {
-        toggled = mode
+        toggled = mode;
         if (toggled) {
-            state = "mouseDepressed"
+            state = "mouseDepressed";
         } else {
-            state = ""
+            state = "";
         }
     }
 
@@ -26,52 +26,52 @@ Item {
 
         onCanceled: {
             if (toggled) {
-                keyItem.state = "mouseDepressed"
+                keyItem.state = "mouseDepressed";
             } else {
-                keyItem.state = ""
+                keyItem.state = "";
             }
         }
 
         onClicked: {
-            mouse.accepted = true
-            webEntity.synthesizeKeyPress(glyph)
+            mouse.accepted = true;
+            webEntity.synthesizeKeyPress(glyph);
             if (toggle) {
-                toggled = !toggled
+                toggled = !toggled;
             }
         }
 
         onDoubleClicked: {
-            mouse.accepted = true
+            mouse.accepted = true;
         }
 
         onEntered: {
-            keyItem.state = "mouseOver"
+            keyItem.state = "mouseOver";
         }
 
         onExited: {
             if (toggled) {
-                keyItem.state = "mouseDepressed"
+                keyItem.state = "mouseDepressed";
             } else {
-                keyItem.state = ""
+                keyItem.state = "";
             }
         }
 
         onPressed: {
-            keyItem.state = "mouseClicked"
-            mouse.accepted = true
+            keyItem.state = "mouseClicked";
+            mouse.accepted = true;
         }
 
         onReleased: {
             if (containsMouse) {
-                keyItem.state = "mouseOver"
+                keyItem.state = "mouseOver";
             } else {
                 if (toggled) {
-                    keyItem.state = "mouseDepressed"
+                    keyItem.state = "mouseDepressed";
                 } else {
-                    keyItem.state = ""
+                    keyItem.state = "";
                 }
             }
-            mouse.accepted = true
+            mouse.accepted = true;
         }
     }
 

@@ -44,13 +44,13 @@ Item {
         webChannel.registeredObjects: [eventBridgeWrapper]
 
         Component.onCompleted: {
-            console.log("Connecting JS messaging to Hifi Logging")
+            console.log("Connecting JS messaging to Hifi Logging");
             // Ensure the JS from the web-engine makes it to our logging
             root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
 
-            root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)"
+            root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
         }
 
         // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
