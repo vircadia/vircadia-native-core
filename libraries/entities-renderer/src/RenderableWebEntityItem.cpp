@@ -52,12 +52,6 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
-
-    // forward web events to EntityScriptingInterface
-    auto entities = DependencyManager::get<EntityScriptingInterface>();
-    QObject::connect(_webSurface->_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
-        emit entities->webEventReceived(entityItemID, message);
-    });
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
@@ -102,6 +96,14 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
+
+    // forward web events to EntityScriptingInterface
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    const EntityItemID entityItemID = getID();
+    QObject::connect(_webSurface->_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
+        emit entities->webEventReceived(entityItemID, message);
+    });
+
     // Restore the original GL context
     currentContext->makeCurrent(currentSurface);
 
@@ -161,15 +163,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        #if defined(Q_OS_LINUX)
-        // these don't seem to work on Linux
-        return;
-        #else
         if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
             return;
         }
         _fadeStartTime = usecTimestampNow();
-        #endif
     }
 
     _lastRenderTime = usecTimestampNow();
