@@ -18,7 +18,7 @@ import "hifi/toolbars"
 import "controls-uit" as HifiControls
 
 Window {
-    property bool keyboardRaised: true
+    property bool keyboardRaised: false
     property bool punctuationMode: false
 
     id: root
@@ -70,6 +70,7 @@ Window {
 
     AddressBarDialog {
         id: addressBarDialog
+        objectName: "AddressBarDialogDialog"
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
         // The buttons have their button state changed on hover, so we have to manually fix them up here
@@ -126,6 +127,7 @@ Window {
         }
         Image {
             id: backgroundImage
+            objectName: "AddressBarDialogImage"
             source: "../images/address-bar.svg"
             width: 576 * root.scale
             height: 80 * root.scale
@@ -175,6 +177,7 @@ Window {
             TextInput {
                 id: addressLine
                 focus: true
+                objectName: "AddressBarDialogTextInput"
                 anchors {
                     top: parent.top
                     bottom: parent.bottom

@@ -814,15 +814,29 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     return function();
 }
 
+void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    if (!object) {
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    if (!item) {
         setFocusText(false);
+        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
+
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+    setKeyboardRaised(item, item->hasActiveFocus());
+    _currentFocusItem = item;
+    connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
 
 void OffscreenQmlSurface::setFocusText(bool newFocusText) {
@@ -880,15 +894,25 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
     QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }
 
-void OffscreenQmlSurface::setKeyboardRaised(bool raised) {
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised) {
 
     // raise the keyboard only while in HMD mode and it's being requested.
     // XXX
     // bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
     // getRootItem()->setProperty("keyboardRaised", QVariant(value));
 
-    getRootItem()->setProperty("keyboardRaised", QVariant(raised));
+    if (!object) {
+        return;
+    }
 
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        if (item->property("keyboardRaised").isValid()) {
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
+    }
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
@@ -905,9 +929,9 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
     } else {
         // special case to handle raising and lowering the virtual keyboard
         if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD") {
-            setKeyboardRaised(true);
+            setKeyboardRaised(getRootItem(), true);
         } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD") {
-            setKeyboardRaised(false);
+            setKeyboardRaised(getRootItem(), false);
         } else {
             emit webEventReceived(message);
         }
