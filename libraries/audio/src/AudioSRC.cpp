@@ -593,6 +593,202 @@ void AudioSRC::convertOutput(float** inputs, float* output, int numFrames) {
 
 #else
 
+#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+
+#include <arm_neon.h>
+
+int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
+    int outputFrames = 0;
+
+    assert(_numTaps % 8 == 0);  // SIMD8
+
+    if (_step == 0) {   // rational
+
+        int32_t i = HI32(_offset);
+
+        while (i < inputFrames) {
+
+            const float* c0 = &_polyphaseFilter[_numTaps * _phase];
+
+            float32x4_t acc0 = vdupq_n_f32(0);
+            float32x4_t acc1 = vdupq_n_f32(0);
+           
+            for (int j = 0; j < _numTaps; j += 8) {
+
+                //float coef = c0[j];
+                float32x4_t coef0 = vld1q_f32(&c0[j + 0]);  // aligned
+                float32x4_t coef1 = vld1q_f32(&c0[j + 4]);  // aligned
+
+                //acc += input[i + j] * coef;
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 0]), coef0);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input0[i + j + 4]), coef1);
+            }
+            acc0 = vaddq_f32(acc0, acc1);
+
+            // horizontal sum
+            float32x2_t t0 = vadd_f32(vget_low_f32(acc0), vget_high_f32(acc0));
+            t0 = vpadd_f32(t0, t0);
+
+            vst1_lane_f32(&output0[outputFrames], t0, 0);
+            outputFrames += 1;
+
+            i += _stepTable[_phase];
+            if (++_phase == _upFactor) {
+                _phase = 0;
+            }
+        }
+        _offset = (int64_t)(i - inputFrames) << 32;
+
+    } else {    // irrational
+
+        while (HI32(_offset) < inputFrames) {
+
+            int32_t i = HI32(_offset);
+            uint32_t f = LO32(_offset);
+
+            uint32_t phase = f >> SRC_FRACBITS;
+            float32x4_t frac = vdupq_n_f32((f & SRC_FRACMASK) * QFRAC_TO_FLOAT);
+
+            const float* c0 = &_polyphaseFilter[_numTaps * (phase + 0)];
+            const float* c1 = &_polyphaseFilter[_numTaps * (phase + 1)];
+
+            float32x4_t acc0 = vdupq_n_f32(0);
+            float32x4_t acc1 = vdupq_n_f32(0);
+
+            for (int j = 0; j < _numTaps; j += 8) {
+
+                float32x4_t coef0 = vld1q_f32(&c0[j + 0]);  // aligned
+                float32x4_t coef1 = vld1q_f32(&c0[j + 4]);  // aligned
+                float32x4_t coef2 = vld1q_f32(&c1[j + 0]);  // aligned
+                float32x4_t coef3 = vld1q_f32(&c1[j + 4]);  // aligned
+
+                //float coef = c0[j] + frac * (c1[j] - c0[j]);
+                coef2 = vsubq_f32(coef2, coef0);
+                coef3 = vsubq_f32(coef3, coef1);
+                coef0 = vmlaq_f32(coef0, coef2, frac);
+                coef1 = vmlaq_f32(coef1, coef3, frac);
+
+                //acc += input[i + j] * coef;
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 0]), coef0);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input0[i + j + 4]), coef1);
+            }
+            acc0 = vaddq_f32(acc0, acc1);
+
+            // horizontal sum
+            float32x2_t t0 = vadd_f32(vget_low_f32(acc0), vget_high_f32(acc0));
+            t0 = vpadd_f32(t0, t0);
+
+            vst1_lane_f32(&output0[outputFrames], t0, 0);
+            outputFrames += 1;
+
+            _offset += _step;
+        }
+        _offset -= (int64_t)inputFrames << 32;
+    }
+
+    return outputFrames;
+}
+
+int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames) {
+    int outputFrames = 0;
+
+    assert(_numTaps % 8 == 0);  // SIMD8
+
+    if (_step == 0) {   // rational
+
+        int32_t i = HI32(_offset);
+
+        while (i < inputFrames) {
+
+            const float* c0 = &_polyphaseFilter[_numTaps * _phase];
+
+            float32x4_t acc0 = vdupq_n_f32(0);
+            float32x4_t acc1 = vdupq_n_f32(0);
+
+            for (int j = 0; j < _numTaps; j += 8) {
+
+                //float coef = c0[j];
+                float32x4_t coef0 = vld1q_f32(&c0[j + 0]);  // aligned
+                float32x4_t coef1 = vld1q_f32(&c0[j + 4]);  // aligned
+
+                //acc += input[i + j] * coef;
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 0]), coef0);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input1[i + j + 0]), coef0);
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 4]), coef1);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input1[i + j + 4]), coef1);
+            }
+
+            // horizontal sum
+            float32x2_t t0 = vadd_f32(vget_low_f32(acc0), vget_high_f32(acc0));
+            float32x2_t t1 = vadd_f32(vget_low_f32(acc1), vget_high_f32(acc1));
+            t0 = vpadd_f32(t0, t1);
+
+            vst1_lane_f32(&output0[outputFrames], t0, 0);
+            vst1_lane_f32(&output1[outputFrames], t0, 1);
+            outputFrames += 1;
+
+            i += _stepTable[_phase];
+            if (++_phase == _upFactor) {
+                _phase = 0;
+            }
+        }
+        _offset = (int64_t)(i - inputFrames) << 32;
+
+    } else {    // irrational
+
+        while (HI32(_offset) < inputFrames) {
+
+            int32_t i = HI32(_offset);
+            uint32_t f = LO32(_offset);
+
+            uint32_t phase = f >> SRC_FRACBITS;
+            float32x4_t frac = vdupq_n_f32((f & SRC_FRACMASK) * QFRAC_TO_FLOAT);
+
+            const float* c0 = &_polyphaseFilter[_numTaps * (phase + 0)];
+            const float* c1 = &_polyphaseFilter[_numTaps * (phase + 1)];
+
+            float32x4_t acc0 = vdupq_n_f32(0);
+            float32x4_t acc1 = vdupq_n_f32(0);
+
+            for (int j = 0; j < _numTaps; j += 8) {
+
+                float32x4_t coef0 = vld1q_f32(&c0[j + 0]);  // aligned
+                float32x4_t coef1 = vld1q_f32(&c0[j + 4]);  // aligned
+                float32x4_t coef2 = vld1q_f32(&c1[j + 0]);  // aligned
+                float32x4_t coef3 = vld1q_f32(&c1[j + 4]);  // aligned
+
+                //float coef = c0[j] + frac * (c1[j] - c0[j]);
+                coef2 = vsubq_f32(coef2, coef0);
+                coef3 = vsubq_f32(coef3, coef1);
+                coef0 = vmlaq_f32(coef0, coef2, frac);
+                coef1 = vmlaq_f32(coef1, coef3, frac);
+
+                //acc += input[i + j] * coef;
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 0]), coef0);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input1[i + j + 0]), coef0);
+                acc0 = vmlaq_f32(acc0, vld1q_f32(&input0[i + j + 4]), coef1);
+                acc1 = vmlaq_f32(acc1, vld1q_f32(&input1[i + j + 4]), coef1);
+            }
+
+            // horizontal sum
+            float32x2_t t0 = vadd_f32(vget_low_f32(acc0), vget_high_f32(acc0));
+            float32x2_t t1 = vadd_f32(vget_low_f32(acc1), vget_high_f32(acc1));
+            t0 = vpadd_f32(t0, t1);
+
+            vst1_lane_f32(&output0[outputFrames], t0, 0);
+            vst1_lane_f32(&output1[outputFrames], t0, 1);
+            outputFrames += 1;
+
+            _offset += _step;
+        }
+        _offset -= (int64_t)inputFrames << 32;
+    }
+
+    return outputFrames;
+}
+
+#else
+
 int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
     int outputFrames = 0;
 
@@ -724,6 +920,8 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 
     return outputFrames;
 }
+
+#endif
 
 // convert int16_t to float, deinterleave stereo
 void AudioSRC::convertInput(const int16_t* input, float** outputs, int numFrames) {
