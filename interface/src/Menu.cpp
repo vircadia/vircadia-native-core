@@ -303,12 +303,6 @@ Menu::Menu() {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
     });
 
-    // Settings > Audio...
-    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
-    connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
-    });
-
     // Settings > LOD...
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
@@ -584,6 +578,12 @@ Menu::Menu() {
 
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
+
+    action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
+    });
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
         audioIO.data(), SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,

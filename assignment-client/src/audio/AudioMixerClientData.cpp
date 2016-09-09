@@ -109,7 +109,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
-                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
+                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
@@ -143,7 +143,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
-                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings());
+                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
 
 #if INJECTORS_SUPPORT_CODECS
                 injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
