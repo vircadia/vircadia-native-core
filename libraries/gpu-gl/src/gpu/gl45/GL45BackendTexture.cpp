@@ -26,6 +26,9 @@ using namespace gpu::gl45;
 
 #define SPARSE_TEXTURES 1
 
+// Allocate 1 MB of buffer space for paged transfers
+#define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
+
 using GL45Texture = GL45Backend::GL45Texture;
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
@@ -102,13 +105,18 @@ bool TransferState::increment() {
 }
 
 #define DEFAULT_GL_PIXEL_ALIGNMENT 4
-void TransferState::populatePage(uint8_t* dst) {
+void TransferState::populatePage(std::vector<uint8_t>& buffer) {
     uvec3 pageSize = currentPageSize();
     auto bytesPerPageLine = _bytesPerPixel * pageSize.x;
     if (0 != (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT)) {
         bytesPerPageLine += DEFAULT_GL_PIXEL_ALIGNMENT - (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT);
         assert(0 == (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT));
     }
+    auto totalPageSize = bytesPerPageLine * pageSize.y;
+    if (totalPageSize > buffer.size()) {
+        buffer.resize(totalPageSize);
+    }
+    uint8_t* dst = &buffer[0];
     for (uint32_t y = 0; y < pageSize.y; ++y) {
         uint32_t srcOffset = (_bytesPerLine * (_mipOffset.y + y)) + (_bytesPerPixel * _mipOffset.x);
         uint32_t dstOffset = bytesPerPageLine * y;
@@ -194,7 +202,7 @@ void GL45Texture::startTransfer() {
 bool GL45Texture::continueTransfer() {
     static std::vector<uint8_t> buffer;
     if (buffer.empty()) {
-        buffer.resize(1024 * 1024);
+        buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);
     }
     uvec3 pageSize = _transferState.currentPageSize();
     uvec3 offset = _transferState._mipOffset;
@@ -210,7 +218,7 @@ bool GL45Texture::continueTransfer() {
 
     if (_transferState._srcPointer) {
         // Transfer the mip data
-        _transferState.populatePage(&buffer[0]);
+        _transferState.populatePage(buffer);
         if (GL_TEXTURE_2D == _target) {
             glTextureSubImage2D(_id, _transferState._mipLevel,
                 offset.x, offset.y,

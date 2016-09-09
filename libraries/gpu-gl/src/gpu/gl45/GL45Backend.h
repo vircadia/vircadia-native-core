@@ -36,7 +36,7 @@ struct TransferState {
     uvec3 currentPageSize() const;
     void updateSparse();
     void updateMip();
-    void populatePage(uint8_t* dest);
+    void populatePage(std::vector<uint8_t>& dest);
     bool increment();
     TransferState(GLTexture& texture);
 };
