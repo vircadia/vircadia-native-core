@@ -126,6 +126,8 @@ public:
     // This is so the correct camera can be used for rendering.
     void updateSensorToWorldMatrix();
 
+    void setSensorToWorldMatrix(const glm::mat4& sensorToWorld);
+
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;

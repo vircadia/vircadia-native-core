@@ -547,8 +547,12 @@ void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeV
 void MyAvatar::updateSensorToWorldMatrix() {
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
-    glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
-    _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
+    glm::mat4 bodyToWorld = createMatFromQuatAndPos(getOrientation(), getPosition());
+    setSensorToWorldMatrix(bodyToWorld * glm::inverse(_bodySensorMatrix));
+}
+
+void MyAvatar::setSensorToWorldMatrix(const glm::mat4& sensorToWorld) {
+    _sensorToWorldMatrix = sensorToWorld;
 
     lateUpdatePalms();
 
