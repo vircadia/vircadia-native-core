@@ -106,8 +106,10 @@ bool TransferState::increment() {
         return true;
     }
 
+    uint8_t maxFace = (uint8_t)((_texture._target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
+    uint8_t nextFace = _face + 1;
     // Done with this face?  Move on to the next
-    if (_face + 1 < ((_texture._target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1)) {
+    if (nextFace < maxFace) {
         ++_face;
         _mipOffset = uvec3(0);
         _mipLevel = 0;
