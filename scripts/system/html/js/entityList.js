@@ -206,10 +206,23 @@ function loaded() {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
       }
       
+      function refreshFooter() {
+          if (selectedEntities.length > 1) {
+              elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
+          } else if (selectedEntities.length === 1) {
+              elFooter.firstChild.nodeValue = "1 entity selected";
+          } else if (entityList.visibleItems.length === 1) {
+              elFooter.firstChild.nodeValue = "1 entity found";
+          } else {
+              elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
+          }
+      }
+
       function refreshEntityListObject() {
           refreshEntityListTimer = null;
           entityList.sort(currentSortColumn, { order: currentSortOrder });
           entityList.search(elFilter.value);
+          refreshFooter();
       }
       
       function updateSelectedEntities(selectedEntities) {
@@ -225,16 +238,6 @@ function loaded() {
               } else {
                   notFound = true;
               }
-          }
-
-          if (selectedEntities.length > 1) {
-              elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
-          } else if (selectedEntities.length === 1) {
-              elFooter.firstChild.nodeValue = "1 entity selected";
-          } else if (entityList.visibleItems.length === 1) {
-              elFooter.firstChild.nodeValue = "1 entity found";
-          } else {
-              elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
           }
 
           // HACK: Fixes the footer and header text sometimes not displaying after adding or deleting entities.
@@ -371,6 +374,7 @@ function loaded() {
 
       window.onresize = resize;
       elFilter.onchange = resize;
+      elFilter.onblur = refreshFooter;
 
 
       var showExtraInfo = false;
