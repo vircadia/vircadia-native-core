@@ -175,7 +175,7 @@ function isFunction(functionToCheck) {
             }
         };
 function playSuccessSound() {
-    this.soundInjector = Audio.playSound(successSound, {
+    Audio.playSound(successSound, {
         position: MyAvatar.position,
         volume: 0.7,
         loop: false
@@ -268,11 +268,7 @@ stepRaiseAboveHead.prototype = {
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
-                this.soundInjector = Audio.playSound(successSound, {
-                    position: defaultTransform.position,
-                    volume: 0.7,
-                    loop: false
-                });
+                playSuccessSound();
                 onFinish();
             }
         }
@@ -359,11 +355,7 @@ stepNearGrab.prototype = {
             if (dist < 0.15) {
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
-                this.soundInjector = Audio.playSound(successSound, {
-                    position: basketPosition,
-                    volume: 0.7,
-                    loop: false
-                });
+                playSuccessSound();
                 Script.setTimeout(onHit.bind(this), 1000);
             }
         }
@@ -439,11 +431,7 @@ stepFarGrab.prototype = {
             print("CHECKING...");
             if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.2) {
                 Script.clearInterval(checkCollidesTimer);
-                this.soundInjector = Audio.playSound(successSound, {
-                    position: basketPosition,
-                    volume: 0.7,
-                    loop: false
-                });
+                playSuccessSound();
                 Script.setTimeout(onHit.bind(this), 1000);
             }
         }
@@ -542,11 +530,7 @@ stepEquip.prototype = {
                 if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
                     Script.clearInterval(this.checkCollidesTimer);
                     this.checkCollidesTimer = null;
-                    this.soundInjector = Audio.playSound(successSound, {
-                        position: basketPosition,
-                        volume: 0.7,
-                        loop: false
-                    });
+                    playSuccessSound();
                     Script.setTimeout(onHit.bind(this), 1000);
                     return;
                 }
