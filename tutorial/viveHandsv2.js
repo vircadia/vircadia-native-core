@@ -468,7 +468,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                             defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
                         },
                         arrows: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows-active.jpg",
                         }
                     }
                 },
@@ -621,17 +621,17 @@ function setupController(config) {
             print("Setting layer...", partName, layerName);
             if (partName in this.parts) {
                 var part = this.parts[partName];
-                print("FOnd", JSON.stringify(part));
+                //print("FOnd", JSON.stringify(part));
                 if (layerName in part.textureLayers) {
-                    print("got it", layerName);
+                    //print("got it", layerName);
                     var layer = part.textureLayers[layerName];
                     var textures = {};
                     if (layer.defaultTextureURL) {
-                        print("default texture");
+                        //print("default texture");
                         textures[part.textureName] = layer.defaultTextureURL;
                     }
                     for (var i = 0; i < this.partOverlays[partName].length; ++i) {
-                        print("updating", JSON.stringify(textures));
+                        //print("updating", JSON.stringify(textures));
                         Overlays.editOverlay(this.partOverlays[partName][i], {
                             textures: textures
                         });
@@ -748,8 +748,8 @@ function setupController(config) {
                 var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
                 var innerRotation = controller.rotation
 
-                Vec3.print("controller", controller.position);
-                Vec3.print("part", partPosition);
+                //Vec3.print("controller", controller.position);
+                //Vec3.print("part", partPosition);
 
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
@@ -775,14 +775,14 @@ function setupController(config) {
                             var pct = (value - part.minValue) / part.maxValue;
                             var angle = pct * part.maxAngle;
                             var rotation = Quat.angleAxis(angle, part.axis);
-                            print(value, pct, angle);
+                            //print(value, pct, angle);
 
                             var offset = { x: 0, y: 0, z: 0 };
                             if (part.origin) {
                                 //print(rotation.x, rotation.y, rotation.z, rotation.w);
                                 var offset = Vec3.multiplyQbyV(rotation, part.origin);
                                 offset = Vec3.subtract(offset, part.origin);
-                                Vec3.print('offset', offset);
+                                //Vec3.print('offset', offset);
                                 //partPosition = Vec3.sum(partPosition, offset);
                             }
 
@@ -799,7 +799,7 @@ function setupController(config) {
                     function resolveHardware(path) {
                         var parts = path.split(".");
                         function resolveInner(base, path, i) {
-                            print(path[i]);
+                            //print(path[i]);
                             if (i >= path.length) {
                                 return base;
                             }
@@ -812,16 +812,14 @@ function setupController(config) {
                     var xinput = resolveHardware(part.xInput);
                     var yinput = resolveHardware(part.yInput);
 
-                    print("visible:", visibleInput);
-
                     mapping.from([visibleInput]).peek().to(function(value) {
-                        print("visible", value);
+                        //print("visible", value);
                     });
                     mapping.from([xinput]).peek().to(function(value) {
-                        print("X", value);
+                        //print("X", value);
                     });
                     mapping.from([yinput]).peek().invert().to(function(value) {
-                        print("Y", value);
+                        //print("Y", value);
                     });
                     if (part.defaultTextureURL) {
                         var textures = {};

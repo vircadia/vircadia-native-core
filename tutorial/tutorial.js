@@ -356,7 +356,7 @@ stepNearGrab.prototype = {
         function checkCollides() {
             var dist = Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position);
             print(this.tag, "CHECKING...", dist);
-            if (dist < 0.1) {
+            if (dist < 0.15) {
                 Script.clearInterval(this.checkCollidesTimer);
                 this.checkCollidesTimer = null;
                 this.soundInjector = Audio.playSound(successSound, {
@@ -622,7 +622,7 @@ stepTurnAround.prototype = {
             var angleDegrees = ((angle / Math.PI) * 180);
             print("CHECK");
             if (!hasTurnedAround) {
-                if (Math.abs(angleDegrees) > 100) {
+                if (Math.abs(angleDegrees) > 140) {
                     hasTurnedAround = true;
                     print("half way there...");
                 }
