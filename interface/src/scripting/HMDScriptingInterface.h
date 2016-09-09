@@ -25,7 +25,7 @@ class QScriptEngine;
 
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(glm::vec3 position READ getPosition)
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
     Q_PROPERTY(bool mounted READ isMounted)
 
@@ -58,6 +58,8 @@ public:
     // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
     Q_INVOKABLE void centerUI();
 
+    // snap HMD to align with Avatar's current position in world-frame
+    Q_INVOKABLE void snapToAvatar();
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -68,7 +70,10 @@ public:
 private:
     // Get the position of the HMD
     glm::vec3 getPosition() const;
-    
+
+    // Set the position of the HMD
+    void setPosition(const glm::vec3& position);
+
     // Get the orientation of the HMD
     glm::quat getOrientation() const;
 
