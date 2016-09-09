@@ -1756,7 +1756,13 @@ function MyController(hand) {
         var RADIAL_GRAB_AMPLIFIER = 10.0;
         if (Math.abs(this.grabRadialVelocity) > 0.0) {
             this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime *
-                this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+                                                 this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+        }
+
+        // don't let grabRadius go all the way to zero, because it can't come back from that
+        var MINIMUM_GRAB_RADIUS = 0.1;
+        if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
+            this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
 
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
