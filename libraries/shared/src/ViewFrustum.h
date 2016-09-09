@@ -129,6 +129,9 @@ public:
     float distanceToCamera(const glm::vec3& point) const;
 
     void evalProjectionMatrix(glm::mat4& proj) const;
+
+    glm::mat4 evalProjectionMatrixRange(float rangeNear, float rangeFar) const;
+
     void evalViewTransform(Transform& view) const;
 
     enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };

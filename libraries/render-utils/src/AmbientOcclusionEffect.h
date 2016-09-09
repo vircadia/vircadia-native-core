@@ -104,26 +104,6 @@ signals:
     void dirty();
 };
 
-
-namespace gpu {
-template <class T> class UniformBuffer : public gpu::BufferView {
-  public:
-
-      static BufferPointer makeBuffer() {
-          T t;
-          return std::make_shared<gpu::Buffer>(sizeof(T), (const gpu::Byte*) &t);
-      }
-    ~UniformBuffer<T>() {};
-    UniformBuffer<T>() : gpu::BufferView(makeBuffer()) {}
-
-    const T* operator ->() const { return &get<T>(); }  
-    T* operator ->() {
-        return &edit<T>(0);
-    }
-
-};
-}
-
 class AmbientOcclusionEffect {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
@@ -172,7 +152,7 @@ public:
         bool isDitheringEnabled() const { return ditheringInfo.x; }
         bool isBorderingEnabled() const { return ditheringInfo.w; }
     };
-    using ParametersBuffer = gpu::UniformBuffer<Parameters>;
+    using ParametersBuffer = gpu::StructBuffer<Parameters>;
 
 private:
     void updateGaussianDistribution();
@@ -232,7 +212,7 @@ private:
         
         Parameters() {}
     };
-    gpu::UniformBuffer<Parameters> _parametersBuffer;
+    gpu::StructBuffer<Parameters> _parametersBuffer;
 
     const gpu::PipelinePointer& getDebugPipeline();
 

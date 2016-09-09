@@ -11,12 +11,12 @@
 #ifndef hifi_render_utils_LightClusters_h
 #define hifi_render_utils_LightClusters_h
 
-#include "gpu/Framebuffer.h"
-
+#include <gpu/Buffer.h>
+#include <render/Engine.h>
 #include "LightStage.h"
 
 #include <ViewFrustum.h>
-/*
+
 class FrustumGrid {
 public:
     float _near { 0.1f };
@@ -25,6 +25,12 @@ public:
     float _far { 10000.0f };
 
     glm::uvec3 _dims { 16, 16, 16 };
+    float spare;
+
+    glm::mat4 _eyeToGridProj;
+    glm::mat4 _eyeToGridProjInv;
+    glm::mat4 _worldToEyeMat;
+    glm::mat4 _eyeToWorldMat;
 
     float viewToLinearDepth(float depth) const {
         float nDepth = -depth;
@@ -43,36 +49,104 @@ public:
         return depth / (float) _dims.z;
     }
 
-    glm::vec2 linearToGridXY(const glm::vec3& cpos) const {
-        return glm::vec2(cpos.x / (float) _dims.x, cpos.y / (float) _dims.y);
-    }
-
     int gridDepthToLayer(float gridDepth) const {
         return (int) gridDepth;
     }
 
+    glm::vec2 ndcToGridXY(const glm::vec3& ncpos) const {
+        return 0.5f * glm::vec2((ncpos.x + 1.0f) / (float)_dims.x, (ncpos.y + 1.0f) / (float)_dims.y);
+    }
+
     glm::ivec3 viewToGridPos(const glm::vec3& pos) const {
-        
-        return glm::ivec3(0);
+        float z = linearToGridDepth(viewToLinearDepth(pos.z));
+
+        auto cpos = _eyeToGridProj * glm::vec4(pos, 1.0f);
+
+        glm::vec3 ncpos(cpos);
+        ncpos /= cpos.w;
+
+
+        return glm::ivec3(ndcToGridXY(ncpos), (int) linearToGridDepth(z));
+    }
+
+    void updateFrustrum(const ViewFrustum& frustum) {
+        _eyeToGridProj = frustum.evalProjectionMatrixRange(_nearPrime, _farPrime);
+        _eyeToGridProjInv = glm::inverse(_eyeToGridProj);
+
+        Transform view;
+        frustum.evalViewTransform(view);
+        _eyeToWorldMat = view.getMatrix();
+        _worldToEyeMat = view.getInverseMatrix();
     }
 
 };
-*/
+
 class LightClusters {
 public:
     
     LightClusters();
 
-
     void updateFrustum(const ViewFrustum& frustum);
 
-    
+    void updateLightStage(const LightStagePointer& lightStage);
+
+    void updateVisibleLights(const LightStage::LightIndices& visibleLights);
+
+
+   // FrustumGrid _grid;
 
     ViewFrustum _frustum;
 
     LightStagePointer _lightStage;
 
+
+
+    gpu::StructBuffer<FrustumGrid> _frustrumGridBuffer;
+
+
     gpu::BufferPointer _lightIndicesBuffer;
+};
+
+using LightClustersPointer = std::shared_ptr<LightClusters>;
+
+
+
+class DebugLightClustersConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+        Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
+    DebugLightClustersConfig() : render::Job::Config(true){}
+
+    int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+
+    int maxDrawn { -1 };
+
+signals:
+    void numDrawnChanged();
+    void dirty();
+
+protected:
+    int numDrawn { 0 };
+};
+
+class DebugLightClusters {
+public:
+    // using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Config = DebugLightClustersConfig;
+    using JobModel = render::Job::Model<DebugLightClusters, Config>;
+
+    DebugLightClusters();
+
+    void configure(const Config& config);
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+protected:
+    gpu::BufferPointer _gridBuffer;
+    gpu::PipelinePointer _drawClusterGrid;
+    const gpu::PipelinePointer getDrawClusterGridPipeline();
 };
 
 #endif

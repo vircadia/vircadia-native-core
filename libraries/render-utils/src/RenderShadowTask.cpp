@@ -36,12 +36,12 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
-    const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+    auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
 
     LightStage::Index globalLightIndex { 0 };
 
-    const auto globalLight = lightStage.getLight(globalLightIndex);
-    const auto shadow = lightStage.getShadow(globalLightIndex);
+    const auto globalLight = lightStage->getLight(globalLightIndex);
+    const auto shadow = lightStage->getShadow(globalLightIndex);
     if (!shadow) return;
 
     const auto& fbo = shadow->framebuffer;
@@ -144,8 +144,8 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
         return;
     }
 
-    const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-    const auto globalShadow = lightStage.getShadow(0);
+    auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+    const auto globalShadow = lightStage->getShadow(0);
 
     // If the global light is not set, bail
     if (!globalShadow) {

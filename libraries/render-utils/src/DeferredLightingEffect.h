@@ -28,6 +28,8 @@
 #include "LightingModel.h"
 
 #include "LightStage.h"
+#include "LightClusters.h"
+
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
 #include "AmbientOcclusionEffect.h"
@@ -59,7 +61,8 @@ public:
     // update global lighting
     void setGlobalLight(const model::LightPointer& light);
 
-    const LightStage& getLightStage() { return _lightStage; }
+    const LightStagePointer getLightStage() { return _lightStage; }
+    const LightClustersPointer getLightClusters() { return _lightClusters; }
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
@@ -68,7 +71,9 @@ public:
 private:
     DeferredLightingEffect() = default;
 
-    LightStage _lightStage;
+    LightStagePointer _lightStage;
+
+    LightClustersPointer _lightClusters;
 
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
@@ -199,5 +204,7 @@ public:
 protected:
     gpu::RangeTimerPointer _gpuTimer;
 };
+
+
 
 #endif // hifi_DeferredLightingEffect_h

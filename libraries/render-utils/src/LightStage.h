@@ -32,6 +32,8 @@ public:
     using Lights = render::indexed_container::IndexedPointerVector<model::Light>;
     using LightMap = std::unordered_map<LightPointer, Index>;
 
+    using LightIndices = std::vector<Index>;
+
     class Shadow {
     public:
         using UniformBufferView = gpu::BufferView;

@@ -116,6 +116,11 @@ void DeferredLightingEffect::init() {
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, false, _spotLightBack, _spotLightLocations);
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, true, _spotLightFront, _spotLightLocations);
 
+    // Light Stage and clusters
+    _lightStage = std::make_shared<LightStage>();
+    _lightClusters = std::make_shared<LightClusters>();
+    _lightClusters->updateLightStage(_lightStage);
+
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
     model::LightPointer lp = _allocatedLights[0];
@@ -127,13 +132,13 @@ void DeferredLightingEffect::init() {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 
     // Add the global light to the light stage (for later shadow rendering)
-    _globalLights.push_back(_lightStage.addLight(lp));
+    _globalLights.push_back(_lightStage->addLight(lp));
 
 }
 
 void DeferredLightingEffect::addLight(const model::LightPointer& light) {
     assert(light);
-    auto lightID = _lightStage.addLight(light);
+    auto lightID = _lightStage->addLight(light);
     if (light->getType() == model::Light::POINT) {
         _pointLights.push_back(lightID);
     } else {
@@ -239,10 +244,8 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
 
-   // state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-    
     if (lightVolume) {
-        state->setStencilTest(true, 0x00, gpu::State::StencilTest(1, 0xFF, gpu::GREATER_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(1, 0xFF, gpu::LESS_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
        
         state->setCullMode(gpu::State::CULL_BACK);
    //     state->setCullMode(gpu::State::CULL_FRONT);
@@ -270,27 +273,29 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
     gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 
     auto state = std::make_shared<gpu::State>();
-   // state->setColorWriteMask(true, true, true, false);
-    state->setColorWriteMask(false, false, false, false);
 
     // Stencil test all the light passes for objects pixels only, not the background
 
     if (front) {
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_DECR));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_DECR, gpu::State::STENCIL_OP_KEEP));
 
       //  state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
        // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
+        //state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(false, false, false, false);
     } else {
         state->setCullMode(gpu::State::CULL_FRONT);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_INCR, gpu::State::STENCIL_OP_KEEP));
         // additive blending
        // state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        // state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(false, false, false, false);
     }
     pipeline = gpu::Pipeline::create(program, state);
 
@@ -568,8 +573,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Global directional light and ambient pass
 
-        assert(deferredLightingEffect->getLightStage().getNumLights() > 0);
-        auto lightAndShadow = deferredLightingEffect->getLightStage().getLightAndShadow(0);
+        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
         const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
@@ -682,6 +687,8 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         int numSpotLights = (int) srcSpotLights.size();
         int offsetSpotLights = numPointLights;
 
+        auto lightClusters = deferredLightingEffect->_lightClusters;
+
         std::vector<int> lightIndices(numPointLights + numSpotLights + 1);
         lightIndices[0] = 0;
 
@@ -695,11 +702,20 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         }
 
         if (lightIndices[0] > 0) {
+            static int frame = 0;
+            frame++;
+
+            if (frame % 1000 == 0) {
+                lightClusters->updateFrustum(viewFrustum);
+
+                lightClusters->updateVisibleLights(lightIndices);
+            }
             _localLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
             _localLightsBuffer._size = lightIndices.size() * sizeof(int);
 
+            
             // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()._lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()->_lightArrayBuffer);
             batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, _localLightsBuffer);
 
 

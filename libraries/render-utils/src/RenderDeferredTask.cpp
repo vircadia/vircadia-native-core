@@ -190,6 +190,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
             addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
+        // LIght Cluster Grid Debuging job
+        {
+            addJob<DebugLightClusters>("DebugLightClusters");
+        }
+
         // Status icon rendering job
         {
             // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
