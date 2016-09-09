@@ -247,7 +247,7 @@ var VIVE_CONTROLLER_CONFIGURATION = {
                             defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
                         teleport: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport.jpg",
+                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
                         },
                         arrows: {
                             defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
