@@ -14,10 +14,15 @@
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
 #include <shared/NsightHelpers.h>
+#include <DebugDraw.h>
+#include "Rig.h"
 
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
+
+bool HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS = false;
+Rig* HACKY_GLOBAL_RIG_POINTER = nullptr;
 
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
@@ -435,6 +440,22 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         {
             PROFILE_RANGE_EX("ik/computeTargets", 0xffff00ff, 0);
             computeTargets(animVars, targets, underPoses);
+        }
+
+        // AJT: HACK
+        if (HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS && HACKY_GLOBAL_RIG_POINTER) {
+            const float CM_TO_M = 0.01f;
+            const vec4 WHITE(1.0f);
+            glm::mat4 geomToRigMat = HACKY_GLOBAL_RIG_POINTER->getGeometryToRigTransform();
+            glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+
+            for (auto& target : targets) {
+                glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
+                glm::mat4 avatarTargetMat = rigToAvatarMat * geomToRigMat * geomTargetMat;
+
+                std::string name = "ikTarget" + std::to_string(target.getIndex());
+                DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+            }
         }
 
         if (targets.empty()) {

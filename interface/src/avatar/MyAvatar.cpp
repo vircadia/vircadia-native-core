@@ -82,6 +82,8 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
+extern bool HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS;
+
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
     _wasPushing(false),
@@ -829,6 +831,13 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
         DebugDraw::getInstance().removeMarker("sensorToWorldMatrix");
     }
 }
+
+void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
+    _enableDebugDrawIKTargets = isEnabled;
+
+    HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS = isEnabled;
+}
+
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     render::ScenePointer scene = qApp->getMain3DScene();

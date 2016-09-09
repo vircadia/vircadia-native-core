@@ -47,6 +47,8 @@ const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
 const glm::vec3 DEFAULT_NECK_POS(0.0f, 0.70f, 0.0f);
 
+extern Rig* HACKY_GLOBAL_RIG_POINTER;
+
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
     UserAnimState::ClipNodeEnum clipNodeEnum;
@@ -875,6 +877,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
         // evaluate the animation
+        HACKY_GLOBAL_RIG_POINTER = this;
         AnimNode::Triggers triggersOut;
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
@@ -885,6 +888,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
+        HACKY_GLOBAL_RIG_POINTER = nullptr;
     }
 
     applyOverridePoses();
