@@ -3,8 +3,8 @@ set(EXTERNAL_NAME glm)
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/glm-0.9.5.4.zip
-  URL_MD5 fab76fc982b256b46208e5c750ed456a
+  URL https://hifi-public.s3.amazonaws.com/dependencies/glm-0.9.8.zip
+  URL_MD5 579ac77a3110befa3244d68c0ceb7281
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD 1
