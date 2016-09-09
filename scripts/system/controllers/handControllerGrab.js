@@ -1849,7 +1849,7 @@ function MyController(hand) {
             z: 0
         };
 
-        var DROP_ANGLE = Math.PI / 6;
+        var DROP_ANGLE = Math.PI / 3;
         var HYSTERESIS_FACTOR = 1.1;
         var ROTATION_ENTER_THRESHOLD = Math.cos(DROP_ANGLE);
         var ROTATION_EXIT_THRESHOLD = Math.cos(DROP_ANGLE * HYSTERESIS_FACTOR);
