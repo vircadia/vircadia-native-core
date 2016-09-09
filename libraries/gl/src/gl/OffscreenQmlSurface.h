@@ -25,31 +25,7 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-
 class OffscreenQmlRenderThread;
-class OffscreenQmlSurface;
-
-
-class WebEntityAPIHelper : public QObject {
-    Q_OBJECT
-public:
-    void setOffscreenQmlSurface(OffscreenQmlSurface* renderableWebEntityItem) {
-        _offscreenQmlSurface = renderableWebEntityItem;
-    }
-    Q_INVOKABLE void synthesizeKeyPress(QString key);
-
-    // event bridge
-public slots:
-    void emitScriptEvent(const QVariant& scriptMessage);
-    void emitWebEvent(const QVariant& webMessage);
-signals:
-    void scriptEventReceived(const QVariant& message);
-    void webEventReceived(const QVariant& message);
-
-protected:
-    OffscreenQmlSurface* _offscreenQmlSurface{ nullptr };
-};
-
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
@@ -92,12 +68,9 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(bool raised);
-    void synthesizeKeyPress(QString key);
+    Q_INVOKABLE void setKeyboardRaised(bool raised);
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
 
-
-    // XXX make private
-    WebEntityAPIHelper* _webEntityAPIHelper;
 
 signals:
     void textureUpdated(unsigned int texture);
@@ -108,6 +81,16 @@ public slots:
     void requestUpdate();
     void requestRender();
     void onAboutToQuit();
+
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
 
 protected:
     bool filterEnabled(QObject* originalDestination, QEvent* event) const;

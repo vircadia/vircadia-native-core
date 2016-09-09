@@ -100,7 +100,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     // forward web events to EntityScriptingInterface
     auto entities = DependencyManager::get<EntityScriptingInterface>();
     const EntityItemID entityItemID = getID();
-    QObject::connect(_webSurface->_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
+    QObject::connect(_webSurface, &OffscreenQmlSurface::webEventReceived, [=](const QVariant& message) {
         emit entities->webEventReceived(entityItemID, message);
     });
 
@@ -308,7 +308,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
 
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that 
+        // member variables, since they would implicitly refer to a this that
         // is no longer valid
         auto webSurface = _webSurface;
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
@@ -318,7 +318,6 @@ void RenderableWebEntityItem::destroyWebSurface() {
     }
 }
 
-
 void RenderableWebEntityItem::update(const quint64& now) {
     auto interval = now - _lastRenderTime;
     if (interval > MAX_NO_RENDER_INTERVAL) {
@@ -326,12 +325,11 @@ void RenderableWebEntityItem::update(const quint64& now) {
     }
 }
 
-
 bool RenderableWebEntityItem::isTransparent() {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
 }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
-    _webSurface->_webEntityAPIHelper->emitScriptEvent(message);
+    _webSurface->emitScriptEvent(message);
 }

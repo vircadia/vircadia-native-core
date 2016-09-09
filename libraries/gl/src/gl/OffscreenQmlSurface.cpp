@@ -419,9 +419,7 @@ bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
 }
 
 OffscreenQmlSurface::OffscreenQmlSurface() {
-    _webEntityAPIHelper = new WebEntityAPIHelper;
-    _webEntityAPIHelper->setOffscreenQmlSurface(this);
-    _webEntityAPIHelper->moveToThread(qApp->thread());
+    // moveToThread(qApp->thread());
 }
 
 static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
@@ -434,9 +432,6 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
         qWarning() << "Failed to shut down the QML Renderer Thread";
     }
-
-    _webEntityAPIHelper->setOffscreenQmlSurface(nullptr);
-    _webEntityAPIHelper->deleteLater();
 
     delete _rootItem;
     delete _renderer;
@@ -540,13 +535,13 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
 
     if (_qmlComponent->isLoading()) {
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
                 finishQmlLoad(f);
             });
         return nullptr;
     }
-    
+
     return finishQmlLoad(f);
 }
 
@@ -588,7 +583,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     // All quick items should be focusable
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (newItem) {
-        // Make sure we make items focusable (critical for 
+        // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
     }
@@ -616,11 +611,11 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
-    // If we're 
+    // If we're
     //   a) not set up
     //   b) already rendering a frame
     //   c) rendering too fast
-    // then skip this 
+    // then skip this
     if (!_renderer || _renderer->_rendering || !_renderer->allowNewFrame(_maxFps)) {
         return;
     }
@@ -691,7 +686,6 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     }
 #endif
 
-   
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -761,8 +755,8 @@ void OffscreenQmlSurface::resume() {
     _paused = false;
     requestRender();
 
-    getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
-    getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
+    getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
+    getRootContext()->setContextProperty("webEntity", this);
 }
 
 bool OffscreenQmlSurface::isPaused() const {
@@ -897,13 +891,7 @@ void OffscreenQmlSurface::setKeyboardRaised(bool raised) {
 
 }
 
-void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
-    if (_offscreenQmlSurface) {
-        _offscreenQmlSurface->synthesizeKeyPress(key);
-    }
-}
-
-void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
+void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
@@ -911,15 +899,15 @@ void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
     }
 }
 
-void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
+void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
         // special case to handle raising and lowering the virtual keyboard
-        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _offscreenQmlSurface) {
-            _offscreenQmlSurface->setKeyboardRaised(true);
-        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _offscreenQmlSurface) {
-            _offscreenQmlSurface->setKeyboardRaised(false);
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD") {
+            setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD") {
+            setKeyboardRaised(false);
         } else {
             emit webEventReceived(message);
         }
