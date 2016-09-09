@@ -44,6 +44,7 @@ var COLORS_TELEPORT_TOO_CLOSE = {
 var TELEPORT_CANCEL_RANGE = 1;
 var USE_COOL_IN = true;
 var COOL_IN_DURATION = 500;
+var MAX_HMD_AVATAR_SEPARATION = 10.0f;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -88,6 +89,8 @@ function Teleporter() {
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
     this.teleportHand = null;
+    this.distance = 0.0;
+    this.teleportMode = "HMDAndAvatarTogether";
     this.tooClose = false;
     this.inCoolIn = false;
 
@@ -459,7 +462,8 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.distance = Vec3.distance(MyAvatar.position, position);
+        this.tooClose = this.distance <= TELEPORT_CANCEL_RANGE;
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.targetOverlay, {
@@ -480,7 +484,8 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.distance = Vec3.distance(MyAvatar.position, position);
+        this.tooClose = this.distance <= TELEPORT_CANCEL_RANGE;
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.cancelOverlay, {
@@ -509,6 +514,15 @@ function Teleporter() {
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
+            if (MyAvatar.hmdLeanRecenterEnabled) {
+                if (this.distance > MAX_HMD_AVATAR_SEPARATION) {
+                    this.teleportMode = "HMDAndAvatarTogether";
+                } else {
+                    this.teleportMode = "HMDFirstAvatarWillFollow";
+                }
+            } else {
+                this.teleportMode = "AvatarOnly";
+            }
             this.smoothArrival();
         }
     };
@@ -538,6 +552,22 @@ function Teleporter() {
         return arrivalPoints;
     };
 
+    this.teleportTo = function(landingPoint) {
+        if (this.teleportMode === "AvatarOnly") {
+            MyAvatar.position = landingPoint;
+        } else if (this.teleportMode === "HMDAndAvatarTogether") {
+            var leanEnabled = MyAvatar.hmdLeanRecenterEnabled;
+            MyAvatar.setHMDLeanRecenterEnabled(false);
+            MyAvatar.position = landingPoint;
+            HMD.snapToAvatar();
+            MyAvatar.hmdLeanRecenterEnabled = leanEnabled;
+        } else if (this.teleportMode === "HMDFirstAvatarWillFollow") {
+            var eyeOffset = Vec3.subtract(MyAvatar.getEyePosition(), MyAvatar.position);
+            landingPoint = Vec3.sum(landingPoint, eyeOffset);
+            HMD.setPosition(landingPoint);
+        }
+    }
+
     this.smoothArrival = function() {
 
         _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
@@ -548,7 +578,7 @@ function Teleporter() {
                 return;
             }
             var landingPoint = _this.arrivalPoints.shift();
-            MyAvatar.position = landingPoint;
+            _this.teleportTo(landingPoint);
 
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
                 _this.deleteTargetOverlay();
@@ -625,10 +655,6 @@ function isMoving() {
     } else {
         return false;
     }
-};
-
-function isTooCloseToTeleport(position) {
-    return Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 };
 
 function registerMappings() {
