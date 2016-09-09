@@ -57,28 +57,32 @@ EntityListTool = function(opts) {
 
         var ids;
         if (filterInView) {
-            ids = Entities.findEntitiesInView(MyAvatar.position, searchRadius);
+            ids = Entities.findEntitiesInFrustum(Camera.frustum);
         } else {
             ids = Entities.findEntities(MyAvatar.position, searchRadius);
         }
 
+        var cameraPosition = Camera.position;
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var properties = Entities.getEntityProperties(id);
-            entities.push({
-                id: id,
-                name: properties.name,
-                type: properties.type,
-                url: properties.type == "Model" ? properties.modelURL : "",
-                locked: properties.locked,
-                visible: properties.visible,
-                verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
-                texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
-                texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
-                hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
-                drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
-                hasScript: properties.script !== ""
-            });
+
+            if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                entities.push({
+                    id: id,
+                    name: properties.name,
+                    type: properties.type,
+                    url: properties.type == "Model" ? properties.modelURL : "",
+                    locked: properties.locked,
+                    visible: properties.visible,
+                    verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
+                    texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
+                    texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
+                    hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
+                    drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
+                    hasScript: properties.script !== ""
+                });
+            }
         }
 
         var selectedIDs = [];
