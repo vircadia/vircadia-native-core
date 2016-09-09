@@ -400,12 +400,10 @@ static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv) {
-    unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
-    if (portStr) {
-        listenPort = atoi(portStr);
-    }
+    const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
+
     // Set build version
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
