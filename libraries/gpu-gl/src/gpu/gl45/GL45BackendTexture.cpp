@@ -32,25 +32,6 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transf
     return GL45Texture::sync<GL45Texture>(*this, texture, transfer);
 }
 
-void serverWait() {
-    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    assert(fence);
-    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
-    glDeleteSync(fence);
-}
-
-void clientWait() {
-    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    assert(fence);
-    auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
-        // Minimum sleep
-        QThread::usleep(1);
-        result = glClientWaitSync(fence, 0, 0);
-    }
-    glDeleteSync(fence);
-}
-
 TransferState::TransferState(GLTexture& texture) : _texture(texture) {
 }
 

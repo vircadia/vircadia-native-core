@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+#include <QtCore/QThread>
+
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
 #include <fstream>
@@ -933,8 +935,27 @@ void makeProgramBindings(ShaderObject& shaderObject) {
     (void)CHECK_GL_ERROR();
 }
 
+void serverWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(fence);
+}
+
+void clientWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+    while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
+        // Minimum sleep
+        QThread::usleep(1);
+        result = glClientWaitSync(fence, 0, 0);
+    }
+    glDeleteSync(fence);
+}
 
 } }
+
 
 using namespace gpu;
 

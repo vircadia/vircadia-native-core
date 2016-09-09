@@ -146,7 +146,7 @@ bool GLTextureTransferHelper::process() {
         gltexture->finishTransfer();
         glNamedFramebufferTexture(_readFramebuffer, GL_COLOR_ATTACHMENT0, gltexture->_id, 0);
         glBlitNamedFramebuffer(_readFramebuffer, _drawFramebuffer, 0, 0, 1, 1, 0, 0, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        glFinish();
+        clientWait();
         gltexture->_contentStamp = gltexture->_gpuObject.getDataStamp();
         gltexture->updateSize();
         gltexture->setSyncState(gpu::gl::GLSyncState::Transferred);
@@ -161,7 +161,7 @@ bool GLTextureTransferHelper::process() {
 
     if (!_transferringTextures.empty()) {
         // Don't saturate the GPU
-        glFinish();
+        clientWait();
     } else {
         // Don't saturate the CPU
         QThread::msleep(1);
