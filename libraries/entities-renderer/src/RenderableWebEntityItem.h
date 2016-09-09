@@ -46,14 +46,10 @@ public:
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
     virtual void emitScriptEvent(const QVariant& message) override;
-    void setKeyboardRaised(bool raised);
 
     SIMPLE_RENDERABLE();
 
     virtual bool isTransparent() override;
-
-public:
-    void synthesizeKeyPress(QString key);
 
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);

@@ -419,6 +419,9 @@ bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
 }
 
 OffscreenQmlSurface::OffscreenQmlSurface() {
+    _webEntityAPIHelper = new WebEntityAPIHelper;
+    _webEntityAPIHelper->setOffscreenQmlSurface(this);
+    _webEntityAPIHelper->moveToThread(qApp->thread());
 }
 
 static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
@@ -431,6 +434,9 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
         qWarning() << "Failed to shut down the QML Renderer Thread";
     }
+
+    _webEntityAPIHelper->setOffscreenQmlSurface(nullptr);
+    _webEntityAPIHelper->deleteLater();
 
     delete _rootItem;
     delete _renderer;
@@ -754,6 +760,9 @@ void OffscreenQmlSurface::pause() {
 void OffscreenQmlSurface::resume() {
     _paused = false;
     requestRender();
+
+    getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
+    getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
 }
 
 bool OffscreenQmlSurface::isPaused() const {
@@ -829,10 +838,68 @@ void OffscreenQmlSurface::setFocusText(bool newFocusText) {
     }
 }
 
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return ptr[i] == 0x00;
+}
+
+void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
+    auto utf8Key = key.toUtf8();
+
+    int scanCode = (int)utf8Key[0];
+    QString keyString = key;
+    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+        return;  // ignore
+    } else if (equals(utf8Key, LEFT_ARROW)) {
+        scanCode = Qt::Key_Backspace;
+        keyString = "\x08";
+    } else if (equals(utf8Key, RETURN_SYMBOL)) {
+        scanCode = Qt::Key_Return;
+        keyString = "\x0d";
+    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Left;
+        keyString = "";
+    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Right;
+        keyString = "";
+    }
+
+    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+    QCoreApplication::postEvent(getEventHandler(), pressEvent);
+    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
+}
+
+void OffscreenQmlSurface::setKeyboardRaised(bool raised) {
+
+    // raise the keyboard only while in HMD mode and it's being requested.
+    // XXX
+    // bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
+    // getRootItem()->setProperty("keyboardRaised", QVariant(value));
+
+    getRootItem()->setProperty("keyboardRaised", QVariant(raised));
+
+}
 
 void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
-    if (_renderableWebEntityItem) {
-        _renderableWebEntityItem->synthesizeKeyPress(key);
+    if (_offscreenQmlSurface) {
+        _offscreenQmlSurface->synthesizeKeyPress(key);
     }
 }
 
@@ -849,10 +916,10 @@ void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
         // special case to handle raising and lowering the virtual keyboard
-        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(true);
-        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(false);
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _offscreenQmlSurface) {
+            _offscreenQmlSurface->setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _offscreenQmlSurface) {
+            _offscreenQmlSurface->setKeyboardRaised(false);
         } else {
             emit webEventReceived(message);
         }

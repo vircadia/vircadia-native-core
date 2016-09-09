@@ -27,13 +27,14 @@ class QQuickWindow;
 class QQuickItem;
 
 class OffscreenQmlRenderThread;
+class OffscreenQmlSurface;
 
 
 class WebEntityAPIHelper : public QObject {
     Q_OBJECT
 public:
-    void setRenderableWebEntityItem(RenderableWebEntityItem* renderableWebEntityItem) {
-        _renderableWebEntityItem = renderableWebEntityItem;
+    void setOffscreenQmlSurface(OffscreenQmlSurface* renderableWebEntityItem) {
+        _offscreenQmlSurface = renderableWebEntityItem;
     }
     Q_INVOKABLE void synthesizeKeyPress(QString key);
 
@@ -46,7 +47,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
 protected:
-    RenderableWebEntityItem* _renderableWebEntityItem{ nullptr };
+    OffscreenQmlSurface* _offscreenQmlSurface{ nullptr };
 };
 
 
@@ -90,6 +91,10 @@ public:
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
+
+    void setKeyboardRaised(bool raised);
+    void synthesizeKeyPress(QString key);
+
 
     // XXX make private
     WebEntityAPIHelper* _webEntityAPIHelper;
