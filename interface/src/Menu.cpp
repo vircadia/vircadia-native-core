@@ -47,6 +47,8 @@
 
 #include "Menu.h"
 
+extern bool DEV_DECIMATE_TEXTURES;
+
 Menu* Menu::getInstance() {
     return dynamic_cast<Menu*>(qApp->getWindow()->menuBar());
 }
@@ -389,6 +391,14 @@ Menu::Menu() {
 
     // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
+
+    // HACK enable texture decimation
+    {
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, "Decimate Textures");
+        connect(action, &QAction::triggered, [&](bool checked) {
+            DEV_DECIMATE_TEXTURES = checked;
+        });
+    }
 
     // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
