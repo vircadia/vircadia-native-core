@@ -38,35 +38,6 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
-void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
-    if (_renderableWebEntityItem) {
-        _renderableWebEntityItem->synthesizeKeyPress(key);
-    }
-}
-
-void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
-}
-
-void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        // special case to handle raising and lowering the virtual keyboard
-        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(true);
-        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(false);
-        } else {
-            emit webEventReceived(message);
-        }
-    }
-}
-
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
     entity->setProperties(properties);

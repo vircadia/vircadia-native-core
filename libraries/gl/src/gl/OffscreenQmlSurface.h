@@ -28,6 +28,28 @@ class QQuickItem;
 
 class OffscreenQmlRenderThread;
 
+
+class WebEntityAPIHelper : public QObject {
+    Q_OBJECT
+public:
+    void setRenderableWebEntityItem(RenderableWebEntityItem* renderableWebEntityItem) {
+        _renderableWebEntityItem = renderableWebEntityItem;
+    }
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
+protected:
+    RenderableWebEntityItem* _renderableWebEntityItem{ nullptr };
+};
+
+
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
@@ -68,6 +90,9 @@ public:
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
+
+    // XXX make private
+    WebEntityAPIHelper* _webEntityAPIHelper;
 
 signals:
     void textureUpdated(unsigned int texture);

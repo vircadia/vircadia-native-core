@@ -13,36 +13,18 @@
 #include <QMouseEvent>
 #include <QTouchEvent>
 #include <PointerEvent.h>
+#include <gl/OffscreenQmlSurface.h>
 
 #include <WebEntityItem.h>
 
 #include "RenderableEntityItem.h"
 
-class OffscreenQmlSurface;
+
 class QWindow;
 class QObject;
 class EntityTreeRenderer;
 class RenderableWebEntityItem;
 
-class WebEntityAPIHelper : public QObject {
-    Q_OBJECT
-public:
-    void setRenderableWebEntityItem(RenderableWebEntityItem* renderableWebEntityItem) {
-        _renderableWebEntityItem = renderableWebEntityItem;
-    }
-    Q_INVOKABLE void synthesizeKeyPress(QString key);
-
-    // event bridge
-public slots:
-    void emitScriptEvent(const QVariant& scriptMessage);
-    void emitWebEvent(const QVariant& webMessage);
-signals:
-    void scriptEventReceived(const QVariant& message);
-    void webEventReceived(const QVariant& message);
-
-protected:
-    RenderableWebEntityItem* _renderableWebEntityItem{ nullptr };
-};
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -86,7 +68,6 @@ private:
     QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
     QTouchDevice _touchDevice;
-    WebEntityAPIHelper* _webEntityAPIHelper;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

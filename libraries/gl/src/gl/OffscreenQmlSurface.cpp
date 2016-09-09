@@ -829,4 +829,37 @@ void OffscreenQmlSurface::setFocusText(bool newFocusText) {
     }
 }
 
+
+void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
+    if (_renderableWebEntityItem) {
+        _renderableWebEntityItem->synthesizeKeyPress(key);
+    }
+}
+
+void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        // special case to handle raising and lowering the virtual keyboard
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(false);
+        } else {
+            emit webEventReceived(message);
+        }
+    }
+}
+
+
+
+
 #include "OffscreenQmlSurface.moc"
