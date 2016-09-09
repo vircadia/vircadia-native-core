@@ -277,6 +277,17 @@ void setupPreferences() {
         preference->setStep(1);
         preferences->addPreference(preference);
     }
+#if DEV_BUILD || PR_BUILD
+    {
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
+        auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Debug gate threshold", getter, setter);
+        preference->setMin(1);
+        preference->setMax((float)100);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+#endif
 
     {
         auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
