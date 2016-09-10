@@ -192,7 +192,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
         // LIght Cluster Grid Debuging job
         {
-            addJob<DebugLightClusters>("DebugLightClusters");
+            const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget).hasVarying();
+            addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
         }
 
         // Status icon rendering job

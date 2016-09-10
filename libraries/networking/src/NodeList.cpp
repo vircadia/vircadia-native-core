@@ -33,7 +33,7 @@
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
-NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
+NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
@@ -93,6 +93,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+    connect(this, &LimitedNodeList::nodeSocketUpdated, this, &NodeList::startNodeHolePunch);
 
     // anytime we get a new node we may need to re-send our set of ignored node IDs to it
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);

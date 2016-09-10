@@ -1289,6 +1289,17 @@ bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
     return result;
 }
 
+void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, const QVariant& message) {
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                entity->emitScriptEvent(message);
+            }
+        });
+    }
+}
+
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }
@@ -1305,3 +1316,4 @@ float EntityScriptingInterface::getCostMultiplier() {
 void EntityScriptingInterface::setCostMultiplier(float value) {
     costMultiplier = value;
 }
+

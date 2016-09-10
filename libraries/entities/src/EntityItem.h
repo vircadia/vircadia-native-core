@@ -456,6 +456,8 @@ public:
     bool isFading() const { return _isFading; }
     float getFadingRatio() const { return (isFading() ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f); }
 
+    virtual void emitScriptEvent(const QVariant& message) {}
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }

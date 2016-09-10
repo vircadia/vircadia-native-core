@@ -20,64 +20,32 @@
 class FrustumGrid {
 public:
     float _near { 0.1f };
-    float _nearPrime { 1.0f };
-    float _farPrime { 400.0f };
+    float rangeNear { 1.0f };
+    float rangeFar { 100.0f };
     float _far { 10000.0f };
 
-    glm::uvec3 _dims { 16, 16, 16 };
+    glm::ivec3 dims { 8, 8, 8 };
     float spare;
 
-    glm::mat4 _eyeToGridProj;
-    glm::mat4 _eyeToGridProjInv;
+    glm::mat4 eyeToGridProj;
     glm::mat4 _worldToEyeMat;
-    glm::mat4 _eyeToWorldMat;
+    glm::mat4 eyeToWorldMat;
 
-    float viewToLinearDepth(float depth) const {
-        float nDepth = -depth;
-        float ldepth = (nDepth - _nearPrime) / (_farPrime - _nearPrime);
-
-        if (ldepth < 0.0f) {
-            return (nDepth - _near) / (_nearPrime - _near) - 1.0f;
-        }
-        if (ldepth > 1.0f) {
-            return (nDepth - _farPrime) / (_far - _farPrime) + 1.0f;
-        }
-        return ldepth;
-    }
-
-    float linearToGridDepth(float depth) const {
-        return depth / (float) _dims.z;
-    }
-
-    int gridDepthToLayer(float gridDepth) const {
-        return (int) gridDepth;
-    }
-
-    glm::vec2 ndcToGridXY(const glm::vec3& ncpos) const {
-        return 0.5f * glm::vec2((ncpos.x + 1.0f) / (float)_dims.x, (ncpos.y + 1.0f) / (float)_dims.y);
-    }
-
-    glm::ivec3 viewToGridPos(const glm::vec3& pos) const {
-        float z = linearToGridDepth(viewToLinearDepth(pos.z));
-
-        auto cpos = _eyeToGridProj * glm::vec4(pos, 1.0f);
-
-        glm::vec3 ncpos(cpos);
-        ncpos /= cpos.w;
-
-
-        return glm::ivec3(ndcToGridXY(ncpos), (int) linearToGridDepth(z));
-    }
-
-    void updateFrustrum(const ViewFrustum& frustum) {
-        _eyeToGridProj = frustum.evalProjectionMatrixRange(_nearPrime, _farPrime);
-        _eyeToGridProjInv = glm::inverse(_eyeToGridProj);
+    void updateFrustum(const ViewFrustum& frustum) {
+        eyeToGridProj = frustum.evalProjectionMatrixRange(rangeNear, rangeFar);
 
         Transform view;
         frustum.evalViewTransform(view);
-        _eyeToWorldMat = view.getMatrix();
+        eyeToWorldMat = view.getMatrix();
         _worldToEyeMat = view.getInverseMatrix();
     }
+
+    // Copy paste of the slh functions
+    using vec3 = glm::vec3;
+    using ivec3 = glm::ivec3;
+    using mat4 = glm::mat4;
+#define frustumGrid (*this)
+#include "LightClusterGrid_shared.slh"
 
 };
 
@@ -93,15 +61,13 @@ public:
     void updateVisibleLights(const LightStage::LightIndices& visibleLights);
 
 
-   // FrustumGrid _grid;
-
     ViewFrustum _frustum;
 
     LightStagePointer _lightStage;
 
 
 
-    gpu::StructBuffer<FrustumGrid> _frustrumGridBuffer;
+    gpu::StructBuffer<FrustumGrid> _frustumGridBuffer;
 
 
     gpu::BufferPointer _lightIndicesBuffer;
@@ -131,22 +97,30 @@ protected:
     int numDrawn { 0 };
 };
 
+
+#include "DeferredFrameTransform.h"
+#include "DeferredFramebuffer.h"
+#include "LightingModel.h"
+#include "SurfaceGeometryPass.h"
+
 class DebugLightClusters {
 public:
-    // using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer>;
     using Config = DebugLightClustersConfig;
-    using JobModel = render::Job::Model<DebugLightClusters, Config>;
+    using JobModel = render::Job::ModelI<DebugLightClusters, Inputs, Config>;
 
     DebugLightClusters();
 
     void configure(const Config& config);
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     gpu::BufferPointer _gridBuffer;
     gpu::PipelinePointer _drawClusterGrid;
+    gpu::PipelinePointer _drawClusterFromDepth;
     const gpu::PipelinePointer getDrawClusterGridPipeline();
+    const gpu::PipelinePointer getDrawClusterFromDepthPipeline();
 };
 
 #endif

@@ -497,13 +497,17 @@ protected:
         _postUpdateLambdas[key] = func;
     }
 
+    bool isHMDMode() const override {
+        return false;
+    }
+
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
     static void setup() {
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<AddressManager>();
-        DependencyManager::set<NodeList>(NodeType::Agent, 0);
+        DependencyManager::set<NodeList>(NodeType::Agent);
         DependencyManager::set<DeferredLightingEffect>();
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();

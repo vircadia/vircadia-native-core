@@ -332,4 +332,19 @@ void setupPreferences() {
             preferences->addPreference(preference);
         }
     }
+    {
+        static const QString RENDER("Networking");
+
+        auto nodelist = DependencyManager::get<NodeList>();
+        {
+            static const int MIN_PORT_NUMBER { 0 };
+            static const int MAX_PORT_NUMBER { 65535 };
+            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
+            auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto preference = new IntSpinnerPreference(RENDER, "Listening Port", getter, setter);
+            preference->setMin(MIN_PORT_NUMBER);
+            preference->setMax(MAX_PORT_NUMBER);
+            preferences->addPreference(preference);
+        }
+    }
 }

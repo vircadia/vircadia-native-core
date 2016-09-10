@@ -48,6 +48,8 @@ public:
 
     virtual void pushPostUpdateLambda(void* key, std::function<void()> func) = 0;
 
+    virtual bool isHMDMode() const = 0;
+
     // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
     static AbstractViewStateInterface* instance();
     static void setInstance(AbstractViewStateInterface* instance);

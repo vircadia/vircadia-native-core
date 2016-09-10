@@ -705,7 +705,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             static int frame = 0;
             frame++;
 
-            if (frame % 1000 == 0) {
+            if (frame % 2000 == 0) {
                 lightClusters->updateFrustum(viewFrustum);
 
                 lightClusters->updateVisibleLights(lightIndices);

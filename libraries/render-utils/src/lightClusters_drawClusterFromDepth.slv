@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  lightClusters_drawGrid.slv
+//  lightClusters_drawClusterFrom Depth.slv
 //  Vertex shader
 //
 //  Created by Sam Gateau on 9/8/2016
