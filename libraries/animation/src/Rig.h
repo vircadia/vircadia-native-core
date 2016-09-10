@@ -312,6 +312,8 @@ protected:
     bool _enableInverseKinematics { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
+    glm::vec3 _desiredRigHeadPosition;
+    bool _truncateIKTargets { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;
