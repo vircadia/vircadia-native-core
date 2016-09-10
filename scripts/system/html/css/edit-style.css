@@ -998,6 +998,18 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     left: -2px;
 }
 
+th#entity-hasTransparent .glyph {
+    font-weight: normal;
+    font-size: 24px !important;
+    margin: -6px;
+    position: relative;
+    top: -6px;
+}
+th#entity-hasTransparent .sort-order {
+    position: relative;
+    top: -4px;
+}
+
 #entity-table td {
     box-sizing: border-box;
 }
@@ -1005,6 +1017,11 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 #entity-table td.glyph {
     text-align: center;
     padding: 0;
+}
+#entity-table td.hasTransparent.glyph {
+    font-size: 22px;
+    position: relative;
+    top: -1px;
 }
 
 #entity-table tfoot {
