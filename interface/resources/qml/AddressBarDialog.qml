@@ -18,9 +18,6 @@ import "hifi/toolbars"
 import "controls-uit" as HifiControls
 
 Window {
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
     id: root
     HifiConstants { id: hifi }
 
@@ -71,6 +68,10 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
         objectName: "AddressBarDialogDialog"
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
         // The buttons have their button state changed on hover, so we have to manually fix them up here
@@ -245,10 +246,10 @@ Window {
         // virtual keyboard, letters
         Keyboard {
             id: keyboard1
-            y: keyboardRaised ? parent.height : 0
-            height: keyboardRaised ? 200 : 0
-            visible: keyboardRaised && !punctuationMode
-            enabled: keyboardRaised && !punctuationMode
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
             anchors.right: parent.right
             anchors.rightMargin: 0
             anchors.left: parent.left
@@ -259,10 +260,10 @@ Window {
 
         KeyboardPunctuation {
             id: keyboard2
-            y: keyboardRaised ? parent.height : 0
-            height: keyboardRaised ? 200 : 0
-            visible: keyboardRaised && punctuationMode
-            enabled: keyboardRaised && punctuationMode
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
             anchors.right: parent.right
             anchors.rightMargin: 0
             anchors.left: parent.left
