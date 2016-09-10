@@ -2006,7 +2006,7 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        qDebug() << "Device pixel ratio changed, triggering resize";
+        qDebug() << "Device pixel ratio changed, triggering resize to " << uiSize;
         offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
@@ -3288,7 +3288,7 @@ void Application::init() {
 
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
-        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+        auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
             return 0.0f;

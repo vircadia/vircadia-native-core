@@ -55,6 +55,8 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
 
+static const int DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD = 1;
+
 Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
 Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
 Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
@@ -99,6 +101,8 @@ private:
 
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
+    _gateThreshold("audioOutputGateThreshold", DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD),
+    _gate(this, _gateThreshold.get()),
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
@@ -540,10 +544,47 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message)
             emit receivedFirstPacket();
         }
 
+#if DEV_BUILD || PR_BUILD
+        _gate.insert(message);
+#else
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(*message);
+#endif
     }
 }
+
+AudioClient::Gate::Gate(AudioClient* audioClient, int threshold) :
+    _audioClient(audioClient),
+    _threshold(threshold) {}
+
+void AudioClient::Gate::setThreshold(int threshold) {
+    flush();
+    _threshold = std::max(threshold, 1);
+}
+
+void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
+    // Short-circuit for normal behavior
+    if (_threshold == 1) {
+        _audioClient->_receivedAudioStream.parseData(*message);
+        return;
+    }
+
+    _queue.push(message);
+    _index++;
+
+    if (_index % _threshold == 0) {
+        flush();
+    }
+}
+
+void AudioClient::Gate::flush() {
+    while (!_queue.empty()) {
+        _audioClient->_receivedAudioStream.parseData(*_queue.front());
+        _queue.pop();
+    }
+    _index = 0;
+}
+
 
 void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
     if (!_muted) {

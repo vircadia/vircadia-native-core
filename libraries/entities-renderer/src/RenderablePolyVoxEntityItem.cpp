@@ -447,7 +447,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     // set ray cast length to long enough to cover all of the voxel space
     float distanceToEntity = glm::distance(origin, getPosition());
     glm::vec3 dimensions = getDimensions();
-    float largestDimension = glm::max(dimensions.x, dimensions.y, dimensions.z) * 2.0f;
+    float largestDimension = glm::compMax(dimensions) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
 
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);

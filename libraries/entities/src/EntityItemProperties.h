@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -221,7 +220,7 @@ public:
 
 
 public:
-    float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
+    float getMaxDimension() const { return glm::compMax(_dimensions); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }

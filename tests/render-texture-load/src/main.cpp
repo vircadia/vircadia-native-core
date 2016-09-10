@@ -11,9 +11,6 @@
 #include <vector>
 #include <sstream>
 
-#include <gl/Config.h>
-#include <gl/Context.h>
-
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
@@ -41,6 +38,7 @@
 #include <quazip5/JlCompress.h>
 
 
+#include "GLIHelpers.h"
 #include <shared/RateCounter.h>
 #include <AssetClient.h>
 #include <PathUtils.h>
@@ -55,15 +53,15 @@
 #include <TextureCache.h>
 #include <FramebufferCache.h>
 #include <GeometryCache.h>
-#include <DeferredLightingEffect.h>
-#include <RenderShadowTask.h>
-#include <RenderDeferredTask.h>
+
+#include <gl/Config.h>
+#include <gl/Context.h>
 
 extern QThread* RENDER_THREAD;
 
 static const QString DATA_SET = "https://hifi-content.s3.amazonaws.com/austin/textures.zip";
-static const QTemporaryDir DATA_DIR;
-
+static QDir DATA_DIR = QDir(QString("h:/textures"));
+static QTemporaryDir* DOWNLOAD_DIR = nullptr;
 
 class FileDownloader : public QObject {
     Q_OBJECT
@@ -81,7 +79,7 @@ public:
         }
     }
 
-private slots:
+    private slots:
     void fileDownloaded(QNetworkReply* pReply) {
         _handler(pReply->readAll());
         pReply->deleteLater();
@@ -131,8 +129,6 @@ public:
         gpu::Context::init<gpu::gl::GLBackend>();
         _gpuContext = std::make_shared<gpu::Context>();
         _backend = _gpuContext->getBackend();
-        _context.makeCurrent();
-        DependencyManager::get<DeferredLightingEffect>()->init();
         _context.makeCurrent();
         initContext.create();
         _context.doneCurrent();
@@ -191,7 +187,7 @@ public:
             _gpuContext->executeFrame(frame);
 
             {
-                
+
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
                 presentBatch.setViewportTransform({ 0, 0, _size.width(), _size.height() });
@@ -277,16 +273,6 @@ public:
     }
 };
 
-QString fileForPath(const QString& name) {
-    QCryptographicHash hash(QCryptographicHash::Md5);
-    hash.addData(name.toLocal8Bit().data(), name.length());
-    QString hashStr = QString(hash.result().toHex());
-    auto dot = name.lastIndexOf('.');
-    QString extension = name.right(name.length() - dot);
-    QString result = DATA_DIR.path() + "/" + hashStr + extension;
-    return result;
-}
-
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
 public:
@@ -296,7 +282,6 @@ public:
         //DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<AddressManager>();
         DependencyManager::set<NodeList>(NodeType::Agent);
-        DependencyManager::set<DeferredLightingEffect>();
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();
         DependencyManager::set<FramebufferCache>();
@@ -316,7 +301,7 @@ public:
         _currentTexture = _textures.end();
         {
             QStringList stringList;
-            QFile textFile("h:/textures/loads.txt");
+            QFile textFile(DATA_DIR.path() + "/loads.txt");
             textFile.open(QFile::ReadOnly);
             //... (open the file for reading, etc.)
             QTextStream textStream(&textFile);
@@ -332,8 +317,7 @@ public:
                 auto index = s.indexOf(" ");
                 QString timeStr = s.left(index);
                 auto time = timeStr.toUInt();
-                QString path = s.right(s.length() - index).trimmed();
-                path = fileForPath(path);
+                QString path = DATA_DIR.path() + "/" + s.right(s.length() - index).trimmed();
                 qDebug() << "Path " << path;
                 if (!QFileInfo(path).exists()) {
                     continue;
@@ -341,7 +325,7 @@ public:
                 _textureLoads.push({ time, path, s });
             }
         }
-        
+
         installEventFilter(this);
         QThreadPool::globalInstance()->setMaxThreadCount(2);
         QThread::currentThread()->setPriority(QThread::HighestPriority);
@@ -436,7 +420,7 @@ private:
         QSize windowSize = _size;
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         framebufferCache->setFrameBufferSize(windowSize);
-        
+
         // Final framebuffer that will be handled to the display-plugin
         render();
 
@@ -462,8 +446,9 @@ private:
                     qDebug() << "Missing file " << front.file;
                 } else {
                     qDebug() << "Loading " << front.src;
+                    auto file = front.file.toLocal8Bit().toStdString();
+                    processTexture(file.c_str());
                     _textures.push_back(DependencyManager::get<TextureCache>()->getImageTexture(front.file));
-                    _currentTexture = _textures.begin();
                 }
                 _textureLoads.pop();
                 if (_textureLoads.empty()) {
@@ -481,7 +466,7 @@ private:
         });
         PROFILE_RANGE(__FUNCTION__);
         auto framebuffer = DependencyManager::get<FramebufferCache>()->getFramebuffer();
-        
+
         gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(framebuffer);
@@ -494,8 +479,7 @@ private:
             }
             if (_currentTexture == _textures.end()) {
                 _currentTexture = _textures.begin();
-            } 
-
+            }
             if (_currentTexture != _textures.end()) {
                 batch.setResourceTexture(0, *_currentTexture);
             }
@@ -505,7 +489,7 @@ private:
 
         auto frame = gpuContext->endFrame();
         frame->framebuffer = framebuffer;
-        frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){ 
+        frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
             DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
         };
         _renderThread.submitFrame(frame);
@@ -546,20 +530,23 @@ hifi.gpu=true
 )V0G0N";
 
 void unzipTestData(const QByteArray& zipData) {
+    DOWNLOAD_DIR = new QTemporaryDir();
+    QTemporaryDir& tempDir = *DOWNLOAD_DIR;
     QTemporaryFile zipFile;
+
     if (zipFile.open()) {
         zipFile.write(zipData);
         zipFile.close();
     }
     qDebug() << zipFile.fileName();
-    if (!DATA_DIR.isValid()) {
+    if (!tempDir.isValid()) {
         qFatal("Unable to create temp dir");
     }
-    
+    DATA_DIR = QDir(tempDir.path());
+
     //auto files = JlCompress::getFileList(zipData);
     auto files = JlCompress::extractDir(zipFile.fileName(), DATA_DIR.path());
     qDebug() << DATA_DIR.path();
-
 }
 
 int main(int argc, char** argv) {
@@ -570,12 +557,14 @@ int main(int argc, char** argv) {
     qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
 
+    if (!DATA_DIR.exists()) {
+        FileDownloader(DATA_SET, [&](const QByteArray& data) {
+            qDebug() << "Fetched size " << data.size();
+            unzipTestData(data);
+        }).waitForDownload();
+    }
 
-    FileDownloader(DATA_SET, [&](const QByteArray& data) {
-        qDebug() << "Fetched size " << data.size();
-        unzipTestData(data);
-    }).waitForDownload();
-        
+
     QTestWindow::setup();
     QTestWindow window;
     app.exec();

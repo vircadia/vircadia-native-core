@@ -96,6 +96,11 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     checkFading();
 
 
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+    glm::quat rotation = getRotation();
+    float largestDiameter = glm::compMax(dimensions);
+
 
    // DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
 
@@ -146,7 +151,7 @@ void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload* lightPa
     }
 
     glm::vec3 dimensions = entity->getDimensions();
-    float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
+    float largestDiameter = glm::compMax(dimensions);
     light->setMaximumRadius(largestDiameter / 2.0f);
 
     light->setColor(toGlm(entity->getXColor()));
