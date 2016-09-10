@@ -30,7 +30,7 @@ uniform lightIndexBuffer {
 <@include LightSpot.slh@>
 <$declareLightingSpot(supportScattering)$>
 
-in vec4 _texCoord0;
+in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {

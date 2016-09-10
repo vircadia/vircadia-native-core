@@ -19,25 +19,28 @@
 
 class FrustumGrid {
 public:
-    float _near { 0.1f };
+    float frustumNear { 0.1f };
     float rangeNear { 1.0f };
     float rangeFar { 100.0f };
-    float _far { 10000.0f };
+    float frustumFar { 10000.0f };
 
     glm::ivec3 dims { 8, 8, 8 };
     float spare;
 
     glm::mat4 eyeToGridProj;
-    glm::mat4 _worldToEyeMat;
+    glm::mat4 worldToEyeMat;
     glm::mat4 eyeToWorldMat;
 
     void updateFrustum(const ViewFrustum& frustum) {
+        frustumNear = frustum.getNearClip();
+        frustumFar = frustum.getFarClip();
+        
         eyeToGridProj = frustum.evalProjectionMatrixRange(rangeNear, rangeFar);
 
         Transform view;
         frustum.evalViewTransform(view);
         eyeToWorldMat = view.getMatrix();
-        _worldToEyeMat = view.getInverseMatrix();
+        worldToEyeMat = view.getInverseMatrix();
     }
 
     // Copy paste of the slh functions
@@ -105,7 +108,7 @@ protected:
 
 class DebugLightClusters {
 public:
-    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer>;
+    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, LinearDepthFramebufferPointer>;
     using Config = DebugLightClustersConfig;
     using JobModel = render::Job::ModelI<DebugLightClusters, Inputs, Config>;
 

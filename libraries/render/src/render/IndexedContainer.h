@@ -117,10 +117,10 @@ namespace indexed_container {
         Index newElement(const ElementPtr& e) {
             Index index = _allocator.allocateIndex();
             if (index != INVALID_INDEX) {
-                if (index < _elements.size()) {
+                if (index <  (Index) _elements.size()) {
                     _elements.emplace(_elements.begin() + index, e);
                 } else {
-                    assert(index == _elements.size());
+                    assert(index == (Index) _elements.size());
                     _elements.emplace_back(e);
                 }
             }

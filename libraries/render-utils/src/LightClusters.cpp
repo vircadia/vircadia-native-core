@@ -22,7 +22,7 @@
 #include "lightClusters_drawClusterFromDepth_frag.h"
 
 enum LightClusterGridShader_MapSlot {
-    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 7,
+    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 0,
 };
 
 enum LightClusterGridShader_BufferSlot {
@@ -126,7 +126,7 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
-    auto surfaceGeometryFramebuffer = inputs.get3();
+    auto linearDepthTarget = inputs.get3();
 
     auto args = renderContext->args;
     
@@ -149,21 +149,14 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
 
 
 
-    if (true) {
-        // bind the one gpu::Pipeline we need
-        batch.setPipeline(getDrawClusterGridPipeline());
 
-        auto dims = lightClusters->_frustumGridBuffer->dims;
-        glm::ivec3 summedDims(dims.x*dims.y * dims.z, dims.x*dims.y, dims.x);
-        batch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
-    }
 
     if (true) {
         batch.setPipeline(getDrawClusterFromDepthPipeline());
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
 
-        if (surfaceGeometryFramebuffer) {
-            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, surfaceGeometryFramebuffer->getLinearDepthTexture());
+        if (linearDepthTarget) {
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
         }
 
         batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
@@ -173,7 +166,14 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
         batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     }
-
+    if (true) {
+        // bind the one gpu::Pipeline we need
+        batch.setPipeline(getDrawClusterGridPipeline());
+        
+        auto dims = lightClusters->_frustumGridBuffer->dims;
+        glm::ivec3 summedDims(dims.x*dims.y * dims.z, dims.x*dims.y, dims.x);
+        batch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
+    }
     args->_context->appendFrameBatch(batch);
 
 }

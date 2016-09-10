@@ -154,7 +154,13 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
     const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-
+   
+    // LIght Cluster Grid Debuging job
+    {
+        const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget).hasVarying();
+        addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
+    }
+    
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
@@ -190,11 +196,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
             addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
-        // LIght Cluster Grid Debuging job
-        {
-            const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget).hasVarying();
-            addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
-        }
+       
 
         // Status icon rendering job
         {

@@ -21,7 +21,7 @@
 <$declareColorWheel()$>
 
 
-in vec4 varTexCoord0;
+in vec2 varTexCoord0;
 out vec4 _fragColor;
 
 void main(void) {
@@ -30,32 +30,50 @@ void main(void) {
     vec2 texCoord = varTexCoord0.st;
 
     float Zeye = texture(linearZeyeMap, texCoord).x;
-    _fragColor = vec4(vec3(0.1 * (10 - Zeye)), 1.0);
-  //  return;
+    if (Zeye <= 0.1) {
+        return;
+    }
+    
+   // _fragColor = vec4(colorWheel(fract(0.1 * Zeye)),.5);
+   // return;
 
     vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
 
-
-//    return;
-
-    ivec3 dims = frustumGrid.dims.xyz;
-
-    ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
-
-
-    vec3 eyePos = fragPosition.xyz;
-
+    // Frag pos in world
+    vec4 fragWorldPos = getViewInverse() * fragPosition;
+    
+    // From frag world pos find the cluster
+    //vec3 fragEyePos = fragPosition.xyz;
+    
    // vec4 worldPos = frustumGrid_eyeToWorld(vec4(eyePos.xyz, 1.0));
+    vec4 clusterEyePos = frustumGrid_worldToEye(fragWorldPos);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
-    ivec3 clusterPos = frustumGrid_eyeToClusterPos(eyePos);
-
-
-    // standard transform
-  //  TransformCamera cam = getTransformCamera();
-   // <$transformWorldToClipPos(cam, worldPos, gl_Position)$>
-
-    _fragColor = vec4(colorWheel(fract(float(clusterPos.z * summedDims.x + clusterPos.y * summedDims.y + clusterPos.x) / float(frustumGrid_numClusters()))), 0.9);
-    _fragColor = vec4(abs(fract(eyePos * 0.5)), 0.9);
-
+   ivec3 dims = frustumGrid.dims.xyz;
+   ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
+   
+   if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   
+   if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   if (clusterPos.z < 0 || clusterPos.z >= dims.z) {
+       _fragColor = vec4(0.0);
+       return;
+   }
+   
+   float relClusterId = float(clusterPos.z * summedDims.x + clusterPos.y * summedDims.y + clusterPos.x) / float(frustumGrid_numClusters());
+   
+   if (relClusterId < 0.0) {
+       _fragColor = vec4(0.0);
+   } else if (relClusterId >= 1.0) {
+       _fragColor = vec4(vec3(1.0), 0.5);
+   } else {
+       _fragColor = vec4(colorWheel(fract(relClusterId)), 0.9);
+   }
 }
 

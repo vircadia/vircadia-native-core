@@ -1,91 +1,98 @@
-    // glsl / C++ compatible source as interface for FrustrumGrid
+// glsl / C++ compatible source as interface for FrustrumGrid
 
-    int frustumGrid_numClusters() {
-        return frustumGrid.dims.x * frustumGrid.dims.y * frustumGrid.dims.z;
+int frustumGrid_numClusters() {
+    return frustumGrid.dims.x * frustumGrid.dims.y * frustumGrid.dims.z;
+}
+
+
+float frustumGrid_depthRamp(float linear) {
+    // return linear;
+    return linear * linear;
+}
+float frustumGrid_depthRampInverse(float volume) {
+    //  return volume;
+    return sqrt(volume);
+}
+
+vec3 frustumGrid_gridToVolume(vec3 pos, ivec3 dims) {
+    vec3 gridScale = vec3(1.0, 1.0, 1.0) / vec3(dims);
+    vec3 volumePos = pos * gridScale;
+    volumePos.z = frustumGrid_depthRamp(volumePos.z);
+    return volumePos;
+}
+
+
+vec3 frustumGrid_volumeToGrid(vec3 vpos, ivec3 dims) {
+    vec3 gridPos = vec3(vpos.x, vpos.y, frustumGrid_depthRampInverse(vpos.z)) * vec3(dims);
+    return gridPos;
+}
+
+vec4 frustumGrid_volumeToClip(vec3 vpos, float rangeNear, float rangeFar) {
+    vec3 ndcPos = vec3(-1.0 + 2.0 * vpos.x, -1.0 + 2.0 * vpos.y, vpos.z);
+    float depth = rangeNear * (1 - ndcPos.z) + rangeFar * (ndcPos.z);
+    vec4 clipPos = vec4(ndcPos.x * depth, ndcPos.y * depth, 1.0, depth);
+    return clipPos;
+}
+
+vec3 frustumGrid_clipToEye(vec4 clipPos, mat4 projection) {
+    return vec3(
+        (clipPos.x + projection[2][0] * clipPos.w) / projection[0][0],
+        (clipPos.y + projection[2][1] * clipPos.w) / projection[1][1],
+        -clipPos.w
+        //, (clipPos.z - projection[3][3] * clipPos.w) / projection[3][2]
+        );
+}
+
+vec3 frustumGrid_volumeToEye(vec3 vpos, mat4 projection, float rangeNear, float rangeFar) {
+    return frustumGrid_clipToEye(frustumGrid_volumeToClip(vpos, rangeNear, rangeFar), projection);
+}
+
+
+vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float rangeFar) {
+    vec4 clipPos = vec4(epos.x * projection[0][0] + epos.z * projection[2][0],
+        epos.y * projection[1][1] + epos.z * projection[2][1],
+        epos.z * projection[2][2] + projection[2][3],
+        -epos.z);
+    vec4 ndcPos = clipPos / clipPos.w;
+
+    vec3 volumePos = vec3(0.5 * (ndcPos.x + 1.0), 0.5 * (ndcPos.y + 1.0), (clipPos.w - rangeNear) / (rangeFar - rangeNear));
+    return volumePos;
+}
+
+
+vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
+
+    vec3 cvpos = vec3(clusterPos) + offset;
+
+
+    vec3 volumePos = frustumGrid_gridToVolume(cvpos, frustumGrid.dims);
+
+    vec3 eyePos = frustumGrid_volumeToEye(volumePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+    return eyePos;
+}
+
+
+ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
+    if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
+        return ivec3(-1);
     }
+    
+    vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
+
+    vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
 
 
-    float frustumGrid_depthRamp(float linear) {
-        // return linear;
-        return linear * linear;
-    }
-    float frustumGrid_depthRampInverse(float volume) {
-        //  return volume;
-        return sqrt(volume);
-    }
+    return ivec3(gridPos);
+}
 
-    vec3 frustumGrid_gridToVolume(vec3 pos, ivec3 dims) {
-        vec3 gridScale = vec3(1.0, 1.0, 1.0) / vec3(dims);
-        vec3 volumePos = pos * gridScale;
-        volumePos.z = frustumGrid_depthRamp(volumePos.z);
-        return volumePos;
-    }
+vec4 frustumGrid_eyeToWorld(vec4 eyePos) {
+    return frustumGrid.eyeToWorldMat * eyePos;
+}
 
-
-    vec3 frustumGrid_volumeToGrid(vec3 vpos, ivec3 dims) {
-        vec3 gridPos = vec3(vpos.x, vpos.y, frustumGrid_depthRampInverse(vpos.z)) * vec3(dims);
-        return gridPos;
-    }
-
-    vec4 frustumGrid_volumeToClip(vec3 vpos, float rangeNear, float rangeFar) {
-        vec3 ndcPos = vec3(-1.0 + 2.0 * vpos.x, -1.0 + 2.0 * vpos.y, vpos.z);
-        float depth = rangeNear * (1 - ndcPos.z) + rangeFar * (ndcPos.z);
-        vec4 clipPos = vec4(ndcPos.x * depth, ndcPos.y * depth, 1.0, depth);
-        return clipPos;
-    }
-
-    vec3 frustumGrid_clipToEye(vec4 clipPos, mat4 projection) {
-        return vec3(
-            (clipPos.x + projection[2][0] * clipPos.w) / projection[0][0],
-            (clipPos.y + projection[2][1] * clipPos.w) / projection[1][1],
-            -clipPos.w
-            //, (clipPos.z - projection[3][3] * clipPos.w) / projection[3][2]
-            );
-    }
-
-    vec3 frustumGrid_volumeToEye(vec3 vpos, mat4 projection, float rangeNear, float rangeFar) {
-        return frustumGrid_clipToEye(frustumGrid_volumeToClip(vpos, rangeNear, rangeFar), projection);
-    }
-
-
-    vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float rangeFar) {
-        vec4 clipPos = vec4(epos.x * projection[0][0] + epos.z * projection[2][0],
-            epos.y * projection[1][1] + epos.z * projection[2][1],
-            epos.z * projection[2][2] + projection[2][3],
-            -epos.z);
-        vec4 ndcPos = clipPos / clipPos.w;
-
-        vec3 volumePos = vec3(0.5 * (ndcPos.x + 1.0), 0.5 * (ndcPos.y + 1.0), (clipPos.w - rangeNear) / (rangeFar - rangeNear));
-        return volumePos;
-    }
-
-
-    vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset = vec3(0.5)) {
-
-        vec3 cvpos = vec3(clusterPos) + offset;
-
-
-        vec3 volumePos = frustumGrid_gridToVolume(cvpos, frustumGrid.dims);
-
-        vec3 eyePos = frustumGrid_volumeToEye(volumePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
-
-        return eyePos;
-    }
-
-
-    ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
-
-        vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
-
-        vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
-
-
-        return ivec3(gridPos);
-    }
-
-    vec4 frustumGrid_eyeToWorld(vec4 eyePos) {
-        return frustumGrid.eyeToWorldMat * eyePos;
-    }
+vec4 frustumGrid_worldToEye(vec4 worldPos) {
+    return frustumGrid.worldToEyeMat * worldPos;
+}
 
     // <@if 1@>
     // Trigger Scribe include 
