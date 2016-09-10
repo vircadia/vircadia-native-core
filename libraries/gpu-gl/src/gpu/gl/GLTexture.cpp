@@ -118,34 +118,19 @@ float GLTexture::getMemoryPressure() {
     return (float)consumedGpuMemory / (float)availableTextureMemory;
 }
 
-GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<GLBackend>& backend, GLTexture* oldTexture) :
-    _backend(backend),
-    _size(oldTexture ? oldTexture->_size : 0),
-    _texture(oldTexture ? oldTexture->takeOwnership() : 0),
-    _minMip(oldTexture ? oldTexture->_minMip : 0),
-    _maxMip(oldTexture ? oldTexture->_maxMip : 0)
-{
-}
 
-GLTexture::DownsampleSource::~DownsampleSource() {
-    if (_texture) {
-        auto backend = _backend.lock();
-        if (backend) {
-            backend->releaseTexture(_texture, _size);
-        }
-    }
-}
-
-GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
+// Create the texture and allocate storage
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLObject(backend, texture, id),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
     _maxMip(texture.maxMip()),
     _minMip(texture.minMip()),
     _virtualSize(texture.evalTotalSize()),
-    _transferrable(transferrable),
-    _downsampleSource(backend, originalTexture)
+    _transferrable(transferrable)
 {
+    auto strongBackend = _backend.lock();
+    strongBackend->recycle();
     if (_transferrable) {
         uint16 mipCount = usedMipLevels();
         _currentMaxMipCount = std::max(_currentMaxMipCount, mipCount);
@@ -154,27 +139,9 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture
         } else {
             ++_textureCountByMips[mipCount];
         }
-    } 
+    }
     Backend::incrementTextureGPUCount();
     Backend::updateTextureGPUVirtualMemoryUsage(0, _virtualSize);
-}
-
-
-// Create the texture and allocate storage
-GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
-    GLTexture(backend, texture, id, nullptr, transferrable)
-{
-    // FIXME, do during allocation
-    //Backend::updateTextureGPUMemoryUsage(0, _size);
-    Backend::setGPUObject(texture, this);
-}
-
-// Create the texture and copy from the original higher resolution version
-GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture) :
-    GLTexture(backend, texture, id, originalTexture, originalTexture->_transferrable)
-{
-    Q_ASSERT(_minMip >= originalTexture->_minMip);
-    // Set the GPU object last because that implicitly destroys the originalTexture object
     Backend::setGPUObject(texture, this);
 }
 
@@ -196,6 +163,7 @@ GLTexture::~GLTexture() {
         auto backend = _backend.lock();
         if (backend) {
             backend->releaseTexture(_id, _size);
+            backend->recycle();
         }
     }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
@@ -208,6 +176,28 @@ void GLTexture::createTexture() {
         syncSampler();
         (void)CHECK_GL_ERROR();
     });
+}
+
+void GLTexture::withPreservedTexture(std::function<void()> f) const {
+    GLint boundTex = -1;
+    switch (_target) {
+        case GL_TEXTURE_2D:
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
+            break;
+
+        case GL_TEXTURE_CUBE_MAP:
+            glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
+            break;
+
+        default:
+            qFatal("Unsupported texture type");
+    }
+    (void)CHECK_GL_ERROR();
+
+    glBindTexture(_target, _texture);
+    f();
+    glBindTexture(_target, boundTex);
+    (void)CHECK_GL_ERROR();
 }
 
 void GLTexture::setSize(GLuint size) const {
@@ -256,11 +246,6 @@ bool GLTexture::isReady() const {
 void GLTexture::postTransfer() {
     setSyncState(GLSyncState::Idle);
     ++_transferCount;
-
-    //// The public gltexture becaomes available
-    //_id = _privateTexture;
-
-    _downsampleSource.reset();
 
     // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
     switch (_gpuObject.getType()) {

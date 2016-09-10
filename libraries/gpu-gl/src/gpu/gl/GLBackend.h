@@ -365,6 +365,7 @@ protected:
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
     friend class GLState;
+    friend class GLTexture;
 };
 
 } }

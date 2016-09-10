@@ -18,29 +18,6 @@ namespace gpu { namespace gl45 {
     
 using namespace gpu::gl;
 
-struct TransferState {
-    GLTexture& _texture;
-    GLenum _internalFormat { GL_RGBA8 };
-    GLTexelFormat _texelFormat;
-    uint8_t _face { 0 };
-    uint16_t  _mipLevel { 0 };
-    uint32_t _bytesPerLine { 0 };
-    uint32_t _bytesPerPixel { 0 };
-    uint32_t _bytesPerPage { 0 };
-    GLuint _maxSparseLevel { 0 };
-
-    uvec3 _mipDimensions;
-    uvec3 _mipOffset;
-    uvec3 _pageSize;
-    const uint8_t* _srcPointer { nullptr };
-    uvec3 currentPageSize() const;
-    void updateSparse();
-    void updateMip();
-    void populatePage(std::vector<uint8_t>& dest);
-    bool increment();
-    TransferState(GLTexture& texture);
-};
-
 class GL45Backend : public GLBackend {
     using Parent = GLBackend;
     // Context Backend static interface required
@@ -55,12 +32,47 @@ public:
         static GLuint allocate(const Texture& texture);
     public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
-        GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLTexture* original);
         ~GL45Texture();
 
+        void postTransfer() override;
+
+        struct SparseInfo {
+            GL45Texture& _texture;
+            uvec3 _pageDimensions;
+            GLuint _maxSparseLevel { 0 };
+            uint32_t _maxPages { 0 };
+            uint32_t _pageBytes { 0 };
+            SparseInfo(GL45Texture& texture);
+            void update();
+            uvec3 getPageCounts(const uvec3& dimensions) const;
+            uint32_t getPageCount(const uvec3& dimensions) const;
+        };
+
+        struct TransferState {
+            GL45Texture& _texture;
+            GLTexelFormat _texelFormat;
+            uint8_t _face { 0 };
+            uint16_t  _mipLevel { 0 };
+            uint32_t _bytesPerLine { 0 };
+            uint32_t _bytesPerPixel { 0 };
+            uint32_t _bytesPerPage { 0 };
+
+            uvec3 _mipDimensions;
+            uvec3 _mipOffset;
+            const uint8_t* _srcPointer { nullptr };
+            uvec3 currentPageSize() const;
+            void updateMip();
+            void populatePage(std::vector<uint8_t>& dest);
+            bool increment();
+            TransferState(GL45Texture& texture);
+        };
+
     protected:
+        void updateMips() override;
+        void stripToMip(uint16_t newMinMip);
         void startTransfer() override;
         bool continueTransfer() override;
+        void finishTransfer() override;
         void incrementalTransfer(const uvec3& size, const gpu::Texture::PixelsPointer& mip, std::function<void(const ivec3& offset, const uvec3& size)> f) const;
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
         void allocateMip(uint16_t mipLevel, uint8_t face = 0) const;
@@ -69,12 +81,21 @@ public:
         void syncSampler() const override;
         void generateMips() const override;
         void withPreservedTexture(std::function<void()> f) const override;
-
+        void derez();
+        SparseInfo _sparseInfo;
         TransferState _transferState;
+        uint32_t _allocatedPages { 0 };
+        uint32_t _lastMipAllocatedPages { 0 };
+        bool _sparse { false };
+
+        friend class GL45Backend;
     };
 
 
 protected:
+    void recycle() const override;
+    void derezTextures() const;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 

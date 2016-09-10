@@ -666,6 +666,14 @@ protected:
             toggleCulling();
             return;
 
+        case Qt::Key_Home:
+            gpu::Texture::setAllowedGPUMemoryUsage(0);
+            return;
+
+        case Qt::Key_End:
+            gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(256));
+            return;
+
 
         default:
             break;
@@ -776,10 +784,11 @@ private:
     };
 
     void updateText() {
-        QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
+        QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4 Max GPU %5")
             .arg(_fps).arg(_cullingEnabled)
             .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2));
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2))
+            .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
         setTitle(title);
 #if 0
         {
@@ -1111,7 +1120,6 @@ int main(int argc, char** argv) {
     QCoreApplication::setApplicationName("RenderPerf");
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setOrganizationDomain("highfidelity.com");
-
     qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
