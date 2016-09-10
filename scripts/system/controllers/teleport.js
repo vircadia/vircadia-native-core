@@ -564,7 +564,7 @@ function Teleporter() {
         } else if (this.teleportMode === "HMDFirstAvatarWillFollow") {
             var eyeOffset = Vec3.subtract(MyAvatar.getEyePosition(), MyAvatar.position);
             landingPoint = Vec3.sum(landingPoint, eyeOffset);
-            HMD.setPosition(landingPoint);
+            HMD.position = landingPoint;
         }
     }
 

@@ -91,13 +91,18 @@ glm::vec3 HMDScriptingInterface::getPosition() const {
 }
 
 void HMDScriptingInterface::setPosition(const glm::vec3& position) {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    glm::mat4 hmdToSensor = myAvatar->getHMDSensorMatrix();
-    glm::mat4 sensorToWorld = myAvatar->getSensorToWorldMatrix();
-    glm::mat4 hmdToWorld = sensorToWorld * hmdToSensor;
-    setTranslation(hmdToWorld, position);
-    sensorToWorld = hmdToWorld * glm::inverse(hmdToSensor);
-    myAvatar->setSensorToWorldMatrix(sensorToWorld);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPosition", Qt::QueuedConnection, Q_ARG(const glm::vec3&, position));
+        return;
+    } else {
+        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        glm::mat4 hmdToSensor = myAvatar->getHMDSensorMatrix();
+        glm::mat4 sensorToWorld = myAvatar->getSensorToWorldMatrix();
+        glm::mat4 hmdToWorld = sensorToWorld * hmdToSensor;
+        setTranslation(hmdToWorld, position);
+        sensorToWorld = hmdToWorld * glm::inverse(hmdToSensor);
+        myAvatar->setSensorToWorldMatrix(sensorToWorld);
+    }
 }
 
 glm::quat HMDScriptingInterface::getOrientation() const {

@@ -72,7 +72,7 @@ private:
     glm::vec3 getPosition() const;
 
     // Set the position of the HMD
-    void setPosition(const glm::vec3& position);
+    Q_INVOKABLE void setPosition(const glm::vec3& position);
 
     // Get the orientation of the HMD
     glm::quat getOrientation() const;
