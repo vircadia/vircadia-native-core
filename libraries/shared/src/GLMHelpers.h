@@ -203,19 +203,19 @@ inline float lerp(float x, float y, float a) {
 
 // vec2 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec2<T, P> lerp(const glm::detail::tvec2<T, P>& x, const glm::detail::tvec2<T, P>& y, T a) {
+glm::tvec2<T, P> lerp(const glm::tvec2<T, P>& x, const glm::tvec2<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
 // vec3 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec3<T, P> lerp(const glm::detail::tvec3<T, P>& x, const glm::detail::tvec3<T, P>& y, T a) {
+glm::tvec3<T, P> lerp(const glm::tvec3<T, P>& x, const glm::tvec3<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 
 // vec4 lerp - linear interpolate
 template<typename T, glm::precision P>
-glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::detail::tvec4<T, P>& y, T a) {
+glm::tvec4<T, P> lerp(const glm::tvec4<T, P>& x, const glm::tvec4<T, P>& y, T a) {
     return x * (T(1) - a) + (y * a);
 }
 

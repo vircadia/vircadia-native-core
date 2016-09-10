@@ -315,7 +315,6 @@ void GLBackend::render(const Batch& batch) {
 
 
 void GLBackend::syncCache() {
-    recycle();
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();

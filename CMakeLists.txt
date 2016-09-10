@@ -74,6 +74,13 @@ else ()
   endif ()
 endif(WIN32)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
+    # GLM 0.9.8 on Ubuntu 14 (gcc 4.4) has issues with the simd declarations 
+    add_definitions(-DGLM_FORCE_PURE)
+  endif()
+endif()
+
 if (NOT ANDROID)
   if ((NOT MSVC12) AND (NOT MSVC14))
     include(CheckCXXCompilerFlag)
