@@ -634,7 +634,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 }
 
 RenderDeferredLocals::RenderDeferredLocals() :
-_localLightsBuffer(std::make_shared<gpu::Buffer>()) {
+    _localLightsBuffer(std::make_shared<gpu::Buffer>()) {
 
 }
 
@@ -642,7 +642,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer) {
+    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer, const LightClustersPointer& lightClusters) {
 
     bool points = lightingModel->isPointLightEnabled();
     bool spots = lightingModel->isSpotLightEnabled();
@@ -676,18 +676,17 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewTransform, true);
+    //    batch.setProjectionTransform(projMat);
+     //   batch.setViewTransform(viewTransform, true);
 
         // gather lights
-        auto& srcPointLights = deferredLightingEffect->_pointLights;
+     /*   auto& srcPointLights = deferredLightingEffect->_pointLights;
         auto& srcSpotLights = deferredLightingEffect->_spotLights;
         int numPointLights = (int) srcPointLights.size();
         int offsetPointLights = 0;
         int numSpotLights = (int) srcSpotLights.size();
         int offsetSpotLights = numPointLights;
 
-        auto lightClusters = deferredLightingEffect->_lightClusters;
 
         std::vector<int> lightIndices(numPointLights + numSpotLights + 1);
         lightIndices[0] = 0;
@@ -699,28 +698,21 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         if (spots && !srcSpotLights.empty()) {
             memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
             lightIndices[0] += (int)srcSpotLights.size();
-        }
-
-        if (lightIndices[0] > 0) {
-            static int frame = 0;
-            frame++;
-
-            if (frame % 1000 == 0) {
-                lightClusters->updateFrustum(viewFrustum);
-
-                lightClusters->updateVisibleLights(lightIndices);
-            }
-            _localLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
-            _localLightsBuffer._size = lightIndices.size() * sizeof(int);
+        }*/
+        //auto lightClusters = deferredLightingEffect->_lightClusters;
+        auto& lightIndices = lightClusters->_visibleLightIndices;
+        if (!lightIndices.empty() && lightIndices[0] > 0) {
+           // _localLightsBuffer._buffer->setData(lightIndices.size() * sizeof(int), (const gpu::Byte*) lightIndices.data());
+           // _localLightsBuffer._size = lightIndices.size() * sizeof(int);
 
             
             // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, deferredLightingEffect->getLightStage()->_lightArrayBuffer);
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, _localLightsBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, lightClusters->_lightIndicesBuffer);
 
 
             // before we get to the real lighting, let s try to cull down the number of pixels
-            if (false) {
+            if (false) {/*
                 if (numPointLights > 0) {
                     auto mesh = deferredLightingEffect->getPointLightMesh();
                     batch.setIndexBuffer(mesh->getIndexBuffer());
@@ -753,7 +745,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
                     batch.setPipeline(deferredLightingEffect->_spotLightFront);
 
                     batch.drawIndexedInstanced(numSpotLights, model::Mesh::topologyToPrimitive(conePart._topology), conePart._numIndices, conePart._startIndex, offsetSpotLights);
-                }
+                }*/
             }
 
             // Local light pipeline
@@ -815,6 +807,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto surfaceGeometryFramebuffer = inputs.get3();
     auto ssaoFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
+    auto lightClusters = inputs.get6();
     auto args = renderContext->args;
 
     if (!_gpuTimer) {
@@ -828,7 +821,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 
     setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer);
+    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
     cleanupJob.run(sceneContext, renderContext);
 

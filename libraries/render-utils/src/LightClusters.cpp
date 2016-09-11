@@ -35,7 +35,8 @@ enum LightClusterGridShader_BufferSlot {
 
 #include "DeferredLightingEffect.h"
 
-LightClusters::LightClusters() {
+LightClusters::LightClusters() :
+_lightIndicesBuffer(std::make_shared<gpu::Buffer>()) {
 }
 
 void LightClusters::updateFrustum(const ViewFrustum& frustum) {
@@ -49,12 +50,77 @@ void LightClusters::updateLightStage(const LightStagePointer& lightStage) {
 }
 
 void LightClusters::updateVisibleLights(const LightStage::LightIndices& visibleLights) {
-
+    
+    _visibleLightIndices.clear();
+   // _lightClusters->_visibleLightIndices.push_back(0);
+    _visibleLightIndices = visibleLights;
+    _lightIndicesBuffer._buffer->setData(_visibleLightIndices.size() * sizeof(int), (const gpu::Byte*) _visibleLightIndices.data());
+    _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
 
 
+LightClusteringPass::LightClusteringPass() {
+}
 
 
+void LightClusteringPass::configure(const Config& config) {
+    if (_lightClusters) {
+        if (_lightClusters->_frustumGridBuffer->rangeNear != config.rangeNear) {
+            _lightClusters->_frustumGridBuffer.edit().rangeNear = config.rangeNear;
+        }
+        if (_lightClusters->_frustumGridBuffer->rangeFar != config.rangeFar) {
+            _lightClusters->_frustumGridBuffer.edit().rangeFar = config.rangeFar;
+        }
+    }
+    
+    _freeze = config.freeze;
+}
+
+void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+    auto args = renderContext->args;
+    
+    auto deferredTransform = inputs.get0();
+    auto lightingModel = inputs.get1();
+    auto surfaceGeometryFramebuffer = inputs.get2();
+    
+    bool points = lightingModel->isPointLightEnabled();
+    bool spots = lightingModel->isSpotLightEnabled();
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+    
+    if (!_lightClusters) {
+        _lightClusters = deferredLightingEffect->getLightClusters();
+    }
+    
+    // first update the Grid with the new frustum
+    if (!_freeze) {
+        _lightClusters->updateFrustum(args->getViewFrustum());
+    }
+    
+    // Now gather the lights
+    // gather lights
+    auto& srcPointLights = deferredLightingEffect->_pointLights;
+    auto& srcSpotLights = deferredLightingEffect->_spotLights;
+    int numPointLights = (int) srcPointLights.size();
+    int offsetPointLights = 0;
+    int numSpotLights = (int) srcSpotLights.size();
+    int offsetSpotLights = numPointLights;
+    
+    std::vector<int> lightIndices(numPointLights + numSpotLights + 1);
+    lightIndices[0] = 0;
+    
+    if (points && !srcPointLights.empty()) {
+        memcpy(lightIndices.data() + (lightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
+        lightIndices[0] += (int)srcPointLights.size();
+    }
+    if (spots && !srcSpotLights.empty()) {
+        memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
+        lightIndices[0] += (int)srcSpotLights.size();
+    }
+    
+    _lightClusters->updateVisibleLights(lightIndices);
+    
+    output = _lightClusters;
+}
 
 DebugLightClusters::DebugLightClusters() {
 
@@ -62,6 +128,9 @@ DebugLightClusters::DebugLightClusters() {
 
 
 void DebugLightClusters::configure(const Config& config) {
+    doDrawGrid = config.doDrawGrid;
+    doDrawClusterFromDepth = config.doDrawClusterFromDepth;
+
 }
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterGridPipeline() {
@@ -119,15 +188,12 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
 }
 
 void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-    auto lightClusters = deferredLightingEffect->getLightClusters();
-
-
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
     auto linearDepthTarget = inputs.get3();
-
+    auto lightClusters = inputs.get4();
+    
     auto args = renderContext->args;
     
     gpu::Batch batch;
@@ -148,10 +214,7 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
 
 
-
-
-
-    if (true) {
+    if (doDrawClusterFromDepth) {
         batch.setPipeline(getDrawClusterFromDepthPipeline());
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
 
@@ -166,7 +229,8 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
         batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     }
-    if (true) {
+    
+    if (doDrawGrid) {
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawClusterGridPipeline());
         

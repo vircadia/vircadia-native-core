@@ -19,9 +19,9 @@
 
 // Everything about light
 <@include model/Light.slh@>
-<$declareLightBuffer(32)$>
+<$declareLightBuffer(128)$>
 uniform lightIndexBuffer {
-    int lightIndex[32];
+    int lightIndex[128];
 };
 <@include LightingModel.slh@>
 

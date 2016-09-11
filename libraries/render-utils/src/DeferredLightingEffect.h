@@ -117,7 +117,7 @@ private:
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
 
-    
+    friend class LightClusteringPass;
     friend class RenderDeferredSetup;
     friend class RenderDeferredLocals;
     friend class RenderDeferredCleanup;
@@ -167,7 +167,8 @@ public:
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
-        const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer);
+        const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
+        const LightClustersPointer& lightClusters);
 
     gpu::BufferView _localLightsBuffer;
 
@@ -187,7 +188,7 @@ using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet6 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet7 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 

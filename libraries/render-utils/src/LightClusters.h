@@ -72,43 +72,84 @@ public:
 
     gpu::StructBuffer<FrustumGrid> _frustumGridBuffer;
 
-
-    gpu::BufferPointer _lightIndicesBuffer;
+    LightStage::LightIndices _visibleLightIndices;
+    
+    gpu::BufferView _lightIndicesBuffer;
 };
 
 using LightClustersPointer = std::shared_ptr<LightClusters>;
 
 
 
-class DebugLightClustersConfig : public render::Job::Config {
+class LightClusteringPassConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
-        Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    Q_PROPERTY(float rangeNear MEMBER rangeNear NOTIFY dirty)
+    Q_PROPERTY(float rangeFar MEMBER rangeFar NOTIFY dirty)
+    
+    Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
 public:
-    DebugLightClustersConfig() : render::Job::Config(true){}
-
-    int getNumDrawn() { return numDrawn; }
-    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
-
-    int maxDrawn { -1 };
-
+    LightClusteringPassConfig() : render::Job::Config(true){}
+    float rangeNear{ 1.0f };
+    float rangeFar{ 512.0f };
+    bool freeze{ false };
+    
 signals:
-    void numDrawnChanged();
     void dirty();
-
+    
 protected:
-    int numDrawn { 0 };
 };
 
-
 #include "DeferredFrameTransform.h"
-#include "DeferredFramebuffer.h"
 #include "LightingModel.h"
 #include "SurfaceGeometryPass.h"
 
+class LightClusteringPass {
+public:
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightingModelPointer, LinearDepthFramebufferPointer>;
+    using Outputs = LightClustersPointer;
+    using Config = LightClusteringPassConfig;
+    using JobModel = render::Job::ModelIO<LightClusteringPass, Inputs, Outputs, Config>;
+    
+    LightClusteringPass();
+    
+    void configure(const Config& config);
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+    
+protected:
+    LightClustersPointer _lightClusters;
+    bool _freeze;
+};
+
+
+
+
+
+
+
+class DebugLightClustersConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool doDrawGrid MEMBER doDrawGrid NOTIFY dirty)
+    Q_PROPERTY(bool doDrawClusterFromDepth MEMBER doDrawClusterFromDepth NOTIFY dirty)
+public:
+    DebugLightClustersConfig() : render::Job::Config(true){}
+
+
+    bool doDrawGrid{ false };
+    bool doDrawClusterFromDepth{ false };
+    
+signals:
+    void dirty();
+
+protected:
+};
+
+
+#include "DeferredFramebuffer.h"
+
 class DebugLightClusters {
 public:
-    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, LinearDepthFramebufferPointer>;
+    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, LinearDepthFramebufferPointer, LightClustersPointer>;
     using Config = DebugLightClustersConfig;
     using JobModel = render::Job::ModelI<DebugLightClusters, Inputs, Config>;
 
@@ -124,6 +165,8 @@ protected:
     gpu::PipelinePointer _drawClusterFromDepth;
     const gpu::PipelinePointer getDrawClusterGridPipeline();
     const gpu::PipelinePointer getDrawClusterFromDepthPipeline();
+    bool doDrawGrid{ false };
+    bool doDrawClusterFromDepth{ false };
 };
 
 #endif

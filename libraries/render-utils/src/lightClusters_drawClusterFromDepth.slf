@@ -29,27 +29,15 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = varTexCoord0.st;
 
-    float Zeye = texture(linearZeyeMap, texCoord).x;
-    if (Zeye <= 0.1) {
-        return;
-    }
-    
-   // _fragColor = vec4(colorWheel(fract(0.1 * Zeye)),.5);
-   // return;
-
-    vec4 fragPosition = unpackDeferredPositionFromZeye(texCoord);
-
-    // Frag pos in world
-    vec4 fragWorldPos = getViewInverse() * fragPosition;
+    vec4 fragEyePos = unpackDeferredPositionFromZeye(texCoord);
+    vec4 fragWorldPos = getViewInverse() * fragEyePos;
     
     // From frag world pos find the cluster
-    //vec3 fragEyePos = fragPosition.xyz;
-    
-   // vec4 worldPos = frustumGrid_eyeToWorld(vec4(eyePos.xyz, 1.0));
     vec4 clusterEyePos = frustumGrid_worldToEye(fragWorldPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
    ivec3 dims = frustumGrid.dims.xyz;
+   dims.z +=1;
    ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
    
    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
@@ -61,7 +49,7 @@ void main(void) {
        _fragColor = vec4(0.0);
        return;
    }
-   if (clusterPos.z < 0 || clusterPos.z >= dims.z) {
+   if (clusterPos.z < 0 || clusterPos.z > dims.z) {
        _fragColor = vec4(0.0);
        return;
    }

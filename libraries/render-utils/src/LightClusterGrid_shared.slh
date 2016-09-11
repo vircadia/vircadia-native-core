@@ -1,10 +1,5 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
 
-int frustumGrid_numClusters() {
-    return frustumGrid.dims.x * frustumGrid.dims.y * frustumGrid.dims.z;
-}
-
-
 float frustumGrid_depthRamp(float linear) {
     // return linear;
     return linear * linear;
@@ -60,6 +55,11 @@ vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float 
 }
 
 
+
+int frustumGrid_numClusters() {
+    return frustumGrid.dims.x * frustumGrid.dims.y * (frustumGrid.dims.z);
+}
+
 vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
 
     vec3 cvpos = vec3(clusterPos) + offset;
@@ -78,9 +78,17 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
         return ivec3(-1);
     }
     
+    if (eyePos.z > -frustumGrid.rangeNear) {
+        return ivec3(0,0,-1);
+    }
+    
     vec3 volumePos = frustumGrid_eyeToVolume(eyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
     vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
+    
+    if (gridPos.z >= frustumGrid.dims.z) {
+        gridPos.z = frustumGrid.dims.z;
+    }
 
 
     return ivec3(gridPos);
