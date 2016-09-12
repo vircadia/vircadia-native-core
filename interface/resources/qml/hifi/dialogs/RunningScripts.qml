@@ -16,6 +16,7 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import "../../controls"
 
 ScrollingWindow {
     id: root
@@ -92,6 +93,9 @@ ScrollingWindow {
     }
 
     Column {
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         width: pane.contentWidth
 
         HifiControls.ContentSection {
@@ -353,6 +357,28 @@ ScrollingWindow {
                 visible: !isHMD
             }
         }
+
+        // virtual keyboard, letters
+        Keyboard {
+            id: keyboard1
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+        }
+
+        KeyboardPunctuation {
+            id: keyboard2
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+        }
     }
 }
-

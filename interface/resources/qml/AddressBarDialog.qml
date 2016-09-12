@@ -67,7 +67,6 @@ Window {
 
     AddressBarDialog {
         id: addressBarDialog
-        objectName: "AddressBarDialogDialog"
 
         property bool keyboardRaised: false
         property bool punctuationMode: false
@@ -128,7 +127,6 @@ Window {
         }
         Image {
             id: backgroundImage
-            objectName: "AddressBarDialogImage"
             source: "../images/address-bar.svg"
             width: 576 * root.scale
             height: 80 * root.scale
@@ -178,7 +176,6 @@ Window {
             TextInput {
                 id: addressLine
                 focus: true
-                objectName: "AddressBarDialogTextInput"
                 anchors {
                     top: parent.top
                     bottom: parent.bottom
