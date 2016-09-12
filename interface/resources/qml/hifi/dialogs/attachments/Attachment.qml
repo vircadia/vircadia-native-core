@@ -9,6 +9,7 @@ import ".."
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
 import "../../../windows"
+import "../../../controls" as Controls
 
 Item {
     height: column.height + 2 * 8
@@ -33,6 +34,9 @@ Item {
         id: column
         anchors { left: parent.left; right: parent.right; margins: 20 }
         spacing: 8
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
 
         Item {
             height: modelChooserButton.height + urlLabel.height + 4
@@ -69,6 +73,35 @@ Item {
                     })
                 }
             }
+        }
+
+        // virtual keyboard, letters
+        Controls.Keyboard {
+            id: keyboard1
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            // anchors.bottom: buttonRow.top
+            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+        }
+
+        Controls.KeyboardPunctuation {
+            id: keyboard2
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            // anchors.bottom: buttonRow.top
+            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
         Item {
