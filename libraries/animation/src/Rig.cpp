@@ -47,10 +47,6 @@ const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
 const glm::vec3 DEFAULT_NECK_POS(0.0f, 0.70f, 0.0f);
 
-const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
-float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0;
-float TRUNCATE_IK_CAPSULE_RADIUS = 0.5;
-
 extern Rig* OUTOFBODY_HACK_RIG_POINTER;
 
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
@@ -1003,37 +999,6 @@ void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositi
     neckOrientationOut = safeMix(hmdOrientation, _animSkeleton->getRelativeDefaultPose(neckIndex).rot, 0.5f);
 }
 
-static bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius) {
-    glm::vec3 top = capsulePosition.y + glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
-    glm::vec3 bottom = capsulePosition.y - glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
-    if (point.y > top.y + capsuleRadius) {
-        return false;
-    } else if (point.y > top.y) {
-        return glm::length(point - top) < capsuleRadius;
-    } else if (point.y < bottom.y - capsuleRadius) {
-        return false;
-    } else if (point.y < bottom.y) {
-        return glm::length(point - bottom) < capsuleRadius;
-    } else {
-        return glm::length(glm::vec2(point.x, point.z) - glm::vec2(capsulePosition.x, capsulePosition.z)) < capsuleRadius;
-    }
-}
-
-static glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius) {
-    glm::vec3 top = capsulePosition.y + glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
-    glm::vec3 bottom = capsulePosition.y - glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
-    if (point.y > top.y) {
-        return capsuleRadius * glm::normalize(point - top) + top;
-    } else if (point.y < bottom.y) {
-        return capsuleRadius * glm::normalize(point - bottom) + bottom;
-    } else {
-        glm::vec2 capsulePosition2D(capsulePosition.x, capsulePosition.z);
-        glm::vec2 point2D(point.x, point.z);
-        glm::vec2 projectedPoint2D = capsuleRadius * glm::normalize(point2D - capsulePosition2D) + capsulePosition2D;
-        return glm::vec3(projectedPoint2D.x, point.y, projectedPoint2D.y);
-    }
-}
-
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
         glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1043,20 +1008,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
             AnimPose hmdPose(glm::vec3(1.0f), params.rigHeadOrientation * yFlip180, params.rigHeadPosition);
             computeHeadNeckAnimVars(hmdPose, headPos, headRot, neckPos, neckRot);
-
-            // decide if we SHOULD truncate IK targets
-            if (!pointIsInsideCapsule(params.rigHeadPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS)) {
-                _desiredRigHeadPosition = headPos;
-                _truncateIKTargets = true;
-            } else {
-                _truncateIKTargets = false;
-            }
-
-            // truncate head IK target.
-            if (_truncateIKTargets) {
-                headPos = projectPointOntoCapsule(_desiredRigHeadPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
-                neckPos = (neckPos - _desiredRigHeadPosition) + headPos;
-            }
 
             _animVars.set("headPosition", headPos);
             _animVars.set("headRotation", headRot);
@@ -1132,13 +1083,6 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
             glm::vec3 handPosition = params.leftPosition;
 
-            // truncate hand IK target
-            if (_truncateIKTargets) {
-                glm::vec3 offset = handPosition - _desiredRigHeadPosition;
-                glm::vec3 headPos = projectPointOntoCapsule(_desiredRigHeadPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
-                handPosition = headPos + offset;
-            }
-
             // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 displacement(glm::vec3::_null);
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
@@ -1157,13 +1101,6 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
         if (params.isRightEnabled) {
 
             glm::vec3 handPosition = params.rightPosition;
-
-            // truncate hand IK target
-            if (_truncateIKTargets) {
-                glm::vec3 offset = handPosition - _desiredRigHeadPosition;
-                glm::vec3 headPos = projectPointOntoCapsule(_desiredRigHeadPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
-                handPosition = headPos + offset;
-            }
 
             // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 displacement(glm::vec3::_null);

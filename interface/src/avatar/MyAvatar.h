@@ -315,6 +315,8 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
+    bool isOutOfBody() const { return _follow._isOutOfBody; }
+
 signals:
     void audioListenerModeChanged();
     void transformChanged();
@@ -445,7 +447,8 @@ private:
             NumFollowTypes
         };
         glm::mat4 _desiredBodyMatrix;
-        uint8_t _activeBits;
+        uint8_t _activeBits { 0 };
+        bool _isOutOfBody { false };
 
         void deactivate();
         void deactivate(FollowType type);
@@ -457,6 +460,7 @@ private:
         void updateHorizontalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
         void updateVerticalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix);
+        void postPhysicsUpdate(MyAvatar& myAvatar);
     };
     FollowHelper _follow;
 

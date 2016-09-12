@@ -23,6 +23,10 @@
 #include "InterfaceLogging.h"
 #include "AnimDebugDraw.h"
 
+const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
+const float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
+const float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
+
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
     _owningAvatar(owningAvatar),
@@ -86,7 +90,6 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     };
 }
 
-
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const FBXGeometry& geometry = getFBXGeometry();
@@ -107,6 +110,9 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HeadParameters headParams;
 
+        glm::vec3 hmdPositionInRigSpace;
+        glm::vec3 truncatedHMDPositionInRigSpace;
+
         if (qApp->isHMDMode()) {
             headParams.isInHMD = true;
 
@@ -116,9 +122,20 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             glm::mat4 worldToRig = glm::inverse(rigToWorld);
             glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
 
-            headParams.rigHeadPosition = extractTranslation(rigHMDMat);
+            hmdPositionInRigSpace = extractTranslation(rigHMDMat);
+
+            // truncate head IK target if it's out of body
+            if (myAvatar->isOutOfBody()) {
+                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, TRUNCATE_IK_CAPSULE_POSITION,
+                                                                         TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
+            } else {
+                truncatedHMDPositionInRigSpace = hmdPositionInRigSpace;
+            }
+
+            headParams.rigHeadPosition = truncatedHMDPositionInRigSpace;
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+
         } else {
             headParams.isInHMD = false;
 
@@ -139,6 +156,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isLeftEnabled = true;
             handParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
             handParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
+
+            // truncate hand target
+            if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
+                glm::vec3 offset = handParams.leftPosition - hmdPositionInRigSpace;
+                handParams.leftPosition = truncatedHMDPositionInRigSpace + offset;
+            }
         } else {
             handParams.isLeftEnabled = false;
         }
@@ -148,6 +171,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isRightEnabled = true;
             handParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
             handParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
+
+            // truncate hand target
+            if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
+                glm::vec3 offset = handParams.rightPosition - hmdPositionInRigSpace;
+                handParams.rightPosition = truncatedHMDPositionInRigSpace + offset;
+            }
         } else {
             handParams.isRightEnabled = false;
         }

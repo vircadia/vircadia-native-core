@@ -578,3 +578,34 @@ float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirectio
 
     return glm::max(0.0f, theta - phi);
 }
+
+bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius) {
+    glm::vec3 top = capsulePosition.y + glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
+    glm::vec3 bottom = capsulePosition.y - glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
+    if (point.y > top.y + capsuleRadius) {
+        return false;
+    } else if (point.y > top.y) {
+        return glm::length(point - top) < capsuleRadius;
+    } else if (point.y < bottom.y - capsuleRadius) {
+        return false;
+    } else if (point.y < bottom.y) {
+        return glm::length(point - bottom) < capsuleRadius;
+    } else {
+        return glm::length(glm::vec2(point.x, point.z) - glm::vec2(capsulePosition.x, capsulePosition.z)) < capsuleRadius;
+    }
+}
+
+glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius) {
+    glm::vec3 top = capsulePosition.y + glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
+    glm::vec3 bottom = capsulePosition.y - glm::vec3(0.0f, capsuleLength / 2.0f, 0.0f);
+    if (point.y > top.y) {
+        return capsuleRadius * glm::normalize(point - top) + top;
+    } else if (point.y < bottom.y) {
+        return capsuleRadius * glm::normalize(point - bottom) + bottom;
+    } else {
+        glm::vec2 capsulePosition2D(capsulePosition.x, capsulePosition.z);
+        glm::vec2 point2D(point.x, point.z);
+        glm::vec2 projectedPoint2D = capsuleRadius * glm::normalize(point2D - capsulePosition2D) + capsulePosition2D;
+        return glm::vec3(projectedPoint2D.x, point.y, projectedPoint2D.y);
+    }
+}

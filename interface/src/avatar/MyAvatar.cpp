@@ -82,7 +82,13 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
+// OUTOFBODY_HACK defined in Rig.cpp
 extern bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS;
+
+// OUTOFBODY_HACK defined in SkeletonModel.cpp
+extern const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
+extern const float TRUNCATE_IK_CAPSULE_LENGTH;
+extern const float TRUNCATE_IK_CAPSULE_RADIUS;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -1338,6 +1344,8 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
     }
+
+    _follow.postPhysicsUpdate(*this);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -2181,6 +2189,19 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         deactivate();
         myAvatar.getCharacterController()->disableFollow();
     }
+}
+
+void MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar) {
+
+    // get HMD position from sensor space into world space, and back into rig space
+    glm::mat4 worldHMDMat = myAvatar.getSensorToWorldMatrix() * myAvatar.getHMDSensorMatrix();
+    glm::mat4 rigToWorld = createMatFromQuatAndPos(myAvatar.getRotation() * Quaternions::Y_180, myAvatar.getPosition());
+    glm::mat4 worldToRig = glm::inverse(rigToWorld);
+    glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
+    glm::vec3 rigHMDPosition = extractTranslation(rigHMDMat);
+
+    // detect if the rig head position is too far from the avatar's position.
+    _isOutOfBody = !pointIsInsideCapsule(rigHMDPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
 }
 
 float MyAvatar::getAccelerationEnergy() {

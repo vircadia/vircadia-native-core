@@ -160,5 +160,8 @@ private:
     static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
 };
 
+// vertical capsule
+bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius);
+glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsulePosition, float capsuleLength, float capsuleRadius);
 
 #endif // hifi_GeometryUtil_h
