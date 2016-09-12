@@ -368,11 +368,11 @@ void DomainServer::setupNodeListAndAssignments() {
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
-    unsigned short domainServerPort = (unsigned short) localPortValue.toUInt();
+    int domainServerPort = localPortValue.toInt();
 
     QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
-    unsigned short domainServerDTLSPort = 0;
+    int domainServerDTLSPort = INVALID_PORT;
 
     if (_isUsingDTLS) {
         domainServerDTLSPort = DEFAULT_DOMAIN_SERVER_DTLS_PORT;

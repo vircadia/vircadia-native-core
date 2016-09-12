@@ -42,7 +42,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GL41Texture* original) : GLTexture(backend, texture, allocate(), original) {}
 
-void GL41Backend::GL41Texture::withPreservedTexture(std::function<void()> f) const  {
+void GL41Texture::withPreservedTexture(std::function<void()> f) const  {
     GLint boundTex = -1;
     switch (_target) {
     case GL_TEXTURE_2D:
@@ -64,14 +64,14 @@ void GL41Backend::GL41Texture::withPreservedTexture(std::function<void()> f) con
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Backend::GL41Texture::generateMips() const {
+void GL41Texture::generateMips() const {
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Backend::GL41Texture::allocateStorage() const {
+void GL41Texture::allocateStorage() const {
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
     (void)CHECK_GL_ERROR();
@@ -94,7 +94,7 @@ void GL41Backend::GL41Texture::allocateStorage() const {
     }
 }
 
-void GL41Backend::GL41Texture::updateSize() const {
+void GL41Texture::updateSize() const {
     setSize(_virtualSize);
     if (!_id) {
         return;
@@ -130,7 +130,7 @@ void GL41Backend::GL41Texture::updateSize() const {
 }
 
 // Move content bits from the CPU to the GPU for a given mip / face
-void GL41Backend::GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
+void GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
     //GLenum target = getFaceTargets()[face];
@@ -140,15 +140,9 @@ void GL41Backend::GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) cons
     (void)CHECK_GL_ERROR();
 }
 
-// This should never happen on the main thread
-// Move content bits from the CPU to the GPU
-void GL41Backend::GL41Texture::transfer() const {
+void GL41Texture::startTransfer() {
     PROFILE_RANGE(__FUNCTION__);
-    //qDebug() << "Transferring texture: " << _privateTexture;
-    // Need to update the content of the GPU object from the source sysmem of the texture
-    if (_contentStamp >= _gpuObject.getDataStamp()) {
-        return;
-    }
+    Parent::startTransfer();
 
     glBindTexture(_target, _id);
     (void)CHECK_GL_ERROR();
@@ -175,37 +169,15 @@ void GL41Backend::GL41Texture::transfer() const {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &fbo);
     } else {
-        // GO through the process of allocating the correct storage and/or update the content
-        switch (_gpuObject.getType()) {
-        case Texture::TEX_2D: 
-            {
-                for (uint16_t i = _minMip; i <= _maxMip; ++i) {
-                    if (_gpuObject.isStoredMipFaceAvailable(i)) {
-                        transferMip(i);
-                    }
+        // transfer pixels from each faces
+        uint8_t numFaces = (Texture::TEX_CUBE == _gpuObject.getType()) ? CUBE_NUM_FACES : 1;
+        for (uint8_t f = 0; f < numFaces; f++) {
+            for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
+                if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
+                    transferMip(i, f);
                 }
             }
-            break;
-
-        case Texture::TEX_CUBE:
-            // transfer pixels from each faces
-            for (uint8_t f = 0; f < CUBE_NUM_FACES; f++) {
-                for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
-                    if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
-                        transferMip(i, f);
-                    }
-                }
-            }
-            break;
-
-        default:
-            qCWarning(gpugl41logging) << __FUNCTION__ << " case for Texture Type " << _gpuObject.getType() << " not supported";
-            break;
         }
-    }
-    if (_gpuObject.isAutogenerateMips()) {
-        glGenerateMipmap(_target);
-        (void)CHECK_GL_ERROR();
     }
 }
 

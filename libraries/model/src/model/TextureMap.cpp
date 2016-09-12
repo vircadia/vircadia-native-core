@@ -22,6 +22,13 @@ using namespace gpu;
 // FIXME: Declare this to enable compression
 //#define COMPRESS_TEXTURES
 
+bool DEV_DECIMATE_TEXTURES = false;
+QImage processSourceImage(const QImage& srcImage) {
+    if (DEV_DECIMATE_TEXTURES) {
+        return srcImage.scaled(srcImage.size() * 0.5f);
+    }
+    return srcImage;
+}
 
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
     _textureSource = textureSource;
@@ -53,7 +60,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 }
 
 const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask) {
-    QImage image = srcImage;
+    QImage image = processSourceImage(srcImage);
     validAlpha = false;
     alphaAsMask = true;
     const uint8 OPAQUE_ALPHA = 255;
@@ -221,7 +228,7 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
 
 
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
+    QImage image = processSourceImage(srcImage);
 
     if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
@@ -254,8 +261,8 @@ double mapComponent(double sobelValue) {
 }
 
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
-    
+    QImage image = processSourceImage(srcImage);
+
     if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
@@ -325,7 +332,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
+    QImage image = processSourceImage(srcImage);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -358,7 +365,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
+    QImage image = processSourceImage(srcImage);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -395,7 +402,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 }
 
 gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
+    QImage image = processSourceImage(srcImage);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -687,7 +694,7 @@ const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
-        QImage image = srcImage;
+        QImage image = processSourceImage(srcImage);
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
