@@ -13,7 +13,10 @@
 var inTeleportMode = false;
 
 var SMOOTH_ARRIVAL_SPACING = 33;
-var NUMBER_OF_STEPS = 6;
+var NUMBER_OF_STEPS_FOR_TELEPORT = 6;
+
+var AVATAR_DRAG_SPACING = 33;
+var NUMBER_OF_STEPS_FOR_AVATAR_DRAG = 12;
 
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
 var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
@@ -88,6 +91,8 @@ function Teleporter() {
     this.cancelOverlay = null;
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
+    this.dragAvatarInterval = null;
+    this.oldAvatarCollisionsEnabled = MyAvatar.avatarCollisionsEnabled;
     this.teleportHand = null;
     this.distance = 0.0;
     this.teleportMode = "HMDAndAvatarTogether";
@@ -131,6 +136,10 @@ function Teleporter() {
 
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
+        }
+        if (this.dragAvatarInterval !== null) {
+            Script.clearInterval(this.dragAvatarInterval);
+            MyAvatar.avatarCollisionsEnabled = _this.oldAvatarCollisionsEnabled;
         }
         if (activationTimeout !== null) {
             Script.clearInterval(activationTimeout);
@@ -524,32 +533,27 @@ function Teleporter() {
                 this.teleportMode = "AvatarOnly";
             }
             this.smoothArrival();
-        }
-    };
-
-    this.findMidpoint = function(start, end) {
-        var xy = Vec3.sum(start, end);
-        var midpoint = Vec3.multiply(0.5, xy);
-        return midpoint
-    };
-
-    this.getArrivalPoints = function(startPoint, endPoint) {
-        var arrivalPoints = [];
-        var i;
-        var lastPoint;
-
-        for (i = 0; i < NUMBER_OF_STEPS; i++) {
-            if (i === 0) {
-                lastPoint = startPoint;
+            if (this.teleportMode === "HMDFirstAvatarWillFollow") {
+                this.dragAvatarCollisionlessly();
             }
-            var newPoint = _this.findMidpoint(lastPoint, endPoint);
-            lastPoint = newPoint;
-            arrivalPoints.push(newPoint);
         }
+    };
 
-        arrivalPoints.push(endPoint);
+    this.getWayPoints = function(startPoint, endPoint, numberOfSteps) {
+        var travel = Vec3.subtract(endPoint - startPoint);
+        var distance = Vec3.length(travel);
+        if (distance > 1.0) {
+            var base = Math.exp(log(distance + 1.0) / numberOfSteps);
+            var wayPoints = [];
+            var i;
 
-        return arrivalPoints;
+            for (i = 0; i < numberOfSteps - 1; i++) {
+                var backFraction = (1.0 - Math.exp((numberOfSteps - 1 - i) * Math.log(base))) / distance;
+                wayPoints.push(Vec3.sum(endPoint, Vec3.multiply(backFraction, travel));
+            }
+        }
+        wayPoints.push(endPoint);
+        return wayPoints;
     };
 
     this.teleportTo = function(landingPoint) {
@@ -569,25 +573,37 @@ function Teleporter() {
     }
 
     this.smoothArrival = function() {
-
-        _this.arrivalPoints = _this.getArrivalPoints(MyAvatar.position, _this.intersection.intersection);
+        _this.teleportPoints = _this.getWayPoints(MyAvatar.position, _this.intersection.intersection, NUMBER_OF_STEPS_FOR_TELEPORT);
         _this.smoothArrivalInterval = Script.setInterval(function() {
-            if (_this.arrivalPoints.length === 0) {
+            if (_this.teleportPoints.length === 0) {
                 Script.clearInterval(_this.smoothArrivalInterval);
                 HMD.centerUI();
                 return;
             }
-            var landingPoint = _this.arrivalPoints.shift();
+            var landingPoint = _this.teleportPoints.shift();
             _this.teleportTo(landingPoint);
 
-            if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
+            if (_this.teleportPoints.length === 1 || _this.teleportPoints.length === 0) {
                 _this.deleteTargetOverlay();
                 _this.deleteCancelOverlay();
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
+    }
 
-
+    this.dragAvatarCollisionlessly = function() {
+        _this.oldAvatarCollisionsEnabled = MyAvatar.avatarCollisionsEnabled;
+        MyAvatar.avatarCollisionsEnabled = false;
+        _this.dragPoints = _this.getWayPoints(MyAvatar.position, _this.intersection.intersection, NUMBER_OF_STEPS_FOR_AVATAR_DRAG);
+        _this.dragAvatarInterval = Script.setInterval(function() {
+            if (_this.dragPoints.length === 0) {
+                Script.clearInterval(_this.dragAvatarInterval);
+                MyAvatar.avatarCollisionsEnabled = _this.oldAvatarCollisionsEnabled;
+                return;
+            }
+            var landingPoint = _this.dragPoints.shift();
+            MyAvatar.position = landingPoint;
+        }, AVATAR_DRAG_SPACING);
     }
 }
 
