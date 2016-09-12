@@ -16,6 +16,7 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <queue>
 
 #include <QtCore/qsystemdetection.h>
 #include <QtCore/QByteArray>
@@ -134,6 +135,9 @@ public:
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
 
+    int getGateThreshold() { return _gate.getThreshold(); }
+    void setGateThreshold(int threshold) { _gate.setThreshold(threshold); }
+
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
@@ -226,6 +230,27 @@ private:
     void mixLocalAudioInjectors(int16_t* inputBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
+
+    class Gate {
+    public:
+        Gate(AudioClient* audioClient, int threshold);
+
+        int getThreshold() { return _threshold; }
+        void setThreshold(int threshold);
+
+        void insert(QSharedPointer<ReceivedMessage> message);
+
+    private:
+        void flush();
+
+        AudioClient* _audioClient;
+        std::queue<QSharedPointer<ReceivedMessage>> _queue;
+        int _index{ 0 };
+        int _threshold;
+    };
+
+    Setting::Handle<int> _gateThreshold;
+    Gate _gate;
 
     Mutex _injectorsMutex;
     QByteArray firstInputFrame;

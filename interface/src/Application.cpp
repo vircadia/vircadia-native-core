@@ -214,7 +214,6 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
-    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
@@ -2006,7 +2005,7 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        qDebug() << "Device pixel ratio changed, triggering resize";
+        qDebug() << "Device pixel ratio changed, triggering resize to " << uiSize;
         offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
@@ -2857,6 +2856,8 @@ void Application::dragEnterEvent(QDragEnterEvent* event) {
     event->acceptProposedAction();
 }
 
+// This is currently not used, but could be invoked if the user wants to go to the place embedded in an
+// Interface-taken snapshot. (It was developed for drag and drop, before we had asset-server loading or in-world browsers.)
 bool Application::acceptSnapshot(const QString& urlString) {
     QUrl url(urlString);
     QString snapshotPath = url.toLocalFile();
@@ -3288,7 +3289,7 @@ void Application::init() {
 
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
-        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+        auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
             return 0.0f;
