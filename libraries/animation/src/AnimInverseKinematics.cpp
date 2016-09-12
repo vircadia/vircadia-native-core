@@ -444,7 +444,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
         // AJT: HACK
         if (HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS && HACKY_GLOBAL_RIG_POINTER) {
-            const float CM_TO_M = 0.01f;
             const vec4 WHITE(1.0f);
             glm::mat4 geomToRigMat = HACKY_GLOBAL_RIG_POINTER->getGeometryToRigTransform();
             glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
