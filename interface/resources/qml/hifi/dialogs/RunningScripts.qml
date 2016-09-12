@@ -24,8 +24,8 @@ ScrollingWindow {
     title: "Running Scripts"
     resizable: true
     destroyOnHidden: true
-    implicitWidth: 424
-    implicitHeight: isHMD ? 695 : 728
+    implicitWidth: 480
+    implicitHeight: (isHMD ? 695 : 728) + (runningScriptsColumn.keyboardRaised ? 200 + (2 * hifi.dimensions.contentSpacing.y) : 0)
     minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
@@ -93,6 +93,8 @@ ScrollingWindow {
     }
 
     Column {
+        id: runningScriptsColumn
+
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
