@@ -123,6 +123,16 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
     }
 }
 
+LightStage::LightPointer LightStage::removeLight(Index index) {
+    LightPointer removed = _lights.freeElement(index);
+    
+    if (removed) {
+        _lightMap.erase(removed);
+        _descs[index] = Desc();
+    }
+    return removed;
+}
+
 void LightStage::updateLightArrayBuffer(Index lightId) {
     if (!_lightArrayBuffer) {
         _lightArrayBuffer = std::make_shared<gpu::Buffer>();

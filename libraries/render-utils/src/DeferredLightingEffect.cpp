@@ -118,9 +118,7 @@ void DeferredLightingEffect::init() {
 
     // Light Stage and clusters
     _lightStage = std::make_shared<LightStage>();
-    _lightClusters = std::make_shared<LightClusters>();
-    _lightClusters->updateLightStage(_lightStage);
-
+    
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
     model::LightPointer lp = _allocatedLights[0];
@@ -145,6 +143,7 @@ void DeferredLightingEffect::addLight(const model::LightPointer& light) {
         _spotLights.push_back(lightID);
     }
 }
+
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
         float intensity, float falloffRadius) {
@@ -472,6 +471,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
     }
     _primaryFramebuffer->resize(frameSize.x, frameSize.y);
 
+    
     primaryFramebuffer = _primaryFramebuffer;
 }
 
@@ -508,6 +508,11 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         // For the rest of the rendering, bind the lighting model
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
     });
+    
+    
+    // Prepare a fresh Light Frame
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+    deferredLightingEffect->getLightStage()->_currentFrame.clear();
 }
 
 

@@ -62,7 +62,6 @@ public:
     void setGlobalLight(const model::LightPointer& light);
 
     const LightStagePointer getLightStage() { return _lightStage; }
-    const LightClustersPointer getLightClusters() { return _lightClusters; }
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
@@ -72,8 +71,6 @@ private:
     DeferredLightingEffect() = default;
 
     LightStagePointer _lightStage;
-
-    LightClustersPointer _lightClusters;
 
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };

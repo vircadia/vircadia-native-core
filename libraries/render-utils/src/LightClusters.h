@@ -61,9 +61,8 @@ public:
 
     void updateLightStage(const LightStagePointer& lightStage);
 
-    void updateVisibleLights(const LightStage::LightIndices& visibleLights);
-
-
+    void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
+    
     ViewFrustum _frustum;
 
     LightStagePointer _lightStage;

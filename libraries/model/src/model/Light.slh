@@ -53,7 +53,7 @@ struct Light {
     vec4 _attenuation;
     vec4 _spot;
 
-    vec4 _shadow;
+   // vec4 _shadow;
     vec4 _control;
 
     vec4 _volumeGeometry;

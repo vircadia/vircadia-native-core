@@ -35,11 +35,34 @@ namespace render {
 }
 
 LightPayload::LightPayload() :
-_light(std::make_shared<model::Light>())
+    _light(std::make_shared<model::Light>())
 {
 }
 
-void LightPayload::render(RenderArgs* args) {
 
-    DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
+LightPayload::~LightPayload() {
+    if (!LightStage::isIndexInvalid(_index)) {
+        if (_stage) {
+            _stage->removeLight(_index);
+        }
+    }
 }
+
+void LightPayload::render(RenderArgs* args) {
+    if (!_stage) {
+        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+    }
+    // Do we need to allocate the light in the stage ?
+    if (LightStage::isIndexInvalid(_index)) {
+        _index = _stage->addLight(_light);
+    }
+    // Need an update ?
+    if (_needUpdate) {
+        _stage->updateLightArrayBuffer(_index);
+        _needUpdate = false;
+    }
+    
+    // FInally, push the light visible in the frame
+    _stage->_currentFrame.pushLight(_index, _light->getType());
+}
+

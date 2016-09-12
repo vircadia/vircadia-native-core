@@ -47,13 +47,36 @@ void LightClusters::updateFrustum(const ViewFrustum& frustum) {
 
 void LightClusters::updateLightStage(const LightStagePointer& lightStage) {
     _lightStage = lightStage;
-}
-
-void LightClusters::updateVisibleLights(const LightStage::LightIndices& visibleLights) {
     
+  }
+
+void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool points, bool spots) {
+    
+    // start fresh
     _visibleLightIndices.clear();
-   // _lightClusters->_visibleLightIndices.push_back(0);
-    _visibleLightIndices = visibleLights;
+    
+    // Now gather the lights
+    // gather lights
+    auto& srcPointLights = lightFrame._pointLights;
+    auto& srcSpotLights = lightFrame._spotLights;
+    int numPointLights = (int) srcPointLights.size();
+   // int offsetPointLights = 0;
+    int numSpotLights = (int) srcSpotLights.size();
+   // int offsetSpotLights = numPointLights;
+    
+    _visibleLightIndices.resize(numPointLights + numSpotLights + 1);
+    
+    _visibleLightIndices[0] = 0;
+    
+    if (points && !srcPointLights.empty()) {
+        memcpy(_visibleLightIndices.data() + (_visibleLightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
+        _visibleLightIndices[0] += (int)srcPointLights.size();
+    }
+    if (spots && !srcSpotLights.empty()) {
+        memcpy(_visibleLightIndices.data() + (_visibleLightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
+        _visibleLightIndices[0] += (int)srcSpotLights.size();
+    }
+  
     _lightIndicesBuffer._buffer->setData(_visibleLightIndices.size() * sizeof(int), (const gpu::Byte*) _visibleLightIndices.data());
     _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
@@ -83,12 +106,9 @@ void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, c
     auto lightingModel = inputs.get1();
     auto surfaceGeometryFramebuffer = inputs.get2();
     
-    bool points = lightingModel->isPointLightEnabled();
-    bool spots = lightingModel->isSpotLightEnabled();
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     
     if (!_lightClusters) {
-        _lightClusters = deferredLightingEffect->getLightClusters();
+        _lightClusters = std::make_shared<LightClusters>();
     }
     
     // first update the Grid with the new frustum
@@ -96,28 +116,11 @@ void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, c
         _lightClusters->updateFrustum(args->getViewFrustum());
     }
     
-    // Now gather the lights
-    // gather lights
-    auto& srcPointLights = deferredLightingEffect->_pointLights;
-    auto& srcSpotLights = deferredLightingEffect->_spotLights;
-    int numPointLights = (int) srcPointLights.size();
-    int offsetPointLights = 0;
-    int numSpotLights = (int) srcSpotLights.size();
-    int offsetSpotLights = numPointLights;
-    
-    std::vector<int> lightIndices(numPointLights + numSpotLights + 1);
-    lightIndices[0] = 0;
-    
-    if (points && !srcPointLights.empty()) {
-        memcpy(lightIndices.data() + (lightIndices[0] + 1), srcPointLights.data(), srcPointLights.size() * sizeof(int));
-        lightIndices[0] += (int)srcPointLights.size();
-    }
-    if (spots && !srcSpotLights.empty()) {
-        memcpy(lightIndices.data() + (lightIndices[0] + 1), srcSpotLights.data(), srcSpotLights.size() * sizeof(int));
-        lightIndices[0] += (int)srcSpotLights.size();
-    }
-    
-    _lightClusters->updateVisibleLights(lightIndices);
+    // From the LightStage and the current frame, update the light cluster Grid
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+    auto lightStage = deferredLightingEffect->getLightStage();
+    _lightClusters->updateLightStage(lightStage);
+    _lightClusters->updateLightFrame(lightStage->_currentFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
     
     output = _lightClusters;
 }

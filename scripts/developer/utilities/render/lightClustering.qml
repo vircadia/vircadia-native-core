@@ -40,6 +40,16 @@ Column {
                     checked: Render.getConfig("LightClustering")["freeze"]
                     onCheckedChanged: { Render.getConfig("LightClustering")["freeze"] = checked }
             }
+            CheckBox {
+                    text: "Draw Grid"
+                    checked: Render.getConfig("DebugLightClusters")["doDrawGrid"]
+                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawGrid"] = checked }
+            }
+            CheckBox {
+                    text: "Draw Cluster From Depth"
+                    checked: Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"]
+                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"] = checked }
+            }
         }
     }
 }

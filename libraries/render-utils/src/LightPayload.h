@@ -14,7 +14,7 @@
 
 #include <model/Light.h>
 #include <render/Item.h>
-
+#include "LightStage.h"
 
 class LightPayload {
 public:
@@ -22,14 +22,18 @@ public:
     using Pointer = Payload::DataPointer;
 
     LightPayload();
+    ~LightPayload();
     void render(RenderArgs* args);
 
-    model::LightPointer editLight() { return _light; }
-    render::Item::Bound& editBound() { return _bound; }
-
+    model::LightPointer editLight() { _needUpdate = true; return _light; }
+    render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
+    
 protected:
     model::LightPointer _light;
     render::Item::Bound _bound;
+    LightStagePointer _stage;
+    LightStage::Index _index { LightStage::INVALID_INDEX };
+    bool _needUpdate { true };
 };
 
 namespace render {

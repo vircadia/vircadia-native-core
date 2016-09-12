@@ -27,7 +27,8 @@ class LightStage {
 public:
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
-
+    static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
+    
     using LightPointer = model::LightPointer;
     using Lights = render::indexed_container::IndexedPointerVector<model::Light>;
     using LightMap = std::unordered_map<LightPointer, Index>;
@@ -79,7 +80,8 @@ public:
 
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
-
+    LightPointer removeLight(Index index);
+    
     bool checkLightId(Index index) const { return _lights.checkIndex(index); }
 
     Index getNumLights() const { return _lights.getNumElements(); }
@@ -107,10 +109,35 @@ public:
     LightMap _lightMap;
     Descs _descs;
 
+    class Frame {
+    public:
+        Frame() {}
+        
+        void clear() { _pointLights.clear(); _spotLights.clear(); }
+        void pushLight(LightStage::Index index, model::Light::Type type) {
+            switch (type) {
+                case model::Light::POINT: { pushPointLight(index); break; }
+                case model::Light::SPOT: { pushSpotLight(index); break; }
+                default: { break; }
+            }
+        }
+        void pushPointLight(LightStage::Index index) { _pointLights.emplace_back(index); }
+        void pushSpotLight(LightStage::Index index) { _spotLights.emplace_back(index); }
+        
+        LightStage::LightIndices _pointLights;
+        LightStage::LightIndices _spotLights;
+    };
+    
+    Frame _currentFrame;
+    
     gpu::BufferPointer _lightArrayBuffer;
     void updateLightArrayBuffer(Index lightId);
 
     Shadows _shadows;
 };
 using LightStagePointer = std::shared_ptr<LightStage>;
+
+
+
+
 #endif

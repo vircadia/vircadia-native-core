@@ -124,7 +124,7 @@ public:
         float _intensity{1.0f};
         Vec4 _attenuation{0.1f, 1.0f, 0.0f, 0.0f};
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
-        Vec4 _shadow{0.0f};
+        //Vec4 _shadow{0.0f};
 
 
         float _ambientMapNumMips{ 0.0f };
