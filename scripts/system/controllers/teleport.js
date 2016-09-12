@@ -542,9 +542,9 @@ function Teleporter() {
     this.getWayPoints = function(startPoint, endPoint, numberOfSteps) {
         var travel = Vec3.subtract(endPoint, startPoint);
         var distance = Vec3.length(travel);
+        var wayPoints = [];
         if (distance > 1.0) {
             var base = Math.exp(Math.log(distance + 1.0) / numberOfSteps);
-            var wayPoints = [];
             var i;
 
             for (i = 0; i < numberOfSteps - 1; i++) {
