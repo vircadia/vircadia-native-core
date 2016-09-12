@@ -21,8 +21,8 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
-bool HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS = false;
-Rig* HACKY_GLOBAL_RIG_POINTER = nullptr;
+bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS = false;
+Rig* OUTOFBODY_HACK_RIG_POINTER = nullptr;
 
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
@@ -442,10 +442,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             computeTargets(animVars, targets, underPoses);
         }
 
-        // AJT: HACK
-        if (HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS && HACKY_GLOBAL_RIG_POINTER) {
+        if (OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS && OUTOFBODY_HACK_RIG_POINTER) {
             const vec4 WHITE(1.0f);
-            glm::mat4 geomToRigMat = HACKY_GLOBAL_RIG_POINTER->getGeometryToRigTransform();
+            glm::mat4 geomToRigMat = OUTOFBODY_HACK_RIG_POINTER->getGeometryToRigTransform();
             glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
 
             for (auto& target : targets) {

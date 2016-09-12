@@ -51,7 +51,7 @@ const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
 float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0;
 float TRUNCATE_IK_CAPSULE_RADIUS = 0.5;
 
-extern Rig* HACKY_GLOBAL_RIG_POINTER;
+extern Rig* OUTOFBODY_HACK_RIG_POINTER;
 
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
@@ -881,7 +881,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
         // evaluate the animation
-        HACKY_GLOBAL_RIG_POINTER = this;
+        OUTOFBODY_HACK_RIG_POINTER = this;
         AnimNode::Triggers triggersOut;
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
@@ -892,7 +892,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
-        HACKY_GLOBAL_RIG_POINTER = nullptr;
+        OUTOFBODY_HACK_RIG_POINTER = nullptr;
     }
 
     applyOverridePoses();

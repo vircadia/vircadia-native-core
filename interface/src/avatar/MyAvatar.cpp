@@ -82,7 +82,7 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-extern bool HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS;
+extern bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -839,7 +839,7 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
 void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
     _enableDebugDrawIKTargets = isEnabled;
 
-    HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS = isEnabled;
+    OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS = isEnabled;
 }
 
 
