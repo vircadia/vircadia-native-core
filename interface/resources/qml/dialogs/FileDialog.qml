@@ -19,6 +19,7 @@ import ".."
 import "../controls-uit"
 import "../styles-uit"
 import "../windows"
+import "../controls" as Controls
 
 import "fileDialog"
 
@@ -27,7 +28,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360
+    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? 200 + (2 * hifi.dimensions.contentSpacing.y) : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -100,10 +101,15 @@ ModalWindow {
     }
 
     Item {
+        id: fileDialogItem
         clip: true
         width: pane.width
         height: pane.height
         anchors.margins: 0
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
 
         MouseArea {
             // Clear selection when click on internal unused area.
@@ -619,7 +625,7 @@ ModalWindow {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right
                 rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
-                bottom: buttonRow.top
+                bottom: keyboard1.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             readOnly: !root.saveDialog
@@ -638,6 +644,36 @@ ModalWindow {
             visible: !selectDirectory && filtersCount > 1
             KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
+        }
+
+
+        // virtual keyboard, letters
+        Controls.Keyboard {
+            id: keyboard1
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: buttonRow.top
+            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+        }
+
+        Controls.KeyboardPunctuation {
+            id: keyboard2
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: buttonRow.top
+            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
         Row {
