@@ -19,12 +19,15 @@
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
 #include <GLMHelpers.h>
+#include <PhysicsCollisionGroups.h>
+
 #include "BulletUtil.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
+const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
 
 const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
 
@@ -107,9 +110,15 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
+    /*
     bool isEnabled() const { return _enabled; }  // thread-safe
     void setEnabled(bool enabled);
-    bool isEnabledAndReady() const { return _enabled && _dynamicsWorld; }
+    */
+    bool isEnabledAndReady() const { return _dynamicsWorld; }
+
+    void setCollisionGroup(int16_t group);
+    int16_t getCollisionGroup() const { return _collisionGroup; }
+    void handleChangedCollisionGroup();
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
@@ -170,7 +179,6 @@ protected:
     btVector3 _linearAcceleration;
     bool _following { false };
 
-    std::atomic_bool _enabled;
     State _state;
     bool _isPushingUp;
 
@@ -180,6 +188,7 @@ protected:
     uint32_t _previousFlags { 0 };
 
     bool _flyingAllowed { true };
+    int16_t _collisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 };
 
 #endif // hifi_CharacterControllerInterface_h

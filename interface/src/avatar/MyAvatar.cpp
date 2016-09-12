@@ -137,8 +137,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, static_cast<SlotType>(&MyAvatar::goToLocation));
 
-    _characterController.setEnabled(true);
-
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
     using namespace recording;
@@ -506,8 +504,8 @@ void MyAvatar::simulate(float deltaTime) {
             }
         });
         _characterController.setFlyingAllowed(flyingAllowed);
-        if (!_characterController.isEnabled() && !ghostingAllowed) {
-            _characterController.setEnabled(true);
+        if (!ghostingAllowed && _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.setCollisionGroup(BULLET_COLLISION_GROUP_MY_AVATAR);
         }
     }
 
@@ -1270,7 +1268,8 @@ void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
-        if (_characterController.getState() == CharacterController::State::Hover) {
+        if (_characterController.getState() == CharacterController::State::Hover ||
+                _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             motorRotation = getHead()->getCameraOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -1316,6 +1315,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
         qDebug() << "Warning: getParentVelocity failed" << getID();
         parentVelocity = glm::vec3();
     }
+    _characterController.handleChangedCollisionGroup();
     _characterController.setParentVelocity(parentVelocity);
 
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
@@ -1933,13 +1933,13 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
 
-    setCharacterControllerEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
+    setAvatarCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 
-void MyAvatar::setCharacterControllerEnabled(bool enabled) {
+void MyAvatar::setAvatarCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setCharacterControllerEnabled", Q_ARG(bool, enabled));
+        QMetaObject::invokeMethod(this, "setAvatarCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
 
@@ -1951,11 +1951,12 @@ void MyAvatar::setCharacterControllerEnabled(bool enabled) {
             ghostingAllowed = zone->getGhostingAllowed();
         }
     }
-    _characterController.setEnabled(ghostingAllowed ? enabled : true);
+    int16_t group = enabled || !ghostingAllowed ? BULLET_COLLISION_GROUP_MY_AVATAR : BULLET_COLLISION_GROUP_COLLISIONLESS;
+    _characterController.setCollisionGroup(group);
 }
 
-bool MyAvatar::getCharacterControllerEnabled() {
-    return _characterController.isEnabled();
+bool MyAvatar::getAvatarCollisionsEnabled() {
+    return _characterController.getCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
 }
 
 void MyAvatar::clearDriveKeys() {
@@ -2062,9 +2063,6 @@ void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMod
 void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
-
-
-static const float FOLLOW_TIME = 0.5f;
 
 MyAvatar::FollowHelper::FollowHelper() {
     deactivate();

@@ -83,7 +83,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
-    Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
+    Q_PROPERTY(bool avatarCollisionsEnabled READ getAvatarCollisionsEnabled WRITE setAvatarCollisionsEnabled)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -273,8 +273,8 @@ public:
 
     bool hasDriveInput() const;
 
-    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
-    Q_INVOKABLE bool getCharacterControllerEnabled();
+    Q_INVOKABLE void setAvatarCollisionsEnabled(bool enabled);
+    Q_INVOKABLE bool getAvatarCollisionsEnabled();
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;

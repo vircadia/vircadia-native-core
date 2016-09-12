@@ -13,7 +13,6 @@
 
 #include <NumericalConstants.h>
 
-#include "PhysicsCollisionGroups.h"
 #include "ObjectMotionState.h"
 #include "PhysicsLogging.h"
 
@@ -62,10 +61,7 @@ CharacterController::CharacterMotor::CharacterMotor(const glm::vec3& vel, const 
 }
 
 CharacterController::CharacterController() {
-   _halfHeight = 1.0f;
-
-    _enabled = false;
-
+    _halfHeight = 1.0f;
     _floorDistance = MAX_FALL_HEIGHT;
 
     _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
@@ -119,7 +115,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             // Before adding the RigidBody to the world we must save its oldGravity to the side
             // because adding an object to the world will overwrite it with the default gravity.
             btVector3 oldGravity = _rigidBody->getGravity();
-            _dynamicsWorld->addRigidBody(_rigidBody, BULLET_COLLISION_GROUP_MY_AVATAR, BULLET_COLLISION_MASK_MY_AVATAR);
+            _dynamicsWorld->addRigidBody(_rigidBody, _collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             // restore gravity settings
             _rigidBody->setGravity(oldGravity);
@@ -199,7 +195,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
 
     if (_following) {
-        // HACK these copied form elsewhere
+        // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
         const float NORMAL_WALKING_SPEED = 0.5f;
         const float FOLLOW_TIME = 0.8f;
         const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);
@@ -282,15 +278,17 @@ void CharacterController::setState(State desiredState) {
 #ifdef DEBUG_STATE_CHANGE
         qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
 #endif
-        if (desiredState == State::Hover && _state != State::Hover) {
-            // hover enter
-            if (_rigidBody) {
+        if (_rigidBody) {
+            if (desiredState == State::Hover && _state != State::Hover) {
+                // hover enter
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-            }
-        } else if (_state == State::Hover && desiredState != State::Hover) {
-            // hover exit
-            if (_rigidBody) {
-                _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
+            } else if (_state == State::Hover && desiredState != State::Hover) {
+                // hover exit
+                if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                    _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+                } else {
+                    _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
+                }
             }
         }
         _state = desiredState;
@@ -320,39 +318,45 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
         }
         _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
-        // only need to ADD back when we happen to be enabled
-        if (_enabled) {
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
-        }
+        _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here
     _shapeLocalOffset = corner + 0.5f * _boxScale;
 }
 
-void CharacterController::setEnabled(bool enabled) {
-    if (enabled != _enabled) {
-        if (enabled) {
-            // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
-            // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
-        } else {
-            if (_dynamicsWorld) {
-                _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
-            }
-            _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
+void CharacterController::setCollisionGroup(int16_t group) {
+    if (_collisionGroup != group) {
+        _collisionGroup = group;
+        _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_GROUP;
+    }
+}
+
+void CharacterController::handleChangedCollisionGroup() {
+    if (_pendingFlags & PENDING_FLAG_UPDATE_COLLISION_GROUP) {
+        // ATM the easiest way to update collision groups is to remove/re-add the RigidBody
+        if (_dynamicsWorld) {
+            _dynamicsWorld->removeRigidBody(_rigidBody);
+            _dynamicsWorld->addRigidBody(_rigidBody, _collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
         }
-        SET_STATE(State::Hover, "setEnabled");
-        _enabled = enabled;
+        _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
+
+        if (_state != State::Hover && _rigidBody) {
+            if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+            } else {
+                _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
+            }
+        }
     }
 }
 
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
-    btVector3 oldUp = _currentUp;
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
-    if (_state != State::Hover) {
-        const btScalar MIN_UP_ERROR = 0.01f;
-        if (oldUp.distance(_currentUp) > MIN_UP_ERROR) {
+    if (_state != State::Hover && _rigidBody) {
+        if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+        } else {
             _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
         }
     }
@@ -370,7 +374,7 @@ void CharacterController::setPositionAndOrientation(
 }
 
 void CharacterController::getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const {
-    if (_enabled && _rigidBody) {
+    if (_rigidBody) {
         const btTransform& avatarTransform = _rigidBody->getWorldTransform();
         rotation = bulletToGLM(avatarTransform.getRotation());
         position = bulletToGLM(avatarTransform.getOrigin()) - rotation * _shapeLocalOffset;
@@ -438,7 +442,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     btScalar angle = motor.rotation.getAngle();
     btVector3 velocity = worldVelocity.rotate(axis, -angle);
 
-    if (_state == State::Hover || motor.hTimescale == motor.vTimescale) {
+    if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ||
+            _state == State::Hover || motor.hTimescale == motor.vTimescale) {
         // modify velocity
         btScalar tau = dt / motor.hTimescale;
         if (tau > 1.0f) {
@@ -534,7 +539,7 @@ void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
 }
 
 void CharacterController::preSimulation() {
-    if (_enabled && _dynamicsWorld) {
+    if (_dynamicsWorld) {
         quint64 now = usecTimestampNow();
 
         // slam body to where it is supposed to be
@@ -584,51 +589,61 @@ void CharacterController::preSimulation() {
         btVector3 actualHorizVelocity = velocity - velocity.dot(_currentUp) * _currentUp;
         bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
 
-        switch (_state) {
-        case State::Ground:
-            if (!rayHasHit && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground detected");
-            } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
-                _takeoffJumpButtonID = _jumpButtonDownCount;
-                _takeoffToInAirStartTime = now;
-                SET_STATE(State::Takeoff, "jump pressed");
-            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
-                SET_STATE(State::InAir, "falling");
+        // OUTOFBODY_HACK -- disable normal state transitions while collisionless
+        if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+            switch (_state) {
+            case State::Ground:
+                if (!rayHasHit && !_hasSupport) {
+                    SET_STATE(State::Hover, "no ground detected");
+                } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
+                    _takeoffJumpButtonID = _jumpButtonDownCount;
+                    _takeoffToInAirStartTime = now;
+                    SET_STATE(State::Takeoff, "jump pressed");
+                } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
+                    SET_STATE(State::InAir, "falling");
+                }
+                break;
+            case State::Takeoff:
+                if (!rayHasHit && !_hasSupport) {
+                    SET_STATE(State::Hover, "no ground");
+                } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+                    SET_STATE(State::InAir, "takeoff done");
+                    velocity += _jumpSpeed * _currentUp;
+                    _rigidBody->setLinearVelocity(velocity);
+                }
+                break;
+            case State::InAir: {
+                if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
+                    SET_STATE(State::Ground, "hit ground");
+                } else {
+                    btVector3 desiredVelocity = _targetVelocity;
+                    if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+                        desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+                    }
+                    bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
+                    if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                        SET_STATE(State::Hover, "double jump button");
+                    } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                        SET_STATE(State::Hover, "jump button held");
+                    }
+                }
+                break;
             }
-            break;
-        case State::Takeoff:
-            if (!rayHasHit && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground");
-            } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
-                SET_STATE(State::InAir, "takeoff done");
-                velocity += _jumpSpeed * _currentUp;
-                _rigidBody->setLinearVelocity(velocity);
+            case State::Hover:
+                if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+                    SET_STATE(State::InAir, "near ground");
+                } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
+                    SET_STATE(State::Ground, "touching ground");
+                }
+                break;
             }
-            break;
-        case State::InAir: {
-            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
-                SET_STATE(State::Ground, "hit ground");
+        } else {
+            // OUTOFBODY_HACK -- in collisionless state switch between Ground and Hover states
+            if (rayHasHit) {
+                SET_STATE(State::Ground, "collisionless above ground");
             } else {
-                btVector3 desiredVelocity = _targetVelocity;
-                if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
-                    desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
-                }
-                bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
-                if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
-                    SET_STATE(State::Hover, "double jump button");
-                } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
-                    SET_STATE(State::Hover, "jump button held");
-                }
+                SET_STATE(State::Hover, "collisionless in air");
             }
-            break;
-        }
-        case State::Hover:
-            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
-                SET_STATE(State::InAir, "near ground");
-            } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
-                SET_STATE(State::Ground, "touching ground");
-            }
-            break;
         }
     }
 
@@ -664,7 +679,10 @@ void CharacterController::setFlyingAllowed(bool value) {
         _flyingAllowed = value;
 
         if (!_flyingAllowed && _state == State::Hover) {
-            SET_STATE(State::InAir, "flying not allowed");
+            // OUTOFBODY_HACK -- disable normal state transitions while collisionless
+            if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+                SET_STATE(State::InAir, "flying not allowed");
+            }
         }
     }
 }
