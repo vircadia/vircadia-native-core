@@ -12,12 +12,17 @@ import QtQuick 2.5
 
 import "../../dialogs"
 import "../../controls-uit"
+import "../../controls" as Controls
+
 
 Preference {
     id: root
     property alias text: dataTextField.text
     property alias placeholderText: dataTextField.placeholderText
-    height: control.height + hifi.dimensions.controlInterlineHeight
+    height: control.height + hifi.dimensions.controlInterlineHeight + (keyboardRaised ? 200 : 0)
+
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
@@ -33,7 +38,7 @@ Preference {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: parent.bottom
+            bottom: keyboard1.top
         }
         height: Math.max(dataTextField.controlHeight, button.height)
 
@@ -75,5 +80,36 @@ Preference {
                 });
             }
         }
+    }
+
+    // virtual keyboard, letters
+    Controls.Keyboard {
+        id: keyboard1
+        // y: parent.keyboardRaised ? parent.height : 0
+        height: parent.keyboardRaised ? 200 : 0
+        visible: parent.keyboardRaised && !parent.punctuationMode
+        enabled: parent.keyboardRaised && !parent.punctuationMode
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+        // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+    }
+
+    Controls.KeyboardPunctuation {
+        id: keyboard2
+        // y: parent.keyboardRaised ? parent.height : 0
+        height: parent.keyboardRaised ? 200 : 0
+        visible: parent.keyboardRaised && parent.punctuationMode
+        enabled: parent.keyboardRaised && parent.punctuationMode
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+        // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
     }
 }
