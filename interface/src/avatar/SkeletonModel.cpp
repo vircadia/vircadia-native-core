@@ -23,9 +23,9 @@
 #include "InterfaceLogging.h"
 #include "AnimDebugDraw.h"
 
-glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
-float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
-float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
+const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
+const float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
+const float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
@@ -110,8 +110,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HeadParameters headParams;
 
-        glm::mat4 desiredHMDMat;  // rig space
-        glm::mat4 actualHMDMat;  // rig space
+        glm::vec3 hmdPositionInRigSpace;
+        glm::vec3 truncatedHMDPositionInRigSpace;
 
         if (qApp->isHMDMode()) {
             headParams.isInHMD = true;
@@ -120,20 +120,20 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
             glm::mat4 worldToRig = glm::inverse(rigToWorld);
-            desiredHMDMat = worldToRig * worldHMDMat;
+            glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
 
+            hmdPositionInRigSpace = extractTranslation(rigHMDMat);
 
+            // truncate head IK target if it's out of body
             if (myAvatar->isOutOfBody()) {
-                // use the last valid in-body hmd matrix for the head yaw.
-                glm::mat4 hmdYaw = cancelOutRollAndPitch(myAvatar->getInBodyHMDMatInAvatarSpace());
-                glm::mat4 hmdPitchAndRoll = glm::inverse(cancelOutRollAndPitch(desiredHMDMat)) * desiredHMDMat;
-                actualHMDMat = hmdYaw * hmdPitchAndRoll;
+                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, TRUNCATE_IK_CAPSULE_POSITION,
+                                                                         TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
             } else {
-                actualHMDMat = desiredHMDMat;
+                truncatedHMDPositionInRigSpace = hmdPositionInRigSpace;
             }
 
-            headParams.rigHeadPosition = extractTranslation(actualHMDMat);
-            headParams.rigHeadOrientation = extractRotation(actualHMDMat);
+            headParams.rigHeadPosition = truncatedHMDPositionInRigSpace;
+            headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
 
         } else {
@@ -159,11 +159,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
             // truncate hand target
             if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
-                glm::mat4 handMat = createMatFromQuatAndPos(handParams.leftOrientation, handParams.leftPosition);
-                glm::mat4 offset = glm::inverse(desiredHMDMat) * handMat;
-                handMat = actualHMDMat * offset;
-                handParams.leftPosition = extractTranslation(handMat);
-                handParams.leftOrientation = glmExtractRotation(handMat);
+                glm::vec3 offset = handParams.leftPosition - hmdPositionInRigSpace;
+                handParams.leftPosition = truncatedHMDPositionInRigSpace + offset;
             }
         } else {
             handParams.isLeftEnabled = false;
@@ -177,11 +174,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
             // truncate hand target
             if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
-                glm::mat4 handMat = createMatFromQuatAndPos(handParams.rightOrientation, handParams.rightPosition);
-                glm::mat4 offset = glm::inverse(desiredHMDMat) * handMat;
-                handMat = actualHMDMat * offset;
-                handParams.rightPosition = extractTranslation(handMat);
-                handParams.rightOrientation = glmExtractRotation(handMat);
+                glm::vec3 offset = handParams.rightPosition - hmdPositionInRigSpace;
+                handParams.rightPosition = truncatedHMDPositionInRigSpace + offset;
             }
         } else {
             handParams.isRightEnabled = false;

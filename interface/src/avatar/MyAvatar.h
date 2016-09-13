@@ -279,9 +279,6 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
-    bool isOutOfBody() const { return _follow._isOutOfBody; }
-    glm::mat4 getInBodyHMDMatInAvatarSpace() const { return _follow._prevInBodyHMDMatInAvatarSpace; }
-
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -317,6 +314,8 @@ public slots:
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
+
+    bool isOutOfBody() const { return _follow._isOutOfBody; }
 
 signals:
     void audioListenerModeChanged();
@@ -450,8 +449,6 @@ private:
         glm::mat4 _desiredBodyMatrix;
         uint8_t _activeBits { 0 };
         bool _isOutOfBody { false };
-        glm::mat4 _prevInBodyHMDMatInAvatarSpace;
-        glm::mat4 _inBodyHMDMatInAvatarSpace;
 
         void deactivate();
         void deactivate(FollowType type);

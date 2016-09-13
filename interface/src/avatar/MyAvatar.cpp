@@ -86,9 +86,9 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 extern bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS;
 
 // OUTOFBODY_HACK defined in SkeletonModel.cpp
-extern glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
-extern float TRUNCATE_IK_CAPSULE_LENGTH;
-extern float TRUNCATE_IK_CAPSULE_RADIUS;
+extern const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
+extern const float TRUNCATE_IK_CAPSULE_LENGTH;
+extern const float TRUNCATE_IK_CAPSULE_RADIUS;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -2157,65 +2157,31 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     _desiredBodyMatrix = desiredBodyMatrix;
 
     if (myAvatar.getHMDLeanRecenterEnabled()) {
+        updateRotationActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+        updateHorizontalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+        updateVerticalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
 
-        if (_isOutOfBody) {
+        glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
+        glm::mat4 currentWorldMatrix = createMatFromQuatAndPos(myAvatar.getOrientation(), myAvatar.getPosition());
 
-            glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
-            glm::mat4 currentWorldMatrix = createMatFromQuatAndPos(myAvatar.getOrientation(), myAvatar.getPosition());
-            AnimPose followWorldPose(currentWorldMatrix);
-
-            // OUTOFBODY_HACK, only takes horizontal movement into account.
-
-            // horizontal follow
+        AnimPose followWorldPose(currentWorldMatrix);
+        if (isActive(Rotation)) {
+            followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
+        }
+        if (isActive(Horizontal)) {
             glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
             followWorldPose.trans.x = desiredTranslation.x;
             followWorldPose.trans.z = desiredTranslation.z;
+        }
+        if (isActive(Vertical)) {
+            glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
+            followWorldPose.trans.y = desiredTranslation.y;
+        }
 
-            // rotation follow
-            // face the HMD
-            glm::vec3 hmdWorldPosition = extractTranslation(myAvatar.getSensorToWorldMatrix() * myAvatar.getHMDSensorMatrix());
-            glm::vec3 facing = myAvatar.getPosition() - hmdWorldPosition;
-            facing.y = 0.0f;
-            if (glm::length(facing) > EPSILON) {
-                // turn to face the hmd
-                followWorldPose.rot = glm::angleAxis(atan2(facing.x, facing.z), Vectors::UNIT_Y);
-            } else {
-                followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
-            }
-
+        if (isActive()) {
             myAvatar.getCharacterController()->setFollowParameters(followWorldPose);
-
         } else {
-            updateRotationActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
-            updateHorizontalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
-            updateVerticalActivation(myAvatar, desiredBodyMatrix, currentBodyMatrix);
-
-            glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
-            glm::mat4 currentWorldMatrix = createMatFromQuatAndPos(myAvatar.getOrientation(), myAvatar.getPosition());
-
-            AnimPose followWorldPose(currentWorldMatrix);
-            if (isActive(Rotation)) {
-                followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
-            }
-            if (isActive(Horizontal)) {
-                glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-                followWorldPose.trans.x = desiredTranslation.x;
-                followWorldPose.trans.z = desiredTranslation.z;
-            }
-            if (isActive(Vertical)) {
-                glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
-                followWorldPose.trans.y = desiredTranslation.y;
-            }
-
-            if (isActive()) {
-                myAvatar.getCharacterController()->setFollowParameters(followWorldPose);
-            } else {
-                myAvatar.getCharacterController()->disableFollow();
-            }
-
-            glm::mat4 currentWorldMatrixY180 = createMatFromQuatAndPos(myAvatar.getOrientation() * Quaternions::Y_180, myAvatar.getPosition());
-            _prevInBodyHMDMatInAvatarSpace = _inBodyHMDMatInAvatarSpace;
-            _inBodyHMDMatInAvatarSpace = glm::inverse(currentWorldMatrixY180) * myAvatar.getSensorToWorldMatrix() * myAvatar.getHMDSensorMatrix();
+            myAvatar.getCharacterController()->disableFollow();
         }
     } else {
         deactivate();
