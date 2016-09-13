@@ -12,6 +12,7 @@
 #include <QQueue>
 
 #include "DependencyManager.h"
+#include "SharedUtil.h"
 #include "SpatiallyNestable.h"
 
 const float defaultAACubeSize = 1.0f;
@@ -856,7 +857,11 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     _childrenLock.withReadLock([&] {
         foreach(SpatiallyNestableWeakPointer childWP, _children.values()) {
             SpatiallyNestablePointer child = childWP.lock();
-            if (child && child->_parentKnowsMe && (child->getParentID() == getID() || child->getParentID() == QUuid("{00000000-0000-0000-0000-000000000001}"))) {
+            // An object can set MyAvatar to be its parent using two IDs: the session ID and the special AVATAR_SELF_ID
+            // Because we only recognize an object as having one ID, we need to check for the second possible ID here.
+            // In practice, the AVATAR_SELF_ID should only be used for local-only objects.
+            if (child && child->_parentKnowsMe && (child->getParentID() == getID() ||
+                    (getNestableType() == NestableType::Avatar && child->getParentID() == AVATAR_SELF_ID))) {
                 children << child;
             }
         }

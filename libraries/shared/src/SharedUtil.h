@@ -23,6 +23,12 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
+#include <QUuid>
+
+
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
 
 // Access to the global instance pointer to enable setting / unsetting
 template <typename T>
