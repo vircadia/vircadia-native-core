@@ -108,7 +108,7 @@ void LightClusters::updateClusters() {
     std::vector< std::vector< uint32_t > > clusterGrid(_numClusters);
 
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
-    uint32_t maxNumIndices = _clusterContent.size();
+    uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
     _clusterContent.resize(maxNumIndices, INVALID_LIGHT);
 
     auto theFrustumGrid(_frustumGridBuffer.get());
