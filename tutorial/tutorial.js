@@ -264,11 +264,12 @@ stepRaiseAboveHead.prototype = {
 
         this.checkIntervalID = null;
         function checkForHandsAboveHead() {
-            print("Checking...");
+            print("Checking for hands above head...");
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
                 playSuccessSound();
+                location = "/tutorial";
                 onFinish();
             }
         }
@@ -313,12 +314,16 @@ var stepNearGrab = function(name) {
 }
 stepNearGrab.prototype = {
     start: function(onFinish) {
+        this.finished = false;
+        this.onFinish = onFinish;
+
         setControllerVisible("trigger", true);
         var tag = this.tag;
 
         // Spawn content set
         //spawnWithTag(Step1EntityData, null, tag);
         showEntitiesWithTag(this.tag, { visible: true });
+        showEntitiesWithTag('bothGrab', { visible: true });
 
         var basketColliderID = findEntity({ name: NEAR_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
@@ -344,30 +349,28 @@ stepNearGrab.prototype = {
             //Vec3.distance(
         //}
 
-        function onHit() {
-            onFinish();
-        }
-
-        // When block collides with basket start step 2
-        function checkCollides() {
-            var dist = Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position);
-            print(this.tag, "CHECKING...", dist);
-            if (dist < 0.15) {
-                Script.clearInterval(this.checkCollidesTimer);
-                this.checkCollidesTimer = null;
-                playSuccessSound();
-                Script.setTimeout(onHit.bind(this), 1000);
-            }
-        }
-        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+        Messages.subscribe("Entity-Exploded");
+        Messages.messageReceived.connect(this.onMessage.bind(this));
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
-    cleanup: function() {
-        setControllerVisible("trigger", false);
-        if (this.checkCollidesTimer) {
-            Script.clearInterval(this.checkCollidesTimer);
+    onMessage: function(channel, message, seneder) {
+        if (this.finished) {
+            return;
         }
+        if (channel == "Entity-Exploded") {
+            print("TUTORIAL: Got entity-exploded message");
+            var data = parseJSON(message);
+            if (data.entityID == this.boxID) {
+                this.finished = true;
+                this.onFinish();
+            }
+        }
+    },
+    cleanup: function() {
+        print("cleaning up near grab");
+        this.finished = true;
+        setControllerVisible("trigger", false);
         hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
     }
@@ -387,6 +390,9 @@ var stepFarGrab = function(name) {
 }
 stepFarGrab.prototype = {
     start: function(onFinish) {
+        this.finished = false;
+        this.onFinish = onFinish;
+
         setControllerVisible("trigger", true);
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             farGrabEnabled: true,
@@ -421,27 +427,42 @@ stepFarGrab.prototype = {
         this.boxID = createBlock.bind(this)();
         print("Created", this.boxID);
 
-        function onHit() {
-            onFinish();
-        }
+        Messages.subscribe("Entity-Exploded");
+        Messages.messageReceived.connect(this.onMessage.bind(this));
 
         // When block collides with basket start step 2
-        var checkCollidesTimer = null;
-        function checkCollides() {
-            print("CHECKING...");
-            if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.2) {
-                Script.clearInterval(checkCollidesTimer);
-                playSuccessSound();
-                Script.setTimeout(onHit.bind(this), 1000);
-            }
-        }
-        checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
+        //var checkCollidesTimer = null;
+        // function checkCollides() {
+        //     print("CHECKING...");
+        //     if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.2) {
+        //         Script.clearInterval(checkCollidesTimer);
+        //         playSuccessSound();
+        //         Script.setTimeout(onHit.bind(this), 1000);
+        //     }
+        // }
+        // checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
+    onMessage: function(channel, message, seneder) {
+        if (this.finished) {
+            return;
+        }
+        if (channel == "Entity-Exploded") {
+            print("TUTORIAL: Got entity-exploded message");
+            var data = parseJSON(message);
+            if (data.entityID == this.boxID) {
+                this.finished = true;
+                this.onFinish();
+            }
+        }
+    },
     cleanup: function() {
+        //Messages.messageReceived.disconnect(this.onMessage.bind(this));
+        this.finished = true;
         setControllerVisible("trigger", false);
         hideEntitiesWithTag(this.tag, { visible: false});
+        hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
     }
 };
@@ -524,7 +545,7 @@ stepEquip.prototype = {
 
         // When block collides with basket start step 2
         function checkCollides() {
-            print("CHECKING FOR PING PONG...");
+            //print("CHECKING FOR PING PONG...");
             var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
             for (var i = 0; i < ammoIDs.length; ++i) {
                 if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
@@ -590,6 +611,16 @@ stepEquip.prototype = {
 var stepTurnAround = function(name) {
     this.tag = name;
     this.tempTag = name + "-temporary";
+
+
+    //var name = "mapping-name";
+    //var mapping = Controller.newMapping(name);
+    //mapping.from([Controller.Actions.StepYaw]).to(function() {
+    //    print("STEPYAW");
+    //});
+    //Script.scriptEnding.connect(function() {
+    //    Controller.disableMapping(name);
+    //});
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
@@ -730,9 +761,13 @@ function showEntitiesWithTag(tag) {
     editEntitiesWithTag(tag, function(entityID) {
         var userData = Entities.getEntityProperties(entityID, "userData").userData;
         var data = parseJSON(userData);
+        var collisionless = data.visible === false ? true : false;
+        if (data.collidable !== undefined) {
+            collisionless = data.collidable === true ? false : true;
+        }
         var newProperties = {
             visible: data.visible == false ? false : true,
-            collisionless: data.visible == false ? true : false ,
+            collisionless: collisionless,
             //collisionless: data.collisionless == true ? true : false,
         };
         Entities.editEntity(entityID, newProperties);
@@ -769,7 +804,7 @@ function startTutorial() {
         new stepTeleport("teleport"),
         new stepFinish("finish"),
     ]
-    location = "/tutorial";
+    location = "/tutorial_begin";
     startNextStep();
 }
 

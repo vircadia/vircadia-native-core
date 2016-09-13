@@ -362,7 +362,7 @@ Step1BlockData = {
     },
     "shape": "Cube",
     "type": "Box",
-    "userData": "{}",
+    "userData": JSON.stringify({ hifiHomeKey: { reset: true } }),
 };
 
 StepGunData = [
