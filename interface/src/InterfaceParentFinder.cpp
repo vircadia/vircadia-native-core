@@ -17,8 +17,6 @@
 
 #include "InterfaceParentFinder.h"
 
-
-
 SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestableWeakPointer parent;
 
