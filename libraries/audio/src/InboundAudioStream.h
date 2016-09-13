@@ -161,6 +161,7 @@ public:
     int getFrameCapacity() const { return _ringBuffer.getFrameCapacity(); }
     int getFramesAvailable() const { return _ringBuffer.framesAvailable(); }
     double getFramesAvailableAverage() const { return _framesAvailableStat.getAverage(); }
+    int getSamplesAvailable() const { return _ringBuffer.samplesAvailable(); }
 
     bool isStarved() const { return _isStarved; }
     bool hasStarted() const { return _hasStarted; }

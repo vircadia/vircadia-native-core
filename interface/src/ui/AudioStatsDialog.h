@@ -74,7 +74,7 @@ private:
     void updateStats(QVector<QString>& stats, const int channelID);
     void renderStats();
     void clearAllChannels();
-    void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats, bool isDownstreamStats);
+    void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats);
 
 
     const AudioIOStats* _stats;
