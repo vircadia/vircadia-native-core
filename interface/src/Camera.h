@@ -42,6 +42,8 @@ class Camera : public QObject {
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
+    Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
+
 public:
     Camera();
 
@@ -62,6 +64,8 @@ public:
 
     const glm::mat4& getProjection() const { return _projection; }
     void setProjection(const glm::mat4& projection);
+
+    QVariantMap getViewFrustum();
 
 public slots:
     QString getModeString() const;
