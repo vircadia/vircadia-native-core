@@ -671,10 +671,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // send a location update immediately
     discoverabilityManager->updateLocation();
 
+    auto myAvatar = getMyAvatar();
+
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
-    connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::uuidChanged, myAvatar.get(), &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
@@ -704,7 +706,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
 
     // Save avatar location immediately after a teleport.
-    connect(getMyAvatar(), &MyAvatar::positionGoneTo,
+    connect(myAvatar.get(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
@@ -741,7 +743,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // send the identity packet for our avatar each second to our avatar mixer
-    connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
+    connect(&identityPacketTimer, &QTimer::timeout, myAvatar.get(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     const char** constArgv = const_cast<const char**>(argv);
@@ -820,7 +822,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
-    _entityEditSender.setMyAvatar(getMyAvatar());
+    _entityEditSender.setMyAvatar(myAvatar.get());
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
@@ -841,7 +843,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     // FIXME -- I'm a little concerned about this.
-    connect(getMyAvatar()->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
+    connect(myAvatar->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
         this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
@@ -1055,7 +1057,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     applicationUpdater->checkForUpdate();
 
     // Now that menu is initialized we can sync myAvatar with it's state.
-    getMyAvatar()->updateMotionBehaviorFromMenu();
+    myAvatar->updateMotionBehaviorFromMenu();
 
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -1090,10 +1092,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     static int SEND_STATS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
 
-    static glm::vec3 lastAvatarPosition = getMyAvatar()->getPosition();
+    static glm::vec3 lastAvatarPosition = myAvatar->getPosition();
     static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
-    static controller::Pose lastLeftHandPose = getMyAvatar()->getLeftHandPose();
-    static controller::Pose lastRightHandPose = getMyAvatar()->getRightHandPose();
+    static controller::Pose lastLeftHandPose = myAvatar->getLeftHandPose();
+    static controller::Pose lastRightHandPose = myAvatar->getRightHandPose();
 
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
@@ -1141,7 +1143,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
-        glm::vec3 avatarPosition = getMyAvatar()->getPosition();
+        auto myAvatar = getMyAvatar();
+        glm::vec3 avatarPosition = myAvatar->getPosition();
         properties["avatar_has_moved"] = lastAvatarPosition != avatarPosition;
         lastAvatarPosition = avatarPosition;
 
@@ -1156,8 +1159,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
         lastHMDHeadPose = hmdHeadPose;
 
-        auto leftHandPose = getMyAvatar()->getLeftHandPose();
-        auto rightHandPose = getMyAvatar()->getRightHandPose();
+        auto leftHandPose = myAvatar->getLeftHandPose();
+        auto rightHandPose = myAvatar->getRightHandPose();
         // controller::Pose considers two poses to be different if either are invalid. In our case, we actually
         // want to consider the pose to be unchanged if it was invalid and still is invalid, so we check that first.
         properties["hand_pose_changed"] =
@@ -1204,7 +1207,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     OctreeEditPacketSender* packetSender = entityScriptingInterface->getPacketSender();
     EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-    entityPacketSender->setMyAvatar(getMyAvatar());
+    entityPacketSender->setMyAvatar(myAvatar.get());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
@@ -1581,7 +1584,7 @@ void Application::initializeUi() {
     FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
     rootContext->setContextProperty("File", fileDownload);
     connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
-    rootContext->setContextProperty("MyAvatar", getMyAvatar());
+    rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
@@ -3331,7 +3334,7 @@ void Application::init() {
             entity->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
-    connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
+    connect(getMyAvatar().get(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
         if (auto avatar = getMyAvatar()) {
             auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
             avatar->setCollisionSound(sound);
@@ -3387,7 +3390,7 @@ void Application::updateMyAvatarLookAtPosition() {
         }
     } else {
         AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
-        if (lookingAt && myAvatar != lookingAt.get()) {
+        if (lookingAt && myAvatar.get() != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
             auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
@@ -4236,7 +4239,7 @@ PickRay Application::computePickRay(float x, float y) const {
     return result;
 }
 
-MyAvatar* Application::getMyAvatar() const {
+std::shared_ptr<MyAvatar> Application::getMyAvatar() const {
     return DependencyManager::get<AvatarManager>()->getMyAvatar();
 }
 
@@ -4824,7 +4827,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
-    scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar());
+    scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar().get());
     qScriptRegisterMetaType(scriptEngine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
 
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());

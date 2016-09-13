@@ -401,7 +401,7 @@ private:
 
     int sendNackPackets();
 
-    MyAvatar* getMyAvatar() const;
+    std::shared_ptr<MyAvatar> getMyAvatar() const;
 
     void checkSkeleton() const;
 

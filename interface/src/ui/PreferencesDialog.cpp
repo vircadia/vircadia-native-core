@@ -32,7 +32,7 @@
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
         auto getter = [=]()->QString { return myAvatar->getDisplayName(); };
