@@ -227,7 +227,7 @@ protected:
 
 private:
     void outputFormatChanged();
-    void mixLocalAudioInjectors(int16_t* inputBuffer);
+    void mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
@@ -309,7 +309,7 @@ private:
     AudioSRC* _networkToOutputResampler;
 
     // for local hrtf-ing
-    float _hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     AudioLimiter _audioLimiter;
 

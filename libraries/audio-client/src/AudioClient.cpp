@@ -683,8 +683,8 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void AudioClient::configureReverb() {
     ReverbParameters p;
-    p.sampleRate = _outputFormat.sampleRate();
 
+    p.sampleRate = AudioConstants::SAMPLE_RATE;
     p.bandwidth = _reverbOptions->getBandwidth();
     p.preDelay = _reverbOptions->getPreDelay();
     p.lateDelay = _reverbOptions->getLateDelay();
@@ -710,6 +710,7 @@ void AudioClient::configureReverb() {
     _listenerReverb.setParameters(&p);
 
     // used only for adding self-reverb to loopback audio
+    p.sampleRate = _outputFormat.sampleRate();
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
@@ -958,12 +959,9 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
 }
 
-void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
+void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
-    memset(_hrtfBuffer, 0, sizeof(_hrtfBuffer));
     QVector<AudioInjector*> injectorsToRemove;
-    static const float INT16_TO_FLOAT_SCALE_FACTOR = 1/32768.0f;
-
     bool injectorsHaveData = false;
     
     // lock the injector vector
@@ -972,9 +970,7 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
     for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
         if (injector->getLocalBuffer()) {
 
-            qint64 samplesToRead = injector->isStereo() ? 
-                AudioConstants::NETWORK_FRAME_BYTES_STEREO :
-                AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+            qint64 samplesToRead = injector->isStereo() ? AudioConstants::NETWORK_FRAME_BYTES_STEREO : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector (mono or stereo)
             memset(_scratchBuffer, 0, sizeof(_scratchBuffer));
@@ -982,9 +978,11 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                 
                 injectorsHaveData = true;
 
-                if (injector->isStereo() ) {
-                    for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        _hrtfBuffer[i] += (float)(_scratchBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
+                if (injector->isStereo()) {
+
+                    // stereo gets directly mixed into mixBuffer
+                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+                        mixBuffer[i] += (float)_scratchBuffer[i] * (1/32768.0f);
                     }
                     
                 } else {
@@ -995,7 +993,8 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                     float gain = gainForSource(distance, injector->getVolume()); 
                     float azimuth = azimuthForSource(relativePosition);         
                 
-                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    // mono gets spatialized into mixBuffer
+                    injector->getLocalHRTF().render(_scratchBuffer, mixBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {
@@ -1013,56 +1012,42 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
         }
     }
     
-    if(injectorsHaveData) {
-        
-        // mix network into the hrtfBuffer
-        for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-            _hrtfBuffer[i] += (float)(inputBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
-        }
-        
-        // now, use limiter to write back to the inputBuffer
-        _audioLimiter.render(_hrtfBuffer, inputBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-    }
-
-    for(AudioInjector* injector : injectorsToRemove) {
+    for (AudioInjector* injector : injectorsToRemove) {
         qDebug() << "removing injector";
         getActiveLocalAudioInjectors().removeOne(injector);
     }
 }
 
 void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteArray& outputBuffer) {
-    const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
-    const int numDeviceOutputSamples = _outputFrameSize;
 
-    Q_ASSERT(_outputFrameSize == numDecodecSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
-        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount()));
-
-    outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
-
-    const int16_t* decodedSamples;
-    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
-    QByteArray decodedBufferCopy = decodedBuffer;
+    const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
     assert(decodedBuffer.size() == AudioConstants::NETWORK_FRAME_BYTES_STEREO);
-    
-    if(getActiveLocalAudioInjectors().size() > 0) {
-        mixLocalAudioInjectors((int16_t*)decodedBufferCopy.data());
-        decodedSamples = reinterpret_cast<const int16_t*>(decodedBufferCopy.data());
-    } else {
-        decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
+
+    outputBuffer.resize(_outputFrameSize * sizeof(int16_t));
+    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
+
+    // convert network audio to float
+    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+        _mixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
+    }
+        
+    // mix in active injectors
+    if (getActiveLocalAudioInjectors().size() > 0) {
+        mixLocalAudioInjectors(_mixBuffer);
     }
 
-    // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, decodedSamples, outputSamples,
-                       numDecodecSamples, numDeviceOutputSamples,
-                       _desiredOutputFormat, _outputFormat);
-
-    // apply stereo reverb at the listener, to the received audio
+    // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
     if (hasReverb) {
-        assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
-        _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
+        _listenerReverb.render(_mixBuffer, _mixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
+
+    // apply peak limiter
+    _audioLimiter.render(_mixBuffer, _scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    // resample to output sample rate
+    _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {
