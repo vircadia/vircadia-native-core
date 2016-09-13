@@ -23,9 +23,9 @@
 #include "InterfaceLogging.h"
 #include "AnimDebugDraw.h"
 
-const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
-const float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
-const float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
+glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
+float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
+float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),

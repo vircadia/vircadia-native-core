@@ -86,9 +86,9 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 extern bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS;
 
 // OUTOFBODY_HACK defined in SkeletonModel.cpp
-extern const glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
-extern const float TRUNCATE_IK_CAPSULE_LENGTH;
-extern const float TRUNCATE_IK_CAPSULE_RADIUS;
+extern glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
+extern float TRUNCATE_IK_CAPSULE_LENGTH;
+extern float TRUNCATE_IK_CAPSULE_RADIUS;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
