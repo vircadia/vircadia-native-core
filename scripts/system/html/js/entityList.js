@@ -135,11 +135,11 @@ function loaded() {
       const BYTES_PER_MEGABYTE = 1024 * 1024;
 
       function decimalMegabytes(number) {
-          if (number) {
-              return (number / BYTES_PER_MEGABYTE).toFixed(1);
-          } else {
-              return "";
-          }
+          return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
+      }
+
+      function displayIfNonZero(number) {
+          return number ? number : "";
       }
 
       function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
@@ -150,9 +150,10 @@ function loaded() {
 
           if (entities[id] === undefined) {
               entityList.add([{
-                  id: id, name: name, type: type, url: filename, locked: locked, visible: visible, verticesCount: verticesCount,
-                  texturesCount: texturesCount, texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
-                  drawCalls: drawCalls, hasScript: hasScript
+                  id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
+                  verticesCount: displayIfNonZero(verticesCount), texturesCount: displayIfNonZero(texturesCount),
+                  texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
+                  drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
               }],
                   function (items) {
                       var currentElement = items[0].elm;
