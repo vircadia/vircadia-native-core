@@ -53,6 +53,12 @@ void main(void) {
     );
     vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
+    int clusterDesc = _clusterGridTable[gl_InstanceID];
+    int numLights = 0xFFFF & (clusterDesc >> 16);
+    
+    if (numLights <= 0) {
+        return;
+    }
     ivec3 dims = frustumGrid.dims.xyz;
 
     ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
