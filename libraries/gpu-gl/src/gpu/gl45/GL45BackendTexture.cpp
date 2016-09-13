@@ -24,7 +24,7 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-#define SPARSE_TEXTURES 1
+#define SPARSE_TEXTURES 0
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)

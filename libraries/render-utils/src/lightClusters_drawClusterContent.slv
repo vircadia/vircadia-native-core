@@ -53,22 +53,16 @@ void main(void) {
     );
     vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
-    int clusterDesc = _clusterGridTable[gl_InstanceID];
-    int numLights = 0xFFFF & (clusterDesc >> 16);
-    
-    if (numLights <= 0) {
-        return;
-    }
-    ivec3 dims = frustumGrid.dims.xyz;
+ 
 
-    ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
+    ivec2 cluster = clusterGrid_getCluster(gl_InstanceID);
+    int numLights = cluster.x;
+    float numLightsScale = clamp(numLights * 0.1, 0.01, 1.0);
 
-    int layer = gl_InstanceID / summedDims.x;
-    int offsetInLayer = gl_InstanceID % summedDims.x;
-    ivec3 clusterPos = ivec3(offsetInLayer % summedDims.y, offsetInLayer / summedDims.y, layer);
+    ivec3 clusterPos = clusterGrid_indexToCluster(gl_InstanceID);
 
-
-    vec3 eyePos = frustumGrid_clusterPosToEye(clusterPos, vec3(0.05) + 0.9 * pos.xyz);
+    float boxScale = 0.99;
+    vec3 eyePos = frustumGrid_clusterPosToEye(clusterPos, vec3((1.0 - boxScale) * 0.5 + (1.0 - numLightsScale) * boxScale  * 0.5) + numLightsScale * boxScale * pos.xyz);
     vec4 worldPos = frustumGrid_eyeToWorld(vec4(eyePos.xyz, 1.0));
 
 

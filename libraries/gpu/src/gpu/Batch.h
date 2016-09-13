@@ -32,11 +32,11 @@ namespace gpu {
 enum ReservedSlot {
 
 #ifdef GPU_SSBO_DRAW_CALL_INFO
-    TRANSFORM_OBJECT_SLOT = 6,
+    TRANSFORM_OBJECT_SLOT = 14,
 #else
     TRANSFORM_OBJECT_SLOT = 31,
 #endif
-    TRANSFORM_CAMERA_SLOT = 7,
+    TRANSFORM_CAMERA_SLOT = 15,
 };
 
 // The named batch data provides a mechanism for accumulating data into buffers over the course 

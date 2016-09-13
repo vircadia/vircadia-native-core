@@ -34,7 +34,30 @@ Column {
                     max: 500.0
                     min: 100.0
                 }
-        
+                ConfigSlider {
+                    label: qsTr("Grid X")
+                    integral: true
+                    config: Render.getConfig("LightClustering")
+                    property: "dimX"
+                    max: 16
+                    min: 1
+                }
+                ConfigSlider {
+                    label: qsTr("Grid Y")
+                    integral: true
+                    config: Render.getConfig("LightClustering")
+                    property: "dimY"
+                    max: 16
+                    min: 1
+                }
+                ConfigSlider {
+                    label: qsTr("Grid Z")
+                    integral: true
+                    config: Render.getConfig("LightClustering")
+                    property: "dimZ"
+                    max: 15
+                    min: 1
+                }
             CheckBox {
                     text: "Freeze"
                     checked: Render.getConfig("LightClustering")["freeze"]
@@ -49,6 +72,11 @@ Column {
                     text: "Draw Cluster From Depth"
                     checked: Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"]
                     onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"] = checked }
+            }
+            CheckBox {
+                    text: "Draw Content"
+                    checked: Render.getConfig("DebugLightClusters")["doDrawContent"]
+                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawContent"] = checked }
             }
         }
     }

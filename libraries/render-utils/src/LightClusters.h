@@ -24,7 +24,7 @@ public:
     float rangeFar { 100.0f };
     float frustumFar { 10000.0f };
 
-    glm::ivec3 dims { 8, 8, 8 };
+    glm::ivec3 dims { 8, 8, 12 };
     float spare;
 
     glm::mat4 eyeToGridProj;
@@ -97,12 +97,21 @@ class LightClusteringPassConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float rangeNear MEMBER rangeNear NOTIFY dirty)
     Q_PROPERTY(float rangeFar MEMBER rangeFar NOTIFY dirty)
+ 
+    Q_PROPERTY(int dimX MEMBER dimX NOTIFY dirty)
+    Q_PROPERTY(int dimY MEMBER dimY NOTIFY dirty)
+    Q_PROPERTY(int dimZ MEMBER dimZ NOTIFY dirty)
     
     Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
 public:
     LightClusteringPassConfig() : render::Job::Config(true){}
     float rangeNear{ 1.0f };
     float rangeFar{ 512.0f };
+
+    int dimX { 8 };
+    int dimY { 8 };
+    int dimZ { 12 };
+
     bool freeze{ false };
     
 signals:
@@ -143,12 +152,14 @@ class DebugLightClustersConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool doDrawGrid MEMBER doDrawGrid NOTIFY dirty)
     Q_PROPERTY(bool doDrawClusterFromDepth MEMBER doDrawClusterFromDepth NOTIFY dirty)
+    Q_PROPERTY(bool doDrawContent MEMBER doDrawContent NOTIFY dirty)
 public:
     DebugLightClustersConfig() : render::Job::Config(true){}
 
 
     bool doDrawGrid{ false };
-    bool doDrawClusterFromDepth{ false };
+    bool doDrawClusterFromDepth { false };
+    bool doDrawContent { false };
     
 signals:
     void dirty();
@@ -179,9 +190,9 @@ protected:
     const gpu::PipelinePointer getDrawClusterGridPipeline();
     const gpu::PipelinePointer getDrawClusterFromDepthPipeline();
     const gpu::PipelinePointer getDrawClusterContentPipeline();
-    bool doDrawGrid{ false };
+    bool doDrawGrid { false };
     bool doDrawClusterFromDepth { false };
-    bool doDrawContent { true };
+    bool doDrawContent { false };
 };
 
 #endif

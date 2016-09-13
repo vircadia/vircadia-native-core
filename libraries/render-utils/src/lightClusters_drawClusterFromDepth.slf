@@ -36,6 +36,12 @@ void main(void) {
     vec4 clusterEyePos = frustumGrid_worldToEye(fragWorldPos);
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
+
+    ivec2 cluster = clusterGrid_getCluster(clusterGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x;
+    float numLightsScale = clamp(numLights * 0.1, 0.01, 1.0);
+
+
    ivec3 dims = frustumGrid.dims.xyz;
    dims.z +=1;
    ivec3 summedDims = ivec3(dims.x * dims.y, dims.x, 1);
@@ -59,9 +65,9 @@ void main(void) {
    if (relClusterId < 0.0) {
        _fragColor = vec4(0.0);
    } else if (relClusterId >= 1.0) {
-       _fragColor = vec4(vec3(1.0), 0.5);
+       _fragColor = vec4(vec3(1.0), 0.2);
    } else {
-       _fragColor = vec4(colorWheel(fract(relClusterId)), 0.9);
+       _fragColor = vec4(colorWheel(fract(relClusterId)), 0.05 + 0.95 * numLightsScale);
    }
 }
 

@@ -47,12 +47,30 @@ float projection_getFar(mat4 projection) {
 // end of hybrid include
 
 
-layout (std140) uniform clusterGridBuffer {
+uniform clusterGridBuffer {
     int _clusterGridTable[4096];
 };
 
-layout (std140) uniform clusterContentBuffer {
-    int _clusterGridContent[4096];
+uniform clusterContentBuffer {
+    int _clusterGridContent[10000];
 };
+
+int clusterGrid_clusterToIndex(ivec3 pos) {
+    return pos.x + (pos.y + pos.z * frustumGrid.dims.y) * frustumGrid.dims.x;
+}
+ivec3 clusterGrid_indexToCluster(int index) {
+    ivec3 summedDims = ivec3(frustumGrid.dims.x * frustumGrid.dims.y, frustumGrid.dims.x, 1);
+    int layer = index / summedDims.x;
+    int offsetInLayer = index % summedDims.x;
+    ivec3 clusterPos = ivec3(offsetInLayer % summedDims.y, offsetInLayer / summedDims.y, layer);
+    return clusterPos;
+}
+
+ivec2 clusterGrid_getCluster(int index) {
+    int clusterDesc = _clusterGridTable[index];
+    int numLights = 0xFFFF & (clusterDesc >> 16);
+    int contentOffset = 0xFFFF & (clusterDesc);
+    return ivec2(numLights, contentOffset);
+}
 
 <@endif@>

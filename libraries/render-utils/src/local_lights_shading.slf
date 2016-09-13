@@ -25,10 +25,14 @@ uniform lightIndexBuffer {
 };
 <@include LightingModel.slh@>
 
+
 <@include LightPoint.slh@>
 <$declareLightingPoint(supportScattering)$>
 <@include LightSpot.slh@>
 <$declareLightingSpot(supportScattering)$>
+
+<@include LightClusterGrid.slh@>
+
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
@@ -47,24 +51,54 @@ void main(void) {
 
     frag.position = fragPosition;
 
+
+    // Frag pos in world
+    mat4 invViewMat = getViewInverse();
+    vec4 fragPos = invViewMat * fragPosition;
+    
+    // From frag world pos find the cluster
+    vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+
+
+    ivec2 cluster = clusterGrid_getCluster(clusterGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x;
+    if (numLights <= 0) {
+        discard;
+    }
+
+    ivec3 dims = frustumGrid.dims.xyz;
+    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
+        discard;
+    }
+
+    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
+        discard;
+    }
+    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
+        discard;
+    }
+
+    int lightClusterOffset = cluster.y;
+
+
+
     vec4 midNormalCurvature;
     vec4 lowNormalCurvature;
     if (frag.mode == FRAG_MODE_SCATTERING) {
         unpackMidLowNormalCurvature(texCoord, midNormalCurvature, lowNormalCurvature);
     }
 
-    // Frag pos in world
-    mat4 invViewMat = getViewInverse();
-    vec4 fragPos = invViewMat * fragPosition;
 
     // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
-    int numLights = lightIndex[0];
+  //  int numLights = lightIndex[0];
     for (int i = 0; i < numLights; i++) {
         // Need the light now
-        Light light = getLight(lightIndex[i + 1]);
+        int theLightIndex = _clusterGridContent[lightClusterOffset + i];
+        Light light = getLight(theLightIndex);
         bool isSpot = light_isSpot(light);
         // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
         vec4 fragLightVecLen2;
@@ -98,5 +132,7 @@ void main(void) {
         _fragColor.rgb += diffuse;
         _fragColor.rgb += specular;
     }
+
+  //  _fragColor.rgb += vec3(0.05, 0.0, 0.0);
 }
 

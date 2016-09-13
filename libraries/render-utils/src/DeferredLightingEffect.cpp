@@ -73,6 +73,10 @@ enum DeferredShader_BufferSlot {
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
     LIGHT_INDEX_GPU_SLOT,
+    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -218,7 +222,11 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
-    
+
+
+    slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -714,6 +722,11 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             // Bind the global list of lights and the visible lights this frame
             batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
             batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, lightClusters->_lightIndicesBuffer);
+
+
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
+            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
 
 
             // before we get to the real lighting, let s try to cull down the number of pixels

@@ -1,5 +1,4 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
-
 float frustumGrid_depthRamp(float linear) {
     // return linear;
     return linear * linear;
@@ -131,6 +130,8 @@ vec4 frustumGrid_eyeToWorld(vec4 eyePos) {
 vec4 frustumGrid_worldToEye(vec4 worldPos) {
     return frustumGrid.worldToEyeMat * worldPos;
 }
+
+
 
     // <@if 1@>
     // Trigger Scribe include 
