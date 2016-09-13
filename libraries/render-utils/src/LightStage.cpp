@@ -146,8 +146,12 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
     }
 
     // lightArray is big enough so we can remap
-    auto& light = _lights._elements[lightId];
-    auto lightSchema = light->getSchemaBuffer().get<model::Light::Schema>();
-    _lightArrayBuffer->setSubData<model::Light::Schema>(lightId, lightSchema);
+    auto light = _lights._elements[lightId];
+    if (light) {
+        auto lightSchema = light->getSchemaBuffer().get<model::Light::Schema>();
+        _lightArrayBuffer->setSubData<model::Light::Schema>(lightId, lightSchema);
+    } else {
+        // this should not happen ?
+    }
 }
 

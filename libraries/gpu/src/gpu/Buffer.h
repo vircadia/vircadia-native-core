@@ -391,11 +391,14 @@ public:
         ~StructBuffer<T>() {};
         StructBuffer<T>() : gpu::BufferView(makeBuffer()) {}
 
-        const T* operator ->() const { return &get<T>(); }
+
         T& edit() {
             return BufferView::edit<T>(0);
         }
-
+        const T& get() const {
+            return BufferView::get<T>(0);
+        }
+        const T* operator ->() const { return &get(); }
     };
 };
 

@@ -55,6 +55,7 @@ void LightPayload::render(RenderArgs* args) {
     // Do we need to allocate the light in the stage ?
     if (LightStage::isIndexInvalid(_index)) {
         _index = _stage->addLight(_light);
+        _needUpdate = false;
     }
     // Need an update ?
     if (_needUpdate) {

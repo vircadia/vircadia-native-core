@@ -46,4 +46,13 @@ float projection_getFar(mat4 projection) {
 
 // end of hybrid include
 
+
+uniform clusterGridBuffer {
+    int _clusterGridTable[10000];
+};
+
+uniform clusterContentBuffer {
+    int _clusterGridContent[10000];
+};
+
 <@endif@>

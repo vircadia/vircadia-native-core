@@ -192,7 +192,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
-        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
+        const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
+            surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
+        addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);

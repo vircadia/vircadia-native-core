@@ -57,12 +57,16 @@ public:
     
     LightClusters();
 
+    void setDimensions(glm::uvec3 gridDims, uint32_t listBudget);
+
     void updateFrustum(const ViewFrustum& frustum);
 
     void updateLightStage(const LightStagePointer& lightStage);
 
     void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
-    
+
+    void updateClusters();
+
     ViewFrustum _frustum;
 
     LightStagePointer _lightStage;
@@ -72,8 +76,17 @@ public:
     gpu::StructBuffer<FrustumGrid> _frustumGridBuffer;
 
     LightStage::LightIndices _visibleLightIndices;
-    
     gpu::BufferView _lightIndicesBuffer;
+
+    uint32_t _numClusters { 0 };
+
+    const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
+    const uint32_t INVALID_LIGHT { 0xFFFFFFFF };
+
+    std::vector<uint32_t> _clusterGrid;
+    std::vector<uint32_t> _clusterContent;
+    gpu::BufferView _clusterGridBuffer;
+    gpu::BufferView _clusterContentBuffer;
 };
 
 using LightClustersPointer = std::shared_ptr<LightClusters>;
@@ -162,10 +175,13 @@ protected:
     gpu::BufferPointer _gridBuffer;
     gpu::PipelinePointer _drawClusterGrid;
     gpu::PipelinePointer _drawClusterFromDepth;
+    gpu::PipelinePointer _drawClusterContent;
     const gpu::PipelinePointer getDrawClusterGridPipeline();
     const gpu::PipelinePointer getDrawClusterFromDepthPipeline();
+    const gpu::PipelinePointer getDrawClusterContentPipeline();
     bool doDrawGrid{ false };
-    bool doDrawClusterFromDepth{ false };
+    bool doDrawClusterFromDepth { false };
+    bool doDrawContent { true };
 };
 
 #endif
