@@ -227,7 +227,7 @@ protected:
 
 private:
     void outputFormatChanged();
-    void mixLocalAudioInjectors(int16_t* inputBuffer);
+    void mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
@@ -253,18 +253,15 @@ private:
     Gate _gate;
 
     Mutex _injectorsMutex;
-    QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
-    int16_t _localProceduralSamples[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
-    int16_t _outputProcessingBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
@@ -309,7 +306,7 @@ private:
     AudioSRC* _networkToOutputResampler;
 
     // for local hrtf-ing
-    float _hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     AudioLimiter _audioLimiter;
 
