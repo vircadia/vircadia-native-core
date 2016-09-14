@@ -1933,6 +1933,10 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
 
+    // KINEMATIC_CONTROLLER_HACK
+    bool moveKinematically = menu->isOptionChecked(MenuOption::MoveKinematically);
+    _characterController.setMoveKinematically(moveKinematically);
+
     setAvatarCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 

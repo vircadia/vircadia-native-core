@@ -189,6 +189,7 @@ namespace MenuOption {
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
     const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
+    const QString MoveKinematically = "Move Kinematically"; // KINEMATIC_CONTROLLER_HACK
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";

@@ -102,6 +102,7 @@ bool CharacterController::needsAddition() const {
 
 void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld != world) {
+        // remove from old world
         if (_dynamicsWorld) {
             if (_rigidBody) {
                 _dynamicsWorld->removeRigidBody(_rigidBody);
@@ -110,6 +111,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld = nullptr;
         }
         if (world && _rigidBody) {
+            // add to new world
             _dynamicsWorld = world;
             _pendingFlags &= ~PENDING_FLAG_JUMP;
             // Before adding the RigidBody to the world we must save its oldGravity to the side
@@ -119,7 +121,18 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld->addAction(this);
             // restore gravity settings
             _rigidBody->setGravity(oldGravity);
+            _ghost.setCollisionShape(_rigidBody->getCollisionShape()); // KINEMATIC_CONTROLLER_HACK
         }
+        // KINEMATIC_CONTROLLER_HACK
+        int16_t group = BULLET_COLLISION_GROUP_MY_AVATAR;
+        int16_t mask = BULLET_COLLISION_MASK_MY_AVATAR & (~ group);
+        _ghost.setCollisionGroupAndMask(group, mask);
+        _ghost.setCollisionWorld(_dynamicsWorld);
+        _ghost.setDistanceToFeet(_radius + _halfHeight);
+        _ghost.setMaxStepHeight(0.75f * (_radius + _halfHeight)); // HACK
+        _ghost.setMinWallAngle(PI / 4.0f); // HACK
+        _ghost.setUpDirection(_currentUp);
+        _ghost.setGravity(DEFAULT_CHARACTER_GRAVITY);
     }
     if (_dynamicsWorld) {
         if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
@@ -188,54 +201,67 @@ const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     computeNewVelocity(dt, velocity);
-    _rigidBody->setLinearVelocity(velocity + _parentVelocity);
 
-    // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
-    // Rather than add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
-    // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
+    if (_moveKinematically) {
+        // KINEMATIC_CONTROLLER_HACK
+        btTransform transform = _rigidBody->getWorldTransform();
+        transform.setOrigin(_ghost.getWorldTransform().getOrigin());
+        _ghost.setWorldTransform(transform);
+        _ghost.setMotorVelocity(_simpleMotorVelocity);
+        float overshoot = 1.0f * _radius;
+        _ghost.move(dt, overshoot);
+        _rigidBody->setWorldTransform(_ghost.getWorldTransform());
+        _rigidBody->setLinearVelocity(_ghost.getLinearVelocity());
+    } else {
+        // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
+        // Rather than add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
+        // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
 
-    if (_following) {
-        // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
-        const float NORMAL_WALKING_SPEED = 0.5f;
-        const float FOLLOW_TIME = 0.8f;
-        const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);
+        _rigidBody->setLinearVelocity(velocity + _parentVelocity);
+        if (_following) {
+            // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
+            const float NORMAL_WALKING_SPEED = 0.5f;
+            const float FOLLOW_TIME = 0.8f;
+            const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);
 
-        const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIME;
+            const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIME;
 
-        btTransform bodyTransform = _rigidBody->getWorldTransform();
+            btTransform bodyTransform = _rigidBody->getWorldTransform();
 
-        btVector3 startPos = bodyTransform.getOrigin();
-        btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
-        btVector3 vel = deltaPos * (0.5f / dt);
-        btScalar speed = vel.length();
-        if (speed > NORMAL_WALKING_SPEED) {
-            vel *= NORMAL_WALKING_SPEED / speed;
+            btVector3 startPos = bodyTransform.getOrigin();
+            btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
+            btVector3 vel = deltaPos * (0.5f / dt);
+            btScalar speed = vel.length();
+            if (speed > NORMAL_WALKING_SPEED) {
+                vel *= NORMAL_WALKING_SPEED / speed;
+            }
+            btVector3 linearDisplacement = vel * dt;
+            btVector3 endPos = startPos + linearDisplacement;
+
+            btQuaternion startRot = bodyTransform.getRotation();
+            glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
+            glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
+            glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
+            float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
+            float angularSpeed = 0.5f * deltaAngle / dt;
+            if (angularSpeed > MAX_ANGULAR_SPEED) {
+                angularSpeed *= MAX_ANGULAR_SPEED / angularSpeed;
+            }
+            float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
+            btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
+            btQuaternion endRot = angularDisplacement * startRot;
+
+            // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
+            btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
+            btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
+
+            _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
+            _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
+
+            _rigidBody->setWorldTransform(btTransform(endRot, endPos));
         }
-        btVector3 linearDisplacement = vel * dt;
-        btVector3 endPos = startPos + linearDisplacement;
-
-        btQuaternion startRot = bodyTransform.getRotation();
-        glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
-        glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
-        glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
-        float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularSpeed = 0.5f * deltaAngle / dt;
-        if (angularSpeed > MAX_ANGULAR_SPEED) {
-            angularSpeed *= MAX_ANGULAR_SPEED / angularSpeed;
-        }
-        float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
-        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
-        btQuaternion endRot = angularDisplacement * startRot;
-
-        // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
-        btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
-        btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
-
-        _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
-        _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
-
-        _rigidBody->setWorldTransform(btTransform(endRot, endPos));
         _followTime += dt;
+        _ghost.setWorldTransform(_rigidBody->getWorldTransform());
     }
 }
 
@@ -353,6 +379,7 @@ void CharacterController::handleChangedCollisionGroup() {
 
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
+    _ghost.setUpDirection(_currentUp);
     if (_state != State::Hover && _rigidBody) {
         if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
@@ -412,6 +439,10 @@ glm::vec3 CharacterController::getLinearVelocity() const {
         velocity = bulletToGLM(_rigidBody->getLinearVelocity());
     }
     return velocity;
+}
+
+void CharacterController::setCapsuleRadius(float radius) {
+    _radius = radius;
 }
 
 glm::vec3 CharacterController::getVelocityChange() const {
@@ -490,6 +521,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
 
         // add components back together and rotate into world-frame
         velocity = (hVelocity + vVelocity).rotate(axis, angle);
+        _simpleMotorVelocity += maxTau * (hTargetVelocity + vTargetVelocity).rotate(axis, angle);
 
         // store velocity and weights
         velocities.push_back(velocity);
@@ -507,6 +539,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     velocities.reserve(_motors.size());
     std::vector<btScalar> weights;
     weights.reserve(_motors.size());
+    _simpleMotorVelocity = btVector3(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < (int)_motors.size(); ++i) {
         applyMotor(i, dt, velocity, velocities, weights);
     }
@@ -522,6 +555,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
         for (size_t i = 0; i < velocities.size(); ++i) {
             velocity += (weights[i] / totalWeight) * velocities[i];
         }
+        _simpleMotorVelocity /= totalWeight;
     }
     if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         velocity = btVector3(0.0f, 0.0f, 0.0f);
@@ -684,5 +718,12 @@ void CharacterController::setFlyingAllowed(bool value) {
                 SET_STATE(State::InAir, "flying not allowed");
             }
         }
+    }
+}
+
+void CharacterController::setMoveKinematically(bool kinematic) {
+    if (kinematic != _moveKinematically) {
+        _moveKinematically = kinematic;
+        _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
     }
 }
