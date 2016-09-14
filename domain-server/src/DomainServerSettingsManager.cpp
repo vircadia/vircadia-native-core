@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainServerSettingsManager.h"
+
 #include <algorithm>
 
 #include <QtCore/QCoreApplication>
@@ -16,20 +18,19 @@
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
-#include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
-#include <AccountManager.h>
 #include <QTimeZone>
 
+#include <AccountManager.h>
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
+#include <SettingHandle.h>
 
-#include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
@@ -40,6 +41,8 @@ const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
+
+static const Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
@@ -101,9 +104,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
-    QSettings appSettings;
-    const QString JSON_SETTINGS_VERSION_KEY = "json-settings/version";
-    double oldVersion = appSettings.value(JSON_SETTINGS_VERSION_KEY, 0.0).toDouble();
+    double oldVersion = JSON_SETTING_VERSION.get();
 
     if (oldVersion != _descriptionVersion) {
         const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
@@ -299,7 +300,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     unpackPermissions();
 
     // write the current description version to our settings
-    appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
+    JSON_SETTING_VERSION.set(_descriptionVersion);
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {

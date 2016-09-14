@@ -79,11 +79,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
+    setApplicationName(BuildInfo::DOMAIN_SERVER_NAME);
     setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("domain-server");
+    setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     setApplicationVersion(BuildInfo::VERSION);
-    QSettings::setDefaultFormat(QSettings::IniFormat);
 
     qDebug() << "Setting up domain-server";
 

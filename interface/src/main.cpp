@@ -15,7 +15,6 @@
 #include <QDir>
 #include <QLocalSocket>
 #include <QLocalServer>
-#include <QSettings>
 #include <QSharedMemory>
 #include <QTranslator>
 
@@ -31,11 +30,12 @@
 #include "MainWindow.h"
 #include <QtCore/QProcess>
 
-#ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
+#ifdef HAS_BUGSPLAT
 #include <BugSplat.h>
 #include <CrashReporter.h>
 #endif
+
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
@@ -45,7 +45,13 @@ int main(int argc, const char* argv[]) {
 #endif
 
     disableQtBearerPoll(); // Fixes wifi ping spikes
-    
+
+    // Set application infos
+    QCoreApplication::setApplicationName(BuildInfo::INTERFACE_NAME);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
     bool instanceMightBeRunning = true;
@@ -168,7 +174,6 @@ int main(int argc, const char* argv[]) {
 
     int exitCode;
     {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
 
         // If we failed the OpenGLVersion check, log it.

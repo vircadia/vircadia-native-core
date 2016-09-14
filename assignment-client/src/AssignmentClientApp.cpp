@@ -40,9 +40,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     ShutdownEventListener::getInstance();
 #   endif
 
+    setApplicationName(BuildInfo::ASSIGNMENT_CLIENT_NAME);
     setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("assignment-client");
+    setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     setApplicationVersion(BuildInfo::VERSION);
 
     // use the verbose message handler in Logging

@@ -1,6 +1,6 @@
 //
 //  BuildInfo.h.in
-//  cmake/macros
+//  cmake/templates
 //
 //  Created by Stephen Birarda on 1/14/16.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,10 +11,18 @@
 
 #define USE_STABLE_GLOBAL_SERVICES @USE_STABLE_GLOBAL_SERVICES@
 
+#include <QString>
+
 namespace BuildInfo {
+    // WARNING: This file has been auto-generated.
+    // Check cmake/templates/BuildInfo.h.in if you want to modify it.
+
+    const QString INTERFACE_NAME = "Interface";
+    const QString ASSIGNMENT_CLIENT_NAME = "assignment-client";
+    const QString DOMAIN_SERVER_NAME = "domain-server";
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
+    const QString ORGANIZATION_DOMAIN = "highfidelity.io";
     const QString VERSION = "@BUILD_VERSION@";
     const QString BUILD_BRANCH = "@BUILD_BRANCH@";
     const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
 }
-

@@ -18,18 +18,17 @@
 #include <QLabel>
 #include <PathUtils.h>
 #include <QRadioButton>
-#include <QSettings>
 #include <QStandardPaths>
 #include <QVBoxLayout>
 #include <QtCore/QUrl>
 
 #include "Menu.h"
+#include <SettingHandle.h>
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
 bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings settings;
+    Settings settings;
     settings.beginGroup("Developer");
     QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
     QVariant askToResetSettingsOption = settings.value(MenuOption::AskToResetSettings);
@@ -109,8 +108,7 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         return;
     }
 
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings settings;
+    Settings settings;
     const QString ADDRESS_MANAGER_GROUP = "AddressManager";
     const QString ADDRESS_KEY = "address";
     const QString AVATAR_GROUP = "Avatar";
