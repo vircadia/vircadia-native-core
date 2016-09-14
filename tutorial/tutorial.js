@@ -226,7 +226,10 @@ stepWelcome.prototype = {
         showEntitiesWithTag(this.tag);
     },
     cleanup: function() {
-        Script.clearTimeout(this.timerID);
+        if (this.timerID) {
+            Script.clearTimeout(this.timerID);
+            this.timerID = null;
+        }
         hideEntitiesWithTag(this.tag);
     }
 };
@@ -809,7 +812,10 @@ function startTutorial() {
         new stepTurnAround("turnAround"),
         new stepTeleport("teleport"),
         new stepFinish("finish"),
-    ]
+    ];
+    for (var i = 0; i < STEPS.length; ++i) {
+        STEPS[i].cleanup();
+    }
     //location = "/tutorial_begin";
     location = "/tutorial";
     startNextStep();
