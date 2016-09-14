@@ -688,6 +688,31 @@ void EntityTree::findEntities(const AABox& box, QVector<EntityItemPointer>& foun
     foundEntities.swap(args._foundEntities);
 }
 
+class FindInFrustumArgs {
+public:
+    ViewFrustum frustum;
+    QVector<EntityItemPointer> entities;
+};
+
+bool EntityTree::findInFrustumOperation(OctreeElementPointer element, void* extraData) {
+    FindInFrustumArgs* args = static_cast<FindInFrustumArgs*>(extraData);
+    if (element->isInView(args->frustum)) {
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+        entityTreeElement->getEntities(args->frustum, args->entities);
+        return true;
+    }
+    return false;
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities) {
+    FindInFrustumArgs args = { frustum, QVector<EntityItemPointer>() };
+    // NOTE: This should use recursion, since this is a spatial operation
+    recurseTreeWithOperation(findInFrustumOperation, &args);
+    // swap the two lists of entity pointers instead of copy
+    foundEntities.swap(args.entities);
+}
+
 EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);

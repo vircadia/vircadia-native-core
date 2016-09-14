@@ -67,10 +67,12 @@ public:
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _materialTextureSize; }
+    int getMaterialTextureCount() { return _materialTextureCount; }
     bool calculateMaterialSize();
 
 protected:
     size_t _materialTextureSize { 0 };
+    int _materialTextureCount { 0 };
 };
 
 namespace render {
