@@ -367,6 +367,7 @@ stepNearGrab.prototype = {
         }
         if (channel == "Entity-Exploded") {
             print("TUTORIAL: Got entity-exploded message");
+            playSuccessSound();
             var data = parseJSON(message);
             //if (data.entityID == this.boxID) {
                 this.finished = true;
@@ -459,6 +460,7 @@ stepFarGrab.prototype = {
         }
         if (channel == "Entity-Exploded") {
             print("TUTORIAL: Got entity-exploded message");
+            playSuccessSound();
             var data = parseJSON(message);
             if (data.entityID == this.boxID) {
                 this.finished = true;
@@ -818,6 +820,7 @@ function startTutorial() {
     }
     //location = "/tutorial_begin";
     location = "/tutorial";
+    MyAvatar.shouldRenderLocally = false;
     startNextStep();
 }
 
