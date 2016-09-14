@@ -192,51 +192,64 @@ void LightClusters::updateClusters() {
         float eyeOriLen2H = glm::length2(eyeOriH);
         float eyeOriLen2V = glm::length2(eyeOriV);
 
-        if ((eyeOriLen2H > radius2) && (eyeOriLen2V > radius2)) {
+        if ((eyeOriLen2H > radius2)) {
             float eyeOriLenH = sqrt(eyeOriLen2H);
-            float eyeOriLenV = sqrt(eyeOriLen2V);
 
             auto eyeOriDirH = glm::vec3(eyeOriH) / eyeOriLenH;
-            auto eyeOriDirV = glm::vec3(eyeOriV) / eyeOriLenV;
-
-
 
             float eyeToTangentCircleLenH = sqrt(eyeOriLen2H - radius2);
-            float eyeToTangentCircleLenV = sqrt(eyeOriLen2V - radius2);
 
             float eyeToTangentCircleTanH = radius / eyeToTangentCircleLenH;
-            float eyeToTangentCircleTanV = radius / eyeToTangentCircleLenV;
 
             float eyeToTangentCircleCosH = eyeToTangentCircleLenH / eyeOriLenH;
-            float eyeToTangentCircleCosV = eyeToTangentCircleLenV / eyeOriLenV;
 
             float eyeToTangentCircleSinH = radius / eyeOriLenH;
-            float eyeToTangentCircleSinV = radius / eyeOriLenV;
 
 
             // rotate the eyeToOriDir (H & V) in both directions
             glm::vec3 leftDir(eyeOriDirH.x * eyeToTangentCircleCosH + eyeOriDirH.z * eyeToTangentCircleSinH, 0.0f, eyeOriDirH.x * -eyeToTangentCircleSinH + eyeOriDirH.z * eyeToTangentCircleCosH);
             glm::vec3 rightDir(eyeOriDirH.x * eyeToTangentCircleCosH - eyeOriDirH.z * eyeToTangentCircleSinH, 0.0f, eyeOriDirH.x * eyeToTangentCircleSinH + eyeOriDirH.z * eyeToTangentCircleCosH);
-            glm::vec3 bottomDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV + eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * -eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
-            glm::vec3 topDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV - eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
 
 
             glm::vec3 leftPosAtNear = leftDir * theFrustumGrid.rangeNear * 2.0f;
             glm::vec3 rightPosAtNear = rightDir * theFrustumGrid.rangeNear * 2.0f;
-            glm::vec3 bottomPosAtNear = bottomDir * theFrustumGrid.rangeNear * 2.0f;
-            glm::vec3 topPosAtNear = topDir * theFrustumGrid.rangeNear * 2.0f;
 
             auto lc = theFrustumGrid.frustumGrid_eyeToClusterPos(leftPosAtNear);
             auto rc = theFrustumGrid.frustumGrid_eyeToClusterPos(rightPosAtNear);
-            auto bc = theFrustumGrid.frustumGrid_eyeToClusterPos(bottomPosAtNear);
-            auto tc = theFrustumGrid.frustumGrid_eyeToClusterPos(topPosAtNear);
 
             xMin = std::max(0, lc.x);
             xMax = std::max(0, std::min(rc.x, xMax));
+        }
+
+        if ((eyeOriLen2V > radius2)) {
+            float eyeOriLenV = sqrt(eyeOriLen2V);
+
+            auto eyeOriDirV = glm::vec3(eyeOriV) / eyeOriLenV;
+
+
+
+            float eyeToTangentCircleLenV = sqrt(eyeOriLen2V - radius2);
+
+            float eyeToTangentCircleTanV = radius / eyeToTangentCircleLenV;
+
+            float eyeToTangentCircleCosV = eyeToTangentCircleLenV / eyeOriLenV;
+
+            float eyeToTangentCircleSinV = radius / eyeOriLenV;
+
+
+            // rotate the eyeToOriDir (H & V) in both directions
+            glm::vec3 bottomDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV + eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * -eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
+            glm::vec3 topDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV - eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
+
+
+            glm::vec3 bottomPosAtNear = bottomDir * theFrustumGrid.rangeNear * 2.0f;
+            glm::vec3 topPosAtNear = topDir * theFrustumGrid.rangeNear * 2.0f;
+
+            auto bc = theFrustumGrid.frustumGrid_eyeToClusterPos(bottomPosAtNear);
+            auto tc = theFrustumGrid.frustumGrid_eyeToClusterPos(topPosAtNear);
+
             yMin = std::max(0, bc.y);
             yMax = std::max(0, std::min(tc.y, yMax));
-
-
         }
 
         // now voxelize
