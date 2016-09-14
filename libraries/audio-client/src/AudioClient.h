@@ -253,7 +253,6 @@ private:
     Gate _gate;
 
     Mutex _injectorsMutex;
-    QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
