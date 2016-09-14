@@ -12,10 +12,12 @@ var currentSortColumn = 'type';
 var currentSortOrder = 'des';
 var entityList = null;
 var refreshEntityListTimer = null;
-const ASCENDING_STRING = '&#x25BE;';
-const DESCENDING_STRING = '&#x25B4;';
+const ASCENDING_STRING = '&#x25B4;';
+const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
+const TRANSPARENCY_GLYPH = "&#xe00b;";
+const SCRIPT_GLYPH = "k";
 const DELETE = 46; // Key code for the delete key.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
@@ -33,10 +35,16 @@ function loaded() {
       elToggleLocked = document.getElementById("locked");
       elToggleVisible = document.getElementById("visible");
       elDelete = document.getElementById("delete");
-      elTeleport = document.getElementById("teleport");
+      elFilter = document.getElementById("filter");
+      elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
+      elTeleport = document.getElementById("teleport");
+      elEntityTable = document.getElementById("entity-table");
+      elInfoToggle = document.getElementById("info-toggle");
+      elInfoToggleGlyph = elInfoToggle.firstChild;
       elFooter = document.getElementById("footer-text");
       elNoEntitiesMessage = document.getElementById("no-entities");
+      elNoEntitiesInView = document.getElementById("no-entities-in-view");
       elNoEntitiesRadius = document.getElementById("no-entities-radius");
       elEntityTableScroll = document.getElementById("entity-table-scroll");
       
@@ -55,7 +63,25 @@ function loaded() {
       document.getElementById("entity-visible").onclick = function () {
           setSortColumn('visible');
       };
-      
+      document.getElementById("entity-verticesCount").onclick = function () {
+          setSortColumn('verticesCount');
+      };
+      document.getElementById("entity-texturesCount").onclick = function () {
+          setSortColumn('texturesCount');
+      };
+      document.getElementById("entity-texturesSize").onclick = function () {
+          setSortColumn('texturesSize');
+      };
+      document.getElementById("entity-hasTransparent").onclick = function () {
+          setSortColumn('hasTransparent');
+      };
+      document.getElementById("entity-drawCalls").onclick = function () {
+          setSortColumn('drawCalls');
+      };
+      document.getElementById("entity-hasScript").onclick = function () {
+          setSortColumn('hasScript');
+      };
+
       function onRowClicked(clickEvent) {
           var id = this.dataset.entityId;
           var selection = [this.dataset.entityId];
@@ -106,12 +132,29 @@ function loaded() {
           }));
       }
       
-      function addEntity(id, name, type, url, locked, visible) {
+      const BYTES_PER_MEGABYTE = 1024 * 1024;
+
+      function decimalMegabytes(number) {
+          return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
+      }
+
+      function displayIfNonZero(number) {
+          return number ? number : "";
+      }
+
+      function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
+          drawCalls, hasScript) {
+
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
           if (entities[id] === undefined) {
-              entityList.add([{ id: id, name: name, type: type, url: filename, locked: locked, visible: visible }],
+              entityList.add([{
+                  id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
+                  verticesCount: displayIfNonZero(verticesCount), texturesCount: displayIfNonZero(texturesCount),
+                  texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
+                  drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
+              }],
                   function (items) {
                       var currentElement = items[0].elm;
                       var id = items[0]._values.id;
@@ -148,7 +191,13 @@ function loaded() {
           type: document.querySelector('#entity-type .sort-order'),
           url: document.querySelector('#entity-url .sort-order'),
           locked: document.querySelector('#entity-locked .sort-order'),
-          visible: document.querySelector('#entity-visible .sort-order')
+          visible: document.querySelector('#entity-visible .sort-order'),
+          verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
+          texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
+          texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
+          hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
+          drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
+          hasScript: document.querySelector('#entity-hasScript .sort-order'),
       }
       function setSortColumn(column) {
           if (currentSortColumn == column) {
@@ -168,10 +217,23 @@ function loaded() {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
       }
       
+      function refreshFooter() {
+          if (selectedEntities.length > 1) {
+              elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
+          } else if (selectedEntities.length === 1) {
+              elFooter.firstChild.nodeValue = "1 entity selected";
+          } else if (entityList.visibleItems.length === 1) {
+              elFooter.firstChild.nodeValue = "1 entity found";
+          } else {
+              elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
+          }
+      }
+
       function refreshEntityListObject() {
           refreshEntityListTimer = null;
           entityList.sort(currentSortColumn, { order: currentSortOrder });
-          entityList.search(document.getElementById("filter").value);
+          entityList.search(elFilter.value);
+          refreshFooter();
       }
       
       function updateSelectedEntities(selectedEntities) {
@@ -187,16 +249,6 @@ function loaded() {
               } else {
                   notFound = true;
               }
-          }
-
-          if (selectedEntities.length > 1) {
-              elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
-          } else if (selectedEntities.length === 1) {
-              elFooter.firstChild.nodeValue = "1 entity selected";
-          } else if (entityList.visibleItems.length === 1) {
-              elFooter.firstChild.nodeValue = "1 entity found";
-          } else {
-              elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
           }
 
           // HACK: Fixes the footer and header text sometimes not displaying after adding or deleting entities.
@@ -235,13 +287,29 @@ function loaded() {
           }
       }, false);
       
+      var isFilterInView = false;
+      var FILTER_IN_VIEW_ATTRIBUTE = "pressed";
+      elNoEntitiesInView.style.display = "none";
+      elInView.onclick = function () {
+          isFilterInView = !isFilterInView;
+          if (isFilterInView) {
+              elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
+              elNoEntitiesInView.style.display = "inline";
+          } else {
+              elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
+              elNoEntitiesInView.style.display = "none";
+          }
+          EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
+          refreshEntities();
+      }
+
       elRadius.onchange = function () {
           elRadius.value = Math.max(elRadius.value, 0);
           EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
           refreshEntities();
           elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
       }
-      
+
       if (window.EventBridge !== undefined) {
           EventBridge.scriptEventReceived.connect(function(data) {
               data = JSON.parse(data);
@@ -264,7 +332,11 @@ function loaded() {
                           var id = newEntities[i].id;
                           addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
                               newEntities[i].locked ? LOCKED_GLYPH : null,
-                              newEntities[i].visible ? VISIBLE_GLYPH : null);
+                              newEntities[i].visible ? VISIBLE_GLYPH : null,
+                              newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
+                              newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
+                              newEntities[i].drawCalls,
+                              newEntities[i].hasScript ? SCRIPT_GLYPH : null);
                       }
                       updateSelectedEntities(data.selectedIDs);
                       resize();
@@ -278,6 +350,7 @@ function loaded() {
           // Take up available window space
           elEntityTableScroll.style.height = window.innerHeight - 207;
 
+          var SCROLLABAR_WIDTH = 21;
           var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
           var ths = document.querySelectorAll("#entity-table thead th");
           if (tds.length >= ths.length) {
@@ -287,16 +360,53 @@ function loaded() {
               }
           } else {
               // Reasonable widths if nothing is displayed
-              var tableWidth = document.getElementById("entity-table").offsetWidth;
-              ths[0].width = 0.16 * tableWidth;
-              ths[1].width = 0.34 * tableWidth;
-              ths[2].width = 0.34 * tableWidth;
-              ths[3].width = 0.08 * tableWidth;
-              ths[4].width = 0.08 * tableWidth;
+              var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
+              if (showExtraInfo) {
+                  ths[0].width = 0.10 * tableWidth;
+                  ths[1].width = 0.20 * tableWidth;
+                  ths[2].width = 0.20 * tableWidth;
+                  ths[3].width = 0.04 * tableWidth;
+                  ths[4].width = 0.04 * tableWidth;
+                  ths[5].width = 0.08 * tableWidth;
+                  ths[6].width = 0.08 * tableWidth;
+                  ths[7].width = 0.10 * tableWidth;
+                  ths[8].width = 0.04 * tableWidth;
+                  ths[9].width = 0.08 * tableWidth;
+                  ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
+              } else {
+                  ths[0].width = 0.16 * tableWidth;
+                  ths[1].width = 0.34 * tableWidth;
+                  ths[2].width = 0.34 * tableWidth;
+                  ths[3].width = 0.08 * tableWidth;
+                  ths[4].width = 0.08 * tableWidth;
+              }
           }
       };
 
       window.onresize = resize;
+      elFilter.onchange = resize;
+      elFilter.onblur = refreshFooter;
+
+
+      var showExtraInfo = false;
+      var COLLAPSE_EXTRA_INFO = "E";
+      var EXPAND_EXTRA_INFO = "D";
+
+      function toggleInfo(event) {
+          showExtraInfo = !showExtraInfo;
+          if (showExtraInfo) {
+              elEntityTable.className = "showExtraInfo";
+              elInfoToggleGlyph.innerHTML = COLLAPSE_EXTRA_INFO;
+          } else {
+              elEntityTable.className = "";
+              elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
+          }
+          resize();
+          event.stopPropagation();
+      }
+      elInfoToggle.addEventListener("click", toggleInfo, true);
+
+
       resize();
   });
 

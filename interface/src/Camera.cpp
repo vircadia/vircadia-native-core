@@ -182,3 +182,16 @@ ViewFrustum Camera::toViewFrustum() const {
     loadViewFrustum(result);
     return result;
 }
+
+QVariantMap Camera::getViewFrustum() {
+    ViewFrustum frustum;
+    loadViewFrustum(frustum);
+
+    QVariantMap result;
+    result["position"].setValue(frustum.getPosition());
+    result["orientation"].setValue(frustum.getOrientation());
+    result["projection"].setValue(frustum.getProjection());
+    result["centerRadius"].setValue(frustum.getCenterRadius());
+
+    return result;
+}

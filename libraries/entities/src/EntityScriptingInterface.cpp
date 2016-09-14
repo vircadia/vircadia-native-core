@@ -21,6 +21,7 @@
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
 
@@ -563,6 +564,48 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
             result << entity->getEntityItemID();
         }
     }
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frustum) const {
+    QVector<QUuid> result;
+
+    const QString POSITION_PROPERTY = "position";
+    bool positionOK = frustum.contains(POSITION_PROPERTY);
+    glm::vec3 position = positionOK ? qMapToGlmVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
+
+    const QString ORIENTATION_PROPERTY = "orientation";
+    bool orientationOK = frustum.contains(ORIENTATION_PROPERTY);
+    glm::quat orientation = orientationOK ? qMapToGlmQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
+
+    const QString PROJECTION_PROPERTY = "projection";
+    bool projectionOK = frustum.contains(PROJECTION_PROPERTY);
+    glm::mat4 projection = projectionOK ? qMapToGlmMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
+
+    const QString CENTER_RADIUS_PROPERTY = "centerRadius";
+    bool centerRadiusOK = frustum.contains(CENTER_RADIUS_PROPERTY);
+    float centerRadius = centerRadiusOK ? frustum[CENTER_RADIUS_PROPERTY].toFloat() : 0.0f;
+
+    if (positionOK && orientationOK && projectionOK && centerRadiusOK) {
+        ViewFrustum viewFrustum;
+        viewFrustum.setPosition(position);
+        viewFrustum.setOrientation(orientation);
+        viewFrustum.setProjection(projection);
+        viewFrustum.setCenterRadius(centerRadius);
+        viewFrustum.calculate();
+
+        if (_entityTree) {
+            QVector<EntityItemPointer> entities;
+            _entityTree->withReadLock([&] {
+                _entityTree->findEntities(viewFrustum, entities);
+            });
+
+            foreach(EntityItemPointer entity, entities) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+
     return result;
 }
 

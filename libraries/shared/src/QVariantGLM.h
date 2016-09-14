@@ -27,3 +27,7 @@ QVariantMap glmToQMap(const glm::quat& glmQuat);
 glm::vec3 qListToGlmVec3(const QVariant& q);
 glm::quat qListToGlmQuat(const QVariant& q);
 void qListtoRgbColor(const QVariant& q, rgbColor& returnValue);
+
+glm::vec3 qMapToGlmVec3(const QVariant& q);
+glm::quat qMapToGlmQuat(const QVariant& q);
+glm::mat4 qMapToGlmMat4(const QVariant& q);

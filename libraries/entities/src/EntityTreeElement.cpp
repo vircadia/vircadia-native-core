@@ -796,6 +796,17 @@ void EntityTreeElement::getEntities(const AABox& box, QVector<EntityItemPointer>
     });
 }
 
+void EntityTreeElement::getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities) {
+    forEachEntity([&](EntityItemPointer entity) {
+        bool success;
+        AABox entityBox = entity->getAABox(success);
+        // FIXME - See FIXMEs for similar methods above.
+        if (!success || frustum.boxIntersectsFrustum(entityBox) || frustum.boxIntersectsKeyhole(entityBox)) {
+            foundEntities.push_back(entity);
+        }
+    });
+}
+
 EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
     EntityItemPointer foundEntity = NULL;
     withReadLock([&] {

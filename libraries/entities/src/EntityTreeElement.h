@@ -194,6 +194,11 @@ public:
     /// \param entities[out] vector of non-const EntityItemPointer
     void getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
 
+    /// finds all entities that touch a frustum
+    /// \param frustum the query frustum
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
+
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
