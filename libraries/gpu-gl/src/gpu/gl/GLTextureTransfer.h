@@ -18,7 +18,7 @@
 #include "GLShared.h"
 
 #ifdef Q_OS_WIN
-#define THREADED_TEXTURE_TRANSFER
+//#define THREADED_TEXTURE_TRANSFER
 #endif
 
 namespace gpu { namespace gl {
@@ -33,7 +33,6 @@ public:
     ~GLTextureTransferHelper();
     void transferTexture(const gpu::TexturePointer& texturePointer);
 
-protected:
     void setup() override;
     void shutdown() override;
     bool process() override;
@@ -41,6 +40,11 @@ protected:
 private:
 #ifdef THREADED_TEXTURE_TRANSFER
     ::gl::OffscreenContext _context;
+    // Framebuffers / renderbuffers for forcing access to the texture on the transfer thread
+    GLuint _drawRenderbuffer { 0 };
+    GLuint _drawFramebuffer { 0 };
+    GLuint _readFramebuffer { 0 };
+#endif
     // A mutex for protecting items access on the render and transfer threads
     Mutex _mutex;
     // Textures that have been submitted for transfer
@@ -50,11 +54,6 @@ private:
     TextureList _transferringTextures;
     TextureListIterator _textureIterator;
 
-    // Framebuffers / renderbuffers for forcing access to the texture on the transfer thread
-    GLuint _drawRenderbuffer { 0 };
-    GLuint _drawFramebuffer { 0 };
-    GLuint _readFramebuffer { 0 };
-#endif
 };
 
 } }

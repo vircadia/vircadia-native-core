@@ -35,6 +35,8 @@ GLTextureTransferHelper::GLTextureTransferHelper() {
     initialize(true, QThread::LowPriority);
     // Clean shutdown on UNIX, otherwise _canvas is freed early
     connect(qApp, &QCoreApplication::aboutToQuit, [&] { terminate(); });
+#else
+    initialize(false, QThread::LowPriority);
 #endif
 }
 
@@ -43,23 +45,18 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
     if (isStillRunning()) {
         terminate();
     }
+#else
+    terminate();
 #endif
 }
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
     GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
 
-#ifdef THREADED_TEXTURE_TRANSFER
     Backend::incrementTextureGPUTransferCount();
     object->setSyncState(GLSyncState::Pending);
     Lock lock(_mutex);
     _pendingTextures.push_back(texturePointer);
-#else
-    for (object->startTransfer(); object->continueTransfer(); ) { }
-    object->finishTransfer();
-    object->_contentStamp = texturePointer->getDataStamp();
-    object->setSyncState(GLSyncState::Transferred);
-#endif
 }
 
 void GLTextureTransferHelper::setup() {
@@ -101,7 +98,6 @@ void GLTextureTransferHelper::shutdown() {
 }
 
 bool GLTextureTransferHelper::process() {
-#ifdef THREADED_TEXTURE_TRANSFER
     // Take any new textures off the queue
     TextureList newTransferTextures;
     {
@@ -123,7 +119,9 @@ bool GLTextureTransferHelper::process() {
 
     // No transfers in progress, sleep
     if (_transferringTextures.empty()) {
+#ifdef THREADED_TEXTURE_TRANSFER
         QThread::usleep(1);
+#endif
         return true;
     }
 
@@ -159,6 +157,7 @@ bool GLTextureTransferHelper::process() {
         _textureIterator = _transferringTextures.erase(_textureIterator);
     }
 
+#ifdef THREADED_TEXTURE_TRANSFER
     if (!_transferringTextures.empty()) {
         // Don't saturate the GPU
         clientWait();
@@ -166,8 +165,7 @@ bool GLTextureTransferHelper::process() {
         // Don't saturate the CPU
         QThread::msleep(1);
     }
-#else
-    QThread::msleep(1);
 #endif
+
     return true;
 }

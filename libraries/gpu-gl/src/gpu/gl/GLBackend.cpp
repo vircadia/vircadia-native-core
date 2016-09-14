@@ -679,6 +679,10 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
+
+#ifndef THREADED_TEXTURE_TRANSFER
+    gl::GLTexture::_textureTransferHelper->process();
+#endif
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
