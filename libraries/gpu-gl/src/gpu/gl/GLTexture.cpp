@@ -17,8 +17,6 @@ using namespace gpu;
 using namespace gpu::gl;
 
 std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
-static std::map<uint16, size_t> _textureCountByMips;
-static uint16 _currentMaxMipCount { 0 };
 
 // FIXME placeholder for texture memory over-use
 #define DEFAULT_MAX_MEMORY_MB 256
@@ -131,34 +129,12 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
 {
     auto strongBackend = _backend.lock();
     strongBackend->recycle();
-    if (_transferrable) {
-        uint16 mipCount = usedMipLevels();
-        _currentMaxMipCount = std::max(_currentMaxMipCount, mipCount);
-        if (!_textureCountByMips.count(mipCount)) {
-            _textureCountByMips[mipCount] = 1;
-        } else {
-            ++_textureCountByMips[mipCount];
-        }
-    }
     Backend::incrementTextureGPUCount();
     Backend::updateTextureGPUVirtualMemoryUsage(0, _virtualSize);
     Backend::setGPUObject(texture, this);
 }
 
 GLTexture::~GLTexture() {
-    if (_transferrable) {
-        uint16 mipCount = usedMipLevels();
-        Q_ASSERT(_textureCountByMips.count(mipCount));
-        auto& numTexturesForMipCount = _textureCountByMips[mipCount];
-        --numTexturesForMipCount;
-        if (0 == numTexturesForMipCount) {
-            _textureCountByMips.erase(mipCount);
-            if (mipCount == _currentMaxMipCount) {
-                _currentMaxMipCount = (_textureCountByMips.empty() ? 0 : _textureCountByMips.rbegin()->first);
-            }
-        }
-    }
-
     if (_id) {
         auto backend = _backend.lock();
         if (backend) {
@@ -211,20 +187,6 @@ bool GLTexture::isInvalid() const {
 
 bool GLTexture::isOutdated() const {
     return GLSyncState::Idle == _syncState && _contentStamp < _gpuObject.getDataStamp();
-}
-
-bool GLTexture::isOverMaxMemory() const {
-    // FIXME switch to using the max mip count used from the previous frame
-    if (usedMipLevels() < _currentMaxMipCount) {
-        return false;
-    }
-    Q_ASSERT(usedMipLevels() == _currentMaxMipCount);
-
-    if (getMemoryPressure() < 1.0f) {
-        return false;
-    }
-
-    return true;
 }
 
 bool GLTexture::isReady() const {

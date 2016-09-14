@@ -134,8 +134,6 @@ public:
     // Execute any post-move operations that must occur only on the main thread
     virtual void postTransfer();
 
-    bool isOverMaxMemory() const;
-
     uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
 
     static const size_t CUBE_NUM_FACES = 6;

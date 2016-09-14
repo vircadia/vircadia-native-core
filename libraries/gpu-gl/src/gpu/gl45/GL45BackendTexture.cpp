@@ -17,6 +17,7 @@
 #include <glm/gtx/component_wise.hpp>
 
 #include <QtCore/QThread>
+#include <QtCore/QProcessEnvironment>
 
 #include "../gl/GLTexelFormat.h"
 
@@ -24,11 +25,8 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-#ifdef THREADED_TEXTURE_TRANSFER
-#define SPARSE_TEXTURES 1
-#else
-#define SPARSE_TEXTURES 0
-#endif
+static const QString DEBUG_FLAG("HIFI_ENABLE_SPARSE_TEXTURES");
+static bool enableSparseTextures = true; // QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
@@ -36,6 +34,7 @@ using namespace gpu::gl45;
 using GL45Texture = GL45Backend::GL45Texture;
 
 static std::map<uint16_t, std::unordered_set<GL45Texture*>> texturesByMipCounts;
+static Mutex texturesByMipCountsMutex;
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
     return GL45Texture::sync<GL45Texture>(*this, texture, transfer);
@@ -179,9 +178,9 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
-#if SPARSE_TEXTURES
-    _sparse = _transferrable;
-#endif
+
+    _sparse = _transferrable && (_target != GL_TEXTURE_CUBE_MAP);
+
     if (_sparse) {
         glTextureParameteri(_id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
     }
@@ -190,11 +189,15 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 GL45Texture::~GL45Texture() {
     if (_sparse) {
         auto mipLevels = usedMipLevels();
-        if (texturesByMipCounts.count(mipLevels)) {
-            auto& textures = texturesByMipCounts[mipLevels];
-            textures.erase(this);
-            if (textures.empty()) {
-                texturesByMipCounts.erase(mipLevels);
+
+        {
+            Lock lock(texturesByMipCountsMutex);
+            if (texturesByMipCounts.count(mipLevels)) {
+                auto& textures = texturesByMipCounts[mipLevels];
+                textures.erase(this);
+                if (textures.empty()) {
+                    texturesByMipCounts.erase(mipLevels);
+                }
             }
         }
 
@@ -271,10 +274,10 @@ bool GL45Texture::continueTransfer() {
         if (_allocatedPages > _sparseInfo._maxPages) {
             qDebug() << "Exceeded max page allocation!";
         }
-        glBindTexture(_target, _id);
+        //glBindTexture(_target, _id);
         // FIXME we should be using glTexturePageCommitmentEXT, but for some reason it causes out of memory errors.
         // Either I'm not understanding how it should work or there's a driver bug.
-        glTexPageCommitmentARB(_target, _transferState._mipLevel,
+        glTexturePageCommitmentEXT(_id, _transferState._mipLevel,
             offset.x, offset.y, _transferState._face,
             pageSize.x, pageSize.y, pageSize.z,
             GL_TRUE);
@@ -303,7 +306,7 @@ bool GL45Texture::continueTransfer() {
     serverWait();
     auto currentMip = _transferState._mipLevel;
     auto result = _transferState.increment();
-    if (_transferState._mipLevel != currentMip && currentMip <= _sparseInfo._maxSparseLevel) {
+    if (_sparse && _transferState._mipLevel != currentMip && currentMip <= _sparseInfo._maxSparseLevel) {
         auto mipDimensions = _gpuObject.evalMipDimensions(currentMip);
         auto mipExpectedPages = _sparseInfo.getPageCount(mipDimensions);
         auto newPages = _allocatedPages - _lastMipAllocatedPages;
@@ -346,10 +349,10 @@ void GL45Texture::syncSampler() const {
 
 void GL45Texture::postTransfer() {
     Parent::postTransfer();
-    if (_transferrable) {
+    if (_sparse) {
         auto mipLevels = usedMipLevels();
         if (mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
-            auto& textureMap = texturesByMipCounts;
+            Lock lock(texturesByMipCountsMutex);
             texturesByMipCounts[mipLevels].insert(this);
         }
     }
@@ -371,31 +374,15 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     }
 
     auto mipLevels = usedMipLevels();
-    assert(0 != texturesByMipCounts.count(mipLevels));
-    assert(0 != texturesByMipCounts[mipLevels].count(this));
-    texturesByMipCounts[mipLevels].erase(this);
-    if (texturesByMipCounts[mipLevels].empty()) {
-        texturesByMipCounts.erase(mipLevels);
+    {
+        Lock lock(texturesByMipCountsMutex);
+        assert(0 != texturesByMipCounts.count(mipLevels));
+        assert(0 != texturesByMipCounts[mipLevels].count(this));
+        texturesByMipCounts[mipLevels].erase(this);
+        if (texturesByMipCounts[mipLevels].empty()) {
+            texturesByMipCounts.erase(mipLevels);
+        }
     }
-
-    // FIXME this shouldn't be necessary should it?
-#if 1
-    glGenerateTextureMipmap(_id);
-#else
-    static GLuint framebuffers[2] = { 0, 0 };
-    static std::once_flag initFramebuffers;
-    std::call_once(initFramebuffers, [&] {
-        glCreateFramebuffers(2, framebuffers);
-    });
-    auto readSize = _gpuObject.evalMipDimensions(_minMip);
-    auto drawSize = _gpuObject.evalMipDimensions(newMinMip);
-    glNamedFramebufferTexture(framebuffers[0], GL_COLOR_ATTACHMENT0, _id, _minMip);
-    glNamedFramebufferTexture(framebuffers[1], GL_COLOR_ATTACHMENT0, _id, newMinMip);
-    glBlitNamedFramebuffer(framebuffers[0], framebuffers[1],
-        0, 0, readSize.x, readSize.y,
-        0, 0, drawSize.x, drawSize.y,
-        GL_COLOR_BUFFER_BIT, GL_LINEAR);
-#endif
 
     uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
     for (uint16_t mip = _minMip; mip < newMinMip; ++mip) {
@@ -425,8 +412,8 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
 
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();
-    if (mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
-        auto& textureMap = texturesByMipCounts;
+    if (_sparse && mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
+        Lock lock(texturesByMipCountsMutex);
         texturesByMipCounts[mipLevels].insert(this);
     }
 }
@@ -443,9 +430,7 @@ void GL45Texture::updateMips() {
 }
 
 void GL45Texture::derez() {
-    if (!_sparse) {
-        return;
-    }
+    assert(_sparse);
     assert(_minMip < _sparseInfo._maxSparseLevel);
     assert(_minMip < _maxMip);
     assert(_transferrable);
@@ -459,6 +444,7 @@ void GL45Backend::derezTextures() const {
     qDebug() << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
     qDebug() << "Used texture memory " << Context::getTextureGPUMemoryUsage();
 
+    Lock lock(texturesByMipCountsMutex);
     if (texturesByMipCounts.empty()) {
         qDebug() << "No available textures to derez";
         return;
@@ -479,7 +465,7 @@ void GL45Backend::derezTextures() const {
         assert(!textures.empty());
         targetTexture = *textures.begin();
     }
+    lock.unlock();
     targetTexture->derez();
-
     qDebug() << "New Used texture memory " << Context::getTextureGPUMemoryUsage();
 }

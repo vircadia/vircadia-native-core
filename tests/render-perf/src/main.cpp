@@ -286,10 +286,6 @@ public:
         }
 
         _context.makeCurrent();
-        glewExperimental = true;
-        glewInit();
-        glGetError();
-
         _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
@@ -551,36 +547,6 @@ public:
         // Create the initial context
         _renderThread.initialize(this, _initContext);
         _initContext.makeCurrent();
-
-#if 0
-        glfwInit();
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        resizeWindow(QSize(800, 600));
-        _window = glfwCreateWindow(_size.width(), _size.height(), "Window Title", NULL, NULL);
-        if (!_window) {
-            throw std::runtime_error("Could not create window");
-        }
-
-        glfwSetWindowUserPointer(_window, this);
-        glfwSetKeyCallback(_window, KeyboardHandler);
-        glfwSetMouseButtonCallback(_window, MouseHandler);
-        glfwSetCursorPosCallback(_window, MouseMoveHandler);
-        glfwSetWindowCloseCallback(_window, CloseHandler);
-        glfwSetFramebufferSizeCallback(_window, FramebufferSizeHandler);
-        glfwSetScrollCallback(_window, MouseScrollHandler);
-
-
-        glfwMakeContextCurrent(_window);
-        GLDebug::setupLogger(this);
-#endif
-
-#ifdef Q_OS_WIN
-        //wglSwapIntervalEXT(0);
-#endif
 
         // FIXME use a wait condition
         QThread::msleep(1000);
