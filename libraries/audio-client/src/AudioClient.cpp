@@ -823,15 +823,14 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    auto NO_RESAMPLER = nullptr;
-    possibleResampling(NO_RESAMPLER,
-                       inputSamples, loopbackSamples,
-                       numInputSamples, numLoopbackSamples,
-                       _inputFormat, _outputFormat);
+    // upmix mono to stereo
+    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat, _outputFormat)) {
+        // no conversion, just copy the samples
+        memcpy(loopbackSamples, inputSamples, numInputSamples * sizeof(int16_t));
+    }
 
     // apply stereo reverb at the source, to the loopback audio
     if (!_shouldEchoLocally && hasReverb) {
-        assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
         _sourceReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
     }
