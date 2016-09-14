@@ -25,7 +25,10 @@ if (!Function.prototype.bind) {
     return fBound;
   };
 }
+
 Script.include("entityData.js");
+
+Script.include("viveHandsv2.js");
 
 var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
 var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
@@ -269,7 +272,7 @@ stepRaiseAboveHead.prototype = {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
                 playSuccessSound();
-                location = "/tutorial";
+                //location = "/tutorial";
                 onFinish();
             }
         }
@@ -807,7 +810,8 @@ function startTutorial() {
         new stepTeleport("teleport"),
         new stepFinish("finish"),
     ]
-    location = "/tutorial_begin";
+    //location = "/tutorial_begin";
+    location = "/tutorial";
     startNextStep();
 }
 
