@@ -18,6 +18,7 @@
 #include "CharacterSweepResult.h"
 #include "CharacterRayResult.h"
 
+class CharacterGhostShape;
 
 class CharacterGhostObject : public btPairCachingGhostObject {
 public:
@@ -36,7 +37,7 @@ public:
 
     const btVector3& getLinearVelocity() const { return _linearVelocity; }
 
-    void setCollisionShape(btCollisionShape* shape) override;
+    void setCharacterShape(btCapsuleShape* capsule);
 
     void setCollisionWorld(btCollisionWorld* world);
 
@@ -72,10 +73,12 @@ protected:
     btScalar _gravity { 0.0f }; // input, amplitude of gravity along _upDirection (should be negative)
     btScalar _maxWallNormalUpComponent { 0.0f }; // input: max vertical component of wall normal
     btScalar _maxStepHeight { 0.0f }; // input, max step height the character can climb
+    btCapsuleShape* _characterShape { nullptr }; // input, shape of character
+    CharacterGhostShape* _ghostShape{ nullptr }; // internal, shape whose Aabb is used for overlap cache
     int16_t _collisionFilterGroup { 0 };
     int16_t _collisionFilterMask { 0 };
     bool _inWorld { false }; // internal, was added to world
-    bool _hovering { false }; // internal, 
+    bool _hovering { false }; // internal,
     bool _onFloor { false }; // output, is actually standing on floor
     bool _hasFloor { false }; // output, has floor underneath to fall on
 };

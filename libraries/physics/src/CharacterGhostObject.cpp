@@ -13,6 +13,7 @@
 
 #include <assert.h>
 
+#include "CharacterGhostShape.h"
 #include "CharacterRayResult.h"
 
 const btScalar DEFAULT_STEP_UP_HEIGHT = 0.5f;
@@ -20,7 +21,11 @@ const btScalar DEFAULT_STEP_UP_HEIGHT = 0.5f;
 
 CharacterGhostObject::~CharacterGhostObject() {
     removeFromWorld();
-    setCollisionShape(nullptr);
+    if (_ghostShape) {
+        delete _ghostShape;
+        _ghostShape = nullptr;
+        setCollisionShape(nullptr);
+    }
 }
 
 void CharacterGhostObject::setCollisionGroupAndMask(int16_t group, int16_t mask) {
@@ -50,17 +55,14 @@ void CharacterGhostObject::setMotorVelocity(const btVector3& velocity) {
 }
 
 // override of btCollisionObject::setCollisionShape()
-void CharacterGhostObject::setCollisionShape(btCollisionShape* shape) {
-    assert(!shape || shape->isConvex()); // if shape is valid then please make it convex
-    if (shape != getCollisionShape()) {
-        bool wasInWorld = _inWorld;
-        removeFromWorld();
-        btCollisionObject::setCollisionShape(shape);
-        if (wasInWorld) {
-            assert(shape); // please remove from world before setting null shape
-            addToWorld();
-        }
+void CharacterGhostObject::setCharacterShape(btCapsuleShape* capsule) {
+    assert(capsule);
+    // we create our own CharacterGhostShape which has a larger Aabb for more reliable sweep tests
+    if (_ghostShape) {
+        delete _ghostShape;
     }
+    _ghostShape = new CharacterGhostShape(capsule->getRadius(), 2.0f * capsule->getHalfHeight());
+    setCollisionShape(_ghostShape);
 }
 
 void CharacterGhostObject::setCollisionWorld(btCollisionWorld* world) {
@@ -124,20 +126,6 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
     }
     btScalar longSweepDistance = stepDistance + overshoot;
     forwardSweep *= longSweepDistance / stepDistance;
-
-    // expand this object's Aabb in the broadphase and
-    // update the pairCache for the sweepTests we intend to do
-    btVector3 minAabb, maxAabb;
-    getCollisionShape()->getAabb(getWorldTransform(), minAabb, maxAabb);
-    minAabb.setMin(minAabb - btVector3(margin, margin, margin));
-    maxAabb.setMax(maxAabb + btVector3(margin, margin, margin));
-    minAabb.setMin(minAabb + forwardSweep);
-    maxAabb.setMax(maxAabb + forwardSweep);
-    minAabb.setMin(minAabb + _maxStepHeight * _upDirection);
-    maxAabb.setMax(maxAabb + _maxStepHeight * _upDirection);
-
-    // this updates both pairCaches: world broadphase and ghostobject
-    _world->getBroadphase()->setAabb(getBroadphaseHandle(), minAabb, maxAabb, _world->getDispatcher());
 
     // step forward
     CharacterSweepResult result(this);
@@ -338,7 +326,6 @@ void CharacterGhostObject::refreshOverlappingPairCache() {
     assert(_world && _inWorld);
     btVector3 minAabb, maxAabb;
     getCollisionShape()->getAabb(getWorldTransform(), minAabb, maxAabb);
-
     // this updates both pairCaches: world broadphase and ghostobject
     _world->getBroadphase()->setAabb(getBroadphaseHandle(), minAabb, maxAabb, _world->getDispatcher());
 }

@@ -11,6 +11,8 @@
 
 #include "CharacterController.h"
 
+//#include <BulletCollision/BroadphaseCollision/btBroadphaseProxy.h>
+
 #include <NumericalConstants.h>
 
 #include "ObjectMotionState.h"
@@ -121,7 +123,9 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld->addAction(this);
             // restore gravity settings
             _rigidBody->setGravity(oldGravity);
-            _ghost.setCollisionShape(_rigidBody->getCollisionShape()); // KINEMATIC_CONTROLLER_HACK
+            btCollisionShape* shape = _rigidBody->getCollisionShape();
+            assert(shape && shape->getShapeType() == CAPSULE_SHAPE_PROXYTYPE);
+            _ghost.setCharacterShape(static_cast<btCapsuleShape*>(shape)); // KINEMATIC_CONTROLLER_HACK
         }
         // KINEMATIC_CONTROLLER_HACK
         _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
