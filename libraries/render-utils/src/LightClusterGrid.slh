@@ -73,4 +73,8 @@ ivec2 clusterGrid_getCluster(int index) {
     return ivec2(numLights, contentOffset);
 }
 
+int clusterGrid_getClusterLightId(int index, ivec2 cluster) {
+    return _clusterGridContent[cluster.y + index];
+}
+
 <@endif@>
