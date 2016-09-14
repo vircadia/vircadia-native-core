@@ -9,7 +9,7 @@ EntityListTool = function(opts) {
     });
 
 
-
+    var filterInView = false;
     var searchRadius = 100;
 
     var visible = false;
@@ -48,20 +48,41 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
+    function valueIfDefined(value) {
+        return value !== undefined ? value : "";
+    }
+
     that.sendUpdate = function() {
         var entities = [];
-        var ids = Entities.findEntities(MyAvatar.position, searchRadius);
+
+        var ids;
+        if (filterInView) {
+            ids = Entities.findEntitiesInFrustum(Camera.frustum);
+        } else {
+            ids = Entities.findEntities(MyAvatar.position, searchRadius);
+        }
+
+        var cameraPosition = Camera.position;
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var properties = Entities.getEntityProperties(id);
-            entities.push({
-                id: id,
-                name: properties.name,
-                type: properties.type,
-                url: properties.type == "Model" ? properties.modelURL : "",
-                locked: properties.locked,
-                visible: properties.visible
-            });
+
+            if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                entities.push({
+                    id: id,
+                    name: properties.name,
+                    type: properties.type,
+                    url: properties.type == "Model" ? properties.modelURL : "",
+                    locked: properties.locked,
+                    visible: properties.visible,
+                    verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
+                    texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
+                    texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
+                    hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
+                    drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
+                    hasScript: properties.script !== ""
+                });
+            }
         }
 
         var selectedIDs = [];
@@ -105,9 +126,10 @@ EntityListTool = function(opts) {
             toggleSelectedEntitiesLocked();
         } else if (data.type == "toggleVisible") {
             toggleSelectedEntitiesVisible();
+        } else if (data.type === "filterInView") {
+            filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
-            that.sendUpdate();
         }
     });
 

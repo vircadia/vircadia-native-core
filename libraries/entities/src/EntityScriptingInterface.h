@@ -127,9 +127,18 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
 
-    /// finds models within the search sphere specified by the center point and radius
+    /// finds models within the box specified by the corner and dimensions
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
+
+    /// finds models within the frustum
+    /// the frustum must have the following properties:
+    /// - position
+    /// - orientation
+    /// - projection
+    /// - centerRadius
+    /// this function will not find any models in script engine contexts which don't have access to models
+    Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate

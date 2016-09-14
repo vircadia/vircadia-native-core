@@ -1215,6 +1215,8 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
+        qCInfo(audioclient, "Starve detected, %d new unfulfilled reads", recentUnfulfilled);
+
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
             int dt = (int)(now - _outputStarveDetectionStartTimeMsec);
@@ -1224,14 +1226,15 @@ void AudioClient::outputNotify() {
             } else {
                 _outputStarveDetectionCount += recentUnfulfilled;
                 if (_outputStarveDetectionCount > _outputStarveDetectionThreshold.get()) {
-                    _outputStarveDetectionStartTimeMsec = now;
-                    _outputStarveDetectionCount = 0;
-
                     int oldOutputBufferSizeFrames = _sessionOutputBufferSizeFrames;
                     int newOutputBufferSizeFrames = setOutputBufferSize(oldOutputBufferSizeFrames + 1, false);
+
                     if (newOutputBufferSizeFrames > oldOutputBufferSizeFrames) {
-                        qCDebug(audioclient) << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
+                        qCInfo(audioclient, "Starve threshold surpassed (%d starves in %d ms)", _outputStarveDetectionCount, dt);
                     }
+
+                    _outputStarveDetectionStartTimeMsec = now;
+                    _outputStarveDetectionCount = 0;
                 }
             }
         }
@@ -1319,7 +1322,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
     numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
     if (numFrames != _sessionOutputBufferSizeFrames) {
-        qCDebug(audioclient) << "Audio output buffer size (frames): " << numFrames;
+        qCInfo(audioclient, "Audio output buffer set to %d frames", numFrames);
         _sessionOutputBufferSizeFrames = numFrames;
         if (persist) {
             _outputBufferSizeFrames.set(numFrames);
@@ -1424,24 +1427,20 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     auto samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
-    
+
     if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
         bytesWritten = samplesPopped * sizeof(int16_t);
     } else {
-        // nothing on network, don't grab anything from injectors, and just 
-        // return 0s
+        // nothing on network, don't grab anything from injectors, and just return 0s
+        // this will flood the log: qCDebug(audioclient, "empty/partial network buffer");
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
-        
     }
 
-    int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
-    if (!bytesAudioOutputUnplayed) {
-        qCDebug(audioclient) << "empty audio buffer";
-    }
-    if (bytesAudioOutputUnplayed == 0 && bytesWritten == 0) {
+    bool wasBufferStarved = _audio->_audioOutput->bufferSize() == _audio->_audioOutput->bytesFree();
+    if (wasBufferStarved) {
         _unfulfilledReads++;
     }
 
