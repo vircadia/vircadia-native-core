@@ -927,12 +927,12 @@ void AudioClient::handleAudioInput() {
         audioTransform.setRotation(_orientationGetter());
         // FIXME find a way to properly handle both playback audio and user audio concurrently
 
-        QByteArray decocedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        QByteArray decodedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         QByteArray encodedBuffer;
         if (_encoder) {
-            _encoder->encode(decocedBuffer, encodedBuffer);
+            _encoder->encode(decodedBuffer, encodedBuffer);
         } else {
-            encodedBuffer = decocedBuffer;
+            encodedBuffer = decodedBuffer;
         }
 
         emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
