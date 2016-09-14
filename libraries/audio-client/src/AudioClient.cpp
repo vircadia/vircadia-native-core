@@ -960,7 +960,6 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
 void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
     QVector<AudioInjector*> injectorsToRemove;
-    bool injectorsHaveData = false;
     
     // lock the injector vector
     Lock lock(_injectorsMutex);
@@ -974,8 +973,6 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             memset(_scratchBuffer, 0, sizeof(_scratchBuffer));
             if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, samplesToRead)) {
                 
-                injectorsHaveData = true;
-
                 if (injector->isStereo()) {
 
                     // stereo gets directly mixed into mixBuffer
