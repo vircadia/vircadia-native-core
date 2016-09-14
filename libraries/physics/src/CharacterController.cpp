@@ -124,9 +124,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _ghost.setCollisionShape(_rigidBody->getCollisionShape()); // KINEMATIC_CONTROLLER_HACK
         }
         // KINEMATIC_CONTROLLER_HACK
-        int16_t group = BULLET_COLLISION_GROUP_MY_AVATAR;
-        int16_t mask = BULLET_COLLISION_MASK_MY_AVATAR & (~ group);
-        _ghost.setCollisionGroupAndMask(group, mask);
+        _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
         _ghost.setCollisionWorld(_dynamicsWorld);
         _ghost.setDistanceToFeet(_radius + _halfHeight);
         _ghost.setMaxStepHeight(0.75f * (_radius + _halfHeight)); // HACK
@@ -355,6 +353,7 @@ void CharacterController::setCollisionGroup(int16_t group) {
     if (_collisionGroup != group) {
         _collisionGroup = group;
         _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_GROUP;
+        _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
     }
 }
 
