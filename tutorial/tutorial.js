@@ -491,6 +491,9 @@ var stepEquip = function(name) {
     this.tagPart1 = name + "-part1";
     this.tagPart2 = name + "-part2";
     this.tempTag = name + "-temporary";
+    this.PART1 = 0;
+    this.PART2 = 1;
+    this.COMPLETE = 2;
 }
 stepEquip.prototype = {
     start: function(onFinish) {
@@ -520,7 +523,7 @@ stepEquip.prototype = {
         showEntitiesWithTag(this.tag);
         showEntitiesWithTag(this.tagPart1);
 
-        this.hasFinished = false;
+        this.currentPart = this.PART1;
 
         var basketColliderID = findEntity({ name: GUN_BASKET_COLLIDER_NAME }, 10000); 
         var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
@@ -545,56 +548,63 @@ stepEquip.prototype = {
         this.gunID = createGun.bind(this)();
         print("Created", this.gunID);
         this.onFinish = onFinish;
+        Messages.subscribe('Tutorial-Spinner');
+        Messages.messageReceived.connect(this.onMessage.bind(this));
 
-        function onHit() {
-            hideEntitiesWithTag(this.tagPart1);
-            showEntitiesWithTag(this.tagPart2);
-            print("HIT, wiating for unequip...");
-            Messages.subscribe('Hifi-Object-Manipulation');
-            Messages.messageReceived.connect(this.onMessage.bind(this));
-        }
+//        function onHit() {
+//        }
+//
+//        // When block collides with basket start step 2
+//        function checkCollides() {
+//            //print("CHECKING FOR PING PONG...");
+//            var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
+//            for (var i = 0; i < ammoIDs.length; ++i) {
+//                if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
+//                    Script.clearInterval(this.checkCollidesTimer);
+//                    this.checkCollidesTimer = null;
+//                    playSuccessSound();
+//                    Script.setTimeout(onHit.bind(this), 1000);
+//                    return;
+//                }
+//            }
+//        }
+//        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 100);
 
-        // When block collides with basket start step 2
-        function checkCollides() {
-            //print("CHECKING FOR PING PONG...");
-            var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
-            for (var i = 0; i < ammoIDs.length; ++i) {
-                if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
-                    Script.clearInterval(this.checkCollidesTimer);
-                    this.checkCollidesTimer = null;
-                    playSuccessSound();
-                    Script.setTimeout(onHit.bind(this), 1000);
-                    return;
-                }
-            }
-        }
-        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 100);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     onMessage: function(channel, message, sender) {
-        if (this.hasFinished) {
+        if (this.currentPart == this.COMPLETE) {
             return;
         }
         print("Got message", channel, message, sender, MyAvatar.sessionUUID);
-        //if (sender === MyAvatar.sessionUUID) {
-            var data = parseJSON(message);
-            print("Here", data.action, data.grabbedEntity, this.gunID);
-            if (data.action == 'release' && data.grabbedEntity == this.gunID) {
-                try {
-                    Messages.messageReceived.disconnect(this.onMessage);
-                } catch(e) {
-                }
-                playSuccessSound();
-                print("FINISHED");
-                Script.setTimeout(this.onFinish.bind(this), 1500);
-                this.hasFinished = true;
-                //this.onFinish();
+        if (channel == "Tutorial-Spinner") {
+            if (this.currentPart == this.PART1 && message == "wasLit") {
+                hideEntitiesWithTag(this.tagPart1);
+                showEntitiesWithTag(this.tagPart2);
+                Messages.subscribe('Hifi-Object-Manipulation');
             }
-        //}
+        } else if (channel == "Hifi-Object-Manipulation") {
+            if (this.currentPart == this.PART2) {
+                var data = parseJSON(message);
+                print("Here", data.action, data.grabbedEntity, this.gunID);
+                if (data.action == 'release' && data.grabbedEntity == this.gunID) {
+                    try {
+                        Messages.messageReceived.disconnect(this.onMessage);
+                    } catch(e) {
+                    }
+                    playSuccessSound();
+                    print("FINISHED");
+                    Script.setTimeout(this.onFinish.bind(this), 1500);
+                    this.currentPart = this.COMPLETE;
+                    //this.onFinish();
+                }
+            }
+        }
     },
     cleanup: function() {
         setControllerVisible("trigger", false);
+        this.currentPart = this.COMPLETE;
         try {
             Messages.messageReceived.disconnect(this.onMessage);
         } catch(e) {
