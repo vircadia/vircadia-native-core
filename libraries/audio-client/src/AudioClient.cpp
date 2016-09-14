@@ -1038,11 +1038,17 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
         _listenerReverb.render(_mixBuffer, _mixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 
-    // apply peak limiter
-    _audioLimiter.render(_mixBuffer, _scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    if (_networkToOutputResampler) {
 
-    // resample to output sample rate
-    _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        // resample to output sample rate
+        _audioLimiter.render(_mixBuffer, _scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    } else {
+
+        // no resampling needed
+        _audioLimiter.render(_mixBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    }
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {
