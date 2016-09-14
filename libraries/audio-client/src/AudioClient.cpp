@@ -839,8 +839,12 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
+
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
-    const int inputSamplesRequired = _inputFormat.channelCount() * _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    const int inputSamplesRequired = (_inputToNetworkResampler ? 
+                                      _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) : 
+                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
+
     const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
     QByteArray inputByteArray = _inputDevice->readAll();
 
