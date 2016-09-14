@@ -245,7 +245,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             //     4 -- ignore i of 1 2 3
             //     5 -- ignore i of 2 3 4
 
-            // This code is now disabled, but I'm leaving it comment-out because I suspect it will come back.
+            // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
             // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
             //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
             //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
