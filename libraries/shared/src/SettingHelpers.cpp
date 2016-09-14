@@ -107,8 +107,6 @@ QStringList splitArgs(const QString& string, int idx) {
 }
 
 QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
-    qDebug() << Q_FUNC_INFO << map.size() << "in map";
-
     QJsonObject object;
     for (auto it = map.cbegin(); it != map.cend(); ++it) {
         auto& key = it.key();
@@ -121,6 +119,9 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
         }
         if (variantType == QVariant((quint16)0).type()) { // uint16
             variantType = QVariant::UInt;
+        }
+        if (variantType == QVariant::Url) { // QUrl
+            variantType = QVariant::String;
         }
 
         switch (variantType) {
@@ -213,8 +214,6 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
         }
     }
 
-    qDebug() << Q_FUNC_INFO << object.size() << "in json";
-
     return QJsonDocument(object);
 }
 
@@ -225,7 +224,6 @@ QSettings::SettingsMap jsonDocumentToVariantMap(const QJsonDocument& document) {
         return QSettings::SettingsMap();
     }
     auto object = document.object();
-    qDebug() << Q_FUNC_INFO << object.size() << "in json";
     QSettings::SettingsMap map;
 
     for (auto it = object.begin(); it != object.end(); ++it) {
@@ -237,10 +235,10 @@ QSettings::SettingsMap jsonDocumentToVariantMap(const QJsonDocument& document) {
         } else {
             auto string = it->toString();
 
-            if (string.startsWith(QLatin1String("@@"))) {
+            if (string.startsWith(QLatin1String("@@"))) { // Standard string starting with '@'
                 result = QVariant(string.mid(1));
 
-            } else if (string.startsWith(QLatin1Char('@'))) {
+            } else if (string.startsWith(QLatin1Char('@'))) { // Custom type to string
 
                 if (string.endsWith(QLatin1Char(')'))) {
 
@@ -273,12 +271,13 @@ QSettings::SettingsMap jsonDocumentToVariantMap(const QJsonDocument& document) {
                         }
                     }
                 }
+            } else { // Standard string
+                result = string;
             }
         }
 
         map.insert(it.key(), result);
     }
 
-    qDebug() << Q_FUNC_INFO << map.size() << "in map";
     return map;
 }

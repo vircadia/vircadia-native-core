@@ -49,7 +49,7 @@ bool Settings::contains(const QString& key) const {
     return _manager->contains(key);
 }
 
-int Settings::beginReadArray(const QString & prefix) {
+int Settings::beginReadArray(const QString& prefix) {
     return _manager->beginReadArray(prefix);
 }
 
