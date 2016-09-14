@@ -26,7 +26,7 @@ using namespace gpu::gl;
 using namespace gpu::gl45;
 
 static const QString DEBUG_FLAG("HIFI_ENABLE_SPARSE_TEXTURES");
-static bool enableSparseTextures = true; // QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static bool enableSparseTextures = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
@@ -179,7 +179,7 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    _sparse = _transferrable && (_target != GL_TEXTURE_CUBE_MAP);
+    _sparse = enableSparseTextures && _transferrable && (_target != GL_TEXTURE_CUBE_MAP);
 
     if (_sparse) {
         glTextureParameteri(_id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
