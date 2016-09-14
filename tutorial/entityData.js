@@ -1,324 +1,280 @@
 Step1EntityData = [
-        {
-            "clientOnly": 0,
-            "color": {
-                "blue": 255,
-                "green": 0,
-                "red": 255
-            },
-            "created": "2016-08-29T22:57:55Z",
-            "dimensions": {
-                "x": 0.018359377980232239,
-                "y": 0.018359377980232239,
-                "z": 0.018359377980232239
-            },
-            "id": "{3bb83d9c-11db-4bc1-a61b-36921370cb40}",
-            "name": "tutorial/box_spawn",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "collisionless": 1,
-            "position": {
-                "x": 0,
-                "y": 0.8,
-                "z": 0.7790381908416748
-            },
-            "queryAACube": {
-                "scale": 0.031799376010894775,
-                "x": -0.015899688005447388,
-                "y": 0.79706859588623047,
-                "z": 0.7631385326385498
-            },
-            "rotation": {
-                "w": 1,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"tag\":\"step2\"}",
-            "visible": 0
-        },
-        {
-            "color": {
-                "blue": 181,
-                "green": 181,
-                "red": 181
-            },
-            "dimensions": {
-                "x": 0.37322089076042175,
-                "y": 0.8015166997909546,
-                "z": 0.37322089076042175
-            },
-            "name": "tutorial/pillar2",
-            //"shapeType": "simple-hull",
-            "position": {
-                "x": 0.019208565354347229,
-                "y": -0.1,
-                "z": 0.75276124477386475
-            },
-            "rotation": {
-                "w": 1,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"tag\":\"step2\"}"
-        },
-        {
-            "clientOnly": 0,
-            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj",
-            "created": "2016-08-29T22:57:55Z",
-            "dimensions": {
-                "x": 0.57461458444595337,
-                "y": 0.35781359672546387,
-                "z": 0.57461458444595337
-            },
-            "gravity": {
-                "x": 0,
-                "y": -5,
-                "z": 0
-            },
-            "id": "{2a8a9cb8-4501-4089-8fb8-6b1b5100db10}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx",
-            "name": "tutorial/basket",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "x": 0.022034257650375366,
-                "y": 0.47968916893005371,
-                "z": 0
-            },
-            "queryAACube": {
-                "scale": 0.88791579008102417,
-                "x": -0.42192363739013672,
-                "y": 0.23573127388954163,
-                "z": -0.44395789504051208
-            },
-            "rotation": {
-                "w": 1,
-                "x": -1.52587890625e-05,
-                "y": -1.52587890625e-05,
-                "z": -1.52587890625e-05
-            },
-            "shapeType": "compound",
-            "type": "Model",
-            "userData": "{\"hifiHomeKey\":{\"reset\":true},\"tag\":\"step2\"}"
-        },
-        {
-            "clientOnly": 0,
-            "collisionless": 1,
-            "color": {
-                "blue": 255,
-                "green": 0,
-                "red": 255
-            },
-            "created": "2016-08-29T22:57:55Z",
-            "dimensions": {
-                "x": 0.43770244717597961,
-                "y": 0.33723857998847961,
-                "z": 0.43770244717597961
-            },
-            "id": "{436aec80-15e8-4fc3-bd74-f173b731a922}",
-            "ignoreForCollisions": 1,
-            "name": "tutorial/basket_collider",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "x": 0.02785143256187439,
-                "y": 0.50166182518005371,
-                "z": 0.0017895996570587158
-            },
-            "queryAACube": {
-                "scale": 0.70490902662277222,
-                "x": -0.32460308074951172,
-                "y": 0.3492073118686676,
-                "z": -0.35066491365432739
-            },
-            "rotation": {
-                "w": 1,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "type": "Sphere",
-            "userData": "{\"tag\":\"step2\"}",
-            "visible": 0
-        },
-        {
-            "clientOnly": 0,
-            "color": {
-                "blue": 181,
-                "green": 181,
-                "red": 181
-            },
-            "created": "2016-08-29T22:57:55Z",
-            "dimensions": {
-                "x": 0.37322089076042175,
-                "y": 0.8015000104904175,
-                "z": 0.37322089076042175
-            },
-            "id": "{221be6c2-e0d6-4a7c-b9d4-a77e6b7d1c9a}",
-            "name": "tutorial/pillar1",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "x": 0.019208565354347229,
-                "y": -0.1,
-                "z": 0.025902509689331055
-            },
-            "queryAACube": {
-                "scale": 1.1320732831954956,
-                "x": -0.54682809114456177,
-                "y": -0.5660366415977478,
-                "z": -0.54013413190841675
-            },
-            "rotation": {
-                "w": 1,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"tag\":\"step2\"}"
-        }
-    ];
+{
+    "clientOnly": 0,
+    "color": {
+        "blue": 255,
+        "green": 0,
+        "red": 255
+    },
+    "created": "2016-08-29T22:57:55Z",
+    "dimensions": {
+        "x": 0.018359377980232239,
+        "y": 0.018359377980232239,
+        "z": 0.018359377980232239
+    },
+    "id": "{3bb83d9c-11db-4bc1-a61b-36921370cb40}",
+    "name": "tutorial/box_spawn",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "collisionless": 1,
+    "position": {
+        "x": 0,
+        "y": 0.8,
+        "z": 0.7790381908416748
+    },
+    "queryAACube": {
+        "scale": 0.031799376010894775,
+        "x": -0.015899688005447388,
+        "y": 0.79706859588623047,
+        "z": 0.7631385326385498
+    },
+    "rotation": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "shape": "Cube",
+    "type": "Box",
+    "userData": "{\"tag\":\"step2\"}",
+    "visible": 0
+},
+{
+    "color": {
+        "blue": 181,
+        "green": 181,
+        "red": 181
+    },
+    "dimensions": {
+        "x": 0.37322089076042175,
+        "y": 0.8015166997909546,
+        "z": 0.37322089076042175
+    },
+    "name": "tutorial/pillar2",
+    //"shapeType": "simple-hull",
+    "position": {
+        "x": 0.019208565354347229,
+        "y": -0.1,
+        "z": 0.75276124477386475
+    },
+    "rotation": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "shape": "Cube",
+    "type": "Box",
+    "userData": "{\"tag\":\"step2\"}"
+},
+{
+    "clientOnly": 0,
+    "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj",
+    "created": "2016-08-29T22:57:55Z",
+    "dimensions": {
+        "x": 0.57461458444595337,
+        "y": 0.35781359672546387,
+        "z": 0.57461458444595337
+    },
+    "gravity": {
+        "x": 0,
+        "y": -5,
+        "z": 0
+    },
+    "id": "{2a8a9cb8-4501-4089-8fb8-6b1b5100db10}",
+    "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx",
+    "name": "tutorial/basket",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "position": {
+        "x": 0.022034257650375366,
+        "y": 0.47968916893005371,
+        "z": 0
+    },
+    "queryAACube": {
+        "scale": 0.88791579008102417,
+        "x": -0.42192363739013672,
+        "y": 0.23573127388954163,
+        "z": -0.44395789504051208
+    },
+    "rotation": {
+        "w": 1,
+        "x": -1.52587890625e-05,
+        "y": -1.52587890625e-05,
+        "z": -1.52587890625e-05
+    },
+    "shapeType": "compound",
+    "type": "Model",
+    "userData": "{\"hifiHomeKey\":{\"reset\":true},\"tag\":\"step2\"}"
+},
+{
+    "clientOnly": 0,
+    "collisionless": 1,
+    "color": {
+        "blue": 255,
+        "green": 0,
+        "red": 255
+    },
+    "created": "2016-08-29T22:57:55Z",
+    "dimensions": {
+        "x": 0.43770244717597961,
+        "y": 0.33723857998847961,
+        "z": 0.43770244717597961
+    },
+    "id": "{436aec80-15e8-4fc3-bd74-f173b731a922}",
+    "ignoreForCollisions": 1,
+    "name": "tutorial/basket_collider",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "position": {
+        "x": 0.02785143256187439,
+        "y": 0.50166182518005371,
+        "z": 0.0017895996570587158
+    },
+    "queryAACube": {
+        "scale": 0.70490902662277222,
+        "x": -0.32460308074951172,
+        "y": 0.3492073118686676,
+        "z": -0.35066491365432739
+    },
+    "rotation": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "type": "Sphere",
+    "userData": "{\"tag\":\"step2\"}",
+    "visible": 0
+},
+{
+    "clientOnly": 0,
+    "color": {
+        "blue": 181,
+        "green": 181,
+        "red": 181
+    },
+    "created": "2016-08-29T22:57:55Z",
+    "dimensions": {
+        "x": 0.37322089076042175,
+        "y": 0.8015000104904175,
+        "z": 0.37322089076042175
+    },
+    "id": "{221be6c2-e0d6-4a7c-b9d4-a77e6b7d1c9a}",
+    "name": "tutorial/pillar1",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "position": {
+        "x": 0.019208565354347229,
+        "y": -0.1,
+        "z": 0.025902509689331055
+    },
+    "queryAACube": {
+        "scale": 1.1320732831954956,
+        "x": -0.54682809114456177,
+        "y": -0.5660366415977478,
+        "z": -0.54013413190841675
+    },
+    "rotation": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "shape": "Cube",
+    "type": "Box",
+    "userData": "{\"tag\":\"step2\"}"
+}
+];
 
-//Step1EntityData = [
-//        {
-//            "clientOnly": 0,
-//            "color": {
-//                "blue": 255,
-//                "green": 0,
-//                "red": 255
-//            },
-//            "created": "2016-08-23T16:29:15Z",
-//            "dimensions": {
-//                "x": 0.018359377980232239,
-//                "y": 0.018359377980232239,
-//                "z": 0.018359377980232239
-//            },
-//            "id": "{387765d2-366d-4775-8e6e-ea45119cf69d}",
-//            visible: false,
-//            "name": "tutorial/box_spawn",
-//            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-//            "position": {
-//                "x": 0.016568422317504883,
-//                "y": 0.6591796875,
-//                "z": 1.3308790922164917
-//            },
-//            "queryAACube": {
-//                "scale": 0.031799376010894775,
-//                "x": 0.00066873431205749512,
-//                "y": 0.643280029296875,
-//                "z": 1.3149794340133667
-//            },
-//            "shape": "Cube",
-//            "type": "Box"
-//        },
-//        {
-//            "clientOnly": 0,
-//            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj",
-//            "created": "2016-08-22T21:20:11Z",
-//            "dimensions": {
-//                "x": 0.57461458444595337,
-//                "y": 0.35781359672546387,
-//                "z": 0.57461458444595337
-//            },
-//            "gravity": {
-//                "x": 0,
-//                "y": -5,
-//                "z": 0
-//            },
-//            "id": "{ddcb3906-3d80-4111-9171-3a73a2f4f1bb}",
-//            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx",
-//            "name": "tutorial/basket",
-//            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-//            "position": {
-//                "x": 0,
-//                "y": 0.6480712890625,
-//                "z": 0
-//            },
-//            "queryAACube": {
-//                "scale": 0.88791579008102417,
-//                "x": -0.44395789504051208,
-//                "y": 0.20411339402198792,
-//                "z": -0.44395789504051208
-//            },
-//            "rotation": {
-//                "w": 1,
-//                "x": -1.52587890625e-05,
-//                "y": -1.52587890625e-05,
-//                "z": -1.52587890625e-05
-//            },
-//            "shapeType": "compound",
-//            "type": "Model",
-//            "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
-//        },
-//        {
-//            "clientOnly": 0,
-//            "created": "2016-08-22T21:22:22Z",
-//            "dimensions": {
-//                "x": 2.4929797649383545,
-//                "y": 0.94968640804290771,
-//                "z": 1.0870213508605957
-//            },
-//            "id": "{e7030a2d-f573-4c4b-a0aa-ea80e9e25399}",
-//            "name": "tutorial/table",
-//            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/table2_re-oriented.fbx",
-//            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-//            "position": {
-//                "x": 0.018214225769042969,
-//                "y": 0,
-//                "z": 0.60948663949966431
-//            },
-//            "queryAACube": {
-//                "scale": 2.8807060718536377,
-//                "x": -1.4221388101577759,
-//                "y": -1.4403530359268188,
-//                "z": -0.83086639642715454
-//            },
-//            "rotation": {
-//                "w": 0.70705735683441162,
-//                "x": -1.52587890625e-05,
-//                "y": -0.70717936754226685,
-//                "z": -1.52587890625e-05
-//            },
-//            "shapeType": "static-mesh",
-//            "type": "Model"
-//        },
-//        {
-//            visible: false,
-//            "clientOnly": 0,
-//            "collisionless": 1,
-//            "color": {
-//                "blue": 255,
-//                "green": 0,
-//                "red": 255
-//            },
-//            "created": "2016-08-23T18:09:44Z",
-//            "dimensions": {
-//                "x": 0.43770244717597961,
-//                "y": 0.33723857998847961,
-//                "z": 0.43770244717597961
-//            },
-//            "id": "{54e1d825-b552-48e4-b9c8-1c83c79a673e}",
-//            "ignoreForCollisions": 1,
-//            "name": "tutorial/basket_collider",
-//            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-//            "position": {
-//                "x": 0.0058171749114990234,
-//                "y": 0.6700439453125,
-//                "z": 0.0017895996570587158
-//            },
-//            "queryAACube": {
-//                "scale": 0.70490902662277222,
-//                "x": -0.34663733839988708,
-//                "y": 0.31758943200111389,
-//                "z": -0.35066491365432739
-//            },
-//            "type": "Sphere"
-//        }
-//];
+birdFirework1 = {
+    "clientOnly": 0,
+    "collisionsWillMove": 1,
+    "created": "2016-09-13T23:05:08Z",
+    "dimensions": {
+        "x": 0.10120716691017151,
+        "y": 0.12002291530370712,
+        "z": 0.18833979964256287
+    },
+    "collisionsWillMove": 1,
+    velocity: {
+        x: 0,
+        y: -0.2,
+        z: 0
+    },
+    "dynamic": 1,
+    "gravity": {
+        "x": 0,
+        "y": -10,
+        "z": 0
+    },
+    "id": "{1c4061bc-b2e7-4435-bc47-3fcc39ae6624}",
+    "modelURL": "http://hifi-content.s3.amazonaws.com/jimi/tutorialroom/birdStatue15.fbx",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "position": {
+        "x": 0.11612319946289062,
+        "y": 0,
+        "z": 0.21749019622802734
+    },
+    "queryAACube": {
+        "scale": 0.24519434571266174,
+        "x": -0.0064739733934402466,
+        "y": -0.12259717285633087,
+        "z": 0.094893023371696472
+    },
+    "rotation": {
+        "w": -0.083054840564727783,
+        "x": 0.93615627288818359,
+        "y": 0.34154272079467773,
+        "z": -0.0073701143264770508
+    },
+    "shapeType": "simple-hull",
+    "type": "Model",
+    "userData": "{\n  \"hifiHomeKey\": {\n    \"reset\": true\n  }\n}"
+} ;
+
+birdFirework2 = {
+    "clientOnly": 0,
+    "collisionsWillMove": 1,
+    "created": "2016-09-12T22:56:48Z",
+    "dimensions": {
+        "x": 0.098819166421890259,
+        "y": 0.11143554747104645,
+        "z": 0.18833979964256287
+    },
+    "collisionsWillMove": 1,
+    velocity: {
+        x: 0,
+        y: -0.2,
+        z: 0
+    },
+    "dynamic": 1,
+    "gravity": {
+        "x": 0,
+        "y": -10,
+        "z": 0
+    },
+    "id": "{ba067084-8d0f-4eeb-a8a1-c6814527c1bb}",
+    "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Models/statuebird4.fbx",
+    "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+    "position": {
+        "x": 0,
+        "y": 0.014694660902023315,
+        "z": 0
+    },
+    "queryAACube": {
+        "scale": 0.24011452496051788,
+        "x": -0.12005726248025894,
+        "y": -0.10536260157823563,
+        "z": -0.12005726248025894
+    },
+    "rotation": {
+        "w": 0.55410087108612061,
+        "x": 0.36000609397888184,
+        "y": -0.33641564846038818,
+        "z": -0.67092394828796387
+    },
+    "shapeType": "simple-compound",
+    "type": "Model",
+    "userData": "{\n  \"hifiHomeKey\": {\n    \"reset\": true\n  }\n}"
+};
+        
 
 Step1BlockData = {
     "clientOnly": 0,

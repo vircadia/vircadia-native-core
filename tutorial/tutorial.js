@@ -335,8 +335,9 @@ stepNearGrab.prototype = {
         }
         var boxSpawnPosition = Entities.getEntityProperties(boxSpawnID, 'position').position;
         function createBlock() {
-            Step1BlockData.position = boxSpawnPosition;
-            return spawnWithTag([Step1BlockData], null, this.tempTag)[0];
+            //Step1BlockData.position = boxSpawnPosition;
+            birdFirework1.position = boxSpawnPosition;
+            return spawnWithTag([birdFirework1], null, this.tempTag)[0];
         }
 
         // Enabled grab
@@ -361,10 +362,10 @@ stepNearGrab.prototype = {
         if (channel == "Entity-Exploded") {
             print("TUTORIAL: Got entity-exploded message");
             var data = parseJSON(message);
-            if (data.entityID == this.boxID) {
+            //if (data.entityID == this.boxID) {
                 this.finished = true;
                 this.onFinish();
-            }
+            //}
         }
     },
     cleanup: function() {
@@ -393,6 +394,8 @@ stepFarGrab.prototype = {
         this.finished = false;
         this.onFinish = onFinish;
 
+        showEntitiesWithTag('bothGrab', { visible: true });
+
         setControllerVisible("trigger", true);
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             farGrabEnabled: true,
@@ -417,8 +420,8 @@ stepFarGrab.prototype = {
                 return null;
             }
 
-            Step1BlockData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
-            return spawnWithTag([Step1BlockData], null, this.tempTag)[0];
+            birdFirework1.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
+            return spawnWithTag([birdFirework1], null, this.tempTag)[0];
         }
 
         // Enabled grab
