@@ -538,41 +538,28 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
     // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
     return false;
 }
-// combines the ray cast arguments into a single object
-class RayArgs {
-public:
-    glm::vec3 origin;
-    glm::vec3 direction;
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    const QVector<EntityItemID>& entityIdsToInclude;
-    const QVector<EntityItemID>& entityIdsToDiscard;
-    bool visibleOnly;
-    void** intersectedObject;
-    bool found;
-    bool precisionPicking;
-};
-
 
 bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
-    if (entityTreeElementPointer ->findRayIntersection(args->origin, args->direction, keepSearching,
+    if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->visibleOnly, args->intersectedObject, args->precisionPicking)) {
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
     return keepSearching;
 }
 
 bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElementPointer& element, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, void** intersectedObject,
-                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, intersectedObject, false, precisionPicking };
+                                    QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+                                    OctreeElementPointer& element, float& distance,
+                                    BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
+                                    Octree::lockType lockType, bool* accurateResult) {
+    RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
+            visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, surfaceNormal,  intersectedObject, false };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;

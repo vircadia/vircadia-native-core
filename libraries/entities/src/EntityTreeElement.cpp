@@ -534,7 +534,8 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     bool& keepSearching, OctreeElementPointer& element, float& distance,
     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, void** intersectedObject, bool precisionPicking) {
+    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+    void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
 
@@ -559,7 +560,8 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
     if (_cube.contains(origin) || distanceToElementCube < distance) {
 
         if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, intersectedObject, precisionPicking, distanceToElementCube)) {
+                face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+                intersectedObject, precisionPicking, distanceToElementCube)) {
 
             if (distanceToElementDetails < distance) {
                 distance = distanceToElementDetails;
@@ -574,13 +576,16 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
 
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard, bool visibleOnly, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
     bool somethingIntersected = false;
     forEachEntity([&](EntityItemPointer entity) {
-        if ( (visibleOnly && !entity->isVisible()) || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID())) || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
+        if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
+            || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
+            || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
             return;
         }
 

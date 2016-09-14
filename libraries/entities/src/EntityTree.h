@@ -31,6 +31,29 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 
+
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 direction;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& distance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    void** intersectedObject;
+    bool found;
+};
+
+
 class NewlyCreatedEntityHook {
 public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
@@ -89,14 +112,11 @@ public:
                                       const SharedNodePointer& senderNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-        const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
-        const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>(),
-        bool visibleOnly = false,
-        void** intersectedObject = NULL,
-        Octree::lockType lockType = Octree::TryLock,
-        bool* accurateResult = NULL,
-        bool precisionPicking = false);
+        QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+        OctreeElementPointer& node, float& distance,
+        BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject = NULL,
+        Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }
 
