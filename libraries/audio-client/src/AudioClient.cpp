@@ -146,9 +146,6 @@ AudioClient::AudioClient() :
     _positionGetter(DEFAULT_POSITION_GETTER),
     _orientationGetter(DEFAULT_ORIENTATION_GETTER)
 {
-    // clear the array of locally injected samples
-    memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
-
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
             this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
     connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
