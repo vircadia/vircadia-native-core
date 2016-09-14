@@ -15,7 +15,7 @@ var window = new OverlayWindow({
     title: 'Light Clustering',
     source: qml,
     width: 400, 
-    height: 200
+    height: 300
 });
-window.setPosition(Window.innerWidth - 420, 50 + 250 + 50);
+window.setPosition(Window.innerWidth - 420, 50 + 250 + 50 + 250 + 50 );
 window.closed.connect(function() { Script.stop(); });

@@ -52,7 +52,7 @@ uniform clusterGridBuffer {
 };
 
 uniform clusterContentBuffer {
-    int _clusterGridContent[10000];
+    int _clusterGridContent[16384];
 };
 
 int clusterGrid_clusterToIndex(ivec3 pos) {

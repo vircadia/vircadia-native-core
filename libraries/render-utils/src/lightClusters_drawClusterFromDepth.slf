@@ -67,7 +67,7 @@ void main(void) {
    } else if (relClusterId >= 1.0) {
        _fragColor = vec4(vec3(1.0), 0.2);
    } else {
-       _fragColor = vec4(colorWheel(fract(relClusterId)), 0.05 + 0.95 * numLightsScale);
+       _fragColor = vec4(colorWheel(fract(relClusterId)), (numLights > 0 ? 0.05 + 0.95 * numLightsScale : 0.0));
    }
 }
 

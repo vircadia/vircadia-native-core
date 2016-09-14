@@ -42,22 +42,43 @@ enum LightClusterGridShader_BufferSlot {
 
 #include "DeferredLightingEffect.h"
 
+const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 16, 16, 15, 16384 };
+
+
 LightClusters::LightClusters() :
     _lightIndicesBuffer(std::make_shared<gpu::Buffer>()),
     _clusterGridBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32),
     _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32) {
-    setDimensions(_frustumGridBuffer->dims, 10000);
+    setDimensions(_frustumGridBuffer->dims, MAX_GRID_DIMENSIONS.w);
 }
 
 void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
-    _frustumGridBuffer.edit().dims = gridDims;
+    ivec3 configDimensions;
+    configDimensions.x = std::min(MAX_GRID_DIMENSIONS.x, gridDims.x);
+    configDimensions.y = std::min(MAX_GRID_DIMENSIONS.y, gridDims.y);
+    configDimensions.z = std::min(MAX_GRID_DIMENSIONS.z, gridDims.z);
 
-    _numClusters = _frustumGridBuffer.edit().frustumGrid_numClusters();
+    auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget);
 
-    _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
-    _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(listBudget * sizeof(uint32_t));
-    _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
-    _clusterContent.resize(listBudget, INVALID_LIGHT);
+    auto& dims = _frustumGridBuffer->dims;
+    if ((dims.x != configDimensions.x) || (dims.y != configDimensions.y) || (dims.z != configDimensions.z)) {
+        _frustumGridBuffer.edit().dims = configDimensions;
+    }
+
+    auto numClusters = _frustumGridBuffer.edit().frustumGrid_numClusters();
+    if (numClusters != _numClusters) {
+        _numClusters = numClusters;
+        _clusterGrid.clear();
+        _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
+        _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
+    }
+
+    
+    if (configListBudget != _clusterContentBuffer.getNumElements()) {
+        _clusterContent.clear();
+        _clusterContent.resize(configListBudget, INVALID_LIGHT);
+        _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(configListBudget * sizeof(LightID));
+    }
 }
 
 
@@ -105,7 +126,7 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
 
 void LightClusters::updateClusters() {
     // Clean up last info
-    std::vector< std::vector< uint32_t > > clusterGrid(_numClusters);
+    std::vector< std::vector< LightID > > clusterGrid(_numClusters);
 
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
     uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
@@ -228,6 +249,10 @@ void LightClusters::updateClusters() {
                 }
             }
         }
+
+        if (numClusterTouched >= maxNumIndices) {
+            break;
+        }
     }
 
     // Lights have been gathered now reexpress in terms of 2 sequential buffers
@@ -241,7 +266,7 @@ void LightClusters::updateClusters() {
         _clusterGrid[i] = (uint32_t)((numLights << 16) | offset);
 
         if (numLights) {
-            memcpy(_clusterContent.data() + indexOffset, cluster.data(), numLights * sizeof(uint32_t));
+            memcpy(_clusterContent.data() + indexOffset, cluster.data(), numLights * sizeof(LightID));
         }
 
         indexOffset += numLights;
@@ -249,7 +274,7 @@ void LightClusters::updateClusters() {
 
     // update the buffers
     _clusterGridBuffer._buffer->setData(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
-    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(uint32_t), (gpu::Byte*) _clusterContent.data());
+    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightID), (gpu::Byte*) _clusterContent.data());
 }
 
 
@@ -267,15 +292,7 @@ void LightClusteringPass::configure(const Config& config) {
             _lightClusters->_frustumGridBuffer.edit().rangeFar = config.rangeFar;
         }
 
-        ivec3 configDimensions;
-        configDimensions.x = std::max(0, std::min(16, config.dimX));
-        configDimensions.y = std::max(0, std::min(16, config.dimY));
-        configDimensions.z = std::max(0, std::min(15, config.dimZ));
-
-        auto& dims = _lightClusters->_frustumGridBuffer->dims;
-        if ((dims.x != configDimensions.x) || (dims.y != configDimensions.y) || (dims.z != configDimensions.z)) {
-            _lightClusters->setDimensions(configDimensions, 10000);
-        }
+        _lightClusters->setDimensions(glm::uvec3(config.dimX, config.dimY, config.dimZ), 10000);
     }
     
     _freeze = config.freeze;

@@ -10,6 +10,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "configSlider"
+import "../lib/plotperf"
 
 Column {
     spacing: 8
@@ -18,46 +19,73 @@ Column {
         spacing: 10
 
         Column{
-                ConfigSlider {
-                    label: qsTr("Range Near [m]")
-                    integral: false
-                    config: Render.getConfig("LightClustering")
-                    property: "rangeNear"
-                    max: 20.0
-                    min: 0.1
-                }
-                ConfigSlider {
-                    label: qsTr("Range Far [m]")
-                    integral: false
-                    config: Render.getConfig("LightClustering")
-                    property: "rangeFar"
-                    max: 500.0
-                    min: 100.0
-                }
-                ConfigSlider {
-                    label: qsTr("Grid X")
-                    integral: true
-                    config: Render.getConfig("LightClustering")
-                    property: "dimX"
-                    max: 16
-                    min: 1
-                }
-                ConfigSlider {
-                    label: qsTr("Grid Y")
-                    integral: true
-                    config: Render.getConfig("LightClustering")
-                    property: "dimY"
-                    max: 16
-                    min: 1
-                }
-                ConfigSlider {
-                    label: qsTr("Grid Z")
-                    integral: true
-                    config: Render.getConfig("LightClustering")
-                    property: "dimZ"
-                    max: 15
-                    min: 1
-                }
+            PlotPerf {
+                title: "Light CLustering Timing"
+                height: 50
+                object: Render.getConfig("LightClustering")
+                valueUnit: "ms"
+                valueScale: 1
+                valueNumDigits: "4"
+                plots: [
+                    {
+                       object: Render.getConfig("LightClustering"),
+                       prop: "cpuRunTime",
+                       label: "time",
+                       scale: 1,
+                       color: "#FFFFFF"
+                   },
+                   {
+                        object: Render.getConfig("DrawLight"),
+                        prop: "numDrawn", 
+                        unit: "",
+                        scale: 0.01,
+                        numDigits: 0,
+                        label: "Lights",
+                        color: "#FED959"
+                    }
+                ]
+            }
+
+            ConfigSlider {
+                label: qsTr("Range Near [m]")
+                integral: false
+                config: Render.getConfig("LightClustering")
+                property: "rangeNear"
+                max: 20.0
+                min: 0.1
+            }
+            ConfigSlider {
+                label: qsTr("Range Far [m]")
+                integral: false
+                config: Render.getConfig("LightClustering")
+                property: "rangeFar"
+                max: 500.0
+                min: 100.0
+            }
+            ConfigSlider {
+                label: qsTr("Grid X")
+                integral: true
+                config: Render.getConfig("LightClustering")
+                property: "dimX"
+                max: 16
+                min: 1
+            }
+            ConfigSlider {
+                label: qsTr("Grid Y")
+                integral: true
+                config: Render.getConfig("LightClustering")
+                property: "dimY"
+                max: 16
+                min: 1
+            }
+            ConfigSlider {
+                label: qsTr("Grid Z")
+                integral: true
+                config: Render.getConfig("LightClustering")
+                property: "dimZ"
+                max: 15
+                min: 1
+            }
             CheckBox {
                     text: "Freeze"
                     checked: Render.getConfig("LightClustering")["freeze"]
@@ -78,6 +106,7 @@ Column {
                     checked: Render.getConfig("DebugLightClusters")["doDrawContent"]
                     onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawContent"] = checked }
             }
+            
         }
     }
 }

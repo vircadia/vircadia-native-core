@@ -54,7 +54,10 @@ public:
 
 class LightClusters {
 public:
-    
+    using LightID = LightStage::Index;
+
+    static const glm::uvec4 MAX_GRID_DIMENSIONS;
+
     LightClusters();
 
     void setDimensions(glm::uvec3 gridDims, uint32_t listBudget);
@@ -81,10 +84,10 @@ public:
     uint32_t _numClusters { 0 };
 
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
-    const uint32_t INVALID_LIGHT { 0xFFFFFFFF };
+    const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
 
     std::vector<uint32_t> _clusterGrid;
-    std::vector<uint32_t> _clusterContent;
+    std::vector<LightID> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
 };
