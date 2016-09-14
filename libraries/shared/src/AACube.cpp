@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/extented_min_max.hpp>
-
 #include "AABox.h"
 #include "AACube.h"
 #include "Extents.h"
@@ -25,7 +23,7 @@ AACube::AACube(const Extents& other) :
     _corner(other.minimum)
 {
     glm::vec3 dimensions = other.maximum - other.minimum;
-    _scale = glm::max(dimensions.x, dimensions.y, dimensions.z);
+    _scale = glm::compMax(dimensions);
 }
 
 AACube::AACube(const glm::vec3& corner, float size) :
@@ -479,8 +477,8 @@ AACube& AACube::operator += (const glm::vec3& point) {
 
     glm::vec3 scaleOld = oldMaximumPoint - _corner;
     glm::vec3 scalePoint = point - _corner;
-    _scale = glm::max(_scale, scalePoint.x, scalePoint.y, scalePoint.z);
-    _scale = glm::max(_scale, scaleOld.x, scaleOld.y, scaleOld.z);
+    _scale = std::max(_scale, glm::compMax(scalePoint));
+    _scale = std::max(_scale, glm::compMax(scaleOld));
 
     return (*this);
 }

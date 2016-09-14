@@ -15,7 +15,7 @@ WebEngineView {
     id: root
     property var newUrl;
 
-    profile.httpUserAgent: "Mozilla/5.0 Chrome/38.0 (HighFidelityInterface)"
+    profile: desktop.browserProfile
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
@@ -60,9 +60,4 @@ WebEngineView {
             }
         }
     }
-
-
-    // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
-    // See https://bugreports.qt.io/browse/QTBUG-49521
-    //profile: desktop.browserProfile
 }

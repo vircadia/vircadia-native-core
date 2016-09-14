@@ -446,6 +446,8 @@ public:
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
 
+    virtual void emitScriptEvent(const QVariant& message) {}
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }

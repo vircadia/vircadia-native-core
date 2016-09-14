@@ -590,11 +590,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
             renderInfo.setProperty("texturesSize", (int)getRenderInfoTextureSize()); // FIXME - theoretically the size of textures could be > max int
             renderInfo.setProperty("hasTransparent", getRenderInfoHasTransparent());
             renderInfo.setProperty("drawCalls", getRenderInfoDrawCalls());
+            renderInfo.setProperty("texturesCount", getRenderInfoTextureCount());
         }
 
-        if (_type == EntityTypes::Model || _type == EntityTypes::PolyLine || _type == EntityTypes::ParticleEffect) {
-            renderInfo.setProperty("texturesCount", QScriptValue(_textureNames.count()));
-        }
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
@@ -771,7 +769,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
     QScriptValue result = engine->newObject();
-	return result;
+    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {

@@ -11,6 +11,7 @@
 #include "GLShared.h"
 #include "GLTextureTransfer.h"
 #include "GLBackend.h"
+#include "GLTexelFormat.h"
 
 namespace gpu { namespace gl {
 
@@ -18,6 +19,7 @@ struct GLFilterMode {
     GLint minFilter;
     GLint magFilter;
 };
+
 
 class GLTexture : public GLObject<Texture> {
 public:
@@ -162,11 +164,13 @@ public:
 
     bool isOverMaxMemory() const;
 
-protected:
+    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
+
     static const size_t CUBE_NUM_FACES = 6;
     static const GLenum CUBE_FACE_LAYOUT[6];
     static const GLFilterMode FILTER_MODES[Sampler::NUM_FILTERS];
     static const GLenum WRAP_MODES[Sampler::NUM_WRAP_MODES];
+protected:
 
     static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
 
@@ -185,19 +189,22 @@ protected:
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, GLTexture* originalTexture);
 
     void setSyncState(GLSyncState syncState) { _syncState = syncState; }
-    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
 
     void createTexture();
     
     virtual void allocateStorage() const = 0;
     virtual void updateSize() const = 0;
-    virtual void transfer() const = 0;
     virtual void syncSampler() const = 0;
     virtual void generateMips() const = 0;
     virtual void withPreservedTexture(std::function<void()> f) const = 0;
 
 protected:
     void setSize(GLuint size) const;
+
+    virtual void startTransfer();
+    // Returns true if this is the last block required to complete transfer
+    virtual bool continueTransfer() { return false; }
+    virtual void finishTransfer();
 
 private:
 

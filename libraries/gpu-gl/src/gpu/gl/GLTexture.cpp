@@ -292,3 +292,14 @@ void GLTexture::postTransfer() {
 void GLTexture::initTextureTransferHelper() {
     _textureTransferHelper = std::make_shared<GLTextureTransferHelper>();
 }
+
+void GLTexture::startTransfer() {
+    createTexture();
+}
+
+void GLTexture::finishTransfer() {
+    if (_gpuObject.isAutogenerateMips()) {
+        generateMips();
+    }
+}
+

@@ -63,10 +63,12 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
 }
 
 void Socket::rebind() {
-    quint16 oldPort = _udpSocket.localPort();
+    rebind(_udpSocket.localPort());
+}
 
+void Socket::rebind(quint16 localPort) {
     _udpSocket.close();
-    bind(QHostAddress::AnyIPv4, oldPort);
+    bind(QHostAddress::AnyIPv4, localPort);
 }
 
 void Socket::setSystemBufferSizes() {

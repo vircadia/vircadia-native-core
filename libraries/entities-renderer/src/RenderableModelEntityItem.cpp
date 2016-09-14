@@ -299,7 +299,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         if (index < translations.size()) {
                             translationMat = glm::translate(translations[index]);
                         }
-                        glm::mat4 rotationMat(glm::mat4::_null);
+                        glm::mat4 rotationMat;
                         if (index < rotations.size()) {
                             rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
                         } else {

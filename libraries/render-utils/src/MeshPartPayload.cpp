@@ -77,6 +77,7 @@ void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
 bool MeshPartPayload::calculateMaterialSize() {
     bool allTextures = true; // assume we got this...
     _materialTextureSize = 0;
+    _materialTextureCount = 0;
     auto textureMaps = _drawMaterial->getTextureMaps();
     for (auto const &textureMapItem : textureMaps) {
         auto textureMap = textureMapItem.second;
@@ -88,6 +89,7 @@ bool MeshPartPayload::calculateMaterialSize() {
                     //auto storedSize = texture->getStoredSize();
                     auto size = texture->getSize();
                     _materialTextureSize += size;
+                    _materialTextureCount++;
                 } else {
                     allTextures = false;
                 }
