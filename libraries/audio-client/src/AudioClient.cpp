@@ -371,7 +371,8 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     adjustedAudioFormat = desiredAudioFormat;
 
 #ifdef Q_OS_ANDROID
-    adjustedAudioFormat.setSampleRate(44100);
+    // FIXME: query the native sample rate of the device?
+    adjustedAudioFormat.setSampleRate(48000);
 #else
 
     //
