@@ -123,6 +123,38 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
     return ivec3(gridPos);
 }
 
+int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
+    if (eyeDir.z >= 0.0) {
+        return (eyeDir.x > 0 ? frustumGrid.dims.x : -1);
+    }
+
+    float eyeDepth = -eyeDir.z;
+    float nclipDir = eyeDir.x / eyeDepth;
+    float ndcDir = nclipDir * frustumGrid.eyeToGridProj[0][0] - frustumGrid.eyeToGridProj[2][0];
+    float volumeDir = 0.5 * (ndcDir + 1.0);
+    float gridPos = volumeDir * float(frustumGrid.dims.x);
+
+    return int(gridPos);
+}
+
+int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
+    if (eyeDir.z >= 0.0) {
+        return (eyeDir.y > 0 ? frustumGrid.dims.y : -1);
+    }
+
+    float eyeDepth = -eyeDir.z;
+    float nclipDir = eyeDir.y / eyeDepth;
+    float ndcDir = nclipDir * frustumGrid.eyeToGridProj[1][1] - frustumGrid.eyeToGridProj[2][1];
+    float volumeDir = 0.5 * (ndcDir + 1.0);
+    float gridPos = volumeDir * float(frustumGrid.dims.y);
+
+    return int(gridPos);
+}
+
+ivec2 frustumGrid_eyeToClusterDir(vec3 eyeDir) {
+    return ivec2(frustumGrid_eyeToClusterDirH(eyeDir), frustumGrid_eyeToClusterDirV(eyeDir));
+}
+
 vec4 frustumGrid_eyeToWorld(vec4 eyePos) {
     return frustumGrid.eyeToWorldMat * eyePos;
 }

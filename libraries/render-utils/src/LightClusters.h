@@ -74,7 +74,7 @@ public:
 
     LightStagePointer _lightStage;
 
-
+    
 
     gpu::StructBuffer<FrustumGrid> _frustumGridBuffer;
 

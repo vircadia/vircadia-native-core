@@ -124,6 +124,27 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
     _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
 
+bool scanLightVolume(FrustumGrid& grid, int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
+    uint32_t& numClustersTouched, int maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
+    glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
+
+    bool hasBudget = true;
+    for (auto z = zMin; (z <= zMax) && hasBudget; z++) {
+        for (auto y = yMin; (y <= yMax) && hasBudget; y++) {
+            for (auto x = xMin; (x <= xMax) && hasBudget; x++) {
+                auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
+                clusterGrid[index].emplace_back(lightId);
+                numClustersTouched++;
+                if (numClustersTouched >= maxNumIndices) {
+                    hasBudget = false;
+                }
+            }
+        }
+    }
+
+    return hasBudget;
+}
+
 void LightClusters::updateClusters() {
     // Clean up last info
     std::vector< std::vector< LightID > > clusterGrid(_numClusters);
@@ -167,7 +188,8 @@ void LightClusters::updateClusters() {
             continue;
         }
 
-
+        // is it a light whose origin is behind the near ?
+        bool behindLight = (eyeOri.z >= -theFrustumGrid.rangeNear);
         // 
         float eyeOriLen2 = glm::length2(eyeOri);
 
@@ -199,8 +221,6 @@ void LightClusters::updateClusters() {
 
             float eyeToTangentCircleLenH = sqrt(eyeOriLen2H - radius2);
 
-            float eyeToTangentCircleTanH = radius / eyeToTangentCircleLenH;
-
             float eyeToTangentCircleCosH = eyeToTangentCircleLenH / eyeOriLenH;
 
             float eyeToTangentCircleSinH = radius / eyeOriLenH;
@@ -210,15 +230,11 @@ void LightClusters::updateClusters() {
             glm::vec3 leftDir(eyeOriDirH.x * eyeToTangentCircleCosH + eyeOriDirH.z * eyeToTangentCircleSinH, 0.0f, eyeOriDirH.x * -eyeToTangentCircleSinH + eyeOriDirH.z * eyeToTangentCircleCosH);
             glm::vec3 rightDir(eyeOriDirH.x * eyeToTangentCircleCosH - eyeOriDirH.z * eyeToTangentCircleSinH, 0.0f, eyeOriDirH.x * eyeToTangentCircleSinH + eyeOriDirH.z * eyeToTangentCircleCosH);
 
+            auto lc = theFrustumGrid.frustumGrid_eyeToClusterDirH(leftDir);
+            auto rc = theFrustumGrid.frustumGrid_eyeToClusterDirH(rightDir);
 
-            glm::vec3 leftPosAtNear = leftDir * theFrustumGrid.rangeNear * 2.0f;
-            glm::vec3 rightPosAtNear = rightDir * theFrustumGrid.rangeNear * 2.0f;
-
-            auto lc = theFrustumGrid.frustumGrid_eyeToClusterPos(leftPosAtNear);
-            auto rc = theFrustumGrid.frustumGrid_eyeToClusterPos(rightPosAtNear);
-
-            xMin = std::max(0, lc.x);
-            xMax = std::max(0, std::min(rc.x, xMax));
+            xMin = std::max(xMin, lc);
+            xMax = std::max(0, std::min(rc, xMax));
         }
 
         if ((eyeOriLen2V > radius2)) {
@@ -226,11 +242,7 @@ void LightClusters::updateClusters() {
 
             auto eyeOriDirV = glm::vec3(eyeOriV) / eyeOriLenV;
 
-
-
             float eyeToTangentCircleLenV = sqrt(eyeOriLen2V - radius2);
-
-            float eyeToTangentCircleTanV = radius / eyeToTangentCircleLenV;
 
             float eyeToTangentCircleCosV = eyeToTangentCircleLenV / eyeOriLenV;
 
@@ -241,29 +253,17 @@ void LightClusters::updateClusters() {
             glm::vec3 bottomDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV + eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * -eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
             glm::vec3 topDir(0.0f, eyeOriDirV.y * eyeToTangentCircleCosV - eyeOriDirV.z * eyeToTangentCircleSinV, eyeOriDirV.y * eyeToTangentCircleSinV + eyeOriDirV.z * eyeToTangentCircleCosV);
 
+            auto bc = theFrustumGrid.frustumGrid_eyeToClusterDirV(bottomDir);
+            auto tc = theFrustumGrid.frustumGrid_eyeToClusterDirV(topDir);
 
-            glm::vec3 bottomPosAtNear = bottomDir * theFrustumGrid.rangeNear * 2.0f;
-            glm::vec3 topPosAtNear = topDir * theFrustumGrid.rangeNear * 2.0f;
-
-            auto bc = theFrustumGrid.frustumGrid_eyeToClusterPos(bottomPosAtNear);
-            auto tc = theFrustumGrid.frustumGrid_eyeToClusterPos(topPosAtNear);
-
-            yMin = std::max(0, bc.y);
-            yMax = std::max(0, std::min(tc.y, yMax));
+            yMin = std::max(yMin, bc);
+            yMax = std::max(yMin, std::min(tc, yMax));
         }
 
         // now voxelize
-        for (auto z = zMin; z <= zMax; z++) {
-            for (auto y = yMin; y <= yMax; y++) {
-                for (auto x = xMin; x <= xMax; x++) {
-                    auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
-                    clusterGrid[index].emplace_back(lightId);
-                    numClusterTouched++;
-                }
-            }
-        }
+        bool hasBudget = scanLightVolume(theFrustumGrid, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
 
-        if (numClusterTouched >= maxNumIndices) {
+        if (!hasBudget) {
             break;
         }
     }
@@ -486,6 +486,7 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
     }
 
     if (doDrawContent) {
+
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawClusterContentPipeline());
 
