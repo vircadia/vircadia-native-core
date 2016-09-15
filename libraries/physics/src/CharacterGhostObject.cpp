@@ -17,8 +17,6 @@
 #include "CharacterGhostShape.h"
 #include "CharacterRayResult.h"
 
-const btScalar DEFAULT_STEP_UP_HEIGHT = 0.5f;
-
 
 CharacterGhostObject::~CharacterGhostObject() {
     removeFromWorld();
@@ -28,8 +26,6 @@ CharacterGhostObject::~CharacterGhostObject() {
         setCollisionShape(nullptr);
     }
 }
-
-const int16_t wtf = 9; // adebug wtf?
 
 void CharacterGhostObject::setCollisionGroupAndMask(int16_t group, int16_t mask) {
     _collisionFilterGroup = group;
