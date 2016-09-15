@@ -264,7 +264,7 @@ public:
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
-                qCDebug(interfaceapp) << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "maxElapsed:" << _maxElapsed
@@ -274,7 +274,7 @@ public:
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
-                qCDebug(interfaceapp) << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "PREVIOUS maxElapsed:" << _maxElapsed
@@ -284,7 +284,7 @@ public:
                 _maxElapsed = lastHeartbeatAge;
             }
             if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
-                qCDebug(interfaceapp) << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE **"
                     << "maxElapsed:" << _maxElapsed
@@ -293,7 +293,7 @@ public:
             }
 
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
-                qCDebug(interfaceapp) << "DEADLOCK DETECTED -- "
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
                          << "[ lastHeartbeat :" << lastHeartbeat
                          << "now:" << now << " ]"
