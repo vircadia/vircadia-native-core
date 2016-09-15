@@ -21,6 +21,7 @@
 #include "CodecPlugin.h"
 #include "DisplayPlugin.h"
 #include "InputPlugin.h"
+#include "PluginLogging.h"
 
 
 PluginManager* PluginManager::getInstance() {
@@ -87,10 +88,10 @@ const LoaderList& getLoadedPlugins() {
         QDir pluginDir(pluginPath);
         pluginDir.setFilter(QDir::Files);
         if (pluginDir.exists()) {
-            qDebug() << "Loading runtime plugins from " << pluginPath;
+            qInfo() << "Loading runtime plugins from " << pluginPath;
             auto candidates = pluginDir.entryList();
             for (auto plugin : candidates) {
-                qDebug() << "Attempting plugin" << qPrintable(plugin);
+                qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
 
                 if (isDisabled(loader->metaData())) {
@@ -100,11 +101,11 @@ const LoaderList& getLoadedPlugins() {
                 }
 
                 if (loader->load()) {
-                    qDebug() << "Plugin" << qPrintable(plugin) << "loaded successfully";
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "loaded successfully";
                     loadedPlugins.push_back(loader);
                 } else {
-                    qDebug() << "Plugin" << qPrintable(plugin) << "failed to load:";
-                    qDebug() << " " << qPrintable(loader->errorString());
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "failed to load:";
+                    qCDebug(plugins) << " " << qPrintable(loader->errorString());
                 }
             }
         }
@@ -139,7 +140,7 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
             plugin->setContainer(_container);
             plugin->init();
 
-            qDebug() << "init codec:" << plugin->getName();
+            qCDebug(plugins) << "init codec:" << plugin->getName();
         }
     });
     return codecPlugins;
@@ -157,11 +158,11 @@ static DisplayPluginList displayPlugins;
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
-        qDebug() << "Added device: " << deviceName;
+        qCDebug(plugins) << "Added device: " << deviceName;
         UserActivityLogger::getInstance().connectedDevice("display", deviceName);
     };
     static auto subdeviceAddedCallback = [](QString pluginName, QString deviceName) {
-        qDebug() << "Added subdevice: " << deviceName;
+        qCDebug(plugins) << "Added subdevice: " << deviceName;
         UserActivityLogger::getInstance().connectedDevice("display", pluginName + " | " + deviceName);
     };
 
@@ -204,11 +205,11 @@ const InputPluginList& PluginManager::getInputPlugins() {
     static InputPluginList inputPlugins;
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
-        qDebug() << "Added device: " << deviceName;
+        qCDebug(plugins) << "Added device: " << deviceName;
         UserActivityLogger::getInstance().connectedDevice("input", deviceName);
     };
     static auto subdeviceAddedCallback = [](QString pluginName, QString deviceName) {
-        qDebug() << "Added subdevice: " << deviceName;
+        qCDebug(plugins) << "Added subdevice: " << deviceName;
         UserActivityLogger::getInstance().connectedDevice("input", pluginName + " | " + deviceName);
     };
 
