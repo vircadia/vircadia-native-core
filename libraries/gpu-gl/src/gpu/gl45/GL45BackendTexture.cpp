@@ -25,8 +25,8 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-static const QString DEBUG_FLAG("HIFI_ENABLE_SPARSE_TEXTURES");
-static bool enableSparseTextures = true; // QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static const QString DEBUG_FLAG("HIFI_DISABLE_SPARSE_TEXTURES");
+static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
@@ -35,6 +35,51 @@ using GL45Texture = GL45Backend::GL45Texture;
 
 static std::map<uint16_t, std::unordered_set<GL45Texture*>> texturesByMipCounts;
 static Mutex texturesByMipCountsMutex;
+using TextureTypeFormat = std::pair<GLenum, GLenum>;
+std::map<TextureTypeFormat, std::vector<uvec3>> sparsePageDimensionsByFormat;
+Mutex sparsePageDimensionsByFormatMutex;
+
+
+static std::vector<uvec3> getPageDimensionsForFormat(const TextureTypeFormat& typeFormat) {
+    {
+        Lock lock(sparsePageDimensionsByFormatMutex);
+        if (sparsePageDimensionsByFormat.count(typeFormat)) {
+            return sparsePageDimensionsByFormat[typeFormat];
+        }
+    }
+    GLint count = 0;
+    glGetInternalformativ(typeFormat.first, typeFormat.second, GL_NUM_VIRTUAL_PAGE_SIZES_ARB, 1, &count);
+
+    std::vector<uvec3> result;
+    if (count > 0) {
+        std::vector<GLint> x, y, z;
+        x.resize(count);
+        glGetInternalformativ(typeFormat.first, typeFormat.second, GL_VIRTUAL_PAGE_SIZE_X_ARB, 1, &x[0]);
+        y.resize(count);
+        glGetInternalformativ(typeFormat.first, typeFormat.second, GL_VIRTUAL_PAGE_SIZE_Y_ARB, 1, &y[0]);
+        z.resize(count);
+        glGetInternalformativ(typeFormat.first, typeFormat.second, GL_VIRTUAL_PAGE_SIZE_Z_ARB, 1, &z[0]);
+
+        result.resize(count);
+        for (GLint i = 0; i < count; ++i) {
+            result[i] = uvec3(x[i], y[i], z[i]);
+        }
+        qDebug() << "Got " << count << " page sizes";
+    }
+
+    {
+        Lock lock(sparsePageDimensionsByFormatMutex);
+        if (0 == sparsePageDimensionsByFormat.count(typeFormat)) {
+            sparsePageDimensionsByFormat[typeFormat] = result;
+        }
+    }
+
+    return result;
+}
+
+static std::vector<uvec3> getPageDimensionsForFormat(GLenum target, GLenum format) {
+    return getPageDimensionsForFormat({ target, format });
+}
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
     return GL45Texture::sync<GL45Texture>(*this, texture, transfer);
@@ -46,14 +91,31 @@ SparseInfo::SparseInfo(GL45Texture& texture)
     : _texture(texture) {
 }
 
+void SparseInfo::maybeMakeSparse() {
+    const uvec3 dimensions = _texture._gpuObject.getDimensions();
+    auto allowedPageDimensions = getPageDimensionsForFormat(_texture._target, _texture._internalFormat);
+    // In order to enable sparse the texture size must be an integer multiple of the page size
+    for (size_t i = 0; i < allowedPageDimensions.size(); ++i) {
+        _pageDimensionsIndex = (uint32_t) i;
+        _pageDimensions = allowedPageDimensions[i];
+        // Is this texture an integer multiple of page dimensions?
+        if (uvec3(0) == (dimensions % _pageDimensions)) {
+            _sparse = true;
+            break;
+        }
+    }
+
+    if (_sparse) {
+        glTextureParameteri(_texture._id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
+        glTextureParameteri(_texture._id, GL_VIRTUAL_PAGE_SIZE_INDEX_ARB, _pageDimensionsIndex);
+    } else {
+        qDebug() << "Texture size " << dimensions.x << " x " << dimensions.y << " is not supported by any sparse page size";
+    }
+}
+
+// This can only be called after we've established our storage size
 void SparseInfo::update() {
     glGetTextureParameterIuiv(_texture._id, GL_NUM_SPARSE_LEVELS_ARB, &_maxSparseLevel);
-    GLenum internalFormat = gl::GLTexelFormat::evalGLTexelFormat(_texture._gpuObject.getTexelFormat(), _texture._gpuObject.getTexelFormat()).internalFormat;
-    ivec3 pageSize;
-    glGetInternalformativ(_texture._target, internalFormat, GL_VIRTUAL_PAGE_SIZE_X_ARB, 1, &pageSize.x);
-    glGetInternalformativ(_texture._target, internalFormat, GL_VIRTUAL_PAGE_SIZE_Y_ARB, 1, &pageSize.y);
-    glGetInternalformativ(_texture._target, internalFormat, GL_VIRTUAL_PAGE_SIZE_Z_ARB, 1, &pageSize.z);
-    _pageDimensions = uvec3(pageSize);
     _pageBytes = _texture._gpuObject.getTexelFormat().getSize();
     _pageBytes *= _pageDimensions.x * _pageDimensions.y * _pageDimensions.z;
 
@@ -179,18 +241,13 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    if (enableSparseTextures && _transferrable && (_target != GL_TEXTURE_CUBE_MAP)) {
-        GLint pageSizesCount = 0;
-        glGetInternalformativ(_target, _internalFormat, GL_NUM_VIRTUAL_PAGE_SIZES_ARB, 1, &pageSizesCount);
-        if (pageSizesCount > 0) {
-            _sparse = true;
-            glTextureParameteri(_id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
-        }
+    if (enableSparseTextures && _transferrable) {
+        _sparseInfo.maybeMakeSparse();
     }
 }
 
 GL45Texture::~GL45Texture() {
-    if (_sparse) {
+    if (_sparseInfo._sparse) {
         auto mipLevels = usedMipLevels();
 
         {
@@ -270,7 +327,7 @@ bool GL45Texture::continueTransfer() {
     uvec3 offset = _transferState._mipOffset;
 
     // FIXME we should be using the DSA for all of this
-    if (_sparse && _transferState._mipLevel <= _sparseInfo._maxSparseLevel) {
+    if (_sparseInfo._sparse && _transferState._mipLevel <= _sparseInfo._maxSparseLevel) {
         if (_allocatedPages > _sparseInfo._maxPages) {
             qDebug() << "Exceeded max page allocation!";
         }
@@ -306,7 +363,7 @@ bool GL45Texture::continueTransfer() {
     serverWait();
     auto currentMip = _transferState._mipLevel;
     auto result = _transferState.increment();
-    if (_sparse && _transferState._mipLevel != currentMip && currentMip <= _sparseInfo._maxSparseLevel) {
+    if (_sparseInfo._sparse && _transferState._mipLevel != currentMip && currentMip <= _sparseInfo._maxSparseLevel) {
         auto mipDimensions = _gpuObject.evalMipDimensions(currentMip);
         auto mipExpectedPages = _sparseInfo.getPageCount(mipDimensions);
         auto newPages = _allocatedPages - _lastMipAllocatedPages;
@@ -349,7 +406,7 @@ void GL45Texture::syncSampler() const {
 
 void GL45Texture::postTransfer() {
     Parent::postTransfer();
-    if (_sparse) {
+    if (_sparseInfo._sparse) {
         auto mipLevels = usedMipLevels();
         if (mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
             Lock lock(texturesByMipCountsMutex);
@@ -359,7 +416,7 @@ void GL45Texture::postTransfer() {
 }
 
 void GL45Texture::stripToMip(uint16_t newMinMip) {
-    if (!_sparse) {
+    if (!_sparseInfo._sparse) {
         return;
     }
 
@@ -412,14 +469,14 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
 
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();
-    if (_sparse && mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
+    if (_sparseInfo._sparse && mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
         Lock lock(texturesByMipCountsMutex);
         texturesByMipCounts[mipLevels].insert(this);
     }
 }
 
 void GL45Texture::updateMips() {
-    if (!_sparse) {
+    if (!_sparseInfo._sparse) {
         return;
     }
     auto newMinMip = std::min<uint16_t>(_gpuObject.minMip(), _sparseInfo._maxSparseLevel);
@@ -429,7 +486,7 @@ void GL45Texture::updateMips() {
 }
 
 void GL45Texture::derez() {
-    assert(_sparse);
+    assert(_sparseInfo._sparse);
     assert(_minMip < _sparseInfo._maxSparseLevel);
     assert(_minMip < _maxMip);
     assert(_transferrable);

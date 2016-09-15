@@ -42,7 +42,10 @@ public:
             GLuint _maxSparseLevel { 0 };
             uint32_t _maxPages { 0 };
             uint32_t _pageBytes { 0 };
+            bool _sparse { false };
+            GLint _pageDimensionsIndex { 0 };
             SparseInfo(GL45Texture& texture);
+            void maybeMakeSparse();
             void update();
             uvec3 getPageCounts(const uvec3& dimensions) const;
             uint32_t getPageCount(const uvec3& dimensions) const;
@@ -86,8 +89,6 @@ public:
         TransferState _transferState;
         uint32_t _allocatedPages { 0 };
         uint32_t _lastMipAllocatedPages { 0 };
-        bool _sparse { false };
-
         friend class GL45Backend;
     };
 
