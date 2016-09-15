@@ -234,6 +234,109 @@ stepWelcome.prototype = {
     }
 };
 
+function StayInFrontOverlay(type, properties, distance, positionOffset) {
+    this.currentOrientation = MyAvatar.orientation;
+    this.currentPosition = MyAvatar.position;
+    this.distance = distance;
+    this.positionOffset = positionOffset;
+
+    var forward = Vec3.multiply(this.distance, Quat.getFront(this.currentOrientation));
+
+    properties.rotation = this.currentOrientation;
+    properties.position = Vec3.sum(Vec3.sum(this.currentPosition, forward), this.positionOffset);
+    this.overlayID = Overlays.addOverlay(type, properties);
+
+
+    this.distance = distance;
+
+    this.boundUpdate = this.update.bind(this);
+    Script.update.connect(this.boundUpdate);
+}
+StayInFrontOverlay.prototype = {
+    update: function(dt) {
+        print("Updating...");
+        var targetOrientation = MyAvatar.orientation;
+        var targetPosition = MyAvatar.position;
+        this.currentOrientation = Quat.slerp(this.currentOrientation, targetOrientation, 0.05);
+        this.currentPosition = Vec3.mix(this.currentPosition, targetPosition, 0.05);
+
+        var forward = Vec3.multiply(this.distance, Quat.getFront(this.currentOrientation));
+        Overlays.editOverlay(this.overlayID, {
+            position: Vec3.sum(Vec3.sum(this.currentPosition, forward), this.positionOffset),
+            rotation: this.currentOrientation,
+        });
+    },
+    destroy: function() {
+        Overlays.deleteOverlay(this.overlayID);
+        Script.update.disconnect(this.boundUpdate);
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: Orient and raise hands above head                                   //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+var stepOrient = function(name) {
+    this.tag = name;
+    this.tempTag = name + "-temporary";
+}
+stepOrient.prototype = {
+    start: function(onFinish) {
+        var tag = this.tag;
+
+        var defaultTransform = {
+            position: {
+                x: 0.2459,
+                y: 0.9011,
+                z: 0.7266
+            },
+            rotation: {
+                x: 0,
+                y: 0,
+                z: 0,
+                w: 1
+            }
+        };
+
+        this.overlay = new StayInFrontOverlay("model", {
+            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/raiseHands.fbx?11",
+            ignoreRayIntersection: true,
+        }, 2, { x: 0, y: 0.3, z: 0 });
+
+        // Spawn content set
+        //spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
+        print("raise hands...", this.tag);
+        editEntitiesWithTag(this.tag, { visible: true });
+
+
+        this.checkIntervalID = null;
+        function checkForHandsAboveHead() {
+            print("Checking for hands above head...");
+            if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
+                Script.clearInterval(this.checkIntervalID);
+                this.checkIntervalID = null;
+                playSuccessSound();
+                location = "/tutorial";
+                onFinish();
+            }
+        }
+        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
+    },
+    cleanup: function() {
+        if (this.overlay) {
+            this.overlay.destroy();
+            this.overlay = null;
+        }
+        if (this.checkIntervalID != null) {
+            Script.clearInterval(this.checkIntervalID);
+        }
+        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
+        deleteEntitiesWithTag(this.tempTag);
+    }
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -816,6 +919,7 @@ function startTutorial() {
     currentStep = null;
     STEPS = [
         new stepDisableControllers("step0"),
+        new stepOrient("orient"),
         new stepWelcome("welcome"),
         new stepRaiseAboveHead("raiseHands"),
         new stepNearGrab("nearGrab"),
@@ -828,8 +932,8 @@ function startTutorial() {
     for (var i = 0; i < STEPS.length; ++i) {
         STEPS[i].cleanup();
     }
-    //location = "/tutorial_begin";
-    location = "/tutorial";
+    location = "/tutorial_begin";
+    //location = "/tutorial";
     MyAvatar.shouldRenderLocally = false;
     startNextStep();
 }
