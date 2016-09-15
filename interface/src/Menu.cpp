@@ -511,6 +511,9 @@ Menu::Menu() {
         avatar, SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableVerticalComfortMode, 0, false,
+        avatar, SLOT(setEnableVerticalComfortMode(bool)));
+
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,

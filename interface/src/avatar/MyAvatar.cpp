@@ -422,6 +422,11 @@ void MyAvatar::simulate(float deltaTime) {
         updatePosition(deltaTime);
     }
 
+    // update sensorToWorldMatrix for camera and hand controllers
+    // before we perform rig animations and IK.
+
+    updateSensorToWorldMatrix(_enableVerticalComfortMode ? SensorToWorldUpdateMode::VerticalComfort : SensorToWorldUpdateMode::Vertical);
+
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime);
@@ -548,11 +553,23 @@ void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeV
 // best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
-void MyAvatar::updateSensorToWorldMatrix() {
-    // update the sensor mat so that the body position will end up in the desired
-    // position when driven from the head.
-    glm::mat4 bodyToWorld = createMatFromQuatAndPos(getOrientation(), getPosition());
-    setSensorToWorldMatrix(bodyToWorld * glm::inverse(_bodySensorMatrix));
+void MyAvatar::updateSensorToWorldMatrix(SensorToWorldUpdateMode mode) {
+    if (mode == SensorToWorldUpdateMode::Full) {
+        glm::mat4 bodyToWorld = createMatFromQuatAndPos(getOrientation(), getPosition());
+        setSensorToWorldMatrix(bodyToWorld * glm::inverse(_bodySensorMatrix));
+    } else if (mode == SensorToWorldUpdateMode::Vertical ||
+               mode == SensorToWorldUpdateMode::VerticalComfort) {
+        glm::mat4 bodyToWorld = createMatFromQuatAndPos(getOrientation(), getPosition());
+        glm::mat4 newSensorToWorldMat = bodyToWorld * glm::inverse(_bodySensorMatrix);
+        glm::mat4 sensorToWorldMat = _sensorToWorldMatrix;
+        sensorToWorldMat[3][1] = newSensorToWorldMat[3][1];
+        if (mode == SensorToWorldUpdateMode::VerticalComfort &&
+            fabsf(_sensorToWorldMatrix[3][1] - newSensorToWorldMat[3][1]) > 0.1f) {
+            setSensorToWorldMatrix(sensorToWorldMat);
+        } else if (mode == SensorToWorldUpdateMode::Vertical) {
+            setSensorToWorldMatrix(sensorToWorldMat);
+        }
+    }
 }
 
 void MyAvatar::setSensorToWorldMatrix(const glm::mat4& sensorToWorld) {
@@ -859,6 +876,10 @@ void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _rig->setEnableInverseKinematics(isEnabled);
+}
+
+void MyAvatar::setEnableVerticalComfortMode(bool isEnabled) {
+    _enableVerticalComfortMode = isEnabled;
 }
 
 void MyAvatar::loadData() {
@@ -1318,9 +1339,14 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.handleChangedCollisionGroup();
     _characterController.setParentVelocity(parentVelocity);
 
-    _characterController.setPositionAndOrientation(getPosition(), getOrientation());
+    glm::vec3 position = getPosition();
+    glm::quat orientation = getOrientation();
+
+    _characterController.setPositionAndOrientation(position, orientation);
     if (qApp->isHMDMode()) {
-        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix);
+        glm::mat4 bodyToWorldMatrix = createMatFromQuatAndPos(orientation, position);
+        glm::mat4 currentBodySensorMatrix = glm::inverse(_sensorToWorldMatrix) * bodyToWorldMatrix;
+        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), currentBodySensorMatrix);
     } else {
         _follow.deactivate();
         getCharacterController()->disableFollow();
@@ -1338,8 +1364,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     nextAttitude(position, orientation);
 
     // compute new _bodyToSensorMatrix
-    glm::mat4 bodyToWorldMatrix = createMatFromQuatAndPos(orientation, position);
-    _bodySensorMatrix = glm::inverse(_sensorToWorldMatrix) * bodyToWorldMatrix;
+    //_bodySensorMatrix = deriveBodyFromHMDSensor();
 
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());

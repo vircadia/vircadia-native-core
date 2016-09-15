@@ -124,7 +124,12 @@ public:
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
     // This is so the correct camera can be used for rendering.
-    void updateSensorToWorldMatrix();
+    enum class SensorToWorldUpdateMode {
+        Full = 0,
+        Vertical,
+        VerticalComfort
+    };
+    void updateSensorToWorldMatrix(SensorToWorldUpdateMode mode = SensorToWorldUpdateMode::Full);
 
     void setSensorToWorldMatrix(const glm::mat4& sensorToWorld);
 
@@ -306,6 +311,7 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
+    void setEnableVerticalComfortMode(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
     void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
@@ -477,6 +483,7 @@ private:
     bool _enableDebugDrawHandControllers { false };
     bool _enableDebugDrawSensorToWorldMatrix { false };
     bool _enableDebugDrawIKTargets { false };
+    bool _enableVerticalComfortMode { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

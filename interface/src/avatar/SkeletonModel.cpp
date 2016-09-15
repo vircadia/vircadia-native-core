@@ -25,7 +25,7 @@
 
 glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
 float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
-float TRUNCATE_IK_CAPSULE_RADIUS = 0.5f;
+float TRUNCATE_IK_CAPSULE_RADIUS = 0.25f;
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
