@@ -55,8 +55,6 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
 
-static const int DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD = 1;
-
 Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
 Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
 Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
@@ -101,8 +99,7 @@ private:
 
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
-    _gateThreshold("audioOutputGateThreshold", DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD),
-    _gate(this, _gateThreshold.get()),
+    _gate(this),
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
@@ -551,18 +548,26 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message)
     }
 }
 
-AudioClient::Gate::Gate(AudioClient* audioClient, int threshold) :
-    _audioClient(audioClient),
-    _threshold(threshold) {}
+AudioClient::Gate::Gate(AudioClient* audioClient) :
+    _audioClient(audioClient) {}
+
+void AudioClient::Gate::setIsSimulatingJitter(bool enable) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    flush();
+    _isSimulatingJitter = true;
+}
 
 void AudioClient::Gate::setThreshold(int threshold) {
+    std::lock_guard<std::mutex> lock(_mutex);
     flush();
     _threshold = std::max(threshold, 1);
 }
 
 void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
+    std::lock_guard<std::mutex> lock(_mutex);
+
     // Short-circuit for normal behavior
-    if (_threshold == 1) {
+    if (_threshold == 1 && !_isSimulatingJitter) {
         _audioClient->_receivedAudioStream.parseData(*message);
         return;
     }
@@ -570,7 +575,11 @@ void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
     _queue.push(message);
     _index++;
 
-    if (_index % _threshold == 0) {
+    if (_isSimulatingJitter) {
+        if (randFloat() < 0.6f) {
+            flush(); // 60% of the time, it works every time
+        }
+    } else if (!(_index % _threshold)) {
         flush();
     }
 }
