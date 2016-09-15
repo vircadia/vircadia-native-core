@@ -122,6 +122,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     GLObject(backend, texture, id),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
+    _internalFormat(gl::GLTexelFormat::evalGLTexelFormatInternal(texture.getTexelFormat())),
     _maxMip(texture.maxMip()),
     _minMip(texture.minMip()),
     _virtualSize(texture.evalTotalSize()),

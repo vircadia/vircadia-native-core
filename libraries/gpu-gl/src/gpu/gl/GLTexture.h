@@ -113,6 +113,7 @@ public:
     const GLuint& _texture { _id };
     const Stamp _storageStamp;
     const GLenum _target;
+    const GLenum _internalFormat;
     const uint16 _maxMip;
     uint16 _minMip;
     const GLuint _virtualSize; // theoretical size as expected

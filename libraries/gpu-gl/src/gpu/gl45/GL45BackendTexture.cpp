@@ -179,10 +179,13 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    _sparse = enableSparseTextures && _transferrable && (_target != GL_TEXTURE_CUBE_MAP);
-
-    if (_sparse) {
-        glTextureParameteri(_id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
+    if (enableSparseTextures && _transferrable && (_target != GL_TEXTURE_CUBE_MAP)) {
+        GLint pageSizesCount = 0;
+        glGetInternalformativ(_target, _internalFormat, GL_NUM_VIRTUAL_PAGE_SIZES_ARB, 1, &pageSizesCount);
+        if (pageSizesCount > 0) {
+            _sparse = true;
+            glTextureParameteri(_id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
+        }
     }
 }
 
@@ -231,15 +234,14 @@ void GL45Texture::generateMips() const {
 }
 
 void GL45Texture::allocateStorage() const {
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
-    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
-    glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
     if (_gpuObject.getTexelFormat().isCompressed()) {
         qFatal("Compressed textures not yet supported");
     }
+    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
+    glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
     // Get the dimensions, accounting for the downgrade level
     Vec3u dimensions = _gpuObject.evalMipDimensions(_minMip);
-    glTextureStorage2D(_id, usedMipLevels(), texelFormat.internalFormat, dimensions.x, dimensions.y);
+    glTextureStorage2D(_id, usedMipLevels(), _internalFormat, dimensions.x, dimensions.y);
     (void)CHECK_GL_ERROR();
 }
 
@@ -368,7 +370,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         return;
     }
 
-    if (newMinMip >= _sparseInfo._maxSparseLevel) {
+    if (newMinMip > _sparseInfo._maxSparseLevel) {
         qWarning() << "Cannot increase the min mip into the mip tail";
         return;
     }
