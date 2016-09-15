@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CharacterControllerInterface_h
-#define hifi_CharacterControllerInterface_h
+#ifndef hifi_CharacterController_h
+#define hifi_CharacterController_h
 
 #include <assert.h>
 #include <stdint.h>
@@ -22,6 +22,7 @@
 #include <PhysicsCollisionGroups.h>
 
 #include "BulletUtil.h"
+#include "CharacterGhostObject.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -95,6 +96,7 @@ public:
     glm::vec3 getLinearVelocity() const;
     glm::vec3 getVelocityChange() const;
 
+    virtual void setCapsuleRadius(float radius);
     float getCapsuleRadius() const { return _radius; }
     float getCapsuleHalfHeight() const { return _halfHeight; }
     glm::vec3 getCapsuleLocalOffset() const { return _shapeLocalOffset; }
@@ -110,10 +112,6 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
-    /*
-    bool isEnabled() const { return _enabled; }  // thread-safe
-    void setEnabled(bool enabled);
-    */
     bool isEnabledAndReady() const { return _dynamicsWorld; }
 
     void setCollisionGroup(int16_t group);
@@ -124,6 +122,7 @@ public:
 
     void setFlyingAllowed(bool value);
 
+    void setMoveKinematically(bool kinematic); // KINEMATIC_CONTROLLER_HACK
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -146,11 +145,13 @@ protected:
     };
 
     std::vector<CharacterMotor> _motors;
+    CharacterGhostObject _ghost; // KINEMATIC_CONTROLLER_HACK
     btVector3 _currentUp;
     btVector3 _targetVelocity;
     btVector3 _parentVelocity;
     btVector3 _preSimulationVelocity;
     btVector3 _velocityChange;
+    btVector3 _simpleMotorVelocity; // KINEMATIC_CONTROLLER_HACK
     btTransform _followDesiredBodyTransform;
     btTransform _characterBodyTransform;
 
@@ -188,7 +189,8 @@ protected:
     uint32_t _previousFlags { 0 };
 
     bool _flyingAllowed { true };
+    bool _moveKinematically { false }; // KINEMATIC_CONTROLLER_HACK
     int16_t _collisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 };
 
-#endif // hifi_CharacterControllerInterface_h
+#endif // hifi_CharacterController_h

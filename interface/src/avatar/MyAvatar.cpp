@@ -1354,6 +1354,8 @@ void MyAvatar::prepareForPhysicsSimulation() {
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
+    // ANDREW TODO -- measure maxHipOffsetRadius here and transmit that to Rig
+
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     if (_characterController.isEnabledAndReady()) {
@@ -1957,6 +1959,10 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+
+    // KINEMATIC_CONTROLLER_HACK
+    bool moveKinematically = menu->isOptionChecked(MenuOption::MoveKinematically);
+    _characterController.setMoveKinematically(moveKinematically);
 
     setAvatarCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }

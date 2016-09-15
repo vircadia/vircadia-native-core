@@ -506,6 +506,11 @@ Menu::Menu() {
         avatar, SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
+    // KINEMATIC_CONTROLLER_HACK
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MoveKinematically, 0, false,
+        avatar, SLOT(updateMotionBehaviorFromMenu()),
+        UNSPECIFIED_POSITION, "Developer");
+
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableVerticalComfortMode, 0, false,
         avatar, SLOT(setEnableVerticalComfortMode(bool)));
 
