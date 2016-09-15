@@ -456,7 +456,6 @@ void GL45Backend::derezTextures() const {
     qDebug() << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
     qDebug() << "Used texture memory " << Context::getTextureGPUMemoryUsage();
 
-    auto& textureMap = texturesByMipCounts;
     GL45Texture* targetTexture = nullptr;
     {
         auto& textures = texturesByMipCounts[mipLevel];
