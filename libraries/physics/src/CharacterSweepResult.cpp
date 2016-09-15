@@ -11,6 +11,8 @@
 
 #include "CharacterSweepResult.h"
 
+#include <assert.h>
+
 #include "CharacterGhostObject.h"
 
 CharacterSweepResult::CharacterSweepResult(const CharacterGhostObject* character)

@@ -1328,6 +1328,8 @@ void MyAvatar::prepareForPhysicsSimulation() {
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
+    // ANDREW TODO -- measure maxHipOffsetRadius here and transmit that to Rig
+
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     if (_characterController.isEnabledAndReady()) {

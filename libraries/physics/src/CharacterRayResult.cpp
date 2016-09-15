@@ -11,6 +11,8 @@
 
 #include "CharacterRayResult.h"
 
+#include <assert.h>
+
 #include "CharacterGhostObject.h"
 
 CharacterRayResult::CharacterRayResult (const CharacterGhostObject* character) :

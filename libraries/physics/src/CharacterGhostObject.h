@@ -12,6 +12,8 @@
 #ifndef hifi_CharacterGhostObject_h
 #define hifi_CharacterGhostObject_h
 
+#include <stdint.h>
+
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
@@ -37,7 +39,7 @@ public:
 
     const btVector3& getLinearVelocity() const { return _linearVelocity; }
 
-    void setCharacterShape(btCapsuleShape* capsule);
+    void setCharacterCapsule(btCapsuleShape* capsule);
 
     void setCollisionWorld(btCollisionWorld* world);
 

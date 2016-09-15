@@ -11,6 +11,7 @@
 
 #include "CharacterGhostObject.h"
 
+#include <stdint.h>
 #include <assert.h>
 
 #include "CharacterGhostShape.h"
@@ -55,7 +56,7 @@ void CharacterGhostObject::setMotorVelocity(const btVector3& velocity) {
 }
 
 // override of btCollisionObject::setCollisionShape()
-void CharacterGhostObject::setCharacterShape(btCapsuleShape* capsule) {
+void CharacterGhostObject::setCharacterCapsule(btCapsuleShape* capsule) {
     assert(capsule);
     // we create our own CharacterGhostShape which has a larger Aabb for more reliable sweep tests
     if (_ghostShape) {
@@ -240,7 +241,7 @@ bool CharacterGhostObject::rayTest(const btVector3& start,
         CharacterRayResult& result) const {
     if (_world && _inWorld) {
         _world->rayTest(start, end, result);
-	}
+    }
     return result.hasHit();
 }
 
