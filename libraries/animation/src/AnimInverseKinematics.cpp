@@ -535,6 +535,11 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // smooth transitions by relaxing _hipsOffset toward the new value
                 const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
+                float newOffsetLength = glm::length(newHipsOffset);
+                if (newOffsetLength > _maxHipsOffsetLength) {
+                    // clamp the hips offset
+                    newHipsOffset *= _maxHipsOffsetLength / newOffsetLength;
+                }
                 _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
             }
         }
@@ -546,6 +551,11 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
     for (auto& pair : _constraints) {
         pair.second->clearHistory();
     }
+}
+
+void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
+    assert(maxLength > 0.0f);
+    _maxHipsOffsetLength = maxLength;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {

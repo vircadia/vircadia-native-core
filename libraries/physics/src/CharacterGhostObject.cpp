@@ -29,6 +29,8 @@ CharacterGhostObject::~CharacterGhostObject() {
     }
 }
 
+const int16_t wtf = 9; // adebug wtf?
+
 void CharacterGhostObject::setCollisionGroupAndMask(int16_t group, int16_t mask) {
     _collisionFilterGroup = group;
     _collisionFilterMask = mask;
@@ -199,6 +201,24 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
     updateTraction();
 }
 
+bool CharacterGhostObject::sweepTest(
+        const btConvexShape* shape,
+        const btTransform& start,
+        const btTransform& end,
+        CharacterSweepResult& result) const {
+    if (_world && _inWorld) {
+        assert(shape);
+
+        btScalar allowedPenetration = _world->getDispatchInfo().m_allowedCcdPenetration;
+        convexSweepTest(shape, start, end, result, allowedPenetration);
+
+        if (result.hasHit()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void CharacterGhostObject::removeFromWorld() {
     if (_world && _inWorld) {
         _world->removeCollisionObject(this);
@@ -216,24 +236,6 @@ void CharacterGhostObject::addToWorld() {
         _world->addCollisionObject(this, _collisionFilterGroup, _collisionFilterMask);
         _inWorld = true;
     }
-}
-
-bool CharacterGhostObject::sweepTest(
-        const btConvexShape* shape,
-        const btTransform& start,
-        const btTransform& end,
-        CharacterSweepResult& result) const {
-    if (_world && _inWorld) {
-        assert(shape);
-
-        btScalar allowedPenetration = _world->getDispatchInfo().m_allowedCcdPenetration;
-        convexSweepTest(shape, start, end, result, allowedPenetration);
-
-        if (result.hasHit()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool CharacterGhostObject::rayTest(const btVector3& start,

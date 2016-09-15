@@ -104,6 +104,7 @@ public:
     void clearJointAnimationPriority(int index);
 
     void clearIKJointLimitHistory();
+    void setMaxHipsOffsetLength(float maxLength);
 
     // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);

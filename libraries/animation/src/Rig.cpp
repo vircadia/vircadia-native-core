@@ -310,6 +310,19 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
+void Rig::setMaxHipsOffsetLength(float maxLength) {
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            // only report clip nodes as valid roles.
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->setMaxHipsOffsetLength(maxLength);
+            }
+            return true;
+        });
+    }
+}
+
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {

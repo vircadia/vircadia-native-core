@@ -1354,7 +1354,15 @@ void MyAvatar::prepareForPhysicsSimulation() {
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
-    // ANDREW TODO -- measure maxHipOffsetRadius here and transmit that to Rig
+    // figoure out how far the hips can move before they hit something
+    int hipsJoint = getJointIndex("Hips");
+    glm::vec3 hipsPosition; // rig-frame
+    // OUTOFBODY_HACK -- hardcoded maxHipsOffsetRadius (ultimately must exceed FollowHelper lateral/forward/back walk thresholds)
+    float maxHipsOffsetRadius = 3.0f * _characterController.getCapsuleRadius();
+    if (_rig->getJointPosition(hipsJoint, hipsPosition)) {
+        maxHipsOffsetRadius = _characterController.measureMaxHipsOffsetRadius(hipsPosition, maxHipsOffsetRadius);
+    }
+    _rig->setMaxHipsOffsetLength(maxHipsOffsetRadius);
 
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
