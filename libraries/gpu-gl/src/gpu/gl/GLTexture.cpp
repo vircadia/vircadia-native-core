@@ -93,6 +93,7 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
 }
 
 #define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
+
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
@@ -107,8 +108,10 @@ float GLTexture::getMemoryPressure() {
         } else {
             // Check the global free GPU memory
             auto freeGpuMemory = getFreeDedicatedMemory();
-            if (freeGpuMemory) {
-                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
+            static gpu::Size lastFreeGpuMemory = 0;
+            auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
+            if (freeGpuMemory != lastFreeGpuMemory) {
+                lastFreeGpuMemory = freeGpuMemory;
                 if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
                     qDebug() << "Exceeded max GPU memory";
                     return 2.0;
