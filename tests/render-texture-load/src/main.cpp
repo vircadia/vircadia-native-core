@@ -475,7 +475,7 @@ protected:
     }
 
     void loadAll() {
-        for (auto i = 0; i < _texturesFiles.size(); ++i) {
+        for (size_t i = 0; i < _texturesFiles.size(); ++i) {
             if (_textures[i]) {
                 continue;
             }
@@ -534,6 +534,7 @@ private:
         auto now = usecTimestampNow();
         static auto last = now;
         auto delta = (now - last) / USECS_PER_MSEC;
+        Q_UNUSED(delta);
 #if 0
         if (!_textures.empty()) {
             const auto& front = _textureLoads.front();

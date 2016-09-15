@@ -204,7 +204,6 @@ GL45Texture::~GL45Texture() {
             }
         }
 
-        auto originalAllocatedPages = _allocatedPages;
         auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
         uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
         for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
@@ -216,10 +215,9 @@ GL45Texture::~GL45Texture() {
                 _allocatedPages -= deallocatedPages;
             }
         }
+
         if (0 != _allocatedPages) {
-            auto maxSize = _gpuObject.evalMipDimensions(0);
-            qDebug() << "Allocated pages remaining " << _id << " " << _allocatedPages;
-            qDebug() << originalAllocatedPages;
+            qWarning() << "Allocated pages remaining " << _id << " " << _allocatedPages;
         }
     }
 }
@@ -424,7 +422,6 @@ void GL45Texture::updateMips() {
     if (!_sparse) {
         return;
     }
-    bool modified = false;
     auto newMinMip = std::min<uint16_t>(_gpuObject.minMip(), _sparseInfo._maxSparseLevel);
     if (_minMip < newMinMip) {
         stripToMip(newMinMip);
@@ -443,8 +440,6 @@ void GL45Backend::derezTextures() const {
     if (GLTexture::getMemoryPressure() < 1.0f) {
         return;
     }
-    qDebug() << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
-    qDebug() << "Used texture memory " << Context::getTextureGPUMemoryUsage();
 
     Lock lock(texturesByMipCountsMutex);
     if (texturesByMipCounts.empty()) {
@@ -458,9 +453,10 @@ void GL45Backend::derezTextures() const {
         return;
     }
 
+    qDebug() << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
+    qDebug() << "Used texture memory " << Context::getTextureGPUMemoryUsage();
+
     auto& textureMap = texturesByMipCounts;
-    auto newMipLevel = mipLevel - 1;
-    qDebug() << "Derez a texture";
     GL45Texture* targetTexture = nullptr;
     {
         auto& textures = texturesByMipCounts[mipLevel];
