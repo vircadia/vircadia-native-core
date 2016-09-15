@@ -37,7 +37,7 @@ void MyCharacterController::updateShapeIfNecessary() {
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
         float z = _boxScale.z;
-        _radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
+        setCapsuleRadius(0.5f * sqrtf(0.5f * (x * x + z * z)));
         _halfHeight = 0.5f * _boxScale.y - _radius;
         float MIN_HALF_HEIGHT = 0.1f;
         if (_halfHeight < MIN_HALF_HEIGHT) {
@@ -74,7 +74,13 @@ void MyCharacterController::updateShapeIfNecessary() {
             } else {
                 _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
             }
-            //_rigidBody->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+            // KINEMATIC_CONTROLLER_HACK
+            if (_moveKinematically) {
+                _rigidBody->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+            } else {
+                _rigidBody->setCollisionFlags(_rigidBody->getCollisionFlags() &
+                        ~(btCollisionObject::CF_KINEMATIC_OBJECT | btCollisionObject::CF_STATIC_OBJECT));
+            }
         } else {
             // TODO: handle this failure case
         }
