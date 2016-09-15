@@ -133,8 +133,6 @@ uvec3 SparseInfo::getPageCounts(const uvec3& dimensions) const {
     auto result = (dimensions / _pageDimensions) +
         glm::clamp(dimensions % _pageDimensions, glm::uvec3(0), glm::uvec3(1));
     return result;
-
-
 }
 
 uint32_t SparseInfo::getPageCount(const uvec3& dimensions) const {
@@ -323,17 +321,13 @@ bool GL45Texture::continueTransfer() {
     if (buffer.empty()) {
         buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);
     }
-    uvec3 pageSize = _transferState.currentPageSize();
-    uvec3 offset = _transferState._mipOffset;
+    const uvec3 pageSize = _transferState.currentPageSize();
+    const uvec3& offset = _transferState._mipOffset;
 
-    // FIXME we should be using the DSA for all of this
     if (_sparseInfo._sparse && _transferState._mipLevel <= _sparseInfo._maxSparseLevel) {
         if (_allocatedPages > _sparseInfo._maxPages) {
-            qDebug() << "Exceeded max page allocation!";
+            qWarning() << "Exceeded max page allocation!";
         }
-        //glBindTexture(_target, _id);
-        // FIXME we should be using glTexturePageCommitmentEXT, but for some reason it causes out of memory errors.
-        // Either I'm not understanding how it should work or there's a driver bug.
         glTexturePageCommitmentEXT(_id, _transferState._mipLevel,
             offset.x, offset.y, _transferState._face,
             pageSize.x, pageSize.y, pageSize.z,
