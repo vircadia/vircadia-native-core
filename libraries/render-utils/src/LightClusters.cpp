@@ -46,15 +46,26 @@ void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& z
     yPlanes.resize(dims.y + 1);
     zPlanes.resize(dims.z + 1);
 
+    float centerY = float(dims.y) * 0.5;
+    float centerX = float(dims.x) * 0.5;
 
-    for (int z = 0; z < xPlanes.size(); z++) {
+    for (int z = 0; z < zPlanes.size(); z++) {
         ivec3 pos(0, 0, z);
         zPlanes[z] = glm::vec4(0.0f, 0.0f, -1.0f, frustumGrid_clusterPosToEye(pos, vec3(0.0)).z);
     }
 
     for (int x = 0; x < xPlanes.size(); x++) {
-
+        auto slicePos = frustumGrid_clusterPosToEye(glm::vec3((float)x, centerY, 0.0));
+        auto sliceDir = glm::normalize(slicePos);
+        xPlanes[x] = glm::vec4(sliceDir.z, 0.0, -sliceDir.x, 0.0);
     }
+
+    for (int y = 0; y < yPlanes.size(); y++) {
+        auto slicePos = frustumGrid_clusterPosToEye(glm::vec3(centerX, (float)y, 0.0));
+        auto sliceDir = glm::normalize(slicePos);
+        yPlanes[y] = glm::vec4(0.0, sliceDir.z, -sliceDir.x, 0.0);
+    }
+
 }
 
 #include "DeferredLightingEffect.h"
@@ -144,14 +155,42 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
     _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
 
+glm::vec4 projectToPlane(glm::vec4& sphere, const glm::vec4& plane) {
+    float distance = sphere.x * plane.x + sphere.y *plane.y + sphere.z * plane.z + plane.w;
+
+    if (distance < sphere.w) {
+        return glm::vec4(sphere.x - distance * plane.x, sphere.y - distance * plane.y, sphere.z - distance * plane.z, sqrt(sphere.w * sphere.w - distance * distance));
+    } else {
+        return sphere;
+    }
+}
+
 bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
     uint32_t& numClustersTouched, uint32_t maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
     glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
 
+    int center_z = (zMax + zMin) >> 1;
+    int center_y = (yMax + yMin) >> 1;
     bool hasBudget = true;
     for (auto z = zMin; (z <= zMax) && hasBudget; z++) {
+        auto zSphere = eyePosRadius;
+        if (z != center_z) {
+            auto& plane = (z < center_z) ? planes[2][z + 1] : -planes[2][z];
+            zSphere = projectToPlane(zSphere, plane);
+        }
         for (auto y = yMin; (y <= yMax) && hasBudget; y++) {
-            for (auto x = xMin; (x <= xMax) && hasBudget; x++) {
+            auto ySphere = zSphere;
+            if (y != center_y) {
+                auto& plane = (y < center_y) ? planes[1][y + 1] : -planes[1][y];
+                ySphere = projectToPlane(ySphere, plane);
+            }
+
+            auto x = xMin;
+            do { ++x; } while ((x < xMax) && (glm::dot(planes[0][x], glm::vec4(ySphere.x, ySphere.y, ySphere.z, 1.0)) >= ySphere.w));
+            auto xs = xMax;
+            do { --xs; } while ((xs >= x) && (-glm::dot(planes[0][xs], glm::vec4(ySphere.x, ySphere.y, ySphere.z, 1.0)) >= ySphere.w));
+
+            for (--x; (x <= xs) && hasBudget; x++) {
                 auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
                 clusterGrid[index].emplace_back(lightId);
                 numClustersTouched++;
@@ -281,7 +320,21 @@ void LightClusters::updateClusters() {
         }
 
         // now voxelize
-        bool hasBudget = scanLightVolume(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
+       // bool hasBudget = scanLightVolume(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
+
+        bool hasBudget = true;
+        for (auto z = zMin; (z <= zMax) && hasBudget; z++) {
+            for (auto y = yMin; (y <= yMax) && hasBudget; y++) {
+                for (auto x = xMin; (x <= xMax) && hasBudget; x++) {
+                    auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
+                    clusterGrid[index].emplace_back(lightId);
+                    numClusterTouched++;
+                    if (numClusterTouched >= maxNumIndices) {
+                        hasBudget = false;
+                    }
+                }
+            }
+        }
 
         if (!hasBudget) {
             break;

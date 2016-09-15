@@ -68,9 +68,9 @@ int frustumGrid_numClusters() {
     return frustumGrid.dims.x * frustumGrid.dims.y * (frustumGrid.dims.z + 1);
 }
 
-vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
+vec3 frustumGrid_clusterPosToEye(vec3 clusterPos) {
 
-    vec3 cvpos = vec3(clusterPos) + offset;
+    vec3 cvpos = clusterPos;
 
 
     vec3 volumePos = frustumGrid_gridToVolume(cvpos, frustumGrid.dims);
@@ -80,6 +80,10 @@ vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
     return eyePos;
 }
 
+vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
+    vec3 cvpos = vec3(clusterPos) + offset;
+    return frustumGrid_clusterPosToEye(cvpos);
+}
 
 int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
     if ((eyeZ > -frustumGrid.frustumNear) || (eyeZ < -frustumGrid.frustumFar)) {
