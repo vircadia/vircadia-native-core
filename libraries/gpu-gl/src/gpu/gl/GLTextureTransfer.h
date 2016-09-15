@@ -18,7 +18,7 @@
 #include "GLShared.h"
 
 #ifdef Q_OS_WIN
-//#define THREADED_TEXTURE_TRANSFER
+#define THREADED_TEXTURE_TRANSFER
 #endif
 
 namespace gpu { namespace gl {

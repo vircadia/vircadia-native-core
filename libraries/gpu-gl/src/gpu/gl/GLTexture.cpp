@@ -108,13 +108,15 @@ float GLTexture::getMemoryPressure() {
         } else {
             // Check the global free GPU memory
             auto freeGpuMemory = getFreeDedicatedMemory();
-            static gpu::Size lastFreeGpuMemory = 0;
-            auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
-            if (freeGpuMemory != lastFreeGpuMemory) {
-                lastFreeGpuMemory = freeGpuMemory;
-                if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
-                    qDebug() << "Exceeded max GPU memory";
-                    return 2.0;
+            if (freeGpuMemory) {
+                static gpu::Size lastFreeGpuMemory = 0;
+                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
+                if (freeGpuMemory != lastFreeGpuMemory) {
+                    lastFreeGpuMemory = freeGpuMemory;
+                    if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
+                        qDebug() << "Exceeded max GPU memory";
+                        return 2.0;
+                    }
                 }
             }
         }
