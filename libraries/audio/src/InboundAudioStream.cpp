@@ -420,7 +420,7 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
-    const quint32 NUM_INITIAL_PACKETS_DISCARD = 3;
+    const quint32 NUM_INITIAL_PACKETS_DISCARD = 1000; // 10s
     quint64 now = usecTimestampNow();
     if (_incomingSequenceNumberStats.getReceived() > NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastPacketReceivedTime;
