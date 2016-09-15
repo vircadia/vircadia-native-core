@@ -39,6 +39,10 @@ static GLBackend* INSTANCE{ nullptr };
 static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 BackendPointer GLBackend::createBackend() {
+    // The ATI memory info extension only exposes 'free memory' so we want to force it to 
+    // cache the value as early as possible
+    getDedicatedMemory();
+
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();

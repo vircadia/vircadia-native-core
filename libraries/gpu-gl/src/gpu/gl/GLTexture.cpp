@@ -92,6 +92,7 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
+#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
@@ -100,10 +101,19 @@ float GLTexture::getMemoryPressure() {
     if (!availableTextureMemory) {
         auto totalGpuMemory = getDedicatedMemory();
 
-        // If no limit has been explicitly set, and the dedicated memory can't be determined, 
-        // just use a fallback fixed value of 256 MB
         if (!totalGpuMemory) {
+            // If we can't query the dedicated memory just use a fallback fixed value of 256 MB
             totalGpuMemory = MB_TO_BYTES(DEFAULT_MAX_MEMORY_MB);
+        } else {
+            // Check the global free GPU memory
+            auto freeGpuMemory = getFreeDedicatedMemory();
+            if (freeGpuMemory) {
+                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
+                if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
+                    qDebug() << "Exceeded max GPU memory";
+                    return 2.0;
+                }
+            }
         }
 
         // Allow 75% of all available GPU memory to be consumed by textures
