@@ -30,6 +30,7 @@ Script.include("entityData.js");
 
 Script.include("viveHandsv2.js");
 Script.include("lighter/createButaneLighter.js");
+Script.include('ownershipToken.js');
 
 var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
 var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
@@ -146,19 +147,19 @@ function spawnWithTag(entityData, transform, tag) {
 }
 
 function deleteEntitiesWithTag(tag) {
-        print("searching for...:", tag);
+    print("searching for...:", tag);
     var entityIDs = findEntitiesWithTag(tag);
     for (var i = 0; i < entityIDs.length; ++i) {
-        print("Deleteing:", entityIDs[i]);
+        //print("Deleteing:", entityIDs[i]);
         Entities.deleteEntity(entityIDs[i]);
     }
 }
 function editEntitiesWithTag(tag, propertiesOrFn) {
-    print("Editing:", tag);
+    //print("Editing:", tag);
     var entityIDs = findEntitiesWithTag(tag);
-    print("Editing...", entityIDs);
+    //print("Editing...", entityIDs);
     for (var i = 0; i < entityIDs.length; ++i) {
-        print("Editing...", entityIDs[i]);
+        //print("Editing...", entityIDs[i]);
         if (isFunction(propertiesOrFn)) {
             Entities.editEntity(entityIDs[i], propertiesOrFn(entityIDs[i]));
         } else {
@@ -318,11 +319,11 @@ stepOrient.prototype = {
             }
         };
 
-        this.overlay = new StayInFrontOverlay("model", {
-            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/welcome.fbx?11",
-            ignoreRayIntersection: true,
-            visible: false
-        }, 1.5, { x: 0, y: 0.3, z: 0 });
+        // this.overlay = new StayInFrontOverlay("model", {
+        //     url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/welcome.fbx?11",
+        //     ignoreRayIntersection: true,
+        //     visible: false
+        // }, 1.5, { x: 0, y: 0.3, z: 0 });
 
         // Spawn content set
         //spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
@@ -952,105 +953,115 @@ function hideEntitiesWithTag(tag) {
     });
 }
 
-var STEPS;
 
-var currentStepNum = -1;
-var currentStep = null;
-function startTutorial() {
-    currentStepNum = -1;
-    currentStep = null;
-    STEPS = [
-        new stepDisableControllers("step0"),
-        new stepOrient("orient"),
-        //new stepWelcome("welcome"),
-        new stepRaiseAboveHead("raiseHands"),
-        new stepNearGrab("nearGrab"),
-        new stepFarGrab("farGrab"),
-        new stepEquip("equip"),
-        new stepTurnAround("turnAround"),
-        new stepTeleport("teleport"),
-        new stepFinish("finish"),
-    ];
-    for (var i = 0; i < STEPS.length; ++i) {
-        STEPS[i].cleanup();
-    }
-    location = "/tutorial_begin";
-    //location = "/tutorial";
-    MyAvatar.shouldRenderLocally = false;
-    startNextStep();
-}
+TutorialManager = function() {
+    var STEPS;
 
-function startNextStep() {
-    if (currentStep) {
-        currentStep.cleanup();
-    }
+    var currentStepNum = -1;
+    var currentStep = null;
 
-    ++currentStepNum;
-
-    if (currentStepNum >= STEPS.length) {
-        // Done
-        print("DONE WITH TUTORIAL");
+    this.startTutorial = function() {
         currentStepNum = -1;
         currentStep = null;
-        return false;
-    } else {
-        print("Starting step", currentStepNum);
-        currentStep = STEPS[currentStepNum];
-        currentStep.start(startNextStep);
-        return true;
+        STEPS = [
+            new stepDisableControllers("step0"),
+            new stepOrient("orient"),
+            //new stepWelcome("welcome"),
+            new stepRaiseAboveHead("raiseHands"),
+            new stepNearGrab("nearGrab"),
+            new stepFarGrab("farGrab"),
+            new stepEquip("equip"),
+            new stepTurnAround("turnAround"),
+            new stepTeleport("teleport"),
+            new stepFinish("finish"),
+        ];
+        for (var i = 0; i < STEPS.length; ++i) {
+            STEPS[i].cleanup();
+        }
+        location = "/tutorial_begin";
+        //location = "/tutorial";
+        MyAvatar.shouldRenderLocally = false;
+        this.startNextStep();
+    }
+
+    this.startNextStep = function() {
+        if (currentStep) {
+            currentStep.cleanup();
+        }
+
+        ++currentStepNum;
+
+        if (currentStepNum >= STEPS.length) {
+            // Done
+            print("DONE WITH TUTORIAL");
+            currentStepNum = -1;
+            currentStep = null;
+            return false;
+        } else {
+            print("Starting step", currentStepNum);
+            currentStep = STEPS[currentStepNum];
+            currentStep.start(this.startNextStep);
+            return true;
+        }
+    }.bind(this);
+    this.restartStep = function() {
+        if (currentStep) {
+            currentStep.cleanup();
+            currentStep.start(this.startNextStep);
+        }
+    }
+
+    this.stopTutorial = function() {
+        if (currentStep) {
+            currentStep.cleanup();
+        }
+        currentStepNum = -1;
+        currentStep = null;
     }
 }
-function restartStep() {
-    if (currentStep) {
-        currentStep.cleanup();
-        currentStep.start(startNextStep);
-    }
-}
-
-function skipTutorial() {
-}
-
-function stopTutorial() {
-    if (currentStep) {
-        currentStep.cleanup();
-    }
-    currentStepNum = -1;
-    currentStep = null;
-}
-
-startTutorial();
 
 Script.scriptEnding.connect(function() {
     Controller.enableMapping('handControllerPointer-click');
 });
 Controller.disableMapping('handControllerPointer-click');
 
-//mapping.from([Controller.Standard.RY]).to(noop);
-        //{ "from": "Vive.LeftApplicationMenu", "to": "Standard.LeftSecondaryThumb" },
-//mapping.from([Controller.Standard.RY]).when("Controller.Application.Grounded").to(noop);
-//mapping.from([Controller.Standard.RY]).when(Controller.Application.Grounded).to(noop);
+// var entityID = '{be3d10a3-262a-4827-b30c-ec025c4325dc}';
+// var token = new OwnershipToken(Math.random() * 100000, entityID, {
+//     onGainedOwnership: function(token) {
+//         //Script.setTimeout(function() { token.destroy() }, 15000);
+//         Controller.keyReleaseEvent.connect(keyReleaseHandler);
+//         startTutorial();
+//     },
+//     onLostOwnership: function(token) {
+//         Controller.keyReleaseEvent.disconnect(keyReleaseHandler);
+//         stopTutorial();
+//     }
+// });
 
-
-Script.scriptEnding.connect(stopTutorial);
-
-
-
-Controller.keyReleaseEvent.connect(function (event) {
-    print(event.text);
-    if (event.text == ",") {
-        if (!startNextStep()) {
-            startTutorial();
-        }
-    } else if (event.text == "F11") {
-        restartStep();
-    } else if (event.text == "F10") {
-        MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
-    } else if (event.text == "r") {
-        stopTutorial();
-        startTutorial();
-    }
+//tutorialManager = new TutorialManager();
+//tutorialManager.startTutorial();
+//Controller.keyReleaseEvent.connect(keyReleaseHandler);
+Script.scriptEnding.connect(function() {
+    //token.destroy();
+    //stopTutorial();
 });
 
+// function keyReleaseHandler(event) {
+//     print(event.text);
+//     if (event.text == ",") {
+//         if (!tutorialManager.startNextStep()) {
+//             tutorialManager.startTutorial();
+//         }
+//     } else if (event.text == "F11") {
+//         tutorialManager.restartStep();
+//     } else if (event.text == "F10") {
+//         MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
+//     } else if (event.text == "r") {
+//         tutorialManager.stopTutorial();
+//         tutorialManager.startTutorial();
+//     }
+// }
+//
 // Messages.sendLocalMessage('Controller-Display', JSON.stringify({
 //     name: "menu",
 //     visible: false,
