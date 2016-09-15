@@ -145,7 +145,7 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
 }
 
 bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
-    uint32_t& numClustersTouched, int maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
+    uint32_t& numClustersTouched, uint32_t maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
     glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
 
     bool hasBudget = true;
