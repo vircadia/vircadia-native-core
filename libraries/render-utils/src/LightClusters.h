@@ -50,7 +50,12 @@ public:
 #define frustumGrid (*this)
 #include "LightClusterGrid_shared.slh"
 
+
+    using Planes = std::vector < glm::vec4 >;
+    void generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& zPlanes);
 };
+
+
 
 class LightClusters {
 public:
@@ -78,6 +83,8 @@ public:
 
     gpu::StructBuffer<FrustumGrid> _frustumGridBuffer;
 
+    FrustumGrid::Planes _gridPlanes[3];
+
     LightStage::LightIndices _visibleLightIndices;
     gpu::BufferView _lightIndicesBuffer;
 
@@ -90,6 +97,9 @@ public:
     std::vector<LightID> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
+
+
+
 };
 
 using LightClustersPointer = std::shared_ptr<LightClusters>;

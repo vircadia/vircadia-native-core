@@ -40,6 +40,23 @@ enum LightClusterGridShader_BufferSlot {
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
 };
 
+
+void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& zPlanes) {
+    xPlanes.resize(dims.x + 1);
+    yPlanes.resize(dims.y + 1);
+    zPlanes.resize(dims.z + 1);
+
+
+    for (int z = 0; z < xPlanes.size(); z++) {
+        ivec3 pos(0, 0, z);
+        zPlanes[z] = glm::vec4(0.0f, 0.0f, -1.0f, frustumGrid_clusterPosToEye(pos, vec3(0.0)).z);
+    }
+
+    for (int x = 0; x < xPlanes.size(); x++) {
+
+    }
+}
+
 #include "DeferredLightingEffect.h"
 
 const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 16, 16, 15, 16384 };
@@ -49,7 +66,9 @@ LightClusters::LightClusters() :
     _lightIndicesBuffer(std::make_shared<gpu::Buffer>()),
     _clusterGridBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32),
     _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32) {
-    setDimensions(_frustumGridBuffer->dims, MAX_GRID_DIMENSIONS.w);
+    auto dims = _frustumGridBuffer.edit().dims;
+    _frustumGridBuffer.edit().dims = ivec3(0); // make sure we go through the full reset of the dimensionts ion the setDImensions call
+    setDimensions(dims, MAX_GRID_DIMENSIONS.w);
 }
 
 void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
@@ -63,6 +82,7 @@ void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
     auto& dims = _frustumGridBuffer->dims;
     if ((dims.x != configDimensions.x) || (dims.y != configDimensions.y) || (dims.z != configDimensions.z)) {
         _frustumGridBuffer.edit().dims = configDimensions;
+        _frustumGridBuffer.edit().generateGridPlanes(_gridPlanes[0], _gridPlanes[1], _gridPlanes[2]);
     }
 
     auto numClusters = _frustumGridBuffer.edit().frustumGrid_numClusters();
@@ -124,7 +144,7 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
     _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
 
-bool scanLightVolume(FrustumGrid& grid, int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
+bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
     uint32_t& numClustersTouched, int maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
     glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
 
@@ -261,7 +281,7 @@ void LightClusters::updateClusters() {
         }
 
         // now voxelize
-        bool hasBudget = scanLightVolume(theFrustumGrid, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
+        bool hasBudget = scanLightVolume(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
 
         if (!hasBudget) {
             break;

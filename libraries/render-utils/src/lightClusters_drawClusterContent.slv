@@ -1,4 +1,4 @@
-<@include gpu / Config.slh@>
+<@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
@@ -12,12 +12,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu / Transform.slh@>
+<@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
 <@include LightClusterGrid.slh@>
 
-<@include gpu / Color.slh@>
+<@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
 
