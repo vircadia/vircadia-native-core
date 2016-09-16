@@ -710,8 +710,8 @@ stepEquip.prototype = {
 
         if (channel == "Tutorial-Spinner") {
             if (this.currentPart == this.PART1 && message == "wasLit") {
+                this.currentPart = this.PART2;
                 Script.setTimeout(function() {
-                    this.currentPart = this.PART2;
                     hideEntitiesWithTag(this.tagPart1);
                     showEntitiesWithTag(this.tagPart2);
                     setControllerPartLayer('tips', 'grip');
@@ -724,9 +724,9 @@ stepEquip.prototype = {
                 if (data.action == 'release' && data.grabbedEntity == this.gunID) {
                     print("got release");
                     this.stopWatchingGun();
+                    this.currentPart = this.COMPLETE;
                     playSuccessSound();
                     Script.setTimeout(this.onFinish.bind(this), 1500);
-                    this.currentPart = this.COMPLETE;
                 }
             }
         }
