@@ -35,7 +35,7 @@
                 var props = childrenProps[childEntityID];
                 if (props.type == "ParticleEffect") {
                     Entities.editEntity(childEntityID, {
-                        emitRate: 140,
+                        emitRate: 35,
                     });
                 }
             }

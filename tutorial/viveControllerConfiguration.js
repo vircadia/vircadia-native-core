@@ -246,7 +246,7 @@ VIVE_CONTROLLER_CONFIGURATION = {
 
                     textureName: "Tex.Blank",
 
-                    defaultTextureLayer: "trigger",
+                    defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
                             defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Blank.png",
