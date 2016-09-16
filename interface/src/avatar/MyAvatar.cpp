@@ -1300,12 +1300,18 @@ void MyAvatar::updateMotors() {
         }
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
-        if (_isPushing || _isBraking || !_isBeingPushed) {
-            _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+
+        if (!qApp->isHMDMode()) {
+            // OUTOFBODY_HACK: add default zero velocity motor to the characterController
+            _characterController.addMotor(glm::vec3(), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
         } else {
-            // _isBeingPushed must be true --> disable action motor by giving it a long timescale,
-            // otherwise it's attempt to "stand in in place" could defeat scripted motor/thrusts
-            _characterController.addMotor(_actionMotorVelocity, motorRotation, INVALID_MOTOR_TIMESCALE);
+            if (_isPushing || _isBraking || !_isBeingPushed) {
+                _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            } else {
+                // _isBeingPushed must be true --> disable action motor by giving it a long timescale,
+                // otherwise it's attempt to "stand in in place" could defeat scripted motor/thrusts
+                _characterController.addMotor(_actionMotorVelocity, motorRotation, INVALID_MOTOR_TIMESCALE);
+            }
         }
     }
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
@@ -1692,11 +1698,20 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
 
     // update body orientation by movement inputs
-    setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+    glm::quat deltaRotation = glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f)));
+    setOrientation(getOrientation() * deltaRotation);
 
     getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
 
     if (qApp->isHMDMode()) {
+
+        // rotate the sensorToWorldMatrix about the HMD!
+        glm::vec3 hmdOffset = extractTranslation(getHMDSensorMatrix());
+        _sensorToWorldMatrix = (_sensorToWorldMatrix *
+                                createMatFromQuatAndPos(glm::quat(), hmdOffset) *
+                                createMatFromQuatAndPos(deltaRotation, glm::vec3()) *
+                                createMatFromQuatAndPos(glm::quat(), -hmdOffset));
+
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
@@ -1713,65 +1728,93 @@ void MyAvatar::updateOrientation(float deltaTime) {
 }
 
 void MyAvatar::updateActionMotor(float deltaTime) {
-    bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
-    bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
-        && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
-    _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
-    if (_isPushing || _isBeingPushed) {
-        // we don't want the motor to brake if a script is pushing the avatar around
-        // (we assume the avatar is driving itself via script)
-        _isBraking = false;
-    } else {
-        float speed = glm::length(_actionMotorVelocity);
-        const float MIN_ACTION_BRAKE_SPEED = 0.1f;
-        _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
-    }
 
-    // compute action input
-    glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
-    glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+    if (qApp->isHMDMode()) {
+        // actions are constant velocity, for your comfort
+        // OUTOFBODY_HACK TODO: what about flying?!?!
 
-    glm::vec3 direction = front + right;
-    CharacterController::State state = _characterController.getState();
-    if (state == CharacterController::State::Hover) {
-        // we're flying --> support vertical motion
-        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
-        direction += up;
-    }
+        // compute action input
+        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+        glm::vec3 direction = front + right;
 
-    _wasPushing = _isPushing;
-    float directionLength = glm::length(direction);
-    _isPushing = directionLength > EPSILON;
+        _isPushing = false;
+        _isBeingPushed = false;
 
-    // normalize direction
-    if (_isPushing) {
-        direction /= directionLength;
-    } else {
-        direction = Vectors::ZERO;
-    }
+        _wasPushing = _isPushing;
+        float directionLength = glm::length(direction);
+        _isPushing = directionLength > EPSILON;
 
-    if (state == CharacterController::State::Hover) {
-        // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
-        float motorSpeed = glm::length(_actionMotorVelocity);
-        float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
-        float speedGrowthTimescale  = 2.0f;
-        float speedIncreaseFactor = 1.8f;
-        motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-        const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
-
+        // normalize direction
         if (_isPushing) {
-            if (motorSpeed < maxBoostSpeed) {
-                // an active action motor should never be slower than this
-                float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
-                motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
-            } else if (motorSpeed > finalMaxMotorSpeed) {
-                motorSpeed = finalMaxMotorSpeed;
-            }
+            direction /= directionLength;
+        } else {
+            direction = Vectors::ZERO;
         }
-        _actionMotorVelocity = motorSpeed * direction;
-    } else {
-        // we're interacting with a floor --> simple horizontal speed and exponential decay
+
         _actionMotorVelocity = MAX_WALKING_SPEED * direction;
+
+    } else {
+        bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
+        bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
+            && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
+        _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
+        if (_isPushing || _isBeingPushed) {
+            // we don't want the motor to brake if a script is pushing the avatar around
+            // (we assume the avatar is driving itself via script)
+            _isBraking = false;
+        } else {
+            float speed = glm::length(_actionMotorVelocity);
+            const float MIN_ACTION_BRAKE_SPEED = 0.1f;
+            _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
+        }
+
+        // compute action input
+        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+
+        glm::vec3 direction = front + right;
+        CharacterController::State state = _characterController.getState();
+        if (state == CharacterController::State::Hover) {
+            // we're flying --> support vertical motion
+            glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
+            direction += up;
+        }
+
+        _wasPushing = _isPushing;
+        float directionLength = glm::length(direction);
+        _isPushing = directionLength > EPSILON;
+
+        // normalize direction
+        if (_isPushing) {
+            direction /= directionLength;
+        } else {
+            direction = Vectors::ZERO;
+        }
+
+        if (state == CharacterController::State::Hover) {
+            // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
+            float motorSpeed = glm::length(_actionMotorVelocity);
+            float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
+            float speedGrowthTimescale  = 2.0f;
+            float speedIncreaseFactor = 1.8f;
+            motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
+            const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+
+            if (_isPushing) {
+                if (motorSpeed < maxBoostSpeed) {
+                    // an active action motor should never be slower than this
+                    float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
+                    motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
+                } else if (motorSpeed > finalMaxMotorSpeed) {
+                    motorSpeed = finalMaxMotorSpeed;
+                }
+            }
+            _actionMotorVelocity = motorSpeed * direction;
+        } else {
+            // we're interacting with a floor --> simple horizontal speed and exponential decay
+            _actionMotorVelocity = MAX_WALKING_SPEED * direction;
+        }
     }
 
     float boomChange = _driveKeys[ZOOM];
@@ -1799,9 +1842,23 @@ void MyAvatar::updatePosition(float deltaTime) {
         measureMotionDerivatives(deltaTime);
         _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
     } else {
-        // physics physics simulation updated elsewhere
         float speed2 = glm::length2(velocity);
         _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+
+        // OUTOFBODY_HACK, apply _actionMotorVelocity directly to the sensorToWorld matrix!
+        glm::quat motorRotation;
+        glm::quat liftRotation;
+        swingTwistDecomposition(glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix()), _worldUpDirection, liftRotation, motorRotation);
+
+        if (qApp->isHMDMode()) {
+            float speed2 = glm::length2(_actionMotorVelocity);
+            if (speed2 > MIN_AVATAR_SPEED_SQUARED) {
+                glm::vec3 worldVelocity = motorRotation * _actionMotorVelocity;
+                // update sensor to world position ourselves
+                glm::vec3 position = extractTranslation(_sensorToWorldMatrix) + deltaTime * worldVelocity;
+                _sensorToWorldMatrix[3] = glm::vec4(position, 1);
+            }
+        }
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
