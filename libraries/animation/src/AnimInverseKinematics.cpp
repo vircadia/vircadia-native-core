@@ -244,6 +244,11 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // the tip's parent-relative as we proceed up the chain
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot;
 
+    /* OUTOFBODY_HACK -- experimental override target type when HmdHead pushes outside hipsOffset limit
+    if (targetType == IKTarget::Type::HmdHead && _hipsAreOver) {
+        targetType = IKTarget::Type::RotationAndPosition;
+    }
+    */
     if (targetType == IKTarget::Type::HmdHead) {
         // rotate tip directly to target orientation
         tipOrientation = target.getRotation();
@@ -525,17 +530,19 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                             newHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (actual - under);
                             totalWeight += OTHER_WEIGHT;
                         } else if (target.getType() == IKTarget::Type::HmdHead) {
-                            /* OUTOFBODY_HACK: keep this old code to remind us of what changed
-                            // we want to shift the hips to bring the head to its designated position
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
-                            _hipsOffset += target.getTranslation() - actual;
-                            // and ignore all other targets
-                            newHipsOffset = _hipsOffset;
-                            break;
-                            */
-                            glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
-                            newHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
-                            totalWeight += HMD_WEIGHT;
+                            glm::vec3 thisOffset = target.getTranslation() - actual;
+                            glm::vec3 futureHipsOffset = _hipsOffset + thisOffset;
+                            if (glm::length(futureHipsOffset) < _maxHipsOffsetLength) {
+                                // it is imperative to shift the hips and bring the head to its designated position
+                                // so we slam newHipsOffset here and ignore all other targets
+                                newHipsOffset = futureHipsOffset;
+                                totalWeight = 0.0f;
+                                break;
+                            } else {
+                                newHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
+                                totalWeight += HMD_WEIGHT;
+                            }
                         }
                     } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                         glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans;
@@ -544,13 +551,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         totalWeight += OTHER_WEIGHT;
                     }
                 }
-                if (totalWeight == 0.0f) {
-                    totalWeight = 1.0f;
+                if (totalWeight > 1.0f) {
+                    newHipsOffset /= totalWeight;
                 }
-                newHipsOffset /= totalWeight;
 
                 // smooth transitions by relaxing _hipsOffset toward the new value
-                const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
+                const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
                 float newOffsetLength = glm::length(newHipsOffset);
                 if (newOffsetLength > _maxHipsOffsetLength) {
@@ -558,6 +564,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     newHipsOffset *= _maxHipsOffsetLength / newOffsetLength;
                 }
                 _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
+                /* OUTOFBODY_HACK: experimental code for disabling HmdHead IK behavior when hips over limit
+                if (_hipsAreOver) {
+                    _hipsAreOver = glm::length(newHipsOffset) - _maxHipsOffsetLength > -1.0f;
+                } else {
+                    _hipsAreOver = glm::length(newHipsOffset) - _maxHipsOffsetLength > 1.0f;
+                }
+                */
             }
         }
     }
