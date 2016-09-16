@@ -204,13 +204,9 @@ bool CharacterGhostObject::sweepTest(
         CharacterSweepResult& result) const {
     if (_world && _inWorld) {
         assert(shape);
-
         btScalar allowedPenetration = _world->getDispatchInfo().m_allowedCcdPenetration;
         convexSweepTest(shape, start, end, result, allowedPenetration);
-
-        if (result.hasHit()) {
-            return true;
-        }
+        return result.hasHit();
     }
     return false;
 }
