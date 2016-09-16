@@ -505,6 +505,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // measure new _hipsOffset for next frame
                 // by looking for discrepancies between where a targeted endEffector is
                 // and where it wants to be (after IK solutions are done)
+
+                // OUTOFBODY_HACK:use weighted average between HMD and other targets
+                // ANDREW TODO: change how HMD IK target is handled to allow torso to lean over
+                float HMD_WEIGHT = 10.0f;
+                float OTHER_WEIGHT = 1.0f;
+                float totalWeight = 0.0f;
                 glm::vec3 newHipsOffset = Vectors::ZERO;
                 for (auto& target: targets) {
                     int targetIndex = target.getIndex();
@@ -516,21 +522,32 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                             glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
                             const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                            newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
+                            newHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (actual - under);
+                            totalWeight += OTHER_WEIGHT;
                         } else if (target.getType() == IKTarget::Type::HmdHead) {
+                            /* OUTOFBODY_HACK: keep this old code to remind us of what changed
                             // we want to shift the hips to bring the head to its designated position
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
                             _hipsOffset += target.getTranslation() - actual;
                             // and ignore all other targets
                             newHipsOffset = _hipsOffset;
                             break;
+                            */
+                            glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
+                            newHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
+                            totalWeight += HMD_WEIGHT;
                         }
                     } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                         glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans;
                         glm::vec3 targetPosition = target.getTranslation();
-                        newHipsOffset += targetPosition - actualPosition;
+                        newHipsOffset += OTHER_WEIGHT * (targetPosition - actualPosition);
+                        totalWeight += OTHER_WEIGHT;
                     }
                 }
+                if (totalWeight == 0.0f) {
+                    totalWeight = 1.0f;
+                }
+                newHipsOffset /= totalWeight;
 
                 // smooth transitions by relaxing _hipsOffset toward the new value
                 const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
@@ -555,7 +572,9 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
     assert(maxLength > 0.0f);
-    _maxHipsOffsetLength = maxLength;
+    // OUTOFBODY_HACK: manually adjust scale here
+    const float METERS_TO_CENTIMETERS = 100.0f;
+    _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
