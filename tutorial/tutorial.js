@@ -319,7 +319,7 @@ stepOrient.prototype = {
         this.overlay = new StayInFrontOverlay("model", {
             url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/welcome.fbx?11",
             ignoreRayIntersection: true,
-        }, 2, { x: 0, y: 0.3, z: 0 });
+        }, 1.5, { x: 0, y: 0.3, z: 0 });
 
         // Spawn content set
         //spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
@@ -387,18 +387,20 @@ stepRaiseAboveHead.prototype = {
         editEntitiesWithTag(this.tag, { visible: true });
 
 
-        this.checkIntervalID = null;
-        function checkForHandsAboveHead() {
-            print("Checking for hands above head...");
-            if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
-                Script.clearInterval(this.checkIntervalID);
-                this.checkIntervalID = null;
-                playSuccessSound();
-                //location = "/tutorial";
-                onFinish();
+        Script.setTimeout(function() {
+            this.checkIntervalID = null;
+            function checkForHandsAboveHead() {
+                print("Checking for hands above head...");
+                if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
+                    Script.clearInterval(this.checkIntervalID);
+                    this.checkIntervalID = null;
+                    playSuccessSound();
+                    //location = "/tutorial";
+                    onFinish();
+                }
             }
-        }
-        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
+            this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
+        }.bind(this), 2000);
     },
     cleanup: function() {
         if (this.checkIntervalID != null) {
@@ -729,17 +731,20 @@ stepEquip.prototype = {
         print("Got message", channel, message, sender, MyAvatar.sessionUUID);
         if (channel == "Tutorial-Spinner") {
             if (this.currentPart == this.PART1 && message == "wasLit") {
-                this.currentPart = this.PART2;
-                hideEntitiesWithTag(this.tagPart1);
-                showEntitiesWithTag(this.tagPart2);
-                setControllerPartLayer('tips', 'grip');
-                Messages.subscribe('Hifi-Object-Manipulation');
+                Script.setTimeout(function() {
+                    this.currentPart = this.PART2;
+                    hideEntitiesWithTag(this.tagPart1);
+                    showEntitiesWithTag(this.tagPart2);
+                    setControllerPartLayer('tips', 'grip');
+                    Messages.subscribe('Hifi-Object-Manipulation');
+                }.bind(this), 2000);
             }
         } else if (channel == "Hifi-Object-Manipulation") {
             if (this.currentPart == this.PART2) {
                 var data = parseJSON(message);
                 print("Here", data.action, data.grabbedEntity, this.gunID);
                 if (data.action == 'release' && data.grabbedEntity == this.gunID) {
+                    print("got release");
                     this.stopWatchingGun();
                     try {
                         Messages.messageReceived.disconnect(this.onMessage);
