@@ -166,8 +166,8 @@ public:
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
-    std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
 
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
