@@ -1,5 +1,5 @@
 //
-//  ICEClient.h
+//  ICEClientApp.h
 //  tools/ice-client/src
 //
 //  Created by Seth Alves on 2016-9-16

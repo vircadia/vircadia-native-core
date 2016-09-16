@@ -1,5 +1,5 @@
 //
-//  ICEClient.h
+//  ICEClientApp.cpp
 //  tools/ice-client/src
 //
 //  Created by Seth Alves on 3/5/15.
@@ -33,7 +33,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) : QCoreApplication(argc, argv
     const QCommandLineOption howManyTimesOption("n", "how many times to cycle", "0");
     parser.addOption(howManyTimesOption);
 
-    const QCommandLineOption domainIDOption("d", "domain-server uuid");
+    const QCommandLineOption domainIDOption("d", "domain-server uuid", "00000000-0000-0000-0000-000000000000");
     parser.addOption(domainIDOption);
 
 
@@ -55,7 +55,8 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) : QCoreApplication(argc, argv
     }
 
     if (parser.isSet(domainIDOption)) {
-        _domainID = QUuid(parser.value(howManyTimesOption));
+        _domainID = QUuid(parser.value(domainIDOption));
+        qDebug() << "domain-server ID is" << _domainID;
     }
 
 
