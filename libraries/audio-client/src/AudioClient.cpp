@@ -572,12 +572,21 @@ void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
         return;
     }
 
+    // Throttle the current packet until the next flush
     _queue.push(message);
     _index++;
 
+    // When appropriate, flush all held packets to the received audio stream
     if (_isSimulatingJitter) {
-        if (randFloat() < 0.6f) {
-            flush(); // 60% of the time, it works every time
+        // The JITTER_FLUSH_CHANCE defines the discrete probability density function of jitter (ms),
+        // where f(t) = pow(1 - JITTER_FLUSH_CHANCE, (t / 10) * JITTER_FLUSH_CHANCE
+        // for t (ms) = 10, 20, ... (because typical packet timegap is 10ms),
+        // because there is a JITTER_FLUSH_CHANCE of any packet instigating a flush of all held packets.
+        static const float JITTER_FLUSH_CHANCE = 0.6f;
+        // It is set at 0.6 to give a low chance of spikes (>30ms, 2.56%) so that they are obvious,
+        // but settled within the measured 5s window in audio network stats.
+        if (randFloat() < JITTER_FLUSH_CHANCE) {
+            flush();
         }
     } else if (!(_index % _threshold)) {
         flush();
@@ -585,6 +594,7 @@ void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
 }
 
 void AudioClient::Gate::flush() {
+    // Send all held packets to the received audio stream to be (eventually) played
     while (!_queue.empty()) {
         _audioClient->_receivedAudioStream.parseData(*_queue.front());
         _queue.pop();
