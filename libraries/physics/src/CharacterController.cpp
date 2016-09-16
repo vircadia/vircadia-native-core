@@ -222,9 +222,10 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         _rigidBody->setLinearVelocity(velocity + _parentVelocity);
         if (_following) {
             // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
-            const float NORMAL_WALKING_SPEED = 0.5f;
+            const float NORMAL_WALKING_SPEED = 1.5f; // actual walk speed is 2.5 m/sec
             const float FOLLOW_TIME = 0.8f;
             const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);
+            const float FOLLOW_FACTOR = 0.5f;
 
             const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIME;
 
@@ -232,7 +233,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 
             btVector3 startPos = bodyTransform.getOrigin();
             btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
-            btVector3 vel = deltaPos * (0.5f / dt);
+            btVector3 vel = deltaPos * (FOLLOW_FACTOR / dt);
             btScalar speed = vel.length();
             if (speed > NORMAL_WALKING_SPEED) {
                 vel *= NORMAL_WALKING_SPEED / speed;
