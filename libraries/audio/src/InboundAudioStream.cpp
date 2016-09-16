@@ -18,7 +18,10 @@
 #include "InboundAudioStream.h"
 #include "AudioLogging.h"
 
-const int STARVE_HISTORY_CAPACITY = 50;
+static const int STARVE_HISTORY_CAPACITY = 50;
+
+// This is called 1x/s, and we want it to log the last 5s
+static const int UNPLAYED_MS_WINDOW_SECS = 5;
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings) :
     _ringBuffer(numFrameSamples, numFramesCapacity),
@@ -46,6 +49,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _starveHistory(STARVE_HISTORY_CAPACITY),
     _starveThreshold(settings._windowStarveThreshold),
     _framesAvailableStat(),
+    _unplayedMs(0, UNPLAYED_MS_WINDOW_SECS),
     _currentJitterBufferFrames(0),
     _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
     _repetitionWithFade(settings._repetitionWithFade),
@@ -82,6 +86,7 @@ void InboundAudioStream::resetStats() {
     _framesAvailableStat.reset();
     _currentJitterBufferFrames = 0;
     _timeGapStatsForStatsPacket.reset();
+    _unplayedMs.reset();
 }
 
 void InboundAudioStream::clearBuffer() {
@@ -101,6 +106,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForDesiredCalcOnTooManyStarves.currentIntervalComplete();
     _timeGapStatsForDesiredReduction.currentIntervalComplete();
     _timeGapStatsForStatsPacket.currentIntervalComplete();
+    _unplayedMs.currentIntervalComplete();
 }
 
 int InboundAudioStream::parseData(ReceivedMessage& message) {
@@ -303,6 +309,9 @@ int InboundAudioStream::popFrames(int maxFrames, bool allOrNothing, bool starveI
 }
 
 void InboundAudioStream::popSamplesNoCheck(int samples) {
+    float unplayedMs = (_ringBuffer.samplesAvailable() / (float)_ringBuffer.getNumFrameSamples()) * AudioConstants::NETWORK_FRAME_MSECS;
+    _unplayedMs.update(unplayedMs);
+
     _lastPopOutput = _ringBuffer.nextOutput();
     _ringBuffer.shiftReadPosition(samples);
     framesAvailableChanged();
@@ -507,6 +516,7 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
 
     streamStats._framesAvailable = _ringBuffer.framesAvailable();
     streamStats._framesAvailableAverage = _framesAvailableStat.getAverage();
+    streamStats._unplayedMs = (quint16)_unplayedMs.getWindowMax();
     streamStats._desiredJitterBufferFrames = _desiredJitterBufferFrames;
     streamStats._starveCount = _starveCount;
     streamStats._consecutiveNotMixedCount = _consecutiveNotMixedCount;

@@ -123,12 +123,11 @@ AudioClient::AudioClient() :
     _outputBufferSizeFrames("audioOutputBufferSizeFrames", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
     _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
     _outputStarveDetectionEnabled("audioOutputBufferStarveDetectionEnabled",
-                                  DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
     _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
-                                     DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
     _outputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
-                                    DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
-    _averagedLatency(0.0f),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
     _muted(false),
@@ -854,7 +853,7 @@ void AudioClient::handleAudioInput() {
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
 
     float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    _stats.updateInputMsecsRead(audioInputMsecsRead);
+    _stats.updateInputMsRead(audioInputMsecsRead);
 
     const int numNetworkBytes = _isStereoInput
         ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
@@ -942,6 +941,10 @@ void AudioClient::handleAudioInput() {
 
         emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
         _stats.sentPacket();
+
+        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
+        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+        _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
     }
 }
 
@@ -1358,22 +1361,6 @@ int AudioClient::calculateNumberOfFrameSamples(int numBytes) const {
     return frameSamples;
 }
 
-float AudioClient::getInputRingBufferMsecsAvailable() const {
-    int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
-    float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    return  msecsInInputRingBuffer;
-}
-
-float AudioClient::getAudioOutputMsecsUnplayed() const {
-    if (!_audioOutput) {
-        return 0.0f;
-    }
-    int bytesAudioOutputUnplayed = _audioOutput->bufferSize() - _audioOutput->bytesFree();
-    float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_outputFormat.bytesForDuration(USECS_PER_MSEC);
-    return msecsAudioOutputUnplayed;
-}
-
-
 float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
     // copied from AudioMixer, more or less
     glm::quat inverseOrientation = glm::inverse(_orientationGetter());
@@ -1430,8 +1417,11 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = maxSize;
     }
 
-    bool wasBufferStarved = _audio->_audioOutput->bufferSize() == _audio->_audioOutput->bytesFree();
-    if (wasBufferStarved) {
+    int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
+    float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);
+    _audio->_stats.updateOutputMsUnplayed(msecsAudioOutputUnplayed);
+
+    if (bytesAudioOutputUnplayed == 0) {
         _unfulfilledReads++;
     }
 

@@ -121,9 +121,6 @@ public:
 
     const AudioIOStats& getStats() const { return _stats; }
 
-    float getInputRingBufferMsecsAvailable() const;
-    float getAudioOutputMsecsUnplayed() const;
-
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
 
     bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
@@ -284,7 +281,6 @@ private:
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _averagedLatency;
     float _lastInputLoudness;
     float _timeSinceLastClip;
     int _totalInputAudioSamples;

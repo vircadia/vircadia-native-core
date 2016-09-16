@@ -120,17 +120,14 @@ void AudioStatsDialog::renderStats() {
         audioOutputBufferLatency = 0.0;
         
     if (SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer)) {
-        mixerRingBufferFrames = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage;
-        outputRingBufferFrames = (double)_stats->getMixerDownstreamStats()._framesAvailableAverage;
-
-        audioInputBufferLatency = (double)_stats->getAudioInputMsecsReadStats().getWindowAverage();
-        inputRingBufferLatency =  (double)_stats->getInputRungBufferMsecsAvailableStats().getWindowAverage();
-        networkRoundtripLatency = (double) audioMixerNodePointer->getPingMs();
-        mixerRingBufferLatency = mixerRingBufferFrames * (double)AudioConstants::NETWORK_FRAME_MSECS;
-        outputRingBufferLatency = outputRingBufferFrames * (double)AudioConstants::NETWORK_FRAME_MSECS;
-        audioOutputBufferLatency = (double)_stats->getAudioOutputMsecsUnplayedStats().getWindowAverage();
+        audioInputBufferLatency = (double)_stats->getInputMsRead().getWindowMax();
+        inputRingBufferLatency =  (double)_stats->getInputMsUnplayed().getWindowMax();
+        networkRoundtripLatency = (double)audioMixerNodePointer->getPingMs();
+        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._unplayedMs;
+        outputRingBufferLatency = (double)_stats->getMixerDownstreamStats()._unplayedMs;
+        audioOutputBufferLatency = (double)_stats->getOutputMsUnplayed().getWindowMax();
     }
-        
+
     double totalLatency = audioInputBufferLatency + inputRingBufferLatency + mixerRingBufferLatency
         + outputRingBufferLatency + audioOutputBufferLatency + networkRoundtripLatency;
 
@@ -142,20 +139,18 @@ void AudioStatsDialog::renderStats() {
     _audioMixerStats.push_back(stats.arg(QString::number(inputRingBufferLatency, 'f', 0)));
     stats = "Network (client->mixer):\t%1 ms";
     _audioMixerStats.push_back(stats.arg(QString::number(networkRoundtripLatency / 2, 'f', 0)));
-    stats = "Mixer Ring:\t%1 ms (%2 frames)";
-    _audioMixerStats.push_back(stats.arg(QString::number(mixerRingBufferLatency, 'f', 0),
-        QString::number(mixerRingBufferFrames, 'f', 0)));
+    stats = "Mixer Ring:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(mixerRingBufferLatency, 'f', 0)));
     stats = "Network (mixer->client):\t%1 ms";
     _audioMixerStats.push_back(stats.arg(QString::number(networkRoundtripLatency / 2, 'f', 0)));
-    stats = "Output Ring:\t%1 ms (%2 frames)";
-    _audioMixerStats.push_back(stats.arg(QString::number(outputRingBufferLatency, 'f', 0),
-        QString::number(outputRingBufferFrames, 'f', 0)));
+    stats = "Output Ring:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(outputRingBufferLatency, 'f', 0)));
     stats = "Output Read:\t%1 ms";
     _audioMixerStats.push_back(stats.arg(QString::number(audioOutputBufferLatency, 'f', 0)));
     stats = "TOTAL:\t%1 ms";
     _audioMixerStats.push_back(stats.arg(QString::number(totalLatency, 'f', 0)));
 
-    const MovingMinMaxAvg<quint64>& packetSentTimeGaps = _stats->getPacketSentTimeGaps();
+    const MovingMinMaxAvg<quint64>& packetSentTimeGaps = _stats->getPacketTimegaps();
 
     _upstreamClientStats.push_back("\nUpstream Mic Audio Packets Sent Gaps (by client):");
 
