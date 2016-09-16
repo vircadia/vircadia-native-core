@@ -300,10 +300,21 @@ void Rig::clearJointAnimationPriority(int index) {
 void Rig::clearIKJointLimitHistory() {
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
-            // only report clip nodes as valid roles.
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
                 ikNode->clearIKJointLimitHistory();
+            }
+            return true;
+        });
+    }
+}
+
+void Rig::setMaxHipsOffsetLength(float maxLength) {
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->setMaxHipsOffsetLength(maxLength);
             }
             return true;
         });

@@ -16,6 +16,7 @@
 
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
+#include <stdint.h>
 
 #include "CharacterSweepResult.h"
 #include "CharacterRayResult.h"
@@ -45,14 +46,14 @@ public:
 
     void move(btScalar dt, btScalar overshoot);
 
-protected:
-    void removeFromWorld();
-    void addToWorld();
-
     bool sweepTest(const btConvexShape* shape,
             const btTransform& start,
             const btTransform& end,
             CharacterSweepResult& result) const;
+protected:
+    void removeFromWorld();
+    void addToWorld();
+
     bool rayTest(const btVector3& start,
             const btVector3& end,
             CharacterRayResult& result) const;

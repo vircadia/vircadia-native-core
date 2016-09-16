@@ -323,7 +323,7 @@ void CharacterController::setState(State desiredState) {
     }
 }
 
-void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
+void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     _boxScale = scale;
 
     float x = _boxScale.x;
@@ -350,7 +350,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here
-    _shapeLocalOffset = corner + 0.5f * _boxScale;
+    _shapeLocalOffset = minCorner + 0.5f * _boxScale;
 }
 
 void CharacterController::setCollisionGroup(int16_t group) {
@@ -722,6 +722,35 @@ void CharacterController::setFlyingAllowed(bool value) {
             }
         }
     }
+}
+
+float CharacterController::measureMaxHipsOffsetRadius(const glm::vec3& currentHipsOffset, float maxSweepDistance) {
+    btVector3 hipsOffset = glmToBullet(currentHipsOffset); // rig-frame
+    btScalar hipsOffsetLength = hipsOffset.length();
+    if (hipsOffsetLength > FLT_EPSILON) {
+        const btTransform& transform = _rigidBody->getWorldTransform();
+
+        // rotate into world-frame
+        btTransform rotation = transform;
+        rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f));
+        btVector3 startPos = transform.getOrigin() - rotation * glmToBullet(_shapeLocalOffset);
+        btTransform startTransform = transform;
+        startTransform.setOrigin(startPos);
+        btVector3 endPos = startPos + rotation * ((maxSweepDistance / hipsOffsetLength) * hipsOffset);
+
+        // sweep test a sphere
+        btSphereShape sphere(_radius);
+        CharacterSweepResult result(&_ghost);
+        btTransform endTransform = startTransform;
+        endTransform.setOrigin(endPos);
+        _ghost.sweepTest(&sphere, startTransform, endTransform, result);
+
+        // measure sweep success
+        if (result.hasHit()) {
+            maxSweepDistance *= result.m_closestHitFraction;
+        }
+    }
+    return maxSweepDistance;
 }
 
 void CharacterController::setMoveKinematically(bool kinematic) {

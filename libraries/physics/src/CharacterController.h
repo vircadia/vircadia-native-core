@@ -110,7 +110,7 @@ public:
 
     State getState() const { return _state; }
 
-    void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
+    void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 
     bool isEnabledAndReady() const { return _dynamicsWorld; }
 
@@ -122,6 +122,7 @@ public:
 
     void setFlyingAllowed(bool value);
 
+    float measureMaxHipsOffsetRadius(const glm::vec3& currentHipsOffset, float maxSweepDistance);
     void setMoveKinematically(bool kinematic); // KINEMATIC_CONTROLLER_HACK
 
 protected:

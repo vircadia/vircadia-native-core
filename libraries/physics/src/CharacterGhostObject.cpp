@@ -17,8 +17,6 @@
 #include "CharacterGhostShape.h"
 #include "CharacterRayResult.h"
 
-const btScalar DEFAULT_STEP_UP_HEIGHT = 0.5f;
-
 
 CharacterGhostObject::~CharacterGhostObject() {
     removeFromWorld();
@@ -199,6 +197,20 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
     updateTraction();
 }
 
+bool CharacterGhostObject::sweepTest(
+        const btConvexShape* shape,
+        const btTransform& start,
+        const btTransform& end,
+        CharacterSweepResult& result) const {
+    if (_world && _inWorld) {
+        assert(shape);
+        btScalar allowedPenetration = _world->getDispatchInfo().m_allowedCcdPenetration;
+        convexSweepTest(shape, start, end, result, allowedPenetration);
+        return result.hasHit();
+    }
+    return false;
+}
+
 void CharacterGhostObject::removeFromWorld() {
     if (_world && _inWorld) {
         _world->removeCollisionObject(this);
@@ -216,24 +228,6 @@ void CharacterGhostObject::addToWorld() {
         _world->addCollisionObject(this, _collisionFilterGroup, _collisionFilterMask);
         _inWorld = true;
     }
-}
-
-bool CharacterGhostObject::sweepTest(
-        const btConvexShape* shape,
-        const btTransform& start,
-        const btTransform& end,
-        CharacterSweepResult& result) const {
-    if (_world && _inWorld) {
-        assert(shape);
-
-        btScalar allowedPenetration = _world->getDispatchInfo().m_allowedCcdPenetration;
-        convexSweepTest(shape, start, end, result, allowedPenetration);
-
-        if (result.hasHit()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool CharacterGhostObject::rayTest(const btVector3& start,
