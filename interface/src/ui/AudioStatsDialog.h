@@ -70,9 +70,10 @@ private:
 
     QVector<QVector<AudioStatsDisplay*>> _audioDisplayChannels;
 
+    void updateStats();
     int addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color);
-    void updateStats(QVector<QString>& stats, const int channelID);
-    void renderStats();
+    void updateChannel(QVector<QString>& stats, const int channelID);
+    void updateChannels();
     void clearAllChannels();
     void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats);
 
@@ -80,8 +81,7 @@ private:
     const AudioIOStats* _stats;
     QFormLayout* _form;
 
-    bool _isEnabled;
-    bool _shouldShowInjectedStreams;
+    bool _shouldShowInjectedStreams{ false };
 
 
 signals:
@@ -93,7 +93,7 @@ signals:
 
 
     void reject() override;
-    void updateTimerTimeout();
+    void renderStats();
 
 protected:
 
