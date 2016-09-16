@@ -128,14 +128,12 @@ void AudioStatsDialog::updateStats() {
     // Clear current stats from all vectors
     clearAllChannels();
     
-    double mixerRingBufferFrames = 0.0,
-        outputRingBufferFrames = 0.0;
-    double audioInputBufferLatency = 0.0,
-        inputRingBufferLatency = 0.0,
-        networkRoundtripLatency = 0.0,
-        mixerRingBufferLatency = 0.0,
-        outputRingBufferLatency = 0.0,
-        audioOutputBufferLatency = 0.0;
+    double audioInputBufferLatency{ 0.0 };
+    double inputRingBufferLatency{ 0.0 };
+    double networkRoundtripLatency{ 0.0 };
+    double mixerRingBufferLatency{ 0.0 };
+    double outputRingBufferLatency{ 0.0 };
+    double audioOutputBufferLatency{ 0.0 };
         
     if (SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer)) {
         audioInputBufferLatency = (double)_stats->getInputMsRead().getWindowMax();
