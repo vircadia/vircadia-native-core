@@ -39,6 +39,7 @@ private:
     unsigned int _actionMax { 0 };
 
     QUuid _sessionUUID;
+    QUuid _domainID;
 
     QTimer* _pingDomainTimer { nullptr };
 

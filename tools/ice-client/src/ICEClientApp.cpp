@@ -33,6 +33,10 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) : QCoreApplication(argc, argv
     const QCommandLineOption howManyTimesOption("n", "how many times to cycle", "0");
     parser.addOption(howManyTimesOption);
 
+    const QCommandLineOption domainIDOption("d", "domain-server uuid");
+    parser.addOption(domainIDOption);
+
+
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -49,6 +53,11 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) : QCoreApplication(argc, argv
     if (parser.isSet(howManyTimesOption)) {
         _actionMax = parser.value(howManyTimesOption).toInt();
     }
+
+    if (parser.isSet(domainIDOption)) {
+        _domainID = QUuid(parser.value(howManyTimesOption));
+    }
+
 
     _iceServerAddr = HifiSockAddr("127.0.0.1", ICE_SERVER_DEFAULT_PORT);
     if (parser.isSet(iceServerAddressOption)) {
@@ -97,12 +106,21 @@ void ICEClientApp::doSomething() {
         _localSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
         _publicSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
 
-        QUuid peerID = QUuid("75cd162a-53dc-4292-aaa5-1304ab1bb0f2");
+        // QUuid peerID = QUuid("75cd162a-53dc-4292-aaa5-1304ab1bb0f2");
+        QUuid peerID;
+        if (_domainID == QUuid()) {
+            // pick a random domain-id
+            peerID = QUuid::createUuid();
+            _state = 2;
+        } else {
+            // use the domain UUID given on the command-line
+            peerID = _domainID;
+            _state = 1;
+        }
         _sessionUUID = QUuid::createUuid();
 
         sendPacketToIceServer(PacketType::ICEServerQuery, _iceServerAddr, _sessionUUID, peerID);
 
-        _state = 1;
         _actionCount++;
     } else if (_state == 2) {
         _state = 3;
