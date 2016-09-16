@@ -244,11 +244,6 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // the tip's parent-relative as we proceed up the chain
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot;
 
-    /* OUTOFBODY_HACK -- experimental override target type when HmdHead pushes outside hipsOffset limit
-    if (targetType == IKTarget::Type::HmdHead && _hipsAreOver) {
-        targetType = IKTarget::Type::RotationAndPosition;
-    }
-    */
     if (targetType == IKTarget::Type::HmdHead) {
         // rotate tip directly to target orientation
         tipOrientation = target.getRotation();
@@ -512,10 +507,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // and where it wants to be (after IK solutions are done)
 
                 // OUTOFBODY_HACK:use weighted average between HMD and other targets
-                // ANDREW TODO: change how HMD IK target is handled to allow torso to lean over
                 float HMD_WEIGHT = 10.0f;
                 float OTHER_WEIGHT = 1.0f;
                 float totalWeight = 0.0f;
+
                 glm::vec3 newHipsOffset = Vectors::ZERO;
                 for (auto& target: targets) {
                     int targetIndex = target.getIndex();
@@ -564,13 +559,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     newHipsOffset *= _maxHipsOffsetLength / newOffsetLength;
                 }
                 _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
-                /* OUTOFBODY_HACK: experimental code for disabling HmdHead IK behavior when hips over limit
-                if (_hipsAreOver) {
-                    _hipsAreOver = glm::length(newHipsOffset) - _maxHipsOffsetLength > -1.0f;
-                } else {
-                    _hipsAreOver = glm::length(newHipsOffset) - _maxHipsOffsetLength > 1.0f;
-                }
-                */
             }
         }
     }
@@ -584,7 +572,6 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
 }
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
-    assert(maxLength > 0.0f);
     // OUTOFBODY_HACK: manually adjust scale here
     const float METERS_TO_CENTIMETERS = 100.0f;
     _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
