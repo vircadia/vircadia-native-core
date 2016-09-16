@@ -1,6 +1,7 @@
 var DEBUG = false;
 var VISIBLE_BY_DEFAULT = false;
-var PARENT_ID = MyAvatar.sessionUUID;
+//var PARENT_ID = MyAvatar.sessionUUID;
+var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
 
 createControllerDisplay = function(config) {
     var controllerDisplay = {
@@ -166,7 +167,7 @@ createControllerDisplay = function(config) {
 
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
-                var overlayID = Overlays.addOverlay("model", {
+                var properties = {
                     url: part.modelURL,
                     localPosition: partPosition,
                     localRotation: innerRotation,
@@ -174,7 +175,15 @@ createControllerDisplay = function(config) {
                     parentJointIndex: controller.jointIndex,
                     ignoreRayIntersection: true,
                     //visible: false
-                });
+                };
+
+                if (part.defaultTextureLayer) {
+                    var textures = {};
+                    textures[part.textureName] = part.textureLayers[part.defaultTextureLayer].defaultTextureURL;
+                    properties['textures'] = textures;
+                }
+
+                var overlayID = Overlays.addOverlay("model", properties);
 
                 if (part.type == "rotational") {
                     var range = part.maxValue - part.minValue;
@@ -234,13 +243,6 @@ createControllerDisplay = function(config) {
                     mapping.from([yinput]).peek().invert().to(function(value) {
                         //print("Y", value);
                     });
-                    if (part.defaultTextureURL) {
-                        var textures = {};
-                        textures[part.textureName] = part.defaultTextureURL;
-                        Overlays.editOverlay(overlayID, {
-                            textures: textures
-                        });
-                    }
                 } else if (part.type == "static") {
                 } else {
                     print("TYPE NOT SUPPORTED: ", part.type);

@@ -43,6 +43,7 @@ var viveNaturalPosition = {
 };
 
 var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_body.fbx";
+var viveTipsModelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Models/vive_tips.fbx"
 
 VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
@@ -57,6 +58,33 @@ VIVE_CONTROLLER_CONFIGURATION = {
             dimensions: viveNaturalDimensions,
 
             parts: {
+                tips: {
+                    type: "static",
+                    modelURL: viveTipsModelURL,
+                    naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
+
+                    textureName: "Tex.Blank",
+
+                    defaultTextureLayer: "trigger",
+                    textureLayers: {
+                        blank: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Blank.png",
+                        },
+                        trigger: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Trigger.png",
+                        },
+                        arrows: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Rotate.png",
+                        },
+                        grip: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Grip.png",
+                        },
+                        teleport: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Teleport.png",
+                        },
+                    }
+                },
+
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
                 touchpad: {
@@ -70,10 +98,10 @@ VIVE_CONTROLLER_CONFIGURATION = {
                     maxValue: 1.0,
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
+                    disable_textureName: "Tex.touchpad-blank",
 
-                    defaultTextureLayer: "blank",
-                    textureLayers: {
+                    disable_defaultTextureLayer: "blank",
+                    disable_textureLayers: {
                         blank: {
                             defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
@@ -211,6 +239,32 @@ VIVE_CONTROLLER_CONFIGURATION = {
             },
 
             parts: {
+                tips: {
+                    type: "static",
+                    modelURL: viveTipsModelURL,
+                    naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
+
+                    textureName: "Tex.Blank",
+
+                    defaultTextureLayer: "trigger",
+                    textureLayers: {
+                        blank: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Blank.png",
+                        },
+                        trigger: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Trigger.png",
+                        },
+                        arrows: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Rotate.png",
+                        },
+                        grip: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Grip.png",
+                        },
+                        teleport: {
+                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Teleport.png",
+                        },
+                    }
+                },
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
@@ -225,10 +279,10 @@ VIVE_CONTROLLER_CONFIGURATION = {
                     maxValue: 1.0,
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
                     maxPosition: { x: -0.035, y: 0.004, z: -0.005 },
-                    textureName: "Tex.touchpad-blank",
+                    disable_textureName: "Tex.touchpad-blank",
 
-                    defaultTextureLayer: "blank",
-                    textureLayers: {
+                    disable_defaultTextureLayer: "blank",
+                    disable_textureLayers: {
                         blank: {
                             defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
