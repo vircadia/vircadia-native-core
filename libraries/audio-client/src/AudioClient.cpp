@@ -441,7 +441,7 @@ void possibleResampling(AudioSRC* resampler,
             if (!sampleChannelConversion(sourceSamples, destinationSamples, numSourceSamples,
                                          sourceAudioFormat, destinationAudioFormat)) {
                 // no conversion, we can copy the samples directly across
-                memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
+                memcpy(destinationSamples, sourceSamples, numSourceSamples * AudioConstants::SAMPLE_SIZE);
             }
         } else {
 
@@ -815,10 +815,10 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
     static QByteArray loopBackByteArray;
 
-    int numInputSamples = inputByteArray.size() / sizeof(int16_t);
+    int numInputSamples = inputByteArray.size() / AudioConstants::SAMPLE_SIZE;
     int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
 
-    loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
+    loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
@@ -826,7 +826,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // upmix mono to stereo
     if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat, _outputFormat)) {
         // no conversion, just copy the samples
-        memcpy(loopbackSamples, inputSamples, numInputSamples * sizeof(int16_t));
+        memcpy(loopbackSamples, inputSamples, numInputSamples * AudioConstants::SAMPLE_SIZE);
     }
 
     // apply stereo reverb at the source, to the loopback audio
@@ -942,7 +942,7 @@ void AudioClient::handleAudioInput() {
         emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
         _stats.sentPacket();
 
-        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
+        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
         float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
         _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
     }
@@ -1025,7 +1025,7 @@ void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteA
     const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
     assert(decodedBuffer.size() == AudioConstants::NETWORK_FRAME_BYTES_STEREO);
 
-    outputBuffer.resize(_outputFrameSize * sizeof(int16_t));
+    outputBuffer.resize(_outputFrameSize * AudioConstants::SAMPLE_SIZE);
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
     // convert network audio to float
@@ -1283,7 +1283,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             int osDefaultBufferSize = _audioOutput->bufferSize();
-            int requestedSize = _sessionOutputBufferSizeFrames *_outputFrameSize * sizeof(int16_t);
+            int requestedSize = _sessionOutputBufferSizeFrames *_outputFrameSize * AudioConstants::SAMPLE_SIZE;
             _audioOutput->setBufferSize(requestedSize);
 
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
@@ -1295,7 +1295,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             _audioOutput->start(&_audioOutputIODevice);
             lock.unlock();
 
-            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize <<
+            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)_outputFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
                 "os default:" << osDefaultBufferSize << "period size:" << _audioOutput->periodSize();
 
@@ -1357,7 +1357,7 @@ int AudioClient::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
 }
 
 int AudioClient::calculateNumberOfFrameSamples(int numBytes) const {
-    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
+    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / AudioConstants::SAMPLE_SIZE;
     return frameSamples;
 }
 
@@ -1401,7 +1401,7 @@ float AudioClient::gainForSource(float distance, float volume) {
 }
 
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
-    auto samplesRequested = maxSize / sizeof(int16_t);
+    auto samplesRequested = maxSize / AudioConstants::SAMPLE_SIZE;
     int samplesPopped;
     int bytesWritten;
 
@@ -1409,7 +1409,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available)", samplesPopped, _receivedAudioStream.getSamplesAvailable());
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-        bytesWritten = samplesPopped * sizeof(int16_t);
+        bytesWritten = samplesPopped * AudioConstants::SAMPLE_SIZE;
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         // this will flood the log: qCDebug(audioclient, "empty/partial network buffer");
