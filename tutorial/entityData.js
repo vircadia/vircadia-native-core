@@ -241,7 +241,7 @@ birdFirework2 = {
     "collisionsWillMove": 1,
     velocity: {
         x: 0,
-        y: -0.2,
+        y: -0.01,
         z: 0
     },
     "dynamic": 1,

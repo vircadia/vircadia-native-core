@@ -490,6 +490,7 @@ stepNearGrab.prototype = {
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
+        this.positionWatcher = new PositionWatcher(this.birdIDs, boxSpawnPosition, -0.4, 4);
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
@@ -515,6 +516,10 @@ stepNearGrab.prototype = {
         setControllerPartLayer('tips', 'blank');
         hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
+        if (this.positionWatcher) {
+            this.positionWatcher.destroy();
+            this.positionWatcher = null;
+        }
     }
 };
 
@@ -548,23 +553,18 @@ stepFarGrab.prototype = {
             farGrabEnabled: true,
         }));
         var tag = this.tag;
-        var transform = {
-            position: { x: 3, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0, w: 1 }
-        }
 
         // Spawn content set
-        //spawnWithTag(Step1EntityData, transform, tag);
         showEntitiesWithTag(this.tag);
 
+        var boxSpawnID = findEntity({ name: FAR_BOX_SPAWN_NAME }, 10000);
+        if (!boxSpawnID) {
+            print("Error creating block, cannot find spawn");
+            return null;
+        }
+        var boxSpawnPosition = Entities.getEntityProperties(boxSpawnID, 'position').position;
         function createBlock() {
-            var boxSpawnID = findEntity({ name: FAR_BOX_SPAWN_NAME }, 10000);
-            if (!boxSpawnID) {
-                print("Error creating block, cannot find spawn");
-                return null;
-            }
-
-            birdFirework1.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
+            birdFirework1.position = boxSpawnPosition;
             return spawnWithTag([birdFirework1], null, this.tempTag)[0];
         }
 
@@ -572,6 +572,7 @@ stepFarGrab.prototype = {
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
+        this.positionWatcher = new PositionWatcher(this.birdIDs, boxSpawnPosition, -0.4, 4);
     },
     onMessage: function(channel, message, seneder) {
         if (this.finished) {
@@ -594,6 +595,32 @@ stepFarGrab.prototype = {
         hideEntitiesWithTag(this.tag, { visible: false});
         hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
+        if (this.positionWatcher) {
+            this.positionWatcher.destroy();
+            this.positionWatcher = null;
+        }
+    }
+};
+
+function PositionWatcher(entityIDs, originalPosition, minY, maxDistance) {
+    this.watcherIntervalID = Script.setInterval(function() {
+        for (var i = 0; i < entityIDs.length; ++i) {
+            var entityID = entityIDs[i];
+            var props = Entities.getEntityProperties(entityID, ['position']);
+            if (props.position.y < minY || Vec3.distance(originalPosition, props.position) > maxDistance) {
+                Entities.editEntity(entityID, { 
+                    position: originalPosition,
+                    velocity: { x: 0, y: -0.01, z: 0 },
+                    angularVelocity: { x: 0, y: 0, z: 0 }
+                });
+            }
+        }
+    }, 1000);
+}
+
+PositionWatcher.prototype = {
+    destroy: function() {
+        Script.clearInterval(this.watcherIntervalID);
     }
 };
 
