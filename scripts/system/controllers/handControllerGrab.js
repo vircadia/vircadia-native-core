@@ -598,7 +598,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
             targetSize: 1,
             overlays: []
         };
- 
+
         var diameter = hotspot.radius * 2;
 
         // override default sphere with a user specified model, if it exists.
