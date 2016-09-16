@@ -56,12 +56,6 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 
 var PICK_WITH_HAND_RAY = true;
 
-var EQUIP_SPHERE_COLOR = {
-    red: 116,
-    green: 90,
-    blue: 238
-};
-var EQUIP_SPHERE_ALPHA = 0.15;
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 
 
@@ -604,7 +598,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
             targetSize: 1,
             overlays: []
         };
-        
+ 
         var diameter = hotspot.radius * 2;
 
         // override default sphere with a user specified model, if it exists.
