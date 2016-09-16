@@ -474,6 +474,8 @@ stepNearGrab.prototype = {
         // Create table ?
         // Create blocks and basket
         this.boxID = createBlock.bind(this)();
+        this.boxID = createBlock.bind(this)();
+        this.boxID = createBlock.bind(this)();
         print("Created", this.boxID);
 
         //function posChecker() {
@@ -560,6 +562,8 @@ stepFarGrab.prototype = {
         // Enabled grab
         // Create table ?
         // Create blocks and basket
+        this.boxID = createBlock.bind(this)();
+        this.boxID = createBlock.bind(this)();
         this.boxID = createBlock.bind(this)();
         print("Created", this.boxID);
 
