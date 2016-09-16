@@ -554,7 +554,7 @@ AudioClient::Gate::Gate(AudioClient* audioClient) :
 void AudioClient::Gate::setIsSimulatingJitter(bool enable) {
     std::lock_guard<std::mutex> lock(_mutex);
     flush();
-    _isSimulatingJitter = true;
+    _isSimulatingJitter = enable;
 }
 
 void AudioClient::Gate::setThreshold(int threshold) {
