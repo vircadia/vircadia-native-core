@@ -92,6 +92,11 @@ SparseInfo::SparseInfo(GL45Texture& texture)
 }
 
 void SparseInfo::maybeMakeSparse() {
+    // Don't enable sparse for objects with explicitly managed mip levels
+    if (!_texture._gpuObject.isAutogenerateMips()) {
+        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << _texture._gpuObject.source().c_str();
+        return;
+    }
     const uvec3 dimensions = _texture._gpuObject.getDimensions();
     auto allowedPageDimensions = getPageDimensionsForFormat(_texture._target, _texture._internalFormat);
     // In order to enable sparse the texture size must be an integer multiple of the page size
@@ -100,6 +105,7 @@ void SparseInfo::maybeMakeSparse() {
         _pageDimensions = allowedPageDimensions[i];
         // Is this texture an integer multiple of page dimensions?
         if (uvec3(0) == (dimensions % _pageDimensions)) {
+            qCDebug(gpugl45logging) << "Enabling sparse for texture " << _texture._gpuObject.source().c_str();
             _sparse = true;
             break;
         }
@@ -109,12 +115,16 @@ void SparseInfo::maybeMakeSparse() {
         glTextureParameteri(_texture._id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
         glTextureParameteri(_texture._id, GL_VIRTUAL_PAGE_SIZE_INDEX_ARB, _pageDimensionsIndex);
     } else {
-        qDebug() << "Texture size " << dimensions.x << " x " << dimensions.y << " is not supported by any sparse page size";
+        qCDebug(gpugl45logging) << "Size " << dimensions.x << " x " << dimensions.y << 
+            " is not supported by any sparse page size for texture" << _texture._gpuObject.source().c_str();
     }
 }
 
 // This can only be called after we've established our storage size
 void SparseInfo::update() {
+    if (!_sparse) {
+        return;
+    }
     glGetTextureParameterIuiv(_texture._id, GL_NUM_SPARSE_LEVELS_ARB, &_maxSparseLevel);
     _pageBytes = _texture._gpuObject.getTexelFormat().getSize();
     _pageBytes *= _pageDimensions.x * _pageDimensions.y * _pageDimensions.z;
@@ -282,6 +292,7 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
+    qDebug() << "Generating mipmaps for " << _gpuObject.source().c_str();
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
@@ -434,6 +445,13 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
             texturesByMipCounts.erase(mipLevels);
         }
     }
+
+    // If we weren't generating mips before, we need to now that we're stripping down mip levels.
+    if (!_gpuObject.isAutogenerateMips()) {
+        qDebug() << "Force mip generation for texture";
+        glGenerateTextureMipmap(_id);
+    }
+
 
     uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
     for (uint16_t mip = _minMip; mip < newMinMip; ++mip) {
