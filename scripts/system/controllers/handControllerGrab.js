@@ -634,6 +634,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
                 dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
                 color: EQUIP_SPHERE_COLOR,
                 alpha: EQUIP_SPHERE_ALPHA,
+                emissive: true,
                 solid: true,
                 visible: true,
                 ignoreRayIntersection: true,
