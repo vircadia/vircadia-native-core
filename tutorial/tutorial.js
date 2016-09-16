@@ -319,6 +319,7 @@ stepOrient.prototype = {
         this.overlay = new StayInFrontOverlay("model", {
             url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/welcome.fbx?11",
             ignoreRayIntersection: true,
+            visible: false
         }, 1.5, { x: 0, y: 0.3, z: 0 });
 
         // Spawn content set
