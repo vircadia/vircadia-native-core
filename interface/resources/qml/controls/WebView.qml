@@ -44,7 +44,6 @@ Item {
         webChannel.registeredObjects: [eventBridgeWrapper]
 
         Component.onCompleted: {
-            console.log("Connecting JS messaging to Hifi Logging");
             // Ensure the JS from the web-engine makes it to our logging
             root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);

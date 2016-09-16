@@ -182,7 +182,7 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    qCDebug(audioclient) << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
     selectAudioFormat(recievedCodec);
 }
 
@@ -632,7 +632,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
     
     _selectedCodecName = selectedCodecName;
 
-    qDebug() << "Selected Codec:" << _selectedCodecName;
+    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -648,7 +648,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
-            qDebug() << "Selected Codec Plugin:" << _codec.get();
+            qCDebug(audioclient) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
     }
@@ -997,21 +997,21 @@ void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             
             } else {
                 
-                qDebug() << "injector has no more data, marking finished for removal";
+                qCDebug(audioclient) << "injector has no more data, marking finished for removal";
                 injector->finishLocalInjection();
                 injectorsToRemove.append(injector);
             }
 
         } else {
             
-            qDebug() << "injector has no local buffer, marking as finished for removal";
+            qCDebug(audioclient) << "injector has no local buffer, marking as finished for removal";
             injector->finishLocalInjection();
             injectorsToRemove.append(injector);
         }
     }
     
     for (AudioInjector* injector : injectorsToRemove) {
-        qDebug() << "removing injector";
+        qCDebug(audioclient) << "removing injector";
         getActiveLocalAudioInjectors().removeOne(injector);
     }
 }
@@ -1106,10 +1106,10 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         // Since this is invoked with invokeMethod, there _should_ be
         // no reason to lock access to the vector of injectors.
         if (!_activeLocalAudioInjectors.contains(injector)) {
-            qDebug() << "adding new injector";
+            qCDebug(audioclient) << "adding new injector";
             _activeLocalAudioInjectors.append(injector);
         } else {
-            qDebug() << "injector exists in active list already";
+            qCDebug(audioclient) << "injector exists in active list already";
         }
         
         return true;
@@ -1204,7 +1204,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
-        qCInfo(audioclient, "Starve detected, %d new unfulfilled reads", recentUnfulfilled);
+        qCDebug(audioclient, "Starve detected, %d new unfulfilled reads", recentUnfulfilled);
 
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
@@ -1219,7 +1219,8 @@ void AudioClient::outputNotify() {
                     int newOutputBufferSizeFrames = setOutputBufferSize(oldOutputBufferSizeFrames + 1, false);
 
                     if (newOutputBufferSizeFrames > oldOutputBufferSizeFrames) {
-                        qCInfo(audioclient, "Starve threshold surpassed (%d starves in %d ms)", _outputStarveDetectionCount, dt);
+                        qCDebug(audioclient,
+                                "Starve threshold surpassed (%d starves in %d ms)", _outputStarveDetectionCount, dt);
                     }
 
                     _outputStarveDetectionStartTimeMsec = now;
@@ -1460,10 +1461,10 @@ void AudioClient::loadSettings() {
     _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
     _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
 
-    qDebug() << "---- Initializing Audio Client ----";
+    qCDebug(audioclient) << "---- Initializing Audio Client ----";
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
-        qDebug() << "Codec available:" << plugin->getName();
+        qCDebug(audioclient) << "Codec available:" << plugin->getName();
     }
 
 }

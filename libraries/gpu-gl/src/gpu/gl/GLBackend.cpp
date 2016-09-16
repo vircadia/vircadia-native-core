@@ -44,10 +44,10 @@ BackendPointer GLBackend::createBackend() {
     auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
     if (!disableOpenGL45 && version >= 0x0405) {
-        qDebug() << "Using OpenGL 4.5 backend";
+        qCDebug(gpugllogging) << "Using OpenGL 4.5 backend";
         result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
-        qDebug() << "Using OpenGL 4.1 backend";
+        qCDebug(gpugllogging) << "Using OpenGL 4.1 backend";
         result = std::make_shared<gpu::gl41::GL41Backend>();
     }
     result->initInput();
