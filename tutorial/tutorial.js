@@ -300,6 +300,8 @@ var stepOrient = function(name) {
 }
 stepOrient.prototype = {
     start: function(onFinish) {
+        this.active = true;
+
         var tag = this.tag;
 
         var defaultTransform = {
@@ -334,20 +336,26 @@ stepOrient.prototype = {
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
-                playSuccessSound();
                 location = "/tutorial";
+                Script.setTimeout(playSuccessSound, 150);
+                this.active = false;
                 onFinish();
             }
         }
         this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
     },
     cleanup: function() {
+        if (this.active) {
+            location = "/tutorial";
+            this.active = false;
+        }
         if (this.overlay) {
             this.overlay.destroy();
             this.overlay = null;
         }
-        if (this.checkIntervalID != null) {
+        if (this.checkIntervalID) {
             Script.clearInterval(this.checkIntervalID);
+            this.checkIntervalID = null;
         }
         editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
         deleteEntitiesWithTag(this.tempTag);
@@ -383,12 +391,12 @@ stepRaiseAboveHead.prototype = {
         };
 
         // Spawn content set
-        //spawnWithTag(HandsAboveHeadData, defaultTransform, tag);
         print("raise hands...", this.tag);
         editEntitiesWithTag(this.tag, { visible: true });
 
 
-        Script.setTimeout(function() {
+        // Wait 2 seconds before starting to check for hands
+        this.waitTimeoutID = Script.setTimeout(function() {
             this.checkIntervalID = null;
             function checkForHandsAboveHead() {
                 print("Checking for hands above head...");
@@ -396,7 +404,6 @@ stepRaiseAboveHead.prototype = {
                     Script.clearInterval(this.checkIntervalID);
                     this.checkIntervalID = null;
                     playSuccessSound();
-                    //location = "/tutorial";
                     onFinish();
                 }
             }
@@ -404,8 +411,13 @@ stepRaiseAboveHead.prototype = {
         }.bind(this), 2000);
     },
     cleanup: function() {
-        if (this.checkIntervalID != null) {
+        if (this.checkIntervalID) {
             Script.clearInterval(this.checkIntervalID);
+            this.checkIntervalID = null
+        }
+        if (this.waitTimeoutID) {
+            Script.clearTimeout(this.waitTimeoutID);
+            this.waitTimeoutID = null;
         }
         editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
         deleteEntitiesWithTag(this.tempTag);
@@ -440,6 +452,10 @@ function setControllerPartLayer(part, layer) {
 var stepNearGrab = function(name) {
     this.tag = name;
     this.tempTag = name + "-temporary";
+    this.birdIDs = [];
+
+    Messages.subscribe("Entity-Exploded");
+    Messages.messageReceived.connect(this.onMessage.bind(this));
 }
 stepNearGrab.prototype = {
     start: function(onFinish) {
@@ -454,9 +470,6 @@ stepNearGrab.prototype = {
         //spawnWithTag(Step1EntityData, null, tag);
         showEntitiesWithTag(this.tag, { visible: true });
         showEntitiesWithTag('bothGrab', { visible: true });
-
-        var basketColliderID = findEntity({ name: NEAR_BASKET_COLLIDER_NAME }, 10000); 
-        var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
         var boxSpawnID = findEntity({ name: NEAR_BOX_SPAWN_NAME }, 10000);
         if (!boxSpawnID) {
@@ -473,17 +486,10 @@ stepNearGrab.prototype = {
         // Enabled grab
         // Create table ?
         // Create blocks and basket
-        this.boxID = createBlock.bind(this)();
-        this.boxID = createBlock.bind(this)();
-        this.boxID = createBlock.bind(this)();
-        print("Created", this.boxID);
-
-        //function posChecker() {
-            //Vec3.distance(
-        //}
-
-        Messages.subscribe("Entity-Exploded");
-        Messages.messageReceived.connect(this.onMessage.bind(this));
+        this.birdIDs = [];
+        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)());
 
         // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
@@ -493,12 +499,13 @@ stepNearGrab.prototype = {
         }
         if (channel == "Entity-Exploded") {
             print("TUTORIAL: Got entity-exploded message");
-            playSuccessSound();
+
             var data = parseJSON(message);
-            //if (data.entityID == this.boxID) {
+            if (this.birdIDs.indexOf(data.entityID) >= 0) {
+                playSuccessSound();
                 this.finished = true;
                 this.onFinish();
-            //}
+            }
         }
     },
     cleanup: function() {
@@ -522,6 +529,11 @@ stepNearGrab.prototype = {
 var stepFarGrab = function(name) {
     this.tag = name;
     this.tempTag = name + "-temporary";
+    this.finished = true;
+    this.birdIDs = [];
+
+    Messages.subscribe("Entity-Exploded");
+    Messages.messageReceived.connect(this.onMessage.bind(this));
 }
 stepFarGrab.prototype = {
     start: function(onFinish) {
@@ -545,9 +557,6 @@ stepFarGrab.prototype = {
         //spawnWithTag(Step1EntityData, transform, tag);
         showEntitiesWithTag(this.tag);
 
-        var basketColliderID = findEntity({ name: FAR_BASKET_COLLIDER_NAME }, 10000); 
-        var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
-
         function createBlock() {
             var boxSpawnID = findEntity({ name: FAR_BOX_SPAWN_NAME }, 10000);
             if (!boxSpawnID) {
@@ -559,30 +568,10 @@ stepFarGrab.prototype = {
             return spawnWithTag([birdFirework1], null, this.tempTag)[0];
         }
 
-        // Enabled grab
-        // Create table ?
-        // Create blocks and basket
-        this.boxID = createBlock.bind(this)();
-        this.boxID = createBlock.bind(this)();
-        this.boxID = createBlock.bind(this)();
-        print("Created", this.boxID);
-
-        Messages.subscribe("Entity-Exploded");
-        Messages.messageReceived.connect(this.onMessage.bind(this));
-
-        // When block collides with basket start step 2
-        //var checkCollidesTimer = null;
-        // function checkCollides() {
-        //     print("CHECKING...");
-        //     if (Vec3.distance(basketPosition, Entities.getEntityProperties(this.boxID, 'position').position) < 0.2) {
-        //         Script.clearInterval(checkCollidesTimer);
-        //         playSuccessSound();
-        //         Script.setTimeout(onHit.bind(this), 1000);
-        //     }
-        // }
-        // checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 500);
-
-        // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
+        this.birdIDs = [];
+        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)());
+        this.birdIDs.push(createBlock.bind(this)());
     },
     onMessage: function(channel, message, seneder) {
         if (this.finished) {
@@ -590,16 +579,15 @@ stepFarGrab.prototype = {
         }
         if (channel == "Entity-Exploded") {
             print("TUTORIAL: Got entity-exploded message");
-            playSuccessSound();
             var data = parseJSON(message);
-            if (data.entityID == this.boxID) {
+            if (this.birdIDs.indexOf(data.entityID) >= 0) {
+                playSuccessSound();
                 this.finished = true;
                 this.onFinish();
             }
         }
     },
     cleanup: function() {
-        //Messages.messageReceived.disconnect(this.onMessage.bind(this));
         this.finished = true;
         setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
@@ -625,6 +613,9 @@ var stepEquip = function(name) {
     this.PART1 = 0;
     this.PART2 = 1;
     this.COMPLETE = 2;
+
+    Messages.subscribe('Tutorial-Spinner');
+    Messages.messageReceived.connect(this.onMessage.bind(this));
 }
 stepEquip.prototype = {
     start: function(onFinish) {
@@ -636,29 +627,11 @@ stepEquip.prototype = {
 
         var tag = this.tag;
 
-        var defaultTransform = {
-            position: {
-                x: 0.0,
-                y: 0.0,
-                z: 0.75
-            },
-            rotation: {
-                x: 0,
-                y: 0,
-                z: 0,
-                w: 1
-            }
-        };
-
         // Spawn content set
-        //spawnWithTag(StepGunData, defaultTransform, tag);
         showEntitiesWithTag(this.tag);
         showEntitiesWithTag(this.tagPart1);
 
         this.currentPart = this.PART1;
-
-        var basketColliderID = findEntity({ name: GUN_BASKET_COLLIDER_NAME }, 10000); 
-        var basketPosition = Entities.getEntityProperties(basketColliderID, 'position').position;
 
         function createGun() {
             var boxSpawnID = findEntity({ name: GUN_SPAWN_NAME }, 10000);
@@ -669,14 +642,10 @@ stepEquip.prototype = {
 
             var transform = {};
 
-            GunData.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
-            GunData.rotation = Entities.getEntityProperties(boxSpawnID, 'rotation').rotation;
             transform.position = Entities.getEntityProperties(boxSpawnID, 'position').position;
             transform.rotation = Entities.getEntityProperties(boxSpawnID, 'rotation').rotation;
             this.spawnTransform = transform;
-            Vec3.print("spawn", GunData.position);
-            print("Adding: ", JSON.stringify(GunData));
-            return doCreateButaneLighter(transform).id;//spawnWithTag([GunData], null, this.tempTag)[0];
+            return doCreateButaneLighter(transform).id;
         }
 
 
@@ -687,30 +656,6 @@ stepEquip.prototype = {
         this.startWatchingGun();
         print("Created", this.gunID);
         this.onFinish = onFinish;
-        Messages.subscribe('Tutorial-Spinner');
-        Messages.messageReceived.connect(this.onMessage.bind(this));
-
-//        function onHit() {
-//        }
-//
-//        // When block collides with basket start step 2
-//        function checkCollides() {
-//            //print("CHECKING FOR PING PONG...");
-//            var ammoIDs = findEntities({ name: GUN_AMMO_NAME }, 15);
-//            for (var i = 0; i < ammoIDs.length; ++i) {
-//                if (Vec3.distance(basketPosition, Entities.getEntityProperties(ammoIDs[i], 'position').position) < 0.25) {
-//                    Script.clearInterval(this.checkCollidesTimer);
-//                    this.checkCollidesTimer = null;
-//                    playSuccessSound();
-//                    Script.setTimeout(onHit.bind(this), 1000);
-//                    return;
-//                }
-//            }
-//        }
-//        this.checkCollidesTimer = Script.setInterval(checkCollides.bind(this), 100);
-
-
-        // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     startWatchingGun: function() {
         if (!this.watcherIntervalID) {
@@ -733,7 +678,9 @@ stepEquip.prototype = {
         if (this.currentPart == this.COMPLETE) {
             return;
         }
+
         print("Got message", channel, message, sender, MyAvatar.sessionUUID);
+
         if (channel == "Tutorial-Spinner") {
             if (this.currentPart == this.PART1 && message == "wasLit") {
                 Script.setTimeout(function() {
@@ -742,38 +689,32 @@ stepEquip.prototype = {
                     showEntitiesWithTag(this.tagPart2);
                     setControllerPartLayer('tips', 'grip');
                     Messages.subscribe('Hifi-Object-Manipulation');
-                }.bind(this), 2000);
+                }.bind(this), 9000);
             }
         } else if (channel == "Hifi-Object-Manipulation") {
             if (this.currentPart == this.PART2) {
                 var data = parseJSON(message);
-                print("Here", data.action, data.grabbedEntity, this.gunID);
                 if (data.action == 'release' && data.grabbedEntity == this.gunID) {
                     print("got release");
                     this.stopWatchingGun();
-                    try {
-                        Messages.messageReceived.disconnect(this.onMessage);
-                    } catch(e) {
-                    }
                     playSuccessSound();
-                    print("FINISHED");
                     Script.setTimeout(this.onFinish.bind(this), 1500);
                     this.currentPart = this.COMPLETE;
-                    //this.onFinish();
                 }
             }
         }
     },
     cleanup: function() {
+        if (this.watcherIntervalID) {
+            Script.clearInterval(this.watcherIntervalID);
+            this.watcherIntervalID = null;
+        }
+
         setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
         this.stopWatchingGun();
         this.currentPart = this.COMPLETE;
-        try {
-            Messages.messageReceived.disconnect(this.onMessage);
-        } catch(e) {
-            print("error disconnecting");
-        }
+
         if (this.checkCollidesTimer) {
             Script.clearInterval(this.checkCollidesTimer);
         }

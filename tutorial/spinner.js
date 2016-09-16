@@ -25,8 +25,8 @@
             });
             var injector = Audio.playSound(spinnerSound, {
                 position: Entities.getEntityProperties(this.entityID, 'position').position,
-                volume: 0.7,
-                loop: true 
+                volume: 1.0,
+                loop: false 
             });
 
                 print("HERE2");

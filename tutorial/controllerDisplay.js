@@ -30,17 +30,13 @@ createControllerDisplay = function(config) {
             print("Setting layer...", partName, layerName);
             if (partName in this.parts) {
                 var part = this.parts[partName];
-                //print("FOnd", JSON.stringify(part));
-                if (layerName in part.textureLayers) {
-                    //print("got it", layerName);
+                if (part.textureLayers && layerName in part.textureLayers) {
                     var layer = part.textureLayers[layerName];
                     var textures = {};
                     if (layer.defaultTextureURL) {
-                        //print("default texture");
                         textures[part.textureName] = layer.defaultTextureURL;
                     }
                     for (var i = 0; i < this.partOverlays[partName].length; ++i) {
-                        //print("updating", JSON.stringify(textures));
                         Overlays.editOverlay(this.partOverlays[partName][i], {
                             textures: textures
                         });
