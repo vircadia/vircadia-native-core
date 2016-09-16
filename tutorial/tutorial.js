@@ -221,7 +221,7 @@ stepDisableControllers.prototype = {
             farGrabEnabled: false,
         }));
         setControllerPartLayer('touchpad', 'blank');
-        setControllerPartLayer('tips', 'grip');
+        setControllerPartLayer('tips', 'blank');
         onFinish();
     },
     cleanup: function() {
@@ -317,7 +317,7 @@ stepOrient.prototype = {
         };
 
         this.overlay = new StayInFrontOverlay("model", {
-            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/raiseHands.fbx?11",
+            url: "http://hifi-content.s3.amazonaws.com/alan/dev/Prompt-Cards/welcome.fbx?11",
             ignoreRayIntersection: true,
         }, 2, { x: 0, y: 0.3, z: 0 });
 
@@ -729,6 +729,7 @@ stepEquip.prototype = {
         print("Got message", channel, message, sender, MyAvatar.sessionUUID);
         if (channel == "Tutorial-Spinner") {
             if (this.currentPart == this.PART1 && message == "wasLit") {
+                this.currentPart = this.PART2;
                 hideEntitiesWithTag(this.tagPart1);
                 showEntitiesWithTag(this.tagPart2);
                 setControllerPartLayer('tips', 'grip');
@@ -983,7 +984,7 @@ function startTutorial() {
     STEPS = [
         new stepDisableControllers("step0"),
         new stepOrient("orient"),
-        new stepWelcome("welcome"),
+        //new stepWelcome("welcome"),
         new stepRaiseAboveHead("raiseHands"),
         new stepNearGrab("nearGrab"),
         new stepFarGrab("farGrab"),
@@ -995,7 +996,7 @@ function startTutorial() {
     for (var i = 0; i < STEPS.length; ++i) {
         STEPS[i].cleanup();
     }
-    //location = "/tutorial_begin";
+    location = "/tutorial_begin";
     //location = "/tutorial";
     MyAvatar.shouldRenderLocally = false;
     startNextStep();
