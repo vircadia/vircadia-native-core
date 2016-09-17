@@ -27,13 +27,28 @@ public:
     ~ICEClientApp();
 
 private:
+    enum State {
+        lookUpStunServer, // 0
+        sendStunRequestPacket, // 1
+        waitForStunResponse, // 2
+        talkToIceServer, // 3
+        waitForIceReply, // 4
+        pause0, // 5
+        pause1 // 6
+    };
+
+    void setState(int newState);
+
     void doSomething();
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
                                const QUuid& clientID, const QUuid& peerID);
     void icePingDomainServer();
+    void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
     void processPacket(std::unique_ptr<udt::Packet> packet);
 
     bool _verbose;
+
+    HifiSockAddr _stunSockAddr;
 
     unsigned int _actionCount { 0 };
     unsigned int _actionMax { 0 };
@@ -52,10 +67,6 @@ private:
     bool _domainServerPeerSet { false };
     NetworkPeer _domainServerPeer;
 
-    // 0 -- time to talk to ice server
-    // 1 -- waiting for ICEPingReply
-    // 2 -- pause
-    // 3 -- pause
     int _state { 0 };
 };
 
