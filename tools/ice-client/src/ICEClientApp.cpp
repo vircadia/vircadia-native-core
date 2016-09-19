@@ -10,15 +10,16 @@
 //
 
 #include <QDataStream>
+#include <QLoggingCategory>
 #include <QCommandLineParser>
 #include <PathUtils.h>
 #include <LimitedNodeList.h>
+#include <NetworkLogging.h>
 
 #include "ICEClientApp.h"
 
 ICEClientApp::ICEClientApp(int argc, char* argv[]) :
-    QCoreApplication(argc, argv),
-    _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT)
+    QCoreApplication(argc, argv)
 {
     // parse command-line
     QCommandLineParser parser;
@@ -33,7 +34,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     const QCommandLineOption iceServerAddressOption("i", "ice-server address", "IP:PORT or HOSTNAME:PORT");
     parser.addOption(iceServerAddressOption);
 
-    const QCommandLineOption howManyTimesOption("n", "how many times to cycle", "0");
+    const QCommandLineOption howManyTimesOption("n", "how many times to cycle", "1");
     parser.addOption(howManyTimesOption);
 
     const QCommandLineOption domainIDOption("d", "domain-server uuid", "00000000-0000-0000-0000-000000000000");
@@ -41,7 +42,6 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption cacheSTUNOption("s", "cache stun-server response");
     parser.addOption(cacheSTUNOption);
-
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -55,17 +55,28 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     }
 
     _verbose = parser.isSet(verboseOutput);
+    if (!_verbose) {
+        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, false);
+        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtWarningMsg, false);
+    }
+
+    _stunSockAddr = HifiSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT, true);
+
     _cacheSTUNResult = parser.isSet(cacheSTUNOption);
 
     if (parser.isSet(howManyTimesOption)) {
         _actionMax = parser.value(howManyTimesOption).toInt();
+    } else {
+        _actionMax = 1;
     }
 
     if (parser.isSet(domainIDOption)) {
         _domainID = QUuid(parser.value(domainIDOption));
-        qDebug() << "domain-server ID is" << _domainID;
+        if (_verbose) {
+            qDebug() << "domain-server ID is" << _domainID;
+        }
     }
-
 
     _iceServerAddr = HifiSockAddr("127.0.0.1", ICE_SERVER_DEFAULT_PORT);
     if (parser.isSet(iceServerAddressOption)) {
@@ -74,8 +85,11 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
 
         QHostAddress address { hostnamePortString.left(hostnamePortString.indexOf(':')) };
         quint16 port { (quint16) hostnamePortString.mid(hostnamePortString.indexOf(':') + 1).toUInt() };
+        if (port == 0) {
+            port = 7337;
+        }
 
-        if (address.isNull() || port == 0) {
+        if (address.isNull()) {
             qCritical() << "Could not parse an IP address and port combination from" << hostnamePortString << "-" <<
                 "The parsed IP was" << address.toString() << "and the parsed port was" << port;
 
@@ -85,7 +99,9 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         }
     }
 
-    qDebug() << "ICE-server address is" << _iceServerAddr;
+    if (_verbose) {
+        qDebug() << "ICE-server address is" << _iceServerAddr;
+    }
 
     setState(lookUpStunServer);
 
@@ -99,7 +115,6 @@ ICEClientApp::~ICEClientApp() {
 }
 
 void ICEClientApp::setState(int newState) {
-    // qDebug() << "state: " << _state << " --> " << newState;
     _state = newState;
 }
 
@@ -123,9 +138,12 @@ void ICEClientApp::openSocket() {
                                       processSTUNResponse(std::move(packet));
                                   });
 
-    qDebug() << "local port is" << _socket->localPort();
+    if (_verbose) {
+        qDebug() << "local port is" << _socket->localPort();
+    }
     _localSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
     _publicSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
+    _domainPingCount = 0;
 }
 
 void ICEClientApp::doSomething() {
@@ -136,8 +154,15 @@ void ICEClientApp::doSomething() {
     } else if (_state == lookUpStunServer) {
         // lookup STUN server address
         if (!_stunSockAddr.getAddress().isNull()) {
-            qDebug() << "stun server is" << _stunSockAddr;
+            if (_verbose) {
+                qDebug() << "stun server is" << _stunSockAddr;
+            }
             setState(sendStunRequestPacket);
+        } else {
+            if (_verbose) {
+                qDebug() << "_stunSockAddr is" << _stunSockAddr.getAddress();
+            }
+            QCoreApplication::exit(stunFailureExitStatus);
         }
 
     } else if (_state == sendStunRequestPacket) {
@@ -149,12 +174,26 @@ void ICEClientApp::doSomething() {
             const int NUM_BYTES_STUN_HEADER = 20;
             char stunRequestPacket[NUM_BYTES_STUN_HEADER];
             LimitedNodeList::makeSTUNRequestPacket(stunRequestPacket);
-            qDebug() << "sending STUN request";
+            if (_verbose) {
+                qDebug() << "sending STUN request";
+            }
             _socket->writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
+            _stunResponseTimerCanceled = false;
+            _stunResponseTimer.singleShot(stunResponseTimeoutMilliSeconds, this, [&] {
+                if (_stunResponseTimerCanceled) {
+                    return;
+                }
+                if (_verbose) {
+                    qDebug() << "timeout waiting for stun-server response";
+                }
+                QCoreApplication::exit(stunFailureExitStatus);
+            });
 
             setState(waitForStunResponse);
         } else {
-            qDebug() << "using cached STUN resposne";
+            if (_verbose) {
+                qDebug() << "using cached STUN response";
+            }
             _publicSockAddr.setPort(_socket->localPort());
             setState(talkToIceServer);
         }
@@ -171,18 +210,30 @@ void ICEClientApp::doSomething() {
             setState(waitForIceReply);
         }
         _sessionUUID = QUuid::createUuid();
-        qDebug() << "I am" << _sessionUUID;
+        if (_verbose) {
+            qDebug() << "I am" << _sessionUUID;
+        }
 
         sendPacketToIceServer(PacketType::ICEServerQuery, _iceServerAddr, _sessionUUID, peerID);
-
-        _actionCount++;
+        _iceResponseTimerCanceled = false;
+        _iceResponseTimer.singleShot(iceResponseTimeoutMilliSeconds, this, [=] {
+            if (_iceResponseTimerCanceled) {
+                return;
+            }
+            if (_verbose) {
+                qDebug() << "timeout waiting for ice-server response";
+            }
+            QCoreApplication::exit(iceFailureExitStatus);
+        });
     } else if (_state == pause0) {
         setState(pause1);
     } else if (_state == pause1) {
-        qDebug() << "";
+        if (_verbose) {
+            qDebug() << "";
+        }
+        closeSocket();
         setState(sendStunRequestPacket);
-        delete _socket;
-        _socket = nullptr;
+        _actionCount++;
     }
 }
 
@@ -198,12 +249,24 @@ void ICEClientApp::sendPacketToIceServer(PacketType packetType, const HifiSockAd
 
         iceDataStream << peerID;
 
-        qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
-                 << uuidStringWithoutCurlyBraces(peerID);
+        if (_verbose) {
+            qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
+                     << uuidStringWithoutCurlyBraces(peerID);
+        }
     }
 
     // fillPacketHeader(packet, connectionSecret);
     _socket->writePacket(*icePacket, _iceServerAddr);
+}
+
+void ICEClientApp::checkDomainPingCount() {
+    _domainPingCount++;
+    if (_domainPingCount > 5) {
+        if (_verbose) {
+            qDebug() << "too many unanswered pings to domain-server.";
+        }
+        QCoreApplication::exit(domainPingExitStatus);
+    }
 }
 
 void ICEClientApp::icePingDomainServer() {
@@ -211,29 +274,43 @@ void ICEClientApp::icePingDomainServer() {
         return;
     }
 
-    qDebug() << "ice-pinging domain-server: " << _domainServerPeer;
+    if (_verbose) {
+        qDebug() << "ice-pinging domain-server: " << _domainServerPeer;
+    }
 
     auto localPingPacket = LimitedNodeList::constructICEPingPacket(PingType::Local, _sessionUUID);
     _socket->writePacket(*localPingPacket, _domainServerPeer.getLocalSocket());
 
     auto publicPingPacket = LimitedNodeList::constructICEPingPacket(PingType::Public, _sessionUUID);
     _socket->writePacket(*publicPingPacket, _domainServerPeer.getPublicSocket());
+    checkDomainPingCount();
 }
 
 void ICEClientApp::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
-    qDebug() << "got stun response";
-    if (_state != waitForStunResponse) {
-        qDebug() << "got unexpected stun response";
-        return;
+    if (_verbose) {
+        qDebug() << "got stun response";
     }
+    if (_state != waitForStunResponse) {
+        if (_verbose) {
+            qDebug() << "got unexpected stun response";
+        }
+        QCoreApplication::exit(stunFailureExitStatus);
+    }
+
+    _stunResponseTimer.stop();
+    _stunResponseTimerCanceled = true;
 
     uint16_t newPublicPort;
     QHostAddress newPublicAddress;
     if (LimitedNodeList::parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-        qDebug() << "My public address is" << _publicSockAddr;
+        if (_verbose) {
+            qDebug() << "My public address is" << _publicSockAddr;
+        }
         _stunResultSet = true;
         setState(talkToIceServer);
+    } else {
+        QCoreApplication::exit(stunFailureExitStatus);
     }
 }
 
@@ -242,7 +319,9 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
     std::unique_ptr<NLPacket> nlPacket = NLPacket::fromBase(std::move(packet));
 
     if (nlPacket->getPayloadSize() < NLPacket::localHeaderSize(PacketType::ICEServerHeartbeat)) {
-        qDebug() << "got a short packet.";
+        if (_verbose) {
+            qDebug() << "got a short packet.";
+        }
         return;
     }
 
@@ -250,10 +329,16 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
     const HifiSockAddr& senderAddr = message->getSenderSockAddr();
 
     if (nlPacket->getType() == PacketType::ICEServerPeerInformation) {
+        // cancel the timeout timer
+        _iceResponseTimer.stop();
+        _iceResponseTimerCanceled = true;
+
         QDataStream iceResponseStream(message->getMessage());
         if (!_domainServerPeerSet) {
             iceResponseStream >> _domainServerPeer;
-            qDebug() << "got ICEServerPeerInformation from" << _domainServerPeer;
+            if (_verbose) {
+                qDebug() << "got ICEServerPeerInformation from" << _domainServerPeer;
+            }
             _domainServerPeerSet = true;
 
             icePingDomainServer();
@@ -263,16 +348,23 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
         } else {
             NetworkPeer domainServerPeer;
             iceResponseStream >> domainServerPeer;
-            qDebug() << "got repeat ICEServerPeerInformation from" << domainServerPeer;
+            if (_verbose) {
+                qDebug() << "got repeat ICEServerPeerInformation from" << domainServerPeer;
+            }
         }
 
     } else if (nlPacket->getType() == PacketType::ICEPing) {
-        qDebug() << "got packet: " << nlPacket->getType();
+        if (_verbose) {
+            qDebug() << "got packet: " << nlPacket->getType();
+        }
         auto replyPacket = LimitedNodeList::constructICEPingReplyPacket(*message, _sessionUUID);
         _socket->writePacket(*replyPacket, senderAddr);
+        checkDomainPingCount();
 
     } else if (nlPacket->getType() == PacketType::ICEPingReply) {
-        qDebug() << "got packet: " << nlPacket->getType();
+        if (_verbose) {
+            qDebug() << "got packet: " << nlPacket->getType();
+        }
         if (_domainServerPeerSet && _state == waitForIceReply &&
             (senderAddr == _domainServerPeer.getLocalSocket() ||
              senderAddr == _domainServerPeer.getPublicSocket())) {
@@ -282,10 +374,14 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
 
             setState(pause0);
         } else {
-            qDebug() << "got unexpected ICEPingReply" << senderAddr;
+            if (_verbose) {
+                qDebug() << "got unexpected ICEPingReply" << senderAddr;
+            }
         }
 
     } else {
-        qDebug() << "got unexpected packet: " << nlPacket->getType();
+        if (_verbose) {
+            qDebug() << "got unexpected packet: " << nlPacket->getType();
+        }
     }
 }

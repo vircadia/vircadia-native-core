@@ -26,6 +26,13 @@ public:
     ICEClientApp(int argc, char* argv[]);
     ~ICEClientApp();
 
+    const int stunFailureExitStatus { 1 };
+    const int iceFailureExitStatus { 2 };
+    const int domainPingExitStatus { 3 };
+
+    const int stunResponseTimeoutMilliSeconds { 2000 };
+    const int iceResponseTimeoutMilliSeconds { 2000 };
+
 private:
     enum State {
         lookUpStunServer, // 0
@@ -48,6 +55,7 @@ private:
     void icePingDomainServer();
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
     void processPacket(std::unique_ptr<udt::Packet> packet);
+    void checkDomainPingCount();
 
     bool _verbose;
     bool _cacheSTUNResult; // should we only talk to stun server once?
@@ -73,7 +81,15 @@ private:
     NetworkPeer _domainServerPeer;
 
     int _state { 0 };
+
+    QTimer _stunResponseTimer;
+    bool _stunResponseTimerCanceled { false };
+    QTimer _iceResponseTimer;
+    bool _iceResponseTimerCanceled { false };
+    int _domainPingCount { 0 };
 };
+
+
 
 
 
