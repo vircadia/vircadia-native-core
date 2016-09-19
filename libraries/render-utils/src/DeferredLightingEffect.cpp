@@ -337,7 +337,13 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
-        glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
+    // rendering
+    if (_primaryFramebuffer && _primaryFramebuffer->getSize() != frameSize) {
+        _primaryFramebuffer.reset();
+    }
 
     if (!_primaryFramebuffer) {
         _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
@@ -356,9 +362,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
         primaryDepthTexture->setSource("PreparePrimaryFramebuffer::primaryDepthTexture");
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
-
     }
-    _primaryFramebuffer->resize(frameSize.x, frameSize.y);
 
     primaryFramebuffer = _primaryFramebuffer;
 }

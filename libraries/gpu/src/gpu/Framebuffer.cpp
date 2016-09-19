@@ -115,29 +115,31 @@ void Framebuffer::updateSize(const TexturePointer& texture) {
     }
 }
 
+#if 0
 void Framebuffer::resize(uint16 width, uint16 height, uint16 numSamples) {
     if (width && height && numSamples && !isEmpty() && !isSwapchain()) {
         if ((width != _width) || (height != _height) || (numSamples != _numSamples)) {
+            _numSamples = numSamples;
             for (uint32 i = 0; i < _renderBuffers.size(); ++i) {
                 if (_renderBuffers[i]) {
-                    _renderBuffers[i]._texture->resize2D(width, height, numSamples);
-                    _numSamples = _renderBuffers[i]._texture->getNumSamples();
+                    _renderBuffers[i]._texture->resize2D(width, height, _numSamples);
+                    assert(_renderBuffers[i]._texture->getNumSamples() == _numSamples);
                     ++_colorStamps[i];
                 }
             }
 
             if (_depthStencilBuffer) {
-                _depthStencilBuffer._texture->resize2D(width, height, numSamples);
-                _numSamples = _depthStencilBuffer._texture->getNumSamples();
+                _depthStencilBuffer._texture->resize2D(width, height, _numSamples);
+                assert(_depthStencilBuffer._texture->getNumSamples() == _numSamples);
                 ++_depthStamp;
             }
 
             _width = width;
             _height = height;
-         //   _numSamples = numSamples;
         }
     }
 }
+#endif
 
 uint16 Framebuffer::getWidth() const {
     if (isSwapchain()) {
