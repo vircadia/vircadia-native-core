@@ -18,54 +18,73 @@
 
 #include "AudioIOStats.h"
 
-const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
+// This is called 5x/sec (see AudioStatsDialog), and we want it to log the last 5s
+static const int INPUT_READS_WINDOW = 25;
+static const int INPUT_UNPLAYED_WINDOW = 25;
+static const int OUTPUT_UNPLAYED_WINDOW = 25;
 
-const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AudioConstants::NETWORK_FRAME_MSECS);
+static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AudioConstants::NETWORK_FRAME_MSECS);
 
 
 AudioIOStats::AudioIOStats(MixedProcessedAudioStream* receivedAudioStream) :
     _receivedAudioStream(receivedAudioStream),
-    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AudioConstants::NETWORK_FRAME_MSECS * AudioClient::CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _lastSentAudioPacket(0),
-    _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS)
+    _inputMsRead(0, INPUT_READS_WINDOW),
+    _inputMsUnplayed(0, INPUT_UNPLAYED_WINDOW),
+    _outputMsUnplayed(0, OUTPUT_UNPLAYED_WINDOW),
+    _lastSentPacketTime(0),
+    _packetTimegaps(0, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS)
 {
-
-}
-
-AudioStreamStats AudioIOStats::getMixerDownstreamStats() const {
-    return _receivedAudioStream->getAudioStreamStats();
 }
 
 void AudioIOStats::reset() {
     _receivedAudioStream->resetStats();
 
+    _inputMsRead.reset();
+    _inputMsUnplayed.reset();
+    _outputMsUnplayed.reset();
+    _packetTimegaps.reset();
+
     _mixerAvatarStreamStats = AudioStreamStats();
     _mixerInjectedStreamStatsMap.clear();
-
-    _audioInputMsecsReadStats.reset();
-    _inputRingBufferMsecsAvailableStats.reset();
-
-    _audioOutputMsecsUnplayedStats.reset();
-    _packetSentTimeGaps.reset();
 }
 
 void AudioIOStats::sentPacket() {
     // first time this is 0
-    if (_lastSentAudioPacket == 0) {
-        _lastSentAudioPacket = usecTimestampNow();
+    if (_lastSentPacketTime == 0) {
+        _lastSentPacketTime = usecTimestampNow();
     } else {
         quint64 now = usecTimestampNow();
-        quint64 gap = now - _lastSentAudioPacket;
-        _packetSentTimeGaps.update(gap);
-
-        _lastSentAudioPacket = now;
+        quint64 gap = now - _lastSentPacketTime;
+        _lastSentPacketTime = now;
+        _packetTimegaps.update(gap);
     }
 }
 
-void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+const MovingMinMaxAvg<float>& AudioIOStats::getInputMsRead() const {
+    _inputMsRead.currentIntervalComplete();
+    return _inputMsRead;
+}
 
+const MovingMinMaxAvg<float>& AudioIOStats::getInputMsUnplayed() const {
+    _inputMsUnplayed.currentIntervalComplete();
+    return _inputMsUnplayed;
+}
+
+const MovingMinMaxAvg<float>& AudioIOStats::getOutputMsUnplayed() const {
+    _outputMsUnplayed.currentIntervalComplete();
+    return _outputMsUnplayed;
+}
+
+const MovingMinMaxAvg<quint64>& AudioIOStats::getPacketTimegaps() const {
+    _packetTimegaps.currentIntervalComplete();
+    return _packetTimegaps;
+}
+
+const AudioStreamStats AudioIOStats::getMixerDownstreamStats() const {
+    return _receivedAudioStream->getAudioStreamStats();
+}
+
+void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // parse the appendFlag, clear injected audio stream stats if 0
     quint8 appendFlag;
     message->readPrimitive(&appendFlag);
@@ -92,14 +111,9 @@ void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> mess
 }
 
 void AudioIOStats::sendDownstreamAudioStatsPacket() {
-
     auto audioIO = DependencyManager::get<AudioClient>();
 
-    // since this function is called every second, we'll sample for some of our stats here
-    _inputRingBufferMsecsAvailableStats.update(audioIO->getInputRingBufferMsecsAvailable());
-    _audioOutputMsecsUnplayedStats.update(audioIO->getAudioOutputMsecsUnplayed());
-
-    // also, call _receivedAudioStream's per-second callback
+    // call _receivedAudioStream's per-second callback
     _receivedAudioStream->perSecondCallbackForUpdatingStats();
 
     auto nodeList = DependencyManager::get<NodeList>();

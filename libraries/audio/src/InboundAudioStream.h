@@ -161,6 +161,7 @@ public:
     int getFrameCapacity() const { return _ringBuffer.getFrameCapacity(); }
     int getFramesAvailable() const { return _ringBuffer.framesAvailable(); }
     double getFramesAvailableAverage() const { return _framesAvailableStat.getAverage(); }
+    int getSamplesAvailable() const { return _ringBuffer.samplesAvailable(); }
 
     bool isStarved() const { return _isStarved; }
     bool hasStarted() const { return _hasStarted; }
@@ -264,6 +265,7 @@ protected:
     int _starveThreshold;
 
     TimeWeightedAvg<int> _framesAvailableStat;
+    MovingMinMaxAvg<float> _unplayedMs;
 
     // this value is periodically updated with the time-weighted avg from _framesAvailableStat. it is only used for
     // dropping silent frames right now.
