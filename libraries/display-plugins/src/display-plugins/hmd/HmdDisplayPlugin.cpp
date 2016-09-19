@@ -138,15 +138,6 @@ ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     float sceneAspect = aspect(size);
     float aspectRatio = sceneAspect / windowAspect;
 
-    qDebug() << "size:" << size;
-
-    /*
-    qDebug() << "windowSize:" << windowSize;
-    qDebug() << "windowAspect:" << windowAspect;
-    qDebug() << "sceneAspect:" << sceneAspect;
-    qDebug() << "aspectRatio:" << aspectRatio;
-    */
-
     uvec2 targetViewportSize = windowSize;
     if (aspectRatio < 1.0f) {
         targetViewportSize.x *= aspectRatio;
@@ -161,41 +152,6 @@ ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     }
     return ivec4(targetViewportPosition, targetViewportSize);
 }
-
-ivec4 HmdDisplayPlugin::getViewportForClippedSource(const uvec2& sourceSize, const uvec2& clippedRatio) const {
-    // screen preview mirroring
-    auto window = _container->getPrimaryWidget();
-    auto devicePixelRatio = window->devicePixelRatio();
-    auto windowSize = toGlm(window->size());
-    windowSize *= devicePixelRatio;
-    float windowAspect = aspect(windowSize);
-    float sceneAspect = aspect(sourceSize);
-    float clippedAspect = aspect(clippedRatio);
-
-    float aspectRatio = sceneAspect / windowAspect; // old way
-    //float aspectRatio = clippedAspect / windowAspect;
-
-    qDebug() << "size:" << sourceSize;
-    qDebug() << "windowSize:" << windowSize;
-    qDebug() << "windowAspect:" << windowAspect;
-    qDebug() << "sceneAspect:" << sceneAspect;
-    qDebug() << "aspectRatio:" << aspectRatio;
-
-    uvec2 targetViewportSize = windowSize;
-    if (aspectRatio < 1.0f) {
-        targetViewportSize.x *= aspectRatio;
-    } else {
-        targetViewportSize.y /= aspectRatio;
-    }
-    uvec2 targetViewportPosition;
-    if (targetViewportSize.x < windowSize.x) {
-        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-    } else if (targetViewportSize.y < windowSize.y) {
-        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-    }
-    return ivec4(targetViewportPosition, targetViewportSize);
-}
-
 
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
@@ -210,27 +166,6 @@ void HmdDisplayPlugin::internalPresent() {
             sourceSize.x >>= 1;
         }
 
-        /****
-        eye image size: (1512, 1680)
-        desired aspect ratio: 16:9
-        desired clipped image: 1512x850
-
-        original clipping: 0,415
-
-
-        examples:
-        window size: 1512x850
-
-        viewport: 0, -415,
-        1512, 1680
-
-        scissor: 0,0, 1512, 850
-        ****/
-
-        // viewport is ivec4(targetViewportPosition, targetViewportSize);
-
-        //qDebug() << "sourceSize:" << sourceSize.x << "," << sourceSize.y;
-
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
         glm::uvec2 originalClippedSize { sourceSize.x, sourceSize.x * RATIO_Y / RATIO_X };
@@ -238,34 +173,9 @@ void HmdDisplayPlugin::internalPresent() {
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
 
-        /*
-        qDebug() << "viewport.pos:" << viewport.x << "," << viewport.y
-            << "viewport.size:" << viewport.z << "," << viewport.w;
-            */
-
         render([&](gpu::Batch& batch) {
 
             if (_monoPreview) {
-                /*
-                glm::mat4 eyeProjection;
-                eyeProjection[0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
-                eyeProjection[1] = vec4 { 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
-                eyeProjection[2] = vec4 { -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
-                eyeProjection[3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
-                glm::mat4 inverseEyeProjection = glm::inverse(eyeProjection);
-                vec2 eyeRenderTargetSize = viewport;// sourceSize; // { 3024 / 2, 1680 };
-
-                vec4 left = vec4(-1, 0, -1, 1);
-                vec4 right = vec4(1, 0, -1, 1);
-                vec4 right2 = inverseEyeProjection * right;
-                vec4 left2 = inverseEyeProjection * left;
-                left2 /= left2.w;
-                right2 /= right2.w;
-                float width = -left2.x + right2.x;
-                float leftBias = -left2.x / width;
-                float leftCenterPixel = eyeRenderTargetSize.x * leftBias;
-                */
-
                 auto window = _container->getPrimaryWidget();
                 float devicePixelRatio = window->devicePixelRatio();
                 glm::vec2 windowSize = toGlm(window->size());
@@ -279,27 +189,32 @@ void HmdDisplayPlugin::internalPresent() {
 
                 bool scaleToWidth = windowAspect < sceneAspect;
 
+                float ratio;
+                int scissorOffset;
+
                 if (scaleToWidth) {
-                    float ratio = (float)windowSize.x / (float)sourceSize.x;
-                    int viewportSizeX = sourceSize.x * ratio;
-                    int viewportSizeY = sourceSize.y * ratio;
-                    int scissorSizeX = originalClippedSize.x * ratio;
-                    int scissorSizeY = originalClippedSize.y * ratio;
-                    int viewportOffset = ((int)windowSize.y - viewportSizeY) / 2;
-                    int scissorOffset = ((int)windowSize.y - scissorSizeY) / 2;
+                    ratio = (float)windowSize.x / (float)sourceSize.x;
+                } else {
+                    ratio = (float)windowSize.y / (float)originalClippedSize.y;
+                }
+
+                int scissorSizeX = originalClippedSize.x * ratio;
+                int scissorSizeY = originalClippedSize.y * ratio;
+
+                int viewportSizeX = sourceSize.x * ratio;
+                int viewportSizeY = sourceSize.y * ratio;
+                int viewportOffset = ((int)windowSize.y - viewportSizeY) / 2;
+
+                if (scaleToWidth) {
+                    scissorOffset = ((int)windowSize.y - scissorSizeY) / 2;
                     scissor = ivec4(0, scissorOffset, scissorSizeX, scissorSizeY);
                     viewport = ivec4(0, viewportOffset, viewportSizeX, viewportSizeY);
                 } else {
-                    float ratio = (float)windowSize.y / (float)originalClippedSize.y;
-                    int viewportSizeX = sourceSize.x * ratio;
-                    int viewportSizeY = sourceSize.y * ratio;
-                    int scissorSizeX = originalClippedSize.x * ratio;
-                    int scissorSizeY = originalClippedSize.y * ratio;
-                    int viewportOffset = ((int)windowSize.y - viewportSizeY) / 2;
-                    int scissorOffset = ((int)windowSize.x - scissorSizeX) / 2;
+                    scissorOffset = ((int)windowSize.x - scissorSizeX) / 2;
                     scissor = ivec4(scissorOffset, 0, scissorSizeX, scissorSizeY);
                     viewport = ivec4(scissorOffset, viewportOffset, viewportSizeX, viewportSizeY);
                 }
+
                 viewport.z *= 2;
             }
 
