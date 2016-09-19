@@ -126,6 +126,11 @@ void SparseInfo::update() {
         return;
     }
     glGetTextureParameterIuiv(_texture._id, GL_NUM_SPARSE_LEVELS_ARB, &_maxSparseLevel);
+    // For some reason the long mip tail isn't working properly with cubemaps unless
+    // I extend one more level
+    if (GL_TEXTURE_CUBE_MAP == _texture._target) {
+        ++_maxSparseLevel;
+    }
     _pageBytes = _texture._gpuObject.getTexelFormat().getSize();
     _pageBytes *= _pageDimensions.x * _pageDimensions.y * _pageDimensions.z;
 
@@ -253,10 +258,7 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     }
 }
 
-// Destructors get called on the main thread, potentially without a context active.  We need to queue the 
-// deallocation of the sparse pages for this content.
 GL45Texture::~GL45Texture() {
-
     if (_sparseInfo._sparse) {
         auto backend = _backend.lock();
         if (backend) {
@@ -277,6 +279,8 @@ GL45Texture::~GL45Texture() {
             uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
             for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
                 auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
+                // Destructors get called on the main thread, potentially without a context active.  
+                // We need to queue the deallocation of the sparse pages for this content.
                 backend->releaseLambda([=] {
                     glTexturePageCommitmentEXT(id, mipLevel, 0, 0, 0, mipDimensions.x, mipDimensions.y, maxFace, GL_FALSE);
                 });
