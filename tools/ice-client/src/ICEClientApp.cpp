@@ -39,6 +39,9 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     const QCommandLineOption domainIDOption("d", "domain-server uuid", "00000000-0000-0000-0000-000000000000");
     parser.addOption(domainIDOption);
 
+    const QCommandLineOption cacheSTUNOption("s", "cache stun-server response");
+    parser.addOption(cacheSTUNOption);
+
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -52,6 +55,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     }
 
     _verbose = parser.isSet(verboseOutput);
+    _cacheSTUNResult = parser.isSet(cacheSTUNOption);
 
     if (parser.isSet(howManyTimesOption)) {
         _actionMax = parser.value(howManyTimesOption).toInt();
@@ -99,6 +103,31 @@ void ICEClientApp::setState(int newState) {
     _state = newState;
 }
 
+void ICEClientApp::closeSocket() {
+    _domainServerPeerSet = false;
+    delete _socket;
+    _socket = nullptr;
+}
+
+void ICEClientApp::openSocket() {
+    if (_socket) {
+        return;
+    }
+
+    _socket = new udt::Socket();
+    unsigned int localPort = 0;
+    _socket->bind(QHostAddress::AnyIPv4, localPort);
+    _socket->setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet)); });
+    _socket->addUnfilteredHandler(_stunSockAddr,
+                                  [this](std::unique_ptr<udt::BasePacket> packet) {
+                                      processSTUNResponse(std::move(packet));
+                                  });
+
+    qDebug() << "local port is" << _socket->localPort();
+    _localSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
+    _publicSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
+}
+
 void ICEClientApp::doSomething() {
     if (_actionMax > 0 && _actionCount >= _actionMax) {
         // time to stop.
@@ -113,29 +142,22 @@ void ICEClientApp::doSomething() {
 
     } else if (_state == sendStunRequestPacket) {
         // send STUN request packet
+        closeSocket();
+        openSocket();
 
-        _domainServerPeerSet = false;
-        unsigned int localPort = 0;
-        delete _socket;
-        _socket = new udt::Socket();
-        _socket->bind(QHostAddress::AnyIPv4, localPort);
-        _socket->setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet)); });
-        _socket->addUnfilteredHandler(_stunSockAddr,
-                                      [this](std::unique_ptr<udt::BasePacket> packet) {
-                                          processSTUNResponse(std::move(packet));
-                                      });
+        if (!_cacheSTUNResult || !_stunResultSet) {
+            const int NUM_BYTES_STUN_HEADER = 20;
+            char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+            LimitedNodeList::makeSTUNRequestPacket(stunRequestPacket);
+            qDebug() << "sending STUN request";
+            _socket->writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
 
-        qDebug() << "local port is" << _socket->localPort();
-        _localSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
-        _publicSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
-
-        const int NUM_BYTES_STUN_HEADER = 20;
-        char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-        LimitedNodeList::makeSTUNRequestPacket(stunRequestPacket);
-        qDebug() << "sending STUN request";
-        _socket->writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
-
-        setState(waitForStunResponse);
+            setState(waitForStunResponse);
+        } else {
+            qDebug() << "using cached STUN resposne";
+            _publicSockAddr.setPort(_socket->localPort());
+            setState(talkToIceServer);
+        }
 
     } else if (_state == talkToIceServer) {
         QUuid peerID;
@@ -210,6 +232,7 @@ void ICEClientApp::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) 
     if (LimitedNodeList::parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
         qDebug() << "My public address is" << _publicSockAddr;
+        _stunResultSet = true;
         setState(talkToIceServer);
     }
 }
@@ -222,8 +245,6 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
         qDebug() << "got a short packet.";
         return;
     }
-
-    qDebug() << "here" << nlPacket->getType();
 
     QSharedPointer<ReceivedMessage> message = QSharedPointer<ReceivedMessage>::create(*nlPacket);
     const HifiSockAddr& senderAddr = message->getSenderSockAddr();
@@ -240,9 +261,9 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
             connect(_pingDomainTimer, &QTimer::timeout, this, &ICEClientApp::icePingDomainServer);
             _pingDomainTimer->start(500);
         } else {
-            // NetworkPeer domainServerPeer;
-            // iceResponseStream >> domainServerPeer;
-            // qDebug() << "got repeat ICEServerPeerInformation from" << domainServerPeer;
+            NetworkPeer domainServerPeer;
+            iceResponseStream >> domainServerPeer;
+            qDebug() << "got repeat ICEServerPeerInformation from" << domainServerPeer;
         }
 
     } else if (nlPacket->getType() == PacketType::ICEPing) {

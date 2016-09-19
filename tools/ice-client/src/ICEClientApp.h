@@ -37,6 +37,9 @@ private:
         pause1 // 6
     };
 
+    void closeSocket();
+    void openSocket();
+
     void setState(int newState);
 
     void doSomething();
@@ -47,6 +50,8 @@ private:
     void processPacket(std::unique_ptr<udt::Packet> packet);
 
     bool _verbose;
+    bool _cacheSTUNResult; // should we only talk to stun server once?
+    bool _stunResultSet { false }; // have we already talked to stun server?
 
     HifiSockAddr _stunSockAddr;
 
