@@ -345,6 +345,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         auto primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+        primaryColorTexture->setSource("PreparePrimaryFramebuffer::primaryColorTexture");
 
 
         _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
@@ -352,6 +353,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
         auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+        primaryDepthTexture->setSource("PreparePrimaryFramebuffer::primaryDepthTexture");
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
 

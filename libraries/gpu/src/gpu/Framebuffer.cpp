@@ -32,6 +32,7 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, uint16 width,
     auto framebuffer = Framebuffer::create();
 
     auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    colorTexture->setSource("Framebuffer::colorTexture");
 
     framebuffer->setRenderBuffer(0, colorTexture);
 
@@ -42,8 +43,9 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
     auto framebuffer = Framebuffer::create();
 
     auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    colorTexture->setSource("Framebuffer::colorTexture");
     auto depthTexture = TexturePointer(Texture::create2D(depthStencilBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
-
+    depthTexture->setSource("Framebuffer::depthTexture");
     framebuffer->setRenderBuffer(0, colorTexture);
     framebuffer->setDepthStencilBuffer(depthTexture, depthStencilBufferFormat);
 
@@ -55,7 +57,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
 
     auto depthFormat = Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH); // Depth32 texel format
     auto depthTexture = TexturePointer(Texture::create2D(depthFormat, width, width));
-        
+    depthTexture->setSource("Framebuffer::shadowMap");
     Sampler::Desc samplerDesc;
     samplerDesc._borderColor = glm::vec4(1.0f);
     samplerDesc._wrapModeU = Sampler::WRAP_BORDER;

@@ -368,7 +368,7 @@ public:
 
         sortedHighFrames.sort();
         for (const auto& t : sortedHighFrames) {
-            //qDebug() << "Long frame " << t;
+            qDebug() << "Long frame " << t;
         }
     }
 

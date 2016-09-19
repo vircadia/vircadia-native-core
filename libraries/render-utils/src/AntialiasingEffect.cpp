@@ -56,6 +56,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _antialiasingTexture->setSource("Antialiasing::_antialiasingTexture");
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
 
         // Good to go add the brand new pipeline
