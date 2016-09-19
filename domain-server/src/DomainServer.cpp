@@ -46,7 +46,11 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
+#if USE_STABLE_GLOBAL_SERVICES
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
+#else
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
+#endif
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -82,6 +86,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
     qDebug() << "Setting up domain-server";
+
+    qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
+    qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
+    qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
+    qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
+    qDebug() << "[VERSION] We will be using this default ICE server:" << ICE_SERVER_DEFAULT_HOSTNAME;
+
 
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)

@@ -562,6 +562,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _deadlockWatchdogThread->start();
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
+    qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
+    qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
+#if USE_STABLE_GLOBAL_SERVICES
+    qCDebug(interfaceapp) << "[VERSION] We will use STABLE global services.";
+#else
+    qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
+#endif
+
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
