@@ -21,9 +21,6 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
-bool HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS = false;
-Rig* HACKY_GLOBAL_RIG_POINTER = nullptr;
-
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
 
@@ -383,14 +380,14 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
+const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
     // don't call this function, call overlay() instead
     assert(false);
     return _relativePoses;
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
@@ -444,21 +441,27 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             computeTargets(animVars, targets, underPoses);
         }
 
-        // AJT: HACK
-        if (HACKY_GLOBAL_ENABLE_DEBUG_DRAW_IK_TARGETS && HACKY_GLOBAL_RIG_POINTER) {
-            const float CM_TO_M = 0.01f;
+        // debug render ik targets
+        if (context.getEnableDebugDrawIKTargets()) {
             const vec4 WHITE(1.0f);
-            glm::mat4 geomToRigMat = HACKY_GLOBAL_RIG_POINTER->getGeometryToRigTransform();
             glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
 
             for (auto& target : targets) {
                 glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
-                glm::mat4 avatarTargetMat = rigToAvatarMat * geomToRigMat * geomTargetMat;
+                glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
 
                 std::string name = "ikTarget" + std::to_string(target.getIndex());
                 DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
             }
+        } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
+            // remove markers if they were added last frame.
+            for (auto& target : targets) {
+                std::string name = "ikTarget" + std::to_string(target.getIndex());
+                DebugDraw::getInstance().removeMyAvatarMarker(name);
+            }
         }
+
+        _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
 
         if (targets.empty()) {
             // no IK targets but still need to enforce constraints
