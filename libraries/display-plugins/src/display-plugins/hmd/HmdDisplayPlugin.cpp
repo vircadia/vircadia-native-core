@@ -92,6 +92,7 @@ bool HmdDisplayPlugin::internalActivate() {
     _disablePreview = true;
 #else
     _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
+    qDebug() << __FUNCTION__ << "_disablePreview:" << _disablePreview;
 #endif
 
     _container->removeMenu(FRAMERATE);
@@ -182,10 +183,7 @@ void HmdDisplayPlugin::internalPresent() {
                 windowSize *= devicePixelRatio;
 
                 float windowAspect = aspect(windowSize);  // example: 1920 x 1080 = 1.78
-                float sourceAspect = aspect(sourceSize); // usually: 1512 x 1680 (per eye) = 0.9
                 float sceneAspect = aspect(originalClippedSize); // usually: 1512 x 850 = 1.78
-                float sourceAspectRatio = sourceAspect / windowAspect; // typical: 0.505
-                float clippedAspectRatio = sceneAspect / windowAspect; // typically: 1
 
                 bool scaleToWidth = windowAspect < sceneAspect;
 
