@@ -135,6 +135,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         _ghost.setMinWallAngle(PI / 4.0f); // HACK
         _ghost.setUpDirection(_currentUp);
         _ghost.setGravity(DEFAULT_CHARACTER_GRAVITY);
+        _ghost.setWorldTransform(_rigidBody->getWorldTransform());
     }
     if (_dynamicsWorld) {
         if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
@@ -209,7 +210,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         btTransform transform = _rigidBody->getWorldTransform();
         transform.setOrigin(_ghost.getWorldTransform().getOrigin());
         _ghost.setWorldTransform(transform);
-        _ghost.setMotorVelocity(_simpleMotorVelocity);
+        _ghost.setMotorVelocity(_targetVelocity);
         float overshoot = 1.0f * _radius;
         _ghost.move(dt, overshoot);
         _rigidBody->setWorldTransform(_ghost.getWorldTransform());
@@ -525,7 +526,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
 
         // add components back together and rotate into world-frame
         velocity = (hVelocity + vVelocity).rotate(axis, angle);
-        _simpleMotorVelocity += maxTau * (hTargetVelocity + vTargetVelocity).rotate(axis, angle);
+        _targetVelocity += maxTau * (hTargetVelocity + vTargetVelocity).rotate(axis, angle);
 
         // store velocity and weights
         velocities.push_back(velocity);
@@ -543,7 +544,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     velocities.reserve(_motors.size());
     std::vector<btScalar> weights;
     weights.reserve(_motors.size());
-    _simpleMotorVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    _targetVelocity = btVector3(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < (int)_motors.size(); ++i) {
         applyMotor(i, dt, velocity, velocities, weights);
     }
@@ -559,15 +560,18 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
         for (size_t i = 0; i < velocities.size(); ++i) {
             velocity += (weights[i] / totalWeight) * velocities[i];
         }
-        _simpleMotorVelocity /= totalWeight;
+        _targetVelocity /= totalWeight;
     }
     if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         velocity = btVector3(0.0f, 0.0f, 0.0f);
     }
 
     // 'thrust' is applied at the very end
+    _targetVelocity += dt * _linearAcceleration;
     velocity += dt * _linearAcceleration;
-    _targetVelocity = velocity;
+    // Note the differences between these two variables:
+    // _targetVelocity = ideal final velocity according to input
+    // velocity = real final velocity after motors are applied to current velocity
 }
 
 void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {

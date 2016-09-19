@@ -152,7 +152,6 @@ protected:
     btVector3 _parentVelocity;
     btVector3 _preSimulationVelocity;
     btVector3 _velocityChange;
-    btVector3 _simpleMotorVelocity; // KINEMATIC_CONTROLLER_HACK
     btTransform _followDesiredBodyTransform;
     btTransform _characterBodyTransform;
 
