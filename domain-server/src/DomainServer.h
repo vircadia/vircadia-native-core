@@ -209,7 +209,7 @@ private:
 
     QString _iceServerAddr;
     int _iceServerPort;
-    bool _overRideDomainID { false }; // should we override the domain-id from settings?
+    bool _overrideDomainID { false }; // should we override the domain-id from settings?
     QUuid _overridingDomainID { QUuid() }; // what should we override it with?
 };
 

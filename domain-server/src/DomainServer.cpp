@@ -198,7 +198,7 @@ void DomainServer::parseCommandLine() {
 
     if (parser.isSet(domainIDOption)) {
         _overridingDomainID = QUuid(parser.value(domainIDOption));
-        _overRideDomainID = true;
+        _overrideDomainID = true;
         qDebug() << "domain-server ID is" << _overridingDomainID;
     }
 }
@@ -351,7 +351,7 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
 
     auto domainObject = jsonObject[DATA_KEY].toObject()[DOMAIN_KEY].toObject();
     if (!domainObject.isEmpty()) {
-        auto id = _overRideDomainID ? _overridingDomainID.toString() : domainObject[ID_KEY].toString();
+        auto id = _overrideDomainID ? _overridingDomainID.toString() : domainObject[ID_KEY].toString();
         auto name = domainObject[NAME_KEY].toString();
         auto key = domainObject[KEY_KEY].toString();
 
@@ -462,7 +462,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
     bool isMetaverseDomain = false;
-    if (_overRideDomainID) {
+    if (_overrideDomainID) {
         nodeList->setSessionUUID(_overridingDomainID);
         isMetaverseDomain = true; // assume metaverse domain
     } else {
