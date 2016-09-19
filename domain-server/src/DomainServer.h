@@ -105,6 +105,7 @@ signals:
 
 private:
     const QUuid& getID();
+    void parseCommandLine();
 
     void setupNodeListAndAssignments();
     bool optionallySetupOAuth();
@@ -205,6 +206,11 @@ private:
 
     friend class DomainGatekeeper;
     friend class DomainMetadata;
+
+    QString _iceServerAddr;
+    int _iceServerPort;
+    bool _overRideDomainID { false }; // should we override the domain-id from settings?
+    QUuid _overridingDomainID { QUuid() }; // what should we override it with?
 };
 
 
