@@ -97,6 +97,12 @@ void SparseInfo::maybeMakeSparse() {
         qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << _texture._gpuObject.source().c_str();
         return;
     }
+
+    if (GL_TEXTURE_CUBE_MAP == _texture._target) {
+        qCDebug(gpugl45logging) << "Don't enable sparse texture for cubemaps " << _texture._gpuObject.source().c_str();
+        return;
+    }
+
     const uvec3 dimensions = _texture._gpuObject.getDimensions();
     auto allowedPageDimensions = getPageDimensionsForFormat(_texture._target, _texture._internalFormat);
     // In order to enable sparse the texture size must be an integer multiple of the page size
