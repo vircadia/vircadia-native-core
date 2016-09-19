@@ -102,6 +102,8 @@ protected:
     bool _disablePreview{ true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
+    ivec4 getViewportForClippedSource(const uvec2& sourceSize, const uvec2& clippedRatio) const;
+    
 
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
