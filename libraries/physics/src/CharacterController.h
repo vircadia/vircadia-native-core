@@ -109,6 +109,7 @@ public:
     };
 
     State getState() const { return _state; }
+    void updateState();
 
     void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 

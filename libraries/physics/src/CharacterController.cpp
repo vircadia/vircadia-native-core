@@ -581,116 +581,121 @@ void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
     velocity = bulletToGLM(btVelocity);
 }
 
-void CharacterController::preSimulation() {
-    if (_dynamicsWorld) {
-        quint64 now = usecTimestampNow();
+void CharacterController::updateState() {
+    const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
+    const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
+    const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
+    const btScalar MIN_HOVER_HEIGHT = 2.5f;
+    const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
 
-        // slam body transform
-        _rigidBody->setWorldTransform(btTransform(btTransform(_rotation, _position)));
-        btVector3 velocity = _rigidBody->getLinearVelocity();
-        _preSimulationVelocity = velocity;
+    // scan for distant floor
+    // rayStart is at center of bottom sphere
+    btVector3 rayStart = _position;
 
-        // scan for distant floor
-        // rayStart is at center of bottom sphere
-        btVector3 rayStart = _position;
+    // rayEnd is straight down MAX_FALL_HEIGHT
+    btScalar rayLength = _radius + MAX_FALL_HEIGHT;
+    btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
-        // rayEnd is straight down MAX_FALL_HEIGHT
-        btScalar rayLength = _radius + MAX_FALL_HEIGHT;
-        btVector3 rayEnd = rayStart - rayLength * _currentUp;
-
-        const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
-        const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
-        const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
-        const btScalar MIN_HOVER_HEIGHT = 2.5f;
-        const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
-        const btScalar MAX_WALKING_SPEED = 2.5f;
+    ClosestNotMe rayCallback(_rigidBody);
+    rayCallback.m_closestHitFraction = 1.0f;
+    _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
+    bool rayHasHit = rayCallback.hasHit();
+    quint64 now = usecTimestampNow();
+    if (rayHasHit) {
+        _rayHitStartTime = now;
+        _floorDistance = rayLength * rayCallback.m_closestHitFraction - (_radius + _halfHeight);
+    } else {
         const quint64 RAY_HIT_START_PERIOD = 500 * MSECS_PER_SECOND;
-
-        ClosestNotMe rayCallback(_rigidBody);
-        rayCallback.m_closestHitFraction = 1.0f;
-        _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
-        bool rayHasHit = rayCallback.hasHit();
-        if (rayHasHit) {
-            _rayHitStartTime = now;
-            _floorDistance = rayLength * rayCallback.m_closestHitFraction - (_radius + _halfHeight);
-        } else if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
+        if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
             rayHasHit = true;
         } else {
             _floorDistance = FLT_MAX;
         }
+    }
 
-        // record a time stamp when the jump button was first pressed.
-        if ((_previousFlags & PENDING_FLAG_JUMP) != (_pendingFlags & PENDING_FLAG_JUMP)) {
-            if (_pendingFlags & PENDING_FLAG_JUMP) {
-                _jumpButtonDownStartTime = now;
-                _jumpButtonDownCount++;
-            }
+    // record a time stamp when the jump button was first pressed.
+    bool jumpButtonHeld = _pendingFlags & PENDING_FLAG_JUMP;
+    if ((_previousFlags & PENDING_FLAG_JUMP) != (_pendingFlags & PENDING_FLAG_JUMP)) {
+        if (_pendingFlags & PENDING_FLAG_JUMP) {
+            _jumpButtonDownStartTime = now;
+            _jumpButtonDownCount++;
         }
+    }
 
-        bool jumpButtonHeld = _pendingFlags & PENDING_FLAG_JUMP;
+    btVector3 velocity = _preSimulationVelocity;
 
-        btVector3 actualHorizVelocity = velocity - velocity.dot(_currentUp) * _currentUp;
-        bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
-
-        // OUTOFBODY_HACK -- disable normal state transitions while collisionless
-        if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
-            switch (_state) {
-            case State::Ground:
-                if (!rayHasHit && !_hasSupport) {
-                    SET_STATE(State::Hover, "no ground detected");
-                } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
-                    _takeoffJumpButtonID = _jumpButtonDownCount;
-                    _takeoffToInAirStartTime = now;
-                    SET_STATE(State::Takeoff, "jump pressed");
-                } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
-                    SET_STATE(State::InAir, "falling");
-                }
-                break;
-            case State::Takeoff:
-                if (!rayHasHit && !_hasSupport) {
-                    SET_STATE(State::Hover, "no ground");
-                } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
-                    SET_STATE(State::InAir, "takeoff done");
-                    velocity += _jumpSpeed * _currentUp;
-                    _rigidBody->setLinearVelocity(velocity);
-                }
-                break;
-            case State::InAir: {
-                if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
-                    SET_STATE(State::Ground, "hit ground");
-                } else {
-                    btVector3 desiredVelocity = _targetVelocity;
-                    if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
-                        desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
-                    }
-                    bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
-                    if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
-                        SET_STATE(State::Hover, "double jump button");
-                    } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
-                        SET_STATE(State::Hover, "jump button held");
-                    }
-                }
-                break;
+    // OUTOFBODY_HACK -- disable normal state transitions while collisionless
+    if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+        switch (_state) {
+        case State::Ground:
+            if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
+            } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
+                _takeoffJumpButtonID = _jumpButtonDownCount;
+                _takeoffToInAirStartTime = now;
+                SET_STATE(State::Takeoff, "jump pressed");
+            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
+                SET_STATE(State::InAir, "falling");
             }
-            case State::Hover:
-                if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
-                    SET_STATE(State::InAir, "near ground");
-                } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
-                    SET_STATE(State::Ground, "touching ground");
-                }
-                break;
+            break;
+        case State::Takeoff:
+            if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground");
+            } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+                SET_STATE(State::InAir, "takeoff done");
+                velocity += _jumpSpeed * _currentUp;
+                _rigidBody->setLinearVelocity(velocity);
             }
-            if (_moveKinematically && _ghost.isHovering()) {
-                SET_STATE(State::Hover, "kinematic motion"); // HACK
-            }
-        } else {
-            // OUTOFBODY_HACK -- in collisionless state switch between Ground and Hover states
-            if (rayHasHit) {
-                SET_STATE(State::Ground, "collisionless above ground");
+            break;
+        case State::InAir: {
+            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
+                SET_STATE(State::Ground, "hit ground");
             } else {
-                SET_STATE(State::Hover, "collisionless in air");
+                btVector3 desiredVelocity = _targetVelocity;
+                if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+                    desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+                }
+                bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
+                if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                    SET_STATE(State::Hover, "double jump button");
+                } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                    SET_STATE(State::Hover, "jump button held");
+                }
             }
+            break;
         }
+        case State::Hover:
+            btVector3 actualHorizVelocity = velocity - velocity.dot(_currentUp) * _currentUp;
+            const btScalar MAX_WALKING_SPEED = 2.5f;
+            bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
+
+            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+                SET_STATE(State::InAir, "near ground");
+            } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
+                SET_STATE(State::Ground, "touching ground");
+            }
+            break;
+        }
+        if (_moveKinematically && _ghost.isHovering()) {
+            SET_STATE(State::Hover, "kinematic motion"); // HACK
+        }
+    } else {
+        // OUTOFBODY_HACK -- in collisionless state switch only between Ground and Hover states
+        if (rayHasHit) {
+            SET_STATE(State::Ground, "collisionless above ground");
+        } else {
+            SET_STATE(State::Hover, "collisionless in air");
+        }
+    }
+}
+
+void CharacterController::preSimulation() {
+    if (_dynamicsWorld) {
+        // slam body transform and remember velocity
+        _rigidBody->setWorldTransform(btTransform(btTransform(_rotation, _position)));
+        _preSimulationVelocity = _rigidBody->getLinearVelocity();
+
+        updateState();
     }
 
     _previousFlags = _pendingFlags;
@@ -702,12 +707,8 @@ void CharacterController::preSimulation() {
 }
 
 void CharacterController::postSimulation() {
-    // postSimulation() exists for symmetry and just in case we need to do something here later
-
-    btVector3 velocity = _rigidBody->getLinearVelocity();
-    _velocityChange = velocity - _preSimulationVelocity;
+    _velocityChange = _rigidBody->getLinearVelocity() - _preSimulationVelocity;
 }
-
 
 bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
     if (!_rigidBody) {
