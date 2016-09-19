@@ -1750,8 +1750,13 @@ function MyController(hand) {
         var newRadialVelocity = Vec3.dot(lastVelocity, delta);
 
         var VELOCITY_AVERAGING_TIME = 0.016;
-        this.grabRadialVelocity = (deltaObjectTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
-            (1.0 - (deltaObjectTime / VELOCITY_AVERAGING_TIME)) * this.grabRadialVelocity;
+        var blendFactor = deltaObjectTime / VELOCITY_AVERAGING_TIME;
+        if (blendFactor < 0.0) {
+            blendFactor = 0.0;
+        } else if (blendFactor > 1.0) {
+            blendFactor = 1.0;
+        }
+        this.grabRadialVelocity = blendFactor * newRadialVelocity + (1.0 - blendFactor) * this.grabRadialVelocity;
 
         var RADIAL_GRAB_AMPLIFIER = 10.0;
         if (Math.abs(this.grabRadialVelocity) > 0.0) {
