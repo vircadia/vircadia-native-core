@@ -155,7 +155,6 @@ GLTexture::~GLTexture() {
         auto backend = _backend.lock();
         if (backend) {
             backend->releaseTexture(_id, _size);
-            backend->recycle();
         }
     }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);

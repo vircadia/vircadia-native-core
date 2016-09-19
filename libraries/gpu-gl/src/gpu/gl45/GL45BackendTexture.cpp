@@ -30,6 +30,7 @@ static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().con
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
+#define DEFAULT_GL_PIXEL_ALIGNMENT 4
 
 using GL45Texture = GL45Backend::GL45Texture;
 
@@ -38,7 +39,6 @@ static Mutex texturesByMipCountsMutex;
 using TextureTypeFormat = std::pair<GLenum, GLenum>;
 std::map<TextureTypeFormat, std::vector<uvec3>> sparsePageDimensionsByFormat;
 Mutex sparsePageDimensionsByFormatMutex;
-
 
 static std::vector<uvec3> getPageDimensionsForFormat(const TextureTypeFormat& typeFormat) {
     {
@@ -64,7 +64,7 @@ static std::vector<uvec3> getPageDimensionsForFormat(const TextureTypeFormat& ty
         for (GLint i = 0; i < count; ++i) {
             result[i] = uvec3(x[i], y[i], z[i]);
         }
-        qDebug() << "Got " << count << " page sizes";
+        qCDebug(gpugl45logging) << "Got " << count << " page sizes";
     }
 
     {
@@ -212,7 +212,6 @@ bool TransferState::increment() {
     return false;
 }
 
-#define DEFAULT_GL_PIXEL_ALIGNMENT 4
 void TransferState::populatePage(std::vector<uint8_t>& buffer) {
     uvec3 pageSize = currentPageSize();
     auto bytesPerPageLine = _bytesPerPixel * pageSize.x;
@@ -254,35 +253,41 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     }
 }
 
+// Destructors get called on the main thread, potentially without a context active.  We need to queue the 
+// deallocation of the sparse pages for this content.
 GL45Texture::~GL45Texture() {
-    if (_sparseInfo._sparse) {
-        auto mipLevels = usedMipLevels();
 
-        {
-            Lock lock(texturesByMipCountsMutex);
-            if (texturesByMipCounts.count(mipLevels)) {
-                auto& textures = texturesByMipCounts[mipLevels];
-                textures.erase(this);
-                if (textures.empty()) {
-                    texturesByMipCounts.erase(mipLevels);
+    if (_sparseInfo._sparse) {
+        auto backend = _backend.lock();
+        if (backend) {
+            auto id = _id;
+            auto mipLevels = usedMipLevels();
+            {
+                Lock lock(texturesByMipCountsMutex);
+                if (texturesByMipCounts.count(mipLevels)) {
+                    auto& textures = texturesByMipCounts[mipLevels];
+                    textures.erase(this);
+                    if (textures.empty()) {
+                        texturesByMipCounts.erase(mipLevels);
+                    }
                 }
             }
-        }
 
-        auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
-        uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
-        for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
-            auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
-            auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions);
-            for (uint8_t face = 0; face < maxFace; ++face) {
-                glTexturePageCommitmentEXT(_id, mipLevel, 0, 0, face, mipDimensions.x, mipDimensions.y, mipDimensions.z, GL_FALSE);
+            auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
+            uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
+            for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
+                auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
+                backend->releaseLambda([=] {
+                    glTexturePageCommitmentEXT(id, mipLevel, 0, 0, 0, mipDimensions.x, mipDimensions.y, maxFace, GL_FALSE);
+                });
+                auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions) * maxFace;
                 assert(deallocatedPages <= _allocatedPages);
                 _allocatedPages -= deallocatedPages;
             }
-        }
 
-        if (0 != _allocatedPages) {
-            qWarning() << "Allocated pages remaining " << _id << " " << _allocatedPages;
+            if (0 != _allocatedPages) {
+                qCWarning(gpugl45logging) << "Allocated pages remaining " << _id << " " << _allocatedPages;
+            }
         }
     }
 }
@@ -292,7 +297,7 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
-    qDebug() << "Generating mipmaps for " << _gpuObject.source().c_str();
+    qCDebug(gpugl45logging) << "Generating mipmaps for " << _gpuObject.source().c_str();
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
@@ -337,7 +342,7 @@ bool GL45Texture::continueTransfer() {
 
     if (_sparseInfo._sparse && _transferState._mipLevel <= _sparseInfo._maxSparseLevel) {
         if (_allocatedPages > _sparseInfo._maxPages) {
-            qWarning() << "Exceeded max page allocation!";
+            qCWarning(gpugl45logging) << "Exceeded max page allocation!";
         }
         glTexturePageCommitmentEXT(_id, _transferState._mipLevel,
             offset.x, offset.y, _transferState._face,
@@ -373,7 +378,7 @@ bool GL45Texture::continueTransfer() {
         auto mipExpectedPages = _sparseInfo.getPageCount(mipDimensions);
         auto newPages = _allocatedPages - _lastMipAllocatedPages;
         if (newPages != mipExpectedPages) {
-            qWarning() << "Unexpected page allocation size... " << newPages << " " << mipExpectedPages;
+            qCWarning(gpugl45logging) << "Unexpected page allocation size... " << newPages << " " << mipExpectedPages;
         }
         _lastMipAllocatedPages = _allocatedPages;
     }
@@ -426,12 +431,12 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     }
 
     if (newMinMip < _minMip) {
-        qWarning() << "Cannot decrease the min mip";
+        qCWarning(gpugl45logging) << "Cannot decrease the min mip";
         return;
     }
 
     if (newMinMip > _sparseInfo._maxSparseLevel) {
-        qWarning() << "Cannot increase the min mip into the mip tail";
+        qCWarning(gpugl45logging) << "Cannot increase the min mip into the mip tail";
         return;
     }
 
@@ -448,7 +453,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
 
     // If we weren't generating mips before, we need to now that we're stripping down mip levels.
     if (!_gpuObject.isAutogenerateMips()) {
-        qDebug() << "Force mip generation for texture";
+        qCDebug(gpugl45logging) << "Force mip generation for texture";
         glGenerateTextureMipmap(_id);
     }
 
@@ -474,9 +479,9 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     updateSize();
     size_t newSize = _size;
     if (newSize > oldSize) {
-        qDebug() << "WTF";
-        qDebug() << "\told size " << oldSize;
-        qDebug() << "\tnew size " << newSize;
+        qCDebug(gpugl45logging) << "WTF";
+        qCDebug(gpugl45logging) << "\told size " << oldSize;
+        qCDebug(gpugl45logging) << "\tnew size " << newSize;
     }
 
     // Re-insert into the texture-by-mips map if appropriate
@@ -512,18 +517,18 @@ void GL45Backend::derezTextures() const {
 
     Lock lock(texturesByMipCountsMutex);
     if (texturesByMipCounts.empty()) {
-        qDebug() << "No available textures to derez";
+        qCDebug(gpugl45logging) << "No available textures to derez";
         return;
     }
 
     auto mipLevel = texturesByMipCounts.rbegin()->first;
     if (mipLevel <= 1) {
-        qDebug() << "Max mip levels " << mipLevel;
+        qCDebug(gpugl45logging) << "Max mip levels " << mipLevel;
         return;
     }
 
-    qDebug() << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
-    qDebug() << "Used texture memory " << Context::getTextureGPUMemoryUsage();
+    qCDebug(gpugl45logging) << "Allowed texture memory " << Texture::getAllowedGPUMemoryUsage();
+    qCDebug(gpugl45logging) << "Used texture memory " << Context::getTextureGPUMemoryUsage();
 
     GL45Texture* targetTexture = nullptr;
     {
@@ -533,5 +538,5 @@ void GL45Backend::derezTextures() const {
     }
     lock.unlock();
     targetTexture->derez();
-    qDebug() << "New Used texture memory " << Context::getTextureGPUMemoryUsage();
+    qCDebug(gpugl45logging) << "New Used texture memory " << Context::getTextureGPUMemoryUsage();
 }

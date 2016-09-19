@@ -593,7 +593,23 @@ void GLBackend::releaseQuery(GLuint id) const {
     _queriesTrash.push_back(id);
 }
 
+void GLBackend::releaseLambda(const std::function<void()> lambda) const {
+    Lock lock(_trashMutex);
+    _lambdasTrash.push_back(lambda);
+}
+
 void GLBackend::recycle() const {
+    {
+        std::list<std::function<void()>> lamdbasTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_lambdasTrash, lamdbasTrash);
+        }
+        for (auto lambda : lamdbasTrash) {
+            lambda();
+        }
+    }
+
     {
         std::vector<GLuint> ids;
         std::list<std::pair<GLuint, Size>> buffersTrash;

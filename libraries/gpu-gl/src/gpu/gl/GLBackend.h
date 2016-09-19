@@ -175,6 +175,7 @@ public:
     virtual void releaseShader(GLuint id) const;
     virtual void releaseProgram(GLuint id) const;
     virtual void releaseQuery(GLuint id) const;
+    virtual void releaseLambda(const std::function<void()> lambda) const;
 
 protected:
 
@@ -197,6 +198,7 @@ protected:
     mutable std::list<GLuint> _shadersTrash;
     mutable std::list<GLuint> _programsTrash;
     mutable std::list<GLuint> _queriesTrash;
+    mutable std::list<std::function<void()>> _lambdasTrash;
 
     void renderPassTransfer(const Batch& batch);
     void renderPassDraw(const Batch& batch);
