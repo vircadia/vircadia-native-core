@@ -1378,7 +1378,8 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     if (_characterController.isEnabledAndReady()) {
-        _characterController.getPositionAndOrientation(position, orientation);
+        glm::quat bogusOrientation;
+        _characterController.getPositionAndOrientation(position, bogusOrientation);
     }
     nextAttitude(position, orientation);
 

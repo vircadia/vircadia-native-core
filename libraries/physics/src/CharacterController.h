@@ -153,7 +153,9 @@ protected:
     btVector3 _preSimulationVelocity;
     btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
-    btTransform _characterBodyTransform;
+    btVector3 _position;
+    btQuaternion _rotation;
+    //btTransform _characterBodyTransform;
 
     glm::vec3 _shapeLocalOffset;
 

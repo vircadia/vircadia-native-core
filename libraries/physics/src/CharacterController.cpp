@@ -130,7 +130,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         // KINEMATIC_CONTROLLER_HACK
         _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
         _ghost.setCollisionWorld(_dynamicsWorld);
-        _ghost.setDistanceToFeet(_radius + _halfHeight);
+        _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
         _ghost.setMaxStepHeight(0.75f * (_radius + _halfHeight)); // HACK
         _ghost.setMinWallAngle(PI / 4.0f); // HACK
         _ghost.setUpDirection(_currentUp);
@@ -177,10 +177,10 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) cons
 
 void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     // trace a ray straight down to see if we're standing on the ground
-    const btTransform& xform = _rigidBody->getWorldTransform();
+    const btTransform& transform = _rigidBody->getWorldTransform();
 
     // rayStart is at center of bottom sphere
-    btVector3 rayStart = xform.getOrigin() - _halfHeight * _currentUp;
+    btVector3 rayStart = transform.getOrigin() - _halfHeight * _currentUp;
 
     // rayEnd is some short distance outside bottom sphere
     const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
@@ -213,7 +213,8 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         _ghost.setMotorVelocity(_targetVelocity);
         float overshoot = 1.0f * _radius;
         _ghost.move(dt, overshoot);
-        _rigidBody->setWorldTransform(_ghost.getWorldTransform());
+        transform.setOrigin(_ghost.getWorldTransform().getOrigin());
+        _rigidBody->setWorldTransform(transform);
         _rigidBody->setLinearVelocity(_ghost.getLinearVelocity());
     } else {
         // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
@@ -400,9 +401,8 @@ void CharacterController::setPositionAndOrientation(
     // TODO: update gravity if up has changed
     updateUpAxis(orientation);
 
-    btQuaternion bodyOrientation = glmToBullet(orientation);
-    btVector3 bodyPosition = glmToBullet(position + orientation * _shapeLocalOffset);
-    _characterBodyTransform = btTransform(bodyOrientation, bodyPosition);
+    _rotation = glmToBullet(orientation);
+    _position = glmToBullet(position + orientation * _shapeLocalOffset);
 }
 
 void CharacterController::getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const {
@@ -485,10 +485,11 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         if (tau > 1.0f) {
             tau = 1.0f;
         }
-        velocity += (motor.velocity - velocity) * tau;
+        velocity += tau * (motor.velocity - velocity);
 
         // rotate back into world-frame
         velocity = velocity.rotate(axis, angle);
+        _targetVelocity += (tau * motor.velocity).rotate(axis, angle);
 
         // store the velocity and weight
         velocities.push_back(velocity);
@@ -584,14 +585,14 @@ void CharacterController::preSimulation() {
     if (_dynamicsWorld) {
         quint64 now = usecTimestampNow();
 
-        // slam body to where it is supposed to be
-        _rigidBody->setWorldTransform(_characterBodyTransform);
+        // slam body transform
+        _rigidBody->setWorldTransform(btTransform(btTransform(_rotation, _position)));
         btVector3 velocity = _rigidBody->getLinearVelocity();
         _preSimulationVelocity = velocity;
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
-        btVector3 rayStart = _characterBodyTransform.getOrigin();
+        btVector3 rayStart = _position;
 
         // rayEnd is straight down MAX_FALL_HEIGHT
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
@@ -678,6 +679,9 @@ void CharacterController::preSimulation() {
                     SET_STATE(State::Ground, "touching ground");
                 }
                 break;
+            }
+            if (_moveKinematically && _ghost.isHovering()) {
+                SET_STATE(State::Hover, "kinematic motion"); // HACK
             }
         } else {
             // OUTOFBODY_HACK -- in collisionless state switch between Ground and Hover states

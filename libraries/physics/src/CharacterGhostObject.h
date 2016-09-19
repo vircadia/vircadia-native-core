@@ -31,7 +31,7 @@ public:
     void setCollisionGroupAndMask(int16_t group, int16_t mask);
     void getCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
 
-    void setDistanceToFeet(btScalar distance) { _distanceToFeet = distance; }
+    void setRadiusAndHalfHeight(btScalar radius, btScalar halfHeight);
     void setUpDirection(const btVector3& up);
     void setMotorVelocity(const btVector3& velocity);
     void setGravity(btScalar gravity) { _gravity = gravity; } // NOTE: we expect _gravity to be negative (in _upDirection)
@@ -50,6 +50,9 @@ public:
             const btTransform& start,
             const btTransform& end,
             CharacterSweepResult& result) const;
+
+    bool isHovering() const { return _hovering; }
+
 protected:
     void removeFromWorld();
     void addToWorld();
@@ -61,17 +64,20 @@ protected:
     bool resolvePenetration(int numTries);
     void refreshOverlappingPairCache();
     void updateVelocity(btScalar dt);
-    void updateTraction();
+    void updateTraction(const btVector3& position);
     btScalar measureAvailableStepHeight() const;
-    void updateHoverState(const btTransform& transform);
+    void updateHoverState(const btVector3& position);
 
 protected:
     btVector3 _upDirection { 0.0f, 1.0f, 0.0f }; // input, up in world-frame
     btVector3 _motorVelocity { 0.0f, 0.0f, 0.0f }; // input, velocity character is trying to achieve
     btVector3 _linearVelocity { 0.0f, 0.0f, 0.0f }; // internal, actual character velocity
     btVector3 _floorNormal { 0.0f, 0.0f, 0.0f }; // internal, probable floor normal
+    btVector3 _floorContact { 0.0f, 0.0f, 0.0f }; // internal, last floor contact point
     btCollisionWorld* _world { nullptr }; // input, pointer to world
-    btScalar _distanceToFeet { 0.0f }; // input, distance from object center to lowest point on shape
+    //btScalar _distanceToFeet { 0.0f }; // input, distance from object center to lowest point on shape
+    btScalar _halfHeight { 0.0f };
+    btScalar _radius { 0.0f };
     btScalar _motorSpeed { 0.0f }; // internal, cached for speed
     btScalar _gravity { 0.0f }; // input, amplitude of gravity along _upDirection (should be negative)
     btScalar _maxWallNormalUpComponent { 0.0f }; // input: max vertical component of wall normal
