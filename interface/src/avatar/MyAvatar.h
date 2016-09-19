@@ -500,6 +500,7 @@ private:
 
     bool _hmdLeanRecenterEnabled = true;
     bool _moveKinematically { false }; // KINEMATIC_CONTROLLER_HACK
+    float _canonicalScale { 1.0f };
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

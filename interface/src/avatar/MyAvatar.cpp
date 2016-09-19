@@ -1229,6 +1229,8 @@ void MyAvatar::rebuildCollisionShape() {
     float scale = getUniformScale();
     float radius = scale * _skeletonModel->getBoundingCapsuleRadius();
     float height = scale * _skeletonModel->getBoundingCapsuleHeight() + 2.0f * radius;
+    const float CANONICAL_AVATAR_HEIGHT = 2.0f;
+    _canonicalScale = height / CANONICAL_AVATAR_HEIGHT;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
     corner += scale * _skeletonModel->getBoundingCapsuleOffset();
     glm::vec3 diagonal(2.0f * radius, height, 2.0f * radius);
