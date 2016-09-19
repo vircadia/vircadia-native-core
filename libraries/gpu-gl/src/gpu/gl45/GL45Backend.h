@@ -30,6 +30,7 @@ public:
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         static GLuint allocate(const Texture& texture);
+        static const uint32_t DEFAULT_PAGE_DIMENSION = 128;
     public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
         ~GL45Texture();
@@ -38,7 +39,7 @@ public:
 
         struct SparseInfo {
             GL45Texture& _texture;
-            uvec3 _pageDimensions;
+            uvec3 _pageDimensions { DEFAULT_PAGE_DIMENSION };
             GLuint _maxSparseLevel { 0 };
             uint32_t _maxPages { 0 };
             uint32_t _pageBytes { 0 };
