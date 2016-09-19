@@ -473,7 +473,6 @@ void DomainServer::setupNodeListAndAssignments() {
         }
     }
 
-
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
@@ -587,7 +586,6 @@ void DomainServer::setupAutomaticNetworking() {
             } else {
                 qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
                 << "Please add an ID to your config file or via the web interface.";
-
                 return;
             }
         }
