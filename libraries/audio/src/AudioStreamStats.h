@@ -48,6 +48,7 @@ public:
 
     quint32 _framesAvailable;
     quint16 _framesAvailableAverage;
+    quint16 _unplayedMs;
     quint16 _desiredJitterBufferFrames;
     quint32 _starveCount;
     quint32 _consecutiveNotMixedCount;
