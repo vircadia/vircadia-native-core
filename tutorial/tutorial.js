@@ -347,7 +347,7 @@ stepOrient.prototype = {
     },
     cleanup: function() {
         if (this.active) {
-            location = "/tutorial";
+            //location = "/tutorial";
             this.active = false;
         }
         if (this.overlay) {
