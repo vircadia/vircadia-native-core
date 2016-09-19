@@ -98,11 +98,6 @@ void SparseInfo::maybeMakeSparse() {
         return;
     }
 
-    if (GL_TEXTURE_CUBE_MAP == _texture._target) {
-        qCDebug(gpugl45logging) << "Don't enable sparse texture for cubemaps " << _texture._gpuObject.source().c_str();
-        return;
-    }
-
     const uvec3 dimensions = _texture._gpuObject.getDimensions();
     auto allowedPageDimensions = getPageDimensionsForFormat(_texture._target, _texture._internalFormat);
     // In order to enable sparse the texture size must be an integer multiple of the page size
@@ -132,11 +127,6 @@ void SparseInfo::update() {
         return;
     }
     glGetTextureParameterIuiv(_texture._id, GL_NUM_SPARSE_LEVELS_ARB, &_maxSparseLevel);
-    // For some reason the long mip tail isn't working properly with cubemaps unless
-    // I extend one more level
-    if (GL_TEXTURE_CUBE_MAP == _texture._target) {
-        ++_maxSparseLevel;
-    }
     _pageBytes = _texture._gpuObject.getTexelFormat().getSize();
     _pageBytes *= _pageDimensions.x * _pageDimensions.y * _pageDimensions.z;
 

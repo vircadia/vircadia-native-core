@@ -188,7 +188,8 @@ public:
         if (buttons & Qt::RightButton) {
             dolly(delta.y * 0.01f);
         } else if (buttons & Qt::LeftButton) {
-            rotate(delta.x * -0.01f);
+            //rotate(delta.x * -0.01f);
+            rotate(delta * -0.01f);
         } else if (buttons & Qt::MiddleButton) {
             delta.y *= -1.0f;
             translate(delta * -0.01f);
@@ -367,7 +368,7 @@ public:
 
         sortedHighFrames.sort();
         for (const auto& t : sortedHighFrames) {
-            qDebug() << "Long frame " << t;
+            //qDebug() << "Long frame " << t;
         }
     }
 
@@ -990,7 +991,7 @@ private:
     }
 
     void resetPosition() {
-        _camera.yaw = 0;
+        _camera.yawPitch = vec3(0);
         _camera.setPosition(vec3());
     }
 
