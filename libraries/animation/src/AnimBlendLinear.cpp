@@ -24,7 +24,7 @@ AnimBlendLinear::~AnimBlendLinear() {
 
 }
 
-const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
 
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
@@ -33,7 +33,7 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, flo
             pose = AnimPose::identity;
         }
     } else if (_children.size() == 1) {
-        _poses = _children[0]->evaluate(animVars, dt, triggersOut);
+        _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
     } else {
 
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
@@ -41,7 +41,7 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, flo
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
         float alpha = glm::fract(clampedAlpha);
 
-        evaluateAndBlendChildren(animVars, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
+        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
     }
     return _poses;
 }
@@ -51,15 +51,15 @@ const AnimPoseVec& AnimBlendLinear::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, Triggers& triggersOut, float alpha,
+void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
                                                size_t prevPoseIndex, size_t nextPoseIndex, float dt) {
     if (prevPoseIndex == nextPoseIndex) {
         // this can happen if alpha is on an integer boundary
-        _poses = _children[prevPoseIndex]->evaluate(animVars, dt, triggersOut);
+        _poses = _children[prevPoseIndex]->evaluate(animVars, context, dt, triggersOut);
     } else {
         // need to eval and blend between two children.
-        auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, dt, triggersOut);
-        auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, dt, triggersOut);
+        auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, context, dt, triggersOut);
+        auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, context, dt, triggersOut);
 
         if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
             _poses.resize(prevPoses.size());

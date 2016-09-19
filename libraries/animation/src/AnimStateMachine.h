@@ -113,7 +113,7 @@ public:
     explicit AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
 
     void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
 
@@ -123,7 +123,7 @@ protected:
 
     void addState(State::Pointer state);
 
-    void switchState(const AnimVariantMap& animVars, State::Pointer desiredState);
+    void switchState(const AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState);
     State::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
 
     // for AnimDebugDraw rendering
