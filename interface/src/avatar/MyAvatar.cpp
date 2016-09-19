@@ -82,9 +82,6 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-// OUTOFBODY_HACK defined in Rig.cpp
-extern bool OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS;
-
 // OUTOFBODY_HACK defined in SkeletonModel.cpp
 extern glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
 extern float TRUNCATE_IK_CAPSULE_LENGTH;
@@ -429,6 +426,11 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("skeleton");
+
+        if (_rig) {
+            _rig->setEnableDebugDrawIKTargets(_enableDebugDrawIKTargets);
+        }
+
         _skeletonModel->simulate(deltaTime);
     }
 
@@ -859,8 +861,6 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
 
 void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
     _enableDebugDrawIKTargets = isEnabled;
-
-    OUTOFBODY_HACK_ENABLE_DEBUG_DRAW_IK_TARGETS = isEnabled;
 }
 
 

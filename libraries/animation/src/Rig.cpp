@@ -47,8 +47,6 @@ const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
 const glm::vec3 DEFAULT_NECK_POS(0.0f, 0.70f, 0.0f);
 
-extern Rig* OUTOFBODY_HACK_RIG_POINTER;
-
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
     UserAnimState::ClipNodeEnum clipNodeEnum;
@@ -887,10 +885,11 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
+        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform());
+
         // evaluate the animation
-        OUTOFBODY_HACK_RIG_POINTER = this;
         AnimNode::Triggers triggersOut;
-        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -899,7 +898,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
-        OUTOFBODY_HACK_RIG_POINTER = nullptr;
     }
 
     applyOverridePoses();
@@ -1365,9 +1363,10 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
+    AnimContext context(false, glm::mat4());
     float dt = 1.0f; // the value of this does not matter
-    ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
-    AnimPoseVec finalPoses =  ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
 
     // convert relative poses to absolute
     _animSkeleton->convertRelativePosesToAbsolute(finalPoses);

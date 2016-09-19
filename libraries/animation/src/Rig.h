@@ -211,6 +211,8 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
+    void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+
 signals:
     void onLoadComplete();
 
@@ -315,6 +317,7 @@ protected:
     mutable uint32_t _jointNameWarningCount { 0 };
     glm::vec3 _desiredRigHeadPosition;
     bool _truncateIKTargets { false };
+    bool _enableDebugDrawIKTargets { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;
