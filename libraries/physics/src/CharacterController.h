@@ -152,7 +152,6 @@ protected:
     btTransform _followDesiredBodyTransform;
     btVector3 _position;
     btQuaternion _rotation;
-    //btTransform _characterBodyTransform;
 
     glm::vec3 _shapeLocalOffset;
 
