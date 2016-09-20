@@ -277,27 +277,37 @@ void HmdDisplayPlugin::updateFrameData() {
             continue;
         }
 
-        const auto& laserDirection = handLaser.direction;
-        auto model = _presentHandPoses[i];
-        auto castDirection = glm::quat_cast(model) * laserDirection;
+        const vec3& laserDirection = handLaser.direction;
+        mat4 model = _presentHandPoses[i];
+        vec3 castStart = vec3(model[3]);
+        vec3 castDirection = glm::quat_cast(model) * laserDirection;
         if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
             castDirection = glm::normalize(castDirection);
             castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
         }
+
+        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js
+        static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.1f, 0.04f, -0.32f);
+        vec3 grabPointOffset = GRAB_POINT_SPHERE_OFFSET;
+        if (i == 0) {
+            grabPointOffset.x *= -1.0f; // this changes between left and right hands
+        }
+        castStart += glm::quat_cast(model) * grabPointOffset;
 
         // FIXME fetch the actual UI radius from... somewhere?
         float uiRadius = 1.0f;
 
         // Find the intersection of the laser with he UI and use it to scale the model matrix
         float distance;
-        if (!glm::intersectRaySphere(vec3(_presentHandPoses[i][3]), castDirection, _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
+        if (!glm::intersectRaySphere(castStart, castDirection,
+                                     _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
             continue;
         }
 
-        _presentHandLaserPoints[i].first = vec3(_presentHandPoses[i][3]);
+        _presentHandLaserPoints[i].first = castStart;
         _presentHandLaserPoints[i].second = _presentHandLaserPoints[i].first + (castDirection * distance);
 
-        vec3 intersectionPosition = vec3(_presentHandPoses[i][3]) + (castDirection * distance) - _presentUiModelTransform.getTranslation();
+        vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
         intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
 
         // Take the interesection normal and convert it to a texture coordinate

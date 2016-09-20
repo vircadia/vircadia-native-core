@@ -47,6 +47,7 @@
 
 #include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
+#include "AudioLogging.h"
 
 #include "AudioClient.h"
 
@@ -122,12 +123,11 @@ AudioClient::AudioClient() :
     _outputBufferSizeFrames("audioOutputBufferSizeFrames", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
     _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
     _outputStarveDetectionEnabled("audioOutputBufferStarveDetectionEnabled",
-                                  DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
     _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
-                                     DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
     _outputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
-                                    DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
-    _averagedLatency(0.0f),
+        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
     _muted(false),
@@ -146,9 +146,6 @@ AudioClient::AudioClient() :
     _positionGetter(DEFAULT_POSITION_GETTER),
     _orientationGetter(DEFAULT_ORIENTATION_GETTER)
 {
-    // clear the array of locally injected samples
-    memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
-
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
             this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
     connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
@@ -185,7 +182,7 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    qCDebug(audioclient) << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
     selectAudioFormat(recievedCodec);
 }
 
@@ -374,7 +371,8 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     adjustedAudioFormat = desiredAudioFormat;
 
 #ifdef Q_OS_ANDROID
-    adjustedAudioFormat.setSampleRate(44100);
+    // FIXME: query the native sample rate of the device?
+    adjustedAudioFormat.setSampleRate(48000);
 #else
 
     //
@@ -443,7 +441,7 @@ void possibleResampling(AudioSRC* resampler,
             if (!sampleChannelConversion(sourceSamples, destinationSamples, numSourceSamples,
                                          sourceAudioFormat, destinationAudioFormat)) {
                 // no conversion, we can copy the samples directly across
-                memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
+                memcpy(destinationSamples, sourceSamples, numSourceSamples * AudioConstants::SAMPLE_SIZE);
             }
         } else {
 
@@ -634,7 +632,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
     
     _selectedCodecName = selectedCodecName;
 
-    qDebug() << "Selected Codec:" << _selectedCodecName;
+    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -650,7 +648,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
-            qDebug() << "Selected Codec Plugin:" << _codec.get();
+            qCDebug(audioclient) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
     }
@@ -683,8 +681,8 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void AudioClient::configureReverb() {
     ReverbParameters p;
-    p.sampleRate = _outputFormat.sampleRate();
 
+    p.sampleRate = AudioConstants::SAMPLE_RATE;
     p.bandwidth = _reverbOptions->getBandwidth();
     p.preDelay = _reverbOptions->getPreDelay();
     p.lateDelay = _reverbOptions->getLateDelay();
@@ -710,6 +708,7 @@ void AudioClient::configureReverb() {
     _listenerReverb.setParameters(&p);
 
     // used only for adding self-reverb to loopback audio
+    p.sampleRate = _outputFormat.sampleRate();
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
@@ -816,23 +815,22 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
     static QByteArray loopBackByteArray;
 
-    int numInputSamples = inputByteArray.size() / sizeof(int16_t);
+    int numInputSamples = inputByteArray.size() / AudioConstants::SAMPLE_SIZE;
     int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
 
-    loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
+    loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    auto NO_RESAMPLER = nullptr;
-    possibleResampling(NO_RESAMPLER,
-                       inputSamples, loopbackSamples,
-                       numInputSamples, numLoopbackSamples,
-                       _inputFormat, _outputFormat);
+    // upmix mono to stereo
+    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat, _outputFormat)) {
+        // no conversion, just copy the samples
+        memcpy(loopbackSamples, inputSamples, numInputSamples * AudioConstants::SAMPLE_SIZE);
+    }
 
     // apply stereo reverb at the source, to the loopback audio
     if (!_shouldEchoLocally && hasReverb) {
-        assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
         _sourceReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
     }
@@ -841,8 +839,12 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
+
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
-    const int inputSamplesRequired = _inputFormat.channelCount() * _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    const int inputSamplesRequired = (_inputToNetworkResampler ? 
+                                      _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) : 
+                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
+
     const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -851,7 +853,7 @@ void AudioClient::handleAudioInput() {
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
 
     float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    _stats.updateInputMsecsRead(audioInputMsecsRead);
+    _stats.updateInputMsRead(audioInputMsecsRead);
 
     const int numNetworkBytes = _isStereoInput
         ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
@@ -929,16 +931,20 @@ void AudioClient::handleAudioInput() {
         audioTransform.setRotation(_orientationGetter());
         // FIXME find a way to properly handle both playback audio and user audio concurrently
 
-        QByteArray decocedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        QByteArray decodedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         QByteArray encodedBuffer;
         if (_encoder) {
-            _encoder->encode(decocedBuffer, encodedBuffer);
+            _encoder->encode(decodedBuffer, encodedBuffer);
         } else {
-            encodedBuffer = decocedBuffer;
+            encodedBuffer = decodedBuffer;
         }
 
         emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, packetType, _selectedCodecName);
         _stats.sentPacket();
+
+        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
+        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+        _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
     }
 }
 
@@ -958,13 +964,9 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
 }
 
-void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
+void AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
-    memset(_hrtfBuffer, 0, sizeof(_hrtfBuffer));
     QVector<AudioInjector*> injectorsToRemove;
-    static const float INT16_TO_FLOAT_SCALE_FACTOR = 1/32768.0f;
-
-    bool injectorsHaveData = false;
     
     // lock the injector vector
     Lock lock(_injectorsMutex);
@@ -972,19 +974,17 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
     for (AudioInjector* injector : getActiveLocalAudioInjectors()) {
         if (injector->getLocalBuffer()) {
 
-            qint64 samplesToRead = injector->isStereo() ? 
-                AudioConstants::NETWORK_FRAME_BYTES_STEREO :
-                AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+            qint64 samplesToRead = injector->isStereo() ? AudioConstants::NETWORK_FRAME_BYTES_STEREO : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector (mono or stereo)
             memset(_scratchBuffer, 0, sizeof(_scratchBuffer));
             if (0 < injector->getLocalBuffer()->readData((char*)_scratchBuffer, samplesToRead)) {
                 
-                injectorsHaveData = true;
+                if (injector->isStereo()) {
 
-                if (injector->isStereo() ) {
-                    for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        _hrtfBuffer[i] += (float)(_scratchBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
+                    // stereo gets directly mixed into mixBuffer
+                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+                        mixBuffer[i] += (float)_scratchBuffer[i] * (1/32768.0f);
                     }
                     
                 } else {
@@ -995,73 +995,66 @@ void AudioClient::mixLocalAudioInjectors(int16_t* inputBuffer) {
                     float gain = gainForSource(distance, injector->getVolume()); 
                     float azimuth = azimuthForSource(relativePosition);         
                 
-                    injector->getLocalHRTF().render(_scratchBuffer, _hrtfBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    // mono gets spatialized into mixBuffer
+                    injector->getLocalHRTF().render(_scratchBuffer, mixBuffer, 1, azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 }
             
             } else {
                 
-                qDebug() << "injector has no more data, marking finished for removal";
+                qCDebug(audioclient) << "injector has no more data, marking finished for removal";
                 injector->finishLocalInjection();
                 injectorsToRemove.append(injector);
             }
 
         } else {
             
-            qDebug() << "injector has no local buffer, marking as finished for removal";
+            qCDebug(audioclient) << "injector has no local buffer, marking as finished for removal";
             injector->finishLocalInjection();
             injectorsToRemove.append(injector);
         }
     }
     
-    if(injectorsHaveData) {
-        
-        // mix network into the hrtfBuffer
-        for(int i=0; i<AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-            _hrtfBuffer[i] += (float)(inputBuffer[i]) * INT16_TO_FLOAT_SCALE_FACTOR;
-        }
-        
-        // now, use limiter to write back to the inputBuffer
-        _audioLimiter.render(_hrtfBuffer, inputBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-    }
-
-    for(AudioInjector* injector : injectorsToRemove) {
-        qDebug() << "removing injector";
+    for (AudioInjector* injector : injectorsToRemove) {
+        qCDebug(audioclient) << "removing injector";
         getActiveLocalAudioInjectors().removeOne(injector);
     }
 }
 
 void AudioClient::processReceivedSamples(const QByteArray& decodedBuffer, QByteArray& outputBuffer) {
-    const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
-    const int numDeviceOutputSamples = _outputFrameSize;
 
-    Q_ASSERT(_outputFrameSize == numDecodecSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
-        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount()));
-
-    outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
-
-    const int16_t* decodedSamples;
-    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
-    QByteArray decodedBufferCopy = decodedBuffer;
+    const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
     assert(decodedBuffer.size() == AudioConstants::NETWORK_FRAME_BYTES_STEREO);
-    
-    if(getActiveLocalAudioInjectors().size() > 0) {
-        mixLocalAudioInjectors((int16_t*)decodedBufferCopy.data());
-        decodedSamples = reinterpret_cast<const int16_t*>(decodedBufferCopy.data());
-    } else {
-        decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
+
+    outputBuffer.resize(_outputFrameSize * AudioConstants::SAMPLE_SIZE);
+    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
+
+    // convert network audio to float
+    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
+        _mixBuffer[i] = (float)decodedSamples[i] * (1/32768.0f);
+    }
+        
+    // mix in active injectors
+    if (getActiveLocalAudioInjectors().size() > 0) {
+        mixLocalAudioInjectors(_mixBuffer);
     }
 
-    // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, decodedSamples, outputSamples,
-                       numDecodecSamples, numDeviceOutputSamples,
-                       _desiredOutputFormat, _outputFormat);
-
-    // apply stereo reverb at the listener, to the received audio
+    // apply stereo reverb
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
     if (hasReverb) {
-        assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
-        _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
+        _listenerReverb.render(_mixBuffer, _mixBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    }
+
+    if (_networkToOutputResampler) {
+
+        // resample to output sample rate
+        _audioLimiter.render(_mixBuffer, _scratchBuffer, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        _networkToOutputResampler->render(_scratchBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+    } else {
+
+        // no resampling needed
+        _audioLimiter.render(_mixBuffer, outputSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
     }
 }
 
@@ -1117,10 +1110,10 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         // Since this is invoked with invokeMethod, there _should_ be
         // no reason to lock access to the vector of injectors.
         if (!_activeLocalAudioInjectors.contains(injector)) {
-            qDebug() << "adding new injector";
+            qCDebug(audioclient) << "adding new injector";
             _activeLocalAudioInjectors.append(injector);
         } else {
-            qDebug() << "injector exists in active list already";
+            qCDebug(audioclient) << "injector exists in active list already";
         }
         
         return true;
@@ -1215,7 +1208,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
-        qCInfo(audioclient, "Starve detected, %d new unfulfilled reads", recentUnfulfilled);
+        qCDebug(audioclient, "Starve detected, %d new unfulfilled reads", recentUnfulfilled);
 
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
@@ -1230,7 +1223,8 @@ void AudioClient::outputNotify() {
                     int newOutputBufferSizeFrames = setOutputBufferSize(oldOutputBufferSizeFrames + 1, false);
 
                     if (newOutputBufferSizeFrames > oldOutputBufferSizeFrames) {
-                        qCInfo(audioclient, "Starve threshold surpassed (%d starves in %d ms)", _outputStarveDetectionCount, dt);
+                        qCDebug(audioclient,
+                                "Starve threshold surpassed (%d starves in %d ms)", _outputStarveDetectionCount, dt);
                     }
 
                     _outputStarveDetectionStartTimeMsec = now;
@@ -1290,7 +1284,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             int osDefaultBufferSize = _audioOutput->bufferSize();
-            int requestedSize = _sessionOutputBufferSizeFrames *_outputFrameSize * sizeof(int16_t);
+            int requestedSize = _sessionOutputBufferSizeFrames *_outputFrameSize * AudioConstants::SAMPLE_SIZE;
             _audioOutput->setBufferSize(requestedSize);
 
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
@@ -1302,7 +1296,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             _audioOutput->start(&_audioOutputIODevice);
             lock.unlock();
 
-            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize <<
+            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)_outputFrameSize <<
                 "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
                 "os default:" << osDefaultBufferSize << "period size:" << _audioOutput->periodSize();
 
@@ -1364,25 +1358,9 @@ int AudioClient::calculateNumberOfInputCallbackBytes(const QAudioFormat& format)
 }
 
 int AudioClient::calculateNumberOfFrameSamples(int numBytes) const {
-    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / sizeof(int16_t);
+    int frameSamples = (int)(numBytes * CALLBACK_ACCELERATOR_RATIO + 0.5f) / AudioConstants::SAMPLE_SIZE;
     return frameSamples;
 }
-
-float AudioClient::getInputRingBufferMsecsAvailable() const {
-    int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
-    float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    return  msecsInInputRingBuffer;
-}
-
-float AudioClient::getAudioOutputMsecsUnplayed() const {
-    if (!_audioOutput) {
-        return 0.0f;
-    }
-    int bytesAudioOutputUnplayed = _audioOutput->bufferSize() - _audioOutput->bytesFree();
-    float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_outputFormat.bytesForDuration(USECS_PER_MSEC);
-    return msecsAudioOutputUnplayed;
-}
-
 
 float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
     // copied from AudioMixer, more or less
@@ -1424,14 +1402,15 @@ float AudioClient::gainForSource(float distance, float volume) {
 }
 
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
-    auto samplesRequested = maxSize / sizeof(int16_t);
+    auto samplesRequested = maxSize / AudioConstants::SAMPLE_SIZE;
     int samplesPopped;
     int bytesWritten;
 
     if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
+        qCDebug(audiostream, "Read %d samples from buffer (%d available)", samplesPopped, _receivedAudioStream.getSamplesAvailable());
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
-        bytesWritten = samplesPopped * sizeof(int16_t);
+        bytesWritten = samplesPopped * AudioConstants::SAMPLE_SIZE;
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         // this will flood the log: qCDebug(audioclient, "empty/partial network buffer");
@@ -1439,8 +1418,11 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = maxSize;
     }
 
-    bool wasBufferStarved = _audio->_audioOutput->bufferSize() == _audio->_audioOutput->bytesFree();
-    if (wasBufferStarved) {
+    int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
+    float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);
+    _audio->_stats.updateOutputMsUnplayed(msecsAudioOutputUnplayed);
+
+    if (bytesAudioOutputUnplayed == 0) {
         _unfulfilledReads++;
     }
 
@@ -1471,10 +1453,10 @@ void AudioClient::loadSettings() {
     _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
     _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
 
-    qDebug() << "---- Initializing Audio Client ----";
+    qCDebug(audioclient) << "---- Initializing Audio Client ----";
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
-        qDebug() << "Codec available:" << plugin->getName();
+        qCDebug(audioclient) << "Codec available:" << plugin->getName();
     }
 
 }

@@ -139,7 +139,10 @@ Window {
                 buttonState: 1
                 defaultState: 1
                 hoverState: 2
-                onClicked: addressBarDialog.loadHome();
+                onClicked: {
+                    addressBarDialog.loadHome();
+                    root.shown = false;
+                }
                 anchors {
                     left: parent.left
                     leftMargin: homeButton.width / 2

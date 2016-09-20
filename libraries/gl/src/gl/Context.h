@@ -65,7 +65,7 @@ class Context {
         QWindow* _window { nullptr };
     public:
         virtual ~OffscreenContext();
-        virtual void create();
+        void create() override;
     };
 }
 

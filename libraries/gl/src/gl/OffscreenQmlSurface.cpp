@@ -32,6 +32,7 @@
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
 #include "GLHelpers.h"
+#include "GLLogging.h"
 
 
 QString fixupHifiUrl(const QString& urlString) {
@@ -196,7 +197,7 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
 
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
     _canvas.setObjectName("OffscreenQmlRenderCanvas");
-    qDebug() << "Building QML Renderer";
+    qCDebug(glLogging) << "Building QML Renderer";
     if (!_canvas.create(shareContext)) {
         qWarning("Failed to create OffscreenGLCanvas");
         _quit = true;
@@ -223,7 +224,7 @@ OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface,
 }
 
 void OffscreenQmlRenderThread::run() {
-    qDebug() << "Starting QML Renderer thread";
+    qCDebug(glLogging) << "Starting QML Renderer thread";
 
     while (!_quit) {
         QEvent* e = _queue.take();
@@ -282,7 +283,7 @@ QJsonObject OffscreenQmlRenderThread::getGLContextData() {
 }
 
 void OffscreenQmlRenderThread::init() {
-    qDebug() << "Initializing QML Renderer";
+    qCDebug(glLogging) << "Initializing QML Renderer";
 
     if (!_canvas.makeCurrent()) {
         qWarning("Failed to make context current on QML Renderer Thread");
@@ -341,7 +342,7 @@ void OffscreenQmlRenderThread::resize() {
             return;
         }
 
-        qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
+        qCDebug(glLogging) << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
         _size = newOffscreenSize;
     }
 
@@ -427,7 +428,7 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
 
-    qDebug() << "Stopping QML Renderer Thread " << _renderer->currentThreadId();
+    qCDebug(glLogging) << "Stopping QML Renderer Thread " << _renderer->currentThreadId();
     _renderer->_queue.add(STOP);
     if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
         qWarning() << "Failed to shut down the QML Renderer Thread";
@@ -444,7 +445,7 @@ void OffscreenQmlSurface::onAboutToQuit() {
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
-    qDebug() << "Building QML surface";
+    qCDebug(glLogging) << "Building QML surface";
 
     _renderer = new OffscreenQmlRenderThread(this, shareContext);
     _renderer->moveToThread(_renderer);

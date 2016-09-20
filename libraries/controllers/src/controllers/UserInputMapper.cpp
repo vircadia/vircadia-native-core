@@ -665,7 +665,7 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
     if (_mappingsByName.count(mappingName)) {
         qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
     }
-    qDebug() << "Creating new Mapping " << mappingName;
+    qCDebug(controllers) << "Creating new Mapping " << mappingName;
     auto mapping = std::make_shared<Mapping>(mappingName);
     _mappingsByName[mappingName] = mapping;
     return mapping;
@@ -1121,15 +1121,15 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
     // check validity of the document
     if (doc.isNull()) {
-        qDebug() << "Invalid JSON...\n";
-        qDebug() << error.errorString();
-        qDebug() << "JSON was:\n" << json << endl;
+        qCDebug(controllers) << "Invalid JSON...\n";
+        qCDebug(controllers) << error.errorString();
+        qCDebug(controllers) << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
 
     if (!doc.isObject()) {
         qWarning() << "Mapping json Document is not an object" << endl;
-        qDebug() << "JSON was:\n" << json << endl;
+        qCDebug(controllers) << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
     return parseMapping(doc.object());

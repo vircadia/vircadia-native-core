@@ -121,7 +121,9 @@ bool Procedural::parseShader(const QUrl& shaderPath) {
 
     if (_shaderUrl.isLocalFile()) {
         _shaderPath = _shaderUrl.toLocalFile();
+#if WANT_DEBUG
         qDebug() << "Shader path: " << _shaderPath;
+#endif
         if (!QFile(_shaderPath).exists()) {
             _networkShader.reset();
             return false;;

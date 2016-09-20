@@ -1022,6 +1022,9 @@ SelectionDisplay = (function() {
                     // No switching while the other is already triggered, so no need to release.
                     activeHand = (activeHand === Controller.Standard.RightHand) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
                 }
+                if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)) {
+                    return;
+                }
                 var eventResult = that.mousePressEvent({});
                 if (!eventResult || (eventResult === 'selectionBox')) {
                     var pickRay = controllerComputePickRay();

@@ -351,7 +351,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
     } else {
-        qDebug() << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
+        qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
         return 0;
     }
 }
@@ -389,7 +389,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
         emit dataSent(destinationNode.getType(), bytesSent);
         return bytesSent;
     } else {
-        qDebug() << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
+        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
             << " - not sending.";
         return 0;
     }
