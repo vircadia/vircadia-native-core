@@ -206,7 +206,6 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         const float FOLLOW_TIMESCALE = 0.8f;
         const float ONE_STEP_AT_NORMAL_WALKING_SPEED = FOLLOW_TIMESCALE * NORMAL_WALKING_SPEED;
         const float FOLLOW_ROTATION_THRESHOLD = PI / 6.0f;
-        const float FOLLOW_FACTOR = 0.25f;
         const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIMESCALE;
         const float MIN_DELTA_DISTANCE = 0.01f;
 
@@ -222,7 +221,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
             } else {
                 vel *= NORMAL_WALKING_SPEED * (deltaDistance / ONE_STEP_AT_NORMAL_WALKING_SPEED);
             }
-            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.01f; // a very small timescale here is OK
+            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.25f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
             addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
