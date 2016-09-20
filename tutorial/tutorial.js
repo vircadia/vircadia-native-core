@@ -210,6 +210,7 @@ function playSuccessSound() {
 ///////////////////////////////////////////////////////////////////////////////
 var stepDisableControllers = function(name) {
     this.tag = name;
+    this.shouldLog = false;
 }
 stepDisableControllers.prototype = {
     start: function(onFinish) {
@@ -959,10 +960,15 @@ TutorialManager = function() {
 
     var currentStepNum = -1;
     var currentStep = null;
+    var startedTutorialAt = 0;
+    var startedLastStepAt = 0;
+
+    var self = this;
 
     this.startTutorial = function() {
         currentStepNum = -1;
         currentStep = null;
+        startedTutorialAt = Date.now();
         STEPS = [
             new stepDisableControllers("step0"),
             new stepOrient("orient"),
@@ -984,6 +990,17 @@ TutorialManager = function() {
         this.startNextStep();
     }
 
+    this.onFinish = function() {
+        if (currentStep && currentStep.shouldLog !== false) {
+            var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
+            var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
+            UserActivityLogger.tutorialProgress(
+                    currentStep.tag, currentStepNum, timeToFinishStep, tutorialTimeElapsed);
+        }
+
+        self.startNextStep();
+    }
+
     this.startNextStep = function() {
         if (currentStep) {
             currentStep.cleanup();
@@ -1000,14 +1017,15 @@ TutorialManager = function() {
         } else {
             print("Starting step", currentStepNum);
             currentStep = STEPS[currentStepNum];
-            currentStep.start(this.startNextStep);
+            startedLastStepAt = Date.now();
+            currentStep.start(this.onFinish);
             return true;
         }
     }.bind(this);
     this.restartStep = function() {
         if (currentStep) {
             currentStep.cleanup();
-            currentStep.start(this.startNextStep);
+            currentStep.start(this.onFinish);
         }
     }
 
