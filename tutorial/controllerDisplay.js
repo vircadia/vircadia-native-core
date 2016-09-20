@@ -1,6 +1,5 @@
 var DEBUG = false;
 var VISIBLE_BY_DEFAULT = false;
-//var PARENT_ID = MyAvatar.sessionUUID;
 var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
 
 createControllerDisplay = function(config) {
@@ -49,7 +48,6 @@ createControllerDisplay = function(config) {
     for (var i = 0; i < config.controllers.length; ++i) {
         var controller = config.controllers[i];
         var position = controller.position;
-        //position = { x: 0, y: 5, z: 5 };
         Vec3.print("position", position);
         print("position", position.x, position.y, position.z);
         if (controller.naturalPosition) {
@@ -158,9 +156,6 @@ createControllerDisplay = function(config) {
                 var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
                 var innerRotation = controller.rotation
 
-                //Vec3.print("controller", controller.position);
-                //Vec3.print("part", partPosition);
-
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
                 var properties = {
@@ -170,7 +165,6 @@ createControllerDisplay = function(config) {
                     parentID: PARENT_ID,
                     parentJointIndex: controller.jointIndex,
                     ignoreRayIntersection: true,
-                    //visible: false
                 };
 
                 if (part.defaultTextureLayer) {
@@ -185,23 +179,16 @@ createControllerDisplay = function(config) {
                     var range = part.maxValue - part.minValue;
                     mapping.from([part.input]).peek().to(function(controller, overlayID, part) {
                         return function(value) {
-                            //print(value);
-                            //print(JSON.stringify(part));
-
                             value = clamp(value, part.minValue, part.maxValue);
 
                             var pct = (value - part.minValue) / part.maxValue;
                             var angle = pct * part.maxAngle;
                             var rotation = Quat.angleAxis(angle, part.axis);
-                            //print(value, pct, angle);
 
                             var offset = { x: 0, y: 0, z: 0 };
                             if (part.origin) {
-                                //print(rotation.x, rotation.y, rotation.z, rotation.w);
                                 var offset = Vec3.multiplyQbyV(rotation, part.origin);
                                 offset = Vec3.subtract(offset, part.origin);
-                                //Vec3.print('offset', offset);
-                                //partPosition = Vec3.sum(partPosition, offset);
                             }
 
                             var partPosition = Vec3.sum(controller.position,
@@ -230,14 +217,14 @@ createControllerDisplay = function(config) {
                     var xinput = resolveHardware(part.xInput);
                     var yinput = resolveHardware(part.yInput);
 
+                    // TODO: Touchpad inputs are currently only working for half
+                    // of the touchpad. When that is fixed, it would be useful
+                    // to update these to display the current finger position.
                     mapping.from([visibleInput]).peek().to(function(value) {
-                        //print("visible", value);
                     });
                     mapping.from([xinput]).peek().to(function(value) {
-                        //print("X", value);
                     });
                     mapping.from([yinput]).peek().invert().to(function(value) {
-                        //print("Y", value);
                     });
                 } else if (part.type == "static") {
                 } else {
