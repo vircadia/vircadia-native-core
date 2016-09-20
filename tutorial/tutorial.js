@@ -216,11 +216,37 @@ stepDisableControllers.prototype = {
     start: function(onFinish) {
         editEntitiesWithTag('door', { visible: true });
         Menu.setIsOptionChecked("Overlays", false);
+        Controller.disableMapping('handControllerPointer-click');
+        Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             nearGrabEnabled: true,
             holdEnabled: false,
             farGrabEnabled: false,
+        }));
+        setControllerPartLayer('touchpad', 'blank');
+        setControllerPartLayer('tips', 'blank');
+        onFinish();
+    },
+    cleanup: function() {
+    }
+};
+
+var stepEnableControllers = function(name) {
+    this.tag = name;
+    this.shouldLog = false;
+}
+stepEnableControllers.prototype = {
+    start: function(onFinish) {
+        editEntitiesWithTag('door', { visible: false });
+        Menu.setIsOptionChecked("Overlays", true);
+        Controller.enableMapping('handControllerPointer-click');
+        Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'enable');
+        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
+        Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
+            nearGrabEnabled: true,
+            holdEnabled: true,
+            farGrabEnabled: true,
         }));
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
@@ -980,6 +1006,7 @@ TutorialManager = function() {
             new stepTurnAround("turnAround"),
             new stepTeleport("teleport"),
             new stepFinish("finish"),
+            new stepEnableControllers("enableControllers"),
         ];
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
@@ -1041,7 +1068,6 @@ TutorialManager = function() {
 Script.scriptEnding.connect(function() {
     Controller.enableMapping('handControllerPointer-click');
 });
-Controller.disableMapping('handControllerPointer-click');
 
 // var entityID = '{be3d10a3-262a-4827-b30c-ec025c4325dc}';
 // var token = new OwnershipToken(Math.random() * 100000, entityID, {

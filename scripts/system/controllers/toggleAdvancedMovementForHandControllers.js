@@ -18,6 +18,7 @@ var mappingName, basicMapping, isChecked;
 var TURN_RATE = 1000;
 var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
 var SETTINGS_KEY = 'advancedMovementForHandControllersIsChecked';
+var isDisabled = false;
 var previousSetting = Settings.getValue(SETTINGS_KEY);
 if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
     previousSetting = false;
@@ -145,5 +146,20 @@ HMD.displayModeChanged.connect(function(isHMDMode) {
         }
     }
 });
+
+
+var HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL = 'Hifi-Advanced-Movement-Disabler';
+function handleMessage(channel, message, sender) {
+    if (channel == HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
+        if (message == 'disable') {
+            isDisabled = true;
+        } else if (message == 'enable') {
+            isDisabled = false;
+        }
+    }
+}
+
+Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
+Messages.messageReceived.connect(handleHandMessages);
 
 }()); // END LOCAL_SCOPE
