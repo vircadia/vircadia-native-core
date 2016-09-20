@@ -202,7 +202,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
         // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
-        const float NORMAL_WALKING_SPEED = 2.0f; // actual walk speed is 2.5 m/sec
+        const float NORMAL_WALKING_SPEED = 2.5f; // actual walk speed is 2.5 m/sec
         const float FOLLOW_TIMESCALE = 0.8f;
         const float ONE_STEP_AT_NORMAL_WALKING_SPEED = FOLLOW_TIMESCALE * NORMAL_WALKING_SPEED;
         const float FOLLOW_ROTATION_THRESHOLD = PI / 6.0f;
@@ -219,9 +219,9 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
             if (deltaDistance > ONE_STEP_AT_NORMAL_WALKING_SPEED) {
                 vel *= NORMAL_WALKING_SPEED / deltaDistance;
             } else {
-                vel *= NORMAL_WALKING_SPEED * (deltaDistance / ONE_STEP_AT_NORMAL_WALKING_SPEED);
+                vel /= FOLLOW_TIMESCALE;
             }
-            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.25f;
+            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.2f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
             addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
