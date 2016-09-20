@@ -124,12 +124,6 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
     properties.remove("start"); // so that Base3DOverlay doesn't respond to it
 
-    auto localStart = properties["localStart"];
-    if (localStart.isValid()) {
-        _start = vec3FromVariant(localStart);
-    }
-    properties.remove("localStart"); // so that Base3DOverlay doesn't respond to it
-
     auto end = properties["end"];
     // if "end" property was not there, check to see if they included aliases: endPoint
     if (!end.isValid()) {
@@ -138,12 +132,6 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     if (end.isValid()) {
         setEnd(vec3FromVariant(end));
     }
-
-    auto localEnd = properties["localEnd"];
-    if (localEnd.isValid()) {
-        _end = vec3FromVariant(localEnd);
-    }
-    properties.remove("localEnd"); // so that Base3DOverlay doesn't respond to it
 
     auto glow = properties["glow"];
     if (glow.isValid()) {
