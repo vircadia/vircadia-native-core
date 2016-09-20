@@ -1301,7 +1301,7 @@ void MyAvatar::updateMotors() {
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
 
-        if (!qApp->isHMDMode()) {
+        if (qApp->isHMDMode()) {
             // OUTOFBODY_HACK: add default zero velocity motor to the characterController
             _characterController.addMotor(glm::vec3(), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
         } else {
