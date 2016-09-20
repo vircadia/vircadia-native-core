@@ -277,8 +277,6 @@ void HmdDisplayPlugin::internalPresent() {
         if (getGLBackend()->isTextureReady(_previewTexture)) {
             auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
 
-            qDebug() << "viewport:" << viewport.x << "," << viewport.y << "," << viewport.z << "," << viewport.w;
-
             render([&](gpu::Batch& batch) {
                 batch.enableStereo(false);
                 batch.resetViewTransform();
