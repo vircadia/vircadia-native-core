@@ -202,25 +202,31 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
         // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
-        const float NORMAL_WALKING_SPEED = 2.5f; // actual walk speed is 2.5 m/sec
+        const float NORMAL_WALKING_SPEED = 2.0f; // actual walk speed is 2.5 m/sec
         const float FOLLOW_TIMESCALE = 0.8f;
+        const float ONE_STEP_AT_NORMAL_WALKING_SPEED = FOLLOW_TIMESCALE * NORMAL_WALKING_SPEED;
         const float FOLLOW_ROTATION_THRESHOLD = PI / 6.0f;
-        const float FOLLOW_FACTOR = 0.5f;
+        const float FOLLOW_FACTOR = 0.25f;
         const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIMESCALE;
+        const float MIN_DELTA_DISTANCE = 0.01f;
 
         // linear part uses a motor
         btTransform bodyTransform = _rigidBody->getWorldTransform();
         btVector3 startPos = bodyTransform.getOrigin();
         btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
-        btVector3 vel = deltaPos * (FOLLOW_FACTOR / dt);
-        btScalar speed = vel.length();
-        if (speed > NORMAL_WALKING_SPEED) {
-            vel *= NORMAL_WALKING_SPEED / speed;
+        btScalar deltaDistance = deltaPos.length();
+        if (deltaDistance > MIN_DELTA_DISTANCE) {
+            btVector3 vel = deltaPos;
+            if (deltaDistance > ONE_STEP_AT_NORMAL_WALKING_SPEED) {
+                vel *= NORMAL_WALKING_SPEED / deltaDistance;
+            } else {
+                vel *= NORMAL_WALKING_SPEED * (deltaDistance / ONE_STEP_AT_NORMAL_WALKING_SPEED);
+            }
+            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.01f; // a very small timescale here is OK
+            const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
+            glm::quat worldFrameRotation; // identity
+            addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
         }
-        const float HORIZONTAL_FOLLOW_TIMESCALE = 0.01f; // a very small timescale here is OK
-        const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
-        glm::quat motorRotation;
-        addMotor(bulletToGLM(vel), motorRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
 
         // angular part uses incremental teleports
         btQuaternion startRot = bodyTransform.getRotation();
