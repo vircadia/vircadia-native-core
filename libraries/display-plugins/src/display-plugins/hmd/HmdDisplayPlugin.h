@@ -108,6 +108,7 @@ private:
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
     gpu::TexturePointer _previewTexture;
+    glm::vec2 _lastWindowSize;
 
     struct OverlayRenderer {
         gpu::Stream::FormatPointer format;

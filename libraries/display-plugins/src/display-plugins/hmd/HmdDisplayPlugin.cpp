@@ -249,6 +249,9 @@ void HmdDisplayPlugin::internalPresent() {
         
         if (getGLBackend()->isTextureReady(_previewTexture)) {
             auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
+
+            qDebug() << "viewport:" << viewport.x << "," << viewport.y << "," << viewport.z << "," << viewport.w;
+
             render([&](gpu::Batch& batch) {
                 batch.enableStereo(false);
                 batch.resetViewTransform();
@@ -265,6 +268,17 @@ void HmdDisplayPlugin::internalPresent() {
         }
     }
     postPreview();
+
+    // If preview is disabled, we need to check to see if the window size has changed 
+    // and re-render the no-preview message
+    if (_disablePreview) {
+        auto window = _container->getPrimaryWidget();
+        glm::vec2 windowSize = toGlm(window->size());
+        if (windowSize != _lastWindowSize) {
+            _clearPreviewFlag = true;
+            _lastWindowSize = windowSize;
+        }
+    }
 }
 
 // HMD specific stuff
