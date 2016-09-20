@@ -1032,9 +1032,7 @@ SelectionDisplay = (function() {
                         var entityIntersection = Entities.findRayIntersection(pickRay, true);
                         var overlayIntersection = Overlays.findRayIntersection(pickRay);
                         if (entityIntersection.intersects &&
-                            (!overlayIntersection.intersects ||
-                             (entityIntersection.distance < overlayIntersection.distance)) &&
-                            (!(Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)))) {
+                            (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
                             selectionManager.setSelections([entityIntersection.entityID]);
                         }
                     }
