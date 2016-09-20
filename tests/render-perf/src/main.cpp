@@ -32,11 +32,10 @@
 
 
 #include <shared/RateCounter.h>
+#include <shared/NetworkUtils.h>
+#include <shared/FileLogger.h>
+#include <LogHandler.h>
 #include <AssetClient.h>
-
-//#include <gl/OffscreenGLCanvas.h>
-//#include <gl/GLHelpers.h>
-//#include <gl/QOpenGLContextWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
@@ -149,6 +148,7 @@ public:
 
 };
 #else
+
 class QWindowCamera : public Camera {
     Key forKey(int key) {
         switch (key) {
@@ -417,6 +417,7 @@ public:
 };
 
 render::ItemID BackgroundRenderData::_item = 0;
+QSharedPointer<FileLogger> logger;
 
 namespace render {
     template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
@@ -1069,12 +1070,14 @@ private:
 bool QTestWindow::_cullingEnabled = true;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType)type, context, message);
+
+    if (!logMessage.isEmpty()) {
 #ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
-        std::cout << message.toLocal8Bit().constData() << std::endl;
+        logger->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -1082,11 +1085,14 @@ const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
+
 int main(int argc, char** argv) {
-    QApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName("RenderPerf");
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setOrganizationDomain("highfidelity.com");
+    logger.reset(new FileLogger());
+
     qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
