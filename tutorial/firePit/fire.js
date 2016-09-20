@@ -1,6 +1,6 @@
-// this script turns an entity into an exploder -- anything that collides with it will be vaporized!
-// 
+// Originally written by James Pollack, modified by Ryan Huffman for the tutorial
 //
+// this script turns an entity into an exploder -- anything that collides with it will be vaporized!
 
 (function() {
 
@@ -58,27 +58,20 @@
         preload: function(entityID) {
             this.entityID = entityID;
             this.EXPLOSION_SOUND = SoundCache.getSound("atp:/firepit/fire_burst.wav");
-            print("IN FIRE SCRIPT");
         },
         collisionWithEntity: function(myID, otherID, collisionInfo) {
-            print("FIRE SCRIPT: COLLIDED");
             var otherProps = Entities.getEntityProperties(otherID);
             var data = null;
-            print("FIRE SCRIPT: 2 COLLIDED");
             try {
-                print("parsing..");
                 data = JSON.parse(otherProps.userData)
-                print("done parsing..");
             } catch (err) {
                 print('ERROR GETTING USERDATA!');
             }
-            print("HERE");
             if (data === null || "") {
                 return;
             } else {
                 if (data.hasOwnProperty('hifiHomeKey')) {
                     if (data.hifiHomeKey.reset === true) {
-                        print('FLAMMABLE THING, EXPLODE IT!');
                         _this.playSoundAtCurrentPosition();
                         _this.explodeWithColor();
                         Entities.deleteEntity(otherID)
@@ -90,7 +83,6 @@
             }
         },
         explodeWithColor: function() {
-            print('EXPLODE!')
             var myProps = Entities.getEntityProperties(this.entityID);
             var color = colors[Math.floor(Math.random() * colors.length)];
             var explosionParticleProperties = {
@@ -152,7 +144,6 @@
             };
 
             var explosion = Entities.addEntity(explosionParticleProperties);
-            print('explosion is: ' + explosion)
         },
         playSoundAtCurrentPosition: function() {
 
