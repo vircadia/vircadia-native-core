@@ -201,39 +201,49 @@ const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
-        // OUTOFBODY_HACK -- these consts were copied from elsewhere, and then tuned
-        const float NORMAL_WALKING_SPEED = 2.5f; // actual walk speed is 2.5 m/sec
-        const float FOLLOW_TIMESCALE = 0.8f;
-        const float ONE_STEP_AT_NORMAL_WALKING_SPEED = FOLLOW_TIMESCALE * NORMAL_WALKING_SPEED;
-        const float FOLLOW_ROTATION_THRESHOLD = PI / 6.0f;
-        const float MAX_ANGULAR_SPEED = FOLLOW_ROTATION_THRESHOLD / FOLLOW_TIMESCALE;
-        const float MIN_DELTA_DISTANCE = 0.01f;
-
         // linear part uses a motor
+        const float MAX_WALKING_SPEED = 2.5f; // TODO: scale this stuff with avatar size
+        const float MAX_WALKING_SPEED_DISTANCE = 1.0f;
+        const float NORMAL_WALKING_SPEED = 0.5f * MAX_WALKING_SPEED;
+        const float NORMAL_WALKING_SPEED_DISTANCE = 0.5f * MAX_WALKING_SPEED_DISTANCE;
+        const float FEW_SUBSTEPS = 4.0f * dt;
         btTransform bodyTransform = _rigidBody->getWorldTransform();
         btVector3 startPos = bodyTransform.getOrigin();
         btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
         btScalar deltaDistance = deltaPos.length();
+        const float MIN_DELTA_DISTANCE = 0.01f; // TODO: scale by avatar size but cap at (NORMAL_WALKING_SPEED * FEW_SUBSTEPS)
         if (deltaDistance > MIN_DELTA_DISTANCE) {
             btVector3 vel = deltaPos;
-            if (deltaDistance > ONE_STEP_AT_NORMAL_WALKING_SPEED) {
-                vel *= NORMAL_WALKING_SPEED / deltaDistance;
+            if (deltaDistance > MAX_WALKING_SPEED_DISTANCE) {
+                // cap max speed
+                vel *= MAX_WALKING_SPEED / deltaDistance;
+            } else if (deltaDistance > NORMAL_WALKING_SPEED_DISTANCE) {
+                // linearly interpolate to NORMAL_WALKING_SPEED
+                btScalar alpha = (deltaDistance - NORMAL_WALKING_SPEED_DISTANCE) / (MAX_WALKING_SPEED_DISTANCE - NORMAL_WALKING_SPEED_DISTANCE);
+                vel *= NORMAL_WALKING_SPEED * (1.0f - alpha) + MAX_WALKING_SPEED * alpha;
             } else {
-                vel /= FOLLOW_TIMESCALE;
+                // use exponential decay but cap at NORMAL_WALKING_SPEED
+                vel /= FEW_SUBSTEPS;
+                btScalar speed = vel.length();
+                if (speed > NORMAL_WALKING_SPEED) {
+                    vel *= NORMAL_WALKING_SPEED / speed;
+                }
             }
-            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.2f;
+            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.1f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
             addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
         }
 
         // angular part uses incremental teleports
+        const float ANGULAR_FOLLOW_TIMESCALE = 0.8f;
+        const float MAX_ANGULAR_SPEED = (PI / 2.0f) / ANGULAR_FOLLOW_TIMESCALE;
         btQuaternion startRot = bodyTransform.getRotation();
         glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
         glm::vec2 currentRight(currentFacing.y, - currentFacing.x);
         glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
         float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularSpeed = 0.5f * deltaAngle / dt;
+        float angularSpeed = deltaAngle / FEW_SUBSTEPS;
         if (angularSpeed > MAX_ANGULAR_SPEED) {
             angularSpeed *= MAX_ANGULAR_SPEED / angularSpeed;
         }
