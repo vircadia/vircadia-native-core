@@ -88,10 +88,6 @@ public:
     void setParentVelocity(const glm::vec3& parentVelocity);
     void setFollowParameters(const glm::mat4& desiredWorldBodyMatrix);
     void disableFollow() { _following = false; }
-    float getFollowTime() const { return _followTime; }
-    glm::vec3 getFollowLinearDisplacement() const;
-    glm::quat getFollowAngularDisplacement() const;
-    glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
     glm::vec3 getVelocityChange() const;
@@ -109,6 +105,7 @@ public:
     };
 
     State getState() const { return _state; }
+    void updateState();
 
     void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 
@@ -152,9 +149,9 @@ protected:
     btVector3 _parentVelocity;
     btVector3 _preSimulationVelocity;
     btVector3 _velocityChange;
-    btVector3 _simpleMotorVelocity; // KINEMATIC_CONTROLLER_HACK
     btTransform _followDesiredBodyTransform;
-    btTransform _characterBodyTransform;
+    btVector3 _position;
+    btQuaternion _rotation;
 
     glm::vec3 _shapeLocalOffset;
 
@@ -175,9 +172,6 @@ protected:
     btScalar _gravity;
 
     btScalar _jumpSpeed;
-    btScalar _followTime;
-    btVector3 _followLinearDisplacement;
-    btQuaternion _followAngularDisplacement;
     btVector3 _linearAcceleration;
     bool _following { false };
 
