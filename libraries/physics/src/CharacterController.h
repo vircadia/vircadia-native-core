@@ -88,10 +88,6 @@ public:
     void setParentVelocity(const glm::vec3& parentVelocity);
     void setFollowParameters(const glm::mat4& desiredWorldBodyMatrix);
     void disableFollow() { _following = false; }
-    float getFollowTime() const { return _followTime; }
-    glm::vec3 getFollowLinearDisplacement() const;
-    glm::quat getFollowAngularDisplacement() const;
-    glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
     glm::vec3 getVelocityChange() const;
@@ -177,9 +173,6 @@ protected:
     btScalar _gravity;
 
     btScalar _jumpSpeed;
-    btScalar _followTime;
-    btVector3 _followLinearDisplacement;
-    btQuaternion _followAngularDisplacement;
     btVector3 _linearAcceleration;
     bool _following { false };
 

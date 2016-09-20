@@ -1387,9 +1387,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     //_bodySensorMatrix = deriveBodyFromHMDSensor();
 
     if (_characterController.isEnabledAndReady()) {
-        setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-    } else {
-        setVelocity(getVelocity() + _characterController.getFollowVelocity());
+        setVelocity(_characterController.getLinearVelocity());
     }
 
     _follow.postPhysicsUpdate(*this);
