@@ -92,7 +92,6 @@ bool HmdDisplayPlugin::internalActivate() {
     _disablePreview = true;
 #else
     _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
-    qDebug() << __FUNCTION__ << "_disablePreview:" << _disablePreview;
 #endif
 
     _container->removeMenu(FRAMERATE);
@@ -228,7 +227,13 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     } else if (_clearPreviewFlag) {
-        auto image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        QImage image;
+        if (_vsyncEnabled) {
+            image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        } else {
+            image = QImage(PathUtils::resourcesPath() + "images/preview-disabled.png");
+        }
+
         image = image.mirrored();
         image = image.convertToFormat(QImage::Format_RGBA8888);
         if (!_previewTexture) {
