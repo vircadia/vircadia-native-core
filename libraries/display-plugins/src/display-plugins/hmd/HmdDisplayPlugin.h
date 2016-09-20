@@ -102,7 +102,7 @@ protected:
     bool _disablePreview{ true };
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
-    float HmdDisplayPlugin::getLeftCenterPixel() const;
+    float getLeftCenterPixel() const;
 
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };

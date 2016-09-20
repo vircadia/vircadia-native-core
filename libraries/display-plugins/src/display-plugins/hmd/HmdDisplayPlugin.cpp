@@ -184,7 +184,6 @@ void HmdDisplayPlugin::internalPresent() {
             sourceSize.x >>= 1;
         }
 
-        float originalCenter = (sourceSize.x / 2);
         float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
         float newWidth = sourceSize.x - shiftLeftBy;
 
@@ -217,8 +216,6 @@ void HmdDisplayPlugin::internalPresent() {
                 } else {
                     ratio = (float)windowSize.y / (float)originalClippedSize.y;
                 }
-
-                float scaledWidth = newWidth * ratio;
 
                 float scaledShiftLeftBy = shiftLeftBy * ratio;
 
