@@ -88,6 +88,7 @@ bool HmdDisplayPlugin::internalActivate() {
         _monoPreview = clicked;
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
+
 #if defined(Q_OS_MAC)
     _disablePreview = true;
 #else
@@ -153,6 +154,23 @@ ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     return ivec4(targetViewportPosition, targetViewportSize);
 }
 
+float HmdDisplayPlugin::getLeftCenterPixel() const {
+    glm::mat4 eyeProjection = _eyeProjections[Left];
+    glm::mat4 inverseEyeProjection = glm::inverse(eyeProjection);
+    vec2 eyeRenderTargetSize = { _renderTargetSize.x / 2, _renderTargetSize.y };
+
+    vec4 left = vec4(-1, 0, -1, 1);
+    vec4 right = vec4(1, 0, -1, 1);
+    vec4 right2 = inverseEyeProjection * right;
+    vec4 left2 = inverseEyeProjection * left;
+    left2 /= left2.w;
+    right2 /= right2.w;
+    float width = -left2.x + right2.x;
+    float leftBias = -left2.x / width;
+    float leftCenterPixel = eyeRenderTargetSize.x * leftBias;
+    return leftCenterPixel;
+}
+
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
@@ -166,9 +184,13 @@ void HmdDisplayPlugin::internalPresent() {
             sourceSize.x >>= 1;
         }
 
+        float originalCenter = (sourceSize.x / 2);
+        float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
+        float newWidth = sourceSize.x - shiftLeftBy;
+
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
-        glm::uvec2 originalClippedSize { sourceSize.x, sourceSize.x * RATIO_Y / RATIO_X };
+        glm::uvec2 originalClippedSize { newWidth, newWidth * RATIO_Y / RATIO_X };
 
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
@@ -184,16 +206,21 @@ void HmdDisplayPlugin::internalPresent() {
                 float windowAspect = aspect(windowSize);  // example: 1920 x 1080 = 1.78
                 float sceneAspect = aspect(originalClippedSize); // usually: 1512 x 850 = 1.78
 
+
                 bool scaleToWidth = windowAspect < sceneAspect;
 
                 float ratio;
                 int scissorOffset;
 
                 if (scaleToWidth) {
-                    ratio = (float)windowSize.x / (float)sourceSize.x;
+                    ratio = (float)windowSize.x / (float)newWidth;
                 } else {
                     ratio = (float)windowSize.y / (float)originalClippedSize.y;
                 }
+
+                float scaledWidth = newWidth * ratio;
+
+                float scaledShiftLeftBy = shiftLeftBy * ratio;
 
                 int scissorSizeX = originalClippedSize.x * ratio;
                 int scissorSizeY = originalClippedSize.y * ratio;
@@ -205,11 +232,11 @@ void HmdDisplayPlugin::internalPresent() {
                 if (scaleToWidth) {
                     scissorOffset = ((int)windowSize.y - scissorSizeY) / 2;
                     scissor = ivec4(0, scissorOffset, scissorSizeX, scissorSizeY);
-                    viewport = ivec4(0, viewportOffset, viewportSizeX, viewportSizeY);
+                    viewport = ivec4(-scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
                 } else {
                     scissorOffset = ((int)windowSize.x - scissorSizeX) / 2;
                     scissor = ivec4(scissorOffset, 0, scissorSizeX, scissorSizeY);
-                    viewport = ivec4(scissorOffset, viewportOffset, viewportSizeX, viewportSizeY);
+                    viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
                 }
 
                 viewport.z *= 2;
