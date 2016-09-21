@@ -97,12 +97,23 @@ void GLTextureTransferHelper::shutdown() {
 #endif
 }
 
+void GLTextureTransferHelper::queueExecution(VoidLambda lambda) {
+    Lock lock(_mutex);
+    _pendingCommands.push_back(lambda);
+}
+
 bool GLTextureTransferHelper::process() {
-    // Take any new textures off the queue
+    // Take any new textures or commands off the queue
+    VoidLambdaList pendingCommands;
     TextureList newTransferTextures;
     {
         Lock lock(_mutex);
         newTransferTextures.swap(_pendingTextures);
+        pendingCommands.swap(_pendingCommands);
+    }
+
+    for (auto command : pendingCommands) {
+        command();
     }
 
     if (!newTransferTextures.empty()) {
@@ -144,7 +155,7 @@ bool GLTextureTransferHelper::process() {
         gltexture->finishTransfer();
         //glNamedFramebufferTexture(_readFramebuffer, GL_COLOR_ATTACHMENT0, gltexture->_id, 0);
         //glBlitNamedFramebuffer(_readFramebuffer, _drawFramebuffer, 0, 0, 1, 1, 0, 0, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        //clientWait();
+        clientWait();
         gltexture->_contentStamp = gltexture->_gpuObject.getDataStamp();
         gltexture->updateSize();
         gltexture->setSyncState(gpu::gl::GLSyncState::Transferred);

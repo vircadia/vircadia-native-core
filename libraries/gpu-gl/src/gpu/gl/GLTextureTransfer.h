@@ -28,10 +28,13 @@ using TextureListIterator = TextureList::iterator;
 
 class GLTextureTransferHelper : public GenericThread {
 public:
+    using VoidLambda = std::function<void()>;
+    using VoidLambdaList = std::list<VoidLambda>;
     using Pointer = std::shared_ptr<GLTextureTransferHelper>;
     GLTextureTransferHelper();
     ~GLTextureTransferHelper();
     void transferTexture(const gpu::TexturePointer& texturePointer);
+    void queueExecution(VoidLambda lambda);
 
     void setup() override;
     void shutdown() override;
@@ -47,6 +50,8 @@ private:
 #endif
     // A mutex for protecting items access on the render and transfer threads
     Mutex _mutex;
+    // Commands that have been submitted for execution on the texture transfer thread
+    VoidLambdaList _pendingCommands;
     // Textures that have been submitted for transfer
     TextureList _pendingTextures;
     // Textures currently in the transfer process
