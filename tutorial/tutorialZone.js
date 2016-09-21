@@ -1,24 +1,3 @@
-// A user designates ownership of the tutorial by creating a child entity (token) 
-// of the tutorial zone. The entity should have a short lifetime (5 seconds), and 
-// should have it's lifetime reset every second.
-//
-//  * When you enter the "tutorial" begin zone
-//    * If the tutorial is owned
-//      * Show a "waiting" text, and check for ownership periodically
-//    * If the tutorial is not owned
-//      * Create the ownership token, begin tutorial
-//        * For extra safety, to avoid races, check after 1 second to confirm that 
-//          another user hasn't created a token. If they have, use some method to 
-//          resolve the conflict.
-//      * Once the user has finished the tutorial, stop creating the token to 
-//        release ownership.
-//
-//  * The tutorial will expose a local message API for controlling the tutorial
-//  * A special script will be used to:
-//    * Create a key shortcut to go to the beginning of the tutorial
-//    * 
-//
-
 if (!Function.prototype.bind) {
   Function.prototype.bind = function(oThis) {
     if (typeof this !== 'function') {
