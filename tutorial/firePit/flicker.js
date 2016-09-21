@@ -1,3 +1,4 @@
+// Originally written for the Home content set. Pulled into the tutorial by Ryan Huffman
 (function() {
 
     var MINIMUM_LIGHT_INTENSITY = 50.0;

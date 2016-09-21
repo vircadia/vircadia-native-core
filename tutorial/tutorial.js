@@ -226,6 +226,10 @@ stepDisableControllers.prototype = {
         }));
         setControllerPartLayer('touchpad', 'blank');
         setControllerPartLayer('tips', 'blank');
+
+        hideEntitiesWithTag('finish');
+        onFinish();
+
         onFinish();
     },
     cleanup: function() {
@@ -929,11 +933,25 @@ stepFinish.prototype = {
     start: function(onFinish) {
         editEntitiesWithTag('door', { visible: false });
         showEntitiesWithTag(this.tag);
+        Settings.setValue("tutorialComplete", true);
+        onFinish();
     },
     cleanup: function() {
         //Menu.setIsOptionChecked("Overlays", true);
-        hideEntitiesWithTag(this.tag);
-        deleteEntitiesWithTag(this.tempTag);
+        //hideEntitiesWithTag(this.tag);
+        //deleteEntitiesWithTag(this.tempTag);
+    }
+};
+
+var stepCleanupFinish = function() {
+    this.shouldLog = false;
+}
+stepCleanupFinish.prototype = {
+    start: function(onFinish) {
+        hideEntitiesWithTag('finish');
+        onFinish();
+    },
+    cleanup: function() {
     }
 };
 
@@ -996,6 +1014,7 @@ TutorialManager = function() {
         currentStep = null;
         startedTutorialAt = Date.now();
         STEPS = [
+            //new stepCleanupFinish("finish");
             new stepDisableControllers("step0"),
             new stepOrient("orient"),
             //new stepWelcome("welcome"),
@@ -1011,7 +1030,7 @@ TutorialManager = function() {
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
         }
-        location = "/tutorial_begin";
+        //location = "/tutorial_begin";
         //location = "/tutorial";
         MyAvatar.shouldRenderLocally = false;
         this.startNextStep();
