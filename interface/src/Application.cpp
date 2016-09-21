@@ -5392,6 +5392,8 @@ void Application::initPlugins(const QStringList& arguments) {
         auto preferredDisplays = parser.value(display).split(',', QString::SkipEmptyParts);
         qInfo() << "Setting prefered display plugins:" << preferredDisplays;
         PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
+    } else {
+        PluginManager::getInstance()->setPreferredDisplayPlugins({ "OpenVR (Vive)", "Oculus Rift" });
     }
 
     if (parser.isSet(disableDisplays)) {
