@@ -29,6 +29,28 @@ static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC *
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
 
 
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 direction;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& distance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    void** intersectedObject;
+    bool found;
+};
+
+
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
     _fbxService(NULL),

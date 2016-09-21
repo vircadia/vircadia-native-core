@@ -32,28 +32,6 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 class EntitySimulation;
 
 
-// combines the ray cast arguments into a single object
-class RayArgs {
-public:
-    // Inputs
-    glm::vec3 origin;
-    glm::vec3 direction;
-    const QVector<EntityItemID>& entityIdsToInclude;
-    const QVector<EntityItemID>& entityIdsToDiscard;
-    bool visibleOnly;
-    bool collidableOnly;
-    bool precisionPicking;
-
-    // Outputs
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    void** intersectedObject;
-    bool found;
-};
-
-
 class NewlyCreatedEntityHook {
 public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
