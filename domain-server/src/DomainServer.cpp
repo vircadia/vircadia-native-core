@@ -175,7 +175,7 @@ void DomainServer::parseCommandLine() {
     parser.addOption(domainIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-        qCritical() << parser.errorText() << endl;
+        qWarning() << parser.errorText() << endl;
         parser.showHelp();
         Q_UNREACHABLE();
     }
@@ -191,7 +191,7 @@ void DomainServer::parseCommandLine() {
         }
 
         if (_iceServerAddr.isEmpty()) {
-            qCritical() << "Could not parse an IP address and port combination from" << hostnamePortString;
+            qWarning() << "Could not parse an IP address and port combination from" << hostnamePortString;
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         }
     }
@@ -210,7 +210,7 @@ DomainServer::~DomainServer() {
 
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
     if (!quitMessage.isEmpty()) {
-        qCritical() << qPrintable(quitMessage);
+        qWarning() << qPrintable(quitMessage);
     }
 
     QCoreApplication::exit(exitCode);
