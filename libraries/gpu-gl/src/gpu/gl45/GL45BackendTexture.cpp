@@ -94,7 +94,7 @@ SparseInfo::SparseInfo(GL45Texture& texture)
 void SparseInfo::maybeMakeSparse() {
     // Don't enable sparse for objects with explicitly managed mip levels
     if (!_texture._gpuObject.isAutogenerateMips()) {
-        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << _texture._gpuObject.source().c_str();
+        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << _texture._source.c_str();
         return;
     }
 
@@ -106,7 +106,7 @@ void SparseInfo::maybeMakeSparse() {
         _pageDimensions = allowedPageDimensions[i];
         // Is this texture an integer multiple of page dimensions?
         if (uvec3(0) == (dimensions % _pageDimensions)) {
-            qCDebug(gpugl45logging) << "Enabling sparse for texture " << _texture._gpuObject.source().c_str();
+            qCDebug(gpugl45logging) << "Enabling sparse for texture " << _texture._source.c_str();
             _sparse = true;
             break;
         }
@@ -117,7 +117,7 @@ void SparseInfo::maybeMakeSparse() {
         glTextureParameteri(_texture._id, GL_VIRTUAL_PAGE_SIZE_INDEX_ARB, _pageDimensionsIndex);
     } else {
         qCDebug(gpugl45logging) << "Size " << dimensions.x << " x " << dimensions.y << 
-            " is not supported by any sparse page size for texture" << _texture._gpuObject.source().c_str();
+            " is not supported by any sparse page size for texture" << _texture._source.c_str();
     }
 }
 
@@ -255,40 +255,56 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 GL45Texture::~GL45Texture() {
+    qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
     if (_sparseInfo._sparse) {
-        auto backend = _backend.lock();
-        if (backend) {
-            auto id = _id;
+        // Remove this texture from the candidate list of derezzable textures
+        {
             auto mipLevels = usedMipLevels();
-            {
-                Lock lock(texturesByMipCountsMutex);
-                if (texturesByMipCounts.count(mipLevels)) {
-                    auto& textures = texturesByMipCounts[mipLevels];
-                    textures.erase(this);
-                    if (textures.empty()) {
-                        texturesByMipCounts.erase(mipLevels);
-                    }
+            Lock lock(texturesByMipCountsMutex);
+            if (texturesByMipCounts.count(mipLevels)) {
+                auto& textures = texturesByMipCounts[mipLevels];
+                textures.erase(this);
+                if (textures.empty()) {
+                    texturesByMipCounts.erase(mipLevels);
                 }
             }
-
-            auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
-            uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
-            for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
-                auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
-                // Destructors get called on the main thread, potentially without a context active.  
-                // We need to queue the deallocation of the sparse pages for this content.
-                backend->releaseLambda([=] {
-                    glTexturePageCommitmentEXT(id, mipLevel, 0, 0, 0, mipDimensions.x, mipDimensions.y, maxFace, GL_FALSE);
-                });
-                auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions) * maxFace;
-                assert(deallocatedPages <= _allocatedPages);
-                _allocatedPages -= deallocatedPages;
-            }
-
-            if (0 != _allocatedPages) {
-                qCWarning(gpugl45logging) << "Allocated pages remaining " << _id << " " << _allocatedPages;
-            }
         }
+
+        // Experimenation suggests that allocating sparse textures on one context/thread and deallocating 
+        // them on another is buggy.  So for sparse textures we need to queue a lambda with the deallocation 
+        // callls to the transfer thread
+        auto id = _id;
+        // Set the class _id to 0 so we don't try to double delete
+        const_cast<GLuint&>(_id) = 0;
+        std::list<std::function<void()>> destructionFunctions;
+        
+        auto minMip = _minMip;
+        uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
+        auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
+        for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
+            auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
+            destructionFunctions.push_back([id, maxFace, mipLevel, mipDimensions] {
+                glTexturePageCommitmentEXT(id, mipLevel, 0, 0, 0, mipDimensions.x, mipDimensions.y, maxFace, GL_FALSE);
+            });
+
+            auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions) * maxFace;
+            assert(deallocatedPages <= _allocatedPages);
+            _allocatedPages -= deallocatedPages;
+        }
+
+        if (0 != _allocatedPages) {
+            qCWarning(gpugl45logging) << "Allocated pages remaining " << _id << " " << _allocatedPages;
+        }
+
+        auto size = _size;
+        _textureTransferHelper->queueExecution([id, size, destructionFunctions] {
+            for (auto function : destructionFunctions) {
+                function();
+            }
+            glDeleteTextures(1, &id);
+            Backend::decrementTextureGPUCount();
+            Backend::updateTextureGPUMemoryUsage(size, 0);
+        });
     }
 }
 
@@ -297,7 +313,7 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
-    qCDebug(gpugl45logging) << "Generating mipmaps for " << _gpuObject.source().c_str();
+    qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
