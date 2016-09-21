@@ -45,7 +45,7 @@ DefaultCC::DefaultCC() :
 {
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
-    _congestionWindowSize = 16.0;
+    _congestionWindowSize = 16;
     setPacketSendPeriod(1.0);
 }
 
@@ -218,7 +218,7 @@ void DefaultCC::stopSlowStart() {
         // If no receiving rate is observed, we have to compute the sending
         // rate according to the current window size, and decrease it
         // using the method below.
-        setPacketSendPeriod(_congestionWindowSize / (_rtt + synInterval()));
+        setPacketSendPeriod(double(_congestionWindowSize) / (_rtt + synInterval()));
     }
 }
 

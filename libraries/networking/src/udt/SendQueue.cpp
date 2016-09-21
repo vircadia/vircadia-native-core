@@ -242,7 +242,7 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     newPacket->writeSequenceNumber(sequenceNumber);
 
     // Save packet/payload size before we move it
-    auto packetSize = newPacket->getDataSize();
+    auto packetSize = newPacket->getWireSize();
     auto payloadSize = newPacket->getPayloadSize();
     
     auto bytesWritten = sendPacket(*newPacket);
@@ -255,8 +255,8 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
-
-    emit packetSent(packetSize, payloadSize);
+    
+    emit packetSent(packetSize, payloadSize, sequenceNumber);
 
     if (bytesWritten < 0) {
         // this is a short-circuit loss - we failed to put this packet on the wire
@@ -492,7 +492,7 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted();
+                emit packetRetransmitted(resendPacket.getWireSize(), it->first);
                 
                 // Signal that we did resend a packet
                 return true;

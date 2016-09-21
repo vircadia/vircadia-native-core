@@ -87,8 +87,8 @@ signals:
     void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
 
 private slots:
-    void recordSentPackets(int payload, int total);
-    void recordRetransmission();
+    void recordSentPackets(int dataSize, int payloadSize, SequenceNumber seqNum);
+    void recordRetransmission(int packetSize, SequenceNumber sequenceNumber);
     void queueInactive();
     void queueTimeout();
     void queueShortCircuitLoss(quint32 sequenceNumber);

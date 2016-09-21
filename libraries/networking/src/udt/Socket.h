@@ -22,7 +22,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
-#include "CongestionControl.h"
+#include "TCPVegasCC.h"
 #include "Connection.h"
 #include "TCPRenoCC.h"
 
@@ -131,8 +131,8 @@ private:
     QTimer* _synTimer { nullptr };
 
     int _maxBandwidth { -1 };
-    
-    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPRenoCC>() };
+
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
     
     friend UDTTest;
 };

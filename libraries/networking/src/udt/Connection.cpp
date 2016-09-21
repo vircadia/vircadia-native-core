@@ -111,13 +111,13 @@ SendQueue& Connection::getSendQueue() {
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
 #endif
-        
-        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
+
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         QObject::connect(_sendQueue.get(), &SendQueue::timeout, this, &Connection::queueTimeout);
         QObject::connect(_sendQueue.get(), &SendQueue::shortCircuitLoss, this, &Connection::queueShortCircuitLoss);
+
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
@@ -260,12 +260,16 @@ void Connection::sync() {
     }
 }
 
-void Connection::recordSentPackets(int dataSize, int payloadSize) {
+void Connection::recordSentPackets(int dataSize, int payloadSize, SequenceNumber seqNum) {
     _stats.recordSentPackets(payloadSize, dataSize);
+
+    _congestionControl->onPacketSent(dataSize, seqNum);
 }
 
-void Connection::recordRetransmission() {
+void Connection::recordRetransmission(int packetSize, SequenceNumber seqNum) {
     _stats.record(ConnectionStats::Stats::Retransmission);
+
+    _congestionControl->onPacketSent(packetSize, seqNum);
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
