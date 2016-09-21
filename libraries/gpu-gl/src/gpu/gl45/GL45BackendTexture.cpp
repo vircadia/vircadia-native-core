@@ -278,7 +278,6 @@ GL45Texture::~GL45Texture() {
         const_cast<GLuint&>(_id) = 0;
         std::list<std::function<void()>> destructionFunctions;
         
-        auto minMip = _minMip;
         uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
         auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
         for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
