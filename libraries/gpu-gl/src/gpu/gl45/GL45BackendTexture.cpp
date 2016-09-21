@@ -476,16 +476,15 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
 
     uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
     for (uint16_t mip = _minMip; mip < newMinMip; ++mip) {
+        auto id = _id;
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
-        auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions);
-        for (uint8_t face = 0; face < maxFace; ++face) {
-            glTexturePageCommitmentEXT(_id, mip,
-                0, 0, face,
-                mipDimensions.x, mipDimensions.y, mipDimensions.z,
-                GL_FALSE);
-            assert(deallocatedPages < _allocatedPages);
-            _allocatedPages -= deallocatedPages;
-        }
+        _textureTransferHelper->queueExecution([id, mip, mipDimensions, maxFace] {
+            glTexturePageCommitmentEXT(id, mip, 0, 0, 0, mipDimensions.x, mipDimensions.y, maxFace, GL_FALSE);
+        });
+
+        auto deallocatedPages = _sparseInfo.getPageCount(mipDimensions) * maxFace;
+        assert(deallocatedPages < _allocatedPages);
+        _allocatedPages -= deallocatedPages;
     }
 
     _minMip = newMinMip;
