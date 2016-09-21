@@ -1119,7 +1119,7 @@ hifi.gpu=true
 
 
 int main(int argc, char** argv) {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QCoreApplication::setApplicationName("RenderPerf");
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setOrganizationDomain("highfidelity.com");
