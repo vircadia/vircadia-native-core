@@ -1,4 +1,21 @@
+//
+//  spinner.js
+//
+//  Created by Ryan Huffman on 9/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
+    var DEBUG = false;
+    function debug() {
+        if (DEBUG) {
+            print.apply(self, arguments);
+        }
+    }
+
     var spinnerSound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/Pinwheel.L.wav");
     var Spinner = function() {
     };
@@ -14,7 +31,7 @@
     }
     Spinner.prototype = {
         onLit: function() {
-            print("LIT SPINNER", this.entityID);
+            debug("LIT SPINNER", this.entityID);
             Entities.editEntity(this.entityID, {
                 "angularDamping": 0.1,
                 "angularVelocity": {
@@ -26,10 +43,9 @@
             var injector = Audio.playSound(spinnerSound, {
                 position: Entities.getEntityProperties(this.entityID, 'position').position,
                 volume: 1.0,
-                loop: false 
+                loop: false
             });
 
-                print("HERE2");
             var childrenProps = getChildProperties(this.entityID, ['type']);
             for (var childEntityID in childrenProps) {
                 var props = childrenProps[childEntityID];
@@ -43,10 +59,9 @@
 
             var self = this;
             Script.setTimeout(function() {
-                print("BLOW UP");
+                debug("BLOW UP");
                 injector.stop();
 
-                print("HERE");
                 var childrenProps = getChildProperties(self.entityID, ['type']);
                 for (var childEntityID in childrenProps) {
                     var props = childrenProps[childEntityID];

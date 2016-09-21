@@ -18,7 +18,7 @@ if (!Function.prototype.bind) {
 
     if (this.prototype) {
       // Function.prototype doesn't have a prototype property
-      fNOP.prototype = this.prototype; 
+      fNOP.prototype = this.prototype;
     }
     fBound.prototype = new fNOP();
 
@@ -43,8 +43,7 @@ function getOwnershipTokenID(parentEntityID) {
         var childID = childEntityIDs[i];
         var properties = Entities.getEntityProperties(childID, ['name', 'userData', 'lifetime', 'age']);
         var childName = properties.name;
-        //debug("Owner lifetime: ", properties.lifetime, properties.age);
-        if (properties.age > 0.5 && childName.indexOf(TOKEN_NAME_PREFIX) == 0) {
+        if (childName.indexOf(TOKEN_NAME_PREFIX) == 0) {
             if (ownerID === null || childName < ownerName) {
                 ownerID = childID;
                 ownerName = childName;
@@ -89,7 +88,6 @@ OwnershipToken = function(name, parentEntityID, options) {
     this.checkEverySeconds = getOption(options, 'checkEverySeconds', 1000);
     this.updateTokenLifetimeEvery = getOption(options, 'updateTokenLifetimeEvery', 2000);
 
-    //this.onRequestingOwnership = getOption(options, 'onRequestingOwnership', function() { });
     this.onGainedOwnership = getOption(options, 'onGainedOwnership', function() { });
     this.onLostOwnership = getOption(options, 'onLostOwnership', function() { });
 

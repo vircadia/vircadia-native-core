@@ -1,7 +1,7 @@
-var DEBUG = false;
 var VISIBLE_BY_DEFAULT = false;
 var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
 
+var DEBUG = false;
 function debug() {
     if (DEBUG) {
         print.apply(self, arguments);

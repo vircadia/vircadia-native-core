@@ -1,36 +1,21 @@
+//
+//  fuse.js
+//
+//  Created by Ryan Huffman on 9/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
-    var findEntity = function(properties, searchRadius, filterFn) {
-        var entities = findEntities(properties, searchRadius, filterFn);
-        return entities.length > 0 ? entities[0] : null;
-    }
+    Script.include('utils.js');
 
-    // Return all entities with properties `properties` within radius `searchRadius`
-    var findEntities = function(properties, searchRadius, filterFn) {
-        if (!filterFn) {
-            filterFn = function(properties, key, value) {
-                return value == properties[key];
-            }
+    var DEBUG = false;
+    function debug() {
+        if (DEBUG) {
+            print.apply(self, arguments);
         }
-        searchRadius = searchRadius ? searchRadius : 100000;
-        var entities = Entities.findEntities({ x: 0, y: 0, z: 0 }, searchRadius);
-        var matchedEntities = [];
-        var keys = Object.keys(properties);
-        for (var i = 0; i < entities.length; ++i) {
-            var match = true;
-            var candidateProperties = Entities.getEntityProperties(entities[i], keys);
-            for (var key in properties) {
-                if (!filterFn(properties, key, candidateProperties[key])) {
-                    // This isn't a match, move to next entity
-                    match = false;
-                    break;
-                }
-            }
-            if (match) {
-                matchedEntities.push(entities[i]);
-            }
-        }
-
-        return matchedEntities;
     }
 
     var fuseSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/fuse.wav");
@@ -48,9 +33,8 @@
     };
     Fuse.prototype = {
         light: function() {
-            print("LIT", this.entityID);
+            debug("LIT", this.entityID);
             var anim = Entities.getEntityProperties(this.entityID, ['animation']).animation;
-            print("anim: ", anim.currentFrame, Object.keys(anim));
 
             if (anim.currentFrame < 140) {
                 return;
@@ -86,8 +70,8 @@
 
             var self = this;
             Script.setTimeout(function() {
-                print("BLOW UP");
-                var spinnerID = findEntity({ name: "tutorial/equip/spinner" }, 20); 
+                debug("BLOW UP");
+                var spinnerID = Utils.findEntity({ name: "tutorial/equip/spinner" }, 20); 
                 Entities.callEntityMethod(spinnerID, "onLit");
                 injector.stop();
 
