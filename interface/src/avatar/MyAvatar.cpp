@@ -2236,6 +2236,9 @@ void MyAvatar::FollowHelper::updateHorizontalActivation(const MyAvatar& myAvatar
 }
 
 void MyAvatar::FollowHelper::updateVerticalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
+
+    // OUTOFBODY_HACK: disable vertical follow behavior
+    /*
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float MIN_VERTICAL_OFFSET = 0.02f;
@@ -2248,6 +2251,7 @@ void MyAvatar::FollowHelper::updateVerticalActivation(const MyAvatar& myAvatar, 
     } else if (offset.y > CYLINDER_TOP || offset.y < CYLINDER_BOTTOM) {
         activate(Vertical);
     }
+    */
 }
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
