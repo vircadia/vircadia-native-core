@@ -2,6 +2,12 @@ var DEBUG = false;
 var VISIBLE_BY_DEFAULT = false;
 var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
 
+function debug() {
+    if (DEBUG) {
+        print.apply(self, arguments);
+    }
+}
+
 createControllerDisplay = function(config) {
     var controllerDisplay = {
         overlays: [],
@@ -9,14 +15,11 @@ createControllerDisplay = function(config) {
         },
         parts: {
         },
-        annotations: {
-        },
         mappingName: "mapping-display",
 
         setPartVisible: function(partName, visible) {
-            print("Setting part visible", partName, visible);
             if (partName in this.partOverlays) {
-                print("FOUND");
+                debug("Setting part visible", partName, visible);
                 for (var i = 0; i < this.partOverlays[partName].length; ++i) {
                     Overlays.editOverlay(this.partOverlays[partName][i], {
                         visible: visible 
@@ -26,8 +29,8 @@ createControllerDisplay = function(config) {
         },
 
         setLayerForPart: function(partName, layerName) {
-            print("Setting layer...", partName, layerName);
             if (partName in this.parts) {
+                debug("Setting layer...", partName, layerName);
                 var part = this.parts[partName];
                 if (part.textureLayers && layerName in part.textureLayers) {
                     var layer = part.textureLayers[layerName];
@@ -48,13 +51,12 @@ createControllerDisplay = function(config) {
     for (var i = 0; i < config.controllers.length; ++i) {
         var controller = config.controllers[i];
         var position = controller.position;
-        Vec3.print("position", position);
-        print("position", position.x, position.y, position.z);
+
         if (controller.naturalPosition) {
             position = Vec3.sum(Vec3.multiplyQbyV(
                         controller.rotation, controller.naturalPosition), position);
         }
-        Vec3.print("Got controller position", position);
+
         var overlayID = Overlays.addOverlay("model", {
             url: controller.modelURL,
             dimensions: controller.dimensions,
@@ -67,79 +69,6 @@ createControllerDisplay = function(config) {
 
         controllerDisplay.overlays.push(overlayID);
         overlayID = null;
-
-        if (controller.annotations) {
-            for (var key in controller.annotations) {
-                var annotation = controller.annotations[key];
-                var annotationPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, annotation.position));
-                if (DEBUG) {
-                    overlayID = Overlays.addOverlay("sphere", {
-                        localPosition: annotationPosition,
-                        //localPosition: Vec3.sum(controller.position, annotation.position),
-                        //localPosition: Vec3.sum(position, annotation.position),
-                        color: annotation.color || { red: 255, green: 100, blue: 100 },
-                        dimensions: {
-                            x: 0.01,
-                            y: 0.01,
-                            z: 0.01
-                        },
-                        parentID: PARENT_ID,
-                        parentJointIndex: controller.jointIndex,
-                    });
-                    controllerDisplay.overlays.push(overlayID);
-
-                }
-
-                var ANNOTATION_TEXT_OFFSET = 0.1;
-                var sign = annotation.direction == "right" ? 1 : -1;
-                var textOffset = annotation.direction == "right" ? 0.08 : 0.02;
-                if (annotation.textOffset) {
-                    var pos = Vec3.sum(annotationPosition, Vec3.multiplyQbyV(controller.rotation, annotation.textOffset));
-                } else {
-                    var pos = Vec3.sum(annotationPosition, Vec3.multiplyQbyV(controller.rotation, { x: textOffset, y: 0, z: -0.005 }));
-                }
-                var textOverlayID = Overlays.addOverlay("text3d", {
-                    visible: VISIBLE_BY_DEFAULT, 
-                    text: key,
-                    localPosition: pos,
-                    localRotation: controller.annotationTextRotation,
-                    lineHeight: annotation.lineHeight ? annotation.lineHeight : 0.01,
-                    leftMargin: 0,
-                    rightMargin: 0,
-                    topMargin: 0,
-                    bottomMargin: 0,
-                    backgroundAlpha: 0,
-                    dimensions: { x: 0.003, y: 0.003, z: 0.003 },
-                    //localPosition: Vec3.sum(controller.position, annotation.position),
-                    //localPosition: Vec3.sum(position, annotation.position),
-                    color: annotation.textColor || { red: 255, green: 255, blue: 255 },
-                    parentID: PARENT_ID,
-                    parentJointIndex: controller.jointIndex,
-                });
-
-                controllerDisplay.overlays.push(textOverlayID);
-                if (key in controllerDisplay.annotations) {
-                    controllerDisplay.annotations[key].push(textOverlayID);
-                } else {
-                    controllerDisplay.annotations[key] = [textOverlayID];
-                }
-
-                var ANNOTATION_OFFSET = 0.5;
-                var offset = { x: 0, y: 0, z: annotation.direction == "right" ? -1 * ANNOTATION_OFFSET : ANNOTATION_OFFSET };
-                var lineOverlayID = Overlays.addOverlay("line3d", {
-                    visible: false,
-                    localPosition: annotationPosition,
-                    localStart: { x: 0, y: 0, z: 0 },
-                    localEnd: offset,
-                    //localPosition: Vec3.sum(controller.position, annotation.position),
-                    //localPosition: Vec3.sum(position, annotation.position),
-                    color: annotation.color || { red: 255, green: 100, blue: 100 },
-                    parentID: PARENT_ID,
-                    parentJointIndex: controller.jointIndex,
-                });
-                controllerDisplay.overlays.push(lineOverlayID);
-            }
-        }
 
         function clamp(value, min, max) {
             if (value < min) {
@@ -204,7 +133,6 @@ createControllerDisplay = function(config) {
                     function resolveHardware(path) {
                         var parts = path.split(".");
                         function resolveInner(base, path, i) {
-                            //print(path[i]);
                             if (i >= path.length) {
                                 return base;
                             }
