@@ -92,7 +92,6 @@ public:
     glm::vec3 getLinearVelocity() const;
     glm::vec3 getVelocityChange() const;
 
-    virtual void setCapsuleRadius(float radius);
     float getCapsuleRadius() const { return _radius; }
     float getCapsuleHalfHeight() const { return _halfHeight; }
     glm::vec3 getCapsuleLocalOffset() const { return _shapeLocalOffset; }
@@ -130,7 +129,7 @@ protected:
 #endif
 
     void updateUpAxis(const glm::quat& rotation);
-    bool checkForSupport(btCollisionWorld* collisionWorld) const;
+    bool checkForSupport(btCollisionWorld* collisionWorld);
 
 protected:
     struct CharacterMotor {
@@ -163,8 +162,15 @@ protected:
     quint32 _jumpButtonDownCount;
     quint32 _takeoffJumpButtonID;
 
-    btScalar _halfHeight;
-    btScalar _radius;
+    // data for walking up steps
+    btVector3 _stepPoint;
+    btVector3 _stepNormal;
+    btScalar _stepHeight { 0.0f };
+    btScalar _minStepHeight { 0.0f };
+    btScalar _maxStepHeight { 0.0f };
+
+    btScalar _halfHeight { 0.0f };
+    btScalar _radius { 0.0f };
 
     btScalar _floorDistance;
     bool _hasSupport;
