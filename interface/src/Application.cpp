@@ -1275,36 +1275,45 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         bool hasTutorialContent = contentVersion >= 1;
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        bool isOnVive = _displayPlugin && _displayPlugin->getName() == "OpenVR (Vive)";
+        bool hasVive = false;
+        for (auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
+            if (displayPlugin->getName() == "OpenVR (Vive)") {
+                hasVive = true;
+                break;
+            }
+        }
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
-        bool shouldGoToTutorial = isOnVive && hasTutorialContent && !tutorialComplete.get();
-        qDebug() << "Is on vive " << isOnVive << ", " << _displayPlugin->getName();
+        bool shouldGoToTutorial = hasVive && hasTutorialContent && !tutorialComplete.get();
+        qDebug() << "has vive: " << hasVive << ", current plugin: " << _displayPlugin->getName();
         qDebug() << "has tutorial content" << hasTutorialContent;
         qDebug() << "tutorial complete" << tutorialComplete.get();
         qDebug() << "should go to tutorial " << shouldGoToTutorial;
 
 
+        // when --url in command line, teleport to location
+        const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+        int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+        QString addressLookupString;
+        if (urlIndex != -1) {
+            addressLookupString = arguments().value(urlIndex + 1);
+        }
 
         if (shouldGoToTutorial) {
             DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
                 qDebug() << "Home sandbox appears to be running, going to Home.";
                 //DependencyManager::get<AddressManager>()->goToLocalSandbox("/tutorial");
-                DependencyManager::get<AddressManager>()->loadSettings("hifi://sport/tutorial");
+                DependencyManager::get<AddressManager>()->loadSettings("hifi://sport/tutorial_begin");
             }, [=]() {
                 qDebug() << "Home sandbox does not appear to be running, going to Entry.";
                 showHelp();
-                DependencyManager::get<AddressManager>()->goToEntry();
+                if (addressLookupString.isEmpty()) {
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                } else {
+                    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+                }
             });
         } else {
-
-            // when --url in command line, teleport to location
-            const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-            int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-            QString addressLookupString;
-            if (urlIndex != -1) {
-                addressLookupString = arguments().value(urlIndex + 1);
-            }
 
             if (firstRun.get()) {
                 showHelp();
@@ -5391,8 +5400,6 @@ void Application::initPlugins(const QStringList& arguments) {
         auto preferredDisplays = parser.value(display).split(',', QString::SkipEmptyParts);
         qInfo() << "Setting prefered display plugins:" << preferredDisplays;
         PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
-    } else {
-        PluginManager::getInstance()->setPreferredDisplayPlugins({ "OpenVR (Vive)", "Oculus Rift" });
     }
 
     if (parser.isSet(disableDisplays)) {
