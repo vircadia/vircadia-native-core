@@ -160,6 +160,6 @@ function handleMessage(channel, message, sender) {
 }
 
 Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
-Messages.messageReceived.connect(handleHandMessages);
+Messages.messageReceived.connect(handleMessage);
 
 }()); // END LOCAL_SCOPE

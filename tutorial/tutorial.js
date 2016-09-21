@@ -228,7 +228,6 @@ stepDisableControllers.prototype = {
         setControllerPartLayer('tips', 'blank');
 
         hideEntitiesWithTag('finish');
-        onFinish();
 
         onFinish();
     },
@@ -364,7 +363,7 @@ stepOrient.prototype = {
 
         this.checkIntervalID = null;
         function checkForHandsAboveHead() {
-            print("Checking for hands above head...");
+            print("Orient: Checking for hands above head...");
             if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                 Script.clearInterval(this.checkIntervalID);
                 this.checkIntervalID = null;
@@ -431,7 +430,7 @@ stepRaiseAboveHead.prototype = {
         this.waitTimeoutID = Script.setTimeout(function() {
             this.checkIntervalID = null;
             function checkForHandsAboveHead() {
-                print("Checking for hands above head...");
+                print("Raise above head: Checking for hands above head...");
                 if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
                     Script.clearInterval(this.checkIntervalID);
                     this.checkIntervalID = null;
