@@ -1276,7 +1276,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
         bool isOnVive = _displayPlugin && _displayPlugin->getName() == "OpenVR (Vive)";
-        bool isFirstRun = firstRun.get();
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
         bool shouldGoToTutorial = isOnVive && hasTutorialContent && !tutorialComplete.get();
