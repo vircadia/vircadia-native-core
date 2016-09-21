@@ -114,8 +114,11 @@ bool GLTextureTransferHelper::process() {
         pendingCommands.swap(_pendingCommands);
     }
 
-    for (auto command : pendingCommands) {
-        command();
+    if (!pendingCommands.empty()) {
+        for (auto command : pendingCommands) {
+            command();
+        }
+        glFlush();
     }
 
     if (!newTransferTextures.empty()) {
