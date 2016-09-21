@@ -279,11 +279,17 @@ void setupPreferences() {
     }
 #if DEV_BUILD || PR_BUILD
     {
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->isSimulatingJitter(); };
+        auto setter = [](bool value) { return DependencyManager::get<AudioClient>()->setIsSimulatingJitter(value); };
+        auto preference = new CheckPreference(AUDIO, "Packet jitter simulator", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
         auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Debug gate threshold", getter, setter);
+        auto preference = new SpinnerPreference(AUDIO, "Packet throttle threshold", getter, setter);
         preference->setMin(1);
-        preference->setMax((float)100);
+        preference->setMax(200);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
