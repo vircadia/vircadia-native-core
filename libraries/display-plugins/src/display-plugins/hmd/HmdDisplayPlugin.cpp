@@ -88,6 +88,7 @@ bool HmdDisplayPlugin::internalActivate() {
         _monoPreview = clicked;
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
+
 #if defined(Q_OS_MAC)
     _disablePreview = true;
 #else
@@ -137,6 +138,7 @@ ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     float windowAspect = aspect(windowSize);
     float sceneAspect = aspect(size);
     float aspectRatio = sceneAspect / windowAspect;
+
     uvec2 targetViewportSize = windowSize;
     if (aspectRatio < 1.0f) {
         targetViewportSize.x *= aspectRatio;
@@ -152,6 +154,23 @@ ivec4 HmdDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     return ivec4(targetViewportPosition, targetViewportSize);
 }
 
+float HmdDisplayPlugin::getLeftCenterPixel() const {
+    glm::mat4 eyeProjection = _eyeProjections[Left];
+    glm::mat4 inverseEyeProjection = glm::inverse(eyeProjection);
+    vec2 eyeRenderTargetSize = { _renderTargetSize.x / 2, _renderTargetSize.y };
+
+    vec4 left = vec4(-1, 0, -1, 1);
+    vec4 right = vec4(1, 0, -1, 1);
+    vec4 right2 = inverseEyeProjection * right;
+    vec4 left2 = inverseEyeProjection * left;
+    left2 /= left2.w;
+    right2 /= right2.w;
+    float width = -left2.x + right2.x;
+    float leftBias = -left2.x / width;
+    float leftCenterPixel = eyeRenderTargetSize.x * leftBias;
+    return leftCenterPixel;
+}
+
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
@@ -164,16 +183,67 @@ void HmdDisplayPlugin::internalPresent() {
         if (_monoPreview) {
             sourceSize.x >>= 1;
         }
-        auto viewport = getViewportForSourceSize(sourceSize);
+
+        float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
+        float newWidth = sourceSize.x - shiftLeftBy;
+
+        const unsigned int RATIO_Y = 9;
+        const unsigned int RATIO_X = 16;
+        glm::uvec2 originalClippedSize { newWidth, newWidth * RATIO_Y / RATIO_X };
+
+        glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
+        glm::ivec4 scissor = viewport;
+
         render([&](gpu::Batch& batch) {
+
+            if (_monoPreview) {
+                auto window = _container->getPrimaryWidget();
+                float devicePixelRatio = window->devicePixelRatio();
+                glm::vec2 windowSize = toGlm(window->size());
+                windowSize *= devicePixelRatio;
+
+                float windowAspect = aspect(windowSize);  // example: 1920 x 1080 = 1.78
+                float sceneAspect = aspect(originalClippedSize); // usually: 1512 x 850 = 1.78
+
+
+                bool scaleToWidth = windowAspect < sceneAspect;
+
+                float ratio;
+                int scissorOffset;
+
+                if (scaleToWidth) {
+                    ratio = (float)windowSize.x / (float)newWidth;
+                } else {
+                    ratio = (float)windowSize.y / (float)originalClippedSize.y;
+                }
+
+                float scaledShiftLeftBy = shiftLeftBy * ratio;
+
+                int scissorSizeX = originalClippedSize.x * ratio;
+                int scissorSizeY = originalClippedSize.y * ratio;
+
+                int viewportSizeX = sourceSize.x * ratio;
+                int viewportSizeY = sourceSize.y * ratio;
+                int viewportOffset = ((int)windowSize.y - viewportSizeY) / 2;
+
+                if (scaleToWidth) {
+                    scissorOffset = ((int)windowSize.y - scissorSizeY) / 2;
+                    scissor = ivec4(0, scissorOffset, scissorSizeX, scissorSizeY);
+                    viewport = ivec4(-scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
+                } else {
+                    scissorOffset = ((int)windowSize.x - scissorSizeX) / 2;
+                    scissor = ivec4(scissorOffset, 0, scissorSizeX, scissorSizeY);
+                    viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
+                }
+
+                viewport.z *= 2;
+            }
+
             batch.enableStereo(false);
             batch.resetViewTransform();
             batch.setFramebuffer(gpu::FramebufferPointer());
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setStateScissorRect(viewport);
-            if (_monoPreview) { 
-                viewport.z *= 2; 
-            } 
+            batch.setStateScissorRect(scissor); // was viewport
             batch.setViewportTransform(viewport);
             batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.setPipeline(_presentPipeline);
@@ -181,7 +251,13 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     } else if (_clearPreviewFlag) {
-        auto image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        QImage image;
+        if (_vsyncEnabled) {
+            image = QImage(PathUtils::resourcesPath() + "images/preview.png");
+        } else {
+            image = QImage(PathUtils::resourcesPath() + "images/preview-disabled.png");
+        }
+
         image = image.mirrored();
         image = image.convertToFormat(QImage::Format_RGBA8888);
         if (!_previewTexture) {
@@ -197,6 +273,7 @@ void HmdDisplayPlugin::internalPresent() {
         
         if (getGLBackend()->isTextureReady(_previewTexture)) {
             auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
+
             render([&](gpu::Batch& batch) {
                 batch.enableStereo(false);
                 batch.resetViewTransform();
@@ -213,6 +290,17 @@ void HmdDisplayPlugin::internalPresent() {
         }
     }
     postPreview();
+
+    // If preview is disabled, we need to check to see if the window size has changed 
+    // and re-render the no-preview message
+    if (_disablePreview) {
+        auto window = _container->getPrimaryWidget();
+        glm::vec2 windowSize = toGlm(window->size());
+        if (windowSize != _lastWindowSize) {
+            _clearPreviewFlag = true;
+            _lastWindowSize = windowSize;
+        }
+    }
 }
 
 // HMD specific stuff
