@@ -102,6 +102,8 @@ void GLTextureTransferHelper::queueExecution(VoidLambda lambda) {
     _pendingCommands.push_back(lambda);
 }
 
+#define MAX_TRANSFERS_PER_PASS 2
+
 bool GLTextureTransferHelper::process() {
     // Take any new textures or commands off the queue
     VoidLambdaList pendingCommands;
@@ -126,6 +128,9 @@ bool GLTextureTransferHelper::process() {
             _transferringTextures.push_back(texturePointer);
             _textureIterator = _transferringTextures.begin();
         }
+        _transferringTextures.sort([](const gpu::TexturePointer& a, const gpu::TexturePointer& b)->bool {
+            return a->getSize() < b->getSize();
+        });
     }
 
     // No transfers in progress, sleep
@@ -144,7 +149,11 @@ bool GLTextureTransferHelper::process() {
         qDebug() << "Texture list " << _transferringTextures.size();
     }
 
-    for (auto _textureIterator = _transferringTextures.begin(); _textureIterator != _transferringTextures.end();) {
+    size_t transferCount = 0;
+    for (_textureIterator = _transferringTextures.begin(); _textureIterator != _transferringTextures.end();) {
+        if (++transferCount > MAX_TRANSFERS_PER_PASS) {
+            break;
+        }
         auto texture = *_textureIterator;
         GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
         if (gltexture->continueTransfer()) {
