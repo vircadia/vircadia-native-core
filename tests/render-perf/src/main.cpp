@@ -739,6 +739,7 @@ private:
     }
 
     void runCommand(const QString& command) {
+        qDebug() << "Running command: " << command;
         QStringList commandParams = command.split(QRegularExpression(QString("\\s")));
         QString verb = commandParams[0].toLower();
         if (verb == "loop") {
