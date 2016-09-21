@@ -745,7 +745,7 @@ private:
         if (verb == "loop") {
             if (commandParams.length() > 1) {
                 int maxLoops = commandParams[1].toInt();
-                if (maxLoops > ++_commandLoops) {
+                if (maxLoops < ++_commandLoops) {
                     qDebug() << "Exceeded loop count";
                     return;
                 }
