@@ -44,14 +44,14 @@ if (!Function.prototype.bind) {
 var DEBUG = false;
 function debug() {
     if (DEBUG) {
-        print.apply(self, arguments);
+        print.apply(this, arguments);
     }
 }
 
 var INFO = true;
 function info() {
     if (INFO) {
-        print.apply(self, arguments);
+        print.apply(this, arguments);
     }
 }
 
@@ -247,7 +247,8 @@ var stepDisableControllers = function(name) {
 }
 stepDisableControllers.prototype = {
     start: function(onFinish) {
-        editEntitiesWithTag('door', { visible: true });
+        controllerDisplayManager = new ControllerDisplayManager();
+        editEntitiesWithTag('door', { visible: true, collisionless: false });
         Menu.setIsOptionChecked("Overlays", false);
         Controller.disableMapping('handControllerPointer-click');
         Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
@@ -268,24 +269,39 @@ stepDisableControllers.prototype = {
     }
 };
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: ENABLE CONTROLLERS                                                  //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+function reenableEverything() {
+    editEntitiesWithTag('door', { visible: false, collisionless: true });
+    Menu.setIsOptionChecked("Overlays", true);
+    Controller.enableMapping('handControllerPointer-click');
+    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'enable');
+    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
+    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
+        nearGrabEnabled: true,
+        holdEnabled: true,
+        farGrabEnabled: true,
+    }));
+    setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('tips', 'blank');
+    MyAvatar.shouldRenderLocally = true;
+    if (controllerDisplayManager) {
+        controllerDisplayManager.destroy();
+        controllerDisplayManager = null;
+    }
+}
+
 var stepEnableControllers = function(name) {
     this.tag = name;
     this.shouldLog = false;
 }
 stepEnableControllers.prototype = {
     start: function(onFinish) {
-        editEntitiesWithTag('door', { visible: false });
-        Menu.setIsOptionChecked("Overlays", true);
-        Controller.enableMapping('handControllerPointer-click');
-        Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'enable');
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
-        Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
-            nearGrabEnabled: true,
-            holdEnabled: true,
-            farGrabEnabled: true,
-        }));
-        setControllerPartLayer('touchpad', 'blank');
-        setControllerPartLayer('tips', 'blank');
+        reenableEverything();
         onFinish();
     },
     cleanup: function() {
@@ -433,6 +449,11 @@ stepRaiseAboveHead.prototype = {
     start: function(onFinish) {
         var tag = this.tag;
 
+        var STATE_START = 0;
+        var STATE_HANDS_DOWN = 1;
+        var STATE_HANDS_UP = 2;
+        this.state = STATE_START;
+
         var defaultTransform = {
             position: {
                 x: 0.2459,
@@ -451,19 +472,24 @@ stepRaiseAboveHead.prototype = {
         editEntitiesWithTag(this.tag, { visible: true });
 
         // Wait 2 seconds before starting to check for hands
-        this.waitTimeoutID = Script.setTimeout(function() {
-            this.checkIntervalID = null;
-            function checkForHandsAboveHead() {
-                debug("Raise above head: Checking for hands above head...");
+        this.checkIntervalID = null;
+        function checkForHandsAboveHead() {
+            debug("Raise above head: Checking hands...");
+            if (this.state == STATE_START) {
+                if (MyAvatar.getLeftPalmPosition().y < (MyAvatar.getHeadPosition().y - 0.1)) {
+                    this.state = STATE_HANDS_DOWN;
+                }
+            } else if (this.state == STATE_HANDS_DOWN) {
                 if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
+                    this.state = STATE_HANDS_UP;
                     Script.clearInterval(this.checkIntervalID);
                     this.checkIntervalID = null;
                     playSuccessSound();
                     onFinish();
                 }
             }
-            this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
-        }.bind(this), 2000);
+        }
+        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
     },
     cleanup: function() {
         if (this.checkIntervalID) {
@@ -675,7 +701,8 @@ var stepEquip = function(name) {
     this.tempTag = name + "-temporary";
     this.PART1 = 0;
     this.PART2 = 1;
-    this.COMPLETE = 2;
+    this.PART3 = 2;
+    this.COMPLETE = 3;
 
     Messages.subscribe('Tutorial-Spinner');
     Messages.messageReceived.connect(this.onMessage.bind(this));
@@ -745,6 +772,7 @@ stepEquip.prototype = {
             if (this.currentPart == this.PART1 && message == "wasLit") {
                 this.currentPart = this.PART2;
                 Script.setTimeout(function() {
+                    this.currentPart = this.PART3;
                     hideEntitiesWithTag(this.tagPart1);
                     showEntitiesWithTag(this.tagPart2);
                     setControllerPartLayer('tips', 'grip');
@@ -752,7 +780,7 @@ stepEquip.prototype = {
                 }.bind(this), 9000);
             }
         } else if (channel == "Hifi-Object-Manipulation") {
-            if (this.currentPart == this.PART2) {
+            if (this.currentPart == this.PART3) {
                 var data = parseJSON(message);
                 if (data.action == 'release' && data.grabbedEntity == this.gunID) {
                     info("got release");
@@ -930,7 +958,7 @@ var stepFinish = function(name) {
 }
 stepFinish.prototype = {
     start: function(onFinish) {
-        editEntitiesWithTag('door', { visible: false });
+        editEntitiesWithTag('door', { visible: false, collisonless: true });
         showEntitiesWithTag(this.tag);
         Settings.setValue("tutorialComplete", true);
         onFinish();
@@ -956,9 +984,6 @@ stepCleanupFinish.prototype = {
 
 
 
-
-
-
 function showEntitiesWithTag(tag) {
     editEntitiesWithTag(tag, function(entityID) {
         var userData = Entities.getEntityProperties(entityID, "userData").userData;
@@ -975,7 +1000,6 @@ function showEntitiesWithTag(tag) {
             visible: data.visible == false ? false : true,
             collisionless: collisionless,
             userData: JSON.stringify(data),
-            //collisionless: data.collisionless == true ? true : false,
         };
         Entities.editEntity(entityID, newProperties);
     });
@@ -1029,8 +1053,6 @@ TutorialManager = function() {
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
         }
-        //location = "/tutorial_begin";
-        //location = "/tutorial";
         MyAvatar.shouldRenderLocally = false;
         this.startNextStep();
     }
@@ -1078,7 +1100,12 @@ TutorialManager = function() {
         if (currentStep) {
             currentStep.cleanup();
         }
+        reenableEverything();
         currentStepNum = -1;
         currentStep = null;
     }
 }
+
+
+var tutorialManager = new TutorialManager();
+tutorialManager.startTutorial();

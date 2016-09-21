@@ -175,6 +175,7 @@ ControllerDisplay = function() {
 };
 
 deleteControllerDisplay = function(controllerDisplay) {
+    print("Deleting controller display");
     for (var i = 0; i < controllerDisplay.overlays.length; ++i) {
         Overlays.deleteOverlay(controllerDisplay.overlays[i]);
     }

@@ -48,8 +48,8 @@ if (!Function.prototype.bind) {
 }
 
 (function() {
-    Script.include("file:///C:/Users/Ryan/dev/hifi/tutorial/ownershipToken.js");
-    Script.include("file:///C:/Users/Ryan/dev/hifi/tutorial/tutorial.js");
+    Script.include("ownershipToken.js");
+    Script.include("tutorial.js");
 
     var TutorialZone = function() {
         this.token = null;
