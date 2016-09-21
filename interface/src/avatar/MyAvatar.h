@@ -375,6 +375,7 @@ private:
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 
+    void applyVelocityToSensorToWorldMatrix(const glm::vec3& velocity, float deltaTime);
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
