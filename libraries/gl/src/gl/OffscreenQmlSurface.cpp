@@ -420,6 +420,7 @@ bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
 }
 
 OffscreenQmlSurface::OffscreenQmlSurface() {
+    // moveToThread(qApp->thread());
 }
 
 static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
@@ -535,13 +536,13 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
 
     if (_qmlComponent->isLoading()) {
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
                 finishQmlLoad(f);
             });
         return nullptr;
     }
-    
+
     return finishQmlLoad(f);
 }
 
@@ -583,7 +584,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     // All quick items should be focusable
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (newItem) {
-        // Make sure we make items focusable (critical for 
+        // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
     }
@@ -611,11 +612,11 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
-    // If we're 
+    // If we're
     //   a) not set up
     //   b) already rendering a frame
     //   c) rendering too fast
-    // then skip this 
+    // then skip this
     if (!_renderer || _renderer->_rendering || !_renderer->allowNewFrame(_maxFps)) {
         return;
     }
@@ -686,7 +687,6 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     }
 #endif
 
-   
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -755,6 +755,9 @@ void OffscreenQmlSurface::pause() {
 void OffscreenQmlSurface::resume() {
     _paused = false;
     requestRender();
+
+    getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
+    getRootContext()->setContextProperty("webEntity", this);
 }
 
 bool OffscreenQmlSurface::isPaused() const {
@@ -812,15 +815,29 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     return function();
 }
 
+void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    if (!object) {
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    if (!item) {
         setFocusText(false);
+        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
+
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+    setKeyboardRaised(item, item->hasActiveFocus());
+    _currentFocusItem = item;
+    connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
 
 void OffscreenQmlSurface::setFocusText(bool newFocusText) {
@@ -829,5 +846,100 @@ void OffscreenQmlSurface::setFocusText(bool newFocusText) {
         emit focusTextChanged(_focusText);
     }
 }
+
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return ptr[i] == 0x00;
+}
+
+void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
+    auto utf8Key = key.toUtf8();
+
+    int scanCode = (int)utf8Key[0];
+    QString keyString = key;
+    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+        return;  // ignore
+    } else if (equals(utf8Key, LEFT_ARROW)) {
+        scanCode = Qt::Key_Backspace;
+        keyString = "\x08";
+    } else if (equals(utf8Key, RETURN_SYMBOL)) {
+        scanCode = Qt::Key_Return;
+        keyString = "\x0d";
+    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Left;
+        keyString = "";
+    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Right;
+        keyString = "";
+    }
+
+    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+    QCoreApplication::postEvent(getEventHandler(), pressEvent);
+    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
+}
+
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised) {
+
+    // raise the keyboard only while in HMD mode and it's being requested.
+    // XXX
+    // bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
+    // getRootItem()->setProperty("keyboardRaised", QVariant(value));
+
+    if (!object) {
+        return;
+    }
+
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        if (item->property("keyboardRaised").isValid()) {
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
+    }
+}
+
+void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        // special case to handle raising and lowering the virtual keyboard
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD") {
+            setKeyboardRaised(getRootItem(), true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD") {
+            setKeyboardRaised(getRootItem(), false);
+        } else {
+            emit webEventReceived(message);
+        }
+    }
+}
+
+
+
 
 #include "OffscreenQmlSurface.moc"

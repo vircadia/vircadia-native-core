@@ -12,6 +12,8 @@ import QtQuick 2.5
 
 import "../../dialogs"
 import "../../controls-uit"
+import "../../controls" as Controls
+
 
 Preference {
     id: root
@@ -30,12 +32,16 @@ Preference {
 
     Item {
         id: control
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
-        height: Math.max(dataTextField.controlHeight, button.height)
+        height: Math.max(dataTextField.controlHeight, button.height) + (keyboardRaised ? 200 : 0)
 
         TextField {
             id: dataTextField
@@ -44,7 +50,7 @@ Preference {
                 left: parent.left
                 right: button.left
                 rightMargin: hifi.dimensions.contentSpacing.x
-                bottom: parent.bottom
+                bottom: keyboard1.top
             }
 
             label: root.label
@@ -74,6 +80,37 @@ Preference {
                     dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
                 });
             }
+        }
+
+        // virtual keyboard, letters
+        Controls.Keyboard {
+            id: keyboard1
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+        }
+
+        Controls.KeyboardPunctuation {
+            id: keyboard2
+            // y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
     }
 }

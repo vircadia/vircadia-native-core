@@ -25,7 +25,6 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-
 class OffscreenQmlRenderThread;
 
 class OffscreenQmlSurface : public QObject {
@@ -69,6 +68,10 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
+    void setKeyboardRaised(QObject* object, bool raised);
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
+
+
 signals:
     void textureUpdated(unsigned int texture);
     void focusObjectChanged(QObject* newFocus);
@@ -78,6 +81,16 @@ public slots:
     void requestUpdate();
     void requestRender();
     void onAboutToQuit();
+    void focusDestroyed(QObject *obj);
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
 
 protected:
     bool filterEnabled(QObject* originalDestination, QEvent* event) const;
@@ -106,6 +119,8 @@ private:
     uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
+
+    QQuickItem* _currentFocusItem { nullptr };
 };
 
 #endif
