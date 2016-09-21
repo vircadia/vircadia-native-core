@@ -24,6 +24,7 @@
 #include "../HifiSockAddr.h"
 #include "CongestionControl.h"
 #include "Connection.h"
+#include "TCPRenoCC.h"
 
 //#define UDT_CONNECTION_DEBUG
 
@@ -131,7 +132,7 @@ private:
 
     int _maxBandwidth { -1 };
     
-    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPRenoCC>() };
     
     friend UDTTest;
 };

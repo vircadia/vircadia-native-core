@@ -25,7 +25,7 @@ const QCommandLineOption TARGET_OPTION {
     "IP:PORT or HOSTNAME:PORT"
 };
 const QCommandLineOption PACKET_SIZE {
-    "packet-size", "size for sent packets in bytes (defaults to " + QString(MAX_PACKET_SIZE) + ")", "bytes",
+    "packet-size", "size for sent packets in bytes (defaults to " + QString(udt::MAX_PACKET_SIZE) + ")", "bytes",
     QString(udt::MAX_PACKET_SIZE)
 };
 const QCommandLineOption MIN_PACKET_SIZE {
