@@ -1255,6 +1255,79 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return entityServerNode && !isPhysicsEnabled();
     });
 
+
+
+    // Initialize location
+
+    auto initializeLocation = [this]() {
+        // Get sandbox content set version, if available
+        auto acDirPath = PathUtils::getRootDataDirectory() + qApp->organizationName() + "/assignment-client/";
+        auto contentVersionPath = acDirPath + "content-version.txt";
+        auto contentVersion = 0;
+        QFile contentVersionFile(contentVersionPath);
+        if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString line = contentVersionFile.readAll();
+            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
+            contentVersion = line.toInt();
+        }
+        qDebug() << "Server content version: " << contentVersion;
+
+        bool hasTutorialContent = contentVersion >= 1;
+
+        Setting::Handle<bool> firstRun { Settings::firstRun, true };
+        bool isOnVive = _displayPlugin && _displayPlugin->getName() == "OpenVR (Vive)";
+        bool isFirstRun = firstRun.get();
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+
+        bool shouldGoToTutorial = isOnVive && hasTutorialContent && !tutorialComplete.get();
+        qDebug() << "Is on vive " << isOnVive << ", " << _displayPlugin->getName();
+        qDebug() << "has tutorial content" << hasTutorialContent;
+        qDebug() << "tutorial complete" << tutorialComplete.get();
+        qDebug() << "should go to tutorial " << shouldGoToTutorial;
+
+
+
+        if (shouldGoToTutorial) {
+            DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+                qDebug() << "Home sandbox appears to be running, going to Home.";
+                //DependencyManager::get<AddressManager>()->goToLocalSandbox("/tutorial");
+                DependencyManager::get<AddressManager>()->loadSettings("hifi://sport/tutorial");
+            }, [=]() {
+                qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                showHelp();
+                DependencyManager::get<AddressManager>()->goToEntry();
+            });
+        } else {
+
+            // when --url in command line, teleport to location
+            const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+            int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+            QString addressLookupString;
+            if (urlIndex != -1) {
+                addressLookupString = arguments().value(urlIndex + 1);
+            }
+
+            if (firstRun.get()) {
+                showHelp();
+            }
+
+            if (addressLookupString.isEmpty() && firstRun.get()) {
+                DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+                    qDebug() << "Home sandbox appears to be running, going to Home.";
+                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                }, [=]() {
+                    qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                });
+            } else {
+                qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            }
+        }
+    };
+
+    initializeLocation();
+
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
@@ -3279,15 +3352,6 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-    QString addressLookupString;
-    if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
-    }
-
     // when +connect_lobby in command line, join steam lobby
     const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
     int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
@@ -3296,21 +3360,6 @@ void Application::init() {
         SteamClient::joinLobby(lobbyId);
     }
 
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    if (addressLookupString.isEmpty() && firstRun.get()) {
-        qCDebug(interfaceapp) << "First run and no URL passed... attempting to go to Home or Entry...";
-        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox();
-        }, 
-        [](){
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            DependencyManager::get<AddressManager>()->goToEntry();
-        });
-    } else {
-        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-    }
 
     qCDebug(interfaceapp) << "Loaded settings";
 
