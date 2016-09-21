@@ -135,6 +135,7 @@ float GLTexture::getMemoryPressure() {
 // Create the texture and allocate storage
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLObject(backend, texture, id),
+    _source(texture.source()),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
     _internalFormat(gl::GLTexelFormat::evalGLTexelFormatInternal(texture.getTexelFormat())),

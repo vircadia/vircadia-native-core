@@ -111,6 +111,7 @@ public:
     ~GLTexture();
 
     const GLuint& _texture { _id };
+    const std::string _source;
     const Stamp _storageStamp;
     const GLenum _target;
     const GLenum _internalFormat;
