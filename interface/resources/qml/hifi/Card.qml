@@ -23,14 +23,11 @@ Rectangle {
     property string timestamp: "";
     property string hifiUrl: "";
     property string thumbnail: defaultThumbnail;
-    property string imageUrl: "";
     property var goFunction: null;
     property string storyId: "";
 
     property string timePhrase: pastTime(timestamp);
-    property string actionPhrase: makeActionPhrase(action);
     property int onlineUsers: 0;
-    property bool isUserStory: userName && !onlineUsers;
 
     property int textPadding: 20;
     property int textSize: 24;
@@ -57,14 +54,6 @@ Rectangle {
             return Math.floor(minutes).toString() + ' min ago';
         }
         return 'about a minute ago';
-    }
-    function makeActionPhrase(actionLabel) {
-        switch (actionLabel) {
-        case "snapshot":
-            return "took a snapshot";
-        default:
-            return "unknown"
-        }
     }
 
     Image {
@@ -112,7 +101,7 @@ Rectangle {
     }
     RalewaySemiBold {
         id: place;
-        text: isUserStory ? "" : placeName;
+        text: placeName;
         color: hifi.colors.white;
         size: textSize;
         anchors {
@@ -123,7 +112,7 @@ Rectangle {
     }
     RalewayRegular {
         id: users;
-        text: isUserStory ? timePhrase : (onlineUsers + ((onlineUsers === 1) ? ' person' : ' people'));
+        text: (action === 'concurrency') ? (onlineUsers + ((onlineUsers === 1) ? ' person' : ' people')) : action;
         size: textSizeSmall;
         color: hifi.colors.white;
         anchors {
@@ -141,9 +130,27 @@ Rectangle {
         id: zmouseArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction(parent);
+        onClicked: goFunction("hifi://" + hifiUrl);
         hoverEnabled: true;
         onEntered: hoverThunk();
         onExited: unhoverThunk();
+    }
+    MouseArea {
+        id: placeMouseArea;
+        anchors.fill: place;
+        acceptedButtons: Qt.LeftButton;
+        onClicked: goFunction("/places/" + placeName);
+        hoverEnabled: true;
+        onEntered: place.color = hifi.colors.blueHighlight;
+        onExited: place.color = hifi.colors.white;
+    }
+    MouseArea {
+        id: usersMouseArea;
+        anchors.fill: users;
+        acceptedButtons: Qt.LeftButton;
+        onClicked: goFunction("/user_stories/" + storyId);
+        hoverEnabled: true;
+        onEntered: users.color = hifi.colors.blueHighlight;
+        onExited: users.color = hifi.colors.white;
     }
 }

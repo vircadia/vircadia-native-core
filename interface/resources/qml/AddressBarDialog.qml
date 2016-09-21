@@ -50,16 +50,15 @@ Window {
     function resetAfterTeleport() {
         storyCardFrame.shown = root.shown = false;
     }
-    function goCard(card) {
-        if (addressBarDialog.useFeed) {
-            storyCardHTML.url = addressBarDialog.metaverseServerUrl + "/user_stories/" + card.storyId;
+    function goCard(targetString) {
+        if (0 !== targetString.indexOf('hifi://')) {
+            storyCardHTML.url = addressBarDialog.metaverseServerUrl + targetString;
             storyCardFrame.shown = true;
             return;
         }
-        addressLine.text = card.hifiUrl;
+        addressLine.text = targetString;
         toggleOrGo(true);
     }
-    property var allPlaces: [];
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
@@ -72,7 +71,6 @@ Window {
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
-        onUseFeedChanged: updateFeedState();
         onReceivedHifiSchemeURL: resetAfterTeleport();
 
         ListModel { id: suggestions }
@@ -97,7 +95,6 @@ Window {
                 userName: model.username;
                 placeName: model.place_name;
                 hifiUrl: model.place_name + model.path;
-                imageUrl: model.image_url;
                 thumbnail: model.thumbnail_url;
                 action: model.action;
                 timestamp: model.created_at;
@@ -179,9 +176,9 @@ Window {
                     top: parent.top
                     bottom: parent.bottom
                     left: forwardArrow.right
-                    right: placesButton.left
+                    right: parent.right
                     leftMargin: forwardArrow.width
-                    rightMargin: placesButton.width
+                    rightMargin: forwardArrow.width / 2
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
                 }
@@ -190,32 +187,6 @@ Window {
                 helperPixelSize: font.pixelSize * 0.75
                 helperItalic: true
                 onTextChanged: filterChoicesByText()
-            }
-            // These two are radio buttons.
-            ToolbarButton {
-                id: placesButton
-                imageURL: "../images/places.svg"
-                buttonState: 1
-                defaultState: addressBarDialog.useFeed ? 0 : 1;
-                hoverState: addressBarDialog.useFeed ? 2 : -1;
-                onClicked: addressBarDialog.useFeed ? toggleFeed() : identity()
-                anchors {
-                    right: feedButton.left;
-                    bottom: addressLine.bottom;
-                }
-            }
-            ToolbarButton {
-                id: feedButton;
-                imageURL: "../images/snap-feed.svg";
-                buttonState: 0
-                defaultState: addressBarDialog.useFeed ? 1 : 0;
-                hoverState: addressBarDialog.useFeed ? -1 : 2;
-                onClicked: addressBarDialog.useFeed ? identity() : toggleFeed();
-                anchors {
-                    right: parent.right;
-                    bottom: addressLine.bottom;
-                    rightMargin: feedButton.width / 2
-                }
             }
         }
 
@@ -240,16 +211,6 @@ Window {
         }
     }
 
-
-    function toggleFeed() {
-        addressBarDialog.useFeed = !addressBarDialog.useFeed;
-        updateFeedState();
-    }
-    function updateFeedState() {
-        placesButton.buttonState = addressBarDialog.useFeed ? 0 : 1;
-        feedButton.buttonState = addressBarDialog.useFeed ? 1 : 0;
-        filterChoicesByText();
-    }
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
         // TODO: make available to other .qml.
         var request = new XMLHttpRequest();
@@ -274,37 +235,6 @@ Window {
         request.open("GET", url, true);
         request.send();
     }
-    function asyncMap(array, iterator, cb) {
-        // call iterator(element, icb) once for each element of array, and then cb(error, mappedResult)
-        // when icb(error, mappedElement) has been called by each iterator.
-        // Calls to iterator are overlapped and may call icb in any order, but the mappedResults are collected in the same
-        // order as the elements of the array.
-        // Short-circuits if error. Note that iterator MUST be an asynchronous function. (Use setTimeout if necessary.)
-        var count = array.length, results = [];
-        if (!count) {
-            return cb(null, results);
-        }
-        array.forEach(function (element, index) {
-            if (count < 0) { // don't keep iterating after we short-circuit
-                return;
-            }
-            iterator(element, function (error, mapped) {
-                results[index] = mapped;
-                if (error || !--count) {
-                    count = 0; // don't cb multiple times if error
-                    cb(error, results);
-                }
-            });
-        });
-    }
-    // Example:
-    /*asyncMap([0, 1, 2, 3, 4, 5, 6], function (elt, icb) {
-        console.log('called', elt);
-        setTimeout(function () {
-            console.log('answering', elt);
-            icb(null, elt);
-        }, Math.random() * 1000);
-    }, console.log); */
 
     function identity(x) {
         return x;
@@ -324,131 +254,56 @@ Window {
         cb(error);
         return true;
     }
-
-    function getPlace(placeData, cb) { // cb(error, side-effected-placeData), after adding path, thumbnails, and description
-        var url = metaverseBase + 'places/' + placeData.place_name;
-        getRequest(url, function (error, data) {
-            if (handleError(url, error, data, cb)) {
-                return;
-            }
-            var place = data.data.place, previews = place.previews;
-            placeData.path = place.path;
-            if (previews && previews.thumbnail) {
-                placeData.thumbnail_url = previews.thumbnail;
-            }
-            if (place.description) {
-                placeData.description = place.description;
-                placeData.searchText += ' ' + place.description.toUpperCase();
-            }
-            cb(error, placeData);
-        });
+    function resolveUrl(url) {
+        return (url.indexOf('/') === 0) ? (addressBarDialog.metaverseServerUrl + url) : url;
     }
-    function makeModelData(data, optionalPlaceName) { // create a new obj from data
+
+    function makeModelData(data) { // create a new obj from data
         // ListModel elements will only ever have those properties that are defined by the first obj that is added.
         // So here we make sure that we have all the properties we need, regardless of whether it is a place data or user story.
-        var name = optionalPlaceName || data.place_name,
+        var name = data.place_name,
             tags = data.tags || [data.action, data.username],
             description = data.description || "",
-            thumbnail_url = data.thumbnail_url || "",
-            image_url = thumbnail_url;
-        if (data.details) {
-            try {
-                image_url = JSON.parse(data.details).image_url || thumbnail_url;
-            } catch (e) {
-                console.log(name, "has bad details", data.details);
-            }
-        }
+            thumbnail_url = data.thumbnail_url || "";
         return {
             place_name: name,
             username: data.username || "",
             path: data.path || "",
             created_at: data.created_at || "",
             action: data.action || "",
-            thumbnail_url: thumbnail_url,
-            image_url: image_url,
+            thumbnail_url: resolveUrl(thumbnail_url),
 
             metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
             tags: tags,
             description: description,
-            online_users: data.online_users || 0,
+            online_users: data.details.concurrency || 0,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
     }
-    function mapDomainPlaces(domain, cb) { // cb(error, arrayOfDomainPlaceData)
-        function addPlace(name, icb) {
-            getPlace(makeModelData(domain, name), icb);
-        }
-        // IWBNI we could get these results in order with most-recent-entered first.
-        // In any case, we don't really need to preserve the domain.names order in the results.
-        asyncMap(domain.names || [], addPlace, cb);
-    }
-
     function suggestable(place) {
-        if (addressBarDialog.useFeed) {
+        if (place.action === 'snapshot') {
             return true;
         }
-        return (place.place_name !== AddressManager.hostname) // Not our entry, but do show other entry points to current domain.
-            && place.thumbnail_url
-            && place.online_users // at least one present means it's actually online
-            && place.online_users <= 20;
-    }
-    function getDomainPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
-        // Each page of results is processed completely before we start on the next page.
-        // For each page of domains, we process each domain in parallel, and for each domain, process each place name in parallel.
-        // This gives us minimum latency within the page, but we do preserve the order within the page by using asyncMap and
-        // only appending the collected results.
-        var params = [
-            'open', // published hours handle now
-            // TBD: should determine if place is actually running?
-            'restriction=open', // Not by whitelist, etc.  TBD: If logged in, add hifi to the restriction options, in order to include places that require login?
-            // TBD: add maturity?
-            'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
-            'sort_by=users',
-            'sort_order=desc',
-            'page=' + pageNumber
-        ];
-        var url = metaverseBase + 'domains/all?' + params.join('&');
-        getRequest(url, function (error, data) {
-            if (handleError(url, error, data, cb)) {
-                return;
-            }
-            asyncMap(data.data.domains, mapDomainPlaces, function (error, pageResults) {
-                if (error) {
-                    return cb(error);
-                }
-                // pageResults is now [ [ placeDataOneForDomainOne, placeDataTwoForDomainOne, ...], [ placeDataTwoForDomainTwo...] ]
-                pageResults.forEach(function (domainResults) {
-                    allPlaces = allPlaces.concat(domainResults);
-                    if (!addressLine.text && !addressBarDialog.useFeed) { // Don't add if the user is already filtering
-                        domainResults.forEach(function (place) {
-                            if (suggestable(place)) {
-                                suggestions.append(place);
-                            }
-                        });
-                    }
-                });
-                if (data.current_page < data.total_pages) {
-                    return getDomainPage(pageNumber + 1, cb);
-                }
-                cb();
-            });
-        });
+        return (place.place_name !== AddressManager.hostname); // Not our entry, but do show other entry points to current domain.
+        // could also require right protocolVersion
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
-        var url = metaverseBase + 'user_stories?page=' + pageNumber;
+        var url = metaverseBase + 'user_stories?include_actions=snapshot,concurrency&page=' + pageNumber;
         getRequest(url, function (error, data) {
             if (handleError(url, error, data, cb)) {
                 return;
             }
             var stories = data.user_stories.map(function (story) { // explicit single-argument function
-                return makeModelData(story);
+                return makeModelData(story, url);
             });
             allStories = allStories.concat(stories);
-            if (!addressLine.text && addressBarDialog.useFeed) { // Don't add if the user is already filtering
+            if (!addressLine.text) { // Don't add if the user is already filtering
                 stories.forEach(function (story) {
-                    suggestions.append(story);
+                    if (suggestable(story)) {
+                        suggestions.append(story);
+                    }
                 });
             }
             if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
@@ -460,7 +315,7 @@ Window {
     function filterChoicesByText() {
         suggestions.clear();
         var words = addressLine.text.toUpperCase().split(/\s+/).filter(identity),
-            data = addressBarDialog.useFeed ? allStories : allPlaces;
+            data = allStories;
         function matches(place) {
             if (!words.length) {
                 return suggestable(place);
@@ -477,12 +332,8 @@ Window {
     }
 
     function fillDestinations() {
-        allPlaces = [];
         allStories = [];
         suggestions.clear();
-        getDomainPage(1, function (error) {
-            console.log('domain query', error || 'ok', allPlaces.length);
-        });
         getUserStoryPage(1, function (error) {
             console.log('user stories query', error || 'ok', allStories.length);
         });
