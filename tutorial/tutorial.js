@@ -1103,6 +1103,8 @@ TutorialManager = function() {
     }
 }
 
-
-var tutorialManager = new TutorialManager();
-tutorialManager.startTutorial();
+// To run the tutorial:
+//
+// var tutorialManager = new TutorialManager();
+// tutorialManager.startTutorial();
+//
