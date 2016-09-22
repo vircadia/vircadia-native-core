@@ -123,7 +123,7 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
-    void domainConnectionRefused(QString reasonMessage, int reason);
+    void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
 
 private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
