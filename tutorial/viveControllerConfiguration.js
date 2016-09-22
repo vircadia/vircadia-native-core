@@ -1,5 +1,3 @@
-var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive2.fbx";
-
 var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
 var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
 
@@ -42,8 +40,8 @@ var viveNaturalPosition = {
     z: 0.06380049744620919
 };
 
-var viveModelURL = "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_body.fbx";
-var viveTipsModelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Models/vive_tips.fbx"
+var viveModelURL = "atp:/controller/vive_body.fbx";
+var viveTipsModelURL = "atp:/controller/vive_tips.fbx"
 
 VIVE_CONTROLLER_CONFIGURATION = {
     name: "Vive",
@@ -89,7 +87,7 @@ VIVE_CONTROLLER_CONFIGURATION = {
                 // and swaps in textures based on the thumb position.
                 touchpad: {
                     type: "touchpad",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
+                    modelURL: "atp:/controller/vive_trackpad.fbx",
                     visibleInput: "Vive.RSTouch",
                     xInput: "Vive.LX",
                     yInput: "Vive.LY",
@@ -103,20 +101,20 @@ VIVE_CONTROLLER_CONFIGURATION = {
                     disable_defaultTextureLayer: "blank",
                     disable_textureLayers: {
                         blank: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
                         teleport: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
                         },
                         arrows: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
                         }
                     }
                 },
 
                 trigger: {
                     type: "rotational",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trigger.fbx",
+                    modelURL: "atp:/controller/vive_trigger.fbx",
                     input: Controller.Standard.LT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
                     origin: { x: 0, y: -0.015, z: -0.00 },
@@ -128,30 +126,30 @@ VIVE_CONTROLLER_CONFIGURATION = {
 
                 l_grip: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_l_grip.fbx",
+                    modelURL: "atp:/controller/vive_l_grip.fbx",
                     naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
                 },
 
                 r_grip: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_r_grip.fbx",
+                    modelURL: "atp:/controller/vive_r_grip.fbx",
                     naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
                 },
 
                 sys_button: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_sys_button.fbx",
+                    modelURL: "atp:/controller/vive_sys_button.fbx",
                     naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
                 },
 
                 button: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_button.fbx",
+                    modelURL: "atp:/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
                 button2: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_button.fbx",
+                    modelURL: "atp:/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
             },
@@ -207,7 +205,7 @@ VIVE_CONTROLLER_CONFIGURATION = {
                 // and swaps in textures based on the thumb position.
                 touchpad: {
                     type: "touchpad",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx",
+                    modelURL: "atp:/controller/vive_trackpad.fbx",
                     visibleInput: "Vive.RSTouch",
                     xInput: "Vive.RX",
                     yInput: "Vive.RY",
@@ -221,20 +219,20 @@ VIVE_CONTROLLER_CONFIGURATION = {
                     disable_defaultTextureLayer: "blank",
                     disable_textureLayers: {
                         blank: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
                         },
                         teleport: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
                         },
                         arrows: {
-                            defaultTextureURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows-active.jpg",
+                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows-active.jpg",
                         }
                     }
                 },
 
                 trigger: {
                     type: "rotational",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_trigger.fbx",
+                    modelURL: "atp:/controller/vive_trigger.fbx",
                     input: Controller.Standard.RT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
                     origin: { x: 0, y: -0.015, z: -0.00 },
@@ -246,30 +244,30 @@ VIVE_CONTROLLER_CONFIGURATION = {
 
                 l_grip: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_l_grip.fbx",
+                    modelURL: "atp:/controller/vive_l_grip.fbx",
                     naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
                 },
 
                 r_grip: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_r_grip.fbx",
+                    modelURL: "atp:/controller/vive_r_grip.fbx",
                     naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
                 },
 
                 sys_button: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_sys_button.fbx",
+                    modelURL: "atp:/controller/vive_sys_button.fbx",
                     naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
                 },
 
                 button: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_button.fbx",
+                    modelURL: "atp:/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
                 button2: {
                     type: "static",
-                    modelURL: "https://hifi-public.s3.amazonaws.com/huffman/controllers/vive_button.fbx",
+                    modelURL: "atp:/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
             },

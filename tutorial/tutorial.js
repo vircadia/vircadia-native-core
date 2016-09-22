@@ -55,9 +55,6 @@ function info() {
     }
 }
 
-var BASKET_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx";
-var BASKET_COLLIDER_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj";
-
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
 var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
 var NEAR_BASKET_COLLIDER_NAME = "tutorial/nearGrab/basket_collider";
@@ -66,7 +63,7 @@ var GUN_BASKET_COLLIDER_NAME = "tutorial/equip/basket_collider";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
 var TELEPORT_PAD_NAME = "tutorial/teleport/pad"
 
-var successSound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/good_one.L.wav");
+var successSound = SoundCache.getSound("atp:/tutorial_sounds/good_one.L.wav");
 
 function beginsWithFilter(value, key) {
     return value.indexOf(properties[key]) == 0;

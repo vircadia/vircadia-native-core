@@ -10,11 +10,11 @@
     var _this;
 
     function getResourceURL(file) {
-        return 'http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/' + file;
+        return 'atp:/' + file;
     };
 
-    const LIGHTER_ON_SOUND_URL = getResourceURL('Sounds/lighter_on.wav');
-    const BUTANE_SOUND_URL = getResourceURL('Sounds/butane.wav');
+    const LIGHTER_ON_SOUND_URL = getResourceURL('tutorial_sounds/lighter_on.wav');
+    const BUTANE_SOUND_URL = getResourceURL('tutorial_sound/butane.wav');
 
     // TODO: fix this in the client, changing the sound volume while a sound is playing doesn't seem to work right now
     const DYNAMIC_SOUND_VOLUME = false;
@@ -151,11 +151,12 @@
             var flameProperties = Entities.getEntityProperties(_this.lighterParticleEntity, ['position', 'rotation']);
             var pickRay = {
                 origin: flameProperties.position,
-                direction: Quat.getFront(flameProperties.rotation)
+                direction: Quat.inverse(Quat.getFront(flameProperties.rotation))
             }
-            var intersection = Entities.findRayIntersection(pickRay, true);
-            if (intersection.intersects) {
-                debugPrint(JSON.stringify(intersection));
+            var intersection = Entities.findRayIntersection(pickRay, true, [], [_this.entityID, _this.lighterParticleEntity]);
+            if (intersection.intersects && intersection.distance <= FLAME_LENGTH && intersection.properties.script !== '') {
+                Entities.callEntityMethod(intersection.properties.id, 'onLit', [_this.triggerValue]);
+                debugPrint('Light it up! found: ' + intersection.properties.id);
             }
         },
         releaseEquip: function(entityID, args) {

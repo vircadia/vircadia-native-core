@@ -18,7 +18,7 @@
         }
     }
 
-    var fuseSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/fuse.wav");
+    var fuseSound = SoundCache.getSound("atp:/tutorial_sounds/fuse.wav");
     function getChildProperties(entityID, propertyNames) {
         var childEntityIDs = Entities.getChildrenIDs(entityID);
         var results = {}
@@ -44,7 +44,7 @@
                     currentFrame: 1,
                     lastFrame: 150,
                     running: 1,
-                    url: "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/fuse/fuse.fbx",
+                    url: "atp:/tutorial_models/fuse.fbx",
                     loop: 0
                 },
             });

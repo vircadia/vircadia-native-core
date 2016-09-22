@@ -7,12 +7,7 @@
 //
 
 const TEST_MODE = false;
-const SCRIPT_URL = 'https://dl.dropboxusercontent.com/u/14997455/hifi/butaneLighter/butaneLighter.js?v=' + Date.now();
-//const SCRIPT_URL = Script.resolvePath("butaneLighter.js");
-
-function getResourceURL(file) {
-    return 'http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/' + file;
-};
+const SCRIPT_URL = 'atp:/tutorial/lighter/butaneLighter.js';
 
 //Creates an entity and returns a mixed object of the creation properties and the assigned entityID
 var createEntity = function(entityProperties, parent) {
@@ -53,7 +48,7 @@ createButaneLighter = function(transform) {
             y: -0.01,
             z: 0
         },
-        modelURL: getResourceURL('Models/lighterIceCreamSandwich.fbx'),
+        modelURL: 'atp:/tutorial_models/lighterIceCreamSandwich.fbx',
         name: 'BrutaneLighter',
         shapeType: 'simple-compound',
         type: 'Model',

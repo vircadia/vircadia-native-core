@@ -16,7 +16,7 @@
         }
     }
 
-    var spinnerSound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Sounds/Pinwheel.L.wav");
+    var spinnerSound = SoundCache.getSound("atp:/tutorial_sounds/Pinwheel.L.wav");
     var Spinner = function() {
     };
     function getChildProperties(entityID, propertyNames) {

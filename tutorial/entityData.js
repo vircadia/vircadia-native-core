@@ -20,7 +20,7 @@ birdFirework1 = {
         "z": 0
     },
     "id": "{1c4061bc-b2e7-4435-bc47-3fcc39ae6624}",
-    "modelURL": "http://hifi-content.s3.amazonaws.com/jimi/tutorialroom/birdStatue15.fbx",
+    "modelURL": "atp:/tutorial_models/birdStatue15.fbx",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "position": {
         "x": 0.11612319946289062,
@@ -66,7 +66,7 @@ birdFirework2 = {
         "z": 0
     },
     "id": "{ba067084-8d0f-4eeb-a8a1-c6814527c1bb}",
-    "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Tutorial/Models/statuebird4.fbx",
+    "modelURL": "atp:/tutorial_models/statuebird4.fbx",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "position": {
         "x": 0,
