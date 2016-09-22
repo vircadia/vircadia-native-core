@@ -38,6 +38,9 @@ public:
     Q_INVOKABLE QString preferredAudioInput() const;
     Q_INVOKABLE QString preferredAudioOutput() const;
 
+    Q_INVOKABLE bool isHMDAvailable();
+    Q_INVOKABLE bool isHandControllerAvailable();
+
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
 
     Q_INVOKABLE void disableHandLasers(int hands) const;

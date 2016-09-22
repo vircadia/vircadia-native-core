@@ -27,8 +27,10 @@ if (!Function.prototype.bind) {
 }
 
 (function() {
-    Script.include("ownershipToken.js");
-    Script.include("tutorial.js");
+    var ownershipTokenPath = Script.resolvePath("ownershipToken.js");
+    var tutorialPath = Script.resolvePath("tutorial.js");
+    Script.include(ownershipTokenPath);
+    Script.include(tutorialPath);
 
     var TutorialZone = function() {
         this.token = null;
@@ -37,17 +39,19 @@ if (!Function.prototype.bind) {
     TutorialZone.prototype = {
         keyReleaseHandler: function(event) {
             print(event.text);
-            if (event.text == ",") {
-                if (!this.tutorialManager.startNextStep()) {
+            if (event.isShifted && event.isAlt) {
+                if (event.text == ",") {
+                    if (!this.tutorialManager.startNextStep()) {
+                        this.tutorialManager.startTutorial();
+                    }
+                } else if (event.text == "F11") {
+                    this.tutorialManager.restartStep();
+                } else if (event.text == "F10") {
+                    MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
+                } else if (event.text == "r") {
+                    this.tutorialManager.stopTutorial();
                     this.tutorialManager.startTutorial();
                 }
-            } else if (event.text == "F11") {
-                this.tutorialManager.restartStep();
-            } else if (event.text == "F10") {
-                MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
-            } else if (event.text == "r") {
-                this.tutorialManager.stopTutorial();
-                this.tutorialManager.startTutorial();
             }
         },
         preload: function(entityID) {

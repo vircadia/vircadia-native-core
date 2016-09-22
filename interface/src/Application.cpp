@@ -87,6 +87,7 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
+#include <plugins/PluginUtils.h>
 #include <plugins/CodecPlugin.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
@@ -1276,17 +1277,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         bool hasTutorialContent = contentVersion >= 1;
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        bool hasVive = false;
-        for (auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
-            if (displayPlugin->getName() == "OpenVR (Vive)") {
-                hasVive = true;
-                break;
-            }
-        }
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && PluginUtils::isHandControllerAvailable();
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
-        bool shouldGoToTutorial = hasVive && hasTutorialContent && !tutorialComplete.get();
-        qDebug() << "has vive: " << hasVive << ", current plugin: " << _displayPlugin->getName();
+        bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
+
+        qDebug() << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
         qDebug() << "has tutorial content" << hasTutorialContent;
         qDebug() << "tutorial complete" << tutorialComplete.get();
         qDebug() << "should go to tutorial " << shouldGoToTutorial;
@@ -1300,10 +1296,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             addressLookupString = arguments().value(urlIndex + 1);
         }
 
+        const QString TUTORIAL_PATH = "/tutorial_begin";
+
         if (shouldGoToTutorial) {
             DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
                 qDebug() << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox("/tutorial_begin");
+                DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
             }, [=]() {
                 qDebug() << "Home sandbox does not appear to be running, going to Entry.";
                 if (firstRun.get()) {

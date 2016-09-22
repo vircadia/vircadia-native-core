@@ -8,20 +8,21 @@
         },
         enterEntity: function() {
             // send message to outer zone
-            print("ENTERED THE TUTORIAL START AREA");
-            var parentID = Entities.getEntityProperties(this.entityID, 'parentID').parentID;
-            print("HERE", parentID);
-            if (parentID) {
-                print("HERE2");
-                Entities.callEntityMethod(parentID, 'start');
-                print("HERE4");
+            print("Entered the tutorial start area");
+            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable()) {
+                var parentID = Entities.getEntityProperties(this.entityID, 'parentID').parentID;
+                if (parentID) {
+                    Entities.callEntityMethod(parentID, 'start');
+                } else {
+                    print("ERROR: No parent id found on tutorial start zone");
+                }
             } else {
-                print("HERE3");
-                print("ERROR: No parent id found on tutorial start zone");
+                Window.alert("To proceed with this tutorial, please connect your VR headset and hand controllers.");
+                location = "/";
             }
         },
         leaveEntity: function() {
-            print("EXITED THE TUTORIAL START AREA");
+            print("Exited the tutorial start area");
         }
     };
 
