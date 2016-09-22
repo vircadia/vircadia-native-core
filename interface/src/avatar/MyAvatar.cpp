@@ -1336,8 +1336,7 @@ void MyAvatar::updateMotors() {
 
     // legacy support for 'MyAvatar::applyThrust()', which has always been implemented as a
     // short-lived linearAcceleration
-    _characterController.setLinearAcceleration(_thrust);
-    _thrust = Vectors::ZERO;
+    _characterController.setLinearAcceleration(glm::vec3(0.0f, _thrust.y, 0.0f));
 }
 
 void MyAvatar::prepareForPhysicsSimulation() {
@@ -1867,8 +1866,14 @@ void MyAvatar::updatePosition(float deltaTime) {
                 worldVelocity = motorRotation * _scriptedMotorVelocity;
                 applyVelocityToSensorToWorldMatrix(worldVelocity, deltaTime);
             }
+
+            // OUTOFBODY_HACK: apply scaling factor to _thrust, to get the same behavior as an periodically applied motor.
+            const float THRUST_DAMPING_FACTOR = 0.25f;
+            applyVelocityToSensorToWorldMatrix(THRUST_DAMPING_FACTOR * _thrust, deltaTime);
         }
     }
+
+    _thrust = Vectors::ZERO;
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
     if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {

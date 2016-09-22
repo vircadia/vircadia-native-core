@@ -733,6 +733,9 @@ float CharacterController::measureMaxHipsOffsetRadius(const glm::vec3& currentHi
         startTransform.setOrigin(startPos);
         btVector3 endPos = startPos + rotation * ((maxSweepDistance / hipsOffsetLength) * hipsOffset);
 
+        // ensure sweep is horizontal.
+        startPos.setY(endPos.getY());
+
         // sweep test a sphere
         btSphereShape sphere(_radius);
         CharacterSweepResult result(&_ghost);
