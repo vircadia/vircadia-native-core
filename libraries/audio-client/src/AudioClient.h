@@ -132,6 +132,9 @@ public:
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
 
+    bool isSimulatingJitter() { return _gate.isSimulatingJitter(); }
+    void setIsSimulatingJitter(bool enable) { _gate.setIsSimulatingJitter(enable); }
+
     int getGateThreshold() { return _gate.getThreshold(); }
     void setGateThreshold(int threshold) { _gate.setThreshold(threshold); }
 
@@ -230,7 +233,10 @@ private:
 
     class Gate {
     public:
-        Gate(AudioClient* audioClient, int threshold);
+        Gate(AudioClient* audioClient);
+
+        bool isSimulatingJitter() { return _isSimulatingJitter; }
+        void setIsSimulatingJitter(bool enable);
 
         int getThreshold() { return _threshold; }
         void setThreshold(int threshold);
@@ -242,11 +248,13 @@ private:
 
         AudioClient* _audioClient;
         std::queue<QSharedPointer<ReceivedMessage>> _queue;
+        std::mutex _mutex;
+
         int _index{ 0 };
-        int _threshold;
+        int _threshold{ 1 };
+        bool _isSimulatingJitter{ false };
     };
 
-    Setting::Handle<int> _gateThreshold;
     Gate _gate;
 
     Mutex _injectorsMutex;

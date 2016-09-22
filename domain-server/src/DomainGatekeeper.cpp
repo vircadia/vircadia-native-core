@@ -317,6 +317,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 }
 
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
+const QString MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION = "security.maximum_user_capacity_redirect_location";
 
 SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                const QString& username,
@@ -363,7 +364,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
-                                   nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::TooManyUsers);
+                nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::NotAuthorized);
 #ifdef WANT_DEBUG
         qDebug() << "stalling login due to permissions:" << username;
 #endif
@@ -372,8 +373,16 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
+        QString redirectOnMaxCapacity;
+        const QVariant* redirectOnMaxCapacityVariant =
+            valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
+        if (redirectOnMaxCapacityVariant && redirectOnMaxCapacityVariant->canConvert<QString>()) {
+            redirectOnMaxCapacity = redirectOnMaxCapacityVariant->toString();
+            qDebug() << "Redirection domain:" << redirectOnMaxCapacity;
+        }
+
         sendConnectionDeniedPacket("Too many connected users.", nodeConnection.senderSockAddr,
-                                   DomainHandler::ConnectionRefusedReason::TooManyUsers);
+                DomainHandler::ConnectionRefusedReason::TooManyUsers, redirectOnMaxCapacity);
 #ifdef WANT_DEBUG
         qDebug() << "stalling login due to max capacity:" << username;
 #endif
@@ -623,22 +632,30 @@ void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& 
 }
 
 void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
-                                                  DomainHandler::ConnectionRefusedReason reasonCode) {
+                                                  DomainHandler::ConnectionRefusedReason reasonCode,
+                                                  QString extraInfo) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-    QByteArray utfString = reason.toUtf8();
-    quint16 payloadSize = utfString.size();
+    QByteArray utfReasonString = reason.toUtf8();
+    quint16 reasonSize = utfReasonString.size();
+
+    QByteArray utfExtraInfo = extraInfo.toUtf8();
+    quint16 extraInfoSize = utfExtraInfo.size();
 
     // setup the DomainConnectionDenied packet
     auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied,
-                                                   payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
+                                            sizeof(uint8_t) + // reasonCode
+                                            reasonSize + sizeof(reasonSize) +
+                                            extraInfoSize + sizeof(extraInfoSize));
 
     // pack in the reason the connection was denied (the client displays this)
-    if (payloadSize > 0) {
-        uint8_t reasonCodeWire = (uint8_t)reasonCode;
-        connectionDeniedPacket->writePrimitive(reasonCodeWire);
-        connectionDeniedPacket->writePrimitive(payloadSize);
-        connectionDeniedPacket->write(utfString);
-    }
+    uint8_t reasonCodeWire = (uint8_t)reasonCode;
+    connectionDeniedPacket->writePrimitive(reasonCodeWire);
+    connectionDeniedPacket->writePrimitive(reasonSize);
+    connectionDeniedPacket->write(utfReasonString);
+
+    // write the extra info as well
+    connectionDeniedPacket->writePrimitive(extraInfoSize);
+    connectionDeniedPacket->write(utfExtraInfo);
 
     // send the packet off
     DependencyManager::get<LimitedNodeList>()->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);

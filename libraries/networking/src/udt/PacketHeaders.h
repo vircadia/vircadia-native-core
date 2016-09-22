@@ -206,7 +206,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
     ReasonMessageOnly = 17,
-    IncludesReasonCode
+    IncludesReasonCode,
+    IncludesExtraInfo
 };
 
 enum class DomainServerAddedNodeVersion : PacketVersion {

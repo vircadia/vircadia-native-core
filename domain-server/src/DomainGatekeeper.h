@@ -88,7 +88,8 @@ private:
     
     void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
     static void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
-            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown);
+            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown,
+            QString extraInfo = QString());
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     
