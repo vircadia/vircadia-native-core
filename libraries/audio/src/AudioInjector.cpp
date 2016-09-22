@@ -28,6 +28,8 @@
 
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
 
+AbstractAudioInterface* AudioInjector::_localAudioInterface{ nullptr };
+
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
     return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 };
@@ -37,24 +39,15 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
     return lhs;
 };
 
-AudioInjector::AudioInjector(QObject* parent) :
-    QObject(parent)
-{
-
-}
-
 AudioInjector::AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions) :
-    _audioData(sound.getByteArray()),
-    _options(injectorOptions)
+    AudioInjector(sound.getByteArray(), injectorOptions)
 {
-
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
     _options(injectorOptions)
 {
-
 }
 
 bool AudioInjector::stateHas(AudioInjectorState state) const {
@@ -447,7 +440,7 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
 
     QByteArray samples = sound->getByteArray();
     if (stretchFactor == 1.0f) {
-        return playSoundAndDelete(samples, options, nullptr);
+        return playSoundAndDelete(samples, options);
     }
 
     const int standardRate = AudioConstants::SAMPLE_RATE;
@@ -465,11 +458,11 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
                                          nInputFrames);
 
     Q_UNUSED(nOutputFrames);
-    return playSoundAndDelete(resampled, options, nullptr);
+    return playSoundAndDelete(resampled, options);
 }
 
-AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
-    AudioInjector* sound = playSound(buffer, options, localInterface);
+AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
+    AudioInjector* sound = playSound(buffer, options);
 
     if (sound) {
         sound->_state |= AudioInjectorState::PendingDelete;
@@ -479,9 +472,8 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
 }
 
 
-AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
+AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
     AudioInjector* injector = new AudioInjector(buffer, options);
-    injector->setLocalAudioInterface(localInterface);
 
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();

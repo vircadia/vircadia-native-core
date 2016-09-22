@@ -48,9 +48,7 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
 // until it dies. 
 class AudioInjector : public QObject {
     Q_OBJECT
-    
 public:
-    AudioInjector(QObject* parent);
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
@@ -66,11 +64,11 @@ public:
     float getVolume() const { return _options.volume; }
     glm::vec3 getPosition() const { return _options.position; }
     bool isStereo() const { return _options.stereo; }
-    void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 
     bool stateHas(AudioInjectorState state) const ;
-    static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
-    static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
+    static void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
+    static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options);
+    static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options);
     static AudioInjector* playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position);
 
 public slots:
@@ -98,6 +96,8 @@ private:
     int64_t injectNextFrame();
     bool injectLocally();
     
+    static AbstractAudioInterface* _localAudioInterface;
+
     QByteArray _audioData;
     AudioInjectorOptions _options;
     AudioInjectorState _state { AudioInjectorState::NotFinished };
@@ -107,7 +107,6 @@ private:
     float _loudness { 0.0f };
     int _currentSendOffset { 0 };
     std::unique_ptr<NLPacket> _currentPacket { nullptr };
-    AbstractAudioInterface* _localAudioInterface { nullptr };
     AudioInjectorLocalBuffer* _localBuffer { nullptr };
     
     int64_t _nextFrame { 0 };
