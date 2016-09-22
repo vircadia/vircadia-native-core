@@ -290,7 +290,12 @@ Window {
         // could also require right protocolVersion
     }
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
-        var url = metaverseBase + 'user_stories?include_actions=snapshot,concurrency&page=' + pageNumber;
+        var options = [
+            'include_actions=snapshot,concurrency',
+            'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
+            'page=' + pageNumber
+        ];
+        var url = metaverseBase + 'user_stories?' + options.join('&');
         getRequest(url, function (error, data) {
             if (handleError(url, error, data, cb)) {
                 return;

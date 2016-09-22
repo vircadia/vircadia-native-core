@@ -14,6 +14,7 @@
 import Hifi 1.0
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import "toolbars"
 import "../styles-uit"
 
 Rectangle {
@@ -25,12 +26,11 @@ Rectangle {
     property string thumbnail: defaultThumbnail;
     property var goFunction: null;
     property string storyId: "";
-    property bool isConcurrency: action === 'concurrency';
 
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
 
-    property int textPadding: 20;
+    property int textPadding: 10;
     property int textSize: 24;
     property int textSizeSmall: 18;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
@@ -89,7 +89,6 @@ Rectangle {
         color: hifi.colors.black;
         spread: dropSpread;
     }
-    property bool usersVisible: true;
     DropShadow {
         visible: users.visible && desktop.gradientsSupported;
         source: users;
@@ -112,43 +111,17 @@ Rectangle {
             margins: textPadding;
         }
     }
-    RalewayRegular {
+    FiraSansRegular {
         id: users;
-        visible: usersVisible && isConcurrency;
-        text: onlineUsers + ((onlineUsers === 1) ? ' person' : ' people');
-        size: textSizeSmall;
+        visible: action === 'concurrency';
+        text: onlineUsers;
+        size: textSize;
         color: hifi.colors.white;
         anchors {
-            bottom: parent.bottom;
-            right: parent.right;
+            verticalCenter: usersImage.verticalCenter;
+            right: usersImage.left;
             margins: textPadding;
         }
-    }
-    Image {
-        id: usersImage;
-        source: "../../images/" + action + ".svg";
-        width: 100;
-        fillMode: Image.PreserveAspectFit;
-        visible: usersVisible && !isConcurrency;
-        anchors {
-            bottom: parent.bottom;
-            right: parent.right;
-            margins: textPadding;
-        }
-    }
-    Image {
-        id: placeInfo;
-        source: "../../images/more-info.svg"
-        anchors.fill: place;
-        fillMode: Image.PreserveAspectFit;
-        visible: false;
-    }
-    Image {
-        id: usersInfo;
-        source: "../../images/more-info.svg"
-        anchors.fill: users;
-        fillMode: Image.PreserveAspectFit;
-        visible: false;
     }
     // These two can be supplied to provide hover behavior.
     // For example, AddressBarDialog provides functions that set the current list view item
@@ -164,22 +137,18 @@ Rectangle {
         onEntered: hoverThunk();
         onExited: unhoverThunk();
     }
-    MouseArea {
-        id: placeMouseArea;
-        anchors.fill: place;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction("/places/" + placeName);
-        hoverEnabled: true;
-        onEntered: { place.visible = false; placeInfo.visible = true; }
-        onExited: { placeInfo.visible = false; place.visible = true; }
-    }
-    MouseArea {
-        id: usersMouseArea;
-        anchors.fill: users;
-        acceptedButtons: Qt.LeftButton;
+    ToolbarButton {
+        id: usersImage;
+        imageURL: "../../images/" + action + ".svg";
+        size: 32;
         onClicked: goFunction("/user_stories/" + storyId);
-        hoverEnabled: true;
-        onEntered: { usersVisible = false; usersInfo.visible = true; }
-        onExited: { usersInfo.visible = false; usersVisible = true; }
+        buttonState: 0;
+        defaultState: 0;
+        hoverState: 1;
+        anchors {
+            bottom: parent.bottom;
+            right: parent.right;
+            margins: textPadding;
+        }
     }
 }
