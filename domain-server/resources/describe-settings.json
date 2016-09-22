@@ -381,6 +381,14 @@
           "advanced": false
         },
         {
+          "name": "maximum_user_capacity_redirect_location",
+          "label": "Redirect to Location on Maximum Capacity",
+          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "placeholder": "",
+          "default": "",
+          "advanced": false
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",

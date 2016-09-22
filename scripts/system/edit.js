@@ -184,7 +184,7 @@ var toolBar = (function () {
                 properties.position = position;
             entityID = Entities.addEntity(properties);
         } else {
-            Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
+            Window.notifyEditError("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
 
         selectionManager.clearSelections();
@@ -445,7 +445,7 @@ var toolBar = (function () {
             return;
         }
         if (active && !Entities.canRez() && !Entities.canRezTmp()) {
-            Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
+            Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             return;
         }
         Messages.sendLocalMessage("edit-events", JSON.stringify({
@@ -1082,13 +1082,13 @@ function handeMenuEvent(menuItem) {
         deleteSelectedEntities();
     } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
-            Window.alert("No entities have been selected.");
+            Window.notifyEditError("No entities have been selected.");
         } else {
             var filename = Window.save("Select Where to Save", "", "*.json");
             if (filename) {
                 var success = Clipboard.exportEntities(filename, selectionManager.selections);
                 if (!success) {
-                    Window.alert("Export failed.");
+                    Window.notifyEditError("Export failed.");
                 }
             }
         }
@@ -1156,7 +1156,7 @@ function getPositionToImportEntity() {
 }
 function importSVO(importURL) {
     if (!Entities.canAdjustLocks()) {
-        Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
+        Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }
 
@@ -1188,10 +1188,10 @@ function importSVO(importURL) {
 
             Window.raiseMainWindow();
         } else {
-            Window.alert("Can't import objects: objects would be out of bounds.");
+            Window.notifyEditError("Can't import objects: objects would be out of bounds.");
         }
     } else {
-        Window.alert("There was an error importing the entity file.");
+        Window.notifyEditError("There was an error importing the entity file.");
     }
 
     Overlays.editOverlay(importingSVOTextOverlay, {
@@ -1481,7 +1481,7 @@ var PropertiesTool = function (opts) {
                         // If any of the natural dimensions are not 0, resize
                         if (properties.type === "Model" && naturalDimensions.x === 0 && naturalDimensions.y === 0 &&
                                 naturalDimensions.z === 0) {
-                            Window.alert("Cannot reset entity to its natural dimensions: Model URL" +
+                            Window.notifyEditError("Cannot reset entity to its natural dimensions: Model URL" +
                                          " is invalid or the model has not yet been loaded.");
                         } else {
                             Entities.editEntity(selectionManager.selections[i], {
