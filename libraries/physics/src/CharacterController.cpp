@@ -152,14 +152,16 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     bool hasFloor = false;
     const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
 
-    btTransform transform = _rigidBody->getWorldTransform();
-    transform.setOrigin(btVector3(0.0f, 0.0f, 0.0f));
+    btTransform rotation = _rigidBody->getWorldTransform();
+    rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
 
     for (int i = 0; i < numManifolds; i++) {
         btPersistentManifold* contactManifold = dispatcher->getManifoldByIndexInternal(i);
         if (_rigidBody == contactManifold->getBody1() || _rigidBody == contactManifold->getBody0()) {
             bool characterIsFirst = _rigidBody == contactManifold->getBody0();
             int numContacts = contactManifold->getNumContacts();
+            int stepContactIndex = -1;
+            float highestStep = _minStepHeight;
             for (int j = 0; j < numContacts; j++) {
                 // check for "floor"
                 btManifoldPoint& contact = contactManifold->getContactPoint(j);
@@ -170,11 +172,23 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                     hasFloor = true;
                 }
                 // remember highest step obstacle
-                if (hitHeight > _stepHeight && hitHeight < _maxStepHeight && normal.dot(_targetVelocity) < 0.0f ) {
-                    _stepHeight = hitHeight;
-                    _stepPoint = transform * pointOnCharacter; // rotate into world-frame
-                    _stepNormal = normal;
+                if (hitHeight > _maxStepHeight) {
+                    // this manifold is invalidated by point that is too high
+                    stepContactIndex = -1;
+                    break;
+                } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
+                    highestStep = hitHeight;
+                    stepContactIndex = j;
                 }
+            }
+            if (stepContactIndex > -1 && highestStep > _stepHeight) {
+                // remember step info for later
+                btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
+                btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
+                btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
+                _stepHeight = highestStep;
+                _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
+                _stepNormal = normal;
             }
         }
     }
@@ -757,9 +771,6 @@ float CharacterController::measureMaxHipsOffsetRadius(const glm::vec3& currentHi
         btTransform startTransform = transform;
         startTransform.setOrigin(startPos);
         btVector3 endPos = startPos + rotation * ((maxSweepDistance / hipsOffsetLength) * hipsOffset);
-
-        // ensure sweep is horizontal.
-        startPos.setY(endPos.getY());
 
         // sweep test a sphere
         btSphereShape sphere(_radius);
