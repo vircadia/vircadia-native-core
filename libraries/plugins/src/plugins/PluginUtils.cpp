@@ -26,7 +26,7 @@ bool PluginUtils::isHMDAvailable() {
 
 bool PluginUtils::isHandControllerAvailable() {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->isHandController()) {
+        if (inputPlugin->getName() == "OpenVR") {
             return true;
             break;
         }
