@@ -25,6 +25,7 @@ Rectangle {
     property string thumbnail: defaultThumbnail;
     property var goFunction: null;
     property string storyId: "";
+    property bool isConcurrency: action === 'concurrency';
 
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
@@ -88,8 +89,9 @@ Rectangle {
         color: hifi.colors.black;
         spread: dropSpread;
     }
+    property bool usersVisible: true;
     DropShadow {
-        visible: desktop.gradientsSupported;
+        visible: users.visible && desktop.gradientsSupported;
         source: users;
         anchors.fill: users;
         horizontalOffset: dropHorizontalOffset;
@@ -112,7 +114,8 @@ Rectangle {
     }
     RalewayRegular {
         id: users;
-        text: (action === 'concurrency') ? (onlineUsers + ((onlineUsers === 1) ? ' person' : ' people')) : action;
+        visible: usersVisible && isConcurrency;
+        text: onlineUsers + ((onlineUsers === 1) ? ' person' : ' people');
         size: textSizeSmall;
         color: hifi.colors.white;
         anchors {
@@ -120,6 +123,32 @@ Rectangle {
             right: parent.right;
             margins: textPadding;
         }
+    }
+    Image {
+        id: usersImage;
+        source: "../../images/" + action + ".svg";
+        width: 100;
+        fillMode: Image.PreserveAspectFit;
+        visible: usersVisible && !isConcurrency;
+        anchors {
+            bottom: parent.bottom;
+            right: parent.right;
+            margins: textPadding;
+        }
+    }
+    Image {
+        id: placeInfo;
+        source: "../../images/more-info.svg"
+        anchors.fill: place;
+        fillMode: Image.PreserveAspectFit;
+        visible: false;
+    }
+    Image {
+        id: usersInfo;
+        source: "../../images/more-info.svg"
+        anchors.fill: users;
+        fillMode: Image.PreserveAspectFit;
+        visible: false;
     }
     // These two can be supplied to provide hover behavior.
     // For example, AddressBarDialog provides functions that set the current list view item
@@ -141,8 +170,8 @@ Rectangle {
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction("/places/" + placeName);
         hoverEnabled: true;
-        onEntered: place.color = hifi.colors.blueHighlight;
-        onExited: place.color = hifi.colors.white;
+        onEntered: { place.visible = false; placeInfo.visible = true; }
+        onExited: { placeInfo.visible = false; place.visible = true; }
     }
     MouseArea {
         id: usersMouseArea;
@@ -150,7 +179,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction("/user_stories/" + storyId);
         hoverEnabled: true;
-        onEntered: users.color = hifi.colors.blueHighlight;
-        onExited: users.color = hifi.colors.white;
+        onEntered: { usersVisible = false; usersInfo.visible = true; }
+        onExited: { usersInfo.visible = false; usersVisible = true; }
     }
 }
