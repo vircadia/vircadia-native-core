@@ -42,7 +42,7 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
-const HOME_CONTENT_URL = "http://cachefly.highfidelity.com/home.tgz";
+const HOME_CONTENT_URL = "https://hifi-public.s3.amazonaws.com/tutorial.tar.gz"
 
 function getBuildInfo() {
     var buildInfoPath = null;
