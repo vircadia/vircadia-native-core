@@ -59,8 +59,6 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
 
-static const int DEFAULT_GATE_THRESHOLD = 1;
-
 static const int DEFAULT_BUFFER_FRAMES = 1;
 
 static const bool DEFAULT_STARVE_DETECTION_ENABLED = true;
