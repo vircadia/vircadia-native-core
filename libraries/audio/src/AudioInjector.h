@@ -92,8 +92,8 @@ signals:
     void restarting();
     
 private:
-    void setupInjection();
     int64_t injectNextFrame();
+    bool inject(bool(AudioInjectorManager::*injection)(AudioInjector*));
     bool injectLocally();
     
     static AbstractAudioInterface* _localAudioInterface;
@@ -102,8 +102,6 @@ private:
     AudioInjectorOptions _options;
     AudioInjectorState _state { AudioInjectorState::NotFinished };
     bool _hasSentFirstFrame { false };
-    bool _hasSetup { false };
-    bool _shouldStop { false };
     float _loudness { 0.0f };
     int _currentSendOffset { 0 };
     std::unique_ptr<NLPacket> _currentPacket { nullptr };
