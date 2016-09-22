@@ -198,15 +198,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        #if defined(Q_OS_LINUX)
-        // these don't seem to work on Linux
-        return;
-        #else
         if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
             return;
         }
         _fadeStartTime = usecTimestampNow();
-        #endif
     }
 
     _lastRenderTime = usecTimestampNow();
