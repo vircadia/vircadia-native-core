@@ -835,7 +835,8 @@ void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
         disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
         setKeyboardRaised(_currentFocusItem, false);
     }
-    setKeyboardRaised(item, item->hasActiveFocus());
+    const char* READ_ONLY_PROPERTY = "readOnly";
+    setKeyboardRaised(item, item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false);
     _currentFocusItem = item;
     connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
