@@ -1261,8 +1261,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto initializeLocation = [this]() {
         // Get sandbox content set version, if available
-        auto acDirPath = PathUtils::getRootDataDirectory() + qApp->organizationName() + "/assignment-client/";
+        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
+        qDebug() << "Checking " << contentVersionPath << " for content version";
         auto contentVersion = 0;
         QFile contentVersionFile(contentVersionPath);
         if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
