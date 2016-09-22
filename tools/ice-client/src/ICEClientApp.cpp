@@ -86,7 +86,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         QHostAddress address { hostnamePortString.left(hostnamePortString.indexOf(':')) };
         quint16 port { (quint16) hostnamePortString.mid(hostnamePortString.indexOf(':') + 1).toUInt() };
         if (port == 0) {
-            port = 7337;
+            port = ICE_SERVER_DEFAULT_PORT;
         }
 
         if (address.isNull()) {
