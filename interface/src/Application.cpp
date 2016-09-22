@@ -1302,11 +1302,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         if (shouldGoToTutorial) {
             DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
                 qDebug() << "Home sandbox appears to be running, going to Home.";
-                //DependencyManager::get<AddressManager>()->goToLocalSandbox("/tutorial");
-                DependencyManager::get<AddressManager>()->loadSettings("hifi://sport/tutorial_begin");
+                DependencyManager::get<AddressManager>()->goToLocalSandbox("/tutorial_begin");
             }, [=]() {
                 qDebug() << "Home sandbox does not appear to be running, going to Entry.";
-                showHelp();
+                if (firstRun.get()) {
+                    showHelp();
+                }
                 if (addressLookupString.isEmpty()) {
                     DependencyManager::get<AddressManager>()->goToEntry();
                 } else {
