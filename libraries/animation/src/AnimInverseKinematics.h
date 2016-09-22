@@ -85,6 +85,7 @@ protected:
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };
+    float _desiredMaxHipsOffsetLength { 1.0f };
     float _maxHipsOffsetLength { 1.0f };
     int _headIndex { -1 };
     int _hipsIndex { -1 };

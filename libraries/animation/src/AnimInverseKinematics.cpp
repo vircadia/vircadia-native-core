@@ -392,6 +392,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         dt = MAX_OVERLAY_DT;
     }
 
+    // OUTOFBODY_HACK: smoothly update update _hipsOffsetLength, otherwise we risk introducing oscillation in the hips offset.
+    float tau = dt / 0.5f;
+    _maxHipsOffsetLength = (1.0f - tau) * _maxHipsOffsetLength + tau * _desiredMaxHipsOffsetLength;
+
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
@@ -516,7 +520,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 float OTHER_WEIGHT = 1.0f;
                 float totalWeight = 0.0f;
 
-                glm::vec3 newHipsOffset = Vectors::ZERO;
+                glm::vec3 additionalHipsOffset = Vectors::ZERO;
                 for (auto& target: targets) {
                     int targetIndex = target.getIndex();
                     if (targetIndex == _headIndex && _headIndex != -1) {
@@ -527,43 +531,45 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                             glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
                             const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                            newHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (actual - under);
+                            additionalHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (actual - under);
                             totalWeight += OTHER_WEIGHT;
                         } else if (target.getType() == IKTarget::Type::HmdHead) {
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
                             glm::vec3 thisOffset = target.getTranslation() - actual;
                             glm::vec3 futureHipsOffset = _hipsOffset + thisOffset;
-                            if (glm::length(futureHipsOffset) < _maxHipsOffsetLength) {
+                            if (glm::length(glm::vec2(futureHipsOffset.x, futureHipsOffset.z)) < _maxHipsOffsetLength) {
                                 // it is imperative to shift the hips and bring the head to its designated position
                                 // so we slam newHipsOffset here and ignore all other targets
-                                newHipsOffset = futureHipsOffset;
+                                additionalHipsOffset = futureHipsOffset - _hipsOffset;
                                 totalWeight = 0.0f;
                                 break;
                             } else {
-                                newHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
+                                additionalHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
                                 totalWeight += HMD_WEIGHT;
                             }
                         }
                     } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                         glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans;
                         glm::vec3 targetPosition = target.getTranslation();
-                        newHipsOffset += OTHER_WEIGHT * (targetPosition - actualPosition);
+                        additionalHipsOffset += OTHER_WEIGHT * (targetPosition - actualPosition);
                         totalWeight += OTHER_WEIGHT;
                     }
                 }
                 if (totalWeight > 1.0f) {
-                    newHipsOffset /= totalWeight;
+                    additionalHipsOffset /= totalWeight;
                 }
 
                 // smooth transitions by relaxing _hipsOffset toward the new value
                 const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-                float newOffsetLength = glm::length(newHipsOffset);
-                if (newOffsetLength > _maxHipsOffsetLength) {
-                    // clamp the hips offset
-                    newHipsOffset *= _maxHipsOffsetLength / newOffsetLength;
+                _hipsOffset += additionalHipsOffset * tau;
+
+                // clamp the horizontal component of the hips offset
+                float hipsOffsetLength2D = glm::length(glm::vec2(_hipsOffset.x, _hipsOffset.z));
+                if (hipsOffsetLength2D > _maxHipsOffsetLength) {
+                    _hipsOffset.x *= _maxHipsOffsetLength / hipsOffsetLength2D;
+                    _hipsOffset.z *= _maxHipsOffsetLength / hipsOffsetLength2D;
                 }
-                _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
             }
         }
     }
@@ -579,7 +585,7 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
     // OUTOFBODY_HACK: manually adjust scale here
     const float METERS_TO_CENTIMETERS = 100.0f;
-    _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
+    _desiredMaxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
