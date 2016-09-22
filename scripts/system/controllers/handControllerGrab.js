@@ -56,12 +56,6 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 
 var PICK_WITH_HAND_RAY = true;
 
-var EQUIP_SPHERE_COLOR = {
-    red: 116,
-    green: 90,
-    blue: 238
-};
-var EQUIP_SPHERE_ALPHA = 0.15;
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 
 
@@ -204,6 +198,8 @@ var delayedDeactivateEntityID;
 var CONTROLLER_STATE_MACHINE = {};
 
 var mostRecentSearchingHand = RIGHT_HAND;
+
+var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
@@ -605,43 +601,21 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
 
         var diameter = hotspot.radius * 2;
 
-        if (hotspot.modelURL) {
-            // override default sphere with a user specified model
-            overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
-                url: hotspot.modelURL,
-                position: hotspot.worldPosition,
-                rotation: {
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                    w: 1
-                },
-                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
-                scale: hotspot.modelScale,
-                ignoreRayIntersection: true
-            }));
-            overlayInfoSet.type = "model";
-        } else {
-            // default sphere overlay
-            overlayInfoSet.overlays.push(Overlays.addOverlay("sphere", {
-                position: hotspot.worldPosition,
-                rotation: {
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                    w: 1
-                },
-                dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
-                color: EQUIP_SPHERE_COLOR,
-                alpha: EQUIP_SPHERE_ALPHA,
-                solid: true,
-                visible: true,
-                ignoreRayIntersection: true,
-                drawInFront: false
-            }));
-            overlayInfoSet.type = "sphere";
-        }
-
+        // override default sphere with a user specified model, if it exists.
+        overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
+            url: hotspot.modelURL ? hotspot.modelURL : DEFAULT_SPHERE_MODEL_URL,
+            position: hotspot.worldPosition,
+            rotation: {
+                x: 0,
+                y: 0,
+                z: 0,
+                w: 1
+            },
+            dimensions: diameter * EQUIP_SPHERE_SCALE_FACTOR,
+            scale: hotspot.modelScale,
+            ignoreRayIntersection: true
+        }));
+        overlayInfoSet.type = "model";
         this.map[hotspot.key] = overlayInfoSet;
     } else {
         overlayInfoSet.timestamp = timestamp;
