@@ -6,7 +6,6 @@ import "controls-uit"
 import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
-import "controls" as Controls
 
 ScrollingWindow {
     id: root
@@ -52,9 +51,6 @@ ScrollingWindow {
         id:item
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
-
-        property bool keyboardRaised: false
-        property bool punctuationMode: false
 
         Row {
             id: buttons
@@ -206,7 +202,7 @@ ScrollingWindow {
             url: "https://highfidelity.com"
             anchors.top: buttons.bottom
             anchors.topMargin: 8
-            anchors.bottom: keyboard1.top
+            anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             onFeaturePermissionRequested: {
@@ -236,37 +232,6 @@ ScrollingWindow {
             }
 
             profile: desktop.browserProfile
-        }
-
-        // virtual keyboard, letters
-        Controls.Keyboard {
-            id: keyboard1
-            // y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
-        }
-
-        Controls.KeyboardPunctuation {
-            id: keyboard2
-            // y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
     } // item

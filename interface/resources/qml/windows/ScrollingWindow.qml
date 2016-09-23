@@ -15,6 +15,7 @@ import QtGraphicalEffects 1.0
 
 import "."
 import "../styles-uit"
+import "../controls" as HiFiControls
 
 // FIXME how do I set the initial position of a window without
 // overriding places where the a individual client of the window
@@ -23,12 +24,16 @@ import "../styles-uit"
 // FIXME how to I enable dragging without allowing the window to lay outside
 // of the desktop?  How do I ensure when the desktop resizes all the windows
 // are still at least partially visible?
+
 Window {
     id: window
     HifiConstants { id: hifi }
     children: [ swallower, frame, pane, activator ]
 
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
+
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
 
     // Scrollable window content.
     // FIXME this should not define any visual content in this type.  The base window
@@ -73,7 +78,7 @@ Window {
             verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 1 : 0
-            anchors.bottomMargin: footer.height > 0 ? footerPane.height : 0
+            anchors.bottomMargin: footerPane.height
 
             style: ScrollViewStyle {
 
@@ -119,18 +124,28 @@ Window {
         Rectangle {
             // Optional non-scrolling footer.
             id: footerPane
+
+            property alias keyboardRaised: window.keyboardRaised
+            property alias punctuationMode: window.punctuationMode
+
             anchors {
                 left: parent.left
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footer.height + 2 * hifi.dimensions.contentSpacing.y + 3
+            height: (footer.height > 0 ? footer.height + 2 * hifi.dimensions.contentSpacing.y + 3 : 0) + (keyboardRaised ? 200 : 0)
             color: hifi.colors.baseGray
-            visible: footer.height > 0
+            visible: footer.height > 0 || keyboardRaised
 
             Item {
                 // Horizontal rule.
-                anchors.fill: parent
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+
+                visible: footer.height > 0
 
                 Rectangle {
                     width: parent.width
@@ -148,9 +163,37 @@ Window {
             }
 
             Item {
-                anchors.fill: parent
-                anchors.topMargin: 3  // Horizontal rule.
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                    topMargin: hifi.dimensions.contentSpacing.y + 3
+                }
                 children: [ footer ]
+            }
+
+            HiFiControls.Keyboard {
+                id: keyboard1
+                height: parent.keyboardRaised ? 200 : 0
+                visible: parent.keyboardRaised && !parent.punctuationMode
+                enabled: parent.keyboardRaised && !parent.punctuationMode
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+            }
+
+            HiFiControls.KeyboardPunctuation {
+                id: keyboard2
+                height: parent.keyboardRaised ? 200 : 0
+                visible: parent.keyboardRaised && parent.punctuationMode
+                enabled: parent.keyboardRaised && parent.punctuationMode
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
             }
         }
     }

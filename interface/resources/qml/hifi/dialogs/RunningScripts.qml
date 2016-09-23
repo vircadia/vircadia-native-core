@@ -16,7 +16,6 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
-import "../../controls"
 
 ScrollingWindow {
     id: root
@@ -24,8 +23,8 @@ ScrollingWindow {
     title: "Running Scripts"
     resizable: true
     destroyOnHidden: true
-    implicitWidth: 480
-    implicitHeight: (isHMD ? 695 : 728) + (runningScriptsColumn.keyboardRaised ? 200 + (2 * hifi.dimensions.contentSpacing.y) : 0)
+    implicitWidth: 424
+    implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
@@ -93,11 +92,6 @@ ScrollingWindow {
     }
 
     Column {
-        id: runningScriptsColumn
-
-        property bool keyboardRaised: false
-        property bool punctuationMode: false
-
         width: pane.contentWidth
 
         HifiControls.ContentSection {
@@ -359,28 +353,6 @@ ScrollingWindow {
                 visible: !isHMD
             }
         }
-
-        // virtual keyboard, letters
-        Keyboard {
-            id: keyboard1
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-        }
-
-        KeyboardPunctuation {
-            id: keyboard2
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-        }
     }
 }
+
