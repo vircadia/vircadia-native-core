@@ -517,8 +517,8 @@ void GL45Texture::updateMips() {
 }
 
 void GL45Texture::derez() {
-    assert(_sparseInfo._sparse);
-    assert(_minMip < _sparseInfo._maxSparseLevel);
+    assert(_sparseInfo.sparse);
+    assert(_minMip < _sparseInfo.maxSparseLevel);
     assert(_minMip < _maxMip);
     assert(_transferrable);
     stripToMip(_minMip + 1);

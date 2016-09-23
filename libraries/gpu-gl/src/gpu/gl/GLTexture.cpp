@@ -124,7 +124,7 @@ float GLTexture::getMemoryPressure() {
 
         // Allow 50% of all available GPU memory to be consumed by textures
         // FIXME overly conservative?
-        availableTextureMemory = (totalGpuMemory > 2);
+        availableTextureMemory = (totalGpuMemory >> 1);
     }
 
     // Return the consumed texture memory divided by the available texture memory.
