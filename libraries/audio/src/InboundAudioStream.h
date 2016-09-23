@@ -145,29 +145,29 @@ protected:
 
     AudioRingBuffer _ringBuffer;
 
-    bool _lastPopSucceeded{ false };
+    bool _lastPopSucceeded { false };
     AudioRingBuffer::ConstIterator _lastPopOutput;
     
-    bool _dynamicJitterBufferEnabled{ DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED };
-    int _staticJitterBufferFrames{ DEFAULT_STATIC_JITTER_FRAMES };
+    bool _dynamicJitterBufferEnabled { DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED };
+    int _staticJitterBufferFrames { DEFAULT_STATIC_JITTER_FRAMES };
     int _desiredJitterBufferFrames;
 
-    bool _isStarved{ true };
-    bool _hasStarted{ false };
+    bool _isStarved { true };
+    bool _hasStarted { false };
 
     // stats
 
-    int _consecutiveNotMixedCount{ 0 };
-    int _starveCount{ 0 };
-    int _silentFramesDropped{ 0 };
-    int _oldFramesDropped{ 0 };
+    int _consecutiveNotMixedCount { 0 };
+    int _starveCount { 0 };
+    int _silentFramesDropped { 0 };
+    int _oldFramesDropped { 0 };
 
     SequenceNumberStats _incomingSequenceNumberStats;
 
-    quint64 _lastPacketReceivedTime{ 0 };
-    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves{ 0, WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES };
-    int _calculatedJitterBufferFrames{ 0 };
-    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredReduction{ 0, WINDOW_SECONDS_FOR_DESIRED_REDUCTION };
+    quint64 _lastPacketReceivedTime { 0 };
+    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredCalcOnTooManyStarves { 0, WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES };
+    int _calculatedJitterBufferFrames { 0 };
+    MovingMinMaxAvg<quint64> _timeGapStatsForDesiredReduction { 0, WINDOW_SECONDS_FOR_DESIRED_REDUCTION };
 
     RingBufferHistory<quint64> _starveHistory;
 
@@ -176,18 +176,18 @@ protected:
 
     // this value is periodically updated with the time-weighted avg from _framesAvailableStat. it is only used for
     // dropping silent frames right now.
-    int _currentJitterBufferFrames{ 0 };
+    int _currentJitterBufferFrames { 0 };
 
     MovingMinMaxAvg<quint64> _timeGapStatsForStatsPacket;
 
     // Reverb properties
-    bool _hasReverb{ false };
-    float _reverbTime{ 0.0f };
-    float _wetLevel{ 0.0f };
+    bool _hasReverb { false };
+    float _reverbTime { 0.0f };
+    float _wetLevel { 0.0f };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
-    Decoder* _decoder{ nullptr };
+    Decoder* _decoder { nullptr };
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);
