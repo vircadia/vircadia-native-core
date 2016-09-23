@@ -307,16 +307,28 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
-void Rig::setMaxHipsOffsetLength(float maxLength) {
+void Rig::updateMaxHipsOffsetLength(float maxLength, float deltaTime) {
+
+    _desiredMaxHipsOffsetLength = maxLength;
+
+    // OUTOFBODY_HACK: smoothly update update _hipsOffsetLength, otherwise we risk introducing oscillation in the hips offset.
+    const float MAX_HIPS_OFFSET_TIMESCALE = 0.33f;
+    float tau = deltaTime / MAX_HIPS_OFFSET_TIMESCALE;
+    _maxHipsOffsetLength = (1.0f - tau) * _maxHipsOffsetLength + tau * _desiredMaxHipsOffsetLength;
+
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
-                ikNode->setMaxHipsOffsetLength(maxLength);
+                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
             }
             return true;
         });
     }
+}
+
+float Rig::getMaxHipsOffsetLength() const {
+    return _maxHipsOffsetLength;
 }
 
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {

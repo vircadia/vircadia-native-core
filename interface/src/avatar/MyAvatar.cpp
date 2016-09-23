@@ -1378,7 +1378,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         hipsPosition.z *= -1.0f;
         maxHipsOffsetRadius = _characterController.measureMaxHipsOffsetRadius(hipsPosition, maxHipsOffsetRadius);
     }
-    _rig->setMaxHipsOffsetLength(maxHipsOffsetRadius);
+    _rig->updateMaxHipsOffsetLength(maxHipsOffsetRadius, deltaTime);
 
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();

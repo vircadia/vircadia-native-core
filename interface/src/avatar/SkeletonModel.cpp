@@ -149,6 +149,17 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
+        // OUTOFBODY_HACK: clamp horizontal component of head by maxHipsOffset.
+        // This is to prevent the hands from being incorrect relative to the head because
+        // the hips are being constrained by a small maxHipsOffset due to collision.
+        if (myAvatar->isOutOfBody()) {
+            float headOffsetLength2D = glm::length(glm::vec2(truncatedHMDPositionInRigSpace.x, truncatedHMDPositionInRigSpace.z));
+            if (headOffsetLength2D > _rig->getMaxHipsOffsetLength()) {
+                truncatedHMDPositionInRigSpace.x *= _rig->getMaxHipsOffsetLength() / headOffsetLength2D;
+                truncatedHMDPositionInRigSpace.z *= _rig->getMaxHipsOffsetLength() / headOffsetLength2D;
+            }
+        }
+
         Rig::HandParameters handParams;
 
         auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();

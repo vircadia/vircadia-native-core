@@ -104,7 +104,8 @@ public:
     void clearJointAnimationPriority(int index);
 
     void clearIKJointLimitHistory();
-    void setMaxHipsOffsetLength(float maxLength);
+    void updateMaxHipsOffsetLength(float maxLength, float deltaTime);
+    float getMaxHipsOffsetLength() const;
 
     // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
@@ -318,6 +319,9 @@ protected:
     glm::vec3 _desiredRigHeadPosition;
     bool _truncateIKTargets { false };
     bool _enableDebugDrawIKTargets { false };
+
+    float _maxHipsOffsetLength { 1.0f };
+    float _desiredMaxHipsOffsetLength { 1.0f };
 
 private:
     QMap<int, StateHandler> _stateHandlers;
