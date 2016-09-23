@@ -1039,7 +1039,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         cameraMenuChanged();
     }
 
-    // set the local loopback interface for local sounds from audio scripts
+    // set the local loopback interface for local sounds
+    AudioInjector::setLocalAudioInterface(audioIO.data());
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
 
     this->installEventFilter(this);
