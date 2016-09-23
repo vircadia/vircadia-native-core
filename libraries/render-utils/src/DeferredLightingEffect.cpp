@@ -337,7 +337,13 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
-        glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
+    // rendering
+    if (_primaryFramebuffer && _primaryFramebuffer->getSize() != frameSize) {
+        _primaryFramebuffer.reset();
+    }
 
     if (!_primaryFramebuffer) {
         _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
@@ -345,6 +351,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         auto primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+        primaryColorTexture->setSource("PreparePrimaryFramebuffer::primaryColorTexture");
 
 
         _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
@@ -352,11 +359,10 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
         auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+        primaryDepthTexture->setSource("PreparePrimaryFramebuffer::primaryDepthTexture");
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
-
     }
-    _primaryFramebuffer->resize(frameSize.x, frameSize.y);
 
     primaryFramebuffer = _primaryFramebuffer;
 }

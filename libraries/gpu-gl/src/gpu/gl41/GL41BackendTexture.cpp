@@ -40,30 +40,6 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transf
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) : GLTexture(backend, texture, allocate(), transferrable) {}
 
-GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GL41Texture* original) : GLTexture(backend, texture, allocate(), original) {}
-
-void GL41Texture::withPreservedTexture(std::function<void()> f) const  {
-    GLint boundTex = -1;
-    switch (_target) {
-    case GL_TEXTURE_2D:
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-        break;
-
-    case GL_TEXTURE_CUBE_MAP:
-        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-        break;
-
-    default:
-        qFatal("Unsupported texture type");
-    }
-    (void)CHECK_GL_ERROR();
-
-    glBindTexture(_target, _texture);
-    f();
-    glBindTexture(_target, boundTex);
-    (void)CHECK_GL_ERROR();
-}
-
 void GL41Texture::generateMips() const {
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
@@ -147,35 +123,12 @@ void GL41Texture::startTransfer() {
     glBindTexture(_target, _id);
     (void)CHECK_GL_ERROR();
 
-    if (_downsampleSource._texture) {
-        GLuint fbo { 0 };
-        glGenFramebuffers(1, &fbo);
-        (void)CHECK_GL_ERROR();
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        (void)CHECK_GL_ERROR();
-        // Find the distance between the old min mip and the new one
-        uint16 mipOffset = _minMip - _downsampleSource._minMip;
-        for (uint16 i = _minMip; i <= _maxMip; ++i) {
-            uint16 targetMip = i - _minMip;
-            uint16 sourceMip = targetMip + mipOffset;
-            Vec3u dimensions = _gpuObject.evalMipDimensions(i);
-            for (GLenum target : getFaceTargets(_target)) {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, _downsampleSource._texture, sourceMip);
-                (void)CHECK_GL_ERROR();
-                glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, dimensions.x, dimensions.y);
-                (void)CHECK_GL_ERROR();
-            }
-        }
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-    } else {
-        // transfer pixels from each faces
-        uint8_t numFaces = (Texture::TEX_CUBE == _gpuObject.getType()) ? CUBE_NUM_FACES : 1;
-        for (uint8_t f = 0; f < numFaces; f++) {
-            for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
-                if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
-                    transferMip(i, f);
-                }
+    // transfer pixels from each faces
+    uint8_t numFaces = (Texture::TEX_CUBE == _gpuObject.getType()) ? CUBE_NUM_FACES : 1;
+    for (uint8_t f = 0; f < numFaces; f++) {
+        for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
+            if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
+                transferMip(i, f);
             }
         }
     }
