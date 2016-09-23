@@ -57,7 +57,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
-#include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
