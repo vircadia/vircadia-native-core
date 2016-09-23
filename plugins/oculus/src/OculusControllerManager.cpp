@@ -45,14 +45,20 @@ bool OculusControllerManager::activate() {
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
-    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
-        _remote = std::make_shared<RemoteDevice>(*this);
-        userInputMapper->registerDevice(_remote);
+    unsigned int controllerConnected = ovr_GetConnectedControllerTypes(_session);
+
+    if ((controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+            _remote = std::make_shared<RemoteDevice>(*this);
+            userInputMapper->registerDevice(_remote);
+        }
     }
 
-    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
-        _touch = std::make_shared<TouchDevice>(*this);
-        userInputMapper->registerDevice(_touch);
+    if ((controllerConnected & ovrControllerType_Touch) != 0) {
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+            _touch = std::make_shared<TouchDevice>(*this);
+            userInputMapper->registerDevice(_touch);
+        }
     }
 
     return true;

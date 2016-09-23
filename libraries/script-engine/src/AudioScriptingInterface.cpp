@@ -45,7 +45,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
         optionsCopy.stereo = sound->isStereo();
-        auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy, _localAudioInterface);
+        auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy);
         if (!injector) {
             return NULL;
         }
