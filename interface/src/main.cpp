@@ -18,6 +18,7 @@
 #include <QSharedMemory>
 #include <QTranslator>
 
+#include <BuildInfo.h>
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
@@ -30,7 +31,6 @@
 #include "MainWindow.h"
 #include <QtCore/QProcess>
 
-#include <BuildInfo.h>
 #ifdef HAS_BUGSPLAT
 #include <BugSplat.h>
 #include <CrashReporter.h>

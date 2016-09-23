@@ -42,7 +42,7 @@ const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
-static const Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
+static Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),

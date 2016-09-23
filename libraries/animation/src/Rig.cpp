@@ -956,10 +956,6 @@ void Rig::updateFromEyeParameters(const EyeParameters& params) {
                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
-static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
-static const glm::vec3 Y_AXIS(0.0f, 1.0f, 0.0f);
-static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
-
 void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                   glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const {
 

@@ -21,8 +21,6 @@
 #include "SettingManager.h"
 #include "SharedLogging.h"
 
-
-
 namespace Setting {
     static QSharedPointer<Manager> globalManager;
 
