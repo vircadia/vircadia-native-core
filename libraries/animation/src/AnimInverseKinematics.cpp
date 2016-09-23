@@ -531,7 +531,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                             glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
                             const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                            additionalHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (actual - under);
+                            additionalHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (under- actual);
                             totalWeight += OTHER_WEIGHT;
                         } else if (target.getType() == IKTarget::Type::HmdHead) {
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;

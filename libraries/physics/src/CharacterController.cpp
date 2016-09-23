@@ -63,7 +63,6 @@ CharacterController::CharacterMotor::CharacterMotor(const glm::vec3& vel, const 
 }
 
 CharacterController::CharacterController() {
-    _halfHeight = 1.0f;
     _floorDistance = MAX_FALL_HEIGHT;
 
     _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
@@ -146,30 +145,54 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }
 
-static const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
+bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
+    _stepHeight = _minStepHeight; // clears last step obstacle
+    btDispatcher* dispatcher = collisionWorld->getDispatcher();
+    int numManifolds = dispatcher->getNumManifolds();
+    bool hasFloor = false;
+    const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
 
-bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) const {
-    int numManifolds = collisionWorld->getDispatcher()->getNumManifolds();
+    btTransform rotation = _rigidBody->getWorldTransform();
+    rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
+
     for (int i = 0; i < numManifolds; i++) {
-        btPersistentManifold* contactManifold = collisionWorld->getDispatcher()->getManifoldByIndexInternal(i);
-        const btCollisionObject* obA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
-        const btCollisionObject* obB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
-        if (obA == _rigidBody || obB == _rigidBody) {
+        btPersistentManifold* contactManifold = dispatcher->getManifoldByIndexInternal(i);
+        if (_rigidBody == contactManifold->getBody1() || _rigidBody == contactManifold->getBody0()) {
+            bool characterIsFirst = _rigidBody == contactManifold->getBody0();
             int numContacts = contactManifold->getNumContacts();
+            int stepContactIndex = -1;
+            float highestStep = _minStepHeight;
             for (int j = 0; j < numContacts; j++) {
-                btManifoldPoint& pt = contactManifold->getContactPoint(j);
-
-                // check to see if contact point is touching the bottom sphere of the capsule.
-                // and the contact normal is not slanted too much.
-                float contactPointY = (obA == _rigidBody) ? pt.m_localPointA.getY() : pt.m_localPointB.getY();
-                btVector3 normal = (obA == _rigidBody) ? pt.m_normalWorldOnB : -pt.m_normalWorldOnB;
-                if (contactPointY < -_halfHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
-                    return true;
+                // check for "floor"
+                btManifoldPoint& contact = contactManifold->getContactPoint(j);
+                btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
+                btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
+                btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
+                if (hitHeight < _radius && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                    hasFloor = true;
                 }
+                // remember highest step obstacle
+                if (hitHeight > _maxStepHeight) {
+                    // this manifold is invalidated by point that is too high
+                    stepContactIndex = -1;
+                    break;
+                } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
+                    highestStep = hitHeight;
+                    stepContactIndex = j;
+                }
+            }
+            if (stepContactIndex > -1 && highestStep > _stepHeight) {
+                // remember step info for later
+                btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
+                btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
+                btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
+                _stepHeight = highestStep;
+                _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
+                _stepNormal = normal;
             }
         }
     }
-    return false;
+    return hasFloor;
 }
 
 void CharacterController::preStep(btCollisionWorld* collisionWorld) {
@@ -332,23 +355,22 @@ void CharacterController::setState(State desiredState) {
 }
 
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
-    _boxScale = scale;
-
-    float x = _boxScale.x;
-    float z = _boxScale.z;
+    float x = scale.x;
+    float z = scale.z;
     float radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
-    float halfHeight = 0.5f * _boxScale.y - radius;
+    float halfHeight = 0.5f * scale.y - radius;
     float MIN_HALF_HEIGHT = 0.1f;
     if (halfHeight < MIN_HALF_HEIGHT) {
         halfHeight = MIN_HALF_HEIGHT;
     }
 
     // compare dimensions
-    float radiusDelta = glm::abs(radius - _radius);
-    float heightDelta = glm::abs(halfHeight - _halfHeight);
-    if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
-        // shape hasn't changed --> nothing to do
-    } else {
+    if (glm::abs(radius - _radius) > FLT_EPSILON || glm::abs(halfHeight - _halfHeight) > FLT_EPSILON) {
+        _radius = radius;
+        _halfHeight = halfHeight;
+        _minStepHeight = 0.02f; // HACK: hardcoded now but should be shape margin
+        _maxStepHeight = 0.75f * (_halfHeight + _radius);
+
         if (_dynamicsWorld) {
             // must REMOVE from world prior to shape update
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
@@ -358,7 +380,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here
-    _shapeLocalOffset = minCorner + 0.5f * _boxScale;
+    _shapeLocalOffset = minCorner + 0.5f * scale;
 }
 
 void CharacterController::setCollisionGroup(int16_t group) {
@@ -435,10 +457,6 @@ glm::vec3 CharacterController::getLinearVelocity() const {
     return velocity;
 }
 
-void CharacterController::setCapsuleRadius(float radius) {
-    _radius = radius;
-}
-
 glm::vec3 CharacterController::getVelocityChange() const {
     if (_rigidBody) {
         return bulletToGLM(_velocityChange);
@@ -487,11 +505,32 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         // compute local UP
         btVector3 up = _currentUp.rotate(axis, -angle);
 
+        // add sky hook when encountering a step obstacle
+        btVector3 motorVelocity = motor.velocity;
+        btScalar vTimescale = motor.vTimescale;
+        if (_stepHeight > _minStepHeight) {
+            // there is a step
+            btVector3 motorVelocityWF = motorVelocity.rotate(axis, angle);
+            if (motorVelocityWF.dot(_stepNormal) < 0.0f) {
+                // the motor pushes against step
+                btVector3 leverArm = _stepPoint;
+                motorVelocityWF = _stepNormal.cross(leverArm.cross(motorVelocityWF));
+                btScalar distortedLength = motorVelocityWF.length();
+                if (distortedLength > FLT_EPSILON) {
+                    // scale the motor in the correct direction and rotate back to motor-frame
+                    motorVelocityWF *= (motorVelocity.length() / distortedLength);
+                    motorVelocity += motorVelocityWF.rotate(axis, -angle);
+                    // make vTimescale as small as possible
+                    vTimescale = glm::min(vTimescale, motor.hTimescale);
+                }
+            }
+        }
+
         // split velocity into horizontal and vertical components
         btVector3 vVelocity = velocity.dot(up) * up;
         btVector3 hVelocity = velocity - vVelocity;
-        btVector3 vTargetVelocity = motor.velocity.dot(up) * up;
-        btVector3 hTargetVelocity = motor.velocity - vTargetVelocity;
+        btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
+        btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
 
         // modify each component separately
         btScalar maxTau = 0.0f;
@@ -503,8 +542,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
             maxTau = tau;
             hVelocity += (hTargetVelocity - hVelocity) * tau;
         }
-        if (motor.vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
-            btScalar tau = dt / motor.vTimescale;
+        if (vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
+            btScalar tau = dt / vTimescale;
             if (tau > 1.0f) {
                 tau = 1.0f;
             }
@@ -732,9 +771,6 @@ float CharacterController::measureMaxHipsOffsetRadius(const glm::vec3& currentHi
         btTransform startTransform = transform;
         startTransform.setOrigin(startPos);
         btVector3 endPos = startPos + rotation * ((maxSweepDistance / hipsOffsetLength) * hipsOffset);
-
-        // ensure sweep is horizontal.
-        startPos.setY(endPos.getY());
 
         // sweep test a sphere
         btSphereShape sphere(_radius);

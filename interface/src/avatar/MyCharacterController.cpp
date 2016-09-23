@@ -34,17 +34,6 @@ void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
         _pendingFlags &= ~PENDING_FLAG_UPDATE_SHAPE;
 
-        // compute new dimensions from avatar's bounding box
-        float x = _boxScale.x;
-        float z = _boxScale.z;
-        setCapsuleRadius(0.5f * sqrtf(0.5f * (x * x + z * z)));
-        _halfHeight = 0.5f * _boxScale.y - _radius;
-        float MIN_HALF_HEIGHT = 0.1f;
-        if (_halfHeight < MIN_HALF_HEIGHT) {
-            _halfHeight = MIN_HALF_HEIGHT;
-        }
-        // NOTE: _shapeLocalOffset is already computed
-
         if (_radius > 0.0f) {
             // create RigidBody if it doesn't exist
             if (!_rigidBody) {
