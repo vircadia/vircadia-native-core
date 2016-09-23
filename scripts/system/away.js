@@ -148,15 +148,7 @@ var eventMappingName = "io.highfidelity.away"; // goActive on hand controller bu
 var eventMapping = Controller.newMapping(eventMappingName);
 var avatarPosition = MyAvatar.position;
 
-// backward compatible version of getting HMD.mounted, so it works in old clients
-function safeGetHMDMounted() {
-    if (HMD.mounted === undefined) {
-        return true;
-    }
-    return HMD.mounted;
-}
-
-var wasHmdMounted = safeGetHMDMounted();
+var wasHmdMounted = HMD.mounted;
 
 function goAway() {
     if (isAway) {
@@ -188,7 +180,7 @@ function goAway() {
     // For HMD, the hmd preview will show the system mouse because of allowMouseCapture,
     // but we want to turn off our Reticle so that we don't get two in preview and a stuck one in headset.
     Reticle.visible = !HMD.active;
-    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+    wasHmdMounted = HMD.mounted; // always remember the correct state
 
     avatarPosition = MyAvatar.position;
     Script.update.connect(ifAvatarMovedGoActive);
@@ -229,7 +221,7 @@ function goActive() {
     if (HMD.active) {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
-    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+    wasHmdMounted = HMD.mounted; // always remember the correct state
 
     Script.update.disconnect(ifAvatarMovedGoActive);
 }
@@ -249,6 +241,8 @@ var wasHmdActive = HMD.active;
 var wasMouseCaptured = Reticle.mouseCaptured;
 
 function maybeGoAway() {
+
+    // If our active state change (went to or from HMD mode), and we are now in the HMD, go into away
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
@@ -267,11 +261,21 @@ function maybeGoAway() {
     }
 
     // If you've removed your HMD from your head, and we can detect it, we will also go away...
-    var hmdMounted = safeGetHMDMounted();
-    if (HMD.active && !hmdMounted && wasHmdMounted) {
-        wasHmdMounted = hmdMounted;
-        goAway();
+    if (HMD.mounted != wasHmdMounted) {
+        print("HMD mounted changed...");
+
+        // We're putting the HMD on... switch to those devices
+        if (HMD.mounted) {
+            print("NOW mounted...");
+        } else {
+            print("HMD NOW un-mounted...");
+
+            if (HMD.active) {
+                goAway();
+            }
+        }
     }
+    wasHmdMounted = HMD.mounted;
 }
 
 Script.update.connect(maybeMoveOverlay);
