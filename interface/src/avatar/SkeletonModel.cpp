@@ -124,10 +124,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
             hmdPositionInRigSpace = extractTranslation(rigHMDMat);
 
+            glm::vec3 capsuleStart = Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+            glm::vec3 capsuleEnd = -Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+
             // truncate head IK target if it's out of body
             if (myAvatar->isOutOfBody()) {
-                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, TRUNCATE_IK_CAPSULE_POSITION,
-                                                                         TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
+                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
             } else {
                 truncatedHMDPositionInRigSpace = hmdPositionInRigSpace;
             }

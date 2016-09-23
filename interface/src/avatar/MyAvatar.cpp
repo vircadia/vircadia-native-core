@@ -2300,16 +2300,11 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 }
 
 void MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar) {
-
-    // get HMD position from sensor space into world space, and back into rig space
     glm::mat4 worldHMDMat = myAvatar.getSensorToWorldMatrix() * myAvatar.getHMDSensorMatrix();
-    glm::mat4 rigToWorld = createMatFromQuatAndPos(myAvatar.getRotation() * Quaternions::Y_180, myAvatar.getPosition());
-    glm::mat4 worldToRig = glm::inverse(rigToWorld);
-    glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-    glm::vec3 rigHMDPosition = extractTranslation(rigHMDMat);
-
-    // detect if the rig head position is too far from the avatar's position.
-    _isOutOfBody = !pointIsInsideCapsule(rigHMDPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
+    glm::vec3 worldHMDPosition = extractTranslation(worldHMDMat);
+    glm::vec3 capsuleStart = myAvatar.getPosition() + Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+    glm::vec3 capsuleEnd = myAvatar.getPosition() - Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+    _isOutOfBody = !pointIsInsideCapsule(worldHMDPosition, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
 }
 
 float MyAvatar::getAccelerationEnergy() {
