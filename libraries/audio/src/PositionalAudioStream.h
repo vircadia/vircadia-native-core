@@ -27,7 +27,7 @@ public:
         Injector
     };
 
-    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings);
+    PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, int numStaticJitterFrames = -1);
 
     const QUuid DEFAULT_STREAM_IDENTIFIER = QUuid();
     virtual const QUuid& getStreamIdentifier() const { return DEFAULT_STREAM_IDENTIFIER; }

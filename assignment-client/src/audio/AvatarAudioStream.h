@@ -18,7 +18,7 @@
 
 class AvatarAudioStream : public PositionalAudioStream {
 public:
-    AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings);
+    AvatarAudioStream(bool isStereo, int numStaticJitterFrames = -1);
 
 private:
     // disallow copying of AvatarAudioStream objects

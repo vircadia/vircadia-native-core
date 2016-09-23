@@ -19,6 +19,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVariant>
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QDebug>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -74,7 +75,27 @@ namespace Setting {
         Handle(const QString& key, const T& defaultValue) : Interface(key), _defaultValue(defaultValue) {}
         Handle(const QStringList& path, const T& defaultValue) : Handle(path.join("/"), defaultValue) {}
 
-        virtual ~Handle() { deinit(); }
+        static Handle Deprecated(const QString& key) {
+            Handle handle = Handle(key);
+            handle.deprecate();
+            return handle;
+        }
+        static Handle Deprecated(const QStringList& path) {
+            return Deprecated(path.join("/"));
+        }
+
+        static Handle Deprecated(const QString& key, const T& defaultValue) {
+            Handle handle = Handle(key, defaultValue);
+            handle.deprecate();
+            return handle;
+        }
+        static Handle Deprecated(const QStringList& path, const T& defaultValue) {
+            return Deprecated(path.join("/"), defaultValue);
+        }
+
+        virtual ~Handle() {
+            deinit();
+        }
 
         // Returns setting value, returns its default value if not found
         T get() const {
@@ -102,6 +123,9 @@ namespace Setting {
                 _isSet = true;
                 save();
             }
+            if (_isDeprecated) {
+                deprecate();
+            }
         }
 
         void remove() {
@@ -117,8 +141,20 @@ namespace Setting {
         virtual QVariant getVariant() override { return QVariant::fromValue(get()); }
 
     private:
+        void deprecate() {
+            if (_isSet) {
+                if (get() != getDefault()) {
+                    qInfo().nospace() << "[DEPRECATION NOTICE] " << _key << "(" << get() << ") has been deprecated, and has no effect";
+                } else {
+                    remove();
+                }
+            }
+            _isDeprecated = true;
+        }
+
         T _value;
         const T _defaultValue;
+        bool _isDeprecated{ false };
     };
 
     template <typename T>

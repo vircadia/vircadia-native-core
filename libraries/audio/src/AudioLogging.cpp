@@ -18,3 +18,4 @@ Q_LOGGING_CATEGORY(audiostream, "hifi.audio-stream", QtInfoMsg)
 #else
 Q_LOGGING_CATEGORY(audiostream, "hifi.audio-stream", QtWarningMsg)
 #endif
+
