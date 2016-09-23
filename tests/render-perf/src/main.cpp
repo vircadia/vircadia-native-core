@@ -1129,7 +1129,7 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
     QTestWindow window;
-    window.loadCommands("C:/Users/bdavis/Git/dreaming/exports/commands.txt");
+    //window.loadCommands("C:/Users/bdavis/Git/dreaming/exports/commands.txt");
     app.exec();
     return 0;
 }
