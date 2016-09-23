@@ -27,9 +27,9 @@ void UserActivityLoggerScriptingInterface::toggledAway(bool isAway) {
 void UserActivityLoggerScriptingInterface::tutorialProgress(QString stepName, int stepNumber, float secondsToComplete, float tutorialElapsedTime) {
     logAction("tutorial_progress", {
         { "step", stepName },
-        { "stepNumber", stepNumber },
-        { "secondsToComplete", secondsToComplete },
-        { "tutorial_elapsed_time", tutorialElapsedTime }
+        { "step_number", stepNumber },
+        { "seconds_to_complete", secondsToComplete },
+        { "tutorial_elapsed_seconds", tutorialElapsedTime }
     });
 
 }
