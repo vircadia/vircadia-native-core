@@ -60,6 +60,32 @@ bool checkGLErrorDebug(const char* name) {
 #endif
 }
 
+gpu::Size getFreeDedicatedMemory() {
+    Size result { 0 };
+    static bool nvidiaMemorySupported { true };
+    static bool atiMemorySupported { true };
+    if (nvidiaMemorySupported) {
+        
+        GLint nvGpuMemory { 0 };
+        glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &nvGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(nvGpuMemory);
+        } else {
+            nvidiaMemorySupported = false;
+        }
+    } else if (atiMemorySupported) {
+        GLint atiGpuMemory[4];
+        // not really total memory, but close enough if called early enough in the application lifecycle
+        glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(atiGpuMemory[0]);
+        } else {
+            atiMemorySupported = false;
+        }
+    }
+    return result;
+}
+
 gpu::Size getDedicatedMemory() {
     static Size dedicatedMemory { 0 };
     static std::once_flag once;

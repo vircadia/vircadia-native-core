@@ -147,3 +147,8 @@ void GL45Backend::do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOf
     _stats._DSNumAPIDrawcalls++;
     (void)CHECK_GL_ERROR();
 }
+
+void GL45Backend::recycle() const {
+    Parent::recycle();
+    derezTextures();
+}
