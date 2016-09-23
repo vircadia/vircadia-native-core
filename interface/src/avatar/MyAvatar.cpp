@@ -1927,6 +1927,10 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
+glm::vec3 MyAvatar::getPreActionVelocity() const {
+    return _characterController.getPreActionLinearVelocity();
+}
+
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
