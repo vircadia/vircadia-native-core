@@ -25,8 +25,12 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
+#ifdef Q_OS_WIN
 static const QString DEBUG_FLAG("HIFI_DISABLE_SPARSE_TEXTURES");
 static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#else
+static bool enableSparseTextures = false;
+#endif
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
