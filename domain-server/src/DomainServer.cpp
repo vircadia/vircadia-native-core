@@ -1278,41 +1278,43 @@ void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
 }
 
 void DomainServer::sendICEServerAddressToMetaverseAPI() {
-    if (!_iceServerSocket.isNull()) {
-        const QString ICE_SERVER_ADDRESS = "ice_server_address";
+    const QString ICE_SERVER_ADDRESS = "ice_server_address";
 
-        QJsonObject domainObject;
+    QJsonObject domainObject;
 
+    if (!_connectedToICEServer || _iceServerSocket.isNull()) {
+        domainObject[ICE_SERVER_ADDRESS] = "0.0.0.0";
+    } else {
         // we're using full automatic networking and we have a current ice-server socket, use that now
         domainObject[ICE_SERVER_ADDRESS] = _iceServerSocket.getAddress().toString();
-
-        const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
-        if (!temporaryDomainKey.isEmpty()) {
-            // add the temporary domain token
-            const QString KEY_KEY = "api_key";
-            domainObject[KEY_KEY] = temporaryDomainKey;
-        }
-
-        QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-
-        // make sure we hear about failure so we can retry
-        JSONCallbackParameters callbackParameters;
-        callbackParameters.errorCallbackReceiver = this;
-        callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
-
-        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-                   ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
-        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
-                 << _iceServerSocket.getAddress().toString();
-
-        static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
-
-        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_ICE_ADDRESS_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
-                                                  AccountManagerAuth::Optional,
-                                                  QNetworkAccessManager::PutOperation,
-                                                  callbackParameters,
-                                                  domainUpdateJSON.toUtf8());
     }
+
+    const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
+    if (!temporaryDomainKey.isEmpty()) {
+        // add the temporary domain token
+        const QString KEY_KEY = "api_key";
+        domainObject[KEY_KEY] = temporaryDomainKey;
+    }
+
+    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+
+    // make sure we hear about failure so we can retry
+    JSONCallbackParameters callbackParameters;
+    callbackParameters.errorCallbackReceiver = this;
+    callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
+
+    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+        ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
+    qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+             << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+
+    static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
+
+    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_ICE_ADDRESS_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
+                                                          AccountManagerAuth::Optional,
+                                                          QNetworkAccessManager::PutOperation,
+                                                          callbackParameters,
+                                                          domainUpdateJSON.toUtf8());
 }
 
 void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
@@ -1364,6 +1366,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 
             // reset the connection flag for ICE server
             _connectedToICEServer = false;
+            sendICEServerAddressToMetaverseAPI();
 
             // randomize our ice-server address (and simultaneously look up any new hostnames for available ice-servers)
             randomizeICEServerAddress(true);
@@ -2336,6 +2339,7 @@ void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> 
 
     if (!_connectedToICEServer) {
         _connectedToICEServer = true;
+        sendICEServerAddressToMetaverseAPI();
         qInfo() << "Connected to ice-server at" << _iceServerSocket;
     }
 }
