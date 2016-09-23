@@ -11,13 +11,11 @@
 
 #include "TCPRenoCC.h"
 
+#include <algorithm>
 
 using namespace udt;
 
 void TCPRenoCC::init() {
-    _slowStart = true;
-    _issThreshold = 83333;
-
     _packetSendPeriod = 0.0;
     _congestionWindowSize = 2.0;
 
@@ -26,59 +24,70 @@ void TCPRenoCC::init() {
 }
 
 void TCPRenoCC::onACK(SequenceNumber ackNum) {
-    if (ackNum == _lastACK) {
-        if (3 == ++_duplicateAckCount) {
-            duplicateACKAction();
-        } else if (_duplicateAckCount > 3) {
-            _congestionWindowSize += 1.0;
-        } else {
-            ackAction();
+    int numAcked = seqlen(_lastACK, ackNum);
+
+    performCongestionAvoidance(ackNum, numAcked);
+
+    _lastACK = ackNum;
+}
+
+bool TCPRenoCC::isInSlowStart() {
+    return _sendCongestionWindowSize < _sendSlowStartThreshold;
+}
+
+int TCPRenoCC::slowStart(int numAcked) {
+    int congestionWindow = std::min(_sendCongestionWindowSize + numAcked, _sendSlowStartThreshold);
+    numAcked -= congestionWindow - _sendCongestionWindowSize;
+    _sendCongestionWindowSize = std::min(congestionWindow, _sendCongestionWindowClamp);
+
+    return numAcked;
+}
+
+int TCPRenoCC::slowStartThreshold() {
+    // Slow start threshold is half the congestion window (min 2)
+    return std::max(_sendCongestionWindowSize >> 1, 2);
+}
+
+bool TCPRenoCC::isCongestionWindowLimited() {
+    if (isInSlowStart()) {
+        return _sendCongestionWindowSize < 2 * _maxPacketsOut;
+    }
+
+    return _isCongestionWindowLimited;
+}
+
+void TCPRenoCC::performCongestionAvoidance(SequenceNumber ack, int numAcked) {
+    if (!isCongestionWindowLimited()) {
+        return;
+    }
+
+    // In "safe" area, increase.
+    if (isInSlowStart()) {
+        numAcked = slowStart(numAcked);
+        if (!numAcked) {
+            return;
         }
-    } else {
-        if (_duplicateAckCount >= 3) {
-            _congestionWindowSize = _issThreshold;
-        }
-
-        _lastACK = ackNum;
-        _duplicateAckCount = 1;
-
-        ackAction();
-    }
-}
-
-void TCPRenoCC::onTimeout() {
-    _issThreshold = seqlen(_lastACK, _sendCurrSeqNum) / 2;
-    if (_issThreshold < 2) {
-        _issThreshold = 2;
     }
 
-    _slowStart = true;
-    _congestionWindowSize = 2.0;
+    // In dangerous area, increase slowly.
+    performCongestionAvoidanceAI(_sendCongestionWindowSize, numAcked);
 }
 
-void TCPRenoCC::ackAction() {
-    if (_slowStart) {
-        _congestionWindowSize += 1.0;
-
-        if (_congestionWindowSize >= _issThreshold) {
-            _slowStart = false;
-        }
-    } else {
-        _congestionWindowSize += 1.0 / _congestionWindowSize;
-    }
-}
-
-void TCPRenoCC::duplicateACKAction() {
-    _slowStart = false;
-
-    _issThreshold = seqlen(_lastACK, _sendCurrSeqNum) / 2;
-    if (_issThreshold < 2) {
-        _issThreshold = 2;
+void TCPRenoCC::performCongestionAvoidanceAI(int sendCongestionWindowSize, int numAcked) {
+    // If credits accumulated at a higher w, apply them gently now.
+    if (_sendCongestionWindowCount >= sendCongestionWindowSize) {
+        _sendCongestionWindowCount = 0;
+        _sendCongestionWindowSize++;
     }
 
-    _congestionWindowSize = _issThreshold + 3;
+    _sendCongestionWindowCount += numAcked;
+    if (_sendCongestionWindowCount >= sendCongestionWindowSize) {
+        int delta = _sendCongestionWindowCount / sendCongestionWindowSize;
+
+        _sendCongestionWindowCount -= delta * sendCongestionWindowSize;
+        _sendCongestionWindowCount += delta;
+    }
+    _sendCongestionWindowCount = std::min(_sendCongestionWindowCount, _sendCongestionWindowClamp);
+
 }
 
-void TCPRenoCC::setInitialSendSequenceNumber(SequenceNumber seqNum) {
-    _lastACK = seqNum - 1;
-}

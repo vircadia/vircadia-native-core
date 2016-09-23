@@ -20,17 +20,27 @@ class TCPRenoCC : public CongestionControl {
 public:
     virtual void init();
     virtual void onACK(SequenceNumber ackNum);
-    virtual void onTimeout();
 
 protected:
-    virtual void ackAction();
-    virtual void duplicateACKAction();
-    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum);
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) { _lastACK = seqNum - 1; }
 
-    int _issThreshold;
-    bool _slowStart;
-    
-    int _duplicateAckCount;
+    bool isInSlowStart();
+    int slowStart(int numAcked);
+    int slowStartThreshold();
+
+    bool isCongestionWindowLimited();
+    void performCongestionAvoidanceAI(int sendCongestionWindowSize, int numAcked);
+
+    virtual void performCongestionAvoidance(SequenceNumber ack, int numAcked);
+
+
+    int _sendSlowStartThreshold;
+    int _sendCongestionWindowSize;
+    int _sendCongestionWindowCount;
+    int _sendCongestionWindowClamp = ~0;
+    int _maxPacketsOut;
+    bool _isCongestionWindowLimited;
+
     SequenceNumber _lastACK;
 };
 
