@@ -545,6 +545,10 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     return finishQmlLoad(f);
 }
 
+void OffscreenQmlSurface::clearCache() {
+    getRootContext()->engine()->clearComponentCache();
+}
+
 void OffscreenQmlSurface::requestUpdate() {
     _polish = true;
     _render = true;
