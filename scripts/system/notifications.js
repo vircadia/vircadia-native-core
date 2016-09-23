@@ -58,6 +58,8 @@
 //      }
 //  }
 
+/* global Script, Controller, Overlays, SoundArray, Quat, Vec3, MyAvatar, Menu, HMD, AudioDevice, LODManager, Settings, Camera */
+
 (function() { // BEGIN LOCAL_SCOPE
 
 Script.include("./libraries/soundArray.js");
@@ -76,11 +78,9 @@ var fontSize = 12.0;
 var PERSIST_TIME_2D = 10.0;  // Time in seconds before notification fades
 var PERSIST_TIME_3D = 15.0;
 var persistTime = PERSIST_TIME_2D;
-var clickedText = false;
 var frame = 0;
 var ourWidth = Window.innerWidth;
 var ourHeight = Window.innerHeight;
-var text = "placeholder";
 var ctrlIsPressed = false;
 var ready = true;
 var MENU_NAME = 'Tools > Notifications';
@@ -97,12 +97,14 @@ var NotificationType = {
     WINDOW_RESIZE: 3,
     LOD_WARNING: 4,
     CONNECTION_REFUSED: 5,
+    EDIT_ERROR: 6,
     properties: [
         { text: "Mute Toggle" },
         { text: "Snapshot" },
         { text: "Window Resize" },
         { text: "Level of Detail" },
-        { text: "Connection Refused" }
+        { text: "Connection Refused" },
+        { text: "Edit error" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -253,6 +255,9 @@ function notify(notice, button, height, imageProperties, image) {
 
         positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
 
+        notice.parentID = MyAvatar.sessionUUID;
+        notice.parentJointIndex = -2;
+
         if (!image) {
             notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
             notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
@@ -270,6 +275,8 @@ function notify(notice, button, height, imageProperties, image) {
         button.url = button.imageURL;
         button.scale = button.width * NOTIFICATION_3D_SCALE;
         button.isFacingAvatar = false;
+        button.parentID = MyAvatar.sessionUUID;
+        button.parentJointIndex = -2;
 
         buttons.push((Overlays.addOverlay("image3d", button)));
         overlay3DDetails.push({
@@ -279,6 +286,34 @@ function notify(notice, button, height, imageProperties, image) {
             width: noticeWidth,
             height: noticeHeight
         });
+
+
+        var defaultEyePosition,
+            avatarOrientation,
+            notificationPosition,
+            notificationOrientation,
+            buttonPosition;
+
+        if (isOnHMD && notifications.length > 0) {
+            // Update 3D overlays to maintain positions relative to avatar
+            defaultEyePosition = MyAvatar.getDefaultEyePosition();
+            avatarOrientation = MyAvatar.orientation;
+
+            for (i = 0; i < notifications.length; i += 1) {
+                notificationPosition = Vec3.sum(defaultEyePosition,
+                                                Vec3.multiplyQbyV(avatarOrientation,
+                                                                  overlay3DDetails[i].notificationPosition));
+                notificationOrientation = Quat.multiply(avatarOrientation,
+                                                        overlay3DDetails[i].notificationOrientation);
+                buttonPosition = Vec3.sum(defaultEyePosition,
+                                          Vec3.multiplyQbyV(avatarOrientation,
+                                                            overlay3DDetails[i].buttonPosition));
+                Overlays.editOverlay(notifications[i], { position: notificationPosition,
+                                                         rotation: notificationOrientation });
+                Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: notificationOrientation });
+            }
+        }
+
     } else {
         if (!image) {
             notificationText = Overlays.addOverlay("text", notice);
@@ -429,11 +464,6 @@ function update() {
         noticeOut,
         buttonOut,
         arraysOut,
-        defaultEyePosition,
-        avatarOrientation,
-        notificationPosition,
-        notificationOrientation,
-        buttonPosition,
         positions,
         i,
         j,
@@ -457,7 +487,8 @@ function update() {
             Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
             Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
             if (isOnHMD) {
-                positions = calculate3DOverlayPositions(overlay3DDetails[i].width, overlay3DDetails[i].height, locationY);
+                positions = calculate3DOverlayPositions(overlay3DDetails[i].width,
+                                                        overlay3DDetails[i].height, locationY);
                 overlay3DDetails[i].notificationOrientation = positions.notificationOrientation;
                 overlay3DDetails[i].notificationPosition = positions.notificationPosition;
                 overlay3DDetails[i].buttonPosition = positions.buttonPosition;
@@ -478,22 +509,6 @@ function update() {
                 arraysOut = i;
                 fadeOut(noticeOut, buttonOut, arraysOut);
             }
-        }
-    }
-
-    if (isOnHMD && notifications.length > 0) {
-        // Update 3D overlays to maintain positions relative to avatar
-        defaultEyePosition = MyAvatar.getDefaultEyePosition();
-        avatarOrientation = MyAvatar.orientation;
-
-        for (i = 0; i < notifications.length; i += 1) {
-            notificationPosition = Vec3.sum(defaultEyePosition,
-                Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].notificationPosition));
-            notificationOrientation = Quat.multiply(avatarOrientation, overlay3DDetails[i].notificationOrientation);
-            buttonPosition = Vec3.sum(defaultEyePosition,
-                Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].buttonPosition));
-            Overlays.editOverlay(notifications[i], { position: notificationPosition, rotation: notificationOrientation });
-            Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: notificationOrientation });
         }
     }
 }
@@ -532,12 +547,17 @@ function onDomainConnectionRefused(reason) {
     createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
 }
 
+function onEditError(msg) {
+    createNotification(wordWrap(msg), NotificationType.EDIT_ERROR);
+}
+
+
 function onSnapshotTaken(path, notify) {
     if (notify) {
         var imageProperties = {
             path: "file:///" + path,
             aspectRatio: Window.innerWidth / Window.innerHeight
-        }
+        };
         createNotification(wordWrap("Snapshot saved to " + path), NotificationType.SNAPSHOT, imageProperties);
     }
 }
@@ -571,8 +591,6 @@ function keyReleaseEvent(key) {
 
 //  Triggers notification on specific key driven events
 function keyPressEvent(key) {
-    var noteString;
-
     if (key.key === 16777249) {
         ctrlIsPressed = true;
     }
@@ -622,13 +640,13 @@ function menuItemEvent(menuItem) {
 }
 
 LODManager.LODDecreased.connect(function() {
-    var warningText = "\n"
-            + "Due to the complexity of the content, the \n"
-            + "level of detail has been decreased. "
-            + "You can now see: \n"
-            + LODManager.getLODFeedbackText();
+    var warningText = "\n" +
+        "Due to the complexity of the content, the \n" +
+        "level of detail has been decreased. " +
+        "You can now see: \n" +
+        LODManager.getLODFeedbackText();
 
-    if (lodTextID == false) {
+    if (lodTextID === false) {
         lodTextID = createNotification(warningText, NotificationType.LOD_WARNING);
     } else {
         Overlays.editOverlay(lodTextID, { text: warningText });
@@ -644,6 +662,7 @@ Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
+Window.notifyEditError = onEditError;
 
 setup();
 

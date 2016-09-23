@@ -64,7 +64,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
-            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
+            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
             return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);

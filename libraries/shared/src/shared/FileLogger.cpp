@@ -15,11 +15,12 @@
 #include <QtCore/QDir>
 #include <QtGui/QDesktopServices>
 
-#include <NumericalConstants.h>
-#include <FileUtils.h>
-#include <SharedUtil.h>
+#include "FileUtils.h"
+#include "NetworkUtils.h"
 
-#include "HifiSockAddr.h"
+#include "../NumericalConstants.h"
+#include "../SharedUtil.h"
+
 
 static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";

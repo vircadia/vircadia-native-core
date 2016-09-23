@@ -25,6 +25,7 @@ void serverWait();
 void clientWait();
 
 gpu::Size getDedicatedMemory();
+gpu::Size getFreeDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);
 State::BlendOp blendOpFromGL(GLenum blendOp);

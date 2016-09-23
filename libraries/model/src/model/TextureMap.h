@@ -47,7 +47,7 @@ public:
     static const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
     static void defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip,
         const QImage& srcImage, bool isLinear, bool doCompress);
-    static gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, bool isLinear, bool doCompress, bool generateMips);
+    static gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips);
     static gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance);
 
 };

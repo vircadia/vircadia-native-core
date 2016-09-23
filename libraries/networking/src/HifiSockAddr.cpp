@@ -124,36 +124,6 @@ QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
     return dataStream;
 }
 
-QHostAddress getGuessedLocalAddress() {
-
-    QHostAddress localAddress;
-
-    foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
-        if (networkInterface.flags() & QNetworkInterface::IsUp
-            && networkInterface.flags() & QNetworkInterface::IsRunning
-            && networkInterface.flags() & ~QNetworkInterface::IsLoopBack) {
-            // we've decided that this is the active NIC
-            // enumerate it's addresses to grab the IPv4 address
-            foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
-                // make sure it's an IPv4 address that isn't the loopback
-                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-
-                    // set our localAddress and break out
-                    localAddress = entry.ip();
-                    break;
-                }
-            }
-        }
-
-        if (!localAddress.isNull()) {
-            break;
-        }
-    }
-
-    // return the looked up local address
-    return localAddress;
-}
-
 uint qHash(const HifiSockAddr& key, uint seed) {
     // use the existing QHostAddress and quint16 hash functions to get our hash
     return qHash(key.getAddress(), seed) ^ qHash(key.getPort(), seed);
