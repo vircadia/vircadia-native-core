@@ -10,6 +10,7 @@
 //
 
 #include "MixedProcessedAudioStream.h"
+#include "AudioLogging.h"
 
 static const int STEREO_FACTOR = 2;
 
@@ -56,6 +57,7 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
     emit processSamples(decodedBuffer, outputBuffer);
 
     _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
+    qCDebug(audiostream, "Wrote %d samples to buffer (%d available)", outputBuffer.size() / (int)sizeof(int16_t), getSamplesAvailable());
     
     return packetAfterStreamProperties.size();
 }

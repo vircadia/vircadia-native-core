@@ -1093,7 +1093,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             glm::vec3 handPosition = params.leftPosition;
 
             // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 displacement(glm::vec3::_null);
+            glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
             }
@@ -1112,7 +1112,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             glm::vec3 handPosition = params.rightPosition;
 
             // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 displacement(glm::vec3::_null);
+            glm::vec3 displacement;
             if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
                 handPosition -= displacement;
             }

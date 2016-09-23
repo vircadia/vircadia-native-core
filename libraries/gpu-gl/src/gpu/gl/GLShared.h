@@ -18,6 +18,12 @@ Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 
 namespace gpu { namespace gl { 
 
+// Create a fence and inject a GPU wait on the fence
+void serverWait();
+
+// Create a fence and synchronously wait on the fence
+void clientWait();
+
 gpu::Size getDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);

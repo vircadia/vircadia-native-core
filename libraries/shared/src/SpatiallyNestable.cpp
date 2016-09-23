@@ -797,7 +797,7 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
 }
 
 glm::vec3 SpatiallyNestable::getLocalVelocity() const {
-    glm::vec3 result(glm::vec3::_null);
+    glm::vec3 result;
     _velocityLock.withReadLock([&] {
         result = _velocity;
     });
@@ -811,7 +811,7 @@ void SpatiallyNestable::setLocalVelocity(const glm::vec3& velocity) {
 }
 
 glm::vec3 SpatiallyNestable::getLocalAngularVelocity() const {
-    glm::vec3 result(glm::vec3::_null);
+    glm::vec3 result;
     _angularVelocityLock.withReadLock([&] {
         result = _angularVelocity;
     });

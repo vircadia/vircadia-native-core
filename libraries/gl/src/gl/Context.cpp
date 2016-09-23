@@ -20,6 +20,8 @@
 #include <QtGui/QGuiApplication>
 
 #include <GLMHelpers.h>
+#include "GLLogging.h"
+
 
 #ifdef Q_OS_WIN
 
@@ -111,7 +113,7 @@ void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLen
     if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
         return;
     }
-    qDebug() << "QQQ " << message;
+    qCDebug(glLogging) << "QQQ " << message;
 }
 
 // FIXME build the PFD based on the 

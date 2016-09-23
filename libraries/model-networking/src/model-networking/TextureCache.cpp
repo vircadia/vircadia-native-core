@@ -18,12 +18,15 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <QImageReader>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include <gpu/Batch.h>
 
+#include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 
 #include <Finally.h>
@@ -307,6 +310,24 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArra
     _url(url),
     _content(data)
 {
+#if DEBUG_DUMP_TEXTURE_LOADS
+    static auto start = usecTimestampNow() / USECS_PER_MSEC;
+    auto now = usecTimestampNow() / USECS_PER_MSEC - start;
+    QString urlStr = _url.toString();
+    auto dot = urlStr.lastIndexOf(".");
+    QString outFileName = QString(QCryptographicHash::hash(urlStr.toLocal8Bit(), QCryptographicHash::Md5).toHex()) + urlStr.right(urlStr.length() - dot);
+    QFile loadRecord("h:/textures/loads.txt");
+    loadRecord.open(QFile::Text | QFile::Append | QFile::ReadWrite);
+    loadRecord.write(QString("%1 %2\n").arg(now).arg(outFileName).toLocal8Bit());
+    outFileName = "h:/textures/" + outFileName;
+    QFileInfo outInfo(outFileName);
+    if (!outInfo.exists()) {
+        QFile outFile(outFileName);
+        outFile.open(QFile::WriteOnly | QFile::Truncate);
+        outFile.write(data);
+        outFile.close();
+    }
+#endif
 }
 
 void ImageReader::listSupportedImageFormats() {

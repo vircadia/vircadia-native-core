@@ -277,6 +277,23 @@ void setupPreferences() {
         preference->setStep(1);
         preferences->addPreference(preference);
     }
+#if DEV_BUILD || PR_BUILD
+    {
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->isSimulatingJitter(); };
+        auto setter = [](bool value) { return DependencyManager::get<AudioClient>()->setIsSimulatingJitter(value); };
+        auto preference = new CheckPreference(AUDIO, "Packet jitter simulator", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
+        auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Packet throttle threshold", getter, setter);
+        preference->setMin(1);
+        preference->setMax(200);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+#endif
 
     {
         auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
@@ -329,6 +346,21 @@ void setupPreferences() {
             auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
             auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
             preference->setItems(shadowConfig->getPresetList());
+            preferences->addPreference(preference);
+        }
+    }
+    {
+        static const QString RENDER("Networking");
+
+        auto nodelist = DependencyManager::get<NodeList>();
+        {
+            static const int MIN_PORT_NUMBER { 0 };
+            static const int MAX_PORT_NUMBER { 65535 };
+            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
+            auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto preference = new IntSpinnerPreference(RENDER, "Listening Port", getter, setter);
+            preference->setMin(MIN_PORT_NUMBER);
+            preference->setMax(MAX_PORT_NUMBER);
             preferences->addPreference(preference);
         }
     }

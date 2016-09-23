@@ -512,7 +512,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
-            batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
+            batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
@@ -536,7 +536,7 @@ void OpenGLDisplayPlugin::compositePointer() {
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
-            batch.setViewportTransform(ivec4(uvec2(0), _currentFrame->framebuffer->getSize()));
+            batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
@@ -726,7 +726,7 @@ bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 }
 
 ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
-    uvec2 vpSize = _currentFrame->framebuffer->getSize();
+    uvec2 vpSize = _compositeFramebuffer->getSize();
     vpSize.x /= 2;
     uvec2 vpPos;
     if (eye == Eye::Right) {

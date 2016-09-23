@@ -14,6 +14,9 @@ link_hifi_libraries(shared octree gl gpu gpu-gl render model model-networking ne
 
 package_libraries_for_deployment()
 
+target_gli()
+target_glm()
+
 target_zlib()
 add_dependency_external_projects(quazip)
 find_package(QuaZip REQUIRED)

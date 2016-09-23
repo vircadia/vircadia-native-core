@@ -18,6 +18,29 @@ namespace gpu { namespace gl45 {
     
 using namespace gpu::gl;
 
+struct TransferState {
+    GLTexture& _texture;
+    GLenum _internalFormat { GL_RGBA8 };
+    GLTexelFormat _texelFormat;
+    uint8_t _face { 0 };
+    uint16_t  _mipLevel { 0 };
+    uint32_t _bytesPerLine { 0 };
+    uint32_t _bytesPerPixel { 0 };
+    uint32_t _bytesPerPage { 0 };
+    GLuint _maxSparseLevel { 0 };
+
+    uvec3 _mipDimensions;
+    uvec3 _mipOffset;
+    uvec3 _pageSize;
+    const uint8_t* _srcPointer { nullptr };
+    uvec3 currentPageSize() const;
+    void updateSparse();
+    void updateMip();
+    void populatePage(std::vector<uint8_t>& dest);
+    bool increment();
+    TransferState(GLTexture& texture);
+};
+
 class GL45Backend : public GLBackend {
     using Parent = GLBackend;
     // Context Backend static interface required
@@ -29,19 +52,25 @@ public:
 
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
-        GLuint allocate(const Texture& texture);
+        static GLuint allocate(const Texture& texture);
     public:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLTexture* original);
+        ~GL45Texture();
 
     protected:
+        void startTransfer() override;
+        bool continueTransfer() override;
+        void incrementalTransfer(const uvec3& size, const gpu::Texture::PixelsPointer& mip, std::function<void(const ivec3& offset, const uvec3& size)> f) const;
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
+        void allocateMip(uint16_t mipLevel, uint8_t face = 0) const;
         void allocateStorage() const override;
         void updateSize() const override;
-        void transfer() const override;
         void syncSampler() const override;
         void generateMips() const override;
         void withPreservedTexture(std::function<void()> f) const override;
+
+        TransferState _transferState;
     };
 
 

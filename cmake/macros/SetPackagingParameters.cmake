@@ -18,6 +18,13 @@ macro(SET_PACKAGING_PARAMETERS)
 
   set(RELEASE_TYPE $ENV{RELEASE_TYPE})
   set(RELEASE_NUMBER $ENV{RELEASE_NUMBER})
+  string(TOLOWER "$ENV{BRANCH}" BUILD_BRANCH)
+  set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
+  set(USE_STABLE_GLOBAL_SERVICES FALSE)
+
+  message(STATUS "The BUILD_BRANCH variable is: ${BUILD_BRANCH}")
+  message(STATUS "The BRANCH environment variable is: $ENV{BRANCH}")
+  message(STATUS "The RELEASE_TYPE variable is: ${RELEASE_TYPE}")
 
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
@@ -30,6 +37,14 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # add definition for this release type
     add_definitions(-DPRODUCTION_BUILD)
+
+    # if the build is a PRODUCTION_BUILD from the "stable" branch
+    # then use the STABLE gobal services
+    if (BUILD_BRANCH STREQUAL "stable")
+      message(STATUS "The RELEASE_TYPE is PRODUCTION and the BUILD_BRANCH is stable...")
+      set(BUILD_GLOBAL_SERVICES "STABLE")
+      set(USE_STABLE_GLOBAL_SERVICES TRUE)
+    endif()
 
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
@@ -131,6 +146,10 @@ macro(SET_PACKAGING_PARAMETERS)
   set(DDE_COMPONENT dde)
   set(CLIENT_COMPONENT client)
   set(SERVER_COMPONENT server)
+
+  # print out some results for testing this new build feature
+  message(STATUS "The BUILD_GLOBAL_SERVICES variable is: ${BUILD_GLOBAL_SERVICES}")
+  message(STATUS "The USE_STABLE_GLOBAL_SERVICES variable is: ${USE_STABLE_GLOBAL_SERVICES}")
 
   # create a header file our targets can use to find out the application version
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")

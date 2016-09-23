@@ -270,6 +270,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     downstreamStats["desired"] = streamStats._desiredJitterBufferFrames;
     downstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
     downstreamStats["available"] = (double) streamStats._framesAvailable;
+    downstreamStats["unplayed"] = (double) streamStats._unplayedMs;
     downstreamStats["starves"] = (double) streamStats._starveCount;
     downstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
     downstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -294,6 +295,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
         upstreamStats["desired_calc"] = avatarAudioStream->getCalculatedJitterBufferFrames();
         upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
         upstreamStats["available"] = (double) streamStats._framesAvailable;
+        upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
         upstreamStats["starves"] = (double) streamStats._starveCount;
         upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
         upstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -323,6 +325,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
             upstreamStats["desired_calc"] = injectorPair.second->getCalculatedJitterBufferFrames();
             upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
             upstreamStats["available"] = (double) streamStats._framesAvailable;
+            upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
             upstreamStats["starves"] = (double) streamStats._starveCount;
             upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
             upstreamStats["overflows"] = (double) streamStats._overflowCount;

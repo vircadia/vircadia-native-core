@@ -767,72 +767,79 @@ void disableQtBearerPoll() {
 
 void printSystemInformation() {
     // Write system information to log
-    qDebug() << "Build Information";
-    qDebug().noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
-    qDebug().noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
+    qCDebug(shared) << "Build Information";
+    qCDebug(shared).noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
+    qCDebug(shared).noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
 
-    qDebug().noquote() << "System Information";
-    qDebug().noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
-    qDebug().noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
-    qDebug().noquote() << "\tKernel Type: " << QSysInfo::kernelType();
-    qDebug().noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
+    qCDebug(shared).noquote() << "System Information";
+    qCDebug(shared).noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
+    qCDebug(shared).noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
+    qCDebug(shared).noquote() << "\tKernel Type: " << QSysInfo::kernelType();
+    qCDebug(shared).noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
 
     auto macVersion = QSysInfo::macVersion();
     if (macVersion != QSysInfo::MV_None) {
-        qDebug() << "\tMac Version: " << macVersion;
+        qCDebug(shared) << "\tMac Version: " << macVersion;
     }
 
     auto windowsVersion = QSysInfo::windowsVersion();
     if (windowsVersion != QSysInfo::WV_None) {
-        qDebug() << "\tWindows Version: " << windowsVersion;
+        qCDebug(shared) << "\tWindows Version: " << windowsVersion;
     }
 
 #ifdef Q_OS_WIN
     SYSTEM_INFO si;
     GetNativeSystemInfo(&si);
 
-    qDebug() << "SYSTEM_INFO";
-    qDebug().noquote() << "\tOEM ID: " << si.dwOemId;
-    qDebug().noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
-    qDebug().noquote() << "\tProcessor Type: " << si.dwProcessorType;
-    qDebug().noquote() << "\tProcessor Level: " << si.wProcessorLevel;
-    qDebug().noquote() << "\tProcessor Revision: "
+    qCDebug(shared) << "SYSTEM_INFO";
+    qCDebug(shared).noquote() << "\tOEM ID: " << si.dwOemId;
+    qCDebug(shared).noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
+    qCDebug(shared).noquote() << "\tProcessor Type: " << si.dwProcessorType;
+    qCDebug(shared).noquote() << "\tProcessor Level: " << si.wProcessorLevel;
+    qCDebug(shared).noquote() << "\tProcessor Revision: "
                        << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
-    qDebug().noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
-    qDebug().noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
-    qDebug().noquote() << "\tMin Application Address: "
+    qCDebug(shared).noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
+    qCDebug(shared).noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
+    qCDebug(shared).noquote() << "\tMin Application Address: "
                        << QString("0x%1").arg(qulonglong(si.lpMinimumApplicationAddress), 16, 16, QChar('0'));
-    qDebug().noquote() << "\tMax Application Address: "
+    qCDebug(shared).noquote() << "\tMax Application Address: "
                        << QString("0x%1").arg(qulonglong(si.lpMaximumApplicationAddress), 16, 16, QChar('0'));
 
     const double BYTES_TO_MEGABYTE = 1.0 / (1024 * 1024);
 
-    qDebug() << "MEMORYSTATUSEX";
+    qCDebug(shared) << "MEMORYSTATUSEX";
     MEMORYSTATUSEX ms;
     ms.dwLength = sizeof(ms);
     if (GlobalMemoryStatusEx(&ms)) {
-        qDebug().noquote() << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
-        qDebug().noquote() << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
-        qDebug().noquote() << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(shared).noquote()
+            << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
     } else {
-        qDebug() << "\tFailed to retrieve memory status: " << GetLastError();
+        qCDebug(shared) << "\tFailed to retrieve memory status: " << GetLastError();
     }
 
-    qDebug() << "CPUID";
+    qCDebug(shared) << "CPUID";
 
-    qDebug() << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
-    qDebug() << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
+    qCDebug(shared) << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qCDebug(shared) << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
 
     for (auto& feature : CPUIdent::getAllFeatures()) {
-        qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
+        qCDebug(shared).nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
 #endif
 
-    qDebug() << "Environment Variables";
+    qCDebug(shared) << "Environment Variables";
     // List of env variables to include in the log. For privacy reasons we don't send all env variables.
     const QStringList envWhitelist = {
         "QTWEBENGINE_REMOTE_DEBUGGING"
@@ -840,7 +847,7 @@ void printSystemInformation() {
     auto envVariables = QProcessEnvironment::systemEnvironment();
     for (auto& env : envWhitelist)
     {
-        qDebug().noquote().nospace() << "\t" <<
+        qCDebug(shared).noquote().nospace() << "\t" <<
             (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
 }

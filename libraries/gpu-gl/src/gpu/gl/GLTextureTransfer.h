@@ -23,27 +23,38 @@
 
 namespace gpu { namespace gl {
 
-struct TextureTransferPackage {
-    std::weak_ptr<Texture> texture;
-    GLsync fence;
-};
+using TextureList = std::list<TexturePointer>;
+using TextureListIterator = TextureList::iterator;
 
-class GLTextureTransferHelper : public GenericQueueThread<TextureTransferPackage> {
+class GLTextureTransferHelper : public GenericThread {
 public:
     using Pointer = std::shared_ptr<GLTextureTransferHelper>;
     GLTextureTransferHelper();
     ~GLTextureTransferHelper();
     void transferTexture(const gpu::TexturePointer& texturePointer);
-    void postTransfer(const gpu::TexturePointer& texturePointer);
 
 protected:
     void setup() override;
     void shutdown() override;
-    bool processQueueItems(const Queue& messages) override;
-    void do_transfer(GLTexture& texturePointer);
+    bool process() override;
 
 private:
+#ifdef THREADED_TEXTURE_TRANSFER
     ::gl::OffscreenContext _context;
+    // A mutex for protecting items access on the render and transfer threads
+    Mutex _mutex;
+    // Textures that have been submitted for transfer
+    TextureList _pendingTextures;
+    // Textures currently in the transfer process
+    // Only used on the transfer thread
+    TextureList _transferringTextures;
+    TextureListIterator _textureIterator;
+
+    // Framebuffers / renderbuffers for forcing access to the texture on the transfer thread
+    GLuint _drawRenderbuffer { 0 };
+    GLuint _drawFramebuffer { 0 };
+    GLuint _readFramebuffer { 0 };
+#endif
 };
 
 } }
