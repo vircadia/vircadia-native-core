@@ -898,7 +898,6 @@ void AudioMixer::broadcastMixes() {
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
     if (settingsObject.contains(AUDIO_BUFFER_GROUP_KEY)) {
         QJsonObject audioBufferGroupObject = settingsObject[AUDIO_BUFFER_GROUP_KEY].toObject();
-        qDebug() << audioBufferGroupObject;
 
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
