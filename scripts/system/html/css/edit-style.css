@@ -366,6 +366,10 @@ input[type=button]:disabled {
     background: linear-gradient(#575757 20%, #252525 100%);
 }
 
+input[type=button][pressed=pressed] {
+    color: #00b4ef;
+}
+
 input[type=checkbox] {
     display: none;
 }
@@ -861,13 +865,8 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
-#entity-list .glyph {
-    font-family: HiFi-Glyphs;
-    font-size: 14px;
-}
-
 #search-area {
-    padding-right: 148px;
+    padding-right: 168px;
     padding-bottom: 24px;
 }
 
@@ -875,13 +874,23 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 98%;
 }
 
+#in-view {
+    position: absolute;
+    right: 126px;
+}
+
 #radius-and-unit {
     float: right;
-    margin-right: -148px;
+    margin-right: -168px;
     position: relative;
     top: -17px;
 }
-
+#radius-and-unit label {
+    margin-left: 2px;
+}
+#radius-and-unit input {
+    width: 120px;
+}
 
 #entity-table-scroll {
     /* Height is set by JavaScript. */
@@ -896,6 +905,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background-color: #1c1c1c;
 }
 
+#entity-table-scroll .glyph {
+    font-family: HiFi-Glyphs;
+    font-size: 15px;
+}
 
 #entity-table {
     margin-top: -28px;
@@ -903,19 +916,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     table-layout: fixed;
     border: none;
     background-color: #1c1c1c;
-}
-
-#col-type {
-    width: 16%;
-}
-#col-name {
-    width: 34%;
-}
-#col-url {
-    width: 34%;
-}
-#col-locked, #col-visible {
-    width: 8%;
 }
 
 #entity-table thead tr, #entity-table thead tr th,
@@ -938,12 +938,22 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     top: 49px;
     left: 0;
     width: 100%;
+    word-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
-#entity-table thead th {
+.verticesCount, .texturesCount, .texturesSize, .drawCalls {
+    text-align: right;
+}
+
+#entity-table th {
+    display: inline-block;
     box-sizing: border-box;
-    padding: 0 0 0 8px;
+    padding: 5px 0 0 0;
     vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #entity-table th:focus {
@@ -952,15 +962,52 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 
 #entity-table th .glyph {
     position: relative;
-    left: 0;
+    left: 4px;
+}
+#entity-table th .glyph + .sort-order {
+    position: relative;
+    left: 4px;
+}
+
+#entity-table th#entity-hasScript {
+    overflow: visible;
+}
+
+#entity-table th#entity-hasScript .glyph {
+    text-transform: none;
 }
 
 #entity-table thead .sort-order {
     display: inline-block;
     width: 8px;
     margin: -5px 0 -3px 0;
-    text-align: right;
     vertical-align: middle;
+}
+
+#entity-table th #info-toggle {
+    display: inline-block;
+    position: absolute;
+    left: initial;
+    right: 0;
+    width: 11px;
+    background-color: #1c1c1c;
+    z-index: 100;
+}
+#entity-table th #info-toggle span {
+    position: relative;
+    left: -2px;
+}
+
+th#entity-hasTransparent .glyph {
+    font-weight: normal;
+    font-size: 24px !important;
+    margin: -6px;
+    position: relative;
+    top: -6px;
+}
+th#entity-hasTransparent .sort-order {
+    position: relative;
+    top: -4px;
 }
 
 #entity-table td {
@@ -970,6 +1017,11 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 #entity-table td.glyph {
     text-align: center;
     padding: 0;
+}
+#entity-table td.hasTransparent.glyph {
+    font-size: 22px;
+    position: relative;
+    top: -1px;
 }
 
 #entity-table tfoot {
@@ -983,6 +1035,82 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     left: 0;
     width: 100%;
 }
+
+
+#col-type {
+    width: 16%;
+}
+#col-name {
+    width: 34%;
+}
+#col-url {
+    width: 34%;
+}
+#col-locked, #col-visible {
+    width: 9%;
+}
+#col-verticesCount, #col-texturesCount, #col-texturesSize, #col-hasTransparent, #col-drawCalls, #col-hasScript {
+    width: 0;
+}
+
+.showExtraInfo #col-type {
+    width: 10%;
+}
+.showExtraInfo #col-name {
+    width: 19%;
+}
+.showExtraInfo #col-url {
+    width: 19%;
+}
+.showExtraInfo #col-locked, .showExtraInfo #col-visible {
+    width: 4%;
+}
+.showExtraInfo #col-verticesCount {
+    width: 8%;
+}
+.showExtraInfo #col-texturesCount {
+    width: 8%;
+}
+.showExtraInfo #col-texturesSize {
+    width: 10%;
+}
+.showExtraInfo #col-hasTransparent {
+    width: 4%;
+}
+.showExtraInfo #col-drawCalls {
+    width: 8%;
+}
+.showExtraInfo #col-hasScript {
+    width: 6%;
+}
+
+th#entity-verticesCount, th#entity-texturesCount, th#entity-texturesSize, th#entity-hasTransparent, th#entity-drawCalls, 
+th#entity-hasScript {
+    display: none;
+}
+
+.verticesCount, .texturesCount, .texturesSize, .hasTransparent, .drawCalls, .hasScript {
+    display: none;
+}
+
+#entity-visible {
+    border: none;
+}
+
+.showExtraInfo #entity-verticesCount, .showExtraInfo #entity-texturesCount, .showExtraInfo #entity-texturesSize, 
+.showExtraInfo #entity-hasTransparent, .showExtraInfo #entity-drawCalls, .showExtraInfo #entity-hasScript {
+    display: inline-block;
+}
+
+.showExtraInfo .verticesCount, .showExtraInfo .texturesCount, .showExtraInfo .texturesSize, .showExtraInfo .hasTransparent, 
+.showExtraInfo .drawCalls, .showExtraInfo .hasScript {
+    display: table-cell;
+}
+
+.showExtraInfo #entity-visible {
+    border-right: 1px solid #575757;
+}
+
 
 #no-entities {
     display: none;

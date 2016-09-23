@@ -29,18 +29,19 @@ public:
                
     void reset();
     
-    void updateInputMsecsRead(float msecsRead) { _audioInputMsecsReadStats.update(msecsRead); }
+    void updateInputMsRead(float ms) { _inputMsRead.update(ms); }
+    void updateInputMsUnplayed(float ms) { _inputMsUnplayed.update(ms); }
+    void updateOutputMsUnplayed(float ms) { _outputMsUnplayed.update(ms); }
     void sentPacket();
     
-    AudioStreamStats getMixerDownstreamStats() const;
+    const MovingMinMaxAvg<float>& getInputMsRead() const;
+    const MovingMinMaxAvg<float>& getInputMsUnplayed() const;
+    const MovingMinMaxAvg<float>& getOutputMsUnplayed() const;
+    const MovingMinMaxAvg<quint64>& getPacketTimegaps() const;
+
+    const AudioStreamStats getMixerDownstreamStats() const;
     const AudioStreamStats& getMixerAvatarStreamStats() const {  return _mixerAvatarStreamStats; }
     const QHash<QUuid, AudioStreamStats>& getMixerInjectedStreamStatsMap() const { return _mixerInjectedStreamStatsMap; }
-    
-    const MovingMinMaxAvg<float>& getAudioInputMsecsReadStats() const { return _audioInputMsecsReadStats; }
-    const MovingMinMaxAvg<float>& getInputRungBufferMsecsAvailableStats() const { return _inputRingBufferMsecsAvailableStats; }
-    const MovingMinMaxAvg<float>& getAudioOutputMsecsUnplayedStats() const { return _audioOutputMsecsUnplayedStats; }
-    
-    const MovingMinMaxAvg<quint64>& getPacketSentTimeGaps() const { return _packetSentTimeGaps; }
     
     void sendDownstreamAudioStatsPacket();
 
@@ -49,17 +50,16 @@ public slots:
 
 private:
     MixedProcessedAudioStream* _receivedAudioStream;
-    
-    MovingMinMaxAvg<float> _audioInputMsecsReadStats;
-    MovingMinMaxAvg<float> _inputRingBufferMsecsAvailableStats;
-    
-    MovingMinMaxAvg<float> _audioOutputMsecsUnplayedStats;
+
+    mutable MovingMinMaxAvg<float> _inputMsRead;
+    mutable MovingMinMaxAvg<float> _inputMsUnplayed;
+    mutable MovingMinMaxAvg<float> _outputMsUnplayed;
+
+    quint64 _lastSentPacketTime;
+    mutable MovingMinMaxAvg<quint64> _packetTimegaps;
     
     AudioStreamStats _mixerAvatarStreamStats;
     QHash<QUuid, AudioStreamStats> _mixerInjectedStreamStatsMap;
-    
-    quint64 _lastSentAudioPacket;
-    MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 };
 
 #endif // hifi_AudioIOStats_h

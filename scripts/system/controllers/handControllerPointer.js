@@ -20,6 +20,7 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
+Script.include("/~/system/libraries/controllers.js");
 
 // UTILITIES -------------
 //
@@ -203,16 +204,13 @@ function overlayFromWorldPoint(point) {
 }
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
-    var controllerPose = Controller.getPoseValue(activeHand);
-    // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
+    var controllerPose = getControllerWorldLocation(activeHand, true);
     if (!controllerPose.valid) {
         return; // Controller is cradled.
     }
-    var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
-                                      MyAvatar.position);
-    // This gets point direction right, but if you want general quaternion it would be more complicated:
-    var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
-
+    var controllerPosition = controllerPose.position;
+    var controllerDirection = Quat.getUp(controllerPose.rotation);
+    
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here

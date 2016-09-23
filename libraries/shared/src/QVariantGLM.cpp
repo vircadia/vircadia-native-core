@@ -62,3 +62,48 @@ void qListtoRgbColor(const QVariant& q, rgbColor& returnValue) {
     returnValue[GREEN_INDEX] = qList[GREEN_INDEX].toInt();
     returnValue[BLUE_INDEX] = qList[BLUE_INDEX].toInt();
 }
+
+
+glm::vec3 qMapToGlmVec3(const QVariant& q) {
+    QVariantMap qMap = q.toMap();
+    if (qMap.contains("x") && qMap.contains("y") && qMap.contains("y")) {
+        return glm::vec3(
+                qMap["x"].toFloat(),
+                qMap["y"].toFloat(),
+                qMap["z"].toFloat()
+            );
+    } else {
+        return glm::vec3();
+    }
+}
+
+glm::quat qMapToGlmQuat(const QVariant& q) {
+    QVariantMap qMap = q.toMap();
+    if (qMap.contains("w") && qMap.contains("x") && qMap.contains("y") && qMap.contains("z")) {
+        return glm::quat(
+                qMap["w"].toFloat(),
+                qMap["x"].toFloat(),
+                qMap["y"].toFloat(),
+                qMap["z"].toFloat()
+            );
+    } else {
+        return glm::quat();
+    }
+}
+
+glm::mat4 qMapToGlmMat4(const QVariant& q) {
+    QVariantMap qMap = q.toMap();
+    if (qMap.contains("r0c0") && qMap.contains("r1c0") && qMap.contains("r2c0") && qMap.contains("r3c0")
+            && qMap.contains("r0c1") && qMap.contains("r1c1") && qMap.contains("r2c1") && qMap.contains("r3c1")
+            && qMap.contains("r0c2") && qMap.contains("r1c2") && qMap.contains("r2c2") && qMap.contains("r3c2")
+            && qMap.contains("r0c3") && qMap.contains("r1c3") && qMap.contains("r2c3") && qMap.contains("r3c3")) {
+        return glm::mat4(
+                qMap["r0c0"].toFloat(), qMap["r1c0"].toFloat(), qMap["r2c0"].toFloat(), qMap["r3c0"].toFloat(),
+                qMap["r0c1"].toFloat(), qMap["r1c1"].toFloat(), qMap["r2c1"].toFloat(), qMap["r3c1"].toFloat(),
+                qMap["r0c2"].toFloat(), qMap["r1c2"].toFloat(), qMap["r2c2"].toFloat(), qMap["r3c2"].toFloat(),
+                qMap["r0c3"].toFloat(), qMap["r1c3"].toFloat(), qMap["r2c3"].toFloat(), qMap["r3c3"].toFloat()
+            );
+    } else {
+        return glm::mat4();
+    }
+}

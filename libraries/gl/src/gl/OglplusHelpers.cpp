@@ -10,6 +10,7 @@
 #include <set>
 #include <oglplus/shapes/plane.hpp>
 #include <oglplus/shapes/sky_box.hpp>
+#include "GLLogging.h"
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -190,7 +191,7 @@ public:
         const int stacks_) {
         //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
         if (fov >= PI) {
-            qDebug() << "TexturedHemisphere::buildVBO(): FOV greater or equal than Pi will create issues";
+            qCDebug(glLogging) << "TexturedHemisphere::buildVBO(): FOV greater or equal than Pi will create issues";
         }
 
         int gridSize = std::max(slices_, stacks_);

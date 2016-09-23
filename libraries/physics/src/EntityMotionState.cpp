@@ -15,6 +15,7 @@
 #include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicsCollisionGroups.h>
+#include <LogHandler.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -230,11 +231,17 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     bool positionSuccess;
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
     if (!positionSuccess) {
+        static QString repeatedMessage =
+            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
+                                                              "setPosition failed.*");
         qDebug() << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
     }
     bool orientationSuccess;
     _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
     if (!orientationSuccess) {
+        static QString repeatedMessage =
+            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
+                                                              "setOrientation failed.*");
         qDebug() << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
     }
     _entity->setVelocity(getBodyLinearVelocity());

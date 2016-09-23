@@ -765,7 +765,7 @@ void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply)
         }
 
         if (shareableNameChanged) {
-            qDebug() << "AddressManager shareable name changed to" << _shareablePlaceName;
+            qCDebug(networking) << "AddressManager shareable name changed to" << _shareablePlaceName;
         }
     }
 }
