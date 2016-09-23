@@ -130,9 +130,6 @@ public:
 
     float getAspectRatio() const { return getWidth() / (float) getHeight() ; }
 
-    // If not a swapchain canvas, resize can resize all the render buffers and depth stencil attached in one call
-    void resize( uint16 width, uint16 height, uint16 samples = 1 );
-
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 

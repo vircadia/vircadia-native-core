@@ -174,6 +174,13 @@ void DomainServer::parseCommandLine() {
     const QCommandLineOption domainIDOption("d", "domain-server uuid");
     parser.addOption(domainIDOption);
 
+    const QCommandLineOption getTempNameOption("get-temp-name", "Request a temporary domain-name");
+    parser.addOption(getTempNameOption);
+
+    const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
+    parser.addOption(masterConfigOption);
+
+
     if (!parser.parse(QCoreApplication::arguments())) {
         qWarning() << parser.errorText() << endl;
         parser.showHelp();

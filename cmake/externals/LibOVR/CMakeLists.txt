@@ -20,8 +20,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.3.0_public.zip
-    URL_MD5 a2dcf695e0f03a70fdd1ed7480585e82
+    URL https://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.8.0_public.zip
+    URL_MD5 bea17e04acc1dd8cf7cabefa1b28cc3c
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -29,8 +29,8 @@ if (WIN32)
   )
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
-
-  set(LIBOVR_DIR ${SOURCE_DIR}/OculusSDK/LibOVR)
+  message("LIBOVR dir ${SOURCE_DIR}")
+  set(LIBOVR_DIR ${SOURCE_DIR}/LibOVR)
   if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
     set(LIBOVR_LIB_DIR ${LIBOVR_DIR}/Lib/Windows/x64/Release/VS2013 CACHE TYPE INTERNAL)
   else()
@@ -38,6 +38,7 @@ if (WIN32)
   endif()
 
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${LIBOVR_DIR}/Include CACHE TYPE INTERNAL)
+  message("LIBOVR include dir ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS}")
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${LIBOVR_LIB_DIR}/LibOVR.lib CACHE TYPE INTERNAL)
   
 elseif(APPLE)

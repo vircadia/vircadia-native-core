@@ -25,7 +25,7 @@
 #include <AddressManager.h>
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <FileUtils.h>
+#include <shared/FileUtils.h>
 #include <NodeList.h>
 #include <OffscreenUi.h>
 #include <SharedUtil.h>

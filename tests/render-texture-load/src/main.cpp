@@ -297,8 +297,6 @@ public:
     };
 
     QTestWindow() {
-
-        _currentTexture = _textures.end();
         {
             QStringList stringList;
             QFile textFile(DATA_DIR.path() + "/loads.txt");
@@ -318,12 +316,13 @@ public:
                 QString timeStr = s.left(index);
                 auto time = timeStr.toUInt();
                 QString path = DATA_DIR.path() + "/" + s.right(s.length() - index).trimmed();
-                qDebug() << "Path " << path;
                 if (!QFileInfo(path).exists()) {
                     continue;
                 }
-                _textureLoads.push({ time, path, s });
+                qDebug() << "Path " << path;
+                _texturesFiles.push_back({ time, path, s });
             }
+            _textures.resize(_texturesFiles.size());
         }
 
         installEventFilter(this);
@@ -383,6 +382,33 @@ protected:
     }
 
     void keyPressEvent(QKeyEvent* event) override {
+        switch (event->key()) {
+            case Qt::Key_Left:
+                prevTexture();
+                break;
+            case Qt::Key_Right:
+                nextTexture();
+                break;
+            case Qt::Key_Return:
+                reportMemory();
+                break;
+            case Qt::Key_PageDown:
+                derezTexture();
+                break;
+            case Qt::Key_Home:
+                unloadAll();
+                break;
+            case Qt::Key_End:
+                loadAll();
+                break;
+            case Qt::Key_Down:
+                loadTexture();
+                break;
+            case Qt::Key_Up:
+                unloadTexture();
+                break;
+        }
+        QWindow::keyPressEvent(event);
     }
 
     void keyReleaseEvent(QKeyEvent* event) override {
@@ -395,10 +421,80 @@ protected:
         resizeWindow(ev->size());
     }
 
+    void nextTexture() {
+        if (_textures.empty()) {
+            return;
+        }
+        auto textureCount = _textures.size();
+        _currentTextureIndex = (_currentTextureIndex + 1) % textureCount;
+        loadTexture();
+    }
+
+    void prevTexture() {
+        if (_textures.empty()) {
+            return;
+        }
+        auto textureCount = _textures.size();
+        _currentTextureIndex = (_currentTextureIndex + textureCount - 1) % textureCount;
+        loadTexture();
+    }
+
+    void reportMemory() {
+        static GLint lastMemory = 0;
+        GLint availableMem;
+        glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &availableMem);
+        qDebug() << "Memory available " << availableMem;
+        if (lastMemory != 0) {
+            qDebug() << "Delta " << availableMem - lastMemory;
+        }
+        lastMemory = availableMem;
+    }
+
+    void derezTexture() {
+        if (!_textures[_currentTextureIndex]) {
+            return;
+        }
+        auto texture = _textures[_currentTextureIndex];
+        texture->setMinMip(texture->minMip() + 1);
+    }
+
+    void loadTexture() {
+        if (_textures[_currentTextureIndex]) {
+            return;
+        }
+        auto file = _texturesFiles[_currentTextureIndex].file;
+        qDebug() << "Loading texture " << file;
+        _textures[_currentTextureIndex] = DependencyManager::get<TextureCache>()->getImageTexture(file);
+    }
+
+    void unloadTexture() {
+        if (_textures.empty()) {
+            return;
+        }
+        _textures[_currentTextureIndex].reset();
+    }
+
+    void loadAll() {
+        for (size_t i = 0; i < _texturesFiles.size(); ++i) {
+            if (_textures[i]) {
+                continue;
+            }
+            auto file = _texturesFiles[i].file;
+            qDebug() << "Loading texture " << file;
+            _textures[i] = DependencyManager::get<TextureCache>()->getImageTexture(file);
+        }
+    }
+
+    void unloadAll() {
+        for (auto& texture : _textures) {
+            texture.reset();
+        }
+    }
+
 private:
-    std::queue<TextureLoad> _textureLoads;
-    std::list<gpu::TexturePointer> _textures;
-    std::list<gpu::TexturePointer>::iterator _currentTexture;
+    size_t _currentTextureIndex { 0 };
+    std::vector<TextureLoad> _texturesFiles;
+    std::vector<gpu::TexturePointer> _textures;
 
     uint16_t _fps;
     gpu::PipelinePointer _simplePipeline;
@@ -438,7 +534,9 @@ private:
         auto now = usecTimestampNow();
         static auto last = now;
         auto delta = (now - last) / USECS_PER_MSEC;
-        if (!_textureLoads.empty()) {
+        Q_UNUSED(delta);
+#if 0
+        if (!_textures.empty()) {
             const auto& front = _textureLoads.front();
             if (delta >= front.time) {
                 QFileInfo fileInfo(front.file);
@@ -456,6 +554,7 @@ private:
                 }
             }
         }
+#endif
     }
 
     void render() {
@@ -474,14 +573,8 @@ private:
             auto vpsize = framebuffer->getSize();
             auto vppos = ivec2(0);
             batch.setViewportTransform(ivec4(vppos, vpsize));
-            if (_currentTexture != _textures.end()) {
-                ++_currentTexture;
-            }
-            if (_currentTexture == _textures.end()) {
-                _currentTexture = _textures.begin();
-            }
-            if (_currentTexture != _textures.end()) {
-                batch.setResourceTexture(0, *_currentTexture);
+            if (!_textures.empty()) {
+                batch.setResourceTexture(0, _textures[_currentTextureIndex]);
             }
             batch.setPipeline(_simplePipeline);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
@@ -563,7 +656,6 @@ int main(int argc, char** argv) {
             unzipTestData(data);
         }).waitForDownload();
     }
-
 
     QTestWindow::setup();
     QTestWindow window;

@@ -19,6 +19,7 @@
 #include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <LogHandler.h>
+#include <shared/NetworkUtils.h>
 #include <NetworkingConstants.h>
 #include <NumericalConstants.h>
 #include <UUID.h>
