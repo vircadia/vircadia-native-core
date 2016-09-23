@@ -230,6 +230,9 @@ protected:
     static void decrementBufferGPUCount();
     static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
+    static void incrementFenceCount();
+    static void decrementFenceCount();
+
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
@@ -237,7 +240,9 @@ protected:
     static void incrementTextureGPUTransferCount();
     static void decrementTextureGPUTransferCount();
 
-    // Buffer and Texture Counters
+    // Buffer, Texture and Fence Counters
+    static std::atomic<uint32_t> _fenceCount;
+
     static std::atomic<uint32_t> _bufferGPUCount;
     static std::atomic<Size> _bufferGPUMemoryUsage;
 

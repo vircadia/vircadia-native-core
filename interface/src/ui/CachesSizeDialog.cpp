@@ -58,7 +58,10 @@ void CachesSizeDialog::confirmClicked(bool checked) {
     DependencyManager::get<AnimationCache>()->setUnusedResourceCacheSize(_animations->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<ModelCache>()->setUnusedResourceCacheSize(_geometries->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<SoundCache>()->setUnusedResourceCacheSize(_sounds->value() * BYTES_PER_MEGABYTES);
+    // Disabling the texture cache because it's a liability in cases where we're overcommiting GPU memory
+#if 0
     DependencyManager::get<TextureCache>()->setUnusedResourceCacheSize(_textures->value() * BYTES_PER_MEGABYTES);
+#endif
     
     QDialog::close();
 }
