@@ -49,7 +49,7 @@ AudioMixerClientData::~AudioMixerClientData() {
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
-    
+
     auto it = _audioStreams.find(QUuid());
     if (it != _audioStreams.end()) {
         return dynamic_cast<AvatarAudioStream*>(it->second.get());
@@ -75,7 +75,7 @@ void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid&
 
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
     PacketType packetType = message.getType();
-    
+
     if (packetType == PacketType::AudioStreamStats) {
 
         // skip over header, appendFlag, and num stats packed
@@ -219,9 +219,10 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     auto nodeList = DependencyManager::get<NodeList>();
 
     // The append flag is a boolean value that will be packed right after the header.  The first packet sent
-    // inside this method will have 0 for this flag, while every subsequent packet will have 1 for this flag.
-    // The sole purpose of this flag is so the client can clear its map of injected audio stream stats when
-    // it receives a packet with an appendFlag of 0. This prevents the buildup of dead audio stream stats in the client.
+    // inside this method will have 0 for this flag, every subsequent packet but the last will have 1 for this flag,
+    // and the last packet will have 2 for this flag.
+    // This flag allows the client to know when it has received all stats packets, so it can group any downstream effects,
+    // and clear its cache of injector stream stats; it helps to prevent buildup of dead audio stream stats in the client.
     quint8 appendFlag = 0;
 
     auto streamsCopy = getAudioStreams();

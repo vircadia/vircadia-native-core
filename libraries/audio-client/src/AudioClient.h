@@ -162,7 +162,7 @@ public slots:
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
 
-    void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
+    void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();

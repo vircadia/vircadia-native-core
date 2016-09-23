@@ -1593,6 +1593,7 @@ void Application::initializeUi() {
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
@@ -4874,6 +4875,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
