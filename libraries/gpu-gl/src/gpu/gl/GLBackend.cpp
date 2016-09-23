@@ -593,9 +593,9 @@ void GLBackend::releaseQuery(GLuint id) const {
     _queriesTrash.push_back(id);
 }
 
-void GLBackend::releaseLambda(const std::function<void()> lambda) const {
+void GLBackend::queueLambda(const std::function<void()> lambda) const {
     Lock lock(_trashMutex);
-    _lambdasTrash.push_back(lambda);
+    _lambdaQueue.push_back(lambda);
 }
 
 void GLBackend::recycle() const {
@@ -603,7 +603,7 @@ void GLBackend::recycle() const {
         std::list<std::function<void()>> lamdbasTrash;
         {
             Lock lock(_trashMutex);
-            std::swap(_lambdasTrash, lamdbasTrash);
+            std::swap(_lambdaQueue, lamdbasTrash);
         }
         for (auto lambda : lamdbasTrash) {
             lambda();

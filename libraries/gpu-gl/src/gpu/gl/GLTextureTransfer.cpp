@@ -165,9 +165,9 @@ bool GLTextureTransferHelper::process() {
         }
 
         gltexture->finishTransfer();
-        //glNamedFramebufferTexture(_readFramebuffer, GL_COLOR_ATTACHMENT0, gltexture->_id, 0);
-        //glBlitNamedFramebuffer(_readFramebuffer, _drawFramebuffer, 0, 0, 1, 1, 0, 0, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#ifdef THREADED_TEXTURE_TRANSFER
         clientWait();
+#endif
         gltexture->_contentStamp = gltexture->_gpuObject.getDataStamp();
         gltexture->updateSize();
         gltexture->setSyncState(gpu::gl::GLSyncState::Transferred);

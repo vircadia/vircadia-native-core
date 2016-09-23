@@ -20,6 +20,8 @@ std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
 
 // FIXME placeholder for texture memory over-use
 #define DEFAULT_MAX_MEMORY_MB 256
+#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
+#define OVER_MEMORY_PRESSURE 2.0f
 
 const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -92,7 +94,6 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
-#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
 
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
@@ -115,15 +116,15 @@ float GLTexture::getMemoryPressure() {
                     lastFreeGpuMemory = freeGpuMemory;
                     if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
                         qDebug() << "Exceeded max GPU memory";
-                        return 2.0;
+                        return OVER_MEMORY_PRESSURE;
                     }
                 }
             }
         }
 
-        // Allow 75% of all available GPU memory to be consumed by textures
+        // Allow 50% of all available GPU memory to be consumed by textures
         // FIXME overly conservative?
-        availableTextureMemory = (totalGpuMemory >> 2) * 3;
+        availableTextureMemory = (totalGpuMemory > 2);
     }
 
     // Return the consumed texture memory divided by the available texture memory.

@@ -88,61 +88,61 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texture, bool transf
 using SparseInfo = GL45Backend::GL45Texture::SparseInfo;
 
 SparseInfo::SparseInfo(GL45Texture& texture)
-    : _texture(texture) {
+    : texture(texture) {
 }
 
 void SparseInfo::maybeMakeSparse() {
     // Don't enable sparse for objects with explicitly managed mip levels
-    if (!_texture._gpuObject.isAutogenerateMips()) {
-        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << _texture._source.c_str();
+    if (!texture._gpuObject.isAutogenerateMips()) {
+        qCDebug(gpugl45logging) << "Don't enable sparse texture for explicitly generated mipmaps on texture " << texture._source.c_str();
         return;
     }
 
-    const uvec3 dimensions = _texture._gpuObject.getDimensions();
-    auto allowedPageDimensions = getPageDimensionsForFormat(_texture._target, _texture._internalFormat);
+    const uvec3 dimensions = texture._gpuObject.getDimensions();
+    auto allowedPageDimensions = getPageDimensionsForFormat(texture._target, texture._internalFormat);
     // In order to enable sparse the texture size must be an integer multiple of the page size
     for (size_t i = 0; i < allowedPageDimensions.size(); ++i) {
-        _pageDimensionsIndex = (uint32_t) i;
-        _pageDimensions = allowedPageDimensions[i];
+        pageDimensionsIndex = (uint32_t) i;
+        pageDimensions = allowedPageDimensions[i];
         // Is this texture an integer multiple of page dimensions?
-        if (uvec3(0) == (dimensions % _pageDimensions)) {
-            qCDebug(gpugl45logging) << "Enabling sparse for texture " << _texture._source.c_str();
-            _sparse = true;
+        if (uvec3(0) == (dimensions % pageDimensions)) {
+            qCDebug(gpugl45logging) << "Enabling sparse for texture " << texture._source.c_str();
+            sparse = true;
             break;
         }
     }
 
-    if (_sparse) {
-        glTextureParameteri(_texture._id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
-        glTextureParameteri(_texture._id, GL_VIRTUAL_PAGE_SIZE_INDEX_ARB, _pageDimensionsIndex);
+    if (sparse) {
+        glTextureParameteri(texture._id, GL_TEXTURE_SPARSE_ARB, GL_TRUE);
+        glTextureParameteri(texture._id, GL_VIRTUAL_PAGE_SIZE_INDEX_ARB, pageDimensionsIndex);
     } else {
         qCDebug(gpugl45logging) << "Size " << dimensions.x << " x " << dimensions.y << 
-            " is not supported by any sparse page size for texture" << _texture._source.c_str();
+            " is not supported by any sparse page size for texture" << texture._source.c_str();
     }
 }
 
 // This can only be called after we've established our storage size
 void SparseInfo::update() {
-    if (!_sparse) {
+    if (!sparse) {
         return;
     }
-    glGetTextureParameterIuiv(_texture._id, GL_NUM_SPARSE_LEVELS_ARB, &_maxSparseLevel);
-    _pageBytes = _texture._gpuObject.getTexelFormat().getSize();
-    _pageBytes *= _pageDimensions.x * _pageDimensions.y * _pageDimensions.z;
+    glGetTextureParameterIuiv(texture._id, GL_NUM_SPARSE_LEVELS_ARB, &maxSparseLevel);
+    pageBytes = texture._gpuObject.getTexelFormat().getSize();
+    pageBytes *= pageDimensions.x * pageDimensions.y * pageDimensions.z;
 
-    for (uint16_t mipLevel = 0; mipLevel <= _maxSparseLevel; ++mipLevel) {
-        auto mipDimensions = _texture._gpuObject.evalMipDimensions(mipLevel);
+    for (uint16_t mipLevel = 0; mipLevel <= maxSparseLevel; ++mipLevel) {
+        auto mipDimensions = texture._gpuObject.evalMipDimensions(mipLevel);
         auto mipPageCount = getPageCount(mipDimensions);
-        _maxPages += mipPageCount;
+        maxPages += mipPageCount;
     }
-    if (_texture._target == GL_TEXTURE_CUBE_MAP) {
-        _maxPages *= GLTexture::CUBE_NUM_FACES;
+    if (texture._target == GL_TEXTURE_CUBE_MAP) {
+        maxPages *= GLTexture::CUBE_NUM_FACES;
     }
 }
 
 uvec3 SparseInfo::getPageCounts(const uvec3& dimensions) const {
-    auto result = (dimensions / _pageDimensions) +
-        glm::clamp(dimensions % _pageDimensions, glm::uvec3(0), glm::uvec3(1));
+    auto result = (dimensions / pageDimensions) +
+        glm::clamp(dimensions % pageDimensions, glm::uvec3(0), glm::uvec3(1));
     return result;
 }
 
@@ -153,59 +153,59 @@ uint32_t SparseInfo::getPageCount(const uvec3& dimensions) const {
 
 using TransferState = GL45Backend::GL45Texture::TransferState;
 
-TransferState::TransferState(GL45Texture& texture) : _texture(texture) {
+TransferState::TransferState(GL45Texture& texture) : texture(texture) {
 }
 
 void TransferState::updateMip() {
-    _mipDimensions = _texture._gpuObject.evalMipDimensions(_mipLevel);
-    _mipOffset = uvec3();
-    if (!_texture._gpuObject.isStoredMipFaceAvailable(_mipLevel, _face)) {
-        _srcPointer = nullptr;
+    mipDimensions = texture._gpuObject.evalMipDimensions(mipLevel);
+    mipOffset = uvec3();
+    if (!texture._gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+        srcPointer = nullptr;
         return;
     }
 
-    auto mip = _texture._gpuObject.accessStoredMipFace(_mipLevel, _face);
-    _texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_texture._gpuObject.getTexelFormat(), mip->getFormat());
-    _srcPointer = mip->readData();
-    _bytesPerLine = (uint32_t)mip->getSize() / _mipDimensions.y;
-    _bytesPerPixel = _bytesPerLine / _mipDimensions.x;
+    auto mip = texture._gpuObject.accessStoredMipFace(mipLevel, face);
+    texelFormat = gl::GLTexelFormat::evalGLTexelFormat(texture._gpuObject.getTexelFormat(), mip->getFormat());
+    srcPointer = mip->readData();
+    bytesPerLine = (uint32_t)mip->getSize() / mipDimensions.y;
+    bytesPerPixel = bytesPerLine / mipDimensions.x;
 }
 
 bool TransferState::increment() {
-    const SparseInfo& sparse = _texture._sparseInfo;
-    if ((_mipOffset.x + sparse._pageDimensions.x) < _mipDimensions.x) {
-        _mipOffset.x += sparse._pageDimensions.x;
+    const SparseInfo& sparse = texture._sparseInfo;
+    if ((mipOffset.x + sparse.pageDimensions.x) < mipDimensions.x) {
+        mipOffset.x += sparse.pageDimensions.x;
         return true;
     }
 
-    if ((_mipOffset.y + sparse._pageDimensions.y) < _mipDimensions.y) {
-        _mipOffset.x = 0;
-        _mipOffset.y += sparse._pageDimensions.y;
+    if ((mipOffset.y + sparse.pageDimensions.y) < mipDimensions.y) {
+        mipOffset.x = 0;
+        mipOffset.y += sparse.pageDimensions.y;
         return true;
     }
 
-    if (_mipOffset.z + sparse._pageDimensions.z < _mipDimensions.z) {
-        _mipOffset.x = 0;
-        _mipOffset.y = 0;
-        ++_mipOffset.z;
+    if (mipOffset.z + sparse.pageDimensions.z < mipDimensions.z) {
+        mipOffset.x = 0;
+        mipOffset.y = 0;
+        ++mipOffset.z;
         return true;
     }
 
     // Done with this mip?, move on to the next mip 
-    if (_mipLevel + 1 < _texture.usedMipLevels()) {
-        _mipOffset = uvec3(0);
-        ++_mipLevel;
+    if (mipLevel + 1 < texture.usedMipLevels()) {
+        mipOffset = uvec3(0);
+        ++mipLevel;
         updateMip();
         return true;
     }
 
-    uint8_t maxFace = (uint8_t)((_texture._target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
-    uint8_t nextFace = _face + 1;
+    uint8_t maxFace = (uint8_t)((texture._target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
+    uint8_t nextFace = face + 1;
     // Done with this face?  Move on to the next
     if (nextFace < maxFace) {
-        ++_face;
-        _mipOffset = uvec3(0);
-        _mipLevel = 0;
+        ++face;
+        mipOffset = uvec3(0);
+        mipLevel = 0;
         updateMip();
         return true;
     }
@@ -215,7 +215,7 @@ bool TransferState::increment() {
 
 void TransferState::populatePage(std::vector<uint8_t>& buffer) {
     uvec3 pageSize = currentPageSize();
-    auto bytesPerPageLine = _bytesPerPixel * pageSize.x;
+    auto bytesPerPageLine = bytesPerPixel * pageSize.x;
     if (0 != (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT)) {
         bytesPerPageLine += DEFAULT_GL_PIXEL_ALIGNMENT - (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT);
         assert(0 == (bytesPerPageLine % DEFAULT_GL_PIXEL_ALIGNMENT));
@@ -226,14 +226,14 @@ void TransferState::populatePage(std::vector<uint8_t>& buffer) {
     }
     uint8_t* dst = &buffer[0];
     for (uint32_t y = 0; y < pageSize.y; ++y) {
-        uint32_t srcOffset = (_bytesPerLine * (_mipOffset.y + y)) + (_bytesPerPixel * _mipOffset.x);
+        uint32_t srcOffset = (bytesPerLine * (mipOffset.y + y)) + (bytesPerPixel * mipOffset.x);
         uint32_t dstOffset = bytesPerPageLine * y;
-        memcpy(dst + dstOffset, _srcPointer + srcOffset, pageSize.x * _bytesPerPixel);
+        memcpy(dst + dstOffset, srcPointer + srcOffset, pageSize.x * bytesPerPixel);
     }
 }
 
 uvec3 TransferState::currentPageSize() const {
-    return glm::clamp(_mipDimensions - _mipOffset, uvec3(1), _texture._sparseInfo._pageDimensions);
+    return glm::clamp(mipDimensions - mipOffset, uvec3(1), texture._sparseInfo.pageDimensions);
 }
 
 GLuint GL45Texture::allocate(const Texture& texture) {
@@ -256,7 +256,7 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GL45Texture::~GL45Texture() {
     qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
-    if (_sparseInfo._sparse) {
+    if (_sparseInfo.sparse) {
         // Remove this texture from the candidate list of derezzable textures
         {
             auto mipLevels = usedMipLevels();
@@ -279,7 +279,7 @@ GL45Texture::~GL45Texture() {
         std::list<std::function<void()>> destructionFunctions;
         
         uint8_t maxFace = (uint8_t)((_target == GL_TEXTURE_CUBE_MAP) ? GLTexture::CUBE_NUM_FACES : 1);
-        auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo._maxSparseLevel);
+        auto maxSparseMip = std::min<uint16_t>(_maxMip, _sparseInfo.maxSparseLevel);
         for (uint16_t mipLevel = _minMip; mipLevel <= maxSparseMip; ++mipLevel) {
             auto mipDimensions = _gpuObject.evalMipDimensions(mipLevel);
             destructionFunctions.push_back([id, maxFace, mipLevel, mipDimensions] {
@@ -335,7 +335,7 @@ void GL45Texture::updateSize() const {
     }
 
     if (_transferrable) {
-        setSize(_allocatedPages * _sparseInfo._pageBytes);
+        setSize(_allocatedPages * _sparseInfo.pageBytes);
     } else {
         setSize(_virtualSize);
     }
@@ -353,42 +353,42 @@ bool GL45Texture::continueTransfer() {
         buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);
     }
     const uvec3 pageSize = _transferState.currentPageSize();
-    const uvec3& offset = _transferState._mipOffset;
+    const uvec3& offset = _transferState.mipOffset;
 
-    if (_sparseInfo._sparse && _transferState._mipLevel <= _sparseInfo._maxSparseLevel) {
-        if (_allocatedPages > _sparseInfo._maxPages) {
+    if (_sparseInfo.sparse && _transferState.mipLevel <= _sparseInfo.maxSparseLevel) {
+        if (_allocatedPages > _sparseInfo.maxPages) {
             qCWarning(gpugl45logging) << "Exceeded max page allocation!";
         }
-        glTexturePageCommitmentEXT(_id, _transferState._mipLevel,
-            offset.x, offset.y, _transferState._face,
+        glTexturePageCommitmentEXT(_id, _transferState.mipLevel,
+            offset.x, offset.y, _transferState.face,
             pageSize.x, pageSize.y, pageSize.z,
             GL_TRUE);
         ++_allocatedPages;
     }
 
-    if (_transferState._srcPointer) {
+    if (_transferState.srcPointer) {
         // Transfer the mip data
         _transferState.populatePage(buffer);
         if (GL_TEXTURE_2D == _target) {
-            glTextureSubImage2D(_id, _transferState._mipLevel,
+            glTextureSubImage2D(_id, _transferState.mipLevel,
                 offset.x, offset.y,
                 pageSize.x, pageSize.y,
-                _transferState._texelFormat.format, _transferState._texelFormat.type, &buffer[0]);
+                _transferState.texelFormat.format, _transferState.texelFormat.type, &buffer[0]);
         } else if (GL_TEXTURE_CUBE_MAP == _target) {
-            auto target = CUBE_FACE_LAYOUT[_transferState._face];
+            auto target = CUBE_FACE_LAYOUT[_transferState.face];
             // DSA ARB does not work on AMD, so use EXT
             // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
-            glTextureSubImage2DEXT(_id, target, _transferState._mipLevel,
+            glTextureSubImage2DEXT(_id, target, _transferState.mipLevel,
                 offset.x, offset.y,
                 pageSize.x, pageSize.y,
-                _transferState._texelFormat.format, _transferState._texelFormat.type, &buffer[0]);
+                _transferState.texelFormat.format, _transferState.texelFormat.type, &buffer[0]);
         }
     }
 
     serverWait();
-    auto currentMip = _transferState._mipLevel;
+    auto currentMip = _transferState.mipLevel;
     auto result = _transferState.increment();
-    if (_sparseInfo._sparse && _transferState._mipLevel != currentMip && currentMip <= _sparseInfo._maxSparseLevel) {
+    if (_sparseInfo.sparse && _transferState.mipLevel != currentMip && currentMip <= _sparseInfo.maxSparseLevel) {
         auto mipDimensions = _gpuObject.evalMipDimensions(currentMip);
         auto mipExpectedPages = _sparseInfo.getPageCount(mipDimensions);
         auto newPages = _allocatedPages - _lastMipAllocatedPages;
@@ -431,9 +431,9 @@ void GL45Texture::syncSampler() const {
 
 void GL45Texture::postTransfer() {
     Parent::postTransfer();
-    if (_sparseInfo._sparse) {
+    if (_sparseInfo.sparse) {
         auto mipLevels = usedMipLevels();
-        if (mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
+        if (mipLevels > 1 && _minMip < _sparseInfo.maxSparseLevel) {
             Lock lock(texturesByMipCountsMutex);
             texturesByMipCounts[mipLevels].insert(this);
         }
@@ -441,7 +441,7 @@ void GL45Texture::postTransfer() {
 }
 
 void GL45Texture::stripToMip(uint16_t newMinMip) {
-    if (!_sparseInfo._sparse) {
+    if (!_sparseInfo.sparse) {
         return;
     }
 
@@ -450,7 +450,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         return;
     }
 
-    if (newMinMip > _sparseInfo._maxSparseLevel) {
+    if (newMinMip > _sparseInfo.maxSparseLevel) {
         qCWarning(gpugl45logging) << "Cannot increase the min mip into the mip tail";
         return;
     }
@@ -491,26 +491,21 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     syncSampler();
     size_t oldSize = _size;
     updateSize();
-    size_t newSize = _size;
-    if (newSize > oldSize) {
-        qCDebug(gpugl45logging) << "WTF";
-        qCDebug(gpugl45logging) << "\told size " << oldSize;
-        qCDebug(gpugl45logging) << "\tnew size " << newSize;
-    }
+    assert(_size > oldSize);
 
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();
-    if (_sparseInfo._sparse && mipLevels > 1 && _minMip < _sparseInfo._maxSparseLevel) {
+    if (_sparseInfo.sparse && mipLevels > 1 && _minMip < _sparseInfo.maxSparseLevel) {
         Lock lock(texturesByMipCountsMutex);
         texturesByMipCounts[mipLevels].insert(this);
     }
 }
 
 void GL45Texture::updateMips() {
-    if (!_sparseInfo._sparse) {
+    if (!_sparseInfo.sparse) {
         return;
     }
-    auto newMinMip = std::min<uint16_t>(_gpuObject.minMip(), _sparseInfo._maxSparseLevel);
+    auto newMinMip = std::min<uint16_t>(_gpuObject.minMip(), _sparseInfo.maxSparseLevel);
     if (_minMip < newMinMip) {
         stripToMip(newMinMip);
     }
