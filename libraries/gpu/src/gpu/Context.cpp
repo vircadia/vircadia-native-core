@@ -10,6 +10,7 @@
 //
 #include "Context.h"
 #include "Frame.h"
+#include "GPULogging.h"
 using namespace gpu;
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
@@ -161,8 +162,9 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 }
 
 // Counters for Buffer and Texture usage in GPU/Context
-std::atomic<uint32_t> Context::_bufferGPUCount{ 0 };
-std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage{ 0 };
+std::atomic<uint32_t> Context::_fenceCount { 0 };
+std::atomic<uint32_t> Context::_bufferGPUCount { 0 };
+std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage { 0 };
 
 std::atomic<uint32_t> Context::_textureGPUCount{ 0 };
 std::atomic<Texture::Size> Context::_textureGPUMemoryUsage{ 0 };
@@ -170,10 +172,15 @@ std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage{ 0 };
 std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
 
 void Context::incrementBufferGPUCount() {
-    _bufferGPUCount++;
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_bufferGPUCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU buffers " << total;
+    }
 }
 void Context::decrementBufferGPUCount() {
-    _bufferGPUCount--;
+    --_bufferGPUCount;
 }
 void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -186,12 +193,30 @@ void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize
     }
 }
 
+void Context::incrementFenceCount() {
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_fenceCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max Fences " << total;
+    }
+}
+void Context::decrementFenceCount() {
+    --_fenceCount;
+}
+
 void Context::incrementTextureGPUCount() {
-    _textureGPUCount++;
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures " << total;
+    }
 }
 void Context::decrementTextureGPUCount() {
-    _textureGPUCount--;
+    --_textureGPUCount;
 }
+
 void Context::updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
@@ -215,10 +240,15 @@ void Context::updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newOb
 }
 
 void Context::incrementTextureGPUTransferCount() {
-    _textureGPUTransferCount++;
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUTransferCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures transfers" << total;
+    }
 }
 void Context::decrementTextureGPUTransferCount() {
-    _textureGPUTransferCount--;
+    --_textureGPUTransferCount;
 }
 
 uint32_t Context::getBufferGPUCount() {

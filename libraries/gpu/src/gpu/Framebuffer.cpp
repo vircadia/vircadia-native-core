@@ -32,6 +32,7 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, uint16 width,
     auto framebuffer = Framebuffer::create();
 
     auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    colorTexture->setSource("Framebuffer::colorTexture");
 
     framebuffer->setRenderBuffer(0, colorTexture);
 
@@ -42,8 +43,9 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
     auto framebuffer = Framebuffer::create();
 
     auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    colorTexture->setSource("Framebuffer::colorTexture");
     auto depthTexture = TexturePointer(Texture::create2D(depthStencilBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
-
+    depthTexture->setSource("Framebuffer::depthTexture");
     framebuffer->setRenderBuffer(0, colorTexture);
     framebuffer->setDepthStencilBuffer(depthTexture, depthStencilBufferFormat);
 
@@ -55,7 +57,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
 
     auto depthFormat = Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH); // Depth32 texel format
     auto depthTexture = TexturePointer(Texture::create2D(depthFormat, width, width));
-        
+    depthTexture->setSource("Framebuffer::shadowMap");
     Sampler::Desc samplerDesc;
     samplerDesc._borderColor = glm::vec4(1.0f);
     samplerDesc._wrapModeU = Sampler::WRAP_BORDER;
@@ -110,30 +112,6 @@ void Framebuffer::updateSize(const TexturePointer& texture) {
         _numSamples = texture->getNumSamples();
     } else {
         _width = _height = _numSamples = 0;
-    }
-}
-
-void Framebuffer::resize(uint16 width, uint16 height, uint16 numSamples) {
-    if (width && height && numSamples && !isEmpty() && !isSwapchain()) {
-        if ((width != _width) || (height != _height) || (numSamples != _numSamples)) {
-            for (uint32 i = 0; i < _renderBuffers.size(); ++i) {
-                if (_renderBuffers[i]) {
-                    _renderBuffers[i]._texture->resize2D(width, height, numSamples);
-                    _numSamples = _renderBuffers[i]._texture->getNumSamples();
-                    ++_colorStamps[i];
-                }
-            }
-
-            if (_depthStencilBuffer) {
-                _depthStencilBuffer._texture->resize2D(width, height, numSamples);
-                _numSamples = _depthStencilBuffer._texture->getNumSamples();
-                ++_depthStamp;
-            }
-
-            _width = width;
-            _height = height;
-         //   _numSamples = numSamples;
-        }
     }
 }
 
