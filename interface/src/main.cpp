@@ -134,7 +134,8 @@ int main(int argc, const char* argv[]) {
         //serverPath = "./server-console/server-console.exe";
         QStringList args;
         if (parser.isSet(serverContentPath)) {
-            args << "--" << "--contentPath" << parser.value(serverContentPath);
+            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPath);
+            args << "--" << "--contentPath" << serverContentPath;
         }
         qDebug() << "server path: " << serverPath << args;
         qDebug() << QFileInfo(arguments[0]).path();
