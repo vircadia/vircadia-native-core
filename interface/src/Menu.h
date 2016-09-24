@@ -88,6 +88,8 @@ namespace MenuOption {
     const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHandTargets = "Show Hand Targets";
+    const QString DisplayLeftFootTrace = "Show Left Foot Trace";
+    const QString DisplayRightFootTrace = "Show Right Foot Trace";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";

@@ -485,6 +485,10 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisplayLeftFootTrace, 0, false,
+        avatar, SLOT(setEnableDebugDrawLeftFootTrace(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisplayRightFootTrace, 0, false,
+        avatar, SLOT(setEnableDebugDrawRightFootTrace(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
