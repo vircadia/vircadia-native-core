@@ -162,6 +162,7 @@ private:
 
 glm::vec3 nearestPointOnLineSegment(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd);
 float distanceFromLineSegment(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd);
+float distanceFromCapsule(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd, float capsuleRadius);
 bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius);
 glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius);
 

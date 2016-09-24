@@ -596,6 +596,10 @@ float distanceFromLineSegment(const glm::vec3& point, const glm::vec3& segmentSt
     return glm::length(point - nearestPointOnLineSegment(point, segmentStart, segmentEnd));
 }
 
+float distanceFromCapsule(const glm::vec3& point, const glm::vec3& segmentStart, const glm::vec3& segmentEnd, float capsuleRadius) {
+    return distanceFromLineSegment(point, segmentStart, segmentEnd) - capsuleRadius;
+}
+
 bool pointIsInsideCapsule(const glm::vec3& point, const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius) {
     return distanceFromLineSegment(point, capsuleStart, capsuleEnd) < capsuleRadius;
 }
@@ -604,7 +608,7 @@ glm::vec3 projectPointOntoCapsule(const glm::vec3& point, const glm::vec3& capsu
     glm::vec3 nearestPoint = nearestPointOnLineSegment(point, capsuleStart, capsuleEnd);
     glm::vec3 d = point - nearestPoint;
     float dLen = glm::length(d);
-    if (dLen > EPSILON) {
+    if (dLen < EPSILON) {
         return nearestPoint;  // TODO: maybe we should pick a point actually on the surface...
     } else {
         return nearestPoint + d * (capsuleRadius / dLen);
