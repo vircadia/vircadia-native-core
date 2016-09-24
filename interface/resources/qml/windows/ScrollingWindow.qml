@@ -15,7 +15,7 @@ import QtGraphicalEffects 1.0
 
 import "."
 import "../styles-uit"
-import "../controls" as HiFiControls
+import "../controls-uit" as HiFiControls
 
 // FIXME how do I set the initial position of a window without
 // overriding places where the a individual client of the window

@@ -9,7 +9,6 @@ import ".."
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
 import "../../../windows"
-import "../../../controls" as Controls
 
 Item {
     height: column.height + 2 * 8
@@ -76,7 +75,7 @@ Item {
         }
 
         // virtual keyboard, letters
-        Controls.Keyboard {
+        HifiControls.Keyboard {
             id: keyboard1
             // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
@@ -90,7 +89,7 @@ Item {
             // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
-        Controls.KeyboardPunctuation {
+        HifiControls.KeyboardPunctuation {
             id: keyboard2
             // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0

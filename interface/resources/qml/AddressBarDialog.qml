@@ -244,7 +244,7 @@ Window {
         }
 
         // virtual keyboard, letters
-        Keyboard {
+        HifiControls.Keyboard {
             id: keyboard1
             y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
@@ -258,7 +258,7 @@ Window {
             anchors.bottomMargin: 0
         }
 
-        KeyboardPunctuation {
+        HifiControls.KeyboardPunctuation {
             id: keyboard2
             y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0

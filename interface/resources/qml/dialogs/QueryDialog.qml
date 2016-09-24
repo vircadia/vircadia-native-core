@@ -15,7 +15,6 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import "../controls-uit"
 import "../styles-uit"
 import "../windows"
-import "../controls" as Controls
 
 ModalWindow {
     id: root
@@ -118,7 +117,7 @@ ModalWindow {
         }
 
         // virtual keyboard, letters
-        Controls.Keyboard {
+        Keyboard {
             id: keyboard1
             y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
@@ -132,7 +131,7 @@ ModalWindow {
             anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
-        Controls.KeyboardPunctuation {
+        KeyboardPunctuation {
             id: keyboard2
             y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0

@@ -18,7 +18,6 @@ import Qt.labs.settings 1.0
 import "windows"
 import "controls-uit"
 import "styles-uit"
-import "controls" as Controls
 
 
 ScrollingWindow {
@@ -150,7 +149,7 @@ ScrollingWindow {
         }
 
         // virtual keyboard, letters
-        Controls.Keyboard {
+        Keyboard {
             id: keyboard1
             // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
@@ -165,7 +164,7 @@ ScrollingWindow {
             // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
 
-        Controls.KeyboardPunctuation {
+        KeyboardPunctuation {
             id: keyboard2
             // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
