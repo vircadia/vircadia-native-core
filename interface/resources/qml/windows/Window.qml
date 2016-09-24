@@ -133,7 +133,9 @@ Fadable {
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
-        onClicked: {}
+        onClicked: {
+            frame.forceActiveFocus();  // Defocus any current field so that the keyboard gets hidden.
+        }
         onDoubleClicked: {}
         onPressAndHold: {}
         onReleased: {}

@@ -109,8 +109,13 @@ Column {
             }
 
             MouseArea {
+                // Events are propogated so that any active control is defocussed.
                 anchors.fill: parent
-                onClicked: toggleCollapsed()
+                propagateComposedEvents: true
+                onClicked: {
+                    toggleCollapsed();
+                    mouse.accepted = false;
+                }
             }
         }
 
