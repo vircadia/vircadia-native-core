@@ -31,6 +31,7 @@ Window {
     children: [ swallower, frame, pane, activator ]
 
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
+    readonly property var footerContentHeight: footer.height > 0 ? (footer.height + 2 * hifi.dimensions.contentSpacing.y + 3) : 0
 
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -121,6 +122,10 @@ Window {
             }
         }
 
+        function scrollBy(delta) {
+            scrollView.flickableItem.contentY += delta;
+        }
+
         Rectangle {
             // Optional non-scrolling footer.
             id: footerPane
@@ -133,7 +138,7 @@ Window {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: (footer.height > 0 ? footer.height + 2 * hifi.dimensions.contentSpacing.y + 3 : 0) + (keyboardRaised ? 200 : 0)
+            height: footerContentHeight + (keyboardRaised ? 200 : 0)
             color: hifi.colors.baseGray
             visible: footer.height > 0 || keyboardRaised
 
@@ -194,6 +199,21 @@ Window {
                     right: parent.right
                     bottom: parent.bottom
                 }
+            }
+        }
+    }
+
+    onKeyboardRaisedChanged: {
+        if (keyboardRaised) {
+            var delta = activator.mouseY
+                    - (activator.height + activator.y - 200 - footerContentHeight - hifi.dimensions.controlLineHeight);
+
+            if (delta > 0) {
+                pane.scrollBy(delta);
+            } else {
+                // HACK: Work around for case where are 100% scrolled; stops window from erroneously scrolling to 100% when show keyboard.
+                pane.scrollBy(-1);
+                pane.scrollBy(1);
             }
         }
     }
