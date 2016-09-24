@@ -44,7 +44,7 @@ Fadable {
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
     x: desktop.invalid_position; y: desktop.invalid_position;
-    children: [ swallower, frame, content, activator ]
+    children: [ swallower, frame, defocuser, content, activator ]
 
     //
     // Custom properties
@@ -122,6 +122,21 @@ Fadable {
         }
     }
 
+    // This mouse area defocuses the current control so that the HMD keyboard gets hidden.
+    property var defocuser: MouseArea {
+        width: frame.decoration ? frame.decoration.width : window.width
+        height: frame.decoration ? frame.decoration.height : window.height
+        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
+        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
+        propagateComposedEvents: true
+        acceptedButtons: Qt.AllButtons
+        enabled: window.visible
+        onPressed: {
+            frame.forceActiveFocus();
+            mouse.accepted = false;
+        }
+    }
+
     // This mouse area serves to swallow mouse events while the mouse is over the window
     // to prevent things like mouse wheel events from reaching the application and changing
     // the camera if the user is scrolling through a list and gets to the end.
@@ -133,9 +148,7 @@ Fadable {
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
-        onClicked: {
-            frame.forceActiveFocus();  // Defocus any current field so that the keyboard gets hidden.
-        }
+        onClicked: {}
         onDoubleClicked: {}
         onPressAndHold: {}
         onReleased: {}

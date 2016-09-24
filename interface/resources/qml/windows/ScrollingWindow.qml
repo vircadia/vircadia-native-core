@@ -28,7 +28,7 @@ import "../controls" as HiFiControls
 Window {
     id: window
     HifiConstants { id: hifi }
-    children: [ swallower, frame, pane, activator ]
+    children: [ swallower, frame, defocuser, pane, activator ]
 
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
     readonly property var footerContentHeight: footer.height > 0 ? (footer.height + 2 * hifi.dimensions.contentSpacing.y + 3) : 0
