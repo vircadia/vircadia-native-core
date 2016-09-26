@@ -256,7 +256,7 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     
-    emit packetSent(packetSize, payloadSize, sequenceNumber);
+    emit packetSent(packetSize, payloadSize, sequenceNumber, p_high_resolution_clock::now());
 
     if (bytesWritten < 0) {
         // this is a short-circuit loss - we failed to put this packet on the wire
@@ -492,7 +492,7 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted(resendPacket.getWireSize(), it->first);
+                emit packetRetransmitted(resendPacket.getWireSize(), it->first, p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;

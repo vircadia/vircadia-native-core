@@ -43,9 +43,10 @@ public:
     virtual void onACK(SequenceNumber ackNum) {}
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     virtual void onTimeout() {}
-    virtual void onPacketSent(int packetSize, SequenceNumber seqNum) {}
 
     virtual bool shouldNAK() { return true; }
+
+    virtual void onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {}
 protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRTO(int rto) { _userDefinedRTO = true; _rto = rto; }

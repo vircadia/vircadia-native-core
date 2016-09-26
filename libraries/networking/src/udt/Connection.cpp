@@ -262,16 +262,17 @@ void Connection::sync() {
     }
 }
 
-void Connection::recordSentPackets(int dataSize, int payloadSize, SequenceNumber seqNum) {
+void Connection::recordSentPackets(int dataSize, int payloadSize,
+                                   SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     _stats.recordSentPackets(payloadSize, dataSize);
 
-    _congestionControl->onPacketSent(dataSize, seqNum);
+    _congestionControl->onPacketSent(dataSize, seqNum, timePoint);
 }
 
-void Connection::recordRetransmission(int packetSize, SequenceNumber seqNum) {
+void Connection::recordRetransmission(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     _stats.record(ConnectionStats::Stats::Retransmission);
 
-    _congestionControl->onPacketSent(packetSize, seqNum);
+    _congestionControl->onPacketSent(packetSize, seqNum, timePoint);
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {

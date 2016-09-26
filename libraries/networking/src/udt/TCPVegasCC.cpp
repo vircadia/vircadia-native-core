@@ -11,6 +11,7 @@
 
 #include "TCPVegasCC.h"
 
+#include <QtCore/QDebug>
 #include <QtCore/QtGlobal>
 
 using namespace udt;
@@ -65,6 +66,10 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
     static const int VEGAS_BETA_SEGMENTS = 4;
     static const int VEGAS_GAMMA_SEGMENTS = 1;
 
+    qDebug() << "============";
+    qDebug() << "PCA" << _numRTT;
+    qDebug() << "CWS:" << _congestionWindowSize << "SS:" << _sendSlowStartThreshold;
+
     if (_numRTT < VEGAS_MIN_RTT_FOR_CALC) {
         // Vegas calculations are only done if there are enough RTT samples to be
         // pretty sure that at least one sample did not come from a delayed ACK.
@@ -82,6 +87,10 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
 
         int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
         int diff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
+
+        qDebug() << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT;
+        qDebug() << "EWS" << expectedWindowSize;
+        qDebug() << "D:" << diff;
 
         bool inWindowReduction = false;
 
@@ -130,10 +139,13 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
         _currentMinRTT = std::numeric_limits<int>::max();
         _numRTT = 0;
     }
+
+    qDebug() << "CW:" << _congestionWindowSize << "SS:" << _sendSlowStartThreshold;
+    qDebug() << "============";
 }
 
 
-void TCPVegasCC::onPacketSent(int packetSize, SequenceNumber seqNum) {
-    _sentPacketTimes[seqNum] = { p_high_resolution_clock::now(), packetSize };
+void TCPVegasCC::onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+    _sentPacketTimes[seqNum] = { timePoint, packetSize };
 }
 
