@@ -54,7 +54,6 @@ private:
 
     int _currentMinRTT { 0x7FFFFFFF }; // Current RTT, in microseconds
     int _baseRTT { 0x7FFFFFFF }; // Lowest RTT during connection, in microseconds
-    int _numRTT { 0 }; // Number of RTT collected during last RTT
     int _ewmaRTT { -1 }; // Exponential weighted moving average RTT
     int _rttVariance { 0 }; // Variance in collected RTT values
 

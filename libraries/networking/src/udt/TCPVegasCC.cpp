@@ -110,7 +110,6 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     static int VEGAS_GAMMA_SEGMENTS = 1;
 
     qDebug() << "============";
-    qDebug() << "PCA" << _numRTT;
     qDebug() << "CWS:" << _congestionWindowSize << "SS:" << _slowStart;
 
     // Use the Vegas algorithm to see if we should
