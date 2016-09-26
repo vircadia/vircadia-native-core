@@ -32,25 +32,25 @@ void TCPRenoCC::onACK(SequenceNumber ackNum) {
 }
 
 bool TCPRenoCC::isInSlowStart() {
-    return _sendCongestionWindowSize < _sendSlowStartThreshold;
+    return _congestionWindowSize < _sendSlowStartThreshold;
 }
 
 int TCPRenoCC::performSlowStart(int numAcked) {
-    int congestionWindow = std::min(_sendCongestionWindowSize + numAcked, _sendSlowStartThreshold);
-    numAcked -= congestionWindow - _sendCongestionWindowSize;
-    _sendCongestionWindowSize = std::min(congestionWindow, _sendCongestionWindowClamp);
+    int congestionWindow = std::min(_congestionWindowSize + numAcked, _sendSlowStartThreshold);
+    numAcked -= congestionWindow - _congestionWindowSize;
+    _congestionWindowSize = std::min(congestionWindow, _sendCongestionWindowClamp);
 
     return numAcked;
 }
 
 int TCPRenoCC::slowStartThreshold() {
     // Slow start threshold is half the congestion window (min 2)
-    return std::max(_sendCongestionWindowSize >> 1, 2);
+    return std::max(_congestionWindowSize >> 1, 2);
 }
 
 bool TCPRenoCC::isCongestionWindowLimited() {
     if (isInSlowStart()) {
-        return _sendCongestionWindowSize < 2 * _maxPacketsOut;
+        return _congestionWindowSize < 2 * _maxPacketsOut;
     }
 
     return _isCongestionWindowLimited;
@@ -70,14 +70,14 @@ void TCPRenoCC::performCongestionAvoidance(SequenceNumber ack, int numAcked) {
     }
 
     // In dangerous area, increase slowly.
-    performCongestionAvoidanceAI(_sendCongestionWindowSize, numAcked);
+    performCongestionAvoidanceAI(_congestionWindowSize, numAcked);
 }
 
 void TCPRenoCC::performCongestionAvoidanceAI(int sendCongestionWindowSize, int numAcked) {
     // If credits accumulated at a higher w, apply them gently now.
     if (_sendCongestionWindowCount >= sendCongestionWindowSize) {
         _sendCongestionWindowCount = 0;
-        _sendCongestionWindowSize++;
+        _congestionWindowSize++;
     }
 
     _sendCongestionWindowCount += numAcked;
