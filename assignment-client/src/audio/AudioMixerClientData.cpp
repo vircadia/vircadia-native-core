@@ -234,14 +234,21 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     while (numStreamStatsRemaining > 0) {
         auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
 
+        int numStreamStatsRoomFor = (int)(statsPacket->size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
+
+        // calculate the number of stream stats to follow
+        quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
+
+        // is this the terminal packet?
+        if (numStreamStatsRemaining <= numStreamStatsToPack) {
+            appendFlag = 2;
+        }
+
         // pack the append flag in this packet
         statsPacket->writePrimitive(appendFlag);
         appendFlag = 1;
 
-        int numStreamStatsRoomFor = (int)(statsPacket->size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
-
-        // calculate and pack the number of stream stats to follow
-        quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
+        // pack the number of stream stats to follow
         statsPacket->writePrimitive(numStreamStatsToPack);
 
         // pack the calculated number of stream stats
