@@ -55,7 +55,7 @@ enum AudioListenerMode {
 };
 Q_DECLARE_METATYPE(AudioListenerMode);
 
-const size_t DEBUG_LINE_LOOP_SIZE = 1000;
+const size_t DEBUG_LINE_LOOP_SIZE = 500;
 
 class MyAvatar : public Avatar {
     Q_OBJECT

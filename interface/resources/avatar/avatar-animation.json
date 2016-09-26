@@ -292,8 +292,8 @@
                                                         },
                                                         {
                                                             "id": "walkBwd",
-                                                            "interpTarget": 6,
-                                                            "interpDuration": 6,
+                                                            "interpTarget": 4,
+                                                            "interpDuration": 4,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingForward", "state": "walkFwd" },
