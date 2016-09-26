@@ -75,6 +75,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack) {
 
     if (ack == _lastAck || _numACKSinceFastRetransmit < 3) {
         // we may need to re-send ackNum + 1 if it has been more than our estimated timeout since it was sent
+        qDebug() << "FRT:" << (uint32_t) ack <<  (uint32_t) _lastAck << _numACKSinceFastRetransmit;
 
         auto it = _sentPacketTimes.find(ack + 1);
         if (it != _sentPacketTimes.end()) {
