@@ -128,7 +128,7 @@ ModalWindow {
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.bottom: buttons.top
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
 
         KeyboardPunctuation {
@@ -142,7 +142,7 @@ ModalWindow {
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.bottom: buttons.top
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
 
         Flow {

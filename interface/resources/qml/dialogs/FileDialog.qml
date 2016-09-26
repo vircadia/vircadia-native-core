@@ -27,7 +27,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? 200 + (2 * hifi.dimensions.contentSpacing.y) : 0)
+    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? 200 + hifi.dimensions.contentSpacing.y : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -109,12 +109,14 @@ ModalWindow {
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
-
         MouseArea {
             // Clear selection when click on internal unused area.
             anchors.fill: parent
             drag.target: root
-            onClicked: d.clearSelection()
+            onClicked: {
+                d.clearSelection();
+                frame.forceActiveFocus();  // Defocus text field so that the keyboard gets hidden.
+            }
         }
 
         Row {
@@ -645,34 +647,26 @@ ModalWindow {
             KeyNavigation.right: openButton
         }
 
-
-        // virtual keyboard, letters
         Keyboard {
             id: keyboard1
-            // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
             visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
+            enabled: visible
             anchors.right: parent.right
-            anchors.rightMargin: 0
             anchors.left: parent.left
-            anchors.leftMargin: 0
             anchors.bottom: buttonRow.top
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
         }
 
         KeyboardPunctuation {
             id: keyboard2
-            // y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0
             visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
+            enabled: visible
             anchors.right: parent.right
-            anchors.rightMargin: 0
             anchors.left: parent.left
-            anchors.leftMargin: 0
             anchors.bottom: buttonRow.top
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
         }
 
         Row {
