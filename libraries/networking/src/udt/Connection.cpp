@@ -315,8 +315,8 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // pack the available buffer size, in packets
     // in our implementation we have no hard limit on receive buffer size, send the default value
-    _ackPacket->writePrimitive((int32_t) udt::CONNECTION_RECEIVE_BUFFER_SIZE_PACKETS);
-    
+    _ackPacket->writePrimitive((int32_t) udt::MAX_PACKETS_IN_FLIGHT);
+
     if (wasCausedBySyncTimeout) {
         // grab the up to date packet receive speed and estimated bandwidth
         int32_t packetReceiveSpeed = _receiveWindow.getPacketReceiveSpeed();
