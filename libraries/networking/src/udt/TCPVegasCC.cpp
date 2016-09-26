@@ -160,7 +160,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     // we never allow the congestion window to be smaller than two packets
     static int VEGAS_CW_MIN_PACKETS = 2;
-    _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
+    _congestionWindowSize = std::max(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
 
     // mark this as the last adjustment time
     _lastAdjustmentTime = p_high_resolution_clock::now();
