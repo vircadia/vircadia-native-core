@@ -36,7 +36,6 @@ protected:
 
     int _sendSlowStartThreshold;
     int _sendCongestionWindowCount;
-    int _sendCongestionWindowClamp = ~0;
     int _maxPacketsOut;
     bool _isCongestionWindowLimited;
 
