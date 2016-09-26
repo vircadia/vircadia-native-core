@@ -70,6 +70,7 @@ public slots:
     
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
+    void fastRetransmit(SequenceNumber ack);
     void overrideNAKListFromPacket(ControlPacket& packet);
     void handshakeACK(SequenceNumber initialSequenceNumber);
 

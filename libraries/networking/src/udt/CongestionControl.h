@@ -40,7 +40,7 @@ public:
     void setMaxBandwidth(int maxBandwidth);
 
     virtual void init() {}
-    virtual void onACK(SequenceNumber ackNum) {}
+    virtual bool onACK(SequenceNumber ackNum) { return false; }
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     virtual void onTimeout() {}
 
@@ -106,7 +106,7 @@ public:
     DefaultCC();
     
 public:
-    virtual void onACK(SequenceNumber ackNum) override;
+    virtual bool onACK(SequenceNumber ackNum) override;
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override;
     virtual void onTimeout() override;
 

@@ -24,7 +24,6 @@
 #include "../HifiSockAddr.h"
 #include "TCPVegasCC.h"
 #include "Connection.h"
-#include "TCPRenoCC.h"
 
 //#define UDT_CONNECTION_DEBUG
 

@@ -18,39 +18,48 @@
 
 #include "CongestionControl.h"
 #include "Constants.h"
-#include "TCPRenoCC.h"
 
 namespace udt {
     
 
-class TCPVegasCC : public TCPRenoCC {
+class TCPVegasCC : public CongestionControl {
 public:
-    TCPVegasCC() {};
+    TCPVegasCC();
 
 public:
-    virtual void onACK(SequenceNumber ackNum) override;
+    virtual bool onACK(SequenceNumber ackNum) override;
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override {};
     virtual void onTimeout() override {};
 
-    virtual bool shouldNAK() { return false; }
+    virtual bool shouldNAK() override { return false; }
 
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
     
 protected:
-    virtual void performCongestionAvoidance(SequenceNumber ack, int numAcked) override;
+    virtual void performCongestionAvoidance(SequenceNumber ack);
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override { _lastAck = seqNum - 1; }
 private:
-    void adjustSlowStartThreshold()
-        { _sendSlowStartThreshold = std::min(_sendSlowStartThreshold, (int) _congestionWindowSize - 1); }
 
     using TimeSizePair = std::pair<p_high_resolution_clock::time_point, int>;
     using PacketTimeList = std::map<SequenceNumber, TimeSizePair>;
     PacketTimeList _sentPacketTimes; // Map of sequence numbers to sent time
 
+    SequenceNumber _lastAdjustmentNextSendAck; // Sequence number of next packet to be sent at time of last adjustment
+
+    bool _slowStart { false }; // Marker for slow start phase
+
+    SequenceNumber _lastAck; // Sequence number of last packet that was ACKed
+
+    int _numACKSinceFastRetransmit { 0 }; // Number of ACKs received since last fast re-transmit
+
     int _currentMinRTT { 0x7FFFFFFF }; // Current RTT, in microseconds
     int _baseRTT { 0x7FFFFFFF }; // Lowest RTT during connection, in microseconds
     int _numRTT { 0 }; // Number of RTT collected during last RTT
+    int _ewmaRTT { 0 }; // Exponential weighted moving average RTT
+    int _rttVariance { 0 }; // Variance in collected RTT values
 
-    SequenceNumber _lastRTTMaxSeqNum; // Highest sent sequence number at time of last congestion window adjustment
+    int _slowStartOddAdjust { 0 }; // Marker for every window adjustment every other RTT in slow-start
+
 };
 
 }

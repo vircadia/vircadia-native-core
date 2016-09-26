@@ -49,7 +49,7 @@ DefaultCC::DefaultCC() :
     setPacketSendPeriod(1.0);
 }
 
-void DefaultCC::onACK(SequenceNumber ackNum) {
+bool DefaultCC::onACK(SequenceNumber ackNum) {
     double increase = 0;
     
     // Note from UDT original code:
@@ -61,7 +61,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     // we will only adjust once per sync interval so check that it has been at least that long now
     auto now = p_high_resolution_clock::now();
     if (duration_cast<microseconds>(now - _lastRCTime).count() < synInterval()) {
-        return;
+        return false;
     }
     
     // our last rate increase time is now
@@ -93,13 +93,13 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     
     // during slow start we perform no rate increases
     if (_slowStart) {
-        return;
+        return false;
     }
     
     // if loss has happened since the last rate increase we do not perform another increase
     if (_loss) {
         _loss = false;
-        return;
+        return false;
     }
     
     double capacitySpeedDelta = (_bandwidth - USECS_PER_SECOND / _packetSendPeriod);
@@ -132,6 +132,8 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     }
     
     setPacketSendPeriod((_packetSendPeriod * synInterval()) / (_packetSendPeriod * increase + synInterval()));
+
+    return false;
 }
 
 void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {

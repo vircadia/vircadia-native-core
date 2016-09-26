@@ -180,6 +180,16 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     _emptyCondition.notify_one();
 }
 
+void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
+    {
+        std::lock_guard<std::mutex> nakLocker(_naksLock);
+        _naks.insert(ack, ack);
+    }
+
+    // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
+    _emptyCondition.notify_one();
+}
+
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
     _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();

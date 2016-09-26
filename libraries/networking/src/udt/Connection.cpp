@@ -686,7 +686,10 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     
     // give this ACK to the congestion control and update the send queue parameters
     updateCongestionControlAndSendQueue([this, ack](){
-        _congestionControl->onACK(ack);
+        if (_congestionControl->onACK(ack)) {
+            // the congestion control has told us it needs a fast re-transmit of ack + 1, add that now
+            _sendQueue->fastRetransmit(ack + 1);
+        }
     });
     
     _stats.record(ConnectionStats::Stats::ProcessedACK);
