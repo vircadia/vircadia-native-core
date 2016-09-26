@@ -34,7 +34,7 @@ public:
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum) override;
     
 protected:
-    virtual void performCongestionAvoidance(SequenceNumber ack) override;
+    virtual void performCongestionAvoidance(SequenceNumber ack, int numACK) override;
 private:
     void adjustSlowStartThreshold()
         { _slowStartThreshold = std::min(_slowStartThreshold, (uint32_t) _congestionWindowSize - 1); }

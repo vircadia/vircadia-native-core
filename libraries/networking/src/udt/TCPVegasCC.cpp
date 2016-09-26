@@ -42,8 +42,11 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
         ++_numRTT;
 
         if (ackNum > _lastRTTMaxSeqNum) {
-            performCongestionAvoidance(ackNum);
+            int numACK = seqlen(_lastACK, ackNum);
+            performCongestionAvoidance(ackNum, numACK);
         }
+
+        _lastACK = ackNum;
 
     } else {
         Q_ASSERT_X(false,
@@ -52,7 +55,7 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
     }
 }
 
-void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
+void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numACK) {
     static int VEGAS_MIN_RTT_FOR_CALC = 3;
 
     static uint64_t VEGAS_ALPHA_SEGMENTS = 2;
@@ -63,7 +66,8 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
         // Vegas calculations are only done if there are enough RTT samples to be
         // pretty sure that at least one sample did not come from a delayed ACK.
         // If that is the case, we fallback to the Reno behaviour
-        TCPRenoCC::performCongestionAvoidance(ack);
+
+        TCPRenoCC::performCongestionAvoidance(ack, numACK);
     } else {
         // There are enough RTT samples, use the Vegas algorithm to see if we should
         // increase or decrease the congestion window size, and by how much
@@ -106,20 +110,23 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
             }
         }
 
-        if (!inWindowReduction) {
-            // we didn't reduce the congestion window size, so it is now time to raise the slow start threshold
+        // we never allow the congestion window to be smaller than two packets
+        static uint64_t VEGAS_CW_MIN_PACKETS = 2;
+        _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
 
-            // we never allow the congestion window to be smaller than two packets
-            static uint64_t VEGAS_CW_MIN_PACKETS = 2;
-            _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
+        if (!inWindowReduction && _congestionWindowSize > _slowStartThreshold) {
+            // if we didn't just reduce the congestion window size and the
+            // the congestion window is greater than the slow start threshold
+            // we raise the slow start threshold half the distance to the congestion window
+            _slowStartThreshold = (_congestionWindowSize >> 1) +  (_congestionWindowSize >> 2);
         }
+
+        _lastRTTMaxSeqNum = _sendCurrSeqNum;
+
+        // reset our state for the next RTT
+        _currentMinRTT = std::numeric_limits<int>::max();
+        _numRTT = 0;
     }
-
-    _lastRTTMaxSeqNum = _sendCurrSeqNum;
-
-    // reset our state for the next RTT
-    _currentMinRTT = std::numeric_limits<int>::max();
-    _numRTT = 0;
 }
 
 
