@@ -34,10 +34,10 @@ public:
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum) override;
     
 protected:
-    virtual void performCongestionAvoidance(SequenceNumber ack, int numACK) override;
+    virtual void performCongestionAvoidance(SequenceNumber ack, int numAcked) override;
 private:
     void adjustSlowStartThreshold()
-        { _slowStartThreshold = std::min(_slowStartThreshold, (uint32_t) _congestionWindowSize - 1); }
+        { _sendSlowStartThreshold = std::min(_sendSlowStartThreshold, (int) _congestionWindowSize - 1); }
 
     using TimeSizePair = std::pair<p_high_resolution_clock::time_point, int>;
     using PacketTimeList = std::map<SequenceNumber, TimeSizePair>;

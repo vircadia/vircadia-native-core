@@ -55,7 +55,7 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
     }
 }
 
-void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numACK) {
+void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcked) {
     static int VEGAS_MIN_RTT_FOR_CALC = 3;
 
     static uint64_t VEGAS_ALPHA_SEGMENTS = 2;
@@ -67,7 +67,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numACK)
         // pretty sure that at least one sample did not come from a delayed ACK.
         // If that is the case, we fallback to the Reno behaviour
 
-        TCPRenoCC::performCongestionAvoidance(ack, numACK);
+        TCPRenoCC::performCongestionAvoidance(ack, numAcked);
     } else {
         // There are enough RTT samples, use the Vegas algorithm to see if we should
         // increase or decrease the congestion window size, and by how much
@@ -92,7 +92,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numACK)
             inWindowReduction = true;
         } else if (isInSlowStart()) {
             // slow start
-            performSlowStart(ack);
+            performSlowStart(numAcked);
         } else {
             // figure out where the congestion window should be
             if (diff > VEGAS_BETA_SEGMENTS) {
@@ -114,11 +114,11 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numACK)
         static uint64_t VEGAS_CW_MIN_PACKETS = 2;
         _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
 
-        if (!inWindowReduction && _congestionWindowSize > _slowStartThreshold) {
+        if (!inWindowReduction && _congestionWindowSize > _sendSlowStartThreshold) {
             // if we didn't just reduce the congestion window size and the
             // the congestion window is greater than the slow start threshold
             // we raise the slow start threshold half the distance to the congestion window
-            _slowStartThreshold = (_congestionWindowSize >> 1) +  (_congestionWindowSize >> 2);
+            _sendSlowStartThreshold = (_congestionWindowSize >> 1) +  (_congestionWindowSize >> 2);
         }
 
         _lastRTTMaxSeqNum = _sendCurrSeqNum;

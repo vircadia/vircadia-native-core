@@ -25,7 +25,7 @@ protected:
     virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) { _lastACK = seqNum - 1; }
 
     bool isInSlowStart();
-    int slowStart(int numAcked);
+    int performSlowStart(int numAcked);
     int slowStartThreshold();
 
     bool isCongestionWindowLimited();

@@ -35,7 +35,7 @@ bool TCPRenoCC::isInSlowStart() {
     return _sendCongestionWindowSize < _sendSlowStartThreshold;
 }
 
-int TCPRenoCC::slowStart(int numAcked) {
+int TCPRenoCC::performSlowStart(int numAcked) {
     int congestionWindow = std::min(_sendCongestionWindowSize + numAcked, _sendSlowStartThreshold);
     numAcked -= congestionWindow - _sendCongestionWindowSize;
     _sendCongestionWindowSize = std::min(congestionWindow, _sendCongestionWindowClamp);
@@ -63,7 +63,7 @@ void TCPRenoCC::performCongestionAvoidance(SequenceNumber ack, int numAcked) {
 
     // In "safe" area, increase.
     if (isInSlowStart()) {
-        numAcked = slowStart(numAcked);
+        numAcked = performSlowStart(numAcked);
         if (!numAcked) {
             return;
         }
