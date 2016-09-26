@@ -223,9 +223,11 @@ void Connection::sync() {
         // reset the number of light ACKs or non SYN ACKs during this sync interval
         _lightACKsDuringSYN = 1;
         _acksDuringSYN = 1;
-        
-        // we send out a periodic ACK every rate control interval
-        sendACK();
+
+        if (_congestionControl->_ackInterval > 1) {
+            // we send out a periodic ACK every rate control interval
+            sendACK();
+        }
         
         if (_lossList.getLength() > 0) {
             // check if we need to re-transmit a loss list

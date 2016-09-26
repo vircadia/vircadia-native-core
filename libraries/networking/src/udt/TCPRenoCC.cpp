@@ -19,7 +19,7 @@ void TCPRenoCC::init() {
     _packetSendPeriod = 0.0;
     _congestionWindowSize = 2.0;
 
-    setAckInterval(2);
+    setAckInterval(1);
     setRTO(1000000);
 }
 
