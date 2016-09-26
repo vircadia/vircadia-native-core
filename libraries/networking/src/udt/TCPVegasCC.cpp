@@ -41,12 +41,19 @@ bool TCPVegasCC::onACK(SequenceNumber ack) {
             lastRTT = 1;
         }
 
-        static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
-        static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
+        if (_ewmaRTT == -1) {
+            _ewmaRTT = lastRTT;
+            _rttVariance = lastRTT / 2;
+        } else {
+            static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
+            static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
 
-        _ewmaRTT = (_ewmaRTT * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + lastRTT) / RTT_ESTIMATION_ALPHA_NUMERATOR;
-        _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
-                        + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
+            _ewmaRTT = (_ewmaRTT * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + lastRTT) / RTT_ESTIMATION_ALPHA_NUMERATOR;
+            _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
+                            + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
+        }
+
+
 
         // keep track of the lowest RTT during connection
         _baseRTT = std::min(_baseRTT, lastRTT);
