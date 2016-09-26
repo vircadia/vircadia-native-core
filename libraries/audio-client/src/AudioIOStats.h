@@ -79,8 +79,8 @@ class AudioStatsInterface : public QObject {
     AUDIO_PROPERTY(quint64, sentTimegapMsMaxWindow);
     AUDIO_PROPERTY(quint64, sentTimegapMsAvgWindow);
 
-    Q_PROPERTY(AudioStreamStatsInterface* mixerStream READ getMixerStream);
-    Q_PROPERTY(AudioStreamStatsInterface* clientStream READ getClientStream);
+    Q_PROPERTY(AudioStreamStatsInterface* mixerStream READ getMixerStream NOTIFY mixerStreamChanged);
+    Q_PROPERTY(AudioStreamStatsInterface* clientStream READ getClientStream NOTIFY clientStreamChanged);
     Q_PROPERTY(QObject* injectorStreams READ getInjectorStreams NOTIFY injectorStreamsChanged);
 
 public:
@@ -92,11 +92,13 @@ public:
                             const MovingMinMaxAvg<float>& inputMsUnplayed,
                             const MovingMinMaxAvg<float>& outputMsUnplayed,
                             const MovingMinMaxAvg<quint64>& timegaps);
-    void updateClientStream(const AudioStreamStats& stats) { _client->updateStream(stats); }
-    void updateMixerStream(const AudioStreamStats& stats) { _mixer->updateStream(stats); }
+    void updateMixerStream(const AudioStreamStats& stats) { _mixer->updateStream(stats); emit mixerStreamChanged(); }
+    void updateClientStream(const AudioStreamStats& stats) { _client->updateStream(stats); emit clientStreamChanged(); }
     void updateInjectorStreams(const QHash<QUuid, AudioStreamStats>& stats);
 
 signals:
+    void mixerStreamChanged();
+    void clientStreamChanged();
     void injectorStreamsChanged();
 
 private:
