@@ -21,6 +21,8 @@
 
 #include <chrono>
 
+#include <QtCore/QMetaType>
+
 #if defined(_MSC_VER) && _MSC_VER < 1900
 
 #define WIN32_LEAN_AND_MEAN
@@ -47,5 +49,8 @@ using p_high_resolution_clock = std::chrono::high_resolution_clock;
 
 #endif
 
+Q_DECLARE_METATYPE(p_high_resolution_clock::time_point);
+
+static const int timePointMetaTypeID = qRegisterMetaType<p_high_resolution_clock::time_point>();
 
 #endif // hifi_PortableHighResolutionClock_h
