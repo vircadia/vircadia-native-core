@@ -16,6 +16,8 @@
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
+#include <OffscreenUi.h>
+
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
@@ -367,28 +369,21 @@ QStringList ScriptEngines::getRunningScripts() {
 
 void ScriptEngines::stopAllScripts(bool restart) {
     QReadLocker lock(&_scriptEnginesHashLock);
-    if (restart) {
-        // Delete all running scripts from cache so that they are re-downloaded when they are restarted
-        auto scriptCache = DependencyManager::get<ScriptCache>();
-        for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-            it != _scriptEnginesHash.constEnd(); it++) {
-            if (!it.value()->isFinished()) {
-                scriptCache->deleteScript(it.key());
-            }
-        }
-    }
-
-    // Stop and possibly restart all currently running scripts
     for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
+        // skip already stopped scripts
         if (it.value()->isFinished() || it.value()->isStopping()) {
             continue;
         }
+
+        // queue user scripts if restarting
         if (restart && it.value()->isUserLoaded()) {
             connect(it.value(), &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
                 reloadScript(scriptName);
             });
         }
+
+        // stop all scripts
         it.value()->stop(true);
         qCDebug(scriptengine) << "stopping script..." << it.key();
     }
@@ -431,6 +426,7 @@ void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
 
 void ScriptEngines::reloadAllScripts() {
     DependencyManager::get<ScriptCache>()->clearCache();
+    DependencyManager::get<OffscreenUi>()->clearCache();
     emit scriptsReloading();
     stopAllScripts(true);
 }

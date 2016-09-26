@@ -2,6 +2,7 @@ var Settings = {
   showAdvanced: false,
   METAVERSE_URL: 'https://metaverse.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
+  DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
@@ -42,7 +43,10 @@ var Settings = {
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced) {
-    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "' data-keypath='" + keypath + "'>";
+    form_group = "<div class='form-group " +
+        (isAdvanced ? Settings.ADVANCED_CLASS : "") + " " +
+        (setting.deprecated ? Settings.DEPRECATED_CLASS : "" ) + "' " + 
+        "data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
     if (_.isUndefined(setting_value) || _.isNull(setting_value)) {
@@ -454,7 +458,7 @@ function setupHFAccountButton() {
   }
 
   // use the existing getFormGroup helper to ask for a button
-  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false);
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
@@ -665,7 +669,7 @@ function setupPlacesTable() {
   }
 
   // get a table for the places
-  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false);
+  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values);
 
   // append the places table in the right place
   $('#places_paths .panel-body').prepend(placesTableGroup);
