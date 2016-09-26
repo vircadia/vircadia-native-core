@@ -58,9 +58,9 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
 void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcked) {
     static int VEGAS_MIN_RTT_FOR_CALC = 3;
 
-    static uint64_t VEGAS_ALPHA_SEGMENTS = 2;
-    static uint64_t VEGAS_BETA_SEGMENTS = 4;
-    static uint64_t VEGAS_GAMMA_SEGMENTS = 1;
+    static int VEGAS_ALPHA_SEGMENTS = 2;
+    static int VEGAS_BETA_SEGMENTS = 4;
+    static int VEGAS_GAMMA_SEGMENTS = 1;
 
     if (_numRTT < VEGAS_MIN_RTT_FOR_CALC) {
         // Vegas calculations are only done if there are enough RTT samples to be
@@ -77,8 +77,8 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
         // (though congestion may be noticed a bit later)
         int rtt = _currentMinRTT;
 
-        uint64_t expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
-        uint64_t diff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
+        int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
+        int diff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
         bool inWindowReduction = false;
 
@@ -111,7 +111,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
         }
 
         // we never allow the congestion window to be smaller than two packets
-        static uint64_t VEGAS_CW_MIN_PACKETS = 2;
+        static int VEGAS_CW_MIN_PACKETS = 2;
         _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
 
         if (!inWindowReduction && _congestionWindowSize > _sendSlowStartThreshold) {

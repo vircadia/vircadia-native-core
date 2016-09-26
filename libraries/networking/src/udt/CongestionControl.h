@@ -58,11 +58,11 @@ protected:
     void setPacketSendPeriod(double newSendPeriod); // call this internally to ensure send period doesn't go past max bandwidth
     
     double _packetSendPeriod { 1.0 }; // Packet sending period, in microseconds
-    uint64_t _congestionWindowSize { 16 }; // Congestion window size, in packets
+    int _congestionWindowSize { 16 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
     std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bits per second
-    uint64_t _maxCongestionWindowSize { 0 }; // maximum cwnd size, in packets
+    int _maxCongestionWindowSize { 0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers
     SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
