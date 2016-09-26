@@ -13,24 +13,28 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
 ColumnLayout {
+    id: jitter
     property var max
     property var avg
     property var maxWindow
     property var avgWindow
+    property bool showGraphs: false
 
     MovingValuePair {
         label: "Total"
-        label1: "Average"
-        label2: "Maximum"
-        source1: avg
-        source2: max
+        label1: "Maximum"
+        label2: "Average"
+        source1: max
+        source2: avg
+        showGraphs: jitter.showGraphs
     }
     MovingValuePair {
         label: "Window"
-        label1: "Average"
-        label2: "Maximum"
-        source1: avgWindow
-        source2: maxWindow
+        label1: "Maximum"
+        label2: "Average"
+        source1: maxWindow
+        source2: avgWindow
+        showGraphs: jitter.showGraphs
     }
 }
 

@@ -17,7 +17,7 @@ var qml = Script.resolvePath('stats.qml');
 var window = new OverlayWindow({
     title: 'Audio Interface Statistics',
     source: qml,
-    width: 400, height: 720 // stats.qml may be too large for some screens
+    width: 800, height: 720 // stats.qml may be too large for some screens
 });
 window.setPosition(INITIAL_OFFSET, INITIAL_OFFSET);
 

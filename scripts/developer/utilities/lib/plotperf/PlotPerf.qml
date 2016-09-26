@@ -55,9 +55,17 @@ Item {
     function createValues() {
         for (var i =0; i < plots.length; i++) {
             var plot = plots[i];
+            var object = plot["object"] || root.object;
+            var value = plot["prop"];
+            var isBinding = plot["binding"];
+            if (isBinding) {
+                object = root.parent;
+                value = isBinding;
+            }
             _values.push( {
-                object: (plot["object"] !== undefined ? plot["object"] : root.object),
-                value: plot["prop"],
+                object: object,
+                value: value,
+                fromBinding: isBinding,
                 valueMax: 1,
                 numSamplesConstantMax: 0,
                 valueHistory: new Array(),
@@ -218,7 +226,6 @@ Item {
         anchors.rightMargin: -hitboxExtension
 
         onClicked: {
-            print("PerfPlot clicked!")
             resetMax();
         }
     }

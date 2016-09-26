@@ -11,16 +11,17 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
+import "../lib/plotperf"
 
 RowLayout {
     id: value 
     property string label
     property string label1
     property string label2
-    property var source
     property var source1
     property var source2
     property string unit: "ms"
+    property bool showGraphs: false
 
     property int labelPixelWidth: 50
     property int dataPixelWidth: 100
@@ -37,6 +38,7 @@ RowLayout {
                 text: value.label1
             }
             Label {
+                visible: !value.showGraphs
                 Layout.preferredWidth: 0
                 horizontalAlignment: Text.AlignRight
                 text: value.source1 + ' ' + unit
@@ -48,18 +50,22 @@ RowLayout {
                 text: value.label2
             }
             Label {
+                visible: !value.showGraphs
                 Layout.preferredWidth: 0
                 horizontalAlignment: Text.AlignRight
                 text: value.source2 + ' ' + unit
             }
         }
     }
-    Label {
+    PlotPerf {
+        visible: value.showGraphs
+        
         Layout.fillWidth: true
-        horizontalAlignment: Text.AlignRight
-        Layout.alignment: Qt.AlignRight
-        text: "Placeholder"
+        height: 70
+
+        valueUnit: value.unit
+        valueNumDigits: 0
+
+        plots: [{ binding: "source1" }, { binding: "source2" }]
     }
-
 }
-

@@ -13,7 +13,9 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
 ColumnLayout {
+    id: root
     property var stream 
+    property bool showGraphs: false
 
     Label {
         Layout.alignment: Qt.AlignCenter
@@ -24,10 +26,12 @@ ColumnLayout {
         label: "Desired"
         source: stream.framesDesired
         unit: "frames"
+        showGraphs: root.showGraphs
     }
     MovingValue {
         label: "Unplayed"
         source: stream.unplayedMsMax
+        showGraphs: root.showGraphs
     }
     Value {
         label: "Available (avg)"
@@ -44,6 +48,7 @@ ColumnLayout {
         avg: stream.timegapMsAvg
         maxWindow: stream.timegapMsMaxWindow
         avgWindow: stream.timegapMsAvgWindow
+        showGraphs: root.showGraphs
     }
 
     Label {
