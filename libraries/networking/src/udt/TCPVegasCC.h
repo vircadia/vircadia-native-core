@@ -44,7 +44,7 @@ private:
     using PacketTimeList = std::map<SequenceNumber, TimeSizePair>;
     PacketTimeList _sentPacketTimes; // Map of sequence numbers to sent time
 
-    SequenceNumber _lastAdjustmentNextSendAck; // Sequence number of next packet to be sent at time of last adjustment
+    p_high_resolution_clock::time_point _lastAdjustmentTime; // Time of last congestion control adjustment
 
     bool _slowStart { false }; // Marker for slow start phase
 

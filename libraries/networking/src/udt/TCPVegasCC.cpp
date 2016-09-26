@@ -54,7 +54,8 @@ bool TCPVegasCC::onACK(SequenceNumber ack) {
         // find the min RTT during the last RTT
         _currentMinRTT = std::min(_currentMinRTT, lastRTT);
 
-        if (ack >= _lastAdjustmentNextSendAck) {
+        auto sinceLastAdjustment = duration_cast<microseconds>(now - _lastAdjustmentTime).count();
+        if (sinceLastAdjustment >= _ewmaRTT) {
             performCongestionAvoidance(ack);
         }
 
@@ -152,7 +153,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
 
     // mark this as the last adjustment time
-    _lastAdjustmentNextSendAck = _sendCurrSeqNum;
+    _lastAdjustmentTime = p_high_resolution_clock::now();
 
     // reset our state for the next RTT
     _currentMinRTT = std::numeric_limits<int>::max();
