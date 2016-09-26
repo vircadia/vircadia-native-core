@@ -42,6 +42,8 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
+const HOME_CONTENT_URL = "http://cachefly.highfidelity.com/home.tgz";
+
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -512,7 +514,7 @@ function deleteResourceDirectoriesAndRestart() {
 function checkNewContent() {
     // Start downloading content set
     var req = request.head({
-        url: "http://cachefly.highfidelity.com/home.tgz"
+        url: HOME_CONTENT_URL
     }, function (error, response, body) {
         if (error === null) {
             var localContent = Date.parse(userConfig.get('homeContentLastModified'));
@@ -639,7 +641,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         // Start downloading content set
         var req = progress(request.get({
-            url: "http://cachefly.highfidelity.com/home.tgz"
+            url: HOME_CONTENT_URL
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
