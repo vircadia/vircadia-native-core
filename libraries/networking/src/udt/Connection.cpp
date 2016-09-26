@@ -475,7 +475,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss
-    if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
+    if (_congestionControl->shouldNAK() && sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
             _lossList.append(_lastReceivedSequenceNumber + 1);
         } else {
@@ -505,7 +505,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     if (sequenceNumber > _lastReceivedSequenceNumber) {
         // Update largest recieved sequence number
         _lastReceivedSequenceNumber = sequenceNumber;
-    } else {
+    } else  if (_congestionControl->shouldNAK()) {
         // Otherwise, it could be a resend, try and remove it from the loss list
         wasDuplicate = !_lossList.remove(sequenceNumber);
     }

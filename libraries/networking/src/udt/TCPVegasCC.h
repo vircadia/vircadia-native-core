@@ -32,6 +32,8 @@ public:
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override {};
     virtual void onTimeout() override {};
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum) override;
+
+    virtual bool shouldNAK() { return false; }
     
 protected:
     virtual void performCongestionAvoidance(SequenceNumber ack, int numAcked) override;

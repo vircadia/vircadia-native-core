@@ -59,11 +59,11 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
 }
 
 void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcked) {
-    static int VEGAS_MIN_RTT_FOR_CALC = 3;
+    static const int VEGAS_MIN_RTT_FOR_CALC = 3;
 
-    static int VEGAS_ALPHA_SEGMENTS = 2;
-    static int VEGAS_BETA_SEGMENTS = 4;
-    static int VEGAS_GAMMA_SEGMENTS = 1;
+    static const int VEGAS_ALPHA_SEGMENTS = 2;
+    static const int VEGAS_BETA_SEGMENTS = 4;
+    static const int VEGAS_GAMMA_SEGMENTS = 1;
 
     if (_numRTT < VEGAS_MIN_RTT_FOR_CALC) {
         // Vegas calculations are only done if there are enough RTT samples to be
@@ -121,7 +121,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack, int numAcke
             // if we didn't just reduce the congestion window size and the
             // the congestion window is greater than the slow start threshold
             // we raise the slow start threshold half the distance to the congestion window
-            _sendSlowStartThreshold = (_congestionWindowSize >> 1) +  (_congestionWindowSize >> 2);
+            _sendSlowStartThreshold = (_congestionWindowSize >> 1) + (_congestionWindowSize >> 2);
         }
 
         _lastRTTMaxSeqNum = _sendCurrSeqNum;

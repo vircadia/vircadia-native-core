@@ -44,6 +44,8 @@ public:
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     virtual void onTimeout() {}
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum) {}
+
+    virtual bool shouldNAK() { return true; }
 protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRTO(int rto) { _userDefinedRTO = true; _rto = rto; }

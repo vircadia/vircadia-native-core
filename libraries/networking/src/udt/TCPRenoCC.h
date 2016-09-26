@@ -34,10 +34,10 @@ protected:
     virtual void performCongestionAvoidance(SequenceNumber ack, int numAcked);
 
 
-    int _sendSlowStartThreshold;
-    int _sendCongestionWindowCount;
-    int _maxPacketsOut;
-    bool _isCongestionWindowLimited;
+    int _sendSlowStartThreshold { std::numeric_limits<int>::max() };
+    int _sendCongestionWindowCount { 0 };
+    int _maxPacketsOut { 0 };
+    bool _isCongestionWindowLimited { true };
 
     SequenceNumber _lastACK;
 };
