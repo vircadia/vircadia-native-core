@@ -48,6 +48,9 @@ void TCPVegasCC::onACK(SequenceNumber ackNum) {
 
         _lastACK = ackNum;
 
+        // remove this sent packet time from the hash
+        _sentPacketTimes.erase(it);
+
     } else {
         Q_ASSERT_X(false,
                    "TCPVegasCC::onACK",
