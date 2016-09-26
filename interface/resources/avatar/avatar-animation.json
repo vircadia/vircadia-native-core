@@ -255,8 +255,8 @@
                                                         },
                                                         {
                                                             "id": "idleToWalkFwd",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
+                                                            "interpTarget": 5,
+                                                            "interpDuration": 3.5,
                                                             "transitions": [
                                                                 { "var": "idleToWalkFwdOnDone", "state": "walkFwd" },
                                                                 { "var": "isNotMoving", "state": "idle" },
@@ -523,7 +523,7 @@
                                                         "data": {
                                                             "alpha": 0.0,
                                                             "desiredSpeed": 1.4,
-                                                            "characteristicSpeeds": [0.5, 1.4, 4.5],
+                                                            "characteristicSpeeds": [0.5, 1.3, 4.5],
                                                             "alphaVar": "moveForwardAlpha",
                                                             "desiredSpeedVar": "moveForwardSpeed"
                                                         },
@@ -573,7 +573,7 @@
                                                             "url": "animations/idle_to_walk.fbx",
                                                             "startFrame": 1.0,
                                                             "endFrame": 13.0,
-                                                            "timeScale": 1.0,
+                                                            "timeScale": 0.9,
                                                             "loopFlag": false
                                                         },
                                                         "children": []
@@ -584,7 +584,7 @@
                                                         "data": {
                                                             "alpha": 0.0,
                                                             "desiredSpeed": 1.4,
-                                                            "characteristicSpeeds": [0.6, 1.45],
+                                                            "characteristicSpeeds": [0.6, 1.05],
                                                             "alphaVar": "moveBackwardAlpha",
                                                             "desiredSpeedVar": "moveBackwardSpeed"
                                                         },
@@ -646,7 +646,7 @@
                                                         "data": {
                                                             "alpha": 0.0,
                                                             "desiredSpeed": 1.4,
-                                                            "characteristicSpeeds": [0.2, 0.65],
+                                                            "characteristicSpeeds": [0.2, 0.5],
                                                             "alphaVar": "moveLateralAlpha",
                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                         },
@@ -683,7 +683,7 @@
                                                         "data": {
                                                             "alpha": 0.0,
                                                             "desiredSpeed": 1.4,
-                                                            "characteristicSpeeds": [0.2, 0.65],
+                                                            "characteristicSpeeds": [0.2, 0.5],
                                                             "alphaVar": "moveLateralAlpha",
                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                         },
