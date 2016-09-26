@@ -33,6 +33,7 @@ Window {
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
     readonly property var footerContentHeight: footer.height > 0 ? (footer.height + 2 * hifi.dimensions.contentSpacing.y + 3) : 0
 
+    property bool keyboardEnabled: true  // Set false if derived control implements its own keyboard.
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
@@ -130,6 +131,7 @@ Window {
             // Optional non-scrolling footer.
             id: footerPane
 
+            property alias keyboardEnabled: window.keyboardEnabled
             property alias keyboardRaised: window.keyboardRaised
             property alias punctuationMode: window.punctuationMode
 
@@ -138,9 +140,9 @@ Window {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footerContentHeight + (keyboardRaised ? 200 : 0)
+            height: footerContentHeight + (keyboardEnabled && keyboardRaised ? 200 : 0)
             color: hifi.colors.baseGray
-            visible: footer.height > 0 || keyboardRaised
+            visible: footer.height > 0 || keyboardEnabled && keyboardRaised
 
             Item {
                 // Horizontal rule.
@@ -179,9 +181,9 @@ Window {
 
             HiFiControls.Keyboard {
                 id: keyboard1
-                height: parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardRaised && !parent.punctuationMode
-                enabled: parent.keyboardRaised && !parent.punctuationMode
+                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
+                visible: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
+                enabled: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
@@ -191,9 +193,9 @@ Window {
 
             HiFiControls.KeyboardPunctuation {
                 id: keyboard2
-                height: parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardRaised && parent.punctuationMode
-                enabled: parent.keyboardRaised && parent.punctuationMode
+                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
+                visible: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
+                enabled: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
@@ -204,7 +206,7 @@ Window {
     }
 
     onKeyboardRaisedChanged: {
-        if (keyboardRaised) {
+        if (parent.KeyboardEnabled && keyboardRaised) {
             var delta = activator.mouseY
                     - (activator.height + activator.y - 200 - footerContentHeight - hifi.dimensions.controlLineHeight);
 
