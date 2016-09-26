@@ -76,6 +76,8 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
         uint64_t expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
         uint64_t diff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
+        bool inWindowReduction = false;
+
         if (diff > VEGAS_GAMMA_SEGMENTS && isInSlowStart()) {
             // we're going too fast, slow down and switch to congestion avoidance
 
@@ -83,6 +85,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
             _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
             adjustSlowStartThreshold();
 
+            inWindowReduction = true;
         } else if (isInSlowStart()) {
             // slow start
             performSlowStart(ack);
@@ -93,6 +96,8 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
                 // so reduce it to slow down
                 --_congestionWindowSize;
                 adjustSlowStartThreshold();
+
+                inWindowReduction = true;
             } else if (diff < VEGAS_ALPHA_SEGMENTS) {
                 // there aren't enough packets on the wire, add more to the congestion window
                 ++_congestionWindowSize;
@@ -101,12 +106,13 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
             }
         }
 
-        // we never allow the congestion window to be smaller than two packets
-        static uint64_t VEGAS_CW_MIN_PACKETS = 2;
-        _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
+        if (!inWindowReduction) {
+            // we didn't reduce the congestion window size, so it is now time to raise the slow start threshold
 
-//      _slowStartThreshold = currentSlowStartThreshold();
-
+            // we never allow the congestion window to be smaller than two packets
+            static uint64_t VEGAS_CW_MIN_PACKETS = 2;
+            _congestionWindowSize = std::min(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
+        }
     }
 
     _lastRTTMaxSeqNum = _sendCurrSeqNum;
