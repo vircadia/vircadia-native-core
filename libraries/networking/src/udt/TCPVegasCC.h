@@ -50,7 +50,7 @@ private:
 
     SequenceNumber _lastAck; // Sequence number of last packet that was ACKed
 
-    int _numACKSinceFastRetransmit { 0 }; // Number of ACKs received since last fast re-transmit
+    int _numACKSinceFastRetransmit { 3 }; // Number of ACKs received since last fast re-transmit
 
     int _currentMinRTT { 0x7FFFFFFF }; // Current RTT, in microseconds
     int _baseRTT { 0x7FFFFFFF }; // Lowest RTT during connection, in microseconds
