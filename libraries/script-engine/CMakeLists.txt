@@ -17,3 +17,5 @@ if (NOT ANDROID)
 endif ()
 
 link_hifi_libraries(shared networking octree gpu ui procedural model model-networking recording avatars fbx entities controllers animation audio physics)
+# ui includes gl, but link_hifi_libraries does not use transitive includes, so gl must be explicit
+include_hifi_library_headers(gl)
