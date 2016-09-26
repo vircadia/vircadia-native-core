@@ -113,17 +113,19 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     // (though congestion may be noticed a bit later)
     int rtt = _currentMinRTT;
 
-    int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
     int windowSizeDiff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
-    qDebug() << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT;
+    qDebug() << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT << "ERTT:" << _ewmaRTT;
     qDebug() << "D:" << windowSizeDiff;
-
 
     if (_slowStart) {
         if (windowSizeDiff > VEGAS_GAMMA_SEGMENTS) {
             // we're going too fast - this breaks us out of slow start and we switch to linear increase/decrease
             _slowStart = false;
+
+             int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
+
+            qDebug() << "EWS:" << expectedWindowSize;
 
             // drop the congestion window size to the expected size, if smaller
             _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
