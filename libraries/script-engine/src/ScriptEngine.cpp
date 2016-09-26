@@ -1329,7 +1329,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
+    auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program)) {
