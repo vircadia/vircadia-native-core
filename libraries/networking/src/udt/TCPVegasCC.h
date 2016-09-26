@@ -46,7 +46,7 @@ private:
 
     p_high_resolution_clock::time_point _lastAdjustmentTime; // Time of last congestion control adjustment
 
-    bool _slowStart { false }; // Marker for slow start phase
+    bool _slowStart { true }; // Marker for slow start phase
 
     SequenceNumber _lastAck; // Sequence number of last packet that was ACKed
 
