@@ -255,10 +255,10 @@
                                                         },
                                                         {
                                                             "id": "idleToWalkFwd",
-                                                            "interpTarget": 5,
-                                                            "interpDuration": 3.5,
+                                                            "interpTarget": 4,
+                                                            "interpDuration": 3.0,
                                                             "transitions": [
-                                                                { "var": "idleToWalkFwdOnDone", "state": "walkFwd" },
+                                                                { "var": "idleToWalkFwdClipOnDone", "state": "walkFwd" },
                                                                 { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingBackward", "state": "walkBwd" },
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
@@ -568,15 +568,28 @@
                                                     },
                                                     {
                                                         "id": "idleToWalkFwd",
-                                                        "type": "clip",
+                                                        "type": "blendLinearMove",
                                                         "data": {
-                                                            "url": "animations/idle_to_walk.fbx",
-                                                            "startFrame": 1.0,
-                                                            "endFrame": 13.0,
-                                                            "timeScale": 0.9,
-                                                            "loopFlag": false
+                                                            "alpha": 0.0,
+                                                            "desiredSpeed": 1.2,
+                                                            "characteristicSpeeds": [1.2],
+                                                            "alphaVar": 0.0,
+                                                            "desiredSpeedVar": "moveForwardSpeed"
                                                         },
-                                                        "children": []
+                                                        "children": [
+                                                            {
+                                                                "id": "idleToWalkFwdClip",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/idle_to_walk.fbx",
+                                                                    "startFrame": 1.0,
+                                                                    "endFrame": 13.0,
+                                                                    "timeScale": 0.9,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
                                                     },
                                                     {
                                                         "id": "walkBwd",
