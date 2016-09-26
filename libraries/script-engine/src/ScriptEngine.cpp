@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <QtScript/QScriptContextInfo>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
 
@@ -1091,14 +1092,19 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
         return expandScriptUrl(url);
     }
 
+    QScriptContextInfo contextInfo { currentContext()->parentContext() };
+
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL;
-    if (_parentURL.isEmpty()) {
-        parentURL = QUrl(_fileNameString);
-    } else {
-        parentURL = QUrl(_parentURL);
+    QUrl parentURL = contextInfo.fileName();
+    if (parentURL.isEmpty()) {
+        if (_parentURL.isEmpty()) {
+            parentURL = QUrl(_fileNameString);
+        } else {
+            parentURL = QUrl(_parentURL);
+        }
     }
+
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
