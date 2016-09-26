@@ -123,18 +123,18 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    QCommandLineOption runServer("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPath("serverContentPath", "Where to find server content", "serverContentPath");
-    parser.addOption(runServer);
-    parser.addOption(serverContentPath);
+    QCommandLineOption runServerOption("runServer", "Whether to run the server");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    parser.addOption(runServerOption);
+    parser.addOption(serverContentPathOption);
     parser.parse(arguments);
-    if (parser.isSet(runServer)) {
+    if (parser.isSet(runServerOption)) {
         QString serverPath = QFileInfo(arguments[0]).path();
         serverPath += "/server-console/server-console.exe";
         //serverPath = "./server-console/server-console.exe";
         QStringList args;
-        if (parser.isSet(serverContentPath)) {
-            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPath);
+        if (parser.isSet(serverContentPathOption)) {
+            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPathOption);
             args << "--" << "--contentPath" << serverContentPath;
         }
         qDebug() << "server path: " << serverPath << args;
