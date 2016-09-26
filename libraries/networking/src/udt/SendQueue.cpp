@@ -186,6 +186,8 @@ void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
         _naks.insert(ack, ack);
     }
 
+    qDebug() << "Added" << (uint32_t) ack << "for fast retransmit";
+
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
 }

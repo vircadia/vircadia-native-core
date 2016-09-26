@@ -85,6 +85,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack) {
             auto sinceSend = duration_cast<microseconds>(now - it->second.first).count();
 
             if (sinceSend >= estimatedTimeout) {
+                qDebug() << "FRT needed:" << sinceSend << estimatedTimeout;
                 // we've detected we need a fast re-transmit, send that back to the connection
                 _numACKSinceFastRetransmit = 0;
                 return true;
