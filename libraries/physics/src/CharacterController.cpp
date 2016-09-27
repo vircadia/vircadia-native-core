@@ -195,8 +195,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     return hasFloor;
 }
 
-void CharacterController::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime)
-{
+void CharacterController::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) {
     _preActionVelocity = getLinearVelocity();
     preStep(collisionWorld);
     playerStep(collisionWorld, deltaTime);
