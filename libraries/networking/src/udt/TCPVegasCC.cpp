@@ -109,7 +109,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
             _duplicateACKCount = 0;
 
             // drop the congestion window size to 2 segments
-            _congestionWindowSize = 2;
+            _congestionWindowSize /= 2;
 
             // return true so the caller knows we needed a fast re-transmit
             return true;
