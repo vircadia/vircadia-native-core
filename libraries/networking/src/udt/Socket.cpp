@@ -289,6 +289,9 @@ void Socket::messageFailed(Connection* connection, Packet::MessageNumber message
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
     while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+        // grab a time point we can mark as the receive time of this packet
+        auto receiveTime = p_high_resolution_clock::now();
+        
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -304,9 +307,6 @@ void Socket::readPendingDatagrams() {
             // on windows even if there's not a packet available)
             continue;
         }
-
-        // grab a time point we can mark as the receive time of this packet
-        auto receiveTime = p_high_resolution_clock::now();
 
         auto it = _unfilteredHandlers.find(senderSockAddr);
 
