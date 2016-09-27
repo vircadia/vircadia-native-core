@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <glm/gtx/component_wise.hpp>
 
+#include <QtCore/QDebug>
 #include <QtCore/QThread>
 #include <QtCore/QProcessEnvironment>
 
@@ -26,8 +27,22 @@ using namespace gpu::gl;
 using namespace gpu::gl45;
 
 #ifdef Q_OS_WIN
+#define MIN_CORES_FOR_SPARSE_TEXTURES 5
 static const QString DEBUG_FLAG("HIFI_DISABLE_SPARSE_TEXTURES");
-static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG) &&
+                                    QThread::idealThreadCount() >= MIN_CORES_FOR_SPARSE_TEXTURES;
+
+class SparseTextureDebug {
+public:
+    SparseTextureDebug() {
+        qDebug() << "[SPARSE TEXTURE SUPPORT]"
+                 << "HIFI_DISABLE_SPARSE_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG)
+                 << "idealThreadCount:" << QThread::idealThreadCount()
+                 << "enableSparseTextures:" << enableSparseTextures;
+    }
+};
+SparseTextureDebug sparseTextureDebugInfo;
+
 #else
 static bool enableSparseTextures = false;
 #endif
