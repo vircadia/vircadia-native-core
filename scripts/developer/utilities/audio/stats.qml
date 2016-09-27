@@ -47,12 +47,12 @@ Column {
                 control: ColumnLayout {
                     MovingValue { label: "Input Read"; source: AudioStats.inputReadMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "Input Ring"; source: AudioStats.inputUnplayedMsMax; showGraphs: stats.showGraphs }
-                    MovingValue { label: "Network (client->mixer)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
+                    MovingValue { label: "Network (up)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
                     MovingValue { label: "Mixer Ring"; source: AudioStats.mixerStream.unplayedMsMax; showGraphs: stats.showGraphs }
-                    MovingValue { label: "Network (mixer->client)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
+                    MovingValue { label: "Network (down)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
                     MovingValue { label: "Output Ring"; source: AudioStats.clientStream.unplayedMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "Output Read"; source: AudioStats.outputUnplayedMsMax; showGraphs: stats.showGraphs }
-                    MovingValue { label: "TOTAL"; showGraphs: stats.showGraphs
+                    MovingValue { label: "TOTAL"; color: "black"; showGraphs: stats.showGraphs
                         source: AudioStats.inputReadMsMax +
                             AudioStats.inputUnplayedMsMax +
                             AudioStats.outputUnplayedMsMax +

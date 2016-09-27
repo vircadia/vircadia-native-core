@@ -21,19 +21,23 @@ ColumnLayout {
     property bool showGraphs: false
 
     MovingValuePair {
-        label: "Total"
-        label1: "Maximum"
-        label2: "Average"
-        source1: max
-        source2: avg
-        showGraphs: jitter.showGraphs
-    }
-    MovingValuePair {
         label: "Window"
         label1: "Maximum"
         label2: "Average"
         source1: maxWindow
         source2: avgWindow
+        color1: "red"
+        color2: "dimgrey"
+        showGraphs: jitter.showGraphs
+    }
+    MovingValuePair {
+        label: "Overall"
+        label1: "Maximum"
+        label2: "Average"
+        source1: max
+        source2: avg
+        color1: "firebrick"
+        color2: "dimgrey"
         showGraphs: jitter.showGraphs
     }
 }

@@ -20,6 +20,8 @@ RowLayout {
     property string label2
     property var source1
     property var source2
+    property color color1
+    property color color2
     property string unit: "ms"
     property bool showGraphs: false
 
@@ -27,32 +29,36 @@ RowLayout {
     property int dataPixelWidth: 100
 
     Label {
-        Layout.preferredWidth: labelPixelWidth - value.spacing
+        Layout.preferredWidth: 50 - value.spacing
         text: value.label
     }
 
     ColumnLayout {
         RowLayout {
             Label {
-                Layout.preferredWidth: dataPixelWidth 
+                Layout.preferredWidth: 50 
+                color: value.color1
                 text: value.label1
             }
             Label {
                 visible: !value.showGraphs
-                Layout.preferredWidth: 0
+                Layout.preferredWidth: 50
                 horizontalAlignment: Text.AlignRight
+                color: value.color1
                 text: value.source1 + ' ' + unit
             }
         }
         RowLayout {
             Label {
-                Layout.preferredWidth: dataPixelWidth 
+                Layout.preferredWidth: 50
+                color: value.color2
                 text: value.label2
             }
             Label {
                 visible: !value.showGraphs
-                Layout.preferredWidth: 0
+                Layout.preferredWidth: 50
                 horizontalAlignment: Text.AlignRight
+                color: value.color2
                 text: value.source2 + ' ' + unit
             }
         }
@@ -66,6 +72,6 @@ RowLayout {
         valueUnit: value.unit
         valueNumDigits: 0
 
-        plots: [{ binding: "source1" }, { binding: "source2" }]
+        plots: [{ binding: "source1", color: value.color1 }, { binding: "source2", color: value.color2 }]
     }
 }

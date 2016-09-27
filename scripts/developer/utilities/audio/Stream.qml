@@ -24,12 +24,14 @@ ColumnLayout {
     }
     MovingValue {
         label: "Desired"
+        color: "limegreen"
         source: stream.framesDesired
         unit: "frames"
         showGraphs: root.showGraphs
     }
     MovingValue {
         label: "Unplayed"
+        color: "darkblue"
         source: stream.unplayedMsMax
         showGraphs: root.showGraphs
     }
@@ -57,12 +59,13 @@ ColumnLayout {
         font.italic: true
     }
     Value {
-        label: "Overall"
-        source: stream.lossRate.toFixed(2) + "% (" + stream.lossCount + " lost)"
-    }
-    Value {
         label: "Window"
         source: stream.lossRateWindow.toFixed(2) + "% (" + stream.lossCountWindow + " lost)"
+    }
+    Value {
+        label: "Overall"
+        color: "dimgrey"
+        source: stream.lossRate.toFixed(2) + "% (" + stream.lossCount + " lost)"
     }
 }
 

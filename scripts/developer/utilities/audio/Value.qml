@@ -16,17 +16,20 @@ RowLayout {
     id: value
     property string label
     property var source
+    property color color: "darkslategrey"
 
     width: parent.width
     property int dataPixelWidth: 150
 
     Label {
         Layout.preferredWidth: dataPixelWidth
+        color: value.color
         text: value.label
     }
     Label {
         Layout.preferredWidth: 0
         horizontalAlignment: Text.AlignRight
+        color: value.color
         text: value.source
     }
 }

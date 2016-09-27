@@ -19,18 +19,20 @@ RowLayout {
     property var source
     property string unit: "ms"
     property bool showGraphs: false
+    property color color: "darkslategrey"
 
     width: parent.width
-    property int dataPixelWidth: 150
 
     Label {
-        Layout.preferredWidth: dataPixelWidth
+        Layout.preferredWidth: 100
+        color: value.color
         text: value.label
     }
     Label {
         visible: !value.showGraphs
-        Layout.preferredWidth: 0
+        Layout.preferredWidth: 50
         horizontalAlignment: Text.AlignRight
+        color: value.color
         text: value.source + ' ' + unit
     }
     PlotPerf {
@@ -41,7 +43,7 @@ RowLayout {
         valueUnit: value.unit
         valueNumDigits: 0
 
-        plots: [{ binding: "source" }]
+        plots: [{ binding: "source", color: value.color }]
     }
 }
 
