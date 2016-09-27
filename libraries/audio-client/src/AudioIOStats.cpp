@@ -69,7 +69,7 @@ void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> mess
     quint8 appendFlag;
     message->readPrimitive(&appendFlag);
 
-    if (appendFlag == 0) {
+    if (appendFlag & AudioStreamStats::START) {
         _injectorStreams.clear();
     }
 
@@ -89,7 +89,7 @@ void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-    if (appendFlag == 2) {
+    if (appendFlag & AudioStreamStats::END) {
         _interface->updateInjectorStreams(_injectorStreams);
     }
 }
@@ -106,7 +106,7 @@ void AudioIOStats::publish() {
         return;
     }
 
-    quint8 appendFlag = 0;
+    quint8 appendFlag = AudioStreamStats::START | AudioStreamStats::END;
     quint16 numStreamStatsToPack = 1;
     AudioStreamStats stats = _receivedAudioStream->getAudioStreamStats();
 

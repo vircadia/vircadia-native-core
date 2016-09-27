@@ -218,12 +218,10 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // The append flag is a boolean value that will be packed right after the header.  The first packet sent
-    // inside this method will have 0 for this flag, every subsequent packet but the last will have 1 for this flag,
-    // and the last packet will have 2 for this flag.
+    // The append flag is a boolean value that will be packed right after the header.
     // This flag allows the client to know when it has received all stats packets, so it can group any downstream effects,
     // and clear its cache of injector stream stats; it helps to prevent buildup of dead audio stream stats in the client.
-    quint8 appendFlag = 0;
+    quint8 appendFlag = AudioStreamStats::START;
 
     auto streamsCopy = getAudioStreams();
 
@@ -241,12 +239,12 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // is this the terminal packet?
         if (numStreamStatsRemaining <= numStreamStatsToPack) {
-            appendFlag = 2;
+            appendFlag |= AudioStreamStats::END;
         }
 
         // pack the append flag in this packet
         statsPacket->writePrimitive(appendFlag);
-        appendFlag = 1;
+        appendFlag = 0;
 
         // pack the number of stream stats to follow
         statsPacket->writePrimitive(numStreamStatsToPack);
