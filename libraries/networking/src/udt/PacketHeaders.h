@@ -225,8 +225,6 @@ enum class AudioVersion : PacketVersion {
     CodecNameInAudioPackets,
     Exactly10msAudioPackets,
     TerminatingStreamStats,
-    // add new versions above this line
-    CurrentVersion
 };
 
 #endif // hifi_PacketHeaders_h

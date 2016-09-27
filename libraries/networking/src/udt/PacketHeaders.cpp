@@ -78,7 +78,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::CurrentVersion);
+            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
 
         default:
             return 17;
