@@ -258,6 +258,8 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     auto payloadSize = newPacket->getPayloadSize();
     
     auto bytesWritten = sendPacket(*newPacket);
+    
+    emit packetSent(packetSize, payloadSize, sequenceNumber, p_high_resolution_clock::now());
 
     {
         // Insert the packet we have just sent in the sent list
@@ -267,8 +269,6 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
-    
-    emit packetSent(packetSize, payloadSize, sequenceNumber, p_high_resolution_clock::now());
 
     if (bytesWritten < 0) {
         // this is a short-circuit loss - we failed to put this packet on the wire
