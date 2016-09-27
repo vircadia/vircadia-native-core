@@ -111,7 +111,8 @@ SendQueue& Connection::getSendQueue() {
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
 #endif
-
+        
+        QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
@@ -515,7 +516,10 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     ++_packetsSinceACK;
     
     // check if we need to send an ACK, according to CC params
-    if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval * _acksDuringSYN) {
+    if (_congestionControl->_ackInterval == 1) {
+        // Using TCP Vegas
+        sendACK(true);
+    } else if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval * _acksDuringSYN) {
         _acksDuringSYN++;
         sendACK(false);
     } else if (_congestionControl->_lightACKInterval > 0
