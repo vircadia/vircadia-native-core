@@ -69,9 +69,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         _sentPacketTimes.erase(it);
 
     } else {
-        Q_ASSERT_X(false,
-                   "TCPVegasCC::onACK",
-                   "called with a sequence number that has not been sent");
+        qDebug() << "called with a sequence number that has not been sent";
     }
 
 
@@ -108,9 +106,6 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     static int VEGAS_BETA_SEGMENTS = 4;
     static int VEGAS_GAMMA_SEGMENTS = 1;
 
-    qDebug() << "============";
-    qDebug() << "CWS:" << _congestionWindowSize << "SS:" << _slowStart;
-
     // Use the Vegas algorithm to see if we should
     // increase or decrease the congestion window size, and by how much
 
@@ -121,17 +116,32 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     int windowSizeDiff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
-    qDebug() << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT << "ERTT:" << _ewmaRTT;
-    qDebug() << "D:" << windowSizeDiff;
+    static int count = 0;
+    bool wantDebug = false;
+    if (++count > 200) {
+        wantDebug = true;
+        count = 0;
+    }
+
+    auto debug = qDebug();
+    if (wantDebug) {
+        debug << " ============\n";
+        debug << "CWS:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
+        debug << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT << "ERTT:" << _ewmaRTT << "\n";
+        debug << "D:" << windowSizeDiff << "\n";
+    }
 
     if (_slowStart) {
         if (windowSizeDiff > VEGAS_GAMMA_SEGMENTS) {
             // we're going too fast - this breaks us out of slow start and we switch to linear increase/decrease
             _slowStart = false;
 
-             int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
+            int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
+            _baseRTT = std::numeric_limits<int>::max();
 
-            qDebug() << "EWS:" << expectedWindowSize;
+            if (wantDebug) {
+                debug << "EWS:" << expectedWindowSize;
+            }
 
             // drop the congestion window size to the expected size, if smaller
             _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
@@ -167,8 +177,10 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     // reset our state for the next RTT
     _currentMinRTT = std::numeric_limits<int>::max();
 
-    qDebug() << "CW:" << _congestionWindowSize << "SS:" << _slowStart;
-    qDebug() << "============";
+    if (wantDebug) {
+        debug << "CW:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
+        debug << "============";
+    }
 }
 
 
