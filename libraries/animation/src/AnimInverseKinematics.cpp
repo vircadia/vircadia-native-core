@@ -392,10 +392,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         dt = MAX_OVERLAY_DT;
     }
 
-    // OUTOFBODY_HACK: smoothly update update _hipsOffsetLength, otherwise we risk introducing oscillation in the hips offset.
-    float tau = dt / 0.5f;
-    _maxHipsOffsetLength = (1.0f - tau) * _maxHipsOffsetLength + tau * _desiredMaxHipsOffsetLength;
-
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
@@ -585,7 +581,7 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
     // OUTOFBODY_HACK: manually adjust scale here
     const float METERS_TO_CENTIMETERS = 100.0f;
-    _desiredMaxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
+    _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
 
 RotationConstraint* AnimInverseKinematics::getConstraint(int index) {

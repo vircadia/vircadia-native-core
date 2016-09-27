@@ -124,10 +124,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
             hmdPositionInRigSpace = extractTranslation(rigHMDMat);
 
+            glm::vec3 capsuleStart = Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+            glm::vec3 capsuleEnd = -Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+
             // truncate head IK target if it's out of body
             if (myAvatar->isOutOfBody()) {
-                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, TRUNCATE_IK_CAPSULE_POSITION,
-                                                                         TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
+                truncatedHMDPositionInRigSpace = projectPointOntoCapsule(hmdPositionInRigSpace, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
             } else {
                 truncatedHMDPositionInRigSpace = hmdPositionInRigSpace;
             }
@@ -149,7 +151,27 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
+        // OUTOFBODY_HACK: clamp horizontal component of head by maxHipsOffset.
+        // This is to prevent the hands from being incorrect relative to the head because
+        // the hips are being constrained by a small maxHipsOffset due to collision.
+        if (myAvatar->isOutOfBody()) {
+            float headOffsetLength2D = glm::length(glm::vec2(truncatedHMDPositionInRigSpace.x, truncatedHMDPositionInRigSpace.z));
+            if (headOffsetLength2D > _rig->getMaxHipsOffsetLength()) {
+                truncatedHMDPositionInRigSpace.x *= _rig->getMaxHipsOffsetLength() / headOffsetLength2D;
+                truncatedHMDPositionInRigSpace.z *= _rig->getMaxHipsOffsetLength() / headOffsetLength2D;
+            }
+        }
+
         Rig::HandParameters handParams;
+
+        // compute interp factor between in body and out of body hand positions.
+        const float MIN_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS - 0.1f;
+        const float MAX_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS + 0.1f;
+        glm::vec3 capsuleStart = Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+        glm::vec3 capsuleEnd = -Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+        float outOfBodyAlpha = distanceFromCapsule(hmdPositionInRigSpace, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
+        outOfBodyAlpha = (glm::clamp(outOfBodyAlpha, MIN_OUT_OF_BODY_DISTANCE, MAX_OUT_OF_BODY_DISTANCE) - MIN_OUT_OF_BODY_DISTANCE) /
+            (MAX_OUT_OF_BODY_DISTANCE - MIN_OUT_OF_BODY_DISTANCE);
 
         auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
         if (leftPose.isValid()) {
@@ -157,10 +179,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
             handParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
 
-            // truncate hand target
-            if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
+            // adjust hand position if head is out of body.
+            if (qApp->isHMDMode()) {
+
+                // compute the out of body hand position.
                 glm::vec3 offset = handParams.leftPosition - hmdPositionInRigSpace;
-                handParams.leftPosition = truncatedHMDPositionInRigSpace + offset;
+                glm::vec3 outOfBodyLeftPosition = truncatedHMDPositionInRigSpace + offset;
+
+                // interpolate between in body and out of body hand position.
+                handParams.leftPosition = lerp(handParams.leftPosition, outOfBodyLeftPosition, outOfBodyAlpha);
             }
         } else {
             handParams.isLeftEnabled = false;
@@ -172,10 +199,15 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
             handParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
 
-            // truncate hand target
-            if (myAvatar->isOutOfBody() && qApp->isHMDMode()) {
+            // adjust hand position if head is out of body.
+            if (qApp->isHMDMode()) {
+
+                // compute the out of body hand position.
                 glm::vec3 offset = handParams.rightPosition - hmdPositionInRigSpace;
-                handParams.rightPosition = truncatedHMDPositionInRigSpace + offset;
+                glm::vec3 outOfBodyRightPosition = truncatedHMDPositionInRigSpace + offset;
+
+                // interpolate between in body and out of body hand position.
+                handParams.rightPosition = lerp(handParams.rightPosition, outOfBodyRightPosition, outOfBodyAlpha);
             }
         } else {
             handParams.isRightEnabled = false;
@@ -189,7 +221,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
 
-        auto velocity = myAvatar->getLocalVelocity();
+        auto velocity = myAvatar->getPreActionVelocity();
         auto position = myAvatar->getLocalPosition();
         auto orientation = myAvatar->getLocalOrientation();
         _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);

@@ -195,6 +195,12 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     return hasFloor;
 }
 
+void CharacterController::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) {
+    _preActionVelocity = getLinearVelocity();
+    preStep(collisionWorld);
+    playerStep(collisionWorld, deltaTime);
+}
+
 void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     // trace a ray straight down to see if we're standing on the ground
     const btTransform& transform = _rigidBody->getWorldTransform();
@@ -455,6 +461,10 @@ glm::vec3 CharacterController::getLinearVelocity() const {
         velocity = bulletToGLM(_rigidBody->getLinearVelocity());
     }
     return velocity;
+}
+
+glm::vec3 CharacterController::getPreActionLinearVelocity() const {
+    return _preActionVelocity;
 }
 
 glm::vec3 CharacterController::getVelocityChange() const {

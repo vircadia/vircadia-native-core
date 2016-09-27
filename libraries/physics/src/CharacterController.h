@@ -60,10 +60,7 @@ public:
     virtual void warp(const btVector3& origin) override { }
     virtual void debugDraw(btIDebugDraw* debugDrawer) override { }
     virtual void setUpInterpolate(bool value) override { }
-    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override {
-        preStep(collisionWorld);
-        playerStep(collisionWorld, deltaTime);
-    }
+    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override;
     virtual void preStep(btCollisionWorld *collisionWorld) override;
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
     virtual bool canJump() const override { assert(false); return false; } // never call this
@@ -90,6 +87,7 @@ public:
     void disableFollow() { _following = false; }
 
     glm::vec3 getLinearVelocity() const;
+    glm::vec3 getPreActionLinearVelocity() const;
     glm::vec3 getVelocityChange() const;
 
     float getCapsuleRadius() const { return _radius; }
@@ -147,6 +145,7 @@ protected:
     btVector3 _targetVelocity;
     btVector3 _parentVelocity;
     btVector3 _preSimulationVelocity;
+    glm::vec3 _preActionVelocity;
     btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
     btVector3 _position;

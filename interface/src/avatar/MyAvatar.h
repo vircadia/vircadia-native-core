@@ -55,6 +55,8 @@ enum AudioListenerMode {
 };
 Q_DECLARE_METATYPE(AudioListenerMode);
 
+const size_t DEBUG_LINE_LOOP_SIZE = 500;
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -284,6 +286,8 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
+    glm::vec3 getPreActionVelocity() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -301,6 +305,8 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
+    void setEnableDebugDrawLeftFootTrace(bool isEnabled);
+    void setEnableDebugDrawRightFootTrace(bool isEnabled);
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
@@ -479,6 +485,8 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
+    bool _enableDebugDrawLeftFootTrace { false };
+    bool _enableDebugDrawRightFootTrace { false };
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
     bool _enableDebugDrawHandControllers { false };
@@ -515,6 +523,15 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
+
+    struct DebugDrawVertex {
+        DebugDrawVertex() : pos(), color() {}
+        DebugDrawVertex(const glm::vec3& posIn, const glm::vec4& colorIn) : pos(posIn), color(colorIn) {}
+        glm::vec3 pos;
+        glm::vec4 color;
+    };
+    DebugDrawVertex _debugLineLoop[DEBUG_LINE_LOOP_SIZE];
+    size_t _debugLineLoopIndex { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

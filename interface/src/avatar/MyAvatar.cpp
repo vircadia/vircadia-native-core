@@ -59,7 +59,7 @@ using namespace std;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float MAX_WALKING_SPEED = 2.6f; // human walking speed
+const float MAX_WALKING_SPEED = 2.0f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
 const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
@@ -817,6 +817,14 @@ float loadSetting(Settings& settings, const QString& name, float defaultValue) {
     return value;
 }
 
+void MyAvatar::setEnableDebugDrawLeftFootTrace(bool isEnabled) {
+    _enableDebugDrawLeftFootTrace = isEnabled;
+}
+
+void MyAvatar::setEnableDebugDrawRightFootTrace(bool isEnabled) {
+    _enableDebugDrawRightFootTrace = isEnabled;
+}
+
 void MyAvatar::setEnableDebugDrawDefaultPose(bool isEnabled) {
     _enableDebugDrawDefaultPose = isEnabled;
 
@@ -1378,7 +1386,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         hipsPosition.z *= -1.0f;
         maxHipsOffsetRadius = _characterController.measureMaxHipsOffsetRadius(hipsPosition, maxHipsOffsetRadius);
     }
-    _rig->setMaxHipsOffsetLength(maxHipsOffsetRadius);
+    _rig->updateMaxHipsOffsetLength(maxHipsOffsetRadius, deltaTime);
 
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
@@ -1619,6 +1627,25 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
+
+    if (_enableDebugDrawLeftFootTrace || _enableDebugDrawRightFootTrace) {
+        int boneIndex = _enableDebugDrawLeftFootTrace ? getJointIndex("LeftFoot") : getJointIndex("RightFoot");
+        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+        const glm::vec4 TRANS(1.0f, 1.0f, 1.0f, 0.0f);
+        static bool colorBit = true;
+        colorBit = !colorBit;
+        glm::vec4 color = colorBit ? RED : WHITE;
+
+        _debugLineLoop[_debugLineLoopIndex] = DebugDrawVertex(getJointPosition(boneIndex), color);
+        _debugLineLoopIndex = (_debugLineLoopIndex + 1) % DEBUG_LINE_LOOP_SIZE;
+        _debugLineLoop[_debugLineLoopIndex] = DebugDrawVertex(getJointPosition(boneIndex), TRANS);
+        for (size_t prev = DEBUG_LINE_LOOP_SIZE - 1, next = 0; next < DEBUG_LINE_LOOP_SIZE; prev = next, next++) {
+            if (_debugLineLoop[prev].color.w > 0.0f) {
+                DebugDraw::getInstance().drawRay(_debugLineLoop[prev].pos, _debugLineLoop[next].pos, _debugLineLoop[prev].color);
+            }
+        }
+    }
 }
 
 
@@ -1925,6 +1952,10 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
         }
     }
     return false;
+}
+
+glm::vec3 MyAvatar::getPreActionVelocity() const {
+    return _characterController.getPreActionLinearVelocity();
 }
 
 void MyAvatar::increaseSize() {
@@ -2296,16 +2327,11 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 }
 
 void MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar) {
-
-    // get HMD position from sensor space into world space, and back into rig space
     glm::mat4 worldHMDMat = myAvatar.getSensorToWorldMatrix() * myAvatar.getHMDSensorMatrix();
-    glm::mat4 rigToWorld = createMatFromQuatAndPos(myAvatar.getRotation() * Quaternions::Y_180, myAvatar.getPosition());
-    glm::mat4 worldToRig = glm::inverse(rigToWorld);
-    glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-    glm::vec3 rigHMDPosition = extractTranslation(rigHMDMat);
-
-    // detect if the rig head position is too far from the avatar's position.
-    _isOutOfBody = !pointIsInsideCapsule(rigHMDPosition, TRUNCATE_IK_CAPSULE_POSITION, TRUNCATE_IK_CAPSULE_LENGTH, TRUNCATE_IK_CAPSULE_RADIUS);
+    glm::vec3 worldHMDPosition = extractTranslation(worldHMDMat);
+    glm::vec3 capsuleStart = myAvatar.getPosition() + Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+    glm::vec3 capsuleEnd = myAvatar.getPosition() - Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
+    _isOutOfBody = !pointIsInsideCapsule(worldHMDPosition, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
 }
 
 float MyAvatar::getAccelerationEnergy() {

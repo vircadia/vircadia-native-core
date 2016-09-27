@@ -307,16 +307,28 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
-void Rig::setMaxHipsOffsetLength(float maxLength) {
+void Rig::updateMaxHipsOffsetLength(float maxLength, float deltaTime) {
+
+    _desiredMaxHipsOffsetLength = maxLength;
+
+    // OUTOFBODY_HACK: smoothly update update _hipsOffsetLength, otherwise we risk introducing oscillation in the hips offset.
+    const float MAX_HIPS_OFFSET_TIMESCALE = 0.33f;
+    float tau = deltaTime / MAX_HIPS_OFFSET_TIMESCALE;
+    _maxHipsOffsetLength = (1.0f - tau) * _maxHipsOffsetLength + tau * _desiredMaxHipsOffsetLength;
+
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
-                ikNode->setMaxHipsOffsetLength(maxLength);
+                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
             }
             return true;
         });
     }
+}
+
+float Rig::getMaxHipsOffsetLength() const {
+    return _maxHipsOffsetLength;
 }
 
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
@@ -489,14 +501,21 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
 }
 
 // animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
-static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
-static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.3f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.05f }; // m/s
+static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.5f }; // m/s
+static const float DEFAULT_AVATAR_EYE_HEIGHT = 1.65f; // movement speeds are for characters of this eye-height. ~170 cm tall.
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
     glm::vec3 workingVelocity = worldVelocity;
+
+    // TODO: account for avatar scaling
+    int eyeJoint = indexOfJoint("LeftEye");
+    int toeJoint = indexOfJoint("LeftToeBase");
+    const float AVATAR_EYE_HEIGHT = (eyeJoint >= 0 && toeJoint >= 0) ? getAbsoluteDefaultPose(eyeJoint).trans.y - getAbsoluteDefaultPose(toeJoint).trans.y : DEFAULT_AVATAR_EYE_HEIGHT;
+    const float AVATAR_HEIGHT_RATIO = DEFAULT_AVATAR_EYE_HEIGHT / AVATAR_EYE_HEIGHT;
 
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
@@ -517,18 +536,22 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         float moveBackwardAlpha = 0.0f;
         float moveLateralAlpha = 0.0f;
 
-        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
-        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
-        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
-        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
+        float averageForwardSpeed = AVATAR_HEIGHT_RATIO * _averageForwardSpeed.getAverage();
+        float averageBackwardSpeed = -averageForwardSpeed;
+        float averageLateralSpeed = AVATAR_HEIGHT_RATIO * fabsf(_averageLateralSpeed.getAverage());
 
-        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
+        calcAnimAlpha(averageForwardSpeed, FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(averageBackwardSpeed, BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(averageLateralSpeed, LATERAL_SPEEDS, &moveLateralAlpha);
+
+        _animVars.set("moveForwardSpeed", averageForwardSpeed);
         _animVars.set("moveForwardAlpha", moveForwardAlpha);
 
-        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+        _animVars.set("moveBackwardSpeed", averageBackwardSpeed);
         _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
 
-        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("moveLateralSpeed", averageLateralSpeed);
         _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
@@ -586,7 +609,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
 
-        const float STATE_CHANGE_HYSTERESIS_TIMER = 0.1f;
+        const float STATE_CHANGE_HYSTERESIS_TIMER = 1.0f / 60.0f;
 
         // Skip hystersis timer for jump transitions.
         if (_desiredState == RigRole::Takeoff) {
