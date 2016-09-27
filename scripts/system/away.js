@@ -308,4 +308,10 @@ Script.scriptEnding.connect(function () {
     Controller.keyPressEvent.disconnect(maybeGoActive);
 });
 
+if (HMD.active && !HMD.mounted) {
+    print("Starting script, while HMD is active and not mounted...");
+    goAway();
+}
+
+
 }()); // END LOCAL_SCOPE
