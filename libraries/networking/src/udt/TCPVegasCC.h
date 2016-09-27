@@ -63,7 +63,8 @@ private:
 
     int _numACKs { 0 }; // Holds the number of ACKs received during the last RTT
 
-    int _acksBeforeAdditiveIncrease { 0 };
+    int _ackAICount { 0 }; // Counter for number of ACKs received for Reno additive increase
+    int _duplicateACKCount { 0 }; // Counter for duplicate ACKs received
 
     int _slowStartOddAdjust { 0 }; // Marker for every window adjustment every other RTT in slow-start
 

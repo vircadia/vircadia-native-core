@@ -83,7 +83,6 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
 
     if (ack == previousAck || _numACKSinceFastRetransmit < 3) {
         // we may need to re-send ackNum + 1 if it has been more than our estimated timeout since it was sent
-        qDebug() << "FRT:" << (uint32_t) ack <<  (uint32_t) _lastAck << _numACKSinceFastRetransmit;
 
         auto it = _sentPacketTimes.find(ack + 1);
         if (it != _sentPacketTimes.end()) {
@@ -93,12 +92,27 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
             auto sinceSend = duration_cast<microseconds>(now - it->second.first).count();
 
             if (sinceSend >= estimatedTimeout) {
-                qDebug() << "FRT needed:" << sinceSend << estimatedTimeout;
                 // we've detected we need a fast re-transmit, send that back to the connection
                 _numACKSinceFastRetransmit = 0;
                 return true;
             }
         }
+
+        // if this is the 3rd duplicate ACK, we fallback to Reno's fast re-transmit
+        static const int RENO_FAST_RETRANSMIT_DUPLICATE_COUNT = 3;
+        if (ack == previousAck && ++_duplicateACKCount == RENO_FAST_RETRANSMIT_DUPLICATE_COUNT) {
+            // break out of slow start, we just hit loss
+            _slowStart = false;
+
+            // reset our fast re-transmit counters
+            _numACKSinceFastRetransmit = 0;
+            _duplicateACKCount = 0;
+
+            // return true so the caller knows we needed a fast re-transmit
+            return true;
+        }
+    } else {
+        _duplicateACKCount = 0;
     }
 
     _lastAck = ack;
@@ -218,20 +232,22 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
         numAcked -= congestionWindow - _congestionWindowSize;
     }
 
+    int preAIWindowSize = _congestionWindowSize;
+
     if (numAcked > 0) {
         // In dangerous area, increase slowly.
         // If credits accumulated at a higher w, apply them gently now.
-        if (_acksBeforeAdditiveIncrease >= _congestionWindowSize) {
-            _acksBeforeAdditiveIncrease = 0;
+        if (_ackAICount >= preAIWindowSize) {
+            _ackAICount = 0;
             ++_congestionWindowSize;
         }
 
-        _acksBeforeAdditiveIncrease += numAcked;
-        if (_acksBeforeAdditiveIncrease >= _congestionWindowSize) {
-            int delta = _acksBeforeAdditiveIncrease / _congestionWindowSize;
+        _ackAICount += numAcked;
+        if (_ackAICount >= preAIWindowSize) {
+            int delta = _ackAICount / preAIWindowSize;
 
-            _acksBeforeAdditiveIncrease -= delta * _congestionWindowSize;
-            _acksBeforeAdditiveIncrease += delta;
+            _ackAICount -= delta * _congestionWindowSize;
+            _congestionWindowSize += delta;
         }
     }
 }
