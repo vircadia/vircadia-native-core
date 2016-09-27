@@ -16,8 +16,6 @@ Item {
     width: parent.width
     height: 100
 
-    property int hitboxExtension : 20
-    
     // The title of the graph
     property string title
 
@@ -218,12 +216,7 @@ Item {
 
     MouseArea {
         id: hitbox
-        anchors.fill:mycanvas
-
-        anchors.topMargin: -hitboxExtension
-        anchors.bottomMargin: -hitboxExtension
-        anchors.leftMargin: -hitboxExtension
-        anchors.rightMargin: -hitboxExtension
+        anchors.fill: mycanvas
 
         onClicked: {
             resetMax();
