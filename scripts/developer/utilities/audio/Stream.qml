@@ -58,11 +58,11 @@ ColumnLayout {
     }
     Value {
         label: "Overall"
-        source: stream.lossRate + "% (" + stream.lossCount + " lost)"
+        source: stream.lossRate.toFixed(2) + "% (" + stream.lossCount + " lost)"
     }
     Value {
         label: "Window"
-        source: stream.lossRateWindow + "% (" + stream.lossCountWindow + " lost)"
+        source: stream.lossRateWindow.toFixed(2) + "% (" + stream.lossCountWindow + " lost)"
     }
 }
 
