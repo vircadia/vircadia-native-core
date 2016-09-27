@@ -231,7 +231,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
         // linear part uses a motor
-        const float MAX_WALKING_SPEED = 2.5f; // TODO: scale this stuff with avatar size
+        const float MAX_WALKING_SPEED = 30.5f; // TODO: scale this stuff with avatar size
         const float MAX_WALKING_SPEED_DISTANCE = 1.0f;
         const float NORMAL_WALKING_SPEED = 0.5f * MAX_WALKING_SPEED;
         const float NORMAL_WALKING_SPEED_DISTANCE = 0.5f * MAX_WALKING_SPEED_DISTANCE;

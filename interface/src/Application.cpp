@@ -3811,7 +3811,7 @@ void Application::update(float deltaTime) {
             avatarManager->getObjectsToChange(motionStates);
             _physicsEngine->changeObjects(motionStates);
 
-            myAvatar->prepareForPhysicsSimulation();
+            myAvatar->prepareForPhysicsSimulation(deltaTime);
             _physicsEngine->forEachAction([&](EntityActionPointer action) {
                 action->prepareForPhysicsSimulation();
             });
