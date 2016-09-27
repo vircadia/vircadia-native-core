@@ -1372,8 +1372,6 @@ void MyAvatar::prepareForPhysicsSimulation(float deltaTime) {
         // The avatar physics body always follows the _bodySensorMatrix.
         glm::mat4 worldBodyMatrix = _sensorToWorldMatrix * _bodySensorMatrix;
         getCharacterController()->setFollowParameters(worldBodyMatrix);
-
-        DebugDraw::getInstance().addMarker("bodySensorMatrix", glmExtractRotation(worldBodyMatrix), extractTranslation(worldBodyMatrix), glm::vec4(1.0f));
     } else {
         _follow.deactivate();
         getCharacterController()->disableFollow();
