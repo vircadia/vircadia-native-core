@@ -249,7 +249,7 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
         if (_ackAICount >= preAIWindowSize) {
             int delta = _ackAICount / preAIWindowSize;
 
-            _ackAICount -= delta * _congestionWindowSize;
+            _ackAICount -= delta * preAIWindowSize;
             _congestionWindowSize += delta;
         }
     }
