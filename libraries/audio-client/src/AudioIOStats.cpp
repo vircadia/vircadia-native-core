@@ -28,12 +28,12 @@ static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.
 
 AudioIOStats::AudioIOStats(MixedProcessedAudioStream* receivedAudioStream) :
     _interface(new AudioStatsInterface(this)),
-    _receivedAudioStream(receivedAudioStream),
     _inputMsRead(1, INPUT_READS_WINDOW),
     _inputMsUnplayed(1, INPUT_UNPLAYED_WINDOW),
     _outputMsUnplayed(1, OUTPUT_UNPLAYED_WINDOW),
     _lastSentPacketTime(0),
-    _packetTimegaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS)
+    _packetTimegaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
+    _receivedAudioStream(receivedAudioStream)
 {
 
 }
