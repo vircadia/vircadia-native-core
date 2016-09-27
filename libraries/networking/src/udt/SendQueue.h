@@ -64,6 +64,8 @@ public:
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
     void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
+
+    void setProbePacketEnabled(bool enabled);
     
 public slots:
     void stop();
@@ -140,6 +142,9 @@ private:
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
+
+
+    std::atomic<bool> _shouldSendProbes { true };
 };
     
 }

@@ -52,8 +52,6 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
                             + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
         }
 
-
-
         // keep track of the lowest RTT during connection
         _baseRTT = std::min(_baseRTT, lastRTT);
 

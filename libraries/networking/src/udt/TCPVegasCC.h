@@ -33,6 +33,7 @@ public:
 
     virtual bool shouldNAK() override { return false; }
     virtual bool shouldACK2() override { return false; }
+    virtual bool shouldProbe() override { return false; }
 
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
     

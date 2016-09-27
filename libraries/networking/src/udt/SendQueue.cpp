@@ -396,6 +396,10 @@ void SendQueue::run() {
     }
 }
 
+void SendQueue::setProbePacketEnabled(bool enabled) {
+    _shouldSendProbes = enabled;
+}
+
 int SendQueue::maybeSendNewPacket() {
     if (!isFlowWindowFull()) {
         // we didn't re-send a packet, so time to send a new one
@@ -413,7 +417,7 @@ int SendQueue::maybeSendNewPacket() {
                 std::unique_ptr<Packet> secondPacket;
                 bool shouldSendPairTail = false;
 
-                if (((uint32_t) nextNumber & 0xF) == 0) {
+                if (_shouldSendProbes && ((uint32_t) nextNumber & 0xF) == 0) {
                     // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
                     // pull off a second packet if we can before we unlock
                     shouldSendPairTail = true;

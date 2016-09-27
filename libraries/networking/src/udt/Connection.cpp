@@ -125,6 +125,7 @@ SendQueue& Connection::getSendQueue() {
         _sendQueue->setSyncInterval(_synInterval);
         _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+        _sendQueue->setProbePacketEnabled(_congestionControl->shouldProbe());
 
         // give the randomized sequence number to the congestion control object
         _congestionControl->setInitialSendSequenceNumber(_sendQueue->getCurrentSequenceNumber());
