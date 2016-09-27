@@ -148,6 +148,8 @@ protected:
     glm::vec3 _preActionVelocity;
     btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
+    btVector3 _followVelocity { 0.0f, 0.0f, 0.0f };
+    btVector3 _previousFollowPosition { 0.0f, 0.0f, 0.0f };
     btVector3 _position;
     btQuaternion _rotation;
 
@@ -175,6 +177,7 @@ protected:
     bool _hasSupport;
 
     btScalar _gravity;
+    btScalar _followTimeAccumulator { 0.0f };
 
     btScalar _jumpSpeed;
     btVector3 _linearAcceleration;
