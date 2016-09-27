@@ -21,16 +21,16 @@ template <typename T>
 class MinMaxAvg {
 public:
     MinMaxAvg()
-        : _min(std::numeric_limits<T>::max()),
-        _max(std::numeric_limits<T>::min()),
+        : _min(T()),
+        _max(T()),
         _average(0.0),
         _samples(0),
         _last(0)
     {}
 
     void reset() {
-        _min = std::numeric_limits<T>::max();
-        _max = std::numeric_limits<T>::min();
+        _min = T();
+        _max = T();
         _average = 0.0;
         _samples = 0;
         _last = 0;
