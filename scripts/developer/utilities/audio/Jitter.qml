@@ -27,7 +27,7 @@ ColumnLayout {
         source1: maxWindow
         source2: avgWindow
         color1: "red"
-        color2: "dimgrey"
+        color2: "darkslategrey"
         showGraphs: jitter.showGraphs
     }
     MovingValuePair {
@@ -37,7 +37,7 @@ ColumnLayout {
         source1: max
         source2: avg
         color1: "firebrick"
-        color2: "dimgrey"
+        color2: "darkslategrey"
         showGraphs: jitter.showGraphs
     }
 }

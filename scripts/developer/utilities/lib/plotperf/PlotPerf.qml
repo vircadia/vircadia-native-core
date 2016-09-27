@@ -22,6 +22,8 @@ Item {
     // The object used as the default source object for the prop plots
     property var object
 
+    property var backgroundOpacity: 0.6
+
     // Plots is an array of plot descriptor
     // a default plot descriptor expects the following object:
     //     prop: [ {
@@ -185,7 +187,7 @@ Item {
                 ctx.fillText(text, 0, lineHeight);
             }
             function displayBackground(ctx) {
-                ctx.fillStyle = Qt.rgba(0, 0, 0, 0.6);
+                ctx.fillStyle = Qt.rgba(0, 0, 0, root.backgroundOpacity);
                 ctx.fillRect(0, 0, width, height);
                 
                 ctx.strokeStyle= "grey";

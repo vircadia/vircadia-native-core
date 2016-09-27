@@ -71,6 +71,7 @@ RowLayout {
 
         valueUnit: value.unit
         valueNumDigits: 0
+        backgroundOpacity: 0.2
 
         plots: [{ binding: "source1", color: value.color1 }, { binding: "source2", color: value.color2 }]
     }

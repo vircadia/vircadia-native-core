@@ -42,6 +42,7 @@ RowLayout {
 
         valueUnit: value.unit
         valueNumDigits: 0
+        backgroundOpacity: 0.2
 
         plots: [{ binding: "source", color: value.color }]
     }
