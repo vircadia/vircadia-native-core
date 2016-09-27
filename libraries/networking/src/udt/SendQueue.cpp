@@ -258,7 +258,7 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     auto payloadSize = newPacket->getPayloadSize();
     
     auto bytesWritten = sendPacket(*newPacket);
-    
+
     emit packetSent(packetSize, payloadSize, sequenceNumber, p_high_resolution_clock::now());
 
     {

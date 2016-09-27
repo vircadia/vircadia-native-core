@@ -27,7 +27,7 @@ public:
     TCPVegasCC();
 
 public:
-    virtual bool onACK(SequenceNumber ackNum) override;
+    virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) override;
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override {};
     virtual void onTimeout() override {};
 

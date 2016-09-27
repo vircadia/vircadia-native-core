@@ -18,6 +18,8 @@
 
 #include <QtCore/QIODevice>
 
+#include <PortableHighResolutionClock.h>
+
 #include "../HifiSockAddr.h"
 #include "Constants.h"
 
@@ -80,6 +82,9 @@ public:
 
     qint64 writeString(const QString& string);
     QString readString();
+
+    void setReceiveTime(p_high_resolution_clock::time_point receiveTime) { _receiveTime = receiveTime; }
+    p_high_resolution_clock::time_point getReceiveTime() const { return _receiveTime; }
    
     template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
@@ -108,6 +113,8 @@ protected:
     qint64 _payloadSize = 0;          // How much of the payload is actually used
     
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
+
+    p_high_resolution_clock::time_point _receiveTime; // captures the time the packet received (only used on receiving end)
 };
 
 template<typename T> qint64 BasePacket::peekPrimitive(T* data) {

@@ -24,14 +24,13 @@ TCPVegasCC::TCPVegasCC() {
     setAckInterval(1); // TCP sends an ACK for every packet received
 }
 
-bool TCPVegasCC::onACK(SequenceNumber ack) {
+bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point receiveTime) {
     auto it = _sentPacketTimes.find(ack);
 
     if (it != _sentPacketTimes.end()) {
 
-        // calculate the RTT (time now - time ACK sent)
-        auto now = p_high_resolution_clock::now();
-        int lastRTT = duration_cast<microseconds>(now - it->second.first).count();
+        // calculate the RTT (receive time - time ACK sent)
+        int lastRTT = duration_cast<microseconds>(receiveTime - it->second.first).count();
 
         if (lastRTT < 0) {
             Q_ASSERT_X(false, "TCPVegasCC::onACK", "calculated an RTT that is not > 0");
@@ -61,7 +60,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack) {
         // find the min RTT during the last RTT
         _currentMinRTT = std::min(_currentMinRTT, lastRTT);
 
-        auto sinceLastAdjustment = duration_cast<microseconds>(now - _lastAdjustmentTime).count();
+        auto sinceLastAdjustment = duration_cast<microseconds>(p_high_resolution_clock::now() - _lastAdjustmentTime).count();
         if (sinceLastAdjustment >= _ewmaRTT) {
             performCongestionAvoidance(ack);
         }

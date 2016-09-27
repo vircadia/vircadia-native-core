@@ -49,7 +49,7 @@ DefaultCC::DefaultCC() :
     setPacketSendPeriod(1.0);
 }
 
-bool DefaultCC::onACK(SequenceNumber ackNum) {
+bool DefaultCC::onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) {
     double increase = 0;
     
     // Note from UDT original code:
