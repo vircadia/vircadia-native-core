@@ -59,6 +59,8 @@ private:
     int _ewmaRTT { -1 }; // Exponential weighted moving average RTT
     int _rttVariance { 0 }; // Variance in collected RTT values
 
+    int _numRTTs { 0 }; // Holds the number of ACKs received during the last RTT
+
     int _slowStartOddAdjust { 0 }; // Marker for every window adjustment every other RTT in slow-start
 
 };

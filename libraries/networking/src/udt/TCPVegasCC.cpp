@@ -52,6 +52,9 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
                             + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
         }
 
+        // add 1 to the number of RTT samples
+        ++_numRTTs;
+
         // keep track of the lowest RTT during connection
         _baseRTT = std::min(_baseRTT, lastRTT);
 
@@ -129,6 +132,10 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
         debug << "D:" << windowSizeDiff << "\n";
     }
 
+    if (_numRTTs <= 2) {
+        qDebug() << "WE SHOULD BE USING RENO HERE" << _numRTTs;
+    }
+
     if (_slowStart) {
         if (windowSizeDiff > VEGAS_GAMMA_SEGMENTS) {
             // we're going too fast - this breaks us out of slow start and we switch to linear increase/decrease
@@ -174,6 +181,9 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     // reset our state for the next RTT
     _currentMinRTT = std::numeric_limits<int>::max();
+
+    // reset our count of collected RTT samples
+    _numRTTs = 0;
 
     if (wantDebug) {
         debug << "CW:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
