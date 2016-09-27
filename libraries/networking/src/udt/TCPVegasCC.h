@@ -41,6 +41,8 @@ protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
     virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override { _lastAck = seqNum - 1; }
 private:
+    bool isCongestionWindowLimited();
+    void performRenoCongestionAvoidance(SequenceNumber ack);
 
     using TimeSizePair = std::pair<p_high_resolution_clock::time_point, int>;
     using PacketTimeList = std::map<SequenceNumber, TimeSizePair>;
@@ -59,7 +61,9 @@ private:
     int _ewmaRTT { -1 }; // Exponential weighted moving average RTT
     int _rttVariance { 0 }; // Variance in collected RTT values
 
-    int _numRTTs { 0 }; // Holds the number of ACKs received during the last RTT
+    int _numACKs { 0 }; // Holds the number of ACKs received during the last RTT
+
+    int _acksBeforeAdditiveIncrease { 0 };
 
     int _slowStartOddAdjust { 0 }; // Marker for every window adjustment every other RTT in slow-start
 

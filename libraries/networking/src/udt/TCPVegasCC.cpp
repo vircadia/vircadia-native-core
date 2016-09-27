@@ -27,6 +27,9 @@ TCPVegasCC::TCPVegasCC() {
 bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point receiveTime) {
     auto it = _sentPacketTimes.find(ack);
 
+    auto previousAck = _lastAck;
+    _lastAck = ack;
+
     if (it != _sentPacketTimes.end()) {
 
         // calculate the RTT (receive time - time ACK sent)
@@ -52,8 +55,8 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
                             + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
         }
 
-        // add 1 to the number of RTT samples
-        ++_numRTTs;
+        // add 1 to the number of ACKs during this RTT
+        ++_numACKs;
 
         // keep track of the lowest RTT during connection
         _baseRTT = std::min(_baseRTT, lastRTT);
@@ -78,7 +81,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
     // after a previous fast re-transmit
     ++_numACKSinceFastRetransmit;
 
-    if (ack == _lastAck || _numACKSinceFastRetransmit < 3) {
+    if (ack == previousAck || _numACKSinceFastRetransmit < 3) {
         // we may need to re-send ackNum + 1 if it has been more than our estimated timeout since it was sent
         qDebug() << "FRT:" << (uint32_t) ack <<  (uint32_t) _lastAck << _numACKSinceFastRetransmit;
 
@@ -97,6 +100,8 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
             }
         }
     }
+
+    _lastAck = ack;
 
     // ACK processed, no fast re-transmit required
     return false;
@@ -132,43 +137,43 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
         debug << "D:" << windowSizeDiff << "\n";
     }
 
-    if (_numRTTs <= 2) {
-        qDebug() << "WE SHOULD BE USING RENO HERE" << _numRTTs;
-    }
-
-    if (_slowStart) {
-        if (windowSizeDiff > VEGAS_GAMMA_SEGMENTS) {
-            // we're going too fast - this breaks us out of slow start and we switch to linear increase/decrease
-            _slowStart = false;
-
-            int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
-            _baseRTT = std::numeric_limits<int>::max();
-
-            if (wantDebug) {
-                debug << "EWS:" << expectedWindowSize;
-            }
-
-            // drop the congestion window size to the expected size, if smaller
-            _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
-            
-        } else if (++_slowStartOddAdjust & 1) {
-            // we're in slow start and not going too fast
-            // this means that once every second RTT we perform exponential congestion window growth
-            _congestionWindowSize *= 2;
-        }
+    if (_numACKs <= 2) {
+        performRenoCongestionAvoidance(ack);
     } else {
-        // this is the normal linear increase/decrease of the Vegas algorithm
-        // to figure out where the congestion window should be
-        if (windowSizeDiff > VEGAS_BETA_SEGMENTS) {
-            // the old congestion window was too fast (difference > beta)
-            // so reduce it to slow down
-            --_congestionWindowSize;
+        if (_slowStart) {
+            if (windowSizeDiff > VEGAS_GAMMA_SEGMENTS) {
+                // we're going too fast - this breaks us out of slow start and we switch to linear increase/decrease
+                _slowStart = false;
 
-        } else if (windowSizeDiff < VEGAS_ALPHA_SEGMENTS) {
-            // there aren't enough packets on the wire, add more to the congestion window
-            ++_congestionWindowSize;
+                int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
+                _baseRTT = std::numeric_limits<int>::max();
+
+                if (wantDebug) {
+                    debug << "EWS:" << expectedWindowSize;
+                }
+
+                // drop the congestion window size to the expected size, if smaller
+                _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
+
+            } else if (++_slowStartOddAdjust & 1) {
+                // we're in slow start and not going too fast
+                // this means that once every second RTT we perform exponential congestion window growth
+                _congestionWindowSize *= 2;
+            }
         } else {
-            // sending rate seems good, no congestion window adjustment
+            // this is the normal linear increase/decrease of the Vegas algorithm
+            // to figure out where the congestion window should be
+            if (windowSizeDiff > VEGAS_BETA_SEGMENTS) {
+                // the old congestion window was too fast (difference > beta)
+                // so reduce it to slow down
+                --_congestionWindowSize;
+
+            } else if (windowSizeDiff < VEGAS_ALPHA_SEGMENTS) {
+                // there aren't enough packets on the wire, add more to the congestion window
+                ++_congestionWindowSize;
+            } else {
+                // sending rate seems good, no congestion window adjustment
+            }
         }
     }
 
@@ -183,11 +188,51 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     _currentMinRTT = std::numeric_limits<int>::max();
 
     // reset our count of collected RTT samples
-    _numRTTs = 0;
+    _numACKs = 0;
 
     if (wantDebug) {
         debug << "CW:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
         debug << "============";
+    }
+}
+
+bool TCPVegasCC::isCongestionWindowLimited() {
+    if (_slowStart) {
+        return true;
+    } else {
+        return seqlen(_sendCurrSeqNum, _lastAck) < _congestionWindowSize;
+    }
+}
+
+
+void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
+    if (!isCongestionWindowLimited()) {
+        return;
+    }
+
+    int numAcked = _numACKs;
+
+    // In "safe" area, increase.
+    if (_slowStart) {
+        int congestionWindow = std::min(_congestionWindowSize + numAcked, udt::MAX_PACKETS_IN_FLIGHT);
+        numAcked -= congestionWindow - _congestionWindowSize;
+    }
+
+    if (numAcked > 0) {
+        // In dangerous area, increase slowly.
+        // If credits accumulated at a higher w, apply them gently now.
+        if (_acksBeforeAdditiveIncrease >= _congestionWindowSize) {
+            _acksBeforeAdditiveIncrease = 0;
+            ++_congestionWindowSize;
+        }
+
+        _acksBeforeAdditiveIncrease += numAcked;
+        if (_acksBeforeAdditiveIncrease >= _congestionWindowSize) {
+            int delta = _acksBeforeAdditiveIncrease / _congestionWindowSize;
+
+            _acksBeforeAdditiveIncrease -= delta * _congestionWindowSize;
+            _acksBeforeAdditiveIncrease += delta;
+        }
     }
 }
 
