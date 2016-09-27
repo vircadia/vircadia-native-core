@@ -48,7 +48,7 @@ float projection_getFar(mat4 projection) {
 
 
 uniform clusterGridBuffer {
-    int _clusterGridTable[4096];
+    int _clusterGridTable[16384];
 };
 
 uniform clusterContentBuffer {
@@ -74,7 +74,10 @@ ivec2 clusterGrid_getCluster(int index) {
 }
 
 int clusterGrid_getClusterLightId(int index, ivec2 cluster) {
-    return _clusterGridContent[cluster.y + index];
+    int arrayElement = cluster.y + index;
+    int element = _clusterGridContent[arrayElement >> 1];
+
+    return (((arrayElement & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
 }
 
 <@endif@>

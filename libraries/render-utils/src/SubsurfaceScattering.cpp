@@ -415,6 +415,7 @@ gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringProfile(Rend
     //  const auto pixelFormat = gpu::Element::COLOR_SRGBA_32;
     const auto pixelFormat = gpu::Element::COLOR_R11G11B10;
     auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(pixelFormat, PROFILE_RESOLUTION, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+    profileMap->setSource("Generated Scattering Profile");
     diffuseProfileGPU(profileMap, args);
     return profileMap;
 }
@@ -426,6 +427,7 @@ gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScatterin
     const auto pixelFormat = gpu::Element::COLOR_R11G11B10;
     auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(pixelFormat, TABLE_RESOLUTION, TABLE_RESOLUTION, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
     //diffuseScatter(scatteringLUT);
+    scatteringLUT->setSource("Generated pre-integrated scattering");
     diffuseScatterGPU(profile, scatteringLUT, args);
     return scatteringLUT;
 }
@@ -433,6 +435,7 @@ gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScatterin
 gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringSpecularBeckmann(RenderArgs* args) {
     const int SPECULAR_RESOLUTION = 256;
     auto beckmannMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32 /*gpu::Element(gpu::SCALAR, gpu::HALF, gpu::RGB)*/, SPECULAR_RESOLUTION, SPECULAR_RESOLUTION, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+    beckmannMap->setSource("Generated beckmannMap");
     computeSpecularBeckmannGPU(beckmannMap, args);
     return beckmannMap;
 }

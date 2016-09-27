@@ -18,39 +18,46 @@
 #include "InboundAudioStream.h"
 #include "AudioLogging.h"
 
-const int STARVE_HISTORY_CAPACITY = 50;
+const bool InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED = true;
+const int InboundAudioStream::DEFAULT_STATIC_JITTER_FRAMES = 1;
+const int InboundAudioStream::MAX_FRAMES_OVER_DESIRED = 10;
+const int InboundAudioStream::WINDOW_STARVE_THRESHOLD = 3;
+const int InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
+const int InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
+const bool InboundAudioStream::USE_STDEV_FOR_JITTER = false;
+const bool InboundAudioStream::REPETITION_WITH_FADE = true;
 
-InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings) :
+static const int STARVE_HISTORY_CAPACITY = 50;
+
+// This is called 1x/s, and we want it to log the last 5s
+static const int UNPLAYED_MS_WINDOW_SECS = 5;
+
+// This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.
+// The larger this value is, the less frames we drop when attempting to reduce the jitter buffer length.
+// Setting this to 0 will try to get the jitter buffer to be exactly _desiredJitterBufferFrames when dropping frames,
+// which could lead to a starve soon after.
+static const int DESIRED_JITTER_BUFFER_FRAMES_PADDING = 1;
+
+// this controls the length of the window for stats used in the stats packet (not the stats used in
+// _desiredJitterBufferFrames calculation)
+static const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
+
+// this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
+// _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
+static const quint64 FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
+
+InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames) :
     _ringBuffer(numFrameSamples, numFramesCapacity),
-    _lastPopSucceeded(false),
-    _lastPopOutput(),
-    _dynamicJitterBuffers(settings._dynamicJitterBuffers),
-    _staticDesiredJitterBufferFrames(settings._staticDesiredJitterBufferFrames),
-    _useStDevForJitterCalc(settings._useStDevForJitterCalc),
-    _desiredJitterBufferFrames(settings._dynamicJitterBuffers ? 1 : settings._staticDesiredJitterBufferFrames),
-    _maxFramesOverDesired(settings._maxFramesOverDesired),
-    _isStarved(true),
-    _hasStarted(false),
-    _consecutiveNotMixedCount(0),
-    _starveCount(0),
-    _silentFramesDropped(0),
-    _oldFramesDropped(0),
+    _dynamicJitterBufferEnabled(numStaticJitterFrames == -1),
+    _staticJitterBufferFrames(std::max(numStaticJitterFrames, DEFAULT_STATIC_JITTER_FRAMES)),
+    _desiredJitterBufferFrames(_dynamicJitterBufferEnabled ? 1 : _staticJitterBufferFrames),
     _incomingSequenceNumberStats(STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
-    _lastPacketReceivedTime(0),
-    _timeGapStatsForDesiredCalcOnTooManyStarves(0, settings._windowSecondsForDesiredCalcOnTooManyStarves),
-    _calculatedJitterBufferFramesUsingMaxGap(0),
-    _stdevStatsForDesiredCalcOnTooManyStarves(),
-    _calculatedJitterBufferFramesUsingStDev(0),
-    _timeGapStatsForDesiredReduction(0, settings._windowSecondsForDesiredReduction),
-    _starveHistoryWindowSeconds(settings._windowSecondsForDesiredCalcOnTooManyStarves),
     _starveHistory(STARVE_HISTORY_CAPACITY),
-    _starveThreshold(settings._windowStarveThreshold),
-    _framesAvailableStat(),
-    _currentJitterBufferFrames(0),
-    _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
-    _repetitionWithFade(settings._repetitionWithFade),
-    _hasReverb(false)
-{
+    _unplayedMs(0, UNPLAYED_MS_WINDOW_SECS),
+    _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS) {}
+
+InboundAudioStream::~InboundAudioStream() {
+    cleanupCodec();
 }
 
 void InboundAudioStream::reset() {
@@ -66,7 +73,7 @@ void InboundAudioStream::reset() {
 }
 
 void InboundAudioStream::resetStats() {
-    if (_dynamicJitterBuffers) {
+    if (_dynamicJitterBufferEnabled) {
         _desiredJitterBufferFrames = 1;
     }
     _consecutiveNotMixedCount = 0;
@@ -76,12 +83,12 @@ void InboundAudioStream::resetStats() {
     _incomingSequenceNumberStats.reset();
     _lastPacketReceivedTime = 0;
     _timeGapStatsForDesiredCalcOnTooManyStarves.reset();
-    _stdevStatsForDesiredCalcOnTooManyStarves = StDev();
     _timeGapStatsForDesiredReduction.reset();
     _starveHistory.clear();
     _framesAvailableStat.reset();
     _currentJitterBufferFrames = 0;
     _timeGapStatsForStatsPacket.reset();
+    _unplayedMs.reset();
 }
 
 void InboundAudioStream::clearBuffer() {
@@ -101,6 +108,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForDesiredCalcOnTooManyStarves.currentIntervalComplete();
     _timeGapStatsForDesiredReduction.currentIntervalComplete();
     _timeGapStatsForStatsPacket.currentIntervalComplete();
+    _unplayedMs.currentIntervalComplete();
 }
 
 int InboundAudioStream::parseData(ReceivedMessage& message) {
@@ -163,11 +171,12 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int framesAvailable = _ringBuffer.framesAvailable();
     // if this stream was starved, check if we're still starved.
     if (_isStarved && framesAvailable >= _desiredJitterBufferFrames) {
+        qCInfo(audiostream, "Starve ended");
         _isStarved = false;
     }
     // if the ringbuffer exceeds the desired size by more than the threshold specified,
     // drop the oldest frames so the ringbuffer is down to the desired size.
-    if (framesAvailable > _desiredJitterBufferFrames + _maxFramesOverDesired) {
+    if (framesAvailable > _desiredJitterBufferFrames + MAX_FRAMES_OVER_DESIRED) {
         int framesToDrop = framesAvailable - (_desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING);
         _ringBuffer.shiftReadPosition(framesToDrop * _ringBuffer.getNumFrameSamples());
         
@@ -176,8 +185,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
         _oldFramesDropped += framesToDrop;
 
-        qCDebug(audiostream, "Dropped %d frames", framesToDrop);
-        qCDebug(audiostream, "Resetted current jitter frames");
+        qCInfo(audiostream, "Dropped %d frames", framesToDrop);
+        qCInfo(audiostream, "Reset current jitter frames");
     }
 
     framesAvailableChanged();
@@ -232,8 +241,8 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
         _currentJitterBufferFrames -= numSilentFramesToDrop;
         _silentFramesDropped += numSilentFramesToDrop;
 
-        qCDebug(audiostream, "Dropped %d silent frames", numSilentFramesToDrop);
-        qCDebug(audiostream, "Set current jitter frames to %d", _currentJitterBufferFrames);
+        qCInfo(audiostream, "Dropped %d silent frames", numSilentFramesToDrop);
+        qCInfo(audiostream, "Set current jitter frames to %d (dropped)", _currentJitterBufferFrames);
 
         _framesAvailableStat.reset();
     }
@@ -243,7 +252,7 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
     return ret;
 }
 
-int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped) {
+int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing) {
     int samplesPopped = 0;
     int samplesAvailable = _ringBuffer.samplesAvailable();
     if (_isStarved) {
@@ -261,47 +270,25 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing, bool starv
             popSamplesNoCheck(samplesAvailable);
             samplesPopped = samplesAvailable;
         } else {
-            // we can't pop any samples. set this stream to starved if needed
-            if (starveIfNoSamplesPopped) {
-                setToStarved();
-                _consecutiveNotMixedCount++;
-            }
+            // we can't pop any samples, set this stream to starved
+            setToStarved();
+            _consecutiveNotMixedCount++;
             _lastPopSucceeded = false;
         }
     }
     return samplesPopped;
 }
 
-int InboundAudioStream::popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped) {
-    int framesPopped = 0;
-    int framesAvailable = _ringBuffer.framesAvailable();
-    if (_isStarved) {
-        // we're still refilling; don't pop
-        _consecutiveNotMixedCount++;
-        _lastPopSucceeded = false;
-    } else {
-        if (framesAvailable >= maxFrames) {
-            // we have enough frames to pop, so we're good to pop
-            popSamplesNoCheck(maxFrames * _ringBuffer.getNumFrameSamples());
-            framesPopped = maxFrames;
-        } else if (!allOrNothing && framesAvailable > 0) {
-            // we don't have the requested number of frames, but we do have some
-            // frames available, so pop all those (except in all-or-nothing mode)
-            popSamplesNoCheck(framesAvailable * _ringBuffer.getNumFrameSamples());
-            framesPopped = framesAvailable;
-        } else {
-            // we can't pop any frames. set this stream to starved if needed
-            if (starveIfNoFramesPopped) {
-                setToStarved();
-                _consecutiveNotMixedCount = 1;
-            }
-            _lastPopSucceeded = false;
-        }
-    }
-    return framesPopped;
+int InboundAudioStream::popFrames(int maxFrames, bool allOrNothing) {
+    int numFrameSamples = _ringBuffer.getNumFrameSamples();
+    int samplesPopped = popSamples(maxFrames * numFrameSamples, allOrNothing);
+    return samplesPopped / numFrameSamples;
 }
 
 void InboundAudioStream::popSamplesNoCheck(int samples) {
+    float unplayedMs = (_ringBuffer.samplesAvailable() / (float)_ringBuffer.getNumFrameSamples()) * AudioConstants::NETWORK_FRAME_MSECS;
+    _unplayedMs.update(unplayedMs);
+
     _lastPopOutput = _ringBuffer.nextOutput();
     _ringBuffer.shiftReadPosition(samples);
     framesAvailableChanged();
@@ -315,13 +302,17 @@ void InboundAudioStream::framesAvailableChanged() {
 
     if (_framesAvailableStat.getElapsedUsecs() >= FRAMES_AVAILABLE_STAT_WINDOW_USECS) {
         _currentJitterBufferFrames = (int)ceil(_framesAvailableStat.getAverage());
-        qCDebug(audiostream, "Set current jitter frames to %d", _currentJitterBufferFrames);
+        qCInfo(audiostream, "Set current jitter frames to %d (changed)", _currentJitterBufferFrames);
 
         _framesAvailableStat.reset();
     }
 }
 
 void InboundAudioStream::setToStarved() {
+    if (!_isStarved) {
+        qCInfo(audiostream, "Starved");
+    }
+
     _consecutiveNotMixedCount = 0;
     _starveCount++;
     // if we have more than the desired frames when setToStarved() is called, then we'll immediately
@@ -332,10 +323,10 @@ void InboundAudioStream::setToStarved() {
     quint64 now = usecTimestampNow();
     _starveHistory.insert(now);
 
-    if (_dynamicJitterBuffers) {
+    if (_dynamicJitterBufferEnabled) {
         // dynamic jitter buffers are enabled. check if this starve put us over the window
         // starve threshold
-        quint64 windowEnd = now - _starveHistoryWindowSeconds * USECS_PER_SECOND;
+        quint64 windowEnd = now - WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES * USECS_PER_SECOND;
         RingBufferHistory<quint64>::Iterator starvesIterator = _starveHistory.begin();
         RingBufferHistory<quint64>::Iterator end = _starveHistory.end();
         int starvesInWindow = 1;
@@ -349,78 +340,47 @@ void InboundAudioStream::setToStarved() {
 
         // this starve put us over the starve threshold. update _desiredJitterBufferFrames to
         // value determined by window A.
-        if (starvesInWindow >= _starveThreshold) {
+        if (starvesInWindow >= WINDOW_STARVE_THRESHOLD) {
             int calculatedJitterBufferFrames;
-            if (_useStDevForJitterCalc) {
-                calculatedJitterBufferFrames = _calculatedJitterBufferFramesUsingStDev;
-            } else {
-                // we don't know when the next packet will arrive, so it's possible the gap between the last packet and the
-                // next packet will exceed the max time gap in the window.  If the time since the last packet has already exceeded
-                // the window max gap, then we should use that value to calculate desired frames.
-                int framesSinceLastPacket = ceilf((float)(now - _lastPacketReceivedTime)
-                                                  / (float)AudioConstants::NETWORK_FRAME_USECS);
-                calculatedJitterBufferFrames = std::max(_calculatedJitterBufferFramesUsingMaxGap, framesSinceLastPacket);
-            }
+            // we don't know when the next packet will arrive, so it's possible the gap between the last packet and the
+            // next packet will exceed the max time gap in the window.  If the time since the last packet has already exceeded
+            // the window max gap, then we should use that value to calculate desired frames.
+            int framesSinceLastPacket = ceilf((float)(now - _lastPacketReceivedTime)
+                                              / (float)AudioConstants::NETWORK_FRAME_USECS);
+            calculatedJitterBufferFrames = std::max(_calculatedJitterBufferFrames, framesSinceLastPacket);
             // make sure _desiredJitterBufferFrames does not become lower here
             if (calculatedJitterBufferFrames >= _desiredJitterBufferFrames) {
                 _desiredJitterBufferFrames = calculatedJitterBufferFrames;
-                qCDebug(audiostream, "Set desired jitter frames to %d", _desiredJitterBufferFrames);
+                qCInfo(audiostream, "Set desired jitter frames to %d (starved)", _desiredJitterBufferFrames);
             }
         }
     }
 }
 
-void InboundAudioStream::setSettings(const Settings& settings) {
-    setMaxFramesOverDesired(settings._maxFramesOverDesired);
-    setDynamicJitterBuffers(settings._dynamicJitterBuffers);
-    setStaticDesiredJitterBufferFrames(settings._staticDesiredJitterBufferFrames);
-    setUseStDevForJitterCalc(settings._useStDevForJitterCalc);
-    setWindowStarveThreshold(settings._windowStarveThreshold);
-    setWindowSecondsForDesiredCalcOnTooManyStarves(settings._windowSecondsForDesiredCalcOnTooManyStarves);
-    setWindowSecondsForDesiredReduction(settings._windowSecondsForDesiredReduction);
-    setRepetitionWithFade(settings._repetitionWithFade);
-}
-
-void InboundAudioStream::setDynamicJitterBuffers(bool dynamicJitterBuffers) {
-    if (!dynamicJitterBuffers) {
-        _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
+void InboundAudioStream::setDynamicJitterBufferEnabled(bool enable) {
+    if (!enable) {
+        _desiredJitterBufferFrames = _staticJitterBufferFrames;
     } else {
-        if (!_dynamicJitterBuffers) {
+        if (!_dynamicJitterBufferEnabled) {
             // if we're enabling dynamic jitter buffer frames, start desired frames at 1
             _desiredJitterBufferFrames = 1;
         }
     }
-    _dynamicJitterBuffers = dynamicJitterBuffers;
+    _dynamicJitterBufferEnabled = enable;
 }
 
-void InboundAudioStream::setStaticDesiredJitterBufferFrames(int staticDesiredJitterBufferFrames) {
-    _staticDesiredJitterBufferFrames = staticDesiredJitterBufferFrames;
-    if (!_dynamicJitterBuffers) {
-        _desiredJitterBufferFrames = _staticDesiredJitterBufferFrames;
+void InboundAudioStream::setStaticJitterBufferFrames(int staticJitterBufferFrames) {
+    _staticJitterBufferFrames = staticJitterBufferFrames;
+    if (!_dynamicJitterBufferEnabled) {
+        _desiredJitterBufferFrames = _staticJitterBufferFrames;
     }
-}
-
-void InboundAudioStream::setWindowSecondsForDesiredCalcOnTooManyStarves(int windowSecondsForDesiredCalcOnTooManyStarves) {
-    _timeGapStatsForDesiredCalcOnTooManyStarves.setWindowIntervals(windowSecondsForDesiredCalcOnTooManyStarves);
-    _starveHistoryWindowSeconds = windowSecondsForDesiredCalcOnTooManyStarves;
-}
-
-void InboundAudioStream::setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction) {
-    _timeGapStatsForDesiredReduction.setWindowIntervals(windowSecondsForDesiredReduction);
-}
-
-
-int InboundAudioStream::clampDesiredJitterBufferFramesValue(int desired) const {
-    const int MIN_FRAMES_DESIRED = 0;
-    const int MAX_FRAMES_DESIRED = _ringBuffer.getFrameCapacity();
-    return glm::clamp(desired, MIN_FRAMES_DESIRED, MAX_FRAMES_DESIRED);
 }
 
 void InboundAudioStream::packetReceivedUpdateTimingStats() {
     
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
-    const quint32 NUM_INITIAL_PACKETS_DISCARD = 3;
+    const quint32 NUM_INITIAL_PACKETS_DISCARD = 1000; // 10s
     quint64 now = usecTimestampNow();
     if (_incomingSequenceNumberStats.getReceived() > NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastPacketReceivedTime;
@@ -428,25 +388,15 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
 
         // update all stats used for desired frames calculations under dynamic jitter buffer mode
         _timeGapStatsForDesiredCalcOnTooManyStarves.update(gap);
-        _stdevStatsForDesiredCalcOnTooManyStarves.addValue(gap);
         _timeGapStatsForDesiredReduction.update(gap);
 
         if (_timeGapStatsForDesiredCalcOnTooManyStarves.getNewStatsAvailableFlag()) {
-            _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_timeGapStatsForDesiredCalcOnTooManyStarves.getWindowMax()
+            _calculatedJitterBufferFrames = ceilf((float)_timeGapStatsForDesiredCalcOnTooManyStarves.getWindowMax()
                                                              / (float) AudioConstants::NETWORK_FRAME_USECS);
             _timeGapStatsForDesiredCalcOnTooManyStarves.clearNewStatsAvailableFlag();
         }
 
-        const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
-        if (_stdevStatsForDesiredCalcOnTooManyStarves.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
-            const float NUM_STANDARD_DEVIATIONS = 3.0f;
-            _calculatedJitterBufferFramesUsingStDev = ceilf(NUM_STANDARD_DEVIATIONS
-                                                            * _stdevStatsForDesiredCalcOnTooManyStarves.getStDev()
-                                                            / (float) AudioConstants::NETWORK_FRAME_USECS);
-            _stdevStatsForDesiredCalcOnTooManyStarves.reset();
-        }
-
-        if (_dynamicJitterBuffers) {
+        if (_dynamicJitterBufferEnabled) {
             // if the max gap in window B (_timeGapStatsForDesiredReduction) corresponds to a smaller number of frames than _desiredJitterBufferFrames,
             // then reduce _desiredJitterBufferFrames to that number of frames.
             if (_timeGapStatsForDesiredReduction.getNewStatsAvailableFlag() && _timeGapStatsForDesiredReduction.isWindowFilled()) {
@@ -454,7 +404,7 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
                                                          / (float)AudioConstants::NETWORK_FRAME_USECS);
                 if (calculatedJitterBufferFrames < _desiredJitterBufferFrames) {
                     _desiredJitterBufferFrames = calculatedJitterBufferFrames;
-                    qCDebug(audiostream, "Set desired jitter frames to %d", _desiredJitterBufferFrames);
+                    qCInfo(audiostream, "Set desired jitter frames to %d (reduced)", _desiredJitterBufferFrames);
                 }
                 _timeGapStatsForDesiredReduction.clearNewStatsAvailableFlag();
             }
@@ -465,10 +415,7 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
 }
 
 int InboundAudioStream::writeSamplesForDroppedPackets(int networkSamples) {
-    if (_repetitionWithFade) {
-        return writeLastFrameRepeatedWithFade(networkSamples);
-    }
-    return writeDroppableSilentSamples(networkSamples);
+    return writeLastFrameRepeatedWithFade(networkSamples);
 }
 
 int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
@@ -502,6 +449,7 @@ AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
 
     streamStats._framesAvailable = _ringBuffer.framesAvailable();
     streamStats._framesAvailableAverage = _framesAvailableStat.getAverage();
+    streamStats._unplayedMs = (quint16)_unplayedMs.getWindowMax();
     streamStats._desiredJitterBufferFrames = _desiredJitterBufferFrames;
     streamStats._starveCount = _starveCount;
     streamStats._consecutiveNotMixedCount = _consecutiveNotMixedCount;

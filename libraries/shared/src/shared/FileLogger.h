@@ -13,7 +13,7 @@
 #define hifi_FileLogger_h
 
 #include "AbstractLoggerInterface.h"
-#include <GenericQueueThread.h>
+#include "../GenericQueueThread.h"
 
 #include <QtCore/QFile>
 

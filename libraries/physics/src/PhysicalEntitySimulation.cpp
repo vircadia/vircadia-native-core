@@ -322,7 +322,8 @@ void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
             QMutexLocker lock(&_mutex);
             const QUuid& actionID = action->getID();
             if (_physicsEngine->getActionByID(actionID)) {
-                qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+                qCDebug(physics) << "warning -- PhysicalEntitySimulation::addAction -- adding an "
+                    "action that was already in _physicsEngine";
             }
         }
         EntitySimulation::addAction(action);

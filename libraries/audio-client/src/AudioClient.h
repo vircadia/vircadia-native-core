@@ -61,15 +61,6 @@
 #pragma warning( pop )
 #endif
 
-static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
-static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
-static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
-static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
-
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
@@ -82,6 +73,9 @@ class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    static const int MIN_BUFFER_FRAMES;
+    static const int MAX_BUFFER_FRAMES;
+
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
@@ -115,25 +109,17 @@ public:
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
-    int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
-
     bool isMuted() { return _muted; }
 
     const AudioIOStats& getStats() const { return _stats; }
-
-    float getInputRingBufferMsecsAvailable() const;
-    float getAudioOutputMsecsUnplayed() const;
 
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
 
     bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
     void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
 
-    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
-    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }
-
-    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
-    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
+    bool isSimulatingJitter() { return _gate.isSimulatingJitter(); }
+    void setIsSimulatingJitter(bool enable) { _gate.setIsSimulatingJitter(enable); }
 
     int getGateThreshold() { return _gate.getThreshold(); }
     void setGateThreshold(int threshold) { _gate.setThreshold(threshold); }
@@ -227,13 +213,16 @@ protected:
 
 private:
     void outputFormatChanged();
-    void mixLocalAudioInjectors(int16_t* inputBuffer);
+    void mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
     class Gate {
     public:
-        Gate(AudioClient* audioClient, int threshold);
+        Gate(AudioClient* audioClient);
+
+        bool isSimulatingJitter() { return _isSimulatingJitter; }
+        void setIsSimulatingJitter(bool enable);
 
         int getThreshold() { return _threshold; }
         void setThreshold(int threshold);
@@ -245,26 +234,25 @@ private:
 
         AudioClient* _audioClient;
         std::queue<QSharedPointer<ReceivedMessage>> _queue;
+        std::mutex _mutex;
+
         int _index{ 0 };
-        int _threshold;
+        int _threshold{ 1 };
+        bool _isSimulatingJitter{ false };
     };
 
-    Setting::Handle<int> _gateThreshold;
     Gate _gate;
 
     Mutex _injectorsMutex;
-    QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
-    int16_t _localProceduralSamples[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
-    int16_t _outputProcessingBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
@@ -281,13 +269,9 @@ private:
     Setting::Handle<int> _outputBufferSizeFrames;
     int _sessionOutputBufferSizeFrames;
     Setting::Handle<bool> _outputStarveDetectionEnabled;
-    Setting::Handle<int> _outputStarveDetectionPeriodMsec;
-     // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
-    Setting::Handle<int> _outputStarveDetectionThreshold;
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _averagedLatency;
     float _lastInputLoudness;
     float _timeSinceLastClip;
     int _totalInputAudioSamples;
@@ -309,7 +293,7 @@ private:
     AudioSRC* _networkToOutputResampler;
 
     // for local hrtf-ing
-    float _hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    float _mixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     AudioLimiter _audioLimiter;
 

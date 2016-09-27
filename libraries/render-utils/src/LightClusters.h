@@ -24,7 +24,7 @@ public:
     float rangeFar { 100.0f };
     float frustumFar { 10000.0f };
 
-    glm::ivec3 dims { 8, 8, 12 };
+    glm::ivec3 dims { 16, 12, 16 };
     float spare;
 
     glm::mat4 eyeToGridProj;
@@ -65,7 +65,8 @@ public:
 
     LightClusters();
 
-    void setDimensions(glm::uvec3 gridDims, uint32_t listBudget);
+    void setDimensions(glm::uvec3 gridDims, uint32_t listBudget = MAX_GRID_DIMENSIONS.w);
+    void setRangeNearFar(float rangeNear, float rangeFar);
 
     void updateFrustum(const ViewFrustum& frustum);
 
@@ -93,8 +94,10 @@ public:
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
     const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
 
+    using LightIndex = uint16_t;
+
     std::vector<uint32_t> _clusterGrid;
-    std::vector<LightID> _clusterContent;
+    std::vector<LightIndex> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
 

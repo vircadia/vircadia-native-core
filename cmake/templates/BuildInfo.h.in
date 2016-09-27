@@ -9,7 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#define USE_STABLE_GLOBAL_SERVICES @USE_STABLE_GLOBAL_SERVICES@
+
 namespace BuildInfo {
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
     const QString VERSION = "@BUILD_VERSION@";
+    const QString BUILD_BRANCH = "@BUILD_BRANCH@";
+    const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
 }
+

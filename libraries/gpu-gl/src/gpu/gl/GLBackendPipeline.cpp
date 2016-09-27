@@ -165,7 +165,7 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
         _uniform._buffers[slot] = uniformBuffer;
         (void) CHECK_GL_ERROR();
     } else {
-        releaseResourceTexture(slot);
+        releaseUniformBuffer(slot);
         return;
     }
 }

@@ -39,15 +39,19 @@ static GLBackend* INSTANCE{ nullptr };
 static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 BackendPointer GLBackend::createBackend() {
+    // The ATI memory info extension only exposes 'free memory' so we want to force it to 
+    // cache the value as early as possible
+    getDedicatedMemory();
+
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
     if (!disableOpenGL45 && version >= 0x0405) {
-        qDebug() << "Using OpenGL 4.5 backend";
+        qCDebug(gpugllogging) << "Using OpenGL 4.5 backend";
         result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
-        qDebug() << "Using OpenGL 4.1 backend";
+        qCDebug(gpugllogging) << "Using OpenGL 4.1 backend";
         result = std::make_shared<gpu::gl41::GL41Backend>();
     }
     result->initInput();
@@ -589,7 +593,23 @@ void GLBackend::releaseQuery(GLuint id) const {
     _queriesTrash.push_back(id);
 }
 
+void GLBackend::queueLambda(const std::function<void()> lambda) const {
+    Lock lock(_trashMutex);
+    _lambdaQueue.push_back(lambda);
+}
+
 void GLBackend::recycle() const {
+    {
+        std::list<std::function<void()>> lamdbasTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_lambdaQueue, lamdbasTrash);
+        }
+        for (auto lambda : lamdbasTrash) {
+            lambda();
+        }
+    }
+
     {
         std::vector<GLuint> ids;
         std::list<std::pair<GLuint, Size>> buffersTrash;
@@ -679,6 +699,10 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
+
+#ifndef THREADED_TEXTURE_TRANSFER
+    gl::GLTexture::_textureTransferHelper->process();
+#endif
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

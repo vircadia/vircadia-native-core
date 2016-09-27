@@ -22,6 +22,7 @@
 #include <QtCore/QFileInfo>
 
 #include <shared/NsightHelpers.h>
+#include "ModelFormatLogging.h"
 
 template<class T> int streamSize() {
     return sizeof(T);
@@ -356,7 +357,7 @@ FBXNode FBXReader::parseFBX(QIODevice* device) {
     quint32 fileVersion;
     in >> fileVersion;
     position += sizeof(fileVersion);
-    qDebug() << "fileVersion:" << fileVersion;
+    qCDebug(modelformat) << "fileVersion:" << fileVersion;
     bool has64BitPositions = (fileVersion >= VERSION_FBX2016);
 
     // parse the top-level node

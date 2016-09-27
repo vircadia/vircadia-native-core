@@ -51,7 +51,7 @@ void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& z
 
     for (int z = 0; z < zPlanes.size(); z++) {
         ivec3 pos(0, 0, z);
-        zPlanes[z] = glm::vec4(0.0f, 0.0f, -1.0f, frustumGrid_clusterPosToEye(pos, vec3(0.0)).z);
+        zPlanes[z] = glm::vec4(0.0f, 0.0f, 1.0f, -frustumGrid_clusterPosToEye(pos, vec3(0.0)).z);
     }
 
     for (int x = 0; x < xPlanes.size(); x++) {
@@ -63,20 +63,20 @@ void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& z
     for (int y = 0; y < yPlanes.size(); y++) {
         auto slicePos = frustumGrid_clusterPosToEye(glm::vec3(centerX, (float)y, 0.0));
         auto sliceDir = glm::normalize(slicePos);
-        yPlanes[y] = glm::vec4(0.0, sliceDir.z, -sliceDir.x, 0.0);
+        yPlanes[y] = glm::vec4(0.0, sliceDir.z, -sliceDir.y, 0.0);
     }
 
 }
 
 #include "DeferredLightingEffect.h"
 
-const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 16, 16, 15, 16384 };
+const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 32, 32, 31, 16384 };
 
 
 LightClusters::LightClusters() :
     _lightIndicesBuffer(std::make_shared<gpu::Buffer>()),
     _clusterGridBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32),
-    _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32) {
+    _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_UINT16) {
     auto dims = _frustumGridBuffer.edit().dims;
     _frustumGridBuffer.edit().dims = ivec3(0); // make sure we go through the full reset of the dimensionts ion the setDImensions call
     setDimensions(dims, MAX_GRID_DIMENSIONS.w);
@@ -84,11 +84,16 @@ LightClusters::LightClusters() :
 
 void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
     ivec3 configDimensions;
+    auto gridBudget = MAX_GRID_DIMENSIONS.w;
     configDimensions.x = std::min(MAX_GRID_DIMENSIONS.x, gridDims.x);
     configDimensions.y = std::min(MAX_GRID_DIMENSIONS.y, gridDims.y);
     configDimensions.z = std::min(MAX_GRID_DIMENSIONS.z, gridDims.z);
 
-    auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget);
+    auto sliceCost = configDimensions.x * configDimensions.y;
+    auto maxNumSlices = (int)(gridBudget / sliceCost) - 1;
+    configDimensions.z = std::min(maxNumSlices, configDimensions.z);
+
+
 
     auto& dims = _frustumGridBuffer->dims;
     if ((dims.x != configDimensions.x) || (dims.y != configDimensions.y) || (dims.z != configDimensions.z)) {
@@ -104,14 +109,30 @@ void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
         _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
     }
 
-    
+    auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget) * 2;
     if (configListBudget != _clusterContentBuffer.getNumElements()) {
         _clusterContent.clear();
         _clusterContent.resize(configListBudget, INVALID_LIGHT);
-        _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(configListBudget * sizeof(LightID));
+        _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(configListBudget * sizeof(LightIndex));
     }
 }
 
+void LightClusters::setRangeNearFar(float rangeNear, float rangeFar) {
+    bool changed = false;
+
+    if (_frustumGridBuffer->rangeNear != rangeNear) {
+        _frustumGridBuffer.edit().rangeNear = rangeNear;
+        changed = true;
+    }
+    if (_frustumGridBuffer->rangeFar != rangeFar) {
+        _frustumGridBuffer.edit().rangeFar = rangeFar;
+        changed = true;
+    }
+
+    if (changed) {
+        _frustumGridBuffer.edit().generateGridPlanes(_gridPlanes[0], _gridPlanes[1], _gridPlanes[2]);
+    }
+}
 
 void LightClusters::updateFrustum(const ViewFrustum& frustum) {
     _frustum = frustum;
@@ -155,8 +176,12 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
     _lightIndicesBuffer._size = _visibleLightIndices.size() * sizeof(int);
 }
 
+float distanceToPlane(const glm::vec3& point, const glm::vec4& plane) {
+    return glm::dot(plane, glm::vec4(point.x, point.y, point.z, -1.0));
+}
+
 glm::vec4 projectToPlane(glm::vec4& sphere, const glm::vec4& plane) {
-    float distance = sphere.x * plane.x + sphere.y *plane.y + sphere.z * plane.z + plane.w;
+    float distance = distanceToPlane(glm::vec3(sphere), plane);
 
     if (distance < sphere.w) {
         return glm::vec4(sphere.x - distance * plane.x, sphere.y - distance * plane.y, sphere.z - distance * plane.z, sqrt(sphere.w * sphere.w - distance * distance));
@@ -166,8 +191,12 @@ glm::vec4 projectToPlane(glm::vec4& sphere, const glm::vec4& plane) {
 }
 
 bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
-    uint32_t& numClustersTouched, uint32_t maxNumIndices, std::vector< std::vector<LightClusters::LightID>>& clusterGrid) {
+    uint32_t& numClustersTouched, uint32_t maxNumIndices, std::vector< std::vector<LightClusters::LightIndex>>& clusterGrid) {
     glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
+
+    const auto& xPlanes = planes[0];
+    const auto& yPlanes = planes[1];
+    const auto& zPlanes = planes[2];
 
     int center_z = (zMax + zMin) >> 1;
     int center_y = (yMax + yMin) >> 1;
@@ -175,22 +204,34 @@ bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3
     for (auto z = zMin; (z <= zMax) && hasBudget; z++) {
         auto zSphere = eyePosRadius;
         if (z != center_z) {
-            auto& plane = (z < center_z) ? planes[2][z + 1] : -planes[2][z];
+            auto& plane = (z < center_z) ? zPlanes[z + 1] : -zPlanes[z];
             zSphere = projectToPlane(zSphere, plane);
         }
         for (auto y = yMin; (y <= yMax) && hasBudget; y++) {
             auto ySphere = zSphere;
             if (y != center_y) {
-                auto& plane = (y < center_y) ? planes[1][y + 1] : -planes[1][y];
+                auto& plane = (y < center_y) ? yPlanes[y + 1] : -yPlanes[y];
                 ySphere = projectToPlane(ySphere, plane);
             }
 
             auto x = xMin;
-            do { ++x; } while ((x < xMax) && (glm::dot(planes[0][x], glm::vec4(ySphere.x, ySphere.y, ySphere.z, 1.0)) >= ySphere.w));
+            for (; (x < xMax); ++x) {
+                auto& plane = xPlanes[x + 1];
+                auto testDistance = glm::dot(plane, glm::vec4(ySphere.x, ySphere.y, ySphere.z, -1.0)) + ySphere.w;
+                if (testDistance >= 0.0f ) {
+                    break;
+                }
+            }
             auto xs = xMax;
-            do { --xs; } while ((xs >= x) && (-glm::dot(planes[0][xs], glm::vec4(ySphere.x, ySphere.y, ySphere.z, 1.0)) >= ySphere.w));
+            for (; (xs >= x); --xs) {
+                auto& plane = -xPlanes[xs];
+                auto testDistance = glm::dot(plane, glm::vec4(ySphere.x, ySphere.y, ySphere.z, -1.0)) + ySphere.w;
+                if (testDistance >= 0.0f) {
+                    break;
+                }
+            }
 
-            for (--x; (x <= xs) && hasBudget; x++) {
+            for (; (x <= xs) && hasBudget; x++) {
                 auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
                 clusterGrid[index].emplace_back(lightId);
                 numClustersTouched++;
@@ -206,7 +247,7 @@ bool scanLightVolume(const FrustumGrid& grid, const FrustumGrid::Planes planes[3
 
 void LightClusters::updateClusters() {
     // Clean up last info
-    std::vector< std::vector< LightID > > clusterGrid(_numClusters);
+    std::vector< std::vector< LightIndex > > clusterGrid(_numClusters);
 
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
     uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
@@ -320,9 +361,9 @@ void LightClusters::updateClusters() {
         }
 
         // now voxelize
-       // bool hasBudget = scanLightVolume(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
+        bool hasBudget = scanLightVolume(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), numClusterTouched, maxNumIndices, clusterGrid);
 
-        bool hasBudget = true;
+  /*      bool hasBudget = true;
         for (auto z = zMin; (z <= zMax) && hasBudget; z++) {
             for (auto y = yMin; (y <= yMax) && hasBudget; y++) {
                 for (auto x = xMin; (x <= xMax) && hasBudget; x++) {
@@ -334,7 +375,7 @@ void LightClusters::updateClusters() {
                     }
                 }
             }
-        }
+        }*/
 
         if (!hasBudget) {
             break;
@@ -352,7 +393,7 @@ void LightClusters::updateClusters() {
         _clusterGrid[i] = (uint32_t)((numLights << 16) | offset);
 
         if (numLights) {
-            memcpy(_clusterContent.data() + indexOffset, cluster.data(), numLights * sizeof(LightID));
+            memcpy(_clusterContent.data() + indexOffset, cluster.data(), numLights * sizeof(LightIndex));
         }
 
         indexOffset += numLights;
@@ -360,7 +401,7 @@ void LightClusters::updateClusters() {
 
     // update the buffers
     _clusterGridBuffer._buffer->setData(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
-    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightID), (gpu::Byte*) _clusterContent.data());
+    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
 }
 
 
@@ -371,14 +412,8 @@ LightClusteringPass::LightClusteringPass() {
 
 void LightClusteringPass::configure(const Config& config) {
     if (_lightClusters) {
-        if (_lightClusters->_frustumGridBuffer->rangeNear != config.rangeNear) {
-            _lightClusters->_frustumGridBuffer.edit().rangeNear = config.rangeNear;
-        }
-        if (_lightClusters->_frustumGridBuffer->rangeFar != config.rangeFar) {
-            _lightClusters->_frustumGridBuffer.edit().rangeFar = config.rangeFar;
-        }
-
-        _lightClusters->setDimensions(glm::uvec3(config.dimX, config.dimY, config.dimZ), 10000);
+        _lightClusters->setRangeNearFar(config.rangeNear, config.rangeFar);
+        _lightClusters->setDimensions(glm::uvec3(config.dimX, config.dimY, config.dimZ));
     }
     
     _freeze = config.freeze;

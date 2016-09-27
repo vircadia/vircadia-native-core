@@ -109,7 +109,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
-                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
+                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
@@ -143,7 +143,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
-                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings());
+                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
 
 #if INJECTORS_SUPPORT_CODECS
                 injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
@@ -270,6 +270,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     downstreamStats["desired"] = streamStats._desiredJitterBufferFrames;
     downstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
     downstreamStats["available"] = (double) streamStats._framesAvailable;
+    downstreamStats["unplayed"] = (double) streamStats._unplayedMs;
     downstreamStats["starves"] = (double) streamStats._starveCount;
     downstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
     downstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -294,6 +295,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
         upstreamStats["desired_calc"] = avatarAudioStream->getCalculatedJitterBufferFrames();
         upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
         upstreamStats["available"] = (double) streamStats._framesAvailable;
+        upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
         upstreamStats["starves"] = (double) streamStats._starveCount;
         upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
         upstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -323,6 +325,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
             upstreamStats["desired_calc"] = injectorPair.second->getCalculatedJitterBufferFrames();
             upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
             upstreamStats["available"] = (double) streamStats._framesAvailable;
+            upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
             upstreamStats["starves"] = (double) streamStats._starveCount;
             upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
             upstreamStats["overflows"] = (double) streamStats._overflowCount;

@@ -7,3 +7,6 @@ set_target_properties(udt-test PROPERTIES FOLDER "Tools")
 
 add_subdirectory(vhacd-util)
 set_target_properties(vhacd-util PROPERTIES FOLDER "Tools")
+
+add_subdirectory(ice-client)
+set_target_properties(ice-client PROPERTIES FOLDER "Tools")

@@ -67,7 +67,7 @@ Column {
                 integral: true
                 config: Render.getConfig("LightClustering")
                 property: "dimX"
-                max: 16
+                max: 32
                 min: 1
             }
             ConfigSlider {
@@ -75,7 +75,7 @@ Column {
                 integral: true
                 config: Render.getConfig("LightClustering")
                 property: "dimY"
-                max: 16
+                max: 32
                 min: 1
             }
             ConfigSlider {
@@ -83,7 +83,7 @@ Column {
                 integral: true
                 config: Render.getConfig("LightClustering")
                 property: "dimZ"
-                max: 15
+                max: 31
                 min: 1
             }
             CheckBox {
