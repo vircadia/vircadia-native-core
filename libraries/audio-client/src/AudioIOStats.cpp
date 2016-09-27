@@ -183,6 +183,31 @@ void AudioStatsInterface::updateLocalBuffers(const MovingMinMaxAvg<float>& input
 }
 
 void AudioStatsInterface::updateInjectorStreams(const QHash<QUuid, AudioStreamStats>& stats) {
-    // TODO
+    // Get existing injectors
+    auto injectorIds = _injectors->dynamicPropertyNames();
+
+    // Go over reported injectors
+    QHash<QUuid, AudioStreamStats>::const_iterator injector = stats.constBegin();
+    while (injector != stats.constEnd()) {
+        const auto id = injector.key().toByteArray();
+        // Mark existing injector (those left will be removed)
+        injectorIds.removeOne(id);
+        auto injectorProperty = _injectors->property(id);
+        // Add new injector
+        if (!injectorProperty.isValid()) {
+            injectorProperty = QVariant::fromValue(new AudioStreamStatsInterface(this));
+            _injectors->setProperty(id, injectorProperty);
+        }
+        // Update property with reported injector
+        injectorProperty.value<AudioStreamStatsInterface*>()->updateStream(injector.value());
+        ++injector;
+    }
+
+    // Remove unreported injectors
+    for (auto& id : injectorIds) {
+        _injectors->property(id).value<AudioStreamStatsInterface*>()->deleteLater();
+        _injectors->setProperty(id, QVariant());
+    }
+
     emit injectorStreamsChanged();
 }
