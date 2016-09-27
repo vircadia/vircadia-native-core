@@ -45,6 +45,7 @@ public:
     virtual void onTimeout() {}
 
     virtual bool shouldNAK() { return true; }
+    virtual bool shouldACK2() { return true; }
 
     virtual void onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {}
 protected:

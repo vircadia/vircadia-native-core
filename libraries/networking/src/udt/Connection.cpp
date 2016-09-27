@@ -609,7 +609,8 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
-    if (sinceLastACK2.count() >= _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
+    if (_congestionControl->shouldACK2()
+        && (sinceLastACK2.count() >= _synInterval || currentACKSubSequenceNumber == _lastSentACK2)) {
         // Send ACK2 packet
         sendACK2(currentACKSubSequenceNumber);
         
