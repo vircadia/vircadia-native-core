@@ -128,6 +128,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         _ghost.setMaxStepHeight(0.75f * (_radius + _halfHeight)); // HACK
         _ghost.setMinWallAngle(PI / 4.0f); // HACK
         _ghost.setUpDirection(_currentUp);
+        _ghost.setMotorOnly(!_moveKinematically);
         _ghost.setWorldTransform(_rigidBody->getWorldTransform());
     }
     if (_dynamicsWorld) {
@@ -143,7 +144,24 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
 }
 
 bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btScalar dt) {
+    if (_moveKinematically) {
+        // kinematic motion will move() the _ghost later
+        return _ghost.hasSupport();
+    }
     _stepHeight = _minStepHeight; // clears last step obstacle
+
+    btScalar targetSpeed = _targetVelocity.length();
+    if (targetSpeed > FLT_EPSILON) {
+        // move the _ghost forward to test for step
+        btTransform transform = _rigidBody->getWorldTransform();
+        transform.setOrigin(transform.getOrigin());
+        _ghost.setWorldTransform(transform);
+        _ghost.setMotorVelocity(_targetVelocity);
+        float overshoot = _radius;
+        _ghost.setHovering(_state == State::Hover);
+        _ghost.move(dt, overshoot, _gravity);
+    }
+
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
     bool hasFloor = false;
@@ -165,17 +183,26 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
-                if (hitHeight < _radius && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
                     hasFloor = true;
+                    if (!_ghost.isSteppingUp()) {
+                        // early exit since all we need to know is that we're on a floor
+                        break;
+                    }
                 }
-                // remember highest step obstacle
-                if (hitHeight > _maxStepHeight) {
-                    // this manifold is invalidated by point that is too high
-                    stepContactIndex = -1;
-                    break;
-                } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
-                    highestStep = hitHeight;
-                    stepContactIndex = j;
+                // analysis of the step info using manifold data is unreliable, so we only proceed
+                // when the _ghost has detected a steppable obstacle
+                if (_ghost.isSteppingUp()) {
+                    // remember highest step obstacle
+                    if (hitHeight > _maxStepHeight) {
+                        // this manifold is invalidated by point that is too high
+                        stepContactIndex = -1;
+                        break;
+                    } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
+                        highestStep = hitHeight;
+                        stepContactIndex = j;
+                        hasFloor = true;
+                    }
                 }
             }
             if (stepContactIndex > -1 && highestStep > _stepHeight) {
@@ -186,6 +213,10 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 _stepHeight = highestStep;
                 _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
                 _stepNormal = normal;
+            }
+            if (hasFloor && !_ghost.isSteppingUp()) {
+                // early exit since all we need to know is that we're on a floor
+                break;
             }
         }
     }
@@ -532,9 +563,13 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     } else {
         // compute local UP
         btVector3 up = _currentUp.rotate(axis, -angle);
-
-        // add sky hook when encountering a step obstacle
         btVector3 motorVelocity = motor.velocity;
+
+        // save these non-adjusted components for later
+        btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
+        btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
+
+        // adjust motorVelocity uphill when encountering a step obstacle
         btScalar vTimescale = motor.vTimescale;
         if (_stepHeight > _minStepHeight) {
             // there is a step
@@ -557,8 +592,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         // split velocity into horizontal and vertical components
         btVector3 vVelocity = velocity.dot(up) * up;
         btVector3 hVelocity = velocity - vVelocity;
-        btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
-        btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
+        btVector3 vMotorVelocity = motorVelocity.dot(up) * up;
+        btVector3 hMotorVelocity = motorVelocity - vMotorVelocity;
 
         // modify each component separately
         btScalar maxTau = 0.0f;
@@ -568,7 +603,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
                 tau = 1.0f;
             }
             maxTau = tau;
-            hVelocity += (hTargetVelocity - hVelocity) * tau;
+            hVelocity += (hMotorVelocity - hVelocity) * tau;
         }
         if (vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
             btScalar tau = dt / vTimescale;
@@ -578,7 +613,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
             if (tau > maxTau) {
                 maxTau = tau;
             }
-            vVelocity += (vTargetVelocity - vVelocity) * tau;
+            vVelocity += (vMotorVelocity - vVelocity) * tau;
         }
 
         // add components back together and rotate into world-frame
@@ -819,5 +854,6 @@ void CharacterController::setMoveKinematically(bool kinematic) {
     if (kinematic != _moveKinematically) {
         _moveKinematically = kinematic;
         _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
+        _ghost.setMotorOnly(!_moveKinematically);
     }
 }

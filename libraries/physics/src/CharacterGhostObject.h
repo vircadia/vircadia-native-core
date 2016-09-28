@@ -33,7 +33,7 @@ public:
 
     void setRadiusAndHalfHeight(btScalar radius, btScalar halfHeight);
     void setUpDirection(const btVector3& up);
-    void setMotorVelocity(const btVector3& velocity) { _motorVelocity = velocity; }
+    void setMotorVelocity(const btVector3& velocity);
     void setMinWallAngle(btScalar angle) { _maxWallNormalUpComponent = cosf(angle); }
     void setMaxStepHeight(btScalar height) { _maxStepHeight = height; }
 
@@ -53,9 +53,11 @@ public:
 
     bool isHovering() const { return _hovering; }
     void setHovering(bool hovering) { _hovering = hovering; }
+    void setMotorOnly(bool motorOnly) { _motorOnly = motorOnly; }
 
     bool hasSupport() const { return _onFloor; }
     bool isSteppingUp() const { return _steppingUp; }
+    const btVector3& getFloorNormal() const { return _floorNormal; }
 
 protected:
     void removeFromWorld();
@@ -93,6 +95,7 @@ protected:
     bool _onFloor { false }; // output, is actually standing on floor
     bool _steppingUp { false }; // output, future sweep hit a steppable ledge
     bool _hasFloor { false }; // output, has floor underneath to fall on
+    bool _motorOnly { false }; // input, _linearVelocity slaves to _motorVelocity
 };
 
 #endif // hifi_CharacterGhostObject_h
