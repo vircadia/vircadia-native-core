@@ -123,8 +123,8 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
 }
 
 void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
-    static int VEGAS_ALPHA_SEGMENTS = 2;
-    static int VEGAS_BETA_SEGMENTS = 4;
+    static int VEGAS_ALPHA_SEGMENTS = 4;
+    static int VEGAS_BETA_SEGMENTS = 6;
     static int VEGAS_GAMMA_SEGMENTS = 1;
 
     // Use the Vegas algorithm to see if we should
@@ -137,21 +137,6 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     int windowSizeDiff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
-    static int count = 0;
-    bool wantDebug = false;
-    if (++count > 500) {
-        wantDebug = true;
-        count = 0;
-    }
-
-    auto debug = qDebug();
-    if (wantDebug) {
-        debug << " ============\n";
-        debug << "CWS:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
-        debug << "BRTT:" << _baseRTT << "CRTT:" << _currentMinRTT << "ERTT:" << _ewmaRTT << "\n";
-        debug << "D:" << windowSizeDiff << "\n";
-    }
-
     if (_numACKs <= 2) {
         performRenoCongestionAvoidance(ack);
     } else {
@@ -162,10 +147,6 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
                 int expectedWindowSize = _congestionWindowSize * _baseRTT / rtt;
                 _baseRTT = std::numeric_limits<int>::max();
-
-                if (wantDebug) {
-                    debug << "EWS:" << expectedWindowSize;
-                }
 
                 // drop the congestion window size to the expected size, if smaller
                 _congestionWindowSize = std::min(_congestionWindowSize, expectedWindowSize + 1);
@@ -204,11 +185,6 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     // reset our count of collected RTT samples
     _numACKs = 0;
-
-    if (wantDebug) {
-        debug << "CW:" << _congestionWindowSize << "SS:" << _slowStart << "\n";
-        debug << "============";
-    }
 }
 
 bool TCPVegasCC::isCongestionWindowLimited() {
