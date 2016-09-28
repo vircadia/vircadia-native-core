@@ -381,6 +381,14 @@
           "advanced": false
         },
         {
+          "name": "maximum_user_capacity_redirect_location",
+          "label": "Redirect to Location on Maximum Capacity",
+          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "placeholder": "",
+          "default": "",
+          "advanced": false
+        },
+        {
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
@@ -1025,65 +1033,41 @@
           "name": "dynamic_jitter_buffer",
           "type": "checkbox",
           "label": "Dynamic Jitter Buffers",
-          "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
+          "help": "Dynamically buffer inbound audio streams based on perceived jitter in packet receipt timing.",
           "default": true,
           "advanced": true
         },
         {
           "name": "static_desired_jitter_buffer_frames",
           "label": "Static Desired Jitter Buffer Frames",
-          "help": "If dynamic jitter buffers is disabled, this determines the target number of frames maintained by the AudioMixer's jitter buffers",
+          "help": "If dynamic jitter buffers is disabled, this determines the size of the jitter buffers of inbound audio streams in the mixer. Higher numbers introduce more latency.",
           "placeholder": "1",
           "default": "1",
           "advanced": true
         },
         {
-          "name": "max_frames_over_desired",
-          "label": "Max Frames Over Desired",
-          "help": "The highest number of frames an AudioMixer's ringbuffer can exceed the desired jitter buffer frames by",
-          "placeholder": "10",
-          "default": "10",
-          "advanced": true
+            "name": "max_frames_over_desired",
+            "deprecated": true
         },
         {
-          "name": "use_stdev_for_desired_calc",
-          "type": "checkbox",
-          "label": "Stdev for Desired Jitter Frames Calc",
-          "help": "Use Philip's method (stdev of timegaps) to calculate desired jitter frames (otherwise Fred's max timegap method is used)",
-          "default": false,
-          "advanced": true
+            "name": "window_starve_threshold",
+            "deprecated": true
         },
         {
-          "name": "window_starve_threshold",
-          "label": "Window Starve Threshold",
-          "help": "If this many starves occur in an N-second window (N is the number in the next field), then the desired jitter frames will be re-evaluated using Window A.",
-          "placeholder": "3",
-          "default": "3",
-          "advanced": true
+            "name": "window_seconds_for_desired_calc_on_too_many_starves",
+            "deprecated": true
         },
         {
-          "name": "window_seconds_for_desired_calc_on_too_many_starves",
-          "label": "Timegaps Window (A) Seconds",
-          "help": "Window A contains a history of timegaps. Its max timegap is used to re-evaluate the desired jitter frames when too many starves occur within it.",
-          "placeholder": "50",
-          "default": "50",
-          "advanced": true
+            "name": "window_seconds_for_desired_reduction",
+            "deprecated": true
         },
         {
-          "name": "window_seconds_for_desired_reduction",
-          "label": "Timegaps Window (B) Seconds",
-          "help": "Window B contains a history of timegaps. Its max timegap is used as a ceiling for the desired jitter frames value.",
-          "placeholder": "10",
-          "default": "10",
-          "advanced": true
+            "name": "use_stdev_for_desired_calc",
+            "deprecated": true
         },
         {
-          "name": "repetition_with_fade",
-          "type": "checkbox",
-          "label": "Repetition with Fade",
-          "help": "Dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
-          "default": false,
-          "advanced": true
+            "name": "repetition_with_fade",
+            "deprecated": true
         }
       ]
     },

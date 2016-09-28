@@ -34,7 +34,21 @@ Antialiasing::Antialiasing() {
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
     int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
-    
+
+    if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
+        _antialiasingBuffer.reset();
+    }
+
+    if (!_antialiasingBuffer) {
+        // Link the antialiasing FBO to texture
+        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _antialiasingTexture->setSource("Antialiasing::_antialiasingTexture");
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
+    }
+
     if (!_antialiasingPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(fxaa_vert));
         auto ps = gpu::Shader::createPixel(std::string(fxaa_frag));
@@ -51,19 +65,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
-        // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
-    }
-
-    if (width != _antialiasingBuffer->getWidth() || height != _antialiasingBuffer->getHeight()) {
-        _antialiasingBuffer->resize(width, height);
     }
 
     return _antialiasingPipeline;

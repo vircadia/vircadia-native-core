@@ -51,24 +51,24 @@
 
 #include "AudioClient.h"
 
+const int AudioClient::MIN_BUFFER_FRAMES = 1;
+const int AudioClient::MAX_BUFFER_FRAMES = 20;
+
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
 
-static const int DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD = 1;
+static const int DEFAULT_BUFFER_FRAMES = 1;
 
-Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
-Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
-Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
-                                                     DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES);
-Setting::Handle<bool> useStDevForJitterCalc("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC);
-Setting::Handle<int> windowStarveThreshold("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD);
-Setting::Handle<int> windowSecondsForDesiredCalcOnTooManyStarves("windowSecondsForDesiredCalcOnTooManyStarves",
-                                                                 DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
-Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredReduction",
-                                                      DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
-Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
+static const bool DEFAULT_STARVE_DETECTION_ENABLED = true;
+static const int STARVE_DETECTION_THRESHOLD = 3;
+static const int STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
+
+Setting::Handle<bool> dynamicJitterBufferEnabled("dynamicJitterBuffersEnabled",
+    InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED);
+Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
+    InboundAudioStream::DEFAULT_STATIC_JITTER_FRAMES);
 
 // protect the Qt internal device list
 using Mutex = std::mutex;
@@ -102,8 +102,7 @@ private:
 
 AudioClient::AudioClient() :
     AbstractAudioInterface(),
-    _gateThreshold("audioOutputGateThreshold", DEFAULT_AUDIO_OUTPUT_GATE_THRESHOLD),
-    _gate(this, _gateThreshold.get()),
+    _gate(this),
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
@@ -116,18 +115,13 @@ AudioClient::AudioClient() :
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
-    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
+    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
-    _outputBufferSizeFrames("audioOutputBufferSizeFrames", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+    _outputBufferSizeFrames("audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES),
     _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
-    _outputStarveDetectionEnabled("audioOutputBufferStarveDetectionEnabled",
-        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
-    _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
-        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
-    _outputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
-        DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
+    _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
     _muted(false),
@@ -144,8 +138,17 @@ AudioClient::AudioClient() :
     _stats(&_receivedAudioStream),
     _inputGate(),
     _positionGetter(DEFAULT_POSITION_GETTER),
-    _orientationGetter(DEFAULT_ORIENTATION_GETTER)
-{
+    _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+    // deprecate legacy settings
+    {
+        Setting::Handle<int>::Deprecated("maxFramesOverDesired", InboundAudioStream::MAX_FRAMES_OVER_DESIRED);
+        Setting::Handle<int>::Deprecated("windowStarveThreshold", InboundAudioStream::WINDOW_STARVE_THRESHOLD);
+        Setting::Handle<int>::Deprecated("windowSecondsForDesiredCalcOnTooManyStarves", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
+        Setting::Handle<int>::Deprecated("windowSecondsForDesiredReduction", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
+        Setting::Handle<bool>::Deprecated("useStDevForJitterCalc", InboundAudioStream::USE_STDEV_FOR_JITTER);
+        Setting::Handle<bool>::Deprecated("repetitionWithFade", InboundAudioStream::REPETITION_WITH_FADE);
+    }
+
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
             this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
     connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
@@ -551,31 +554,53 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message)
     }
 }
 
-AudioClient::Gate::Gate(AudioClient* audioClient, int threshold) :
-    _audioClient(audioClient),
-    _threshold(threshold) {}
+AudioClient::Gate::Gate(AudioClient* audioClient) :
+    _audioClient(audioClient) {}
+
+void AudioClient::Gate::setIsSimulatingJitter(bool enable) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    flush();
+    _isSimulatingJitter = enable;
+}
 
 void AudioClient::Gate::setThreshold(int threshold) {
+    std::lock_guard<std::mutex> lock(_mutex);
     flush();
     _threshold = std::max(threshold, 1);
 }
 
 void AudioClient::Gate::insert(QSharedPointer<ReceivedMessage> message) {
+    std::lock_guard<std::mutex> lock(_mutex);
+
     // Short-circuit for normal behavior
-    if (_threshold == 1) {
+    if (_threshold == 1 && !_isSimulatingJitter) {
         _audioClient->_receivedAudioStream.parseData(*message);
         return;
     }
 
+    // Throttle the current packet until the next flush
     _queue.push(message);
     _index++;
 
-    if (_index % _threshold == 0) {
+    // When appropriate, flush all held packets to the received audio stream
+    if (_isSimulatingJitter) {
+        // The JITTER_FLUSH_CHANCE defines the discrete probability density function of jitter (ms),
+        // where f(t) = pow(1 - JITTER_FLUSH_CHANCE, (t / 10) * JITTER_FLUSH_CHANCE
+        // for t (ms) = 10, 20, ... (because typical packet timegap is 10ms),
+        // because there is a JITTER_FLUSH_CHANCE of any packet instigating a flush of all held packets.
+        static const float JITTER_FLUSH_CHANCE = 0.6f;
+        // It is set at 0.6 to give a low chance of spikes (>30ms, 2.56%) so that they are obvious,
+        // but settled within the measured 5s window in audio network stats.
+        if (randFloat() < JITTER_FLUSH_CHANCE) {
+            flush();
+        }
+    } else if (!(_index % _threshold)) {
         flush();
     }
 }
 
 void AudioClient::Gate::flush() {
+    // Send all held packets to the received audio stream to be (eventually) played
     while (!_queue.empty()) {
         _audioClient->_receivedAudioStream.parseData(*_queue.front());
         _queue.pop();
@@ -1213,12 +1238,12 @@ void AudioClient::outputNotify() {
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
             int dt = (int)(now - _outputStarveDetectionStartTimeMsec);
-            if (dt > _outputStarveDetectionPeriodMsec.get()) {
+            if (dt > STARVE_DETECTION_PERIOD) {
                 _outputStarveDetectionStartTimeMsec = now;
                 _outputStarveDetectionCount = 0;
             } else {
                 _outputStarveDetectionCount += recentUnfulfilled;
-                if (_outputStarveDetectionCount > _outputStarveDetectionThreshold.get()) {
+                if (_outputStarveDetectionCount > STARVE_DETECTION_THRESHOLD) {
                     int oldOutputBufferSizeFrames = _sessionOutputBufferSizeFrames;
                     int newOutputBufferSizeFrames = setOutputBufferSize(oldOutputBufferSizeFrames + 1, false);
 
@@ -1314,7 +1339,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 }
 
 int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
-    numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
+    numFrames = std::min(std::max(numFrames, MIN_BUFFER_FRAMES), MAX_BUFFER_FRAMES);
     if (numFrames != _sessionOutputBufferSizeFrames) {
         qCInfo(audioclient, "Audio output buffer set to %d frames", numFrames);
         _sessionOutputBufferSizeFrames = numFrames;
@@ -1443,15 +1468,8 @@ void AudioClient::checkDevices() {
 }
 
 void AudioClient::loadSettings() {
-    _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers.get());
-    _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired.get());
-    _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames.get());
-    _receivedAudioStream.setUseStDevForJitterCalc(useStDevForJitterCalc.get());
-    _receivedAudioStream.setWindowStarveThreshold(windowStarveThreshold.get());
-    _receivedAudioStream.setWindowSecondsForDesiredCalcOnTooManyStarves(
-                                                                        windowSecondsForDesiredCalcOnTooManyStarves.get());
-    _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
-    _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
+    _receivedAudioStream.setDynamicJitterBufferEnabled(dynamicJitterBufferEnabled.get());
+    _receivedAudioStream.setStaticJitterBufferFrames(staticJitterBufferFrames.get());
 
     qCDebug(audioclient) << "---- Initializing Audio Client ----";
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
@@ -1462,12 +1480,6 @@ void AudioClient::loadSettings() {
 }
 
 void AudioClient::saveSettings() {
-    dynamicJitterBuffers.set(_receivedAudioStream.getDynamicJitterBuffers());
-    maxFramesOverDesired.set(_receivedAudioStream.getMaxFramesOverDesired());
-    staticDesiredJitterBufferFrames.set(_receivedAudioStream.getDesiredJitterBufferFrames());
-    windowStarveThreshold.set(_receivedAudioStream.getWindowStarveThreshold());
-    windowSecondsForDesiredCalcOnTooManyStarves.set(_receivedAudioStream.
-                                                    getWindowSecondsForDesiredCalcOnTooManyStarves());
-    windowSecondsForDesiredReduction.set(_receivedAudioStream.getWindowSecondsForDesiredReduction());
-    repetitionWithFade.set(_receivedAudioStream.getRepetitionWithFade());
+    dynamicJitterBufferEnabled.set(_receivedAudioStream.dynamicJitterBufferEnabled());
+    staticJitterBufferFrames.set(_receivedAudioStream.getStaticJitterBufferFrames());
 }

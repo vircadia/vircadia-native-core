@@ -9,14 +9,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qdir.h>
-#include <qfileinfo.h>
-#include <qdesktopservices.h>
-#include <qprocess.h>
-#include <qurl.h>
 
 #include "FileUtils.h"
 
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
+#include <QtCore/QProcess>
+#include <QtCore/QUrl>
+#include <QtCore/QTextStream>
+#include <QtCore/QRegularExpression>
+#include <QtGui/QDesktopServices>
+
+
+QString FileUtils::readFile(const QString& filename) {
+    QFile file(filename);
+    file.open(QFile::Text | QFile::ReadOnly);
+    QString result;
+    result.append(QTextStream(&file).readAll());
+    return result;
+}
+
+QStringList FileUtils::readLines(const QString& filename, QString::SplitBehavior splitBehavior) {
+    return readFile(filename).split(QRegularExpression("[\\r\\n]"), QString::SkipEmptyParts);
+}
 
 void FileUtils::locateFile(QString filePath) {
 

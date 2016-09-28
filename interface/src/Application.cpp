@@ -1039,7 +1039,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         cameraMenuChanged();
     }
 
-    // set the local loopback interface for local sounds from audio scripts
+    // set the local loopback interface for local sounds
+    AudioInjector::setLocalAudioInterface(audioIO.data());
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
 
     this->installEventFilter(this);
@@ -1239,8 +1240,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     firstRun.set(false);
 }
 
-void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
-    switch (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode)) {
+void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
+    DomainHandler::ConnectionRefusedReason reasonCode = static_cast<DomainHandler::ConnectionRefusedReason>(reasonCodeInt);
+
+    if (reasonCode == DomainHandler::ConnectionRefusedReason::TooManyUsers && !extraInfo.isEmpty()) {
+        DependencyManager::get<AddressManager>()->handleLookupString(extraInfo);
+        return;
+    }
+
+    switch (reasonCode) {
         case DomainHandler::ConnectionRefusedReason::ProtocolMismatch:
         case DomainHandler::ConnectionRefusedReason::TooManyUsers:
         case DomainHandler::ConnectionRefusedReason::Unknown: {

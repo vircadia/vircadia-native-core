@@ -39,10 +39,12 @@ public:
     virtual void create(QOpenGLContext* context);
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
+
     Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
     }
+    void clearCache();
 
     Q_INVOKABLE void executeOnUiThread(std::function<void()> function, bool blocking = false);
     Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);

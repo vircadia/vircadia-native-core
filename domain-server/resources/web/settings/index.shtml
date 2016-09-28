@@ -40,7 +40,8 @@
 
         <script id="panels-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
-            <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
+            <% var settings = _.partition(group.settings, function(value, index) { return !value.deprecated })[0] %>
+            <% split_settings = _.partition(settings, function(value, index) { return !value.advanced }) %>
             <% isAdvanced = _.isEmpty(split_settings[0]) %>
             <% if (isAdvanced) { %>
               <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
