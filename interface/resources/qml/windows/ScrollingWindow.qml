@@ -1,3 +1,4 @@
+
 //
 //  Window.qml
 //
@@ -206,7 +207,7 @@ Window {
     }
 
     onKeyboardRaisedChanged: {
-        if (parent.KeyboardEnabled && keyboardRaised) {
+        if (keyboardEnabled && keyboardRaised) {
             var delta = activator.mouseY
                     - (activator.height + activator.y - 200 - footerContentHeight - hifi.dimensions.controlLineHeight);
 
