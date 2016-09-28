@@ -23,14 +23,14 @@ ColumnLayout {
         font.italic: true
     }
     MovingValue {
-        label: "Desired"
+        label: "Minimum Depth"
         color: "limegreen"
         source: stream.framesDesired
         unit: "frames"
         showGraphs: root.showGraphs
     }
     MovingValue {
-        label: "Unplayed"
+        label: "Buffer Depth"
         color: "darkblue"
         source: stream.unplayedMsMax
         showGraphs: root.showGraphs
@@ -46,10 +46,8 @@ ColumnLayout {
         font.italic: true
     }
     Jitter {
-        max: stream.timegapMsMax
-        avg: stream.timegapMsAvg
-        maxWindow: stream.timegapMsMaxWindow
-        avgWindow: stream.timegapMsAvgWindow
+        max: stream.timegapMsMaxWindow
+        avg: stream.timegapMsAvgWindow
         showGraphs: root.showGraphs
     }
 

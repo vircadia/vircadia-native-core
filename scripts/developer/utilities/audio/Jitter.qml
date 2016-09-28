@@ -16,29 +16,17 @@ ColumnLayout {
     id: jitter
     property var max
     property var avg
-    property var maxWindow
-    property var avgWindow
     property bool showGraphs: false
 
-    MovingValuePair {
-        label: "Window"
-        label1: "Maximum"
-        label2: "Average"
-        source1: maxWindow
-        source2: avgWindow
-        color1: "red"
-        color2: "darkslategrey"
+    MovingValue {
+        label: "Jitter"
+        color: "red"
+        source: max - avg
         showGraphs: jitter.showGraphs
     }
-    MovingValuePair {
-        label: "Overall"
-        label1: "Maximum"
-        label2: "Average"
-        source1: max
-        source2: avg
-        color1: "firebrick"
-        color2: "darkslategrey"
-        showGraphs: jitter.showGraphs
+    Value {
+        label: "Average"
+        source: avg
     }
 }
 

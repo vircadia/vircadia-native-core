@@ -20,6 +20,7 @@ RowLayout {
     property string unit: "ms"
     property bool showGraphs: false
     property color color: "darkslategrey"
+    property int decimals: 0
 
     width: parent.width
 
@@ -33,7 +34,7 @@ RowLayout {
         Layout.preferredWidth: 50
         horizontalAlignment: Text.AlignRight
         color: value.color
-        text: value.source + ' ' + unit
+        text: value.source.toFixed(decimals) + ' ' + unit
     }
     PlotPerf {
         visible: value.showGraphs

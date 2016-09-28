@@ -47,9 +47,9 @@ Column {
                 control: ColumnLayout {
                     MovingValue { label: "Input Read"; source: AudioStats.inputReadMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "Input Ring"; source: AudioStats.inputUnplayedMsMax; showGraphs: stats.showGraphs }
-                    MovingValue { label: "Network (up)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
+                    MovingValue { label: "Network (up)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs; decimals: 1 }
                     MovingValue { label: "Mixer Ring"; source: AudioStats.mixerStream.unplayedMsMax; showGraphs: stats.showGraphs }
-                    MovingValue { label: "Network (down)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs }
+                    MovingValue { label: "Network (down)"; source: AudioStats.pingMs / 2; showGraphs: stats.showGraphs; decimals: 1 }
                     MovingValue { label: "Output Ring"; source: AudioStats.clientStream.unplayedMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "Output Read"; source: AudioStats.outputUnplayedMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "TOTAL"; color: "black"; showGraphs: stats.showGraphs
@@ -67,10 +67,8 @@ Column {
                 label: "Upstream Jitter"
                 description: "Timegaps in packets sent to the mixer"
                 control: Jitter {
-                    max: AudioStats.sentTimegapMsMax
-                    avg: AudioStats.sentTimegapMsAvg
-                    maxWindow: AudioStats.sentTimegapMsMaxWindow
-                    avgWindow: AudioStats.sentTimegapMsAvgWindow
+                    max: AudioStats.sentTimegapMsMaxWindow
+                    avg: AudioStats.sentTimegapMsAvgWindow
                     showGraphs: stats.showGraphs
                 }
             }
