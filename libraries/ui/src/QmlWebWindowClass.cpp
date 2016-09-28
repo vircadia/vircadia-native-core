@@ -43,7 +43,29 @@ void QmlWebWindowClass::emitWebEvent(const QVariant& webMessage) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
     } else {
-        emit webEventReceived(webMessage);
+        // Special cases for raising and lowering the virtual keyboard.
+        if (webMessage.type() == QVariant::String && webMessage.toString() == "_RAISE_KEYBOARD") {
+            setKeyboardRaised(asQuickItem(), true);
+        } else if (webMessage.type() == QVariant::String && webMessage.toString() == "_LOWER_KEYBOARD") {
+            setKeyboardRaised(asQuickItem(), false);
+        } else {
+            emit webEventReceived(webMessage);
+        }
+    }
+}
+
+void QmlWebWindowClass::setKeyboardRaised(QObject* object, bool raised) {
+    if (!object) {
+        return;
+    }
+
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        if (item->property("keyboardRaised").isValid()) {
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
     }
 }
 
