@@ -78,10 +78,6 @@ int frustumGrid_clusterToIndex(ivec3 pos) {
     return pos.x + (pos.y + pos.z * frustumGrid.dims.y) * frustumGrid.dims.x;
 }
 ivec3 frustumGrid_indexToCluster(int index) {
-    if (index <= 0) {
-        return ivec3(0, 0, -1);
-    }
-    index -= 1;
     ivec3 summedDims = ivec3(frustumGrid.dims.x * frustumGrid.dims.y, frustumGrid.dims.x, 1);
     int layer = index / summedDims.x;
     int offsetInLayer = index % summedDims.x;
