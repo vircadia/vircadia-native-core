@@ -89,7 +89,7 @@ public:
     LightStage::LightIndices _visibleLightIndices;
     gpu::BufferView _lightIndicesBuffer;
 
-    uint32_t _numClusters { 0 };
+    int32_t _numClusters { 0 };
 
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
     const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
@@ -124,9 +124,9 @@ public:
     float rangeNear{ 1.0f };
     float rangeFar{ 512.0f };
 
-    int dimX { 8 };
-    int dimY { 8 };
-    int dimZ { 12 };
+    int dimX { 16 };
+    int dimY { 16 };
+    int dimZ { 16 };
 
     bool freeze{ false };
     

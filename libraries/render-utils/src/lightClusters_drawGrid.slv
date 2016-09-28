@@ -57,7 +57,7 @@ void main(void) {
     ivec2 cluster = clusterGrid_getCluster(gl_InstanceID);
     int numLights = cluster.x;
 
-    ivec3 clusterPos = clusterGrid_indexToCluster(gl_InstanceID);
+    ivec3 clusterPos = frustumGrid_indexToCluster(gl_InstanceID);
 
 
     float boxScale = 1.0;

@@ -1,27 +1,33 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
-float frustumGrid_depthRamp(float linear) {
-    // return linear;
-    return linear * linear;
+float frustumGrid_depthRampGridToVolume(float ngrid) {
+    if (ngrid < 0.0)
+        return ngrid;
+    // return ngrid;
+   // return sqrt(ngrid);
+    return exp2(ngrid) - 1.0;
 }
-float frustumGrid_depthRampInverse(float volume) {
-    //  return volume;
-    return sqrt(volume);
+float frustumGrid_depthRampInverseVolumeToGrid(float nvolume) {
+    if (nvolume < 0.0)
+        return nvolume;
+    //  return nvolume;
+   // return nvolume * nvolume;
+    return log2(nvolume + 1.0);
 }
 
 vec3 frustumGrid_gridToVolume(vec3 pos, ivec3 dims) {
     vec3 gridScale = vec3(1.0, 1.0, 1.0) / vec3(dims);
     vec3 volumePos = pos * gridScale;
-    volumePos.z = frustumGrid_depthRamp(volumePos.z);
+    volumePos.z = frustumGrid_depthRampGridToVolume(volumePos.z);
     return volumePos;
 }
 
 
 float frustumGrid_volumeToGridDepth(float vposZ, ivec3 dims) {
-    return frustumGrid_depthRampInverse(vposZ) * float(dims.z);
+    return frustumGrid_depthRampInverseVolumeToGrid(vposZ) * float(dims.z);
 }
 
 vec3 frustumGrid_volumeToGrid(vec3 vpos, ivec3 dims) {
-    vec3 gridPos = vec3(vpos.x, vpos.y, frustumGrid_depthRampInverse(vpos.z)) * vec3(dims);
+    vec3 gridPos = vec3(vpos.x, vpos.y, frustumGrid_depthRampInverseVolumeToGrid(vpos.z)) * vec3(dims);
     return gridPos;
 }
 
@@ -68,6 +74,21 @@ int frustumGrid_numClusters() {
     return frustumGrid.dims.x * frustumGrid.dims.y * (frustumGrid.dims.z + 1);
 }
 
+int frustumGrid_clusterToIndex(ivec3 pos) {
+    return pos.x + (pos.y + pos.z * frustumGrid.dims.y) * frustumGrid.dims.x;
+}
+ivec3 frustumGrid_indexToCluster(int index) {
+    if (index <= 0) {
+        return ivec3(0, 0, -1);
+    }
+    index -= 1;
+    ivec3 summedDims = ivec3(frustumGrid.dims.x * frustumGrid.dims.y, frustumGrid.dims.x, 1);
+    int layer = index / summedDims.x;
+    int offsetInLayer = index % summedDims.x;
+    ivec3 clusterPos = ivec3(offsetInLayer % summedDims.y, offsetInLayer / summedDims.y, layer);
+    return clusterPos;
+}
+
 vec3 frustumGrid_clusterPosToEye(vec3 clusterPos) {
 
     vec3 cvpos = clusterPos;
@@ -87,7 +108,7 @@ vec3 frustumGrid_clusterPosToEye(ivec3 clusterPos, vec3 offset) {
 
 int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
     if ((eyeZ > -frustumGrid.frustumNear) || (eyeZ < -frustumGrid.frustumFar)) {
-        return -1;
+        return -2;
     }
 
     if (eyeZ > -frustumGrid.rangeNear) {
@@ -108,7 +129,7 @@ int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
 
 ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
     if ((eyePos.z > -frustumGrid.frustumNear) || (eyePos.z < -frustumGrid.frustumFar)) {
-        return ivec3(-1);
+        return ivec3(-2);
     }
     
     if (eyePos.z > -frustumGrid.rangeNear) {
