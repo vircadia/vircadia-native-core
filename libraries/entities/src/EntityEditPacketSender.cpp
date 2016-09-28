@@ -116,8 +116,9 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
     }
 
     // in case this was a clientOnly entity:
-    assert(_myAvatar);
-    _myAvatar->clearAvatarEntity(entityItemID);
+    if(_myAvatar) {
+        _myAvatar->clearAvatarEntity(entityItemID);
+    }
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
 
