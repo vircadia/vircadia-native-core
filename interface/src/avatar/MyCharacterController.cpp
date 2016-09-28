@@ -61,7 +61,7 @@ void MyCharacterController::updateShapeIfNecessary() {
             if (_state == State::Hover) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
             } else {
-                _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
+                _rigidBody->setGravity(_gravity * _currentUp);
             }
             // KINEMATIC_CONTROLLER_HACK
             if (_moveKinematically) {
