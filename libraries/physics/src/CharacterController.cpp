@@ -261,6 +261,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
             const float HORIZONTAL_FOLLOW_TIMESCALE = 0.1f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
+            vel.setY(0.0f);  // don't allow any vertical component of the follow velocity to enter the _targetVelocity.
             addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
         }
 
