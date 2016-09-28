@@ -72,8 +72,6 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         // remove this sent packet time from the hash
         _sentPacketTimes.erase(it);
 
-    } else {
-        qDebug() << "called with a sequence number that has not been sent";
     }
 
 
@@ -141,7 +139,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     static int count = 0;
     bool wantDebug = false;
-    if (++count > 200) {
+    if (++count > 500) {
         wantDebug = true;
         count = 0;
     }
