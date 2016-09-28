@@ -109,6 +109,7 @@ public:
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
+    const glm::vec2& getHMDSensorFacing() const { return _hmdSensorFacing; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
@@ -235,7 +236,7 @@ public:
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
     void updateMotors();
-    void prepareForPhysicsSimulation();
+    void prepareForPhysicsSimulation(float deltaTime);
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -459,7 +460,6 @@ private:
             Vertical,
             NumFollowTypes
         };
-        glm::mat4 _desiredBodyMatrix;
         uint8_t _activeBits { 0 };
         bool _isOutOfBody { false };
 
@@ -472,7 +472,7 @@ private:
         void updateRotationActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
         void updateHorizontalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
         void updateVerticalActivation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix);
-        void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix);
+        glm::mat4 prePhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput, float deltaTime);
         void postPhysicsUpdate(MyAvatar& myAvatar);
     };
     FollowHelper _follow;

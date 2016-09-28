@@ -231,7 +231,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
         // linear part uses a motor
-        const float MAX_WALKING_SPEED = 2.5f; // TODO: scale this stuff with avatar size
+        const float MAX_WALKING_SPEED = 30.5f; // TODO: scale this stuff with avatar size
         const float MAX_WALKING_SPEED_DISTANCE = 1.0f;
         const float NORMAL_WALKING_SPEED = 0.5f * MAX_WALKING_SPEED;
         const float NORMAL_WALKING_SPEED_DISTANCE = 0.5f * MAX_WALKING_SPEED_DISTANCE;
@@ -261,6 +261,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
             const float HORIZONTAL_FOLLOW_TIMESCALE = 0.1f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
+            vel.setY(0.0f);  // don't allow any vertical component of the follow velocity to enter the _targetVelocity.
             addMotor(bulletToGLM(vel), worldFrameRotation, HORIZONTAL_FOLLOW_TIMESCALE, VERTICAL_FOLLOW_TIMESCALE);
         }
 
