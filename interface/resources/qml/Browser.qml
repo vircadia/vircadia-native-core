@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.2
+import QtWebChannel 1.0
 import QtWebEngine 1.2
 
 import "controls-uit"
@@ -19,6 +20,9 @@ ScrollingWindow {
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     property alias url: webview.url
     property alias webView: webview
+
+    property alias eventBridge: eventBridgeWrapper.eventBridge
+
     x: 100
     y: 100
 
@@ -197,32 +201,60 @@ ScrollingWindow {
             }
         }
 
-        WebEngineView {
+        WebView {
             id: webview
             url: "https://highfidelity.com"
+
+            property alias eventBridgeWrapper: eventBridgeWrapper
+
+            QtObject {
+                id: eventBridgeWrapper
+                WebChannel.id: "eventBridgeWrapper"
+                property var eventBridge;
+            }
+
+            webChannel.registeredObjects: [eventBridgeWrapper]
+
+            // Create a global EventBridge object for raiseAndLowerKeyboard.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.DocumentCreation
+                worldId: WebEngineScript.MainWorld
+            }
+
+            // Detect when may want to raise and lower keyboard.
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
+
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
+
             onFeaturePermissionRequested: {
                 permissionsBar.securityOrigin = securityOrigin;
                 permissionsBar.feature = feature;
                 root.showPermissionsBar();
             }
+
             onLoadingChanged: {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
                 }
             }
+
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
-            onNewViewRequested: {
-                var component = Qt.createComponent("Browser.qml");
-                var newWindow = component.createObject(desktop);
-                request.openIn(newWindow.webView)
-            }
+
             onWindowCloseRequested: {
                 root.destroy();
             }
@@ -230,8 +262,6 @@ ScrollingWindow {
             Component.onCompleted: {
                 desktop.initWebviewProfileHandlers(webview.profile)
             }
-
-            profile: desktop.browserProfile
         }
 
     } // item

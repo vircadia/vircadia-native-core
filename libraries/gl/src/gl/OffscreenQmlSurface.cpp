@@ -565,6 +565,19 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
+    // FIXME: Refactor with similar code in RenderableWebEntityItem
+    QString javaScriptToInject;
+    QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+        createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    } else {
+        qWarning() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
+    }
+
     QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
     QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
@@ -576,6 +589,9 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         }
         return nullptr;
     }
+
+    newObject->setProperty("eventBridge", QVariant::fromValue(this));
+    newContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
 
     f(newContext, newObject);
     _qmlComponent->completeCreate();
@@ -835,6 +851,9 @@ void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
         disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
         setKeyboardRaised(_currentFocusItem, false);
     }
+
+    // Handle QML text fields' focus and unfocus - testing READ_ONLY_PROPERTY prevents action for HTML files.
+    // HTML text fields are handled via emitWebEvent().
     const char* READ_ONLY_PROPERTY = "readOnly";
     setKeyboardRaised(item, item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false);
     _currentFocusItem = item;
@@ -897,12 +916,6 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
 }
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised) {
-
-    // raise the keyboard only while in HMD mode and it's being requested.
-    // XXX
-    // bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
-    // getRootItem()->setProperty("keyboardRaised", QVariant(value));
-
     if (!object) {
         return;
     }
@@ -931,16 +944,13 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
     } else {
         // special case to handle raising and lowering the virtual keyboard
         if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD") {
-            setKeyboardRaised(getRootItem(), true);
+            setKeyboardRaised(_currentFocusItem, true);
         } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD") {
-            setKeyboardRaised(getRootItem(), false);
+            setKeyboardRaised(_currentFocusItem, false);
         } else {
             emit webEventReceived(message);
         }
     }
 }
-
-
-
 
 #include "OffscreenQmlSurface.moc"
