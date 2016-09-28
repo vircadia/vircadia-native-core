@@ -142,6 +142,7 @@ function ifAvatarMovedGoActive() {
 }
 
 // MAIN CONTROL
+var isEnabled = true;
 var wasMuted, isAway;
 var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
@@ -159,7 +160,7 @@ function safeGetHMDMounted() {
 var wasHmdMounted = safeGetHMDMounted();
 
 function goAway() {
-    if (isAway) {
+    if (!isEnabled || isAway) {
         return;
     }
 
@@ -273,6 +274,24 @@ function maybeGoAway() {
         goAway();
     }
 }
+
+function setEnabled(value) {
+    print("setting away enabled: ", value);
+    if (!value) {
+        goActive();
+    }
+    isEnabled = value;
+}
+
+var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+var handleMessage = function(channel, message, sender) {
+    print("Got away message");
+    if (channel == CHANNEL_AWAY_ENABLE) {
+        setEnabled(message == 'enable');
+    }
+}
+Messages.subscribe(CHANNEL_AWAY_ENABLE);
+Messages.messageReceived.connect(handleMessage);
 
 Script.update.connect(maybeMoveOverlay);
 

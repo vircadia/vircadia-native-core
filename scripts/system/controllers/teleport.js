@@ -627,11 +627,17 @@ function isMoving() {
     }
 };
 
+// When determininig whether you can teleport to a location, the normal of the
+// point that is being intersected with is looked at. If this normal is more
+// than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+// you can't teleport there.
+var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
 function isTooCloseToTeleport(position, surfaceNormal) {
     var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
     var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
-    //print(angleUp);
-    return angleUp < 80 || angleUp > 110 || Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
+    return angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 };
 
 function registerMappings() {
