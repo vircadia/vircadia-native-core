@@ -14,9 +14,10 @@
 #include "InputPlugin.h"
 #include "PluginManager.h"
 
-bool PluginUtils::isHMDAvailable() {
+bool PluginUtils::isHMDAvailable(const QString& pluginName) {
     for (auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
-        if (displayPlugin->isHmd()) {
+        // Temporarily only enable this for Vive
+        if (displayPlugin->isHmd() && (pluginName.isEmpty() || displayPlugin->getName() == pluginName)) {
             return true;
             break;
         }

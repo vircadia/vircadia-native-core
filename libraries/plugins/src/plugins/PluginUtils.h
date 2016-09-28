@@ -10,8 +10,10 @@
 
 #pragma once
 
+#include <QString>
+
 class PluginUtils {
 public:
-    static bool isHMDAvailable();
+    static bool isHMDAvailable(const QString& pluginName = "");
     static bool isHandControllerAvailable();
 };
