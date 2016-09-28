@@ -11,18 +11,33 @@
 function setUpKeyboardControl() {
 
     var lowerTimer = null;
+    var isRaised = false;
+    var KEYBOARD_HEIGHT = 200;
 
     function raiseKeyboard() {
         if (lowerTimer !== null) {
             clearTimeout(lowerTimer);
             lowerTimer = null;
         }
+
+        if (isRaised) {
+            return;
+        }
+
+        var delta = this.getBoundingClientRect().bottom + 10 - (document.body.clientHeight - KEYBOARD_HEIGHT);
+        if (delta > 0) {
+            document.body.scrollTop += delta;
+        }
+
         EventBridge.emitWebEvent("_RAISE_KEYBOARD");
+
+        isRaised = true;
     }
 
     function doLowerKeyboard() {
         EventBridge.emitWebEvent("_LOWER_KEYBOARD");
         lowerTimer = null;
+        isRaised = false;
     }
 
     function lowerKeyboard() {

@@ -12,6 +12,7 @@
     var MAX_WARNINGS = 3;
     var numWarnings = 0;
     var isKeyboardRaised = false;
+    var KEYBOARD_HEIGHT = 200;
 
     function shouldRaiseKeyboard() {
         if (document.activeElement.nodeName == "INPUT" || document.activeElement.nodeName == "TEXTAREA") {
@@ -31,6 +32,15 @@
     setInterval(function () {
         if (isKeyboardRaised !== shouldRaiseKeyboard()) {
             isKeyboardRaised = !isKeyboardRaised;
+
+            if (isKeyboardRaised) {
+                var delta = document.activeElement.getBoundingClientRect().bottom + 10
+                    - (document.body.clientHeight - KEYBOARD_HEIGHT);
+                if (delta > 0) {
+                    document.body.scrollTop += delta;
+                }
+            }
+
             if (typeof EventBridge != "undefined") {
                 EventBridge.emitWebEvent(isKeyboardRaised ? "_RAISE_KEYBOARD" : "_LOWER_KEYBOARD");
             } else {
