@@ -192,7 +192,6 @@ bool TCPVegasCC::isCongestionWindowLimited() {
     }
 }
 
-
 void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
     if (!isCongestionWindowLimited()) {
         return;
@@ -225,7 +224,6 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
         }
     }
 }
-
 
 void TCPVegasCC::onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     _sentPacketTimes[seqNum] = { timePoint, packetSize };
