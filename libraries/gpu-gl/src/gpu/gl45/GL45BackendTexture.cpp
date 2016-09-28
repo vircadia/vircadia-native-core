@@ -27,7 +27,6 @@ using namespace gpu::gl;
 using namespace gpu::gl45;
 
 #ifdef Q_OS_WIN
-
 #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
 static const QString DEBUG_FLAG_INCREMENTAL("HIFI_DISABLE_INCREMENTAL_TEXTURES");
 static const QString DEBUG_FLAG_SPARSE("HIFI_DISABLE_SPARSE_TEXTURES");
