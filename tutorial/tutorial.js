@@ -65,6 +65,13 @@ var TELEPORT_PAD_NAME = "tutorial/teleport/pad"
 
 var successSound = SoundCache.getSound("atp:/tutorial_sounds/good_one.L.wav");
 
+
+var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+function setAwayEnabled(value) {
+    var message = value ? 'enable' : 'disable';
+    Messages.sendLocalMessage(CHANNEL_AWAY_ENABLE, message);
+}
+
 function beginsWithFilter(value, key) {
     return value.indexOf(properties[key]) == 0;
 }
@@ -259,6 +266,7 @@ stepDisableControllers.prototype = {
         setControllerPartLayer('tips', 'blank');
 
         hideEntitiesWithTag('finish');
+        setAwayEnabled(false);
 
         onFinish();
     },
@@ -290,6 +298,7 @@ function reenableEverything() {
         controllerDisplayManager.destroy();
         controllerDisplayManager = null;
     }
+    setAwayEnabled(true);
 }
 
 var stepEnableControllers = function(name) {
@@ -361,7 +370,10 @@ StayInFrontOverlay.prototype = {
     },
     destroy: function() {
         Overlays.deleteOverlay(this.overlayID);
-        Script.update.disconnect(this.boundUpdate);
+        try {
+            Script.update.disconnect(this.boundUpdate);
+        } catch(e) {
+        }
     }
 };
 
@@ -823,15 +835,8 @@ var stepTurnAround = function(name) {
     this.tag = name;
     this.tempTag = name + "-temporary";
 
-
-    //var name = "mapping-name";
-    //var mapping = Controller.newMapping(name);
-    //mapping.from([Controller.Actions.StepYaw]).to(function() {
-    //    print("STEPYAW");
-    //});
-    //Script.scriptEnding.connect(function() {
-    //    Controller.disableMapping(name);
-    //});
+    this.onActionBound = this.onAction.bind(this);
+    this.numTimesTurnPressed = 0;
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
@@ -842,28 +847,38 @@ stepTurnAround.prototype = {
         setControllerPartLayer('tips', 'arrows');
 
         showEntitiesWithTag(this.tag);
-        var hasTurnedAround = false;
+
+        this.numTimesTurnPressed = 0;
+        Controller.actionEvent.connect(this.onActionBound);
+
         this.interval = Script.setInterval(function() {
+            var FORWARD_THRESHOLD = 30;
+            var REQ_NUM_TIMES_PRESSED = 6;
+
             var dir = Quat.getFront(MyAvatar.orientation);
             var angle = Math.atan2(dir.z, dir.x);
             var angleDegrees = ((angle / Math.PI) * 180);
-            if (!hasTurnedAround) {
-                if (Math.abs(angleDegrees) > 140) {
-                    hasTurnedAround = true;
-                    info("Half way turned around");
-                }
-            } else {
-                if (Math.abs(angleDegrees) < 30) {
-                    Script.clearInterval(this.interval);
-                    this.interval = null;
-                    info("Turned around");
-                    playSuccessSound();
-                    onFinish();
-                }
+
+            if (this.numTimesTurnPressed >= REQ_NUM_TIMES_PRESSED && Math.abs(angleDegrees) < FORWARD_THRESHOLD) {
+                Script.clearInterval(this.interval);
+                this.interval = null;
+                playSuccessSound();
+                onFinish();
             }
         }.bind(this), 100);
     },
+    onAction: function(action, value) {
+        var STEP_YAW_ACTION = 6;
+        if (action == STEP_YAW_ACTION && value != 0) {
+            this.numTimesTurnPressed += 1;
+        }
+    },
     cleanup: function() {
+        try {
+            Controller.actionEvent.disconnect(this.onActionBound);
+        } catch (e) {
+        }
+
         setControllerVisible("left", false);
         setControllerVisible("right", false);
 
