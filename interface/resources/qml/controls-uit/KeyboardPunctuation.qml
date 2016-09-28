@@ -208,49 +208,49 @@ Item {
                 Key {
                     id: key22
                     width: 43
-                    glyph: "_"
+                    glyph: ","
                 }
 
                 Key {
                     id: key23
                     width: 43
-                    glyph: ";"
+                    glyph: "."
                 }
 
                 Key {
                     id: key24
                     width: 43
-                    glyph: ":"
+                    glyph: ";"
                 }
 
                 Key {
                     id: key25
                     width: 43
-                    glyph: "'"
+                    glyph: ":"
                 }
 
                 Key {
                     id: key26
                     width: 43
-                    glyph: "\""
+                    glyph: "'"
                 }
 
                 Key {
                     id: key31
                     width: 43
-                    glyph: "<"
+                    glyph: "\""
                 }
 
                 Key {
                     id: key33
                     width: 43
-                    glyph: ">"
+                    glyph: "<"
                 }
 
                 Key {
                     id: key36
                     width: 43
-                    glyph: "?"
+                    glyph: ">"
                 }
 
             }

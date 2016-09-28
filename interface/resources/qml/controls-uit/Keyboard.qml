@@ -304,13 +304,13 @@ Item {
                 Key {
                     id: key31
                     width: 43
-                    glyph: ","
+                    glyph: "_"
                 }
 
                 Key {
                     id: key33
                     width: 43
-                    glyph: "."
+                    glyph: "?"
                 }
 
                 Key {
