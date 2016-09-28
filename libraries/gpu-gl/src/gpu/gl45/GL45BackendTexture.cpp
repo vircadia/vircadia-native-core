@@ -28,24 +28,31 @@ using namespace gpu::gl45;
 
 
 #ifdef Q_OS_WIN
-#define MIN_CORES_FOR_SPARSE_TEXTURES 5
-static const QString DEBUG_FLAG("HIFI_DISABLE_SPARSE_TEXTURES");
-static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG) &&
-                                    QThread::idealThreadCount() >= MIN_CORES_FOR_SPARSE_TEXTURES;
+#define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
+static const QString DEBUG_FLAG_INCREMENTAL("HIFI_DISABLE_INCREMENTAL_TEXTURES");
+static const QString DEBUG_FLAG_SPARSE("HIFI_DISABLE_SPARSE_TEXTURES");
 
-class SparseTextureDebug {
+static const bool enableIncrementalTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES) &&
+    !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_INCREMENTAL);
+
+static const bool enableSparseTextures = enableIncrementalTextures && 
+    !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_SPARSE);
+
+class TextureTransferDebug {
 public:
-    SparseTextureDebug() {
-        qDebug() << "[SPARSE TEXTURE SUPPORT]"
-                 << "HIFI_DISABLE_SPARSE_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG)
-                 << "idealThreadCount:" << QThread::idealThreadCount()
-                 << "enableSparseTextures:" << enableSparseTextures;
+    TextureTransferDebug() {
+        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+            << "\n\tHIFI_DISABLE_INCREMENTAL_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_INCREMENTAL)
+            << "\n\tHIFI_DISABLE_SPARSE_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_SPARSE)
+            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
+            << "\n\tenableSparseTextures:" << enableSparseTextures
+            << "\n\tenableIncrementalTextures:" << enableSparseTextures;
     }
 };
-SparseTextureDebug sparseTextureDebugInfo;
-
+TextureTransferDebug sparseTextureDebugInfo;
 #else
 static bool enableSparseTextures = false;
+static bool enableIncrementalTextures = false;
 #endif
 
 // Allocate 1 MB of buffer space for paged transfers
@@ -368,6 +375,31 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
+    if (!enableIncrementalTextures) {
+        size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
+                if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
+                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+                    auto size = _gpuObject.evalMipDimensions(mipLevel);
+                    if (GL_TEXTURE_2D == _target) {
+                        glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else if (GL_TEXTURE_CUBE_MAP == _target) {
+                        // DSA ARB does not work on AMD, so use EXT
+                        // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
+                        auto target = CUBE_FACE_LAYOUT[face];
+                        glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else {
+                        Q_ASSERT(false);
+                    }
+                    (void)CHECK_GL_ERROR();
+                }
+            }
+        }
+        return false;
+    }
+
     static std::vector<uint8_t> buffer;
     if (buffer.empty()) {
         buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);
