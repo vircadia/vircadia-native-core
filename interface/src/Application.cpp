@@ -1277,7 +1277,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         bool hasTutorialContent = contentVersion >= 1;
 
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && PluginUtils::isHandControllerAvailable();
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
         Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
         bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
@@ -1320,13 +1320,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             }
 
             if (addressLookupString.isEmpty() && firstRun.get()) {
-                DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
-                    qDebug() << "Home sandbox appears to be running, going to Home.";
-                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                }, [=]() {
-                    qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                if (hasHMDAndHandControllers) {
+                    DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+                        qDebug() << "Home sandbox appears to be running, going to Home.";
+                        DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                    }, [=]() {
+                        qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                        DependencyManager::get<AddressManager>()->goToEntry();
+                    });
+                } else {
                     DependencyManager::get<AddressManager>()->goToEntry();
-                });
+                }
             } else {
                 qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
