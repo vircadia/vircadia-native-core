@@ -134,10 +134,11 @@ ScrollingWindow {
                         case Qt.Key_Return:
                             event.accepted = true
                             if (text.indexOf("http") != 0) {
-                                text = "http://" + text
+                                text = "http://" + text;
                             }
                             root.hidePermissionsBar();
-                            webview.url = text
+                            root.keyboardRaised = false;
+                            webview.url = text;
                             break;
                     }
                 }
