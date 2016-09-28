@@ -55,14 +55,11 @@ ScrollingWindow {
         anchors.left: parent.left
         anchors.top: parent.top
 
-        property bool keyboardRaised: false
-        property bool punctuationMode: false
-
         TabView {
             id: tabView;
             width: pane.contentWidth
             // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
-            height: pane.scrollHeight - (toolWindowTabViewItem.keyboardRaised ? 200 : 0)
+            height: pane.scrollHeight
             property int tabCount: 0
 
             Repeater {
@@ -146,37 +143,6 @@ ScrollingWindow {
 
                 tabOverlap: 0
             }
-        }
-
-        // virtual keyboard, letters
-        Keyboard {
-            id: keyboard1
-            // y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
-        }
-
-        KeyboardPunctuation {
-            id: keyboard2
-            // y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-            // anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
         }
     }
 
@@ -267,7 +233,6 @@ ScrollingWindow {
             console.warn("Unable to add new tab");
             return;
         }
-
 
         if (properties.width) {
             tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);
