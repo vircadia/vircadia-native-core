@@ -269,19 +269,17 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         bool forceSilentBlock = true;
 
         if (!streamToAdd.getLastPopOutput().isNull()) {
+            bool isInjector = dynamic_cast<const InjectedAudioStream*>(&streamToAdd);
 
-            // reptition with fade is enabled, and we do have a valid previous frame to repeat
-            // so we mix the previously-mixed block
-
-            // this is preferable to not mixing it at all to avoid the harsh jump to silence
+            // in an injector, just go silent - the injector has likely ended
+            // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
 
             // we'll repeat the last block until it has a block to mix
             // and we'll gradually fade that repeated block into silence.
 
             // calculate its fade factor, which depends on how many times it's already been repeated.
-
             repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
-            if (repeatedFrameFadeFactor > 0.0f) {
+            if (!isInjector && repeatedFrameFadeFactor > 0.0f) {
                 // apply the repeatedFrameFadeFactor to the gain
                 gain *= repeatedFrameFadeFactor;
 
