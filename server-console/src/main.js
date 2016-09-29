@@ -488,27 +488,51 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
-function deleteResourceDirectories() {
-    const dsResourceDirectory = getDomainServerClientResourcesDirectory();
+function backupResourceDirectories(folder) {
     try {
-        fs.removeSync(dsResourceDirectory);
-        console.log("Deleted directory " + dsResourceDirectory);
-    } catch (e) {
-        console.log(e);
-    }
-    const acResourceDirectory = getAssignmentClientResourcesDirectory();
-    try {
-        fs.removeSync(acResourceDirectory);
-        console.log("Deleted directory " + acResourceDirectory);
+        fs.mkdirSync(folder);
+        console.log("Created directory " + folder);
+
+
+        var dsBackup = path.join(folder, '/domain-server');
+        fs.renameSync(getDomainServerClientResourcesDirectory(), dsBackup);
+        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
+        console.log("to " + dsBackup);
+
+        var acBackup = path.join(folder, '/assignment-client');
+        fs.renameSync(getAssignmentClientResourcesDirectory(), acBackup);
+        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
+        console.log("to " + acBackup);
     } catch (e) {
         console.log(e);
     }
 }
 
-function deleteResourceDirectoriesAndRestart() {
+function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
-    deleteResourceDirectories();
+
+    var date = new Date();
+    var folder = getRootHifiDataDirectory() + "/Server Backup - " + date;
+    backupResourceDirectories(folder);
     maybeInstallDefaultContentSet(onContentLoaded);
+
+    // Explain user how to restore server
+    var window = new BrowserWindow({
+        icon: appIcon,
+        width: 500,
+        height: 350,
+    });
+    window.loadURL('file://' + __dirname + '/content-update.html');
+    if (!debug) {
+        window.setMenu(null);
+    }
+    window.show();
+
+    electron.ipcMain.on('ready', function() {
+        console.log("got ready");
+
+        window.webContents.send('update', folder);
+    });
 }
 
 function checkNewContent() {
@@ -537,16 +561,7 @@ function checkNewContent() {
                   message: 'A newer version of the home content set is available.\nDo you wish to update?'
               }, function(idx) {
                 if (idx === 0) {
-                  dialog.showMessageBox({
-                      type: 'question',
-                      buttons: ['Yes', 'No'],
-                      title: 'Are you sure?',
-                      message: 'This action will delete your current sandbox content.\nDo you wish to continue?'
-                  }, function(idx) {
-                    if (idx === 0 && homeServer) {
-                        deleteResourceDirectoriesAndRestart();
-                    }
-                  });
+                  backupResourceDirectoriesAndRestart();
                 } else {
                   // They don't want to update, mark content set as current
                   userConfig.set('homeContentLastModified', new Date());
