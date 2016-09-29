@@ -144,6 +144,9 @@ class Texture : public Resource {
     static std::atomic<Size> _textureCPUMemoryUsage;
     static std::atomic<Size> _allowedCPUMemoryUsage;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+    static std::atomic<bool> _enableSparseTextures;
+    static std::atomic<bool> _enableIncrementalTextureTransfers;
 public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
@@ -153,6 +156,12 @@ public:
     static uint32_t getTextureGPUTransferCount();
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);
+
+    static bool getEnableSparseTextures() { return _enableSparseTextures.load(); }
+    static bool getEnableIncrementalTextureTransfers() { return _enableIncrementalTextureTransfers.load(); }
+
+    static void setEnableSparseTextures(bool enabled);
+    static void setEnableIncrementalTextureTransfers(bool enabled);
 
     class Usage {
     public:
