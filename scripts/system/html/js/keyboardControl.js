@@ -20,18 +20,15 @@ function setUpKeyboardControl() {
             lowerTimer = null;
         }
 
-        if (isRaised) {
-            return;
-        }
+        EventBridge.emitWebEvent("_RAISE_KEYBOARD" + (this.type === "number" ? "_NUMERIC" : ""));
 
-        var delta = this.getBoundingClientRect().bottom + 10 - (document.body.clientHeight - KEYBOARD_HEIGHT);
-
-        EventBridge.emitWebEvent("_RAISE_KEYBOARD");
-
-        if (delta > 0) {
-            setTimeout(function () {
-                document.body.scrollTop += delta;
-            }, 500);  // Allow time for keyboard to be raised in QML.
+        if (!isRaised) {
+            var delta = this.getBoundingClientRect().bottom + 10 - (document.body.clientHeight - KEYBOARD_HEIGHT);
+            if (delta > 0) {
+                setTimeout(function () {
+                    document.body.scrollTop += delta;
+                }, 500);  // Allow time for keyboard to be raised in QML.
+            }
         }
 
         isRaised = true;

@@ -70,7 +70,7 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(QObject* object, bool raised);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key);
 
 

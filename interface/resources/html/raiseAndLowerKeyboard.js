@@ -12,10 +12,11 @@
     var MAX_WARNINGS = 3;
     var numWarnings = 0;
     var isKeyboardRaised = false;
+    var isNumericKeyboard = false;
     var KEYBOARD_HEIGHT = 200;
 
     function shouldRaiseKeyboard() {
-        if (document.activeElement.nodeName == "INPUT" || document.activeElement.nodeName == "TEXTAREA") {
+        if (document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA") {
             return true;
         } else {
             // check for contenteditable attribute
@@ -29,26 +30,39 @@
         }
     };
 
+    function shouldSetNumeric() {
+        return document.activeElement.type === "number";
+    };
+
     setInterval(function () {
-        if (isKeyboardRaised !== shouldRaiseKeyboard()) {
-            isKeyboardRaised = !isKeyboardRaised;
+        var keyboardRaised = shouldRaiseKeyboard();
+        var numericKeyboard = shouldSetNumeric();
 
-            if (isKeyboardRaised) {
-                var delta = document.activeElement.getBoundingClientRect().bottom + 10
-                    - (document.body.clientHeight - KEYBOARD_HEIGHT);
-                if (delta > 0) {
-                    document.body.scrollTop += delta;
-                }
-            }
+        if (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard) {
 
-            if (typeof EventBridge != "undefined") {
-                EventBridge.emitWebEvent(isKeyboardRaised ? "_RAISE_KEYBOARD" : "_LOWER_KEYBOARD");
+            if (typeof EventBridge !== "undefined") {
+                EventBridge.emitWebEvent(
+                    keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "")) : "_LOWER_KEYBOARD"
+                );
             } else {
                 if (numWarnings < MAX_WARNINGS) {
                     console.log("WARNING: no global EventBridge object found");
                     numWarnings++;
                 }
             }
+
+            if (!isKeyboardRaised) {
+                var delta = document.activeElement.getBoundingClientRect().bottom + 10
+                    - (document.body.clientHeight - KEYBOARD_HEIGHT);
+                if (delta > 0) {
+                    setTimeout(function () {
+                        document.body.scrollTop += delta;
+                    }, 500);  // Allow time for keyboard to be raised in QML.
+                }
+            }
+
+            isKeyboardRaised = keyboardRaised;
+            isNumericKeyboard = numericKeyboard;
         }
     }, POLL_FREQUENCY);
 })();

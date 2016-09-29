@@ -35,7 +35,7 @@ protected:
     QString qmlSource() const override { return "QmlWebWindow.qml"; }
 
 private:
-    void setKeyboardRaised(QObject* object, bool raised);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
 };
 
 #endif

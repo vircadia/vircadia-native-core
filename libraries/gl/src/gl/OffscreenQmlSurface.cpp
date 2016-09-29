@@ -857,7 +857,7 @@ void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
     }
 
     // Handle QML text fields' focus and unfocus - testing READ_ONLY_PROPERTY prevents action for HTML files.
-    // HTML text fields are handled via emitWebEvent().
+    // HTML text fields are handled in emitWebEvent() methods.
     const char* READ_ONLY_PROPERTY = "readOnly";
     setKeyboardRaised(item, item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false);
     _currentFocusItem = item;
@@ -919,14 +919,20 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
     QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }
 
-void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised) {
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
     if (!object) {
         return;
     }
 
     QQuickItem* item = dynamic_cast<QQuickItem*>(object);
     while (item) {
+        // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+        numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+
         if (item->property("keyboardRaised").isValid()) {
+            if (item->property("punctuationMode").isValid()) {
+                item->setProperty("punctuationMode", QVariant(numeric));
+            }
             item->setProperty("keyboardRaised", QVariant(raised));
             return;
         }
@@ -946,10 +952,14 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
     } else {
-        // special case to handle raising and lowering the virtual keyboard
-        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD") {
-            setKeyboardRaised(_currentFocusItem, true);
-        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD") {
+        // Special case to handle raising and lowering the virtual keyboard.
+        const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
+        const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        QString messageString = message.type() == QVariant::String ? message.toString() : "";
+        if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
+            setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
+        } else if (messageString == LOWER_KEYBOARD) {
             setKeyboardRaised(_currentFocusItem, false);
         } else {
             emit webEventReceived(message);
