@@ -75,8 +75,8 @@ namespace gl {
         return false;
     }
 
-    GLuint glprogram = 0;
 #ifdef SEPARATE_PROGRAM
+    GLuint glprogram = 0;
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
