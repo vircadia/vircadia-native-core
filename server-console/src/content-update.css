@@ -28,7 +28,7 @@ body {
     padding: 0;
     color: #808785;
     margin: 0 auto;
-    text-align: center;
+    text-align: left;
     font-size: 13.5pt;
     -webkit-touch-callout: none;    -webkit-user-select: none;
     cursor: default;
@@ -45,11 +45,6 @@ body {
     cursor: text;
 }
 
-h1 {
-    font-size: 29pt;
-    font-weight: normal;
-}
-
 a:link,
 a:visited,
 a:hover,
@@ -59,4 +54,119 @@ a:active {
 
 a:hover {
     color: #2D88A4;
+}
+
+.header{
+   width: 95%;
+   left: 2.5%
+}
+.colmask{
+   width: 95%;
+   left: 2.5%
+}
+.colmid{ right: 25% }
+.colin{ right: 25% }
+.colleft{ right: 25% }
+.col1{
+   width: 23%;
+   left: 101%
+}
+.col2{
+   width: 23%;
+   left: 53%
+}
+.col3{
+   width: 23%;
+   left: 80%
+}
+.col4{
+   width: 23%;
+   left: 82%
+}
+.footer{
+   width: 95%;
+   left: 2.5%
+}
+.header{
+   clear: both;
+   float: left;
+   position: relative;
+   border-bottom: #000 1px solid;
+   background-color: #b4d2f7
+}
+.colmask{
+   clear: both;
+   float: left;
+   overflow: hidden;
+   position: relative;
+
+}
+.colmid{
+   float: left;
+   width: 100%;
+   position: relative;
+
+}
+.colin{
+   float: left;
+   width: 100%;
+   position: relative;
+
+}
+.colleft{
+   float: left;
+   width: 100%;
+   position: relative;
+
+}
+.col1{
+   padding: 0px 0px 1em 0px;
+   overflow: hidden;
+   float: left;
+   position: relative;
+
+}
+.col2{
+   padding: 0px 0px 1em 0px;
+   overflow: hidden;
+   float: left;
+   position: relative;
+
+}
+.col3{
+   padding: 0px 0px 1em 0px;
+   overflow: hidden;
+   float: left;
+   position: relative;
+
+}
+.col4{
+   padding: 0px 0px 1em 0px;
+   overflow: hidden;
+   float: left;
+   position: relative;
+
+}
+.footer{
+   clear: both;
+   float: left;
+   position: relative;
+   padding-top: 8px;
+   border-top: #000 1px solid;
+
+}
+.bottom{
+   clear: both;
+   width: 100%;
+   float: left;
+   position: relative;
+
+}
+body {
+   border-width: 0px;
+   padding: 0px;
+   margin: 0px;
+   font-size: 90%;
+   width: 100%;
+   min-width: 600px;
 }

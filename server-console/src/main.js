@@ -408,6 +408,13 @@ var labels = {
             logWindow.open();
         }
     },
+    restoreBackup: {
+        label: 'Restore Backup Instructions',
+        click: function() {
+            var folder = getRootHifiDataDirectory() + "/Server Backup";
+            openBackupInstructions(folder);
+        }
+    },
     share: {
         label: 'Share',
         click: function() {
@@ -443,6 +450,7 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
         menuArray.push(labels.viewLogs);
+        menuArray.push(labels.restoreBackup);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -510,29 +518,32 @@ function backupResourceDirectories(folder) {
     }
 }
 
+function openBackupInstructions(folder) {
+  // Explain user how to restore server
+  var window = new BrowserWindow({
+      icon: appIcon,
+      width: 800,
+      height: 520,
+  });
+  window.loadURL('file://' + __dirname + '/content-update.html');
+  if (!debug) {
+      window.setMenu(null);
+  }
+  window.show();
+
+  electron.ipcMain.on('ready', function() {
+      console.log("got ready");
+      window.webContents.send('update', folder);
+  });
+
+}
 function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
 
     var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
     if (backupResourceDirectories(folder)) {
         maybeInstallDefaultContentSet(onContentLoaded);
-
-        // Explain user how to restore server
-        var window = new BrowserWindow({
-            icon: appIcon,
-            width: 500,
-            height: 350,
-        });
-        window.loadURL('file://' + __dirname + '/content-update.html');
-        if (!debug) {
-            window.setMenu(null);
-        }
-        window.show();
-
-        electron.ipcMain.on('ready', function() {
-            console.log("got ready");
-            window.webContents.send('update', folder);
-        });
+        openBackupInstructions(folder);
     } else {
         dialog.showMessageBox({
             type: 'warning',
