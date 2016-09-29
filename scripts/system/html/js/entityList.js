@@ -122,6 +122,8 @@ function loaded() {
               focus: false,
               entityIds: selection,
           }));
+
+          refreshFooter();
       }
       
       function onRowDoubleClicked() {
@@ -184,6 +186,7 @@ function loaded() {
       function clearEntities() {
           entities = {};
           entityList.clear();
+          refreshFooter();
       }
       
       var elSortOrder = {
@@ -236,13 +239,16 @@ function loaded() {
           refreshFooter();
       }
       
-      function updateSelectedEntities(selectedEntities) {
+      function updateSelectedEntities(selectedIDs) {
           var notFound = false;
           for (var id in entities) {
               entities[id].el.className = '';
           }
-          for (var i = 0; i < selectedEntities.length; i++) {
-              var id = selectedEntities[i];
+
+          selectedEntities = [];
+          for (var i = 0; i < selectedIDs.length; i++) {
+              var id = selectedIDs[i];
+              selectedEntities.push(id);
               if (id in entities) {
                   var entity = entities[id];
                   entity.el.className = 'selected';
@@ -251,10 +257,7 @@ function loaded() {
               }
           }
 
-          // HACK: Fixes the footer and header text sometimes not displaying after adding or deleting entities.
-          // The problem appears to be a bug in the Qt HTML/CSS rendering (Qt 5.5).
-          document.getElementById("radius").focus();
-          document.getElementById("radius").blur();
+          refreshFooter();
 
           return notFound;
       }
