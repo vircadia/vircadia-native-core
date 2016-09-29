@@ -152,13 +152,13 @@ void Connection::queueInactive() {
 }
 
 void Connection::queueTimeout() {
-    updateCongestionControlAndSendQueue([this]{
+    updateCongestionControlAndSendQueue([this] {
         _congestionControl->onTimeout();
     });
 }
 
 void Connection::queueShortCircuitLoss(quint32 sequenceNumber) {
-    updateCongestionControlAndSendQueue([this, sequenceNumber]{
+    updateCongestionControlAndSendQueue([this, sequenceNumber] {
         _congestionControl->onLoss(SequenceNumber { sequenceNumber }, SequenceNumber { sequenceNumber });
     });
 }
@@ -691,7 +691,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     }
     
     // give this ACK to the congestion control and update the send queue parameters
-    updateCongestionControlAndSendQueue([this, ack, &controlPacket](){
+    updateCongestionControlAndSendQueue([this, ack, &controlPacket] {
         if (_congestionControl->onACK(ack, controlPacket->getReceiveTime())) {
             // the congestion control has told us it needs a fast re-transmit of ack + 1, add that now
             _sendQueue->fastRetransmit(ack + 1);
@@ -780,7 +780,7 @@ void Connection::processNAK(ControlPacketPointer controlPacket) {
     getSendQueue().nak(start, end);
     
     // give the loss to the congestion control object and update the send queue parameters
-    updateCongestionControlAndSendQueue([this, start, end](){
+    updateCongestionControlAndSendQueue([this, start, end] {
         _congestionControl->onLoss(start, end);
     });
     

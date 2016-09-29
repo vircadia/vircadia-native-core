@@ -58,8 +58,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            // Introduction of TCPVegasCC as default congestion control
-            return 19;
+            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
