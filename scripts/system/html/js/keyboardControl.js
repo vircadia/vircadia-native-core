@@ -25,11 +25,14 @@ function setUpKeyboardControl() {
         }
 
         var delta = this.getBoundingClientRect().bottom + 10 - (document.body.clientHeight - KEYBOARD_HEIGHT);
-        if (delta > 0) {
-            document.body.scrollTop += delta;
-        }
 
         EventBridge.emitWebEvent("_RAISE_KEYBOARD");
+
+        if (delta > 0) {
+            setTimeout(function () {
+                document.body.scrollTop += delta;
+            }, 500);  // Allow time for keyboard to be raised in QML.
+        }
 
         isRaised = true;
     }
