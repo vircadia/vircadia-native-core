@@ -34,7 +34,7 @@ void main(void) {
     Light light = getLight(instanceID);
     vec4 sphereVertex = inPosition;
     vec3 lightOrigin = getLightPosition(light);
-    vec4 sphereParam = getLightVolumeGeometry(light);
+    vec4 sphereParam = vec4(1.0); // = getLightVolumeGeometry(light);
 
     sphereVertex.xyz *= sphereParam.w;
 

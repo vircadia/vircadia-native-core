@@ -15,6 +15,7 @@
 
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>
+<$declareLightAmbientBuffer()$>
 
 <@include LightAmbient.slh@>
 <@include LightDirectional.slh@>
@@ -29,7 +30,11 @@
 
     // Get light
     Light light = getLight();
+    LightAmbient lightAmbient = getLightAmbient();
     
+    vec3 lightDirection = getLightDirection(light);
+    vec3 lightIrradiance = getLightIrradiance(light);
+
     vec3 color = vec3(0.0);
 
 <@endfunc@>
@@ -38,7 +43,7 @@
 <@func declareEvalAmbientGlobalColor()@>
 vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, float roughness) {
     <$prepareGlobalLight()$>
-    color += albedo * getLightColor(light) * obscurance * getLightAmbientIntensity(light);
+    color += albedo * getLightColor(light) * obscurance * getLightAmbientIntensity(lightAmbient);
     return color;
 }
 <@endfunc@>
@@ -63,7 +68,7 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
     // Ambient
     vec3 ambientDiffuse;
     vec3 ambientSpecular;
-    evalLightingAmbient(ambientDiffuse, ambientSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance
+    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature
 <@endif@> );
@@ -74,7 +79,7 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature
 <@endif@> );
@@ -107,7 +112,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     // Ambient
     vec3 ambientDiffuse;
     vec3 ambientSpecular;
-    evalLightingAmbient(ambientDiffuse, ambientSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance
+    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature 
 <@endif@>
@@ -119,7 +124,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature
 <@endif@>
@@ -135,6 +140,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 <@func declareEvalLightmappedColor()@>
 vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 albedo, vec3 lightmap) {
     Light light = getLight();
+    LightAmbient ambient = getLightAmbient();
 
     // Catch normals perpendicular to the projection plane, hence the magic number for the threshold
     // It should be just 0, but we have inaccuracy so we overshoot
@@ -150,7 +156,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
     vec3 diffuseLight = lightAttenuation * lightmap;
 
     // Ambient light is the lightmap when in shadow
-    vec3 ambientLight = (1 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
+    vec3 ambientLight = (1 - lightAttenuation) * lightmap * getLightAmbientIntensity(ambient);
 
     return  isLightmapEnabled() * obscurance * albedo * (diffuseLight + ambientLight);
 }
@@ -172,7 +178,7 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     // Ambient
     vec3 ambientDiffuse;
     vec3 ambientSpecular;
-    evalLightingAmbient(ambientDiffuse, ambientSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance);
+    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance);
     color += ambientDiffuse;
     color += ambientSpecular / opacity;
 
@@ -180,7 +186,7 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, light, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
     color += directionalSpecular / opacity;
 

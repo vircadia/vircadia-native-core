@@ -94,7 +94,14 @@ void main(void) {
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
-  //  int numLights = lightIndex[0];
+
+  /*  int theLightIndex = clusterGrid_getClusterLightId(0, cluster);
+    if (theLightIndex == 65535) {
+        discard;
+    }
+    Light light = getLight(theLightIndex);
+
+    int numLights = lightIndex[0];*/
     for (int i = 0; i < numLights; i++) {
         // Need the light now
         int theLightIndex = clusterGrid_getClusterLightId(i, cluster);
@@ -105,11 +112,11 @@ void main(void) {
         vec4 fragLightDirLen;
         float cosSpotAngle;
         if (isSpot) {
-            if (!clipFragToLightVolumeSpot(light, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
+            if (!lightVolume_clipFragToLightVolumeSpot(light.volume, fragPos.xyz, fragLightVecLen2, fragLightDirLen, cosSpotAngle)) {
                 continue;
             }
         } else {
-            if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
+            if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
                 continue;
             }
         }

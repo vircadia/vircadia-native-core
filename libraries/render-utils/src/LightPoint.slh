@@ -25,7 +25,7 @@ void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
 
     // Eval attenuation
     float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
-    vec3 lightEnergy = radialAttenuation * shadow * getLightColor(light) * getLightIntensity(light);
+    vec3 lightEnergy = radialAttenuation * shadow * getLightIrradiance(light);
 
     // Eval shading
     evalFragShading(diffuse, specular, normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness, albedo
@@ -39,7 +39,7 @@ void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
 
     if (isShowLightContour() > 0.0) {
         // Show edge
-        float edge = abs(2.0 * ((getLightCutoffRadius(light) - fragLightDistance) / (0.1)) - 1.0);
+        float edge = abs(2.0 * ((lightVolume_getRadius(light.volume) - fragLightDistance) / (0.1)) - 1.0);
         if (edge < 1) {
             float edgeCoord = exp2(-8.0*edge*edge);
             diffuse = vec3(edgeCoord * edgeCoord * getLightColor(light));

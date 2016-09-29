@@ -26,8 +26,46 @@ typedef glm::vec3 Vec3;
 typedef glm::vec4 Vec4;
 typedef glm::quat Quat;
 
+
 class Light {
 public:
+
+    struct LightVolume {
+        vec3 position;
+        float radius;
+        vec3 direction;
+        float spotCos;
+
+        bool isPoint() { return bool(spotCos < 0.f); }
+        bool isSpot() { return bool(spotCos >= 0.f); }
+
+        vec3 getPosition() { return position; }
+        float getRadius() { return radius; }
+        float getRadiusSquare() { return radius * radius; }
+        vec3 getDirection() { return direction; }
+
+        float getSpotAngleCos() { return spotCos; }
+    };
+
+
+    struct LightIrradiance {
+        vec3 color;
+        float intensity;
+        float falloffRadius;
+        float falloffSpot;
+        float spare1;
+        float spare2;
+
+        vec3 getColor() { return color; }
+        float getIntensity() { return intensity; }
+        vec3 getIrradiance() { return color * intensity; }
+        float getFalloffRadius() { return falloffRadius; }
+        float getFalloffRadiusSquare() { return falloffRadius * falloffRadius; }
+        float getFalloffSpot() { return falloffSpot; }
+    };
+
+
+ 
     enum Type {
         SUN = 0,
         POINT,

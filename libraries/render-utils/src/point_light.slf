@@ -58,7 +58,7 @@ void main(void) {
 
     // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
     vec4 fragLightVecLen2;
-    if (!clipFragToLightVolumePoint(light, fragPos.xyz, fragLightVecLen2)) {
+    if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
         discard;
     }
 
