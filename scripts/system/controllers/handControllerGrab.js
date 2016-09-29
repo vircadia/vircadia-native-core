@@ -2098,7 +2098,7 @@ function MyController(hand) {
                 var TEAR_AWAY_DISTANCE = 0.1;
                 var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
                 if (dist > TEAR_AWAY_DISTANCE) {
-                    this.autoUnequipCounter += 1;
+                    this.autoUnequipCounter += deltaTime;
                 } else {
                     this.autoUnequipCounter = 0;
                 }
