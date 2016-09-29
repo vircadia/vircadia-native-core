@@ -517,10 +517,6 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    registerGlobalObject("Controller", scriptingInterface.data());
-    UserInputMapper::registerControllerTypes(this);
-
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     registerGlobalObject("Recording", recordingInterface.data());
 
