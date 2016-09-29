@@ -188,30 +188,3 @@ protected:
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
 
-class TextureRecycler {
-public:
-    TextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
-    void setSize(const uvec2& size);
-    void clear();
-    TexturePtr getNextTexture();
-    void recycleTexture(GLuint texture);
-
-private:
-
-    struct TexInfo {
-        TexturePtr _tex;
-        uvec2 _size;
-        bool _active{ false };
-
-        TexInfo() {}
-        TexInfo(TexturePtr tex, const uvec2& size) : _tex(tex), _size(size) {}
-    };
-
-    using Map = std::map<GLuint, TexInfo>;
-    using Queue = std::queue<TexturePtr>;
-
-    Map _allTextures;
-    Queue _readyTextures;
-    uvec2 _size{ 1920, 1080 };
-    bool _useMipmaps;
-};
