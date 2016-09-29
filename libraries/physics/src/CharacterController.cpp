@@ -476,6 +476,7 @@ void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyM
             _followVelocity = newFollowVelocity;
             _rigidBody->setLinearVelocity(_followVelocity);
         } else {
+            // use simple blending to filter noise from the velocity measurement
             const float blend = 0.2f;
             _followVelocity = (1.0f - blend) * _followVelocity + blend * newFollowVelocity;
         }
