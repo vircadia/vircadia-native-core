@@ -536,8 +536,13 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     QUuid domainUUID;
     packetStream >> domainUUID;
 
+    // pull our owner UUID from the packet, it's always the first thing
+    QUuid newUUID;
+    packetStream >> newUUID;
+
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
+        setSessionUUID(newUUID);
         _domainHandler.setUUID(domainUUID);
         _domainHandler.setIsConnected(true);
 
@@ -548,12 +553,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // Recieved packet from different domain.
         qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" << _domainHandler.getUUID();
         return;
+    } else {
+        setSessionUUID(newUUID);
     }
-
-    // pull our owner UUID from the packet, it's always the first thing
-    QUuid newUUID;
-    packetStream >> newUUID;
-    setSessionUUID(newUUID);
 
     // pull the permissions/right/privileges for this node out of the stream
     NodePermissions newPermissions;
