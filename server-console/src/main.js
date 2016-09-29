@@ -503,36 +503,44 @@ function backupResourceDirectories(folder) {
         fs.renameSync(getAssignmentClientResourcesDirectory(), acBackup);
         console.log("Moved directory " + getDomainServerClientResourcesDirectory());
         console.log("to " + acBackup);
+        return true;
     } catch (e) {
         console.log(e);
+        return false;
     }
 }
 
 function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
 
-    var date = new Date();
-    var folder = getRootHifiDataDirectory() + "/Server Backup - " + date;
-    backupResourceDirectories(folder);
-    maybeInstallDefaultContentSet(onContentLoaded);
+    var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
+    if (backupResourceDirectories(folder)) {
+        maybeInstallDefaultContentSet(onContentLoaded);
 
-    // Explain user how to restore server
-    var window = new BrowserWindow({
-        icon: appIcon,
-        width: 500,
-        height: 350,
-    });
-    window.loadURL('file://' + __dirname + '/content-update.html');
-    if (!debug) {
-        window.setMenu(null);
+        // Explain user how to restore server
+        var window = new BrowserWindow({
+            icon: appIcon,
+            width: 500,
+            height: 350,
+        });
+        window.loadURL('file://' + __dirname + '/content-update.html');
+        if (!debug) {
+            window.setMenu(null);
+        }
+        window.show();
+
+        electron.ipcMain.on('ready', function() {
+            console.log("got ready");
+            window.webContents.send('update', folder);
+        });
+    } else {
+        dialog.showMessageBox({
+            type: 'warning',
+            buttons: ['Ok'],
+            title: 'Update Error',
+            message: 'There was an error updating the content, aborting.'
+        }, function() {});
     }
-    window.show();
-
-    electron.ipcMain.on('ready', function() {
-        console.log("got ready");
-
-        window.webContents.send('update', folder);
-    });
 }
 
 function checkNewContent() {
