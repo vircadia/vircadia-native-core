@@ -23,7 +23,7 @@
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
-const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
 const QString INDEX_PATH = "/";
