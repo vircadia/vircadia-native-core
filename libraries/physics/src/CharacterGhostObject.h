@@ -34,17 +34,17 @@ public:
     void setRadiusAndHalfHeight(btScalar radius, btScalar halfHeight);
     void setUpDirection(const btVector3& up);
     void setMotorVelocity(const btVector3& velocity);
-    void setGravity(btScalar gravity) { _gravity = gravity; } // NOTE: we expect _gravity to be negative (in _upDirection)
     void setMinWallAngle(btScalar angle) { _maxWallNormalUpComponent = cosf(angle); }
     void setMaxStepHeight(btScalar height) { _maxStepHeight = height; }
 
+    void setLinearVelocity(const btVector3& velocity) { _linearVelocity = velocity; }
     const btVector3& getLinearVelocity() const { return _linearVelocity; }
 
     void setCharacterCapsule(btCapsuleShape* capsule);
 
     void setCollisionWorld(btCollisionWorld* world);
 
-    void move(btScalar dt, btScalar overshoot);
+    void move(btScalar dt, btScalar overshoot, btScalar gravity);
 
     bool sweepTest(const btConvexShape* shape,
             const btTransform& start,
@@ -52,6 +52,12 @@ public:
             CharacterSweepResult& result) const;
 
     bool isHovering() const { return _hovering; }
+    void setHovering(bool hovering) { _hovering = hovering; }
+    void setMotorOnly(bool motorOnly) { _motorOnly = motorOnly; }
+
+    bool hasSupport() const { return _onFloor; }
+    bool isSteppingUp() const { return _steppingUp; }
+    const btVector3& getFloorNormal() const { return _floorNormal; }
 
 protected:
     void removeFromWorld();
@@ -63,7 +69,7 @@ protected:
 
     bool resolvePenetration(int numTries);
     void refreshOverlappingPairCache();
-    void updateVelocity(btScalar dt);
+    void updateVelocity(btScalar dt, btScalar gravity);
     void updateTraction(const btVector3& position);
     btScalar measureAvailableStepHeight() const;
     void updateHoverState(const btVector3& position);
@@ -78,8 +84,6 @@ protected:
     //btScalar _distanceToFeet { 0.0f }; // input, distance from object center to lowest point on shape
     btScalar _halfHeight { 0.0f };
     btScalar _radius { 0.0f };
-    btScalar _motorSpeed { 0.0f }; // internal, cached for speed
-    btScalar _gravity { 0.0f }; // input, amplitude of gravity along _upDirection (should be negative)
     btScalar _maxWallNormalUpComponent { 0.0f }; // input: max vertical component of wall normal
     btScalar _maxStepHeight { 0.0f }; // input, max step height the character can climb
     btCapsuleShape* _characterShape { nullptr }; // input, shape of character
@@ -89,7 +93,9 @@ protected:
     bool _inWorld { false }; // internal, was added to world
     bool _hovering { false }; // internal,
     bool _onFloor { false }; // output, is actually standing on floor
+    bool _steppingUp { false }; // output, future sweep hit a steppable ledge
     bool _hasFloor { false }; // output, has floor underneath to fall on
+    bool _motorOnly { false }; // input, _linearVelocity slaves to _motorVelocity
 };
 
 #endif // hifi_CharacterGhostObject_h

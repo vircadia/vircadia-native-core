@@ -56,7 +56,9 @@ void CharacterGhostObject::setUpDirection(const btVector3& up) {
 
 void CharacterGhostObject::setMotorVelocity(const btVector3& velocity) {
     _motorVelocity = velocity;
-    _motorSpeed = _motorVelocity.length();
+    if (_motorOnly) {
+        _linearVelocity = _motorVelocity;
+    }
 }
 
 // override of btCollisionObject::setCollisionShape()
@@ -78,10 +80,12 @@ void CharacterGhostObject::setCollisionWorld(btCollisionWorld* world) {
     }
 }
 
-void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
+void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravity) {
+    bool oldOnFloor = _onFloor;
     _onFloor = false;
+    _steppingUp = false;
     assert(_world && _inWorld);
-    updateVelocity(dt);
+    updateVelocity(dt, gravity);
 
     // resolve any penetrations before sweeping
     int32_t MAX_LOOPS = 4;
@@ -113,8 +117,9 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
         updateTraction(startPosition);
     }
 
+    btScalar speed = _linearVelocity.length();
     btVector3 forwardSweep = dt * _linearVelocity;
-    btScalar stepDistance = forwardSweep.length();
+    btScalar stepDistance = dt * speed;
     btScalar MIN_SWEEP_DISTANCE = 0.0001f;
     if (stepDistance < MIN_SWEEP_DISTANCE) {
         // not moving, no need to sweep
@@ -146,6 +151,22 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
         updateTraction(nextTransform.getOrigin());
         return;
     }
+    bool verticalOnly = btFabs(btFabs(_linearVelocity.dot(_upDirection)) - speed) < margin;
+    if (verticalOnly) {
+        // no need to step
+        nextTransform.setOrigin(startPosition + (result.m_closestHitFraction * stepDistance / longSweepDistance) * forwardSweep);
+        setWorldTransform(nextTransform);
+
+        if (result.m_hitNormalWorld.dot(_upDirection) > _maxWallNormalUpComponent) {
+            _floorNormal = result.m_hitNormalWorld;
+            _floorContact = result.m_hitPointWorld;
+            _steppingUp = false;
+            _onFloor = true;
+            _hovering = false;
+        }
+        updateTraction(nextTransform.getOrigin());
+        return;
+    }
 
     // check if this hit is obviously unsteppable
     btVector3 hitFromBase = result.m_hitPointWorld - (startPosition - ((_radius + _halfHeight) * _upDirection));
@@ -159,6 +180,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
         }
         nextTransform.setOrigin(startPosition + forwardTranslation);
         setWorldTransform(nextTransform);
+        _onFloor = _onFloor || oldOnFloor;
         return;
     }
     // if we get here then we hit something that might be steppable
@@ -189,6 +211,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
         // can stand on future landing spot, so we interpolate toward it
         _floorNormal = result.m_hitNormalWorld;
         _floorContact = result.m_hitPointWorld;
+        _steppingUp = true;
         _onFloor = true;
         _hovering = false;
         nextTransform.setOrigin(startTransform.getOrigin() + result.m_closestHitFraction * downSweep);
@@ -199,6 +222,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot) {
         // either there is no future landing spot, or there is but we can't stand on it
         // in any case: we go forward as much as possible
         nextTransform.setOrigin(startPosition + forwardSweepHitFraction * (stepDistance / longSweepDistance) * forwardSweep);
+        _onFloor = _onFloor || oldOnFloor;
         updateTraction(nextTransform.getOrigin());
     }
     setWorldTransform(nextTransform);
@@ -337,11 +361,13 @@ void CharacterGhostObject::refreshOverlappingPairCache() {
     _world->getBroadphase()->setAabb(getBroadphaseHandle(), minAabb, maxAabb, _world->getDispatcher());
 }
 
-void CharacterGhostObject::updateVelocity(btScalar dt) {
-    if (_hovering) {
-        _linearVelocity *= 0.999f; // HACK damping
-    } else {
-        _linearVelocity += (dt * _gravity) * _upDirection;
+void CharacterGhostObject::updateVelocity(btScalar dt, btScalar gravity) {
+    if (!_motorOnly) {
+        if (_hovering) {
+            _linearVelocity *= 0.999f; // HACK damping
+        } else {
+            _linearVelocity += (dt * gravity) * _upDirection;
+        }
     }
 }
 
@@ -363,7 +389,7 @@ void CharacterGhostObject::updateHoverState(const btVector3& position) {
 
 void CharacterGhostObject::updateTraction(const btVector3& position) {
     updateHoverState(position);
-    if (_hovering) {
+    if (_hovering || _motorOnly) {
         _linearVelocity = _motorVelocity;
     } else if (_onFloor) {
         // compute a velocity that swings the capsule around the _floorContact
@@ -371,7 +397,7 @@ void CharacterGhostObject::updateTraction(const btVector3& position) {
         btVector3 pathDirection = leverArm.cross(_motorVelocity.cross(leverArm));
         btScalar pathLength = pathDirection.length();
         if (pathLength > FLT_EPSILON) {
-            _linearVelocity = (_motorSpeed / pathLength) * pathDirection;
+            _linearVelocity = (_motorVelocity.length() / pathLength) * pathDirection;
         } else {
             _linearVelocity = btVector3(0.0f, 0.0f, 0.0f);
         }

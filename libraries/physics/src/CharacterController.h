@@ -127,7 +127,7 @@ protected:
 #endif
 
     void updateUpAxis(const glm::quat& rotation);
-    bool checkForSupport(btCollisionWorld* collisionWorld);
+    bool checkForSupport(btCollisionWorld* collisionWorld, btScalar dt);
 
 protected:
     struct CharacterMotor {
@@ -176,7 +176,7 @@ protected:
     btScalar _floorDistance;
     bool _hasSupport;
 
-    btScalar _gravity;
+    btScalar _gravity { DEFAULT_CHARACTER_GRAVITY };
     btScalar _followTimeAccumulator { 0.0f };
 
     btScalar _jumpSpeed;
