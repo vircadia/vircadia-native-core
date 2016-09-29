@@ -44,12 +44,12 @@
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
+#include <shared/FileLogger.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
-#include "FileLogger.h"
 #include "gpu/Context.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"

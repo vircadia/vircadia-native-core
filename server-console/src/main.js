@@ -42,6 +42,8 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
+const HOME_CONTENT_URL = "http://cachefly.highfidelity.com/home.tgz";
+
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -406,6 +408,13 @@ var labels = {
             logWindow.open();
         }
     },
+    restoreBackup: {
+        label: 'Restore Backup Instructions',
+        click: function() {
+            var folder = getRootHifiDataDirectory() + "/Server Backup";
+            openBackupInstructions(folder);
+        }
+    },
     share: {
         label: 'Share',
         click: function() {
@@ -441,6 +450,7 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
         menuArray.push(labels.viewLogs);
+        menuArray.push(labels.restoreBackup);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -486,6 +496,102 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
+function backupResourceDirectories(folder) {
+    try {
+        fs.mkdirSync(folder);
+        console.log("Created directory " + folder);
+
+
+        var dsBackup = path.join(folder, '/domain-server');
+        fs.renameSync(getDomainServerClientResourcesDirectory(), dsBackup);
+        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
+        console.log("to " + dsBackup);
+
+        var acBackup = path.join(folder, '/assignment-client');
+        fs.renameSync(getAssignmentClientResourcesDirectory(), acBackup);
+        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
+        console.log("to " + acBackup);
+        return true;
+    } catch (e) {
+        console.log(e);
+        return false;
+    }
+}
+
+function openBackupInstructions(folder) {
+  // Explain user how to restore server
+  var window = new BrowserWindow({
+      icon: appIcon,
+      width: 800,
+      height: 520,
+  });
+  window.loadURL('file://' + __dirname + '/content-update.html');
+  if (!debug) {
+      window.setMenu(null);
+  }
+  window.show();
+
+  electron.ipcMain.on('ready', function() {
+      console.log("got ready");
+      window.webContents.send('update', folder);
+  });
+
+}
+function backupResourceDirectoriesAndRestart() {
+    homeServer.stop();
+
+    var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
+    if (backupResourceDirectories(folder)) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+        openBackupInstructions(folder);
+    } else {
+        dialog.showMessageBox({
+            type: 'warning',
+            buttons: ['Ok'],
+            title: 'Update Error',
+            message: 'There was an error updating the content, aborting.'
+        }, function() {});
+    }
+}
+
+function checkNewContent() {
+    // Start downloading content set
+    var req = request.head({
+        url: HOME_CONTENT_URL
+    }, function (error, response, body) {
+        if (error === null) {
+            var localContent = Date.parse(userConfig.get('homeContentLastModified'));
+            var remoteContent = Date.parse(response.headers['last-modified']);
+
+            var shouldUpdate = isNaN(localContent) || (!isNaN(remoteContent) && (remoteContent > localContent));
+
+            var wantDebug = false;
+            if (wantDebug) {
+                console.log('Last Modified: ' + response.headers['last-modified']);
+                console.log(localContent + " " + remoteContent + " " + shouldUpdate + " " + new Date());
+                console.log("Remote content is " + (shouldUpdate ? "newer" : "older") + " that local content.");
+            }
+
+            if (shouldUpdate) {
+              dialog.showMessageBox({
+                  type: 'question',
+                  buttons: ['Yes', 'No'],
+                  title: 'New home content',
+                  message: 'A newer version of the home content set is available.\nDo you wish to update?'
+              }, function(idx) {
+                if (idx === 0) {
+                  backupResourceDirectoriesAndRestart();
+                } else {
+                  // They don't want to update, mark content set as current
+                  userConfig.set('homeContentLastModified', new Date());
+                }
+              });
+            }
+        }
+    });
+}
+
+
 function maybeInstallDefaultContentSet(onComplete) {
     // Check for existing data
     const acResourceDirectory = getAssignmentClientResourcesDirectory();
@@ -517,6 +623,8 @@ function maybeInstallDefaultContentSet(onComplete) {
     if (userHasExistingACData || userHasExistingDSData) {
         console.log("User has existing data, suppressing downloader");
         onComplete();
+
+        checkNewContent();
         return;
     }
 
@@ -528,6 +636,7 @@ function maybeInstallDefaultContentSet(onComplete) {
                 return console.error(err)
             }
             console.log('Copied home content over to: ' + getRootHifiDataDirectory());
+            userConfig.set('homeContentLastModified', new Date());
             onComplete();
         });
         return;
@@ -566,7 +675,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         // Start downloading content set
         var req = progress(request.get({
-            url: "http://cachefly.highfidelity.com/home.tgz"
+            url: HOME_CONTENT_URL
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
@@ -607,6 +716,7 @@ function maybeInstallDefaultContentSet(onComplete) {
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
             console.log("Finished unarchiving home content set");
+            userConfig.set('homeContentLastModified', new Date());
             sendStateUpdate('complete');
         });
 
@@ -663,6 +773,62 @@ for (var key in trayIcons) {
 
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
+function onContentLoaded() {
+    maybeShowSplash();
+
+    if (buildInfo.releaseType == 'PRODUCTION') {
+        var currentVersion = null;
+        try {
+            currentVersion = parseInt(buildInfo.buildIdentifier);
+        } catch (e) {
+        }
+
+        if (currentVersion !== null) {
+            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+            var hasShownUpdateNotification = false;
+            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+            updateChecker.on('update-available', function(latestVersion, url) {
+                if (!hasShownUpdateNotification) {
+                    notifier.notify({
+                        icon: notificationIcon,
+                        title: 'An update is available!',
+                        message: 'High Fidelity version ' + latestVersion + ' is available',
+                        wait: true,
+                        url: url
+                    });
+                    hasShownUpdateNotification = true;
+                }
+            });
+            notifier.on('click', function(notifierObject, options) {
+                console.log("Got click", options.url);
+                shell.openExternal(options.url);
+            });
+        }
+    }
+
+    deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
+
+    if (dsPath && acPath) {
+        domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
+                                                                '--log-directory', logPath,
+                                                                '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+        homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
+        logWindow = new LogWindow(acMonitor, domainServer);
+
+        var processes = {
+            home: homeServer
+        };
+
+        // handle process updates
+        homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
+
+        // start the home server
+        homeServer.start();
+    }
+}
+
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -682,58 +848,5 @@ app.on('ready', function() {
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
-    maybeInstallDefaultContentSet(function() {
-        maybeShowSplash();
-
-        if (buildInfo.releaseType == 'PRODUCTION') {
-            var currentVersion = null;
-            try {
-                currentVersion = parseInt(buildInfo.buildIdentifier);
-            } catch (e) {
-            }
-
-            if (currentVersion !== null) {
-                const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
-                var hasShownUpdateNotification = false;
-                const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-                updateChecker.on('update-available', function(latestVersion, url) {
-                    if (!hasShownUpdateNotification) {
-                        notifier.notify({
-                            icon: notificationIcon,
-                            title: 'An update is available!',
-                            message: 'High Fidelity version ' + latestVersion + ' is available',
-                            wait: true,
-                            url: url
-                        });
-                        hasShownUpdateNotification = true;
-                    }
-                });
-                notifier.on('click', function(notifierObject, options) {
-                    console.log("Got click", options.url);
-                    shell.openExternal(options.url);
-                });
-            }
-        }
-
-        deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
-
-        if (dsPath && acPath) {
-            domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-            acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
-                                                                    '--log-directory', logPath,
-                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
-            homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
-            logWindow = new LogWindow(acMonitor, domainServer);
-
-            var processes = {
-                home: homeServer
-            };
-
-            // handle process updates
-            homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
-
-            // start the home server
-            homeServer.start();
-        }
-    });
+    maybeInstallDefaultContentSet(onContentLoaded);
 });

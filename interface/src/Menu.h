@@ -100,6 +100,8 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EnableAvatarCollisions = "Enable Avatar Collisions";
+    const QString EnableIncrementalTextureTransfer = "Enable Incremental Texture Transfer";
+    const QString EnableDynamicTextureManagement = "Enable Dynamic Texture Management";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EnableVerticalComfortMode = "Enable Vertical Comfort Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";

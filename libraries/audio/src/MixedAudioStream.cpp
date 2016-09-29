@@ -11,7 +11,5 @@
 
 #include "MixedAudioStream.h"
 
-MixedAudioStream::MixedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings)
-{
-}
+MixedAudioStream::MixedAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames) :
+    InboundAudioStream(numFrameSamples, numFramesCapacity, numStaticJitterFrames) {}

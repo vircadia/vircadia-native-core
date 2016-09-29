@@ -61,15 +61,14 @@
 
 #include "AudioMixer.h"
 
-const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
-const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
-const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
-const QString AUDIO_ENV_GROUP_KEY = "audio_env";
-const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
+static const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
+static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
+static const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
+static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
+static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
+static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
-InboundAudioStream::Settings AudioMixer::_streamSettings;
-
+int AudioMixer::_numStaticJitterFrames{ -1 };
 bool AudioMixer::_enableFilter = true;
 
 bool AudioMixer::shouldMute(float quietestFrame) {
@@ -269,20 +268,18 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     if (!streamToAdd.lastPopSucceeded()) {
         bool forceSilentBlock = true;
 
-        if (_streamSettings._repetitionWithFade && !streamToAdd.getLastPopOutput().isNull()) {
+        if (!streamToAdd.getLastPopOutput().isNull()) {
+            bool isInjector = dynamic_cast<const InjectedAudioStream*>(&streamToAdd);
 
-            // reptition with fade is enabled, and we do have a valid previous frame to repeat
-            // so we mix the previously-mixed block
-
-            // this is preferable to not mixing it at all to avoid the harsh jump to silence
+            // in an injector, just go silent - the injector has likely ended
+            // in other inputs (microphone, &c.), repeat with fade to avoid the harsh jump to silence
 
             // we'll repeat the last block until it has a block to mix
             // and we'll gradually fade that repeated block into silence.
 
             // calculate its fade factor, which depends on how many times it's already been repeated.
-
             repeatedFrameFadeFactor = calculateRepeatedFrameFadeFactor(streamToAdd.getConsecutiveNotMixedCount() - 1);
-            if (repeatedFrameFadeFactor > 0.0f) {
+            if (!isInjector && repeatedFrameFadeFactor > 0.0f) {
                 // apply the repeatedFrameFadeFactor to the gain
                 gain *= repeatedFrameFadeFactor;
 
@@ -641,7 +638,7 @@ QString AudioMixer::percentageForMixStats(int counter) {
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
 
-    statsObject["useDynamicJitterBuffers"] = _streamSettings._dynamicJitterBuffers;
+    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
@@ -902,63 +899,62 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
 
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
-        _streamSettings._dynamicJitterBuffers = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (_streamSettings._dynamicJitterBuffers) {
-            qDebug() << "Enable dynamic jitter buffers.";
+        bool enableDynamicJitterBuffer = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (enableDynamicJitterBuffer) {
+            qDebug() << "Enabling dynamic jitter buffers.";
+
+            bool ok;
+            const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
+            _numStaticJitterFrames = audioBufferGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+            if (!ok) {
+                _numStaticJitterFrames = InboundAudioStream::DEFAULT_STATIC_JITTER_FRAMES;
+            }
+            qDebug() << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
-            qDebug() << "Dynamic jitter buffers disabled.";
+            qDebug() << "Disabling dynamic jitter buffers.";
+            _numStaticJitterFrames = -1;
         }
 
+        // check for deprecated audio settings
+        auto deprecationNotice = [](const QString& setting, const QString& value) {
+            qInfo().nospace() << "[DEPRECATION NOTICE] " << setting << "(" << value << ") has been deprecated, and has no effect";
+        };
         bool ok;
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
-        _streamSettings._staticDesiredJitterBufferFrames = audioBufferGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
-        }
-        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
 
         const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max_frames_over_desired";
-        _streamSettings._maxFramesOverDesired = audioBufferGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
-        }
-        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
-
-        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
-        _streamSettings._useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
-        if (_streamSettings._useStDevForJitterCalc) {
-            qDebug() << "Using stdev method for jitter calc if dynamic jitter buffers enabled";
-        } else {
-            qDebug() << "Using max-gap method for jitter calc if dynamic jitter buffers enabled";
+        int maxFramesOverDesired = audioBufferGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        if (ok && maxFramesOverDesired != InboundAudioStream::MAX_FRAMES_OVER_DESIRED) {
+            deprecationNotice(MAX_FRAMES_OVER_DESIRED_JSON_KEY, QString::number(maxFramesOverDesired));
         }
 
         const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";
-        _streamSettings._windowStarveThreshold = audioBufferGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        int windowStarveThreshold = audioBufferGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowStarveThreshold != InboundAudioStream::WINDOW_STARVE_THRESHOLD) {
+            deprecationNotice(WINDOW_STARVE_THRESHOLD_JSON_KEY, QString::number(windowStarveThreshold));
         }
-        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
 
         const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window_seconds_for_desired_calc_on_too_many_starves";
-        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        int windowSecondsForDesiredCalcOnTooManyStarves = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowSecondsForDesiredCalcOnTooManyStarves != InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES) {
+            deprecationNotice(WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY, QString::number(windowSecondsForDesiredCalcOnTooManyStarves));
         }
-        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
 
         const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window_seconds_for_desired_reduction";
-        _streamSettings._windowSecondsForDesiredReduction = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
-        if (!ok) {
-            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        int windowSecondsForDesiredReduction = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (ok && windowSecondsForDesiredReduction != InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION) {
+            deprecationNotice(WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY, QString::number(windowSecondsForDesiredReduction));
         }
-        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
+
+        const QString USE_STDEV_FOR_JITTER_JSON_KEY = "use_stdev_for_desired_calc";
+        bool useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_JITTER_JSON_KEY].toBool();
+        if (useStDevForJitterCalc != InboundAudioStream::USE_STDEV_FOR_JITTER) {
+            deprecationNotice(USE_STDEV_FOR_JITTER_JSON_KEY, useStDevForJitterCalc ? "true" : "false");
+        }
 
         const QString REPETITION_WITH_FADE_JSON_KEY = "repetition_with_fade";
-        _streamSettings._repetitionWithFade = audioBufferGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
-        if (_streamSettings._repetitionWithFade) {
-            qDebug() << "Repetition with fade enabled";
-        } else {
-            qDebug() << "Repetition with fade disabled";
+        bool repetitionWithFade = audioBufferGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
+        if (repetitionWithFade != InboundAudioStream::REPETITION_WITH_FADE) {
+            deprecationNotice(REPETITION_WITH_FADE_JSON_KEY, repetitionWithFade ? "true" : "false");
         }
     }
 

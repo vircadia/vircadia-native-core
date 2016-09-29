@@ -19,14 +19,11 @@
 
 #include "InjectedAudioStream.h"
 
-InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const bool isStereo, const InboundAudioStream::Settings& settings) :
-    PositionalAudioStream(PositionalAudioStream::Injector, isStereo, settings),
+InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, bool isStereo, int numStaticJitterFrames) :
+    PositionalAudioStream(PositionalAudioStream::Injector, isStereo, numStaticJitterFrames),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
-    _attenuationRatio(0)
-{
-
-}
+    _attenuationRatio(0) {} 
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 

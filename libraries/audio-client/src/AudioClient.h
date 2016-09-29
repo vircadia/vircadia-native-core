@@ -61,15 +61,6 @@
 #pragma warning( pop )
 #endif
 
-static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
-static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
-static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
-static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
-
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
@@ -82,6 +73,9 @@ class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    static const int MIN_BUFFER_FRAMES;
+    static const int MAX_BUFFER_FRAMES;
+
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
@@ -115,8 +109,6 @@ public:
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
-    int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
-
     bool isMuted() { return _muted; }
 
     const AudioIOStats& getStats() const { return _stats; }
@@ -125,12 +117,6 @@ public:
 
     bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
     void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
-
-    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
-    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }
-
-    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
-    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
 
     bool isSimulatingJitter() { return _gate.isSimulatingJitter(); }
     void setIsSimulatingJitter(bool enable) { _gate.setIsSimulatingJitter(enable); }
@@ -283,9 +269,6 @@ private:
     Setting::Handle<int> _outputBufferSizeFrames;
     int _sessionOutputBufferSizeFrames;
     Setting::Handle<bool> _outputStarveDetectionEnabled;
-    Setting::Handle<int> _outputStarveDetectionPeriodMsec;
-     // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
-    Setting::Handle<int> _outputStarveDetectionThreshold;
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
