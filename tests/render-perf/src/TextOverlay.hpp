@@ -17,8 +17,6 @@
 #include <iomanip>
 
 #include <GLMHelpers.h>
-#include <gl/OglplusHelpers.h>
-
 
 #include "stb_font_consolas_24_latin1.inl"
 
@@ -37,23 +35,16 @@
 // todo : comment
 class TextOverlay {
 private:
+    uvec2 _size;
+// FIXME port from oglplus
+#if 0
     FramebufferPtr _framebuffer;
     TexturePtr _texture;
-    uvec2 _size;
     BufferPtr _vertexBuffer;
     ProgramPtr _program;
     VertexArrayPtr _vertexArray;
-
-    //vk::DescriptorPool descriptorPool;
-    //vk::DescriptorSetLayout descriptorSetLayout;
-    //vk::DescriptorSet descriptorSet;
-    //vk::PipelineLayout pipelineLayout;
-    //vk::Pipeline pipeline;
-
     // Pointer to mapped vertex buffer
     glm::vec4* _mapped { nullptr };
-    stb_fontchar stbFontData[STB_NUM_CHARS];
-    uint32_t numLetters;
 
     const char* const VERTEX_SHADER = R"SHADER(
 #version 450 core
@@ -92,6 +83,12 @@ void main(void)
 }
 )SHADER";
 
+#endif
+
+    stb_fontchar stbFontData[STB_NUM_CHARS];
+    uint32_t numLetters;
+
+
 public:
     enum TextAlign { alignLeft, alignCenter, alignRight };
 
@@ -104,11 +101,13 @@ public:
     }
 
     ~TextOverlay() {
+#if 0
         // Free up all Vulkan resources requested by the text overlay
         _program.reset();
         _texture.reset();
         _vertexBuffer.reset();
         _vertexArray.reset();
+#endif
     }
 
     void resize(const uvec2& size) {
@@ -118,6 +117,7 @@ public:
     // Prepare all vulkan resources required to render the font
     // The text overlay uses separate resources for descriptors (pool, sets, layouts), pipelines and command buffers
     void prepare() {
+#if 0
         static unsigned char font24pixels[STB_FONT_HEIGHT][STB_FONT_WIDTH];
         STB_FONT_NAME(stbFontData, font24pixels, STB_FONT_HEIGHT);
 
@@ -154,14 +154,17 @@ public:
         }
 
         compileProgram(_program, VERTEX_SHADER, FRAGMENT_SHADER);
+#endif
     }
 
 
     // Map buffer 
     void beginTextUpdate() {
+#if 0
         using namespace oglplus;
         _mapped = (glm::vec4*)glMapNamedBuffer(GetName(*_vertexBuffer), GL_WRITE_ONLY);
         numLetters = 0;
+#endif
     }
 
     // Add text to the current buffer
@@ -223,17 +226,21 @@ public:
 
     // Unmap buffer and update command buffers
     void endTextUpdate() {
+#if 0
         glUnmapNamedBuffer(GetName(*_vertexBuffer));
         _mapped = nullptr;
+#endif
     }
 
     // Needs to be called by the application
     void render() {
+#if 0
         _texture->Bind(oglplus::TextureTarget::_2D);
         _program->Use();
         _vertexArray->Bind();
         for (uint32_t j = 0; j < numLetters; j++) {
             glDrawArrays(GL_TRIANGLE_STRIP, j * 4, 4);
         }
+#endif
     }
 };
