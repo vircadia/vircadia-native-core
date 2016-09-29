@@ -1,0 +1,75 @@
+// glsl / C++ compatible source as interface for Light
+#ifndef LightVolume_Shared_slh
+#define LightVolume_Shared_slh
+
+//  Light.shared.slh
+//  libraries/model/src/model
+//
+//  Created by Sam Gateau on 14/9/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+#define LightVolumeConstRef LightVolume
+
+struct LightVolume {
+    vec3 position;
+    float radius;
+    vec3 direction;
+    float spotCos;
+};
+
+bool lightVolume_isPoint(LightVolumeConstRef lv) { return bool(lv.spotCos < 0.f); }
+bool lightVolume_isSpot(LightVolumeConstRef lv) { return bool(lv.spotCos >= 0.f); }
+
+vec3 lightVolume_getPosition(LightVolumeConstRef lv) { return lv.position; }
+float lightVolume_getRadius(LightVolumeConstRef lv) { return lv.radius; }
+float lightVolume_getRadiusSquare(LightVolumeConstRef lv) { return lv.radius * lv.radius; }
+vec3 lightVolume_getDirection(LightVolumeConstRef lv) { return lv.direction; } // direction is -Z axis
+
+float lightVolume_getSpotAngleCos(LightVolumeConstRef lv) { return lv.spotCos; }
+vec2 lightVolume_getSpotOutsideNormal2(LightVolumeConstRef lv) { return vec2(-sqrt(1.0 - lv.spotCos * lv.spotCos), lv.spotCos); }
+
+
+bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, vec4 fragLightVecLen2) {
+    fragLightVecLen2 = vec4(lightVolume_getPosition(lv) - fragPos.xyz, 1.0f);
+    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+
+    // Kill if too far from the light center
+    if (fragLightVecLen2.w > lightVolume_getRadiusSquare(lv)) {
+        return false;
+    }
+    return true;
+}
+
+bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, vec4 fragLightVecLen2, vec4 fragLightDirLen, float cosSpotAngle) {
+    fragLightVecLen2 = vec4(lightVolume_getPosition(lv) - fragPos.xyz, 1.0f);
+    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
+
+    // Kill if too far from the light center
+    if (fragLightVecLen2.w > lightVolume_getRadiusSquare(lv)) {
+        return false;
+    }
+
+    // Allright we re valid in the volume
+    fragLightDirLen.w = length(fragLightVecLen2.xyz);
+    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+
+    // Kill if not in the spot light (ah ah !)
+    cosSpotAngle = max(-dot(fragLightDirLen.xyz, lightVolume_getDirection(lv)), 0.0);
+    if (cosSpotAngle < lightVolume_getSpotAngleCos(lv)) {
+        return false;
+    }
+
+    return true;
+}
+
+#endif
+
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !>

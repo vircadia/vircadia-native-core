@@ -1,0 +1,39 @@
+// glsl / C++ compatible source as interface for Light
+#ifndef LightIrradiance_Shared_slh
+#define LightIrradiance_Shared_slh
+
+//
+//  Created by Sam Gateau on 14/9/2016.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+#define LightIrradianceConstRef LightIrradiance
+
+struct LightIrradiance {
+    vec3 color;
+    float intensity;
+    float falloffRadius;
+    float falloffSpot;
+    float spare1;
+    float spare2;
+};
+
+
+vec3 lightIrradiance_getColor(LightIrradianceConstRef li) { return li.color; }
+float lightIrradiance_getIntensity(LightIrradianceConstRef li) { return li.intensity; }
+vec3 lightIrradiance_getIrradiance(LightIrradianceConstRef li) { return li.color * li.intensity; }
+float lightIrradiance_getFalloffRadius(LightIrradianceConstRef li) { return li.falloffRadius; }
+float lightIrradiance_getFalloffRadiusSquare(LightIrradianceConstRef li) { return li.falloffRadius * li.falloffRadius; }
+float lightIrradiance_getFalloffSpot(LightIrradianceConstRef li) { return li.falloffSpot; }
+
+
+#endif
+
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !>
