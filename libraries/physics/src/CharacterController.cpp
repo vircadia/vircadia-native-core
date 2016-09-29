@@ -230,6 +230,7 @@ const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
+        _followTimeAccumulator += dt;
         // linear part uses a motor
         const float MAX_WALKING_SPEED = 30.5f; // TODO: scale this stuff with avatar size
         const float MAX_WALKING_SPEED_DISTANCE = 1.0f;
@@ -243,22 +244,28 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         const float MIN_DELTA_DISTANCE = 0.01f; // TODO: scale by avatar size but cap at (NORMAL_WALKING_SPEED * FEW_SUBSTEPS)
         if (deltaDistance > MIN_DELTA_DISTANCE) {
             btVector3 vel = deltaPos;
-            if (deltaDistance > MAX_WALKING_SPEED_DISTANCE) {
-                // cap max speed
-                vel *= MAX_WALKING_SPEED / deltaDistance;
-            } else if (deltaDistance > NORMAL_WALKING_SPEED_DISTANCE) {
-                // linearly interpolate to NORMAL_WALKING_SPEED
-                btScalar alpha = (deltaDistance - NORMAL_WALKING_SPEED_DISTANCE) / (MAX_WALKING_SPEED_DISTANCE - NORMAL_WALKING_SPEED_DISTANCE);
-                vel *= NORMAL_WALKING_SPEED * (1.0f - alpha) + MAX_WALKING_SPEED * alpha;
+            if (_state == State::Hover) {
+                btScalar HOVER_FOLLOW_VELOCITY_TIMESCALE = 0.1f;
+                vel /= HOVER_FOLLOW_VELOCITY_TIMESCALE;
             } else {
-                // use exponential decay but cap at NORMAL_WALKING_SPEED
-                vel /= FEW_SUBSTEPS;
-                btScalar speed = vel.length();
-                if (speed > NORMAL_WALKING_SPEED) {
-                    vel *= NORMAL_WALKING_SPEED / speed;
+                if (deltaDistance > MAX_WALKING_SPEED_DISTANCE) {
+                    // cap max speed
+                    vel *= MAX_WALKING_SPEED / deltaDistance;
+                } else if (deltaDistance > NORMAL_WALKING_SPEED_DISTANCE) {
+                    // linearly interpolate to NORMAL_WALKING_SPEED
+                    btScalar alpha = (deltaDistance - NORMAL_WALKING_SPEED_DISTANCE) / (MAX_WALKING_SPEED_DISTANCE - NORMAL_WALKING_SPEED_DISTANCE);
+                    vel *= NORMAL_WALKING_SPEED * (1.0f - alpha) + MAX_WALKING_SPEED * alpha;
+                } else {
+                    // use exponential decay but cap at NORMAL_WALKING_SPEED
+                    vel /= FEW_SUBSTEPS;
+                    btScalar speed = vel.length();
+                    if (speed > NORMAL_WALKING_SPEED) {
+                        vel *= NORMAL_WALKING_SPEED / speed;
+                    }
                 }
             }
-            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.1f;
+            vel += _followVelocity;
+            const float HORIZONTAL_FOLLOW_TIMESCALE = 0.05f;
             const float VERTICAL_FOLLOW_TIMESCALE = (_state == State::Hover) ? HORIZONTAL_FOLLOW_TIMESCALE : 20.0f;
             glm::quat worldFrameRotation; // identity
             vel.setY(0.0f);  // don't allow any vertical component of the follow velocity to enter the _targetVelocity.
@@ -453,7 +460,29 @@ void CharacterController::setParentVelocity(const glm::vec3& velocity) {
 
 void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix) {
     _followDesiredBodyTransform = glmToBullet(desiredWorldBodyMatrix) * btTransform(btQuaternion::getIdentity(), glmToBullet(_shapeLocalOffset));
-    _following = true;
+    if (!_following) {
+        _following = true;
+        _followVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    } else if (_followTimeAccumulator > 0.0f) {
+        btVector3 newFollowVelocity = (_followDesiredBodyTransform.getOrigin() - _previousFollowPosition) / _followTimeAccumulator;
+        const float dontDivideByZero = 0.001f;
+        float newSpeed = newFollowVelocity.length() + dontDivideByZero;
+        float oldSpeed = _followVelocity.length();
+        const float VERY_SLOW_HOVER_SPEED = 0.25f;
+        const FAST_CHANGE_SPEED_RATIO = 100.0f;
+        if (oldSpeed / newSpeed > FAST_CHANGE_SPEED_RATIO && newSpeed < VERY_SLOW_HOVER_SPEED) {
+            // avatar is stopping quickly
+            // HACK: slam _followVelocity and _rigidBody velocity immediately
+            _followVelocity = newFollowVelocity;
+            _rigidBody->setLinearVelocity(_followVelocity);
+        } else {
+            // use simple blending to filter noise from the velocity measurement
+            const float blend = 0.2f;
+            _followVelocity = (1.0f - blend) * _followVelocity + blend * newFollowVelocity;
+        }
+    }
+    _previousFollowPosition = _followDesiredBodyTransform.getOrigin();
+    _followTimeAccumulator = 0.0f;
 }
 
 glm::vec3 CharacterController::getLinearVelocity() const {
