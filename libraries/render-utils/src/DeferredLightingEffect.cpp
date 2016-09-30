@@ -45,6 +45,7 @@ struct LightLocations {
     int radius{ -1 };
     int ambientSphere{ -1 };
     int lightBufferUnit{ -1 };
+    int ambientBufferUnit { -1 };
     int lightIndexBufferUnit { -1 };
     int texcoordFrameTransform{ -1 };
     int deferredFrameTransformBuffer{ -1 };
@@ -72,6 +73,7 @@ enum DeferredShader_BufferSlot {
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_AMBIENT_SLOT,
     LIGHT_INDEX_GPU_SLOT,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
@@ -182,12 +184,15 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     }
 }
 
-void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit) {
+void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     auto keyLight = _allocatedLights[_globalLights.front()];
 
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
+    }
+    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+        batch.setUniformBuffer(ambientBufferUnit, keyLight->getAmbientSchemaBuffer());
     }
 
     if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
@@ -221,6 +226,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), LIGHT_AMBIENT_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
 
 
@@ -236,6 +242,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->ambientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
     locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
@@ -640,7 +647,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         { // Setup the global lighting
-            deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
+            deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
         }
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);

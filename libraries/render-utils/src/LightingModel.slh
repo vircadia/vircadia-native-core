@@ -104,13 +104,17 @@ vec2 skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
 
 vec3 fresnelSchlickColor(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
     float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
-    float exponential = pow(base, 5.0);
+    //float exponential = pow(base, 5.0);
+    float base2 = base * base;
+    float exponential = base * base2 * base2;
     return vec3(exponential) + fresnelColor * (1.0 - exponential);
 }
 
 float fresnelSchlickScalar(float fresnelScalar, vec3 lightDir, vec3 halfDir) {
     float base = 1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0);
-    float exponential = pow(base, 5.0);
+    //float exponential = pow(base, 5.0);
+    float base2 = base * base;
+    float exponential = base * base2 * base2;
     return (exponential) + fresnelScalar * (1.0 - exponential);
 }
 

@@ -56,7 +56,7 @@ public:
         float intensity = 0.5f, float falloffRadius = 0.01f,
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
 
-    void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
+    void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
     void setGlobalLight(const model::LightPointer& light);
