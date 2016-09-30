@@ -87,7 +87,7 @@ public:
         AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
             _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
 
-        void start() { open(QIODevice::ReadOnly); }
+        void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
         void stop() { close(); }
         qint64 readData(char * data, qint64 maxSize) override;
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
