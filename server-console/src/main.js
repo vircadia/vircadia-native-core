@@ -408,6 +408,13 @@ var labels = {
             logWindow.open();
         }
     },
+    restoreBackup: {
+        label: 'Restore Backup Instructions',
+        click: function() {
+            var folder = getRootHifiDataDirectory() + "/Server Backup";
+            openBackupInstructions(folder);
+        }
+    },
     share: {
         label: 'Share',
         click: function() {
@@ -443,6 +450,7 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
         menuArray.push(labels.viewLogs);
+        menuArray.push(labels.restoreBackup);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -488,27 +496,60 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
-function deleteResourceDirectories() {
-    const dsResourceDirectory = getDomainServerClientResourcesDirectory();
+function backupResourceDirectories(folder) {
     try {
-        fs.removeSync(dsResourceDirectory);
-        console.log("Deleted directory " + dsResourceDirectory);
+        fs.mkdirSync(folder);
+        console.log("Created directory " + folder);
+
+        var dsBackup = path.join(folder, '/domain-server');
+        var acBackup = path.join(folder, '/assignment-client');
+
+        fs.copySync(getDomainServerClientResourcesDirectory(), dsBackup);
+        fs.copySync(getAssignmentClientResourcesDirectory(), acBackup);
+
+        fs.removeSync(getDomainServerClientResourcesDirectory());
+        fs.removeSync(getAssignmentClientResourcesDirectory());
+
+        return true;
     } catch (e) {
         console.log(e);
-    }
-    const acResourceDirectory = getAssignmentClientResourcesDirectory();
-    try {
-        fs.removeSync(acResourceDirectory);
-        console.log("Deleted directory " + acResourceDirectory);
-    } catch (e) {
-        console.log(e);
+        return false;
     }
 }
 
-function deleteResourceDirectoriesAndRestart() {
+function openBackupInstructions(folder) {
+    // Explain user how to restore server
+    var window = new BrowserWindow({
+        icon: appIcon,
+        width: 800,
+        height: 520,
+    });
+    window.loadURL('file://' + __dirname + '/content-update.html');
+    if (!debug) {
+        window.setMenu(null);
+    }
+    window.show();
+
+    electron.ipcMain.on('ready', function() {
+        console.log("got ready");
+        window.webContents.send('update', folder);
+    });
+}
+function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
-    deleteResourceDirectories();
-    maybeInstallDefaultContentSet(onContentLoaded);
+
+    var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
+    if (backupResourceDirectories(folder)) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+        openBackupInstructions(folder);
+    } else {
+        dialog.showMessageBox({
+            type: 'warning',
+            buttons: ['Ok'],
+            title: 'Update Error',
+            message: 'There was an error updating the content, aborting.'
+        }, function() {});
+    }
 }
 
 function checkNewContent() {
@@ -537,16 +578,7 @@ function checkNewContent() {
                   message: 'A newer version of the home content set is available.\nDo you wish to update?'
               }, function(idx) {
                 if (idx === 0) {
-                  dialog.showMessageBox({
-                      type: 'question',
-                      buttons: ['Yes', 'No'],
-                      title: 'Are you sure?',
-                      message: 'This action will delete your current sandbox content.\nDo you wish to continue?'
-                  }, function(idx) {
-                    if (idx === 0 && homeServer) {
-                        deleteResourceDirectoriesAndRestart();
-                    }
-                  });
+                  backupResourceDirectoriesAndRestart();
                 } else {
                   // They don't want to update, mark content set as current
                   userConfig.set('homeContentLastModified', new Date());

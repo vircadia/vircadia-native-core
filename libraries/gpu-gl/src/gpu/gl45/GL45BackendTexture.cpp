@@ -18,42 +18,12 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
-#include <QtCore/QProcessEnvironment>
 
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
-
-
-#ifdef Q_OS_WIN
-#define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
-static const QString DEBUG_FLAG_INCREMENTAL("HIFI_DISABLE_INCREMENTAL_TEXTURES");
-static const QString DEBUG_FLAG_SPARSE("HIFI_DISABLE_SPARSE_TEXTURES");
-
-static const bool enableIncrementalTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES) &&
-    !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_INCREMENTAL);
-
-static const bool enableSparseTextures = enableIncrementalTextures && 
-    !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_SPARSE);
-
-class TextureTransferDebug {
-public:
-    TextureTransferDebug() {
-        qDebug() << "[TEXTURE TRANSFER SUPPORT]"
-            << "\n\tHIFI_DISABLE_INCREMENTAL_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_INCREMENTAL)
-            << "\n\tHIFI_DISABLE_SPARSE_TEXTURES:" << QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG_SPARSE)
-            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-            << "\n\tenableSparseTextures:" << enableSparseTextures
-            << "\n\tenableIncrementalTextures:" << enableSparseTextures;
-    }
-};
-TextureTransferDebug sparseTextureDebugInfo;
-#else
-static bool enableSparseTextures = false;
-static bool enableIncrementalTextures = false;
-#endif
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
@@ -276,7 +246,7 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    if (enableSparseTextures && _transferrable) {
+    if (_transferrable && Texture::getEnableSparseTextures()) {
         _sparseInfo.maybeMakeSparse();
     }
 }
@@ -375,7 +345,7 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
-    if (!enableIncrementalTextures) {
+    if (!Texture::getEnableIncrementalTextureTransfers()) {
         size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
         for (uint8_t face = 0; face < maxFace; ++face) {
             for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {

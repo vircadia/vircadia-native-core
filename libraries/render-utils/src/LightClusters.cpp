@@ -419,7 +419,7 @@ void LightClusters::updateClusters() {
 
         // Check for overflow
         if (checkBudget) {
-            if (indexOffset + numLights > maxNumIndices) {
+            if ((indexOffset + numLights) > (uint16_t) maxNumIndices) {
                 break;
             }
         }
