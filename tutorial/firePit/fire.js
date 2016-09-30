@@ -75,7 +75,7 @@
                         _this.playSoundAtCurrentPosition();
                         _this.explodeWithColor();
                         Entities.deleteEntity(otherID)
-                        Messages.sendMessage('Entity-Exploded', JSON.stringify({
+                        Messages.sendLocalMessage('Entity-Exploded', JSON.stringify({
                             entityID: otherID,
                         }));
                     }
