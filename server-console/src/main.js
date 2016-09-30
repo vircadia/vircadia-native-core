@@ -501,16 +501,15 @@ function backupResourceDirectories(folder) {
         fs.mkdirSync(folder);
         console.log("Created directory " + folder);
 
-
         var dsBackup = path.join(folder, '/domain-server');
-        fs.renameSync(getDomainServerClientResourcesDirectory(), dsBackup);
-        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
-        console.log("to " + dsBackup);
-
         var acBackup = path.join(folder, '/assignment-client');
-        fs.renameSync(getAssignmentClientResourcesDirectory(), acBackup);
-        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
-        console.log("to " + acBackup);
+
+        fs.copySync(getDomainServerClientResourcesDirectory(), dsBackup);
+        fs.copySync(getAssignmentClientResourcesDirectory(), acBackup);
+
+        fs.removeSync(getDomainServerClientResourcesDirectory());
+        fs.removeSync(getAssignmentClientResourcesDirectory());
+
         return true;
     } catch (e) {
         console.log(e);
@@ -519,23 +518,22 @@ function backupResourceDirectories(folder) {
 }
 
 function openBackupInstructions(folder) {
-  // Explain user how to restore server
-  var window = new BrowserWindow({
-      icon: appIcon,
-      width: 800,
-      height: 520,
-  });
-  window.loadURL('file://' + __dirname + '/content-update.html');
-  if (!debug) {
-      window.setMenu(null);
-  }
-  window.show();
+    // Explain user how to restore server
+    var window = new BrowserWindow({
+        icon: appIcon,
+        width: 800,
+        height: 520,
+    });
+    window.loadURL('file://' + __dirname + '/content-update.html');
+    if (!debug) {
+        window.setMenu(null);
+    }
+    window.show();
 
-  electron.ipcMain.on('ready', function() {
-      console.log("got ready");
-      window.webContents.send('update', folder);
-  });
-
+    electron.ipcMain.on('ready', function() {
+        console.log("got ready");
+        window.webContents.send('update', folder);
+    });
 }
 function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
