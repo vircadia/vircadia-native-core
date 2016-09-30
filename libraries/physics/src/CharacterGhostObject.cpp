@@ -242,51 +242,30 @@ bool CharacterGhostObject::sweepTest(
     return false;
 }
 
-void CharacterGhostObject::removeFromWorld() {
-    if (_world && _inWorld) {
-        _world->removeCollisionObject(this);
-        _inWorld = false;
-    }
+void CharacterGhostObject::queryPenetration(const btTransform& transform, btVector3& minBoxOut, btVector3& maxBoxOut) {
+    // place in world and refresh overlapping pairs
+    setWorldTransform(transform);
+    measurePenetration(minBoxOut, maxBoxOut);
 }
 
-void CharacterGhostObject::addToWorld() {
-    if (_world && !_inWorld) {
-        assert(getCollisionShape());
-        setCollisionFlags(getCollisionFlags() | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-        //assert(getBroadphaseHandle());
-        //int16_t group = getBroadphaseHandle()->m_collisionFilterGroup;
-        //int16_t mask = getBroadphaseHandle()->m_collisionFilterMask;
-        _world->addCollisionObject(this, _collisionFilterGroup, _collisionFilterMask);
-        _inWorld = true;
-    }
-}
+void CharacterGhostObject::measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut) {
+    // minBoxOut and maxBoxOut will be updated with penetration envelope.
+    // If one of the points is at <0,0,0> then the penetration may be resolvable in a single step,
+    // but if the space spanned by those two corners extends in both directions along at least one
+    // component then this object is sandwiched between two opposing objects.
 
-bool CharacterGhostObject::rayTest(const btVector3& start,
-        const btVector3& end,
-        CharacterRayResult& result) const {
-    if (_world && _inWorld) {
-        _world->rayTest(start, end, result);
-    }
-    return result.hasHit();
-}
-
-bool CharacterGhostObject::resolvePenetration(int numTries) {
-    assert(_world);
-    // We refresh the overlapping pairCache because any previous movement may have pushed us
-    // into an overlap that was not in the cache.
+    // We assume this object has just been moved to its current location, or else objects have been
+    // moved around it since the last step so we must update the overlapping pairs.
     refreshOverlappingPairCache();
 
     // compute collision details
     btHashedOverlappingPairCache* pairCache = getOverlappingPairCache();
     _world->getDispatcher()->dispatchAllCollisionPairs(pairCache, _world->getDispatchInfo(), _world->getDispatcher());
 
-    // loop over contact manifolds
-    btTransform transform = getWorldTransform();
-    btVector3 position = transform.getOrigin();
-    btVector3 minBox =btVector3(0.0f, 0.0f, 0.0f);
-    btVector3 maxBox = btVector3(0.0f, 0.0f, 0.0f);
+    // loop over contact manifolds to compute the penetration box
+    minBoxOut = btVector3(0.0f, 0.0f, 0.0f);
+    maxBoxOut = btVector3(0.0f, 0.0f, 0.0f);
     btManifoldArray manifoldArray;
-    const btScalar PENETRATION_RESOLUTION_FUDGE_FACTOR = 0.0001f; // speeds up resolvation
 
     int numPairs = pairCache->getNumOverlappingPairs();
     for (int i = 0; i < numPairs; i++) {
@@ -337,16 +316,46 @@ bool CharacterGhostObject::resolvePenetration(int numTries) {
                     }
                 }
 
-                btVector3 penetration = (-penetrationDepth + PENETRATION_RESOLUTION_FUDGE_FACTOR) * normal;
-                minBox.setMin(penetration);
-                maxBox.setMax(penetration);
+                btVector3 penetration = (-penetrationDepth) * normal;
+                minBoxOut.setMin(penetration);
+                maxBoxOut.setMax(penetration);
             }
         }
     }
+}
 
+void CharacterGhostObject::removeFromWorld() {
+    if (_world && _inWorld) {
+        _world->removeCollisionObject(this);
+        _inWorld = false;
+    }
+}
+
+void CharacterGhostObject::addToWorld() {
+    if (_world && !_inWorld) {
+        assert(getCollisionShape());
+        setCollisionFlags(getCollisionFlags() | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        _world->addCollisionObject(this, _collisionFilterGroup, _collisionFilterMask);
+        _inWorld = true;
+    }
+}
+
+bool CharacterGhostObject::rayTest(const btVector3& start,
+        const btVector3& end,
+        CharacterRayResult& result) const {
+    if (_world && _inWorld) {
+        _world->rayTest(start, end, result);
+    }
+    return result.hasHit();
+}
+
+bool CharacterGhostObject::resolvePenetration(int numTries) {
+    btVector3 minBox, maxBox;
+    measurePenetration(minBox, maxBox);
     btVector3 restore = maxBox + minBox;
     if (restore.length2() > 0.0f) {
-        transform.setOrigin(position + restore);
+        btTransform transform = getWorldTransform();
+        transform.setOrigin(transform.getOrigin() + restore);
         setWorldTransform(transform);
         return false;
     }

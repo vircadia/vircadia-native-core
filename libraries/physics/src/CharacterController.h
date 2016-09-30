@@ -119,6 +119,8 @@ public:
     float measureMaxHipsOffsetRadius(const glm::vec3& currentHipsOffset, float maxSweepDistance);
     void setMoveKinematically(bool kinematic); // KINEMATIC_CONTROLLER_HACK
 
+    bool queryPenetration(const btTransform& transform);
+
 protected:
 #ifdef DEBUG_STATE_CHANGE
     void setState(State state, const char* reason);

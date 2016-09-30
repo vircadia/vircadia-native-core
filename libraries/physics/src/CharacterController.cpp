@@ -857,3 +857,13 @@ void CharacterController::setMoveKinematically(bool kinematic) {
         _ghost.setMotorOnly(!_moveKinematically);
     }
 }
+
+bool CharacterController::queryPenetration(const btTransform& transform) {
+    btVector3 minBox;
+    btVector3 maxBox;
+    _ghost.queryPenetration(transform, minBox, maxBox);
+    btVector3 penetration = maxBox;
+    penetration.setMax(minBox.absolute());
+    const btScalar MIN_PENETRATION_SQUARED = 0.0016f; // 0.04^2
+    return penetration.length2() > MIN_PENETRATION_SQUARED;
+}
