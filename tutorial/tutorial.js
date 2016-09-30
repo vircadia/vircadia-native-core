@@ -11,7 +11,7 @@
 Script.include("entityData.js");
 Script.include("viveHandsv2.js");
 Script.include("lighter/createButaneLighter.js");
-Script.include('ownershipToken.js');
+Script.include("tutorialEntityIDs.js");
 
 if (!Function.prototype.bind) {
   Function.prototype.bind = function(oThis) {
@@ -57,9 +57,6 @@ function info() {
 
 var NEAR_BOX_SPAWN_NAME = "tutorial/nearGrab/box_spawn";
 var FAR_BOX_SPAWN_NAME = "tutorial/farGrab/box_spawn";
-var NEAR_BASKET_COLLIDER_NAME = "tutorial/nearGrab/basket_collider";
-var FAR_BASKET_COLLIDER_NAME = "tutorial/farGrab/basket_collider";
-var GUN_BASKET_COLLIDER_NAME = "tutorial/equip/basket_collider";
 var GUN_SPAWN_NAME = "tutorial/gun_spawn";
 var TELEPORT_PAD_NAME = "tutorial/teleport/pad"
 
@@ -218,19 +215,6 @@ function isFunction(functionToCheck) {
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
 }
 
-        var defaultTransform = {
-            position: {
-                x: 0.2459,
-                y: 0.9011,
-                z: 0.7266
-            },
-            rotation: {
-                x: 0,
-                y: 0,
-                z: 0,
-                w: 1
-            }
-        };
 function playSuccessSound() {
     Audio.playSound(successSound, {
         position: MyAvatar.position,
@@ -393,20 +377,6 @@ stepOrient.prototype = {
 
         var tag = this.tag;
 
-        var defaultTransform = {
-            position: {
-                x: 0.2459,
-                y: 0.9011,
-                z: 0.7266
-            },
-            rotation: {
-                x: 0,
-                y: 0,
-                z: 0,
-                w: 1
-            }
-        };
-
         // Spawn content set
         debug("raise hands...", this.tag);
         editEntitiesWithTag(this.tag, { visible: true });
@@ -428,7 +398,6 @@ stepOrient.prototype = {
     },
     cleanup: function() {
         if (this.active) {
-            //location = "/tutorial";
             this.active = false;
         }
         if (this.overlay) {
@@ -462,20 +431,6 @@ stepRaiseAboveHead.prototype = {
         var STATE_HANDS_DOWN = 1;
         var STATE_HANDS_UP = 2;
         this.state = STATE_START;
-
-        var defaultTransform = {
-            position: {
-                x: 0.2459,
-                y: 0.9011,
-                z: 0.7266
-            },
-            rotation: {
-                x: 0,
-                y: 0,
-                z: 0,
-                w: 1
-            }
-        };
 
         debug("raise hands...", this.tag);
         editEntitiesWithTag(this.tag, { visible: true });
@@ -554,16 +509,11 @@ stepNearGrab.prototype = {
             return spawnWithTag([birdFirework1], null, this.tempTag)[0];
         }
 
-        // Enabled grab
-        // Create table ?
-        // Create blocks and basket
         this.birdIDs = [];
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
         this.birdIDs.push(createBlock.bind(this)());
         this.positionWatcher = new PositionWatcher(this.birdIDs, boxSpawnPosition, -0.4, 4);
-
-        // If block gets too far away or hasn't been touched for X seconds, create a new block and destroy the old block
     },
     onMessage: function(channel, message, seneder) {
         if (this.finished) {
@@ -997,6 +947,29 @@ stepCleanupFinish.prototype = {
 
 
 function showEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            var collisionless = data.visible === false ? true : false;
+            if (data.collidable !== undefined) {
+                collisionless = data.collidable === true ? false : true;
+            }
+            if (data.soundKey) {
+                data.soundKey.playing = true;
+            }
+            var newProperties = {
+                visible: data.visible == false ? false : true,
+                collisionless: collisionless,
+                userData: JSON.stringify(data),
+            };
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
+    // Dynamic method, suppressed for now
+    return;
     editEntitiesWithTag(tag, function(entityID) {
         var userData = Entities.getEntityProperties(entityID, "userData").userData;
         var data = parseJSON(userData);
@@ -1005,7 +978,6 @@ function showEntitiesWithTag(tag) {
             collisionless = data.collidable === true ? false : true;
         }
         if (data.soundKey) {
-            debug("Setting sound key to true");
             data.soundKey.playing = true;
         }
         var newProperties = {
@@ -1017,6 +989,26 @@ function showEntitiesWithTag(tag) {
     });
 }
 function hideEntitiesWithTag(tag) {
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+    if (entities) {
+        for (entityID in entities) {
+            var data = entities[entityID];
+
+            if (data.soundKey) {
+                data.soundKey.playing = false;
+            }
+            var newProperties = {
+                visible: false,
+                collisionless: 1,
+                ignoreForCollisions: 1,
+                userData: JSON.stringify(data),
+            };
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
+    // Dynamic method, suppressed for now
+    return;
     editEntitiesWithTag(tag, function(entityID) {
         var userData = Entities.getEntityProperties(entityID, "userData").userData;
         var data = parseJSON(userData);
@@ -1049,10 +1041,8 @@ TutorialManager = function() {
         currentStep = null;
         startedTutorialAt = Date.now();
         STEPS = [
-            //new stepCleanupFinish("finish");
             new stepDisableControllers("step0"),
             new stepOrient("orient"),
-            //new stepWelcome("welcome"),
             new stepRaiseAboveHead("raiseHands"),
             new stepNearGrab("nearGrab"),
             new stepFarGrab("farGrab"),
@@ -1101,6 +1091,7 @@ TutorialManager = function() {
             return true;
         }
     }.bind(this);
+
     this.restartStep = function() {
         if (currentStep) {
             currentStep.cleanup();
