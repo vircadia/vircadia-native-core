@@ -17,12 +17,23 @@ createControllerDisplay = function(config) {
         },
         mappingName: "mapping-display",
 
+        setVisible: function(visible) {
+            print("CONTROLLER_DISPLAY::Setting visible", this.overlays.length);
+            for (var i = 0; i < this.overlays.length; ++i) {
+                print("i", i, this.overlays[i]);
+                Overlays.editOverlay(this.overlays[i], {
+                    visible: visible
+                });
+            }
+        },
+
         setPartVisible: function(partName, visible) {
+            return;
             if (partName in this.partOverlays) {
                 debug("Setting part visible", partName, visible);
                 for (var i = 0; i < this.partOverlays[partName].length; ++i) {
                     Overlays.editOverlay(this.partOverlays[partName][i], {
-                        visible: visible 
+                        //visible: visible
                     });
                 }
             }

@@ -43,7 +43,7 @@ var viveNaturalPosition = {
 var viveModelURL = "atp:/controller/vive_body.fbx";
 var viveTipsModelURL = "atp:/controller/vive_tips.fbx"
 
-VIVE_CONTROLLER_CONFIGURATION = {
+VIVE_CONTROLLER_CONFIGURATION_LEFT = {
     name: "Vive",
     controllers: [
         {
@@ -154,10 +154,14 @@ VIVE_CONTROLLER_CONFIGURATION = {
                 },
             },
         },
+    ]
+};
 
 
 
-
+VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
+    name: "Vive Right",
+    controllers: [
         {
             modelURL: viveModelURL,
             jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
@@ -273,5 +277,5 @@ VIVE_CONTROLLER_CONFIGURATION = {
             },
         }
     ]
-}
+};
 
