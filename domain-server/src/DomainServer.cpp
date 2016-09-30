@@ -1749,7 +1749,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 _ephemeralACScripts[scriptAssignment->getUUID()] = formData[0].second;
 
-                // add the script assigment to the assignment queue
+                // add the script assignment to the assignment queue
                 SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
                 _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
                 _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
