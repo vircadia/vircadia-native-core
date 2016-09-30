@@ -47,10 +47,21 @@ function setUpKeyboardControl() {
         }
     }
 
+    function documentBlur() {
+        // Action any pending Lower keyboard event immediately upon leaving document window so that they don't interfere with
+        // other Entities Editor tab.
+        if (lowerTimer !== null) {
+            clearTimeout(lowerTimer);
+            doLowerKeyboard();
+        }
+    }
+
     var inputs = document.querySelectorAll("input[type=text], input[type=number], textarea");
     for (var i = 0, length = inputs.length; i < length; i++) {
         inputs[i].addEventListener("focus", raiseKeyboard);
         inputs[i].addEventListener("blur", lowerKeyboard);
     }
+
+    window.addEventListener("blur", documentBlur);
 }
 
