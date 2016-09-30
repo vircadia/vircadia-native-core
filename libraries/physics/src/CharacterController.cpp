@@ -11,8 +11,6 @@
 
 #include "CharacterController.h"
 
-//#include <BulletCollision/BroadphaseCollision/btBroadphaseProxy.h>
-
 #include <NumericalConstants.h>
 
 #include "ObjectMotionState.h"
@@ -487,10 +485,21 @@ void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyM
         const float dontDivideByZero = 0.001f;
         float newSpeed = newFollowVelocity.length() + dontDivideByZero;
         float oldSpeed = _followVelocity.length();
+
+        bool successfulSnap = false;
+        btVector3 offset = _followDesiredBodyTransform.getOrigin() - _position;
+        const btScalar MAX_FOLLOW_OFFSET = 10.0f * _radius;
+        if (offset.length() > MAX_FOLLOW_OFFSET) {
+            successfulSnap = queryPenetration(_followDesiredBodyTransform);
+            if (successfulSnap) {
+                _position = _followDesiredBodyTransform.getOrigin();
+            }
+        }
+
         const float VERY_SLOW_HOVER_SPEED = 0.25f;
         const float FAST_CHANGE_SPEED_RATIO = 100.0f;
-        if (oldSpeed / newSpeed > FAST_CHANGE_SPEED_RATIO && newSpeed < VERY_SLOW_HOVER_SPEED) {
-            // avatar is stopping quickly
+        if (successfulSnap || (oldSpeed / newSpeed > FAST_CHANGE_SPEED_RATIO && newSpeed < VERY_SLOW_HOVER_SPEED)) {
+            // character is snapping to avatar position or avatar is stopping quickly
             // HACK: slam _followVelocity and _rigidBody velocity immediately
             _followVelocity = newFollowVelocity;
             _rigidBody->setLinearVelocity(_followVelocity);
@@ -865,5 +874,5 @@ bool CharacterController::queryPenetration(const btTransform& transform) {
     btVector3 penetration = maxBox;
     penetration.setMax(minBox.absolute());
     const btScalar MIN_PENETRATION_SQUARED = 0.0016f; // 0.04^2
-    return penetration.length2() > MIN_PENETRATION_SQUARED;
+    return penetration.length2() < MIN_PENETRATION_SQUARED;
 }
