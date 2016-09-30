@@ -14,21 +14,39 @@
 #define LightIrradianceConstRef LightIrradiance
 
 struct LightIrradiance {
-    vec3 color;
-    float intensity;
-    float falloffRadius;
-    float falloffSpot;
-    float spare1;
-    float spare2;
+    vec4 colorIntensity;
+    // falloffRadius, cutoffRadius, falloffSpot, spare
+    vec4 attenuation;
 };
 
 
-vec3 lightIrradiance_getColor(LightIrradianceConstRef li) { return li.color; }
-float lightIrradiance_getIntensity(LightIrradianceConstRef li) { return li.intensity; }
-vec3 lightIrradiance_getIrradiance(LightIrradianceConstRef li) { return li.color * li.intensity; }
-float lightIrradiance_getFalloffRadius(LightIrradianceConstRef li) { return li.falloffRadius; }
-float lightIrradiance_getFalloffRadiusSquare(LightIrradianceConstRef li) { return li.falloffRadius * li.falloffRadius; }
-float lightIrradiance_getFalloffSpot(LightIrradianceConstRef li) { return li.falloffSpot; }
+vec3 lightIrradiance_getColor(LightIrradiance li) { return li.colorIntensity.xyz; }
+float lightIrradiance_getIntensity(LightIrradiance li) { return li.colorIntensity.w; }
+vec3 lightIrradiance_getIrradiance(LightIrradiance li) { return li.colorIntensity.xyz * li.colorIntensity.w; }
+float lightIrradiance_getFalloffRadius(LightIrradiance li) { return li.attenuation.x; }
+float lightIrradiance_getCutoffRadius(LightIrradiance li) { return li.attenuation.y; }
+float lightIrradiance_getFalloffSpot(LightIrradiance li) { return li.attenuation.z; }
+
+
+// Light is the light source its self, d is the light's distance calculated as length(unnormalized light vector).
+float lightIrradiance_evalLightAttenuation(LightIrradiance li, float d) {
+    float radius = lightIrradiance_getFalloffRadius(li);
+    float cutoff = lightIrradiance_getCutoffRadius(li);
+    float denom = d / radius + 1.0;
+    float attenuation = 1.0 / (denom * denom);
+
+
+    // "Fade" the edges of light sources to make things look a bit more attractive.
+    // Note: this tends to look a bit odd at lower exponents.
+    attenuation *= min(1, max(0, -(d - cutoff)));
+
+    return attenuation;
+}
+
+
+float lightIrradiance_evalLightSpotAttenuation(LightIrradiance li, float cosA) {
+    return pow(cosA, lightIrradiance_getFalloffSpot(li));
+}
 
 
 #endif

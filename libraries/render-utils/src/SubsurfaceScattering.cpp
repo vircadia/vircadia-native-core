@@ -568,7 +568,7 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
                 batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
                 batch.setUniformBuffer(ScatteringTask_ParamSlot, scatteringResource->getParametersBuffer());
                 if (light) {
-                    batch.setUniformBuffer(ScatteringTask_LightSlot, light->getSchemaBuffer());
+                    batch.setUniformBuffer(ScatteringTask_LightSlot, light->getLightSchemaBuffer());
                 }
                 batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
                 batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));

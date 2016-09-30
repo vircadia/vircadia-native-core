@@ -23,9 +23,10 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     float fragLightDistance = fragLightDirLen.w;
     vec3 fragLightDir = fragLightDirLen.xyz;
 
+
     // Eval attenuation  
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
-    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
+    float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
+    float angularAttenuation = lightIrradiance_evalLightSpotAttenuation(light.irradiance, cosSpotAngle);
     vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow *getLightIrradiance(light);
 
     // Eval shading

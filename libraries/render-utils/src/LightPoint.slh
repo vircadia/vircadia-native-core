@@ -24,7 +24,7 @@ void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
     vec3 fragLightDir = fragLightVec / fragLightDistance;
 
     // Eval attenuation
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
     vec3 lightEnergy = radialAttenuation * shadow * getLightIrradiance(light);
 
     // Eval shading

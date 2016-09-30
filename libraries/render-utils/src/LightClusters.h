@@ -94,7 +94,7 @@ public:
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
     const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
 
-    using LightIndex = uint16_t;
+    using LightIndex = uint32_t;
 
     std::vector<uint32_t> _clusterGrid;
     std::vector<LightIndex> _clusterContent;

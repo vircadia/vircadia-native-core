@@ -187,7 +187,7 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
     auto keyLight = _allocatedLights[_globalLights.front()];
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keyLight->getSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
     }
 
     if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
@@ -727,8 +727,6 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             
             // Bind the global list of lights and the visible lights this frame
             batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightIndexBufferUnit, lightClusters->_lightIndicesBuffer);
-
 
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);

@@ -134,22 +134,22 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {
+    auto lightSize = sizeof(model::Light::LightSchema);
     if (!_lightArrayBuffer) {
         _lightArrayBuffer = std::make_shared<gpu::Buffer>();
     }
 
     assert(checkLightId(lightId));
-    auto lightSize = sizeof(model::Light::Schema);
 
-    if (lightId > (Index) _lightArrayBuffer->getNumTypedElements<model::Light::Schema>()) {
+    if (lightId > (Index)_lightArrayBuffer->getNumTypedElements<model::Light::LightSchema>()) {
         _lightArrayBuffer->resize(lightSize * (lightId + 10));
     }
 
     // lightArray is big enough so we can remap
     auto light = _lights._elements[lightId];
     if (light) {
-        auto lightSchema = light->getSchemaBuffer().get<model::Light::Schema>();
-        _lightArrayBuffer->setSubData<model::Light::Schema>(lightId, lightSchema);
+        const auto& lightSchema = light->getLightSchemaBuffer().get();
+        _lightArrayBuffer->setSubData<model::Light::LightSchema>(lightId, lightSchema);
     } else {
         // this should not happen ?
     }

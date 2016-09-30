@@ -13,22 +13,19 @@
 using namespace model;
 
 Light::Light() {
-    // only if created from nothing shall we create the Buffer to store the properties
-    Schema schema;
-    _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
     updateLightRadius();
 }
 
 Light::Light(const Light& light) :
     _flags(light._flags),
-    _schemaBuffer(light._schemaBuffer),
     _transform(light._transform)
 {
 }
 
 Light& Light::operator= (const Light& light) {
     _flags = (light._flags);
-    _schemaBuffer = (light._schemaBuffer);
+    _lightSchemaBuffer = (light._lightSchemaBuffer);
+    _ambientSchemaBuffer = (light._ambientSchemaBuffer);
     _transform = (light._transform);
 
     return (*this);
@@ -38,15 +35,22 @@ Light::~Light() {
 }
 
 void Light::setType(Type type) {
-    editSchema()._control.x = float(type);
-    updateLightRadius();
+    if (_type != type) {
+        _type = type;
+        if (type != SPOT) {
+            _lightSchemaBuffer.edit().volume.spotCos = -1.f;
+        } else {
+            _lightSchemaBuffer.edit().volume.spotCos = _spotCos;
+        }
+        updateLightRadius();
+    }
     updateVolumeGeometry();
 }
 
 
 void Light::setPosition(const Vec3& position) {
     _transform.setTranslation(position);
-    editSchema()._position = Vec4(position, 1.f);
+    _lightSchemaBuffer.edit().volume.position = position;
 }
 
 void Light::setOrientation(const glm::quat& orientation) {
@@ -55,39 +59,35 @@ void Light::setOrientation(const glm::quat& orientation) {
 }
 
 void Light::setDirection(const Vec3& direction) {
-    editSchema()._direction = glm::normalize(direction);
+    _lightSchemaBuffer.edit().volume.direction = (direction);
 }
 
 const Vec3& Light::getDirection() const {
-    return getSchema()._direction;
+    return _lightSchemaBuffer->volume.direction;
 }
 
 void Light::setColor(const Color& color) {
-    editSchema()._color = color;
+    _lightSchemaBuffer.edit().irradiance.color = color;
     updateLightRadius();
 }
 
 void Light::setIntensity(float intensity) {
-    editSchema()._intensity = intensity;
+    _lightSchemaBuffer.edit().irradiance.intensity = intensity;
     updateLightRadius();
-}
-
-void Light::setAmbientIntensity(float intensity) {
-    editSchema()._ambientIntensity = intensity;
 }
 
 void Light::setFalloffRadius(float radius) {
     if (radius <= 0.0f) {
         radius = 0.1f;
     }
-    editSchema()._attenuation.x = radius;
+    _lightSchemaBuffer.edit().irradiance.falloffRadius = radius;
     updateLightRadius();
 }
 void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
-    editSchema()._attenuation.y = radius;
+    _lightSchemaBuffer.edit().volume.radius = radius;
     updateLightRadius();
     updateVolumeGeometry();
 }
@@ -106,7 +106,7 @@ void Light::updateLightRadius() {
     float cutoffRadius = getFalloffRadius() * ((glm::sqrt(intensity / MIN_CUTOFF_INTENSITY) - 1) - 1);
 
     // If it is less than max radius, store it to buffer to avoid extra shading
-    editSchema()._attenuation.z = std::min(getMaximumRadius(), cutoffRadius);
+    _lightSchemaBuffer.edit().irradiance.cutoffRadius = std::min(getMaximumRadius(), cutoffRadius);
 }
 
 #include <math.h>
@@ -119,12 +119,13 @@ void Light::setSpotAngle(float angle) {
     if (dangle > glm::half_pi<double>()) {
         dangle = glm::half_pi<double>();
     }
-
     auto cosAngle = cos(dangle);
     auto sinAngle = sin(dangle);
-    editSchema()._spot.x = (float) std::abs(cosAngle);
-    editSchema()._spot.y = (float) std::abs(sinAngle);
-    editSchema()._spot.z = (float) angle;
+    _spotCos = (float)std::abs(cosAngle);
+
+    if (isSpot()) {
+        _lightSchemaBuffer.edit().volume.spotCos = _spotCos;
+    }
 
     updateVolumeGeometry();
 }
@@ -133,22 +134,20 @@ void Light::setSpotExponent(float exponent) {
     if (exponent <= 0.f) {
         exponent = 0.0f;
     }
-    editSchema()._spot.w = exponent;
+    _lightSchemaBuffer.edit().irradiance.falloffSpot = exponent;
 }
 
-void Light::setShowContour(float show) {
-    if (show <= 0.f) {
-        show = 0.0f;
-    }
-    editSchema()._control.z = show;
+
+void Light::setAmbientIntensity(float intensity) {
+    _ambientSchemaBuffer.edit().intensity = intensity;
 }
 
 void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
-    editSchema()._ambientSphere = sphere;
+    _ambientSchemaBuffer.edit().ambientSphere = sphere;
 }
 
 void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
-    editSchema()._ambientSphere.assignPreset(preset);
+    _ambientSchemaBuffer.edit().ambientSphere.assignPreset(preset);
 }
 
 void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
@@ -161,17 +160,17 @@ void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
 }
 
 void Light::setAmbientMapNumMips(uint16_t numMips) {
-    editSchema()._ambientMapNumMips = (float)numMips;
+    _ambientSchemaBuffer.edit().mapNumMips = (float)numMips;
 }
 
 void Light::updateVolumeGeometry() {
     // enlarge the scales slightly to account for tesselation
-    const float SCALE_EXPANSION = 0.05f;
+ /*   const float SCALE_EXPANSION = 0.05f;
     glm::vec4 volumeGeometry(0.0f, 0.0f, 0.0f, getMaximumRadius() * (1.0f + SCALE_EXPANSION));
 
     if (getType() == SPOT) {
         const float TANGENT_LENGTH_SCALE = 0.666f;
         volumeGeometry = glm::vec4(getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * getSpotAngle()), volumeGeometry.w);
     }
-    editSchema()._volumeGeometry = volumeGeometry;
+    editSchema()._volumeGeometry = volumeGeometry;*/
 }

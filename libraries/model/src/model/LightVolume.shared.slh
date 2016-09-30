@@ -16,37 +16,33 @@
 #define LightVolumeConstRef LightVolume
 
 struct LightVolume {
-    vec3 position;
-    float radius;
-    vec3 direction;
-    float spotCos;
+    vec4 positionRadius;
+    vec4 directionSpotCos;
 };
 
-bool lightVolume_isPoint(LightVolumeConstRef lv) { return bool(lv.spotCos < 0.f); }
-bool lightVolume_isSpot(LightVolumeConstRef lv) { return bool(lv.spotCos >= 0.f); }
+bool lightVolume_isPoint(LightVolume lv) { return bool(lv.directionSpotCos.w < 0.f); }
+bool lightVolume_isSpot(LightVolume lv) { return bool(lv.directionSpotCos.w >= 0.f); }
 
-vec3 lightVolume_getPosition(LightVolumeConstRef lv) { return lv.position; }
-float lightVolume_getRadius(LightVolumeConstRef lv) { return lv.radius; }
-float lightVolume_getRadiusSquare(LightVolumeConstRef lv) { return lv.radius * lv.radius; }
-vec3 lightVolume_getDirection(LightVolumeConstRef lv) { return lv.direction; } // direction is -Z axis
+vec3 lightVolume_getPosition(LightVolume lv) { return lv.positionRadius.xyz; }
+float lightVolume_getRadius(LightVolume lv) { return lv.positionRadius.w; }
+float lightVolume_getRadiusSquare(LightVolume lv) { return lv.positionRadius.w * lv.positionRadius.w; }
+vec3 lightVolume_getDirection(LightVolume lv) { return lv.directionSpotCos.xyz; } // direction is -Z axis
 
-float lightVolume_getSpotAngleCos(LightVolumeConstRef lv) { return lv.spotCos; }
-vec2 lightVolume_getSpotOutsideNormal2(LightVolumeConstRef lv) { return vec2(-sqrt(1.0 - lv.spotCos * lv.spotCos), lv.spotCos); }
+float lightVolume_getSpotAngleCos(LightVolume lv) { return lv.directionSpotCos.w; }
+vec2 lightVolume_getSpotOutsideNormal2(LightVolume lv) { return vec2(-sqrt(1.0 - lv.directionSpotCos.w * lv.directionSpotCos.w), lv.directionSpotCos.w); }
 
 
-bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, vec4 fragLightVecLen2) {
-    fragLightVecLen2 = vec4(lightVolume_getPosition(lv) - fragPos.xyz, 1.0f);
+bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2) {
+    fragLightVecLen2.xyz = lightVolume_getPosition(lv) - fragPos.xyz;
     fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
 
     // Kill if too far from the light center
-    if (fragLightVecLen2.w > lightVolume_getRadiusSquare(lv)) {
-        return false;
-    }
-    return true;
+    return (fragLightVecLen2.w <= lightVolume_getRadiusSquare(lv));
 }
 
-bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, vec4 fragLightVecLen2, vec4 fragLightDirLen, float cosSpotAngle) {
-    fragLightVecLen2 = vec4(lightVolume_getPosition(lv) - fragPos.xyz, 1.0f);
+
+bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
+    fragLightVecLen2.xyz = lightVolume_getPosition(lv) - fragPos.xyz;
     fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
 
     // Kill if too far from the light center
@@ -65,6 +61,16 @@ bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, vec4 fr
     }
 
     return true;
+}
+
+bool lightVolume_clipFragToLightVolumeSpotSide(LightVolume lv, vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
+    // Allright we re valid in the volume
+    fragLightDirLen.w = length(fragLightVecLen2.xyz);
+    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+
+    // Kill if not in the spot light (ah ah !)
+    cosSpotAngle = max(-dot(fragLightDirLen.xyz, lightVolume_getDirection(lv)), 0.0);
+    return (cosSpotAngle >= lightVolume_getSpotAngleCos(lv));
 }
 
 #endif

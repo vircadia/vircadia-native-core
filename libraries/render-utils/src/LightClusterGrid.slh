@@ -64,9 +64,11 @@ ivec2 clusterGrid_getCluster(int index) {
 
 int clusterGrid_getClusterLightId(int index, ivec2 cluster) {
     int arrayElement = cluster.y + index;
-    int element = _clusterGridContent[arrayElement >> 1];
+    int element = _clusterGridContent[arrayElement];
+    return element;
+//    int element = _clusterGridContent[arrayElement >> 1];
 
-    return (((arrayElement & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
+//    return (((arrayElement & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
 }
 
 <@endif@>

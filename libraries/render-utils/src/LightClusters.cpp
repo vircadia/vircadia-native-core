@@ -76,7 +76,7 @@ const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 32, 32, 31, 16384 };
 LightClusters::LightClusters() :
     _lightIndicesBuffer(std::make_shared<gpu::Buffer>()),
     _clusterGridBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32),
-    _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_UINT16) {
+    _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32) {
     auto dims = _frustumGridBuffer.edit().dims;
     _frustumGridBuffer.edit().dims = ivec3(0); // make sure we go through the full reset of the dimensionts ion the setDImensions call
     setDimensions(dims, MAX_GRID_DIMENSIONS.w);
@@ -109,7 +109,7 @@ void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
         _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
     }
 
-    auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget) * 2;
+    auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget);
     if (configListBudget != _clusterContentBuffer.getNumElements()) {
         _clusterContent.clear();
         _clusterContent.resize(configListBudget, INVALID_LIGHT);

@@ -23,26 +23,6 @@ struct Light {
     LightIrradiance irradiance;
 };
 
-// Light is the light source its self, d is the light's distance calculated as length(unnormalized light vector).
-float evalLightAttenuation(Light l, float d) {
-    float radius = lightIrradiance_getFalloffRadius(l.irradiance);
-    float cutoff = lightVolume_getRadius(l.volume);
-    float denom = d / radius + 1.0;
-    float attenuation = 1.0 / (denom * denom);
-
-
-    // "Fade" the edges of light sources to make things look a bit more attractive.
-    // Note: this tends to look a bit odd at lower exponents.
-    attenuation *= min(1, max(0, -(d - cutoff)));
-
-    return attenuation;
-}
-
-
-float evalLightSpotAttenuation(Light l, float cosA) {
-    return pow(cosA, lightIrradiance_getFalloffSpot(l.irradiance));
-}
-
 bool light_isSpot(Light l) { return lightVolume_isSpot(l.volume); }
 
 vec3 getLightPosition(Light l) { return lightVolume_getPosition(l.volume); }
