@@ -206,3 +206,7 @@ void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
 void WindowScriptingInterface::shareSnapshot(const QString& path) {
     qApp->shareSnapshot(path);
 }
+
+bool WindowScriptingInterface::isPhysicsEnabled() {
+    return qApp->isPhysicsEnabled();
+}
