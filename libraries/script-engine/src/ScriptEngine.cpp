@@ -1017,9 +1017,12 @@ void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
 }
 
 void ScriptEngine::timerFired() {
-    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
-        qCDebug(scriptengine) << "Script.timerFired() while shutting down is ignored... parent script:" << getFilename();
-        return; // bail early
+    {
+        auto engine = DependencyManager::get<ScriptEngines>();
+        if (!engine || engine->isStopped()) {
+            qCDebug(scriptengine) << "Script.timerFired() while shutting down is ignored... parent script:" << getFilename();
+            return; // bail early
+        }
     }
 
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
