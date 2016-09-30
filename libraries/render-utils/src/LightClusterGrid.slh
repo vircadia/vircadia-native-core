@@ -55,11 +55,12 @@ uniform clusterContentBuffer {
     int _clusterGridContent[16384];
 };
 
-ivec2 clusterGrid_getCluster(int index) {
+ivec3 clusterGrid_getCluster(int index) {
     int clusterDesc = _clusterGridTable[index];
-    int numLights = 0xFFFF & (clusterDesc >> 16);
+    int numPointLights = 0xFF & (clusterDesc >> 16);
+    int numSpotLights = 0xFF & (clusterDesc >> 24);
     int contentOffset = 0xFFFF & (clusterDesc);
-    return ivec2(numLights, contentOffset);
+    return ivec3(numPointLights, numSpotLights, contentOffset);
 }
 
 int clusterGrid_getClusterLightId(int index, ivec2 cluster) {

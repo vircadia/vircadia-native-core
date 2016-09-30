@@ -12,16 +12,16 @@
 <@func declareLightingPoint(supportScattering)@>
 
 void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
-    vec3 fragLightVec, vec3 fragEyeDir, vec3 normal, float roughness,
+    vec4 fragLightDirLen, vec3 fragEyeDir, vec3 normal, float roughness,
     float metallic, vec3 fresnel, vec3 albedo, float shadow
 <@if supportScattering@>
     , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
 <@endif@>
     ) {
-
+    
     // Allright we re valid in the volume
-    float fragLightDistance = length(fragLightVec);
-    vec3 fragLightDir = fragLightVec / fragLightDistance;
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
 
     // Eval attenuation
     float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);

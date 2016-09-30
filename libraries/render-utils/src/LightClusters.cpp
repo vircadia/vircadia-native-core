@@ -270,7 +270,8 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
 void LightClusters::updateClusters() {
     // Clean up last info
-    std::vector< std::vector< LightIndex > > clusterGrid(_numClusters);
+    std::vector< std::vector< LightIndex > > clusterGridPoint(_numClusters);
+    std::vector< std::vector< LightIndex > > clusterGridSpot(_numClusters);
 
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
     uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
@@ -289,6 +290,7 @@ void LightClusters::updateClusters() {
 
         auto worldOri = light->getPosition();
         auto radius = light->getMaximumRadius();
+        bool isSpot = light->isSpot();
 
         // Bring into frustum eye space
         auto eyeOri = theFrustumGrid.frustumGrid_worldToEye(glm::vec4(worldOri, 1.0f));
@@ -395,6 +397,7 @@ void LightClusters::updateClusters() {
         }
 
         // now voxelize
+        auto& clusterGrid = (isSpot ? clusterGridSpot : clusterGridPoint);
         numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
     }
 
@@ -405,9 +408,13 @@ void LightClusters::updateClusters() {
         checkBudget = true;
     }
     uint16_t indexOffset = 0;
-    for (int i = 0; i < clusterGrid.size(); i++) {
-        auto& cluster = clusterGrid[i];
-        uint16_t numLights = ((uint16_t)cluster.size());
+    for (int i = 0; i < clusterGridPoint.size(); i++) {
+        auto& clusterPoint = clusterGridPoint[i];
+        auto& clusterSpot = clusterGridSpot[i];
+
+        uint8_t numLightsPoint = ((uint8_t)clusterPoint.size());
+        uint8_t numLightsSpot = ((uint8_t)clusterSpot.size());
+        uint16_t numLights = numLightsPoint + numLightsSpot;
         uint16_t offset = indexOffset;
 
         // Check for overflow
@@ -417,14 +424,18 @@ void LightClusters::updateClusters() {
             }
         }
 
-        _clusterGrid[i] = (uint32_t)((numLights << 16) | offset);
+     //   _clusterGrid[i] = (uint32_t)((numLights << 16) | offset);
+        _clusterGrid[i] = (uint32_t)((numLightsSpot << 24) | (numLightsPoint << 16) | offset);
 
 
-        if (numLights) {
-            memcpy(_clusterContent.data() + indexOffset, cluster.data(), numLights * sizeof(LightIndex));
+        if (numLightsPoint) {
+            memcpy(_clusterContent.data() + indexOffset, clusterPoint.data(), numLightsPoint * sizeof(LightIndex));
+            indexOffset += numLightsPoint;
         }
-
-        indexOffset += numLights;
+        if (numLightsSpot) {
+            memcpy(_clusterContent.data() + indexOffset, clusterSpot.data(), numLightsSpot * sizeof(LightIndex));
+            indexOffset += numLightsSpot;
+        }
     }
 
     // update the buffers

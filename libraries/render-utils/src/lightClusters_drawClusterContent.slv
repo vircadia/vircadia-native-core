@@ -53,8 +53,8 @@ void main(void) {
 
  
 
-    ivec2 cluster = clusterGrid_getCluster(gl_InstanceID);
-    int numLights = cluster.x;
+    ivec3 cluster = clusterGrid_getCluster(gl_InstanceID);
+    int numLights = cluster.x + cluster.y;
 
     float numLightsScale = clamp(numLights * 0.1, 0.0, 1.0);
 

@@ -40,37 +40,22 @@ bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, out ve
     return (fragLightVecLen2.w <= lightVolume_getRadiusSquare(lv));
 }
 
-
-bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
-    fragLightVecLen2.xyz = lightVolume_getPosition(lv) - fragPos.xyz;
-    fragLightVecLen2.w = dot(fragLightVecLen2.xyz, fragLightVecLen2.xyz);
-
-    // Kill if too far from the light center
-    if (fragLightVecLen2.w > lightVolume_getRadiusSquare(lv)) {
-        return false;
-    }
-
-    // Allright we re valid in the volume
-    fragLightDirLen.w = length(fragLightVecLen2.xyz);
-    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
-
-    // Kill if not in the spot light (ah ah !)
-    cosSpotAngle = max(-dot(fragLightDirLen.xyz, lightVolume_getDirection(lv)), 0.0);
-    if (cosSpotAngle < lightVolume_getSpotAngleCos(lv)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool lightVolume_clipFragToLightVolumeSpotSide(LightVolume lv, vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
-    // Allright we re valid in the volume
-    fragLightDirLen.w = length(fragLightVecLen2.xyz);
-    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
-
+bool lightVolume_clipFragToLightVolumeSpotSide(LightVolume lv, vec4 fragLightDirLen, out float cosSpotAngle) {
     // Kill if not in the spot light (ah ah !)
     cosSpotAngle = max(-dot(fragLightDirLen.xyz, lightVolume_getDirection(lv)), 0.0);
     return (cosSpotAngle >= lightVolume_getSpotAngleCos(lv));
+}
+
+bool lightVolume_clipFragToLightVolumeSpot(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2, out vec4 fragLightDirLen, out float cosSpotAngle) {
+    if (!lightVolume_clipFragToLightVolumePoint(lv, fragPos, fragLightVecLen2)) {
+        return false;
+    }
+
+    // Allright we re valid in the volume
+    fragLightDirLen.w = length(fragLightVecLen2.xyz);
+    fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
+
+    return lightVolume_clipFragToLightVolumeSpotSide(lv, fragLightDirLen, cosSpotAngle);
 }
 
 #endif

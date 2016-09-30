@@ -37,8 +37,8 @@ void main(void) {
     ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
 
 
-    ivec2 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
-    int numLights = cluster.x;
+    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x + cluster.y;
     float numLightsScale = clamp(numLights * 0.1, 0.01, 1.0);
 
 

@@ -54,8 +54,8 @@ void main(void) {
     vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
 
-    ivec2 cluster = clusterGrid_getCluster(gl_InstanceID);
-    int numLights = cluster.x;
+    ivec3 cluster = clusterGrid_getCluster(gl_InstanceID);
+    int numLights = cluster.x + cluster.y;
 
     ivec3 clusterPos = frustumGrid_indexToCluster(gl_InstanceID);
 
