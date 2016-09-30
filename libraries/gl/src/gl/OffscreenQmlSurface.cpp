@@ -853,13 +853,17 @@ void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
 
     if (_currentFocusItem) {
         disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
-        setKeyboardRaised(_currentFocusItem, false);
     }
 
-    // Handle QML text fields' focus and unfocus - testing READ_ONLY_PROPERTY prevents action for HTML files.
-    // HTML text fields are handled in emitWebEvent() methods.
+    // Raise and lower keyboard for QML text fields.
+    // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.
     const char* READ_ONLY_PROPERTY = "readOnly";
-    setKeyboardRaised(item, item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false);
+    bool raiseKeyboard = item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false;
+    if (_currentFocusItem && !raiseKeyboard) {
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+    setKeyboardRaised(item, raiseKeyboard);  // Always set focus so that alphabetic / numeric setting is updated.
+
     _currentFocusItem = item;
     connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
