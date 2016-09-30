@@ -182,7 +182,7 @@ void ScriptCache::scriptContentAvailable() {
 
             if (success) {
                 allCallbacks = scriptRequest.scriptUsers;
-                auto scriptContent = _scriptCache[url];
+                //auto scriptContent = _scriptCache[url];
 
                 _activeScriptRequests.remove(url);
 
