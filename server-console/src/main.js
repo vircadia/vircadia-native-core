@@ -577,12 +577,21 @@ function checkNewContent() {
                   title: 'New home content',
                   message: 'A newer version of the home content set is available.\nDo you wish to update?'
               }, function(idx) {
-                if (idx === 0) {
-                  backupResourceDirectoriesAndRestart();
-                } else {
-                  // They don't want to update, mark content set as current
-                  userConfig.set('homeContentLastModified', new Date());
-                }
+                  if (idx === 0) {
+                      dialog.showMessageBox({
+                          type: 'warning',
+                          buttons: ['Yes', 'No'],
+                          title: 'Are you sure?',
+                          message: 'Updating with the new content will remove all your current content and settings and place them in a backup folder.\nAre you sure?'
+                      }, function(idx) {
+                          if (idx === 0) {
+                              backupResourceDirectoriesAndRestart();
+                          }
+                      });
+                  } else {
+                      // They don't want to update, mark content set as current
+                      userConfig.set('homeContentLastModified', new Date());
+                  }
               });
             }
         }
