@@ -509,7 +509,9 @@ function Teleporter() {
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
-            this.smoothArrival();
+            // Disable smooth arrival, possibly temporarily
+            //this.smoothArrival();
+            MyAvatar.position = _this.intersection.intersection;
         }
     };
 
