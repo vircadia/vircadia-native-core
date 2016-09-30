@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+#include <QtCore/QThread>
+
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
 #include <fstream>
@@ -56,6 +58,32 @@ bool checkGLErrorDebug(const char* name) {
     Q_UNUSED(name);
     return false;
 #endif
+}
+
+gpu::Size getFreeDedicatedMemory() {
+    Size result { 0 };
+    static bool nvidiaMemorySupported { true };
+    static bool atiMemorySupported { true };
+    if (nvidiaMemorySupported) {
+        
+        GLint nvGpuMemory { 0 };
+        glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &nvGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(nvGpuMemory);
+        } else {
+            nvidiaMemorySupported = false;
+        }
+    } else if (atiMemorySupported) {
+        GLint atiGpuMemory[4];
+        // not really total memory, but close enough if called early enough in the application lifecycle
+        glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(atiGpuMemory[0]);
+        } else {
+            atiMemorySupported = false;
+        }
+    }
+    return result;
 }
 
 gpu::Size getDedicatedMemory() {
@@ -933,8 +961,27 @@ void makeProgramBindings(ShaderObject& shaderObject) {
     (void)CHECK_GL_ERROR();
 }
 
+void serverWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(fence);
+}
+
+void clientWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+    while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
+        // Minimum sleep
+        QThread::usleep(1);
+        result = glClientWaitSync(fence, 0, 0);
+    }
+    glDeleteSync(fence);
+}
 
 } }
+
 
 using namespace gpu;
 

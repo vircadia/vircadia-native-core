@@ -20,6 +20,8 @@
 #include <QtGui/QGuiApplication>
 
 #include <GLMHelpers.h>
+#include "GLLogging.h"
+
 
 #ifdef Q_OS_WIN
 
@@ -111,7 +113,7 @@ void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLen
     if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
         return;
     }
-    qDebug() << "QQQ " << message;
+    qCDebug(glLogging) << "QQQ " << message;
 }
 
 // FIXME build the PFD based on the 
@@ -205,8 +207,10 @@ void Context::create() {
         formatAttribs.push_back(24);
         formatAttribs.push_back(WGL_STENCIL_BITS_ARB);
         formatAttribs.push_back(8);
-        formatAttribs.push_back(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
-        formatAttribs.push_back(GL_TRUE);
+#ifdef NATIVE_SRGB_FRAMEBUFFER
+     //   formatAttribs.push_back(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
+     //   formatAttribs.push_back(GL_TRUE);
+#endif
         // terminate the list
         formatAttribs.push_back(0);
         UINT numFormats;

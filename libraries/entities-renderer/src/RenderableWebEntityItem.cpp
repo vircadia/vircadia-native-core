@@ -26,6 +26,7 @@
 #include <gpu/Context.h>
 
 #include "EntityTreeRenderer.h"
+#include "EntitiesRendererLogging.h"
 
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount { 0 };
@@ -37,6 +38,35 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
+void WebEntityAPIHelper::synthesizeKeyPress(QString key) {
+    if (_renderableWebEntityItem) {
+        _renderableWebEntityItem->synthesizeKeyPress(key);
+    }
+}
+
+void WebEntityAPIHelper::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        // special case to handle raising and lowering the virtual keyboard
+        if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(true);
+        } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
+            _renderableWebEntityItem->setKeyboardRaised(false);
+        } else {
+            emit webEventReceived(message);
+        }
+    }
+}
+
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
     entity->setProperties(properties);
@@ -46,9 +76,26 @@ EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID,
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
     WebEntityItem(entityItemID) {
     qDebug() << "Created web entity " << getID();
+
+    _touchDevice.setCapabilities(QTouchDevice::Position);
+    _touchDevice.setType(QTouchDevice::TouchScreen);
+    _touchDevice.setName("RenderableWebEntityItemTouchDevice");
+    _touchDevice.setMaximumTouchPoints(4);
+
+    _webEntityAPIHelper = new WebEntityAPIHelper;
+    _webEntityAPIHelper->setRenderableWebEntityItem(this);
+    _webEntityAPIHelper->moveToThread(qApp->thread());
+
+    // forward web events to EntityScriptingInterface
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    QObject::connect(_webEntityAPIHelper, &WebEntityAPIHelper::webEventReceived, [=](const QVariant& message) {
+        emit entities->webEventReceived(entityItemID, message);
+    });
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
+    _webEntityAPIHelper->setRenderableWebEntityItem(nullptr);
+    _webEntityAPIHelper->deleteLater();
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
 }
@@ -60,6 +107,20 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     }
     qDebug() << "Building web surface";
 
+    QString javaScriptToInject;
+    QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+        createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+
+        // concatenate these js files
+        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    } else {
+        qCWarning(entitiesrenderer) << "unable to find qwebchannel.js or createGlobalEventBridge.js";
+    }
+
     ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
@@ -67,10 +128,14 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface = new OffscreenQmlSurface();
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
-    _webSurface->load("WebView.qml");
+    _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
+        context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+    });
     _webSurface->resume();
+    _webSurface->getRootItem()->setProperty("eventBridge", QVariant::fromValue(_webEntityAPIHelper));
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+    _webSurface->getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
@@ -93,10 +158,14 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             point.setState(Qt::TouchPointReleased);
             glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
             QPointF windowPoint(windowPos.x, windowPos.y);
+            point.setScenePos(windowPoint);
             point.setPos(windowPoint);
             QList<QTouchEvent::TouchPoint> touchPoints;
             touchPoints.push_back(point);
             QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
+            touchEvent->setWindow(_webSurface->getWindow());
+            touchEvent->setDevice(&_touchDevice);
+            touchEvent->setTarget(_webSurface->getRootItem());
             QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
         }
     });
@@ -129,15 +198,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        #if defined(Q_OS_LINUX)
-        // these don't seem to work on Linux
-        return;
-        #else
         if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
             return;
         }
         _fadeStartTime = usecTimestampNow();
-        #endif
     }
 
     _lastRenderTime = usecTimestampNow();
@@ -210,7 +274,6 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
 
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
-
     if (event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to webSurface
         QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
@@ -252,9 +315,9 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
         touchPoints.push_back(point);
 
         QTouchEvent* touchEvent = new QTouchEvent(type);
-        touchEvent->setWindow(nullptr);
-        touchEvent->setDevice(nullptr);
-        touchEvent->setTarget(nullptr);
+        touchEvent->setWindow(_webSurface->getWindow());
+        touchEvent->setDevice(&_touchDevice);
+        touchEvent->setTarget(_webSurface->getRootItem());
         touchEvent->setTouchPoints(touchPoints);
         touchEvent->setTouchPointStates(touchPointState);
 
@@ -302,4 +365,64 @@ void RenderableWebEntityItem::update(const quint64& now) {
 bool RenderableWebEntityItem::isTransparent() {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     return fadeRatio < OPAQUE_ALPHA_THRESHOLD;
+}
+
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return ptr[i] == 0x00;
+}
+
+void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
+    auto utf8Key = key.toUtf8();
+
+    int scanCode = (int)utf8Key[0];
+    QString keyString = key;
+    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+        return;  // ignore
+    } else if (equals(utf8Key, LEFT_ARROW)) {
+        scanCode = Qt::Key_Backspace;
+        keyString = "\x08";
+    } else if (equals(utf8Key, RETURN_SYMBOL)) {
+        scanCode = Qt::Key_Return;
+        keyString = "\x0d";
+    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Left;
+        keyString = "";
+    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+        scanCode = Qt::Key_Right;
+        keyString = "";
+    }
+
+    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+    QCoreApplication::postEvent(getEventHandler(), pressEvent);
+    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
+}
+
+void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
+    _webEntityAPIHelper->emitScriptEvent(message);
+}
+
+void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
+
+    // raise the keyboard only while in HMD mode and it's being requested.
+    bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
+
+    _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(value));
 }

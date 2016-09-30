@@ -19,7 +19,7 @@ static const int HRTF_TAPS = 64;        // minimum-phase FIR coefficients
 static const int HRTF_TABLES = 25;      // number of HRTF subjects
 
 static const int HRTF_DELAY = 24;       // max ITD in samples (1.0ms at 24KHz)
-static const int HRTF_BLOCK = 256;      // block processing size
+static const int HRTF_BLOCK = 240;      // block processing size
 
 static const float HRTF_GAIN = 1.0f;    // HRTF global gain adjustment
 

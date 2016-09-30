@@ -299,7 +299,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         if (index < translations.size()) {
                             translationMat = glm::translate(translations[index]);
                         }
-                        glm::mat4 rotationMat(glm::mat4::_null);
+                        glm::mat4 rotationMat;
                         if (index < rotations.size()) {
                             rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
                         } else {
@@ -548,6 +548,15 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     if (_originalTexturesRead) {
         properties.setTextureNames(_originalTextures);
     }
+
+    if (_model) {
+        properties.setRenderInfoVertexCount(_model->getRenderInfoVertexCount());
+        properties.setRenderInfoTextureCount(_model->getRenderInfoTextureCount());
+        properties.setRenderInfoTextureSize(_model->getRenderInfoTextureSize());
+        properties.setRenderInfoDrawCalls(_model->getRenderInfoDrawCalls());
+        properties.setRenderInfoHasTransparent(_model->getRenderInfoHasTransparent());
+    }
+
     return properties;
 }
 

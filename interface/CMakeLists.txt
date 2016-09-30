@@ -39,9 +39,18 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS
-    Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
-    WebChannel WebEngine WebEngineWidgets WebKitWidgets WebSockets)
+if (ANDROID)
+  set(PLATFORM_QT_COMPONENTS AndroidExtras)
+else ()
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+endif ()
+
+find_package(
+  Qt5 COMPONENTS
+  Gui Multimedia Network OpenGL Qml Quick Script Svg
+  ${PLATFORM_QT_COMPONENTS}
+  WebChannel WebSockets
+)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -56,6 +65,26 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # set(QM ${TARGET_NAME}_en.qm)
 # set(TS ${TARGET_NAME}_en.ts)
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
+
+# setup the android parameters that will help us produce an APK
+if (ANDROID)
+  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
+  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
+
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
+
+  set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
+  set(ANDROID_APP_DISPLAY_NAME Interface)
+  set(ANDROID_API_LEVEL 19)
+  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
+  set(ANDROID_APK_VERSION_NAME "0.1")
+  set(ANDROID_APK_VERSION_CODE 1)
+  set(ANDROID_APK_FULLSCREEN TRUE)
+  set(ANDROID_DEPLOY_QT_INSTALL "--install")
+
+  set(BUILD_SHARED_LIBS ON)
+endif ()
 
 if (APPLE)
 
@@ -94,8 +123,9 @@ if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
   # make sure the output name for the .app bundle is correct
-  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
-elseif(WIN32)
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+elseif (WIN32)
   # configure an rc file for the chosen icon
   set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
   set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
@@ -104,7 +134,7 @@ elseif(WIN32)
   # add an executable that also has the icon itself and the configured rc file as resources
   add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT})
 
-  if ( NOT DEV_BUILD )
+  if (NOT DEV_BUILD)
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
@@ -113,9 +143,12 @@ elseif(WIN32)
     )
   endif()
 
-else()
+elseif (ANDROID)
+  # on android the Interface target is a library that gets linked/used by the APK shell that qtcreateapk produces
+  add_library(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
+else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
-endif()
+endif ()
 
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
 
@@ -126,6 +159,7 @@ if (WIN32)
   add_dependency_external_projects(sdl2)
   add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
+  add_dependency_external_projects(wasapi)
 endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
@@ -135,20 +169,31 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
+if (NOT ANDROID)
+  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
+endif ()
+
 # link required hifi libraries
-link_hifi_libraries(shared octree gpu gl gpu-gl procedural model render
-                    recording fbx networking model-networking entities avatars
-                    audio audio-client animation script-engine physics
-                    render-utils entities-renderer ui auto-updater
-                    controllers plugins ui-plugins display-plugins input-plugins steamworks-wrapper)
+link_hifi_libraries(
+  shared octree gpu gl gpu-gl procedural model render
+  recording fbx networking model-networking entities avatars
+  audio audio-client animation script-engine physics
+  render-utils entities-renderer ui auto-updater
+  controllers plugins
+  ui-plugins display-plugins input-plugins
+  ${NON_ANDROID_LIBRARIES}
+)
 
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
 
 #fixme find a way to express faceshift as a plugin
 target_bullet()
-target_glew()
 target_opengl()
+
+if (NOT ANDROID)
+  target_glew()
+endif ()
 
 if (WIN32 OR APPLE)
   target_faceshift()
@@ -198,15 +243,9 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
-  Qt5::Qml Qt5::Quick Qt5::Script Qt5::ScriptTools Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::WebChannel Qt5::WebEngine 
 )
-
-# Issue causes build failure unless we add this directory.
-# See https://bugreports.qt.io/browse/QTBUG-43351
-if (WIN32)
-  add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
-endif()
 
 if (UNIX)
     target_link_libraries(${TARGET_NAME} pthread)
@@ -291,3 +330,17 @@ if (WIN32)
 
     package_libraries_for_deployment()
 endif()
+
+if (ANDROID)
+  set(HIFI_URL_INTENT "<intent-filter>\
+    \n        <action android:name='android.intent.action.VIEW' />\
+    \n        <category android:name='android.intent.category.DEFAULT' />\
+    \n        <category android:name='android.intent.category.BROWSABLE' />\
+    \n        <data android:scheme='hifi' />\
+    \n      </intent-filter>"
+  )
+
+  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
+
+  qt_create_apk()
+endif ()

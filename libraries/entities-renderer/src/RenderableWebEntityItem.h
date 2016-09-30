@@ -22,6 +22,27 @@ class OffscreenQmlSurface;
 class QWindow;
 class QObject;
 class EntityTreeRenderer;
+class RenderableWebEntityItem;
+
+class WebEntityAPIHelper : public QObject {
+    Q_OBJECT
+public:
+    void setRenderableWebEntityItem(RenderableWebEntityItem* renderableWebEntityItem) {
+        _renderableWebEntityItem = renderableWebEntityItem;
+    }
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
+protected:
+    RenderableWebEntityItem* _renderableWebEntityItem{ nullptr };
+};
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -42,9 +63,15 @@ public:
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
+    virtual void emitScriptEvent(const QVariant& message) override;
+    void setKeyboardRaised(bool raised);
+
     SIMPLE_RENDERABLE();
 
     virtual bool isTransparent() override;
+
+public:
+    void synthesizeKeyPress(QString key);
 
 private:
     bool buildWebSurface(EntityTreeRenderer* renderer);
@@ -58,12 +85,13 @@ private:
     bool _pressed{ false };
     QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
+    QTouchDevice _touchDevice;
+    WebEntityAPIHelper* _webEntityAPIHelper;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
 };
-
 
 #endif // hifi_RenderableWebEntityItem_h

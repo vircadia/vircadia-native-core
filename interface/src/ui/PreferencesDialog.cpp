@@ -188,95 +188,52 @@ void setupPreferences() {
 
     static const QString AUDIO("Audio");
     {
-        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDynamicJitterBuffers(); };
-        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setDynamicJitterBuffers(value); };
-        preferences->addPreference(new CheckPreference(AUDIO, "Enable dynamic jitter buffers", getter, setter));
+        auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getReceivedAudioStream().dynamicJitterBufferEnabled(); };
+        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setDynamicJitterBufferEnabled(!value); };
+        auto preference = new CheckPreference(AUDIO, "Disable dynamic jitter buffer", getter, setter);
+        preferences->addPreference(preference);
     }
     {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDesiredJitterBufferFrames(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setStaticDesiredJitterBufferFrames(value); };
-        
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getStaticJitterBufferFrames(); };
+        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setStaticJitterBufferFrames(value); };
         auto preference = new SpinnerPreference(AUDIO, "Static jitter buffer frames", getter, setter);
         preference->setMin(0);
-        preference->setMax(10000);
+        preference->setMax(2000);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getMaxFramesOverDesired(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setMaxFramesOverDesired(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Max frames over desired", getter, setter);
-        preference->setMax(10000);
-        preference->setStep(1);
+        auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
+        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionEnabled(!value); };
+        auto preference = new CheckPreference(AUDIO, "Disable output starve detection", getter, setter);
         preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getUseStDevForJitterCalc(); };
-        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setUseStDevForJitterCalc(value); };
-        preferences->addPreference(new CheckPreference(AUDIO, "Use standard deviation for dynamic jitter calc", getter, setter));
-    }
-    {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getWindowStarveThreshold(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setWindowStarveThreshold(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Window A starve threshold", getter, setter);
-        preference->setMax(10000);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getWindowSecondsForDesiredCalcOnTooManyStarves(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setWindowSecondsForDesiredCalcOnTooManyStarves(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Window A (raise desired on N starves) seconds", getter, setter);
-        preference->setMax(10000);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getWindowSecondsForDesiredReduction(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setWindowSecondsForDesiredReduction(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Window B (desired ceiling) seconds", getter, setter);
-        preference->setMax(10000);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getRepetitionWithFade(); };
-        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setRepetitionWithFade(value); };
-        preferences->addPreference(new CheckPreference(AUDIO, "Repetition with fade", getter, setter));
     }
     {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputBufferSize(); };
         auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputBufferSize(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Output buffer initial size (frames)", getter, setter);
-        preference->setMin(1);
-        preference->setMax(20);
+        auto preference = new SpinnerPreference(AUDIO, "Output buffer initial frames", getter, setter);
+        preference->setMin(AudioClient::MIN_BUFFER_FRAMES);
+        preference->setMax(AudioClient::MAX_BUFFER_FRAMES);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
+#if DEV_BUILD || PR_BUILD
     {
-        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
-        auto setter = [](bool value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionEnabled(value); };
-        auto preference = new CheckPreference(AUDIO, "Output starve detection (automatic buffer size increase)", getter, setter);
+        auto getter = []()->bool { return DependencyManager::get<AudioClient>()->isSimulatingJitter(); };
+        auto setter = [](bool value) { return DependencyManager::get<AudioClient>()->setIsSimulatingJitter(value); };
+        auto preference = new CheckPreference(AUDIO, "Packet jitter simulator", getter, setter);
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputStarveDetectionThreshold(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionThreshold(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Output starve detection threshold", getter, setter);
+        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
+        auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
+        auto preference = new SpinnerPreference(AUDIO, "Packet throttle threshold", getter, setter);
         preference->setMin(1);
-        preference->setMax(500);
+        preference->setMax(200);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
-    {
-        auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputStarveDetectionPeriod(); };
-        auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionPeriod(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Output starve detection period (ms)", getter, setter);
-        preference->setMin(1);
-        preference->setMax((float)999999999);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
+#endif
 
     {
         auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
@@ -329,6 +286,21 @@ void setupPreferences() {
             auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
             auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
             preference->setItems(shadowConfig->getPresetList());
+            preferences->addPreference(preference);
+        }
+    }
+    {
+        static const QString RENDER("Networking");
+
+        auto nodelist = DependencyManager::get<NodeList>();
+        {
+            static const int MIN_PORT_NUMBER { 0 };
+            static const int MAX_PORT_NUMBER { 65535 };
+            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
+            auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto preference = new IntSpinnerPreference(RENDER, "Listening Port", getter, setter);
+            preference->setMin(MIN_PORT_NUMBER);
+            preference->setMax(MAX_PORT_NUMBER);
             preferences->addPreference(preference);
         }
     }

@@ -13,10 +13,8 @@
 
 #include "AvatarAudioStream.h"
 
-AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings) :
-    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, settings)
-{
-}
+AvatarAudioStream::AvatarAudioStream(bool isStereo, int numStaticJitterFrames) :
+    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, numStaticJitterFrames) {}
 
 int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     int readBytes = 0;

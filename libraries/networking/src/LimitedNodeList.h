@@ -45,6 +45,8 @@
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
 
+const int INVALID_PORT = -1;
+
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
 extern const std::set<NodeType_t> SOLO_NODE_TYPES;
@@ -113,6 +115,8 @@ public:
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
+    Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
+
     QUdpSocket& getDTLSSocket();
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
@@ -142,6 +146,7 @@ public:
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
                                       const QUuid& connectionSecret = QUuid());
 
+    static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
 
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
@@ -162,8 +167,8 @@ public:
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
-    std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    static std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
 
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
@@ -228,6 +233,9 @@ public:
     bool packetVersionMatch(const udt::Packet& packet);
     bool isPacketVerified(const udt::Packet& packet);
 
+    static void makeSTUNRequestPacket(char* stunRequestPacket);
+
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -250,6 +258,7 @@ signals:
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
+    void nodeSocketUpdated(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
     void nodeActivated(SharedNodePointer);
 
@@ -267,10 +276,10 @@ protected slots:
     void errorTestingLocalSocket();
 
 protected:
-    LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
-    LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-    void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-    
+    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+    void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
+
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
@@ -279,7 +288,7 @@ protected:
     void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
-    
+
     bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 

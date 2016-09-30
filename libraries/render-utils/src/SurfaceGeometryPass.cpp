@@ -74,6 +74,7 @@ void LinearDepthFramebuffer::allocate() {
     // For Linear Depth:
     _linearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _linearDepthTexture->setSource("LinearDepthFramebuffer::_linearDepthTexture");
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
     _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
@@ -81,10 +82,12 @@ void LinearDepthFramebuffer::allocate() {
     // For Downsampling:
     _halfLinearDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _halfLinearDepthTexture->setSource("LinearDepthFramebuffer::_halfLinearDepthTexture");
     _halfLinearDepthTexture->autoGenerateMips(5);
 
     _halfNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _halfNormalTexture->setSource("LinearDepthFramebuffer::_halfNormalTexture");
 
     _downsampleFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _downsampleFramebuffer->setRenderBuffer(0, _halfLinearDepthTexture);
@@ -201,7 +204,7 @@ void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const
     });
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverage();
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
 }
 
 
@@ -301,14 +304,17 @@ void SurfaceGeometryFramebuffer::allocate() {
     auto height = _frameSize.y;
 
     _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _curvatureTexture->setSource("SurfaceGeometryFramebuffer::_curvatureTexture");
     _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
 
     _lowCurvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _lowCurvatureTexture->setSource("SurfaceGeometryFramebuffer::_lowCurvatureTexture");
     _lowCurvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lowCurvatureFramebuffer->setRenderBuffer(0, _lowCurvatureTexture);
 
     _blurringTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _blurringTexture->setSource("SurfaceGeometryFramebuffer::_blurringTexture");
     _blurringFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _blurringFramebuffer->setRenderBuffer(0, _blurringTexture);
 }
@@ -524,7 +530,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
        
  
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverage();
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
 }
 
 

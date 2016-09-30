@@ -157,8 +157,6 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
         // move the injector to the QThread
         injector->moveToThread(_thread);
         
-        // handle a restart once the injector has finished
-        
         // add the injector to the queue with a send timestamp of now
         _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
         
@@ -170,13 +168,17 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
 }
 
 bool AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
-    if (!_shouldStop) {
-        // guard the injectors vector with a mutex
-        Lock lock(_injectorsMutex);
-        
-        if (wouldExceedLimits()) {
-            return false;
-        }
+    if (_shouldStop) {
+        qDebug() << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        return false;
+    }
+
+    // guard the injectors vector with a mutex
+    Lock lock(_injectorsMutex);
+
+    if (wouldExceedLimits()) {
+        return false;
+    } else {
         // add the injector to the queue with a send timestamp of now
         _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
         

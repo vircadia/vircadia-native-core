@@ -18,13 +18,16 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
 #include <tbb/parallel_for.h>
 
 #include <LogHandler.h>
+#include <shared/NetworkUtils.h>
 #include <NumericalConstants.h>
+#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -34,12 +37,14 @@
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
 
+static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
+
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
 };
 
-LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
+LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _sessionUUID(),
     _nodeHash(),
     _nodeMutex(QReadWriteLock::Recursive),
@@ -62,11 +67,11 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     }
 
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
-
-    _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
+    auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
+    _nodeSocket.bind(QHostAddress::AnyIPv4, port);
     qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
 
-    if (dtlsListenPort > 0) {
+    if (dtlsListenPort != INVALID_PORT) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
 
@@ -154,6 +159,18 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     if (originalPermissions.can(NodePermissions::Permission::canKick) !=
         newPermissions.can(NodePermissions::Permission::canKick)) {
         emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
+    }
+}
+
+void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setSocketLocalPort", Qt::QueuedConnection,
+                                  Q_ARG(quint16, socketLocalPort));
+        return;
+    }
+    if (_nodeSocket.localPort() != socketLocalPort) {
+        _nodeSocket.rebind(socketLocalPort);
+        LIMITED_NODELIST_LOCAL_PORT.set(socketLocalPort);
     }
 }
 
@@ -335,7 +352,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
     } else {
-        qDebug() << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
+        qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
         return 0;
     }
 }
@@ -373,7 +390,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
         emit dataSent(destinationNode.getType(), bytesSent);
         return bytesSent;
     } else {
-        qDebug() << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
+        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
             << " - not sending.";
         return 0;
     }
@@ -606,6 +623,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
             });
         }
 
+        // Signal when a socket changes, so we can start the hole punch over.
+        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambda to hold a strong ref
+        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [=] {
+            emit nodeSocketUpdated(weakPtr);
+        });
+
         return newNodePointer;
     }
 }
@@ -723,8 +746,32 @@ void LimitedNodeList::removeSilentNodes() {
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
 
-void LimitedNodeList::sendSTUNRequest() {
 
+void LimitedNodeList::makeSTUNRequestPacket(char* stunRequestPacket) {
+    int packetIndex = 0;
+
+    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+
+    // leading zeros + message type
+    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+
+    // message length (no additional attributes are included)
+    uint16_t messageLength = 0;
+    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+    packetIndex += sizeof(messageLength);
+
+    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+
+    // transaction ID (random 12-byte unsigned integer)
+    const uint NUM_TRANSACTION_ID_BYTES = 12;
+    QUuid randomUUID = QUuid::createUuid();
+    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
+}
+
+void LimitedNodeList::sendSTUNRequest() {
     if (!_stunSockAddr.getAddress().isNull()) {
         const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
 
@@ -740,36 +787,14 @@ void LimitedNodeList::sendSTUNRequest() {
         }
 
         char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-
-        int packetIndex = 0;
-
-        const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-
-        // leading zeros + message type
-        const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
-        memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
-        packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-
-        // message length (no additional attributes are included)
-        uint16_t messageLength = 0;
-        memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
-        packetIndex += sizeof(messageLength);
-
-        memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
-        packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-
-        // transaction ID (random 12-byte unsigned integer)
-        const uint NUM_TRANSACTION_ID_BYTES = 12;
-        QUuid randomUUID = QUuid::createUuid();
-        memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
-
+        makeSTUNRequestPacket(stunRequestPacket);
         flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
-
         _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
     }
 }
 
-void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
+bool LimitedNodeList::parseSTUNResponse(udt::BasePacket* packet,
+                                        QHostAddress& newPublicAddress, uint16_t& newPublicPort) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
@@ -781,71 +806,79 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
     if (memcmp(packet->getData() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
-               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
+               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) != 0) {
+        return false;
+    }
 
-        // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < packet->getDataSize()) {
+    // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
+    while (attributeStartIndex < packet->getDataSize()) {
+        if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
+            const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
+            const int NUM_BYTES_FAMILY_ALIGN = 1;
+            const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
 
-            if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
-                const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
-                const int NUM_BYTES_FAMILY_ALIGN = 1;
-                const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
+            int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
 
-                int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
+            uint8_t addressFamily = 0;
+            memcpy(&addressFamily, packet->getData() + byteIndex, sizeof(addressFamily));
 
-                uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packet->getData() + byteIndex, sizeof(addressFamily));
+            byteIndex += sizeof(addressFamily);
 
-                byteIndex += sizeof(addressFamily);
+            if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
+                // grab the X-Port
+                uint16_t xorMappedPort = 0;
+                memcpy(&xorMappedPort, packet->getData() + byteIndex, sizeof(xorMappedPort));
 
-                if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
-                    // grab the X-Port
-                    uint16_t xorMappedPort = 0;
-                    memcpy(&xorMappedPort, packet->getData() + byteIndex, sizeof(xorMappedPort));
+                newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
 
-                    uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+                byteIndex += sizeof(xorMappedPort);
 
-                    byteIndex += sizeof(xorMappedPort);
+                // grab the X-Address
+                uint32_t xorMappedAddress = 0;
+                memcpy(&xorMappedAddress, packet->getData() + byteIndex, sizeof(xorMappedAddress));
 
-                    // grab the X-Address
-                    uint32_t xorMappedAddress = 0;
-                    memcpy(&xorMappedAddress, packet->getData() + byteIndex, sizeof(xorMappedAddress));
+                uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
 
-                    uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-
-                    QHostAddress newPublicAddress(stunAddress);
-
-                    if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-                        _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-
-                        qCDebug(networking, "New public socket received from STUN server is %s:%hu",
-                               _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
-                               _publicSockAddr.getPort());
-
-                        if (!_hasCompletedInitialSTUN) {
-                            // if we're here we have definitely completed our initial STUN sequence
-                            stopInitialSTUNUpdate(true);
-                        }
-
-                        emit publicSockAddrChanged(_publicSockAddr);
-
-                        flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
-                    }
-
-                    // we're done reading the packet so we can return now
-                    return;
-                }
-            } else {
-                // push forward attributeStartIndex by the length of this attribute
-                const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
-
-                uint16_t attributeLength = 0;
-                memcpy(&attributeLength, packet->getData() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
-                       sizeof(attributeLength));
-                attributeLength = ntohs(attributeLength);
-
-                attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
+                // QHostAddress newPublicAddress(stunAddress);
+                newPublicAddress = QHostAddress(stunAddress);
+                return true;
             }
+        } else {
+            // push forward attributeStartIndex by the length of this attribute
+            const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
+
+            uint16_t attributeLength = 0;
+            memcpy(&attributeLength, packet->getData() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
+                   sizeof(attributeLength));
+            attributeLength = ntohs(attributeLength);
+
+            attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
+        }
+    }
+    return false;
+}
+
+
+void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
+    uint16_t newPublicPort;
+    QHostAddress newPublicAddress;
+    if (parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
+
+        if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
+            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
+
+            qCDebug(networking, "New public socket received from STUN server is %s:%hu",
+                    _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
+                    _publicSockAddr.getPort());
+
+            if (!_hasCompletedInitialSTUN) {
+                // if we're here we have definitely completed our initial STUN sequence
+                stopInitialSTUNUpdate(true);
+            }
+
+            emit publicSockAddrChanged(_publicSockAddr);
+
+            flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
         }
     }
 }

@@ -94,7 +94,6 @@ function Teleporter() {
 
     this.initialize = function() {
         this.createMappings();
-        this.disableGrab();
     };
 
     this.createMappings = function() {
@@ -218,10 +217,6 @@ function Teleporter() {
         this.updateConnected = null;
         this.inCoolIn = false;
         inTeleportMode = false;
-
-        Script.setTimeout(function() {
-            _this.enableGrab();
-        }, 200);
     };
 
     this.update = function() {
@@ -492,14 +487,6 @@ function Teleporter() {
             position: position,
             rotation: towardUs
         });
-    };
-
-    this.disableGrab = function() {
-        Messages.sendLocalMessage('Hifi-Hand-Disabler', this.teleportHand);
-    };
-
-    this.enableGrab = function() {
-        Messages.sendLocalMessage('Hifi-Hand-Disabler', 'none');
     };
 
     this.triggerHaptics = function() {

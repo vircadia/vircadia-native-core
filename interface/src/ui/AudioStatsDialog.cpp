@@ -58,21 +58,19 @@ void AudioStatsDisplay::updatedDisplay(QString str) {
 AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) {
     
-    _shouldShowInjectedStreams = false;
-    
     setWindowTitle("Audio Network Statistics");
-    
+
     // Get statistics from the Audio Client
     _stats = &DependencyManager::get<AudioClient>()->getStats();
         
     // Create layout
     _form = new QFormLayout();
     _form->setSizeConstraint(QLayout::SetFixedSize);
-    QDialog::setLayout(_form);
         
-    // Load and initialize all channels
-    renderStats();
+    // Initialize channels' content (needed to correctly size channels)
+    updateStats();
 
+    // Create channels
     _audioDisplayChannels = QVector<QVector<AudioStatsDisplay*>>(1);
         
     _audioMixerID = addChannel(_form, _audioMixerStats, COLOR0);
@@ -80,9 +78,16 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     _upstreamMixerID = addChannel(_form, _upstreamMixerStats, COLOR2);
     _downstreamID = addChannel(_form, _downstreamStats, COLOR3);
     _upstreamInjectedID = addChannel(_form, _upstreamInjectedStats, COLOR0);
-        
-    connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
-    averageUpdateTimer->start(1000);
+
+    // Initialize channels
+    updateChannels();
+
+    // Future renders
+    connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(renderStats()));
+    averageUpdateTimer->start(200);
+
+    // Initial render
+    QDialog::setLayout(_form);
 }
 
 int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
@@ -99,148 +104,152 @@ int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, con
     return channelID;
 }
 
-void AudioStatsDialog::updateStats(QVector<QString>& stats, int channelID) {
+void AudioStatsDialog::renderStats() {
+    updateStats();
+    updateChannels();
+}
+
+void AudioStatsDialog::updateChannels() {
+    updateChannel(_audioMixerStats, _audioMixerID);
+    updateChannel(_upstreamClientStats, _upstreamClientID);
+    updateChannel(_upstreamMixerStats, _upstreamMixerID);
+    updateChannel(_downstreamStats, _downstreamID);
+    updateChannel(_upstreamInjectedStats, _upstreamInjectedID);
+}
+
+void AudioStatsDialog::updateChannel(QVector<QString>& stats, int channelID) {
     // Update all stat displays at specified channel
     for (int i = 0; i < stats.size(); i++)
         _audioDisplayChannels[channelID].at(i)->updatedDisplay(stats.at(i));
 }
 
-void AudioStatsDialog::renderStats() {
+void AudioStatsDialog::updateStats() {
 
     // Clear current stats from all vectors
     clearAllChannels();
     
-    double audioInputBufferLatency = 0.0,
-           inputRingBufferLatency = 0.0,
-           networkRoundtripLatency = 0.0,
-           mixerRingBufferLatency = 0.0,
-           outputRingBufferLatency = 0.0,
-           audioOutputBufferLatency = 0.0;
+    double audioInputBufferLatency{ 0.0 };
+    double inputRingBufferLatency{ 0.0 };
+    double networkRoundtripLatency{ 0.0 };
+    double mixerRingBufferLatency{ 0.0 };
+    double outputRingBufferLatency{ 0.0 };
+    double audioOutputBufferLatency{ 0.0 };
         
-    AudioStreamStats downstreamAudioStreamStats = _stats->getMixerDownstreamStats();
-    SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer);
-    
-    if (!audioMixerNodePointer.isNull()) {
-        audioInputBufferLatency = (double)_stats->getAudioInputMsecsReadStats().getWindowAverage();
-        inputRingBufferLatency =  (double)_stats->getInputRungBufferMsecsAvailableStats().getWindowAverage();
-        networkRoundtripLatency = (double) audioMixerNodePointer->getPingMs();
-        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage *
-            (double)AudioConstants::NETWORK_FRAME_MSECS;
-        outputRingBufferLatency = (double)downstreamAudioStreamStats._framesAvailableAverage *
-            (double)AudioConstants::NETWORK_FRAME_MSECS;
-        audioOutputBufferLatency = (double)_stats->getAudioOutputMsecsUnplayedStats().getWindowAverage();
+    if (SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer)) {
+        audioInputBufferLatency = (double)_stats->getInputMsRead().getWindowMax();
+        inputRingBufferLatency =  (double)_stats->getInputMsUnplayed().getWindowMax();
+        networkRoundtripLatency = (double)audioMixerNodePointer->getPingMs();
+        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._unplayedMs;
+        outputRingBufferLatency = (double)_stats->getMixerDownstreamStats()._unplayedMs;
+        audioOutputBufferLatency = (double)_stats->getOutputMsUnplayed().getWindowMax();
     }
-        
-    double totalLatency = audioInputBufferLatency + inputRingBufferLatency + networkRoundtripLatency + mixerRingBufferLatency
-        + outputRingBufferLatency + audioOutputBufferLatency;
 
-    QString stats = "Audio input buffer: %1ms   - avg msecs of samples read to the audio input buffer in last 10s";
-    _audioMixerStats.push_back(stats.arg(QString::number(audioInputBufferLatency, 'f', 2)));
+    double totalLatency = audioInputBufferLatency + inputRingBufferLatency + mixerRingBufferLatency
+        + outputRingBufferLatency + audioOutputBufferLatency + networkRoundtripLatency;
 
-    stats = "Input ring buffer: %1ms  - avg msecs of samples read to the input ring buffer in last 10s";
-    _audioMixerStats.push_back(stats.arg(QString::number(inputRingBufferLatency, 'f', 2)));
-    stats = "Network to mixer: %1ms  - half of last ping value calculated by the node list";
-    _audioMixerStats.push_back(stats.arg(QString::number((networkRoundtripLatency / 2.0), 'f', 2)));
-    stats = "Network to client: %1ms  - half of last ping value calculated by the node list";
-    _audioMixerStats.push_back(stats.arg(QString::number((mixerRingBufferLatency / 2.0),'f', 2)));
-    stats = "Output ring buffer: %1ms  - avg msecs of samples in output ring buffer in last 10s";
-    _audioMixerStats.push_back(stats.arg(QString::number(outputRingBufferLatency,'f', 2)));
-    stats = "Audio output buffer: %1ms  - avg msecs of samples in audio output buffer in last 10s";
-    _audioMixerStats.push_back(stats.arg(QString::number(mixerRingBufferLatency,'f', 2)));
-    stats = "TOTAL: %1ms  - avg msecs of samples in audio output buffer in last 10s";
-    _audioMixerStats.push_back(stats.arg(QString::number(totalLatency, 'f', 2)));
+    QString stats;
+    _audioMixerStats.push_back("PIPELINE (averaged over the past 10s)");
+    stats = "Input Read:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(audioInputBufferLatency, 'f', 0)));
+    stats = "Input Ring:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(inputRingBufferLatency, 'f', 0)));
+    stats = "Network (client->mixer):\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(networkRoundtripLatency / 2, 'f', 0)));
+    stats = "Mixer Ring:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(mixerRingBufferLatency, 'f', 0)));
+    stats = "Network (mixer->client):\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(networkRoundtripLatency / 2, 'f', 0)));
+    stats = "Output Ring:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(outputRingBufferLatency, 'f', 0)));
+    stats = "Output Read:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(audioOutputBufferLatency, 'f', 0)));
+    stats = "TOTAL:\t%1 ms";
+    _audioMixerStats.push_back(stats.arg(QString::number(totalLatency, 'f', 0)));
 
-
-    const MovingMinMaxAvg<quint64>& packetSentTimeGaps = _stats->getPacketSentTimeGaps();
+    const MovingMinMaxAvg<quint64>& packetSentTimeGaps = _stats->getPacketTimegaps();
 
     _upstreamClientStats.push_back("\nUpstream Mic Audio Packets Sent Gaps (by client):");
 
-    stats = "Inter-packet timegaps (overall) | min: %1, max: %2, avg: %3";
+    stats = "Inter-packet timegaps";
+    _upstreamClientStats.push_back(stats);
+    stats = "overall min:\t%1, max:\t%2, avg:\t%3";
     stats = stats.arg(formatUsecTime(packetSentTimeGaps.getMin()),
                       formatUsecTime(packetSentTimeGaps.getMax()),
                       formatUsecTime(packetSentTimeGaps.getAverage()));
     _upstreamClientStats.push_back(stats);
 
-    stats = "Inter-packet timegaps (last 30s) | min: %1, max: %2, avg: %3";
+    stats = "last window min:\t%1, max:\t%2, avg:\t%3";
     stats = stats.arg(formatUsecTime(packetSentTimeGaps.getWindowMin()),
                       formatUsecTime(packetSentTimeGaps.getWindowMax()),
                       formatUsecTime(packetSentTimeGaps.getWindowAverage()));
     _upstreamClientStats.push_back(stats);
     
-    _upstreamMixerStats.push_back("\nUpstream mic audio stats (received and reported by audio-mixer):");
+    _upstreamMixerStats.push_back("\nMIXER STREAM");
+    _upstreamMixerStats.push_back("(this client's remote mixer stream performance)");
         
-    renderAudioStreamStats(&_stats->getMixerAvatarStreamStats(), &_upstreamMixerStats, true);
+    renderAudioStreamStats(&_stats->getMixerAvatarStreamStats(), &_upstreamMixerStats);
     
-    _downstreamStats.push_back("\nDownstream mixed audio stats:");
+    _downstreamStats.push_back("\nCLIENT STREAM");
         
     AudioStreamStats downstreamStats = _stats->getMixerDownstreamStats();
     
-    renderAudioStreamStats(&downstreamStats, &_downstreamStats, true);
+    renderAudioStreamStats(&downstreamStats, &_downstreamStats);
    
     
     if (_shouldShowInjectedStreams) {
 
         foreach(const AudioStreamStats& injectedStreamAudioStats, _stats->getMixerInjectedStreamStatsMap()) {
-            stats = "\nUpstream injected audio stats:      stream ID: %1";
+            stats = "\nINJECTED STREAM (ID: %1)";
             stats = stats.arg(injectedStreamAudioStats._streamIdentifier.toString());
             _upstreamInjectedStats.push_back(stats);
             
-            renderAudioStreamStats(&injectedStreamAudioStats, &_upstreamInjectedStats, true);
+            renderAudioStreamStats(&injectedStreamAudioStats, &_upstreamInjectedStats);
         }
  
     }
 }
 
 
-void AudioStatsDialog::renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamStats, bool isDownstreamStats) {
+void AudioStatsDialog::renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamStats) {
 
-    QString stats = "Packet loss | overall: %1% (%2 lost),      last_30s: %3% (%4 lost)";
+    QString stats = "Packet Loss";
+    audioStreamStats->push_back(stats);
+    stats = "overall:\t%1%\t(%2 lost), window:\t%3%\t(%4 lost)";
     stats = stats.arg(QString::number((int)(streamStats->_packetStreamStats.getLostRate() * 100.0f)),
-                      QString::number((int)(streamStats->_packetStreamStats._lost)),
-                      QString::number((int)(streamStats->_packetStreamWindowStats.getLostRate() * 100.0f)),
-                      QString::number((int)(streamStats->_packetStreamWindowStats._lost)));
+        QString::number((int)(streamStats->_packetStreamStats._lost)),
+        QString::number((int)(streamStats->_packetStreamWindowStats.getLostRate() * 100.0f)),
+        QString::number((int)(streamStats->_packetStreamWindowStats._lost)));
     audioStreamStats->push_back(stats);
 
-    if (isDownstreamStats) {
-        stats = "Ringbuffer frames | desired: %1, avg_available(10s): %2 + %3, available: %4 + %5";
-        stats = stats.arg(QString::number(streamStats->_desiredJitterBufferFrames),
-                          QString::number(streamStats->_framesAvailableAverage),
-                          QString::number((int)((float)_stats->getAudioInputMsecsReadStats().getWindowAverage() /
-                                                AudioConstants::NETWORK_FRAME_MSECS)),
-                          QString::number(streamStats->_framesAvailable),
-                          QString::number((int)(_stats->getAudioOutputMsecsUnplayedStats().getCurrentIntervalLastSample() /
-                                                AudioConstants::NETWORK_FRAME_MSECS)));
-        audioStreamStats->push_back(stats);
-    } else {
-        stats = "Ringbuffer frames | desired: %1, avg_available(10s): %2, available: %3";
-        stats = stats.arg(QString::number(streamStats->_desiredJitterBufferFrames),
-                          QString::number(streamStats->_framesAvailableAverage),
-                          QString::number(streamStats->_framesAvailable));
-        audioStreamStats->push_back(stats);
-    }
-
-
-    stats = "Ringbuffer stats | starves: %1, prev_starve_lasted: %2, frames_dropped: %3, overflows: %4";
+    stats = "Ringbuffer";
+    audioStreamStats->push_back(stats);
+    stats = "available frames (avg):\t%1\t(%2), desired:\t%3";
+    stats = stats.arg(QString::number(streamStats->_framesAvailable),
+        QString::number(streamStats->_framesAvailableAverage),
+        QString::number(streamStats->_desiredJitterBufferFrames));
+    audioStreamStats->push_back(stats);
+    stats = "starves:\t%1, last starve duration:\t%2, drops:\t%3, overflows:\t%4";
     stats = stats.arg(QString::number(streamStats->_starveCount),
-                      QString::number(streamStats->_consecutiveNotMixedCount),
-                      QString::number(streamStats->_framesDropped),
-                      QString::number(streamStats->_overflowCount));
+        QString::number(streamStats->_consecutiveNotMixedCount),
+        QString::number(streamStats->_framesDropped),
+        QString::number(streamStats->_overflowCount));
     audioStreamStats->push_back(stats);
 
+    stats = "Inter-packet timegaps";
+    audioStreamStats->push_back(stats);
 
-    stats = "Inter-packet timegaps (overall) | min: %1, max: %2, avg: %3";
+    stats = "overall min:\t%1, max:\t%2, avg:\t%3";
     stats = stats.arg(formatUsecTime(streamStats->_timeGapMin),
-                      formatUsecTime(streamStats->_timeGapMax),
-                      formatUsecTime(streamStats->_timeGapAverage));
+        formatUsecTime(streamStats->_timeGapMax),
+        formatUsecTime(streamStats->_timeGapAverage));
     audioStreamStats->push_back(stats);
 
 
-    stats = "Inter-packet timegaps (last 30s) | min: %1, max: %2, avg: %3";
+    stats = "last window min:\t%1, max:\t%2, avg:\t%3";
     stats = stats.arg(formatUsecTime(streamStats->_timeGapWindowMin),
-                      formatUsecTime(streamStats->_timeGapWindowMax),
-                      formatUsecTime(streamStats->_timeGapWindowAverage));
+        formatUsecTime(streamStats->_timeGapWindowMax),
+        formatUsecTime(streamStats->_timeGapWindowAverage));
     audioStreamStats->push_back(stats);
-    
 }
 
 void AudioStatsDialog::clearAllChannels() {
@@ -250,21 +259,6 @@ void AudioStatsDialog::clearAllChannels() {
     _downstreamStats.clear();
     _upstreamInjectedStats.clear();
 }
-
-
-void AudioStatsDialog::updateTimerTimeout() {
-    
-    renderStats();
-    
-    // Update all audio stats
-    updateStats(_audioMixerStats, _audioMixerID);
-    updateStats(_upstreamClientStats, _upstreamClientID);
-    updateStats(_upstreamMixerStats, _upstreamMixerID);
-    updateStats(_downstreamStats, _downstreamID);
-    updateStats(_upstreamInjectedStats, _upstreamInjectedID);
-    
-}
-
 
 void AudioStatsDialog::paintEvent(QPaintEvent* event) {
     

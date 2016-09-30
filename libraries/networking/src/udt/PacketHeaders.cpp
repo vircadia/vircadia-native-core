@@ -47,12 +47,12 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_WEB_ENTITIES_SUPPORT_DPI;
+            return VERSION_ENTITIES_ARROW_ACTION;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SensorToWorldMat);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerJoints);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
@@ -64,7 +64,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
         case PacketType::DomainConnectionDenied:
-            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
+            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
             return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
@@ -77,7 +77,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::InjectAudio:
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
-            return static_cast<PacketVersion>(AudioVersion::CodecNameInAudioPackets);
+            return static_cast<PacketVersion>(AudioVersion::Exactly10msAudioPackets);
 
         default:
             return 17;

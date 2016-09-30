@@ -75,7 +75,7 @@ span.port {
   color: #666666;
 }
 
-.advanced-setting {
+.advanced-setting, .deprecated-setting {
   display: none;
 }
 

@@ -56,6 +56,10 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
     }
 
     withWriteLock([&]{
+        glm::vec3 avatarRigidBodyPosition;
+        glm::quat avatarRigidBodyRotation;
+        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
         if (_ignoreIK) {
             return;
         }
@@ -70,9 +74,6 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
             palmRotation = holdingAvatar->getUncachedLeftPalmRotation();
         }
 
-        glm::vec3 avatarRigidBodyPosition;
-        glm::quat avatarRigidBodyRotation;
-        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
 
         // determine the difference in translation and rotation between the avatar's
         // rigid body and the palm position.  The avatar's rigid body will be moved by bullet
@@ -124,13 +125,20 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             if (pose.isValid()) {
                 linearVelocity = pose.getVelocity();
                 angularVelocity = pose.getAngularVelocity();
+
+                if (isRightHand) {
+                    pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInAvatarFrame();
+                } else {
+                    pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInAvatarFrame();
+                }
             }
 
             if (_ignoreIK && pose.isValid()) {
-                // We cannot ignore other avatars IK and this is not the point of this option
-                // This is meant to make the grabbing behavior more reactive.
-                palmPosition = pose.getTranslation();
-                palmRotation = pose.getRotation();
+                Transform avatarTransform;
+                auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+                avatarTransform = myAvatar->getTransform();
+                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getTargetScale());
+                palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;
                 glm::quat avatarRigidBodyRotation;
@@ -159,11 +167,17 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             }
         } else { // regular avatar
             if (isRightHand) {
-                palmPosition = holdingAvatar->getRightPalmPosition();
-                palmRotation = holdingAvatar->getRightPalmRotation();
+                Transform controllerRightTransform = Transform(holdingAvatar->getControllerRightHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerRightTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerRightTransform.getTranslation());
             } else {
-                palmPosition = holdingAvatar->getLeftPalmPosition();
-                palmRotation = holdingAvatar->getLeftPalmRotation();
+                Transform controllerLeftTransform = Transform(holdingAvatar->getControllerLeftHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerLeftTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerLeftTransform.getTranslation());
             }
         }
 
@@ -230,14 +244,19 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             //     3 -- ignore i of 0 1 2
             //     4 -- ignore i of 1 2 3
             //     5 -- ignore i of 2 3 4
-            if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
-                continue;
-            }
+
+            // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
+            // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
+            //     continue;
+            // }
+
             measuredLinearVelocity += _measuredLinearVelocities[i];
         }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3); // 3 because of the 3 we skipped, above
+        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
+                                          // - 3  // 3 because of the 3 we skipped, above
+                                          );
 
         if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));

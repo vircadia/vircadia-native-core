@@ -161,6 +161,34 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
+void Model::calculateTextureInfo() {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItems.isEmpty()) {
+        size_t textureSize = 0;
+        int textureCount = 0;
+        bool allTexturesLoaded = true;
+        foreach(auto renderItem, _modelMeshRenderItemsSet) {
+            auto meshPart = renderItem.get();
+            bool allTexturesForThisMesh = meshPart->calculateMaterialSize();
+            allTexturesLoaded = allTexturesLoaded & allTexturesForThisMesh;
+            textureSize += meshPart->getMaterialTextureSize();
+            textureCount += meshPart->getMaterialTextureCount();
+        }
+        _renderInfoTextureSize = textureSize;
+        _renderInfoTextureCount = textureCount;
+        _hasCalculatedTextureInfo = allTexturesLoaded; // only do this once
+    }
+}
+
+size_t Model::getRenderInfoTextureSize() {
+    calculateTextureInfo();
+    return _renderInfoTextureSize;
+}
+
+int Model::getRenderInfoTextureCount() {
+    calculateTextureInfo();
+    return _renderInfoTextureCount;
+}
+
 void Model::updateRenderItems() {
     if (!_addedToScene) {
         return;
@@ -615,16 +643,26 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
         }
     } else {
         if (_modelMeshRenderItems.empty()) {
-            foreach (auto renderItem, _modelMeshRenderItemsSet) {
+
+            bool hasTransparent = false;
+            size_t verticesCount = 0;
+            foreach(auto renderItem, _modelMeshRenderItemsSet) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
                 if (statusGetters.size()) {
                     renderPayload->addStatusGetters(statusGetters);
                 }
                 pendingChanges.resetItem(item, renderPayload);
+
+                hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+                verticesCount += renderItem.get()->getVerticesCount();
                 _modelMeshRenderItems.insert(item, renderPayload);
             }
             somethingAdded = !_modelMeshRenderItems.empty();
+
+            _renderInfoVertexCount = verticesCount;
+            _renderInfoDrawCalls = _modelMeshRenderItems.count();
+            _renderInfoHasTransparent = hasTransparent;
         }
     }
 
@@ -650,6 +688,11 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     _collisionRenderItems.clear();
     _collisionRenderItemsSet.clear();
     _addedToScene = false;
+
+    _renderInfoVertexCount = 0;
+    _renderInfoDrawCalls = 0;
+    _renderInfoTextureSize = 0;
+    _renderInfoHasTransparent = false;
 }
 
 void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
@@ -1332,13 +1375,21 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         }
         addedPendingChanges = !_collisionRenderItems.empty();
     } else {
+        bool hasTransparent = false;
+        size_t verticesCount = 0;
         foreach (auto renderItem, _modelMeshRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+
+            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+            verticesCount += renderItem.get()->getVerticesCount();
             _modelMeshRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
         addedPendingChanges = !_modelMeshRenderItems.empty();
+        _renderInfoVertexCount = verticesCount;
+        _renderInfoDrawCalls = _modelMeshRenderItems.count();
+        _renderInfoHasTransparent = hasTransparent;
     }
     _addedToScene = addedPendingChanges;
     if (addedPendingChanges) {

@@ -17,6 +17,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
@@ -32,11 +33,11 @@
 
 
 #include <shared/RateCounter.h>
+#include <shared/NetworkUtils.h>
+#include <shared/FileLogger.h>
+#include <shared/FileUtils.h>
+#include <LogHandler.h>
 #include <AssetClient.h>
-
-//#include <gl/OffscreenGLCanvas.h>
-//#include <gl/GLHelpers.h>
-//#include <gl/QOpenGLContextWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
@@ -99,56 +100,6 @@ public:
     }
 };
 
-#if 0
-class GlfwCamera : public Camera {
-    Key forKey(int key) {
-        switch (key) {
-        case GLFW_KEY_W: return FORWARD;
-        case GLFW_KEY_S: return BACK;
-        case GLFW_KEY_A: return LEFT;
-        case GLFW_KEY_D: return RIGHT;
-        case GLFW_KEY_E: return UP;
-        case GLFW_KEY_C: return DOWN;
-        case GLFW_MOUSE_BUTTON_LEFT: return MLEFT;
-        case GLFW_MOUSE_BUTTON_RIGHT: return MRIGHT;
-        case GLFW_MOUSE_BUTTON_MIDDLE: return MMIDDLE;
-        default: break;
-        }
-        return INVALID;
-    }
-
-    vec2 _lastMouse;
-public:
-    void keyHandler(int key, int scancode, int action, int mods) {
-        Key k = forKey(key);
-        if (k == INVALID) {
-            return;
-        }
-        if (action == GLFW_PRESS) {
-            keys.set(k);
-        } else if (action == GLFW_RELEASE) {
-            keys.reset(k);
-        }
-    }
-
-    //static void MouseMoveHandler(GLFWwindow* window, double posx, double posy);
-    //static void MouseScrollHandler(GLFWwindow* window, double xoffset, double yoffset);
-    void onMouseMove(double posx, double posy) {
-        vec2 mouse = vec2(posx, posy);
-        vec2 delta = mouse - _lastMouse;
-        if (keys.at(Key::MRIGHT)) {
-            dolly(delta.y * 0.01f);
-        } else if (keys.at(Key::MLEFT)) {
-            rotate(delta.x * -0.01f);
-        } else if (keys.at(Key::MMIDDLE)) {
-            delta.y *= -1.0f;
-            translate(delta * -0.01f);
-        }
-        _lastMouse = mouse;
-    }
-
-};
-#else
 class QWindowCamera : public Camera {
     Key forKey(int key) {
         switch (key) {
@@ -188,7 +139,8 @@ public:
         if (buttons & Qt::RightButton) {
             dolly(delta.y * 0.01f);
         } else if (buttons & Qt::LeftButton) {
-            rotate(delta.x * -0.01f);
+            //rotate(delta.x * -0.01f);
+            rotate(delta * -0.01f);
         } else if (buttons & Qt::MiddleButton) {
             delta.y *= -1.0f;
             translate(delta * -0.01f);
@@ -197,7 +149,6 @@ public:
         _lastMouse = mouse;
     }
 };
-#endif
 
 static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<size_t>::max()) {
     static const std::vector<QString> SUFFIXES{ { "B", "KB", "MB", "GB", "TB", "PB" } };
@@ -240,7 +191,7 @@ public:
     std::mutex _mutex;
     std::shared_ptr<gpu::Backend> _backend;
     std::vector<uint64_t> _frameTimes;
-    size_t _frameIndex;
+    size_t _frameIndex { 0 };
     std::mutex _frameLock;
     std::queue<gpu::FramePointer> _pendingFrames;
     gpu::FramePointer _activeFrame;
@@ -251,7 +202,6 @@ public:
         std::unique_lock<std::mutex> lock(_frameLock);
         _pendingFrames.push(frame);
     }
-
 
     void initialize(QWindow* window, gl::Context& initContext) {
         setObjectName("RenderThread");
@@ -286,10 +236,6 @@ public:
         }
 
         _context.makeCurrent();
-        glewExperimental = true;
-        glewInit();
-        glGetError();
-
         _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
@@ -375,7 +321,6 @@ public:
         }
     }
 
-
     bool process() override {
         std::queue<gpu::FramePointer> pendingFrames;
         {
@@ -420,6 +365,7 @@ public:
 };
 
 render::ItemID BackgroundRenderData::_item = 0;
+QSharedPointer<FileLogger> logger;
 
 namespace render {
     template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
@@ -497,13 +443,17 @@ protected:
         _postUpdateLambdas[key] = func;
     }
 
+    bool isHMDMode() const override {
+        return false;
+    }
+
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
     static void setup() {
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<AddressManager>();
-        DependencyManager::set<NodeList>(NodeType::Agent, 0);
+        DependencyManager::set<NodeList>(NodeType::Agent);
         DependencyManager::set<DeferredLightingEffect>();
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();
@@ -548,36 +498,6 @@ public:
         _renderThread.initialize(this, _initContext);
         _initContext.makeCurrent();
 
-#if 0
-        glfwInit();
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        resizeWindow(QSize(800, 600));
-        _window = glfwCreateWindow(_size.width(), _size.height(), "Window Title", NULL, NULL);
-        if (!_window) {
-            throw std::runtime_error("Could not create window");
-        }
-
-        glfwSetWindowUserPointer(_window, this);
-        glfwSetKeyCallback(_window, KeyboardHandler);
-        glfwSetMouseButtonCallback(_window, MouseHandler);
-        glfwSetCursorPosCallback(_window, MouseMoveHandler);
-        glfwSetWindowCloseCallback(_window, CloseHandler);
-        glfwSetFramebufferSizeCallback(_window, FramebufferSizeHandler);
-        glfwSetScrollCallback(_window, MouseScrollHandler);
-
-
-        glfwMakeContextCurrent(_window);
-        GLDebug::setupLogger(this);
-#endif
-
-#ifdef Q_OS_WIN
-        //wglSwapIntervalEXT(0);
-#endif
-
         // FIXME use a wait condition
         QThread::msleep(1000);
         _renderThread.submitFrame(gpu::FramePointer());
@@ -616,6 +536,16 @@ public:
         ResourceManager::cleanup();
         // remove the NodeList from the DependencyManager
         DependencyManager::destroy<NodeList>();
+    }
+
+    void loadCommands(const QString& filename) {
+        QFileInfo fileInfo(filename);
+        if (!fileInfo.exists()) {
+            return;
+        }
+        _commandPath = fileInfo.absolutePath();
+        _commands = FileUtils::readLines(filename);
+        _commandIndex = 0;
     }
 
 protected:
@@ -660,6 +590,14 @@ protected:
 
         case Qt::Key_F9:
             toggleCulling();
+            return;
+
+        case Qt::Key_Home:
+            gpu::Texture::setAllowedGPUMemoryUsage(0);
+            return;
+
+        case Qt::Key_End:
+            gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(256));
             return;
 
 
@@ -772,10 +710,11 @@ private:
     };
 
     void updateText() {
-        QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4")
+        QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4 Max GPU %5")
             .arg(_fps).arg(_cullingEnabled)
             .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2));
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2))
+            .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
         setTitle(title);
 #if 0
         {
@@ -799,9 +738,76 @@ private:
 #endif
     }
 
+    void runCommand(const QString& command) {
+        qDebug() << "Running command: " << command;
+        QStringList commandParams = command.split(QRegularExpression(QString("\\s")));
+        QString verb = commandParams[0].toLower();
+        if (verb == "loop") {
+            if (commandParams.length() > 1) {
+                int maxLoops = commandParams[1].toInt();
+                if (maxLoops < ++_commandLoops) {
+                    qDebug() << "Exceeded loop count";
+                    return;
+                }
+            }
+            _commandIndex = 0;
+        } else if (verb == "wait") {
+            if (commandParams.length() < 2) {
+                qDebug() << "No wait time specified";
+                return;
+            }
+            int seconds = commandParams[1].toInt();
+            _nextCommandTime = usecTimestampNow() + seconds * USECS_PER_SECOND;
+        } else if (verb == "load") {
+            if (commandParams.length() < 2) {
+                qDebug() << "No load file specified";
+                return;
+            }
+            QString file = commandParams[1];
+            if (QFileInfo(file).isRelative()) {
+                file = _commandPath + "/" + file;
+            }
+            if (!QFileInfo(file).exists()) {
+                qDebug() << "Cannot find scene file " + file;
+                return;
+            }
+
+            importScene(file);
+        } else if (verb == "go") {
+            if (commandParams.length() < 2) {
+                qDebug() << "No destination specified for go command";
+                return;
+            }
+            parsePath(commandParams[1]);
+        } else {
+            qDebug() << "Unknown command " << command;
+        }
+    }
+
+    void runNextCommand(quint64 now) {
+        if (_commands.empty()) {
+            return;
+        }
+
+        if (_commandIndex >= _commands.size()) {
+            _commands.clear();
+            return;
+        }
+
+        if (now < _nextCommandTime) {
+            return;
+        }
+
+        _nextCommandTime = 0;
+        QString command = _commands[_commandIndex++];
+        runCommand(command);
+    }
+
     void update() {
         auto now = usecTimestampNow();
         static auto last = now;
+
+        runNextCommand(now);
 
         float delta = now - last;
         // Update the camera
@@ -955,7 +961,6 @@ private:
             QString atpUrl = QUrl::fromLocalFile(atpPath).toString();
             ResourceManager::setUrlPrefixOverride("atp:/", atpUrl + "/");
         }
-        _settings.setValue(LAST_SCENE_KEY, fileName);
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);
     }
@@ -974,6 +979,7 @@ private:
         if (fileName.isNull()) {
             return;
         }
+        _settings.setValue(LAST_SCENE_KEY, fileName);
         importScene(fileName);
     }
 
@@ -1011,7 +1017,7 @@ private:
     }
 
     void resetPosition() {
-        _camera.yaw = 0;
+        _camera.yawPitch = vec3(0);
         _camera.setPosition(vec3());
     }
 
@@ -1073,6 +1079,13 @@ private:
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
     bool _ready { false };
+
+    QStringList _commands;
+    QString _commandPath;
+    int _commandLoops { 0 };
+    int _commandIndex { -1 };
+    uint64_t _nextCommandTime { 0 };
+
     //TextOverlay* _textOverlay;
     static bool _cullingEnabled;
 
@@ -1089,12 +1102,14 @@ private:
 bool QTestWindow::_cullingEnabled = true;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType)type, context, message);
+
+    if (!logMessage.isEmpty()) {
 #ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
-        std::cout << message.toLocal8Bit().constData() << std::endl;
+        logger->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -1102,16 +1117,19 @@ const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
+
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("RenderPerf");
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setOrganizationDomain("highfidelity.com");
+    logger.reset(new FileLogger());
 
     qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
     QTestWindow window;
+    //window.loadCommands("C:/Users/bdavis/Git/dreaming/exports/commands.txt");
     app.exec();
     return 0;
 }

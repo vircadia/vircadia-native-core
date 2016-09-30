@@ -14,6 +14,7 @@
 import Hifi 1.0
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import "toolbars"
 import "../styles-uit"
 
 Rectangle {
@@ -23,16 +24,13 @@ Rectangle {
     property string timestamp: "";
     property string hifiUrl: "";
     property string thumbnail: defaultThumbnail;
-    property string imageUrl: "";
     property var goFunction: null;
     property string storyId: "";
 
     property string timePhrase: pastTime(timestamp);
-    property string actionPhrase: makeActionPhrase(action);
     property int onlineUsers: 0;
-    property bool isUserStory: userName && !onlineUsers;
 
-    property int textPadding: 20;
+    property int textPadding: 10;
     property int textSize: 24;
     property int textSizeSmall: 18;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
@@ -58,14 +56,6 @@ Rectangle {
         }
         return 'about a minute ago';
     }
-    function makeActionPhrase(actionLabel) {
-        switch (actionLabel) {
-        case "snapshot":
-            return "took a snapshot";
-        default:
-            return "unknown"
-        }
-    }
 
     Image {
         id: lobby;
@@ -89,6 +79,7 @@ Rectangle {
     property int dropSamples: 9;
     property int dropSpread: 0;
     DropShadow {
+        visible: desktop.gradientsSupported;
         source: place;
         anchors.fill: place;
         horizontalOffset: dropHorizontalOffset;
@@ -99,6 +90,7 @@ Rectangle {
         spread: dropSpread;
     }
     DropShadow {
+        visible: users.visible && desktop.gradientsSupported;
         source: users;
         anchors.fill: users;
         horizontalOffset: dropHorizontalOffset;
@@ -110,7 +102,7 @@ Rectangle {
     }
     RalewaySemiBold {
         id: place;
-        text: isUserStory ? "" : placeName;
+        text: placeName;
         color: hifi.colors.white;
         size: textSize;
         anchors {
@@ -119,14 +111,15 @@ Rectangle {
             margins: textPadding;
         }
     }
-    RalewayRegular {
+    FiraSansRegular {
         id: users;
-        text: isUserStory ? timePhrase : (onlineUsers + ((onlineUsers === 1) ? ' person' : ' people'));
-        size: textSizeSmall;
+        visible: action === 'concurrency';
+        text: onlineUsers;
+        size: textSize;
         color: hifi.colors.white;
         anchors {
-            bottom: parent.bottom;
-            right: parent.right;
+            verticalCenter: usersImage.verticalCenter;
+            right: usersImage.left;
             margins: textPadding;
         }
     }
@@ -139,9 +132,23 @@ Rectangle {
         id: zmouseArea;
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction(parent);
+        onClicked: goFunction("hifi://" + hifiUrl);
         hoverEnabled: true;
         onEntered: hoverThunk();
         onExited: unhoverThunk();
+    }
+    ToolbarButton {
+        id: usersImage;
+        imageURL: "../../images/" + action + ".svg";
+        size: 32;
+        onClicked: goFunction("/user_stories/" + storyId);
+        buttonState: 0;
+        defaultState: 0;
+        hoverState: 1;
+        anchors {
+            bottom: parent.bottom;
+            right: parent.right;
+            margins: textPadding;
+        }
     }
 }

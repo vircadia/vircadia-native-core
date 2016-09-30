@@ -44,12 +44,12 @@
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
+#include <shared/FileLogger.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
-#include "FileLogger.h"
 #include "gpu/Context.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
@@ -223,7 +223,7 @@ public:
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
-    bool isHMDMode() const;
+    virtual bool isHMDMode() const override;
     glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
@@ -286,6 +286,7 @@ public slots:
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
+    void updateThreadPoolCount() const;
 
     static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
@@ -374,7 +375,7 @@ private slots:
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
-    void domainConnectionRefused(const QString& reasonMessage, int reason);
+    void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
 private:
     static void initDisplay();

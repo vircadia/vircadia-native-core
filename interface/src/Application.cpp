@@ -133,7 +133,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/ToolbarScriptingInterface.h"
@@ -176,8 +175,6 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
 // 2 logical cores available for time sensitive tasks.
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
-static const int PROCESSING_THREAD_POOL_SIZE = std::max(MIN_PROCESSING_THREAD_POOL_SIZE,
-                                                        QThread::idealThreadCount() - 2);
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -217,7 +214,6 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
-    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
@@ -268,7 +264,7 @@ public:
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
-                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "maxElapsed:" << _maxElapsed
@@ -278,7 +274,7 @@ public:
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
-                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "PREVIOUS maxElapsed:" << _maxElapsed
@@ -288,7 +284,7 @@ public:
                 _maxElapsed = lastHeartbeatAge;
             }
             if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
-                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE **"
                     << "maxElapsed:" << _maxElapsed
@@ -297,7 +293,7 @@ public:
             }
 
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
-                qDebug() << "DEADLOCK DETECTED -- "
+                qCDebug(interfaceapp_deadlock) << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
                          << "[ lastHeartbeat :" << lastHeartbeat
                          << "now:" << now << " ]"
@@ -403,12 +399,10 @@ static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv) {
-    unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
-    if (portStr) {
-        listenPort = atoi(portStr);
-    }
+    const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
+
     // Set build version
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
@@ -537,7 +531,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    QThreadPool::globalInstance()->setMaxThreadCount(PROCESSING_THREAD_POOL_SIZE);
+    QThreadPool::globalInstance()->setMaxThreadCount(MIN_PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
@@ -568,6 +562,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _deadlockWatchdogThread->start();
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
+    qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
+    qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
+#if USE_STABLE_GLOBAL_SERVICES
+    qCDebug(interfaceapp) << "[VERSION] We will use STABLE global services.";
+#else
+    qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
+#endif
+
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -706,6 +710,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+
+    connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
 
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
@@ -1033,7 +1039,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         cameraMenuChanged();
     }
 
-    // set the local loopback interface for local sounds from audio scripts
+    // set the local loopback interface for local sounds
+    AudioInjector::setLocalAudioInterface(audioIO.data());
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
 
     this->installEventFilter(this);
@@ -1233,8 +1240,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     firstRun.set(false);
 }
 
-void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
-    switch (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode)) {
+void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
+    DomainHandler::ConnectionRefusedReason reasonCode = static_cast<DomainHandler::ConnectionRefusedReason>(reasonCodeInt);
+
+    if (reasonCode == DomainHandler::ConnectionRefusedReason::TooManyUsers && !extraInfo.isEmpty()) {
+        DependencyManager::get<AddressManager>()->handleLookupString(extraInfo);
+        return;
+    }
+
+    switch (reasonCode) {
         case DomainHandler::ConnectionRefusedReason::ProtocolMismatch:
         case DomainHandler::ConnectionRefusedReason::TooManyUsers:
         case DomainHandler::ConnectionRefusedReason::Unknown: {
@@ -1685,7 +1699,6 @@ void Application::paintGL() {
     Finally clearFlag([this] { _inPaint = false; });
 
     _frameCount++;
-    _frameCounter.increment();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
@@ -1922,6 +1935,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+        _frameCounter.increment();
         displayPlugin->submitFrame(frame);
     }
 
@@ -2009,7 +2023,7 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        qDebug() << "Device pixel ratio changed, triggering resize";
+        qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
         offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
@@ -2860,6 +2874,8 @@ void Application::dragEnterEvent(QDragEnterEvent* event) {
     event->acceptProposedAction();
 }
 
+// This is currently not used, but could be invoked if the user wants to go to the place embedded in an
+// Interface-taken snapshot. (It was developed for drag and drop, before we had asset-server loading or in-world browsers.)
 bool Application::acceptSnapshot(const QString& urlString) {
     QUrl url(urlString);
     QString snapshotPath = url.toLocalFile();
@@ -3262,17 +3278,17 @@ void Application::init() {
 
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (addressLookupString.isEmpty() && firstRun.get()) {
-        qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";
+        qCDebug(interfaceapp) << "First run and no URL passed... attempting to go to Home or Entry...";
         DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
-            qDebug() << "Home sandbox appears to be running, going to Home.";
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox();
         }, 
         [](){
-            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             DependencyManager::get<AddressManager>()->goToEntry();
         });
     } else {
-        qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     }
 
@@ -3291,7 +3307,7 @@ void Application::init() {
 
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
-        auto maxSize = glm::max(dims.x, dims.y, dims.z);
+        auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
             return 0.0f;
@@ -4858,7 +4874,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
@@ -5034,6 +5049,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     int requestNumber = ++_avatarAttachmentRequest;
@@ -5619,7 +5635,7 @@ void Application::setActiveDisplayPlugin(const QString& pluginName) {
 void Application::handleLocalServerConnection() const {
     auto server = qobject_cast<QLocalServer*>(sender());
 
-    qDebug() << "Got connection on local server from additional instance - waiting for parameters";
+    qCDebug(interfaceapp) << "Got connection on local server from additional instance - waiting for parameters";
 
     auto socket = server->nextPendingConnection();
 
@@ -5635,7 +5651,7 @@ void Application::readArgumentsFromLocalSocket() const {
     auto message = socket->readAll();
     socket->deleteLater();
 
-    qDebug() << "Read from connection: " << message;
+    qCDebug(interfaceapp) << "Read from connection: " << message;
 
     // If we received a message, try to open it as a URL
     if (message.length() > 0) {
@@ -5726,4 +5742,19 @@ void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
 void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
     EntityItemID entityItemID(id);
     emit getEntities()->hoverLeaveEntity(entityItemID, event);
+}
+
+// FIXME?  perhaps two, one for the main thread and one for the offscreen UI rendering thread?
+static const int UI_RESERVED_THREADS = 1;
+// Windows won't let you have all the cores
+static const int OS_RESERVED_THREADS = 1;
+
+void Application::updateThreadPoolCount() const {
+    auto reservedThreads = UI_RESERVED_THREADS + OS_RESERVED_THREADS + _displayPlugin->getRequiredThreadCount();
+    auto availableThreads = QThread::idealThreadCount() - reservedThreads;
+    auto threadPoolSize = std::max(MIN_PROCESSING_THREAD_POOL_SIZE, availableThreads);
+    qCDebug(interfaceapp) << "Ideal Thread Count " << QThread::idealThreadCount();
+    qCDebug(interfaceapp) << "Reserved threads " << reservedThreads;
+    qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
+    QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }

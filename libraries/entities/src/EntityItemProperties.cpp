@@ -580,6 +580,22 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
+    // Rendering info
+    if (!skipDefaults) {
+        QScriptValue renderInfo = engine->newObject();
+
+        // currently only supported by models
+        if (_type == EntityTypes::Model) {
+            renderInfo.setProperty("verticesCount", (int)getRenderInfoVertexCount()); // FIXME - theoretically the number of vertex could be > max int
+            renderInfo.setProperty("texturesSize", (int)getRenderInfoTextureSize()); // FIXME - theoretically the size of textures could be > max int
+            renderInfo.setProperty("hasTransparent", getRenderInfoHasTransparent());
+            renderInfo.setProperty("drawCalls", getRenderInfoDrawCalls());
+            renderInfo.setProperty("texturesCount", getRenderInfoTextureCount());
+        }
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
+    }
+
     properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
     properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
 
@@ -753,7 +769,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
     QScriptValue result = engine->newObject();
-	return result;
+    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {

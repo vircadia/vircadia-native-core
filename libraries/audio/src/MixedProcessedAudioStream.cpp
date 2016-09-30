@@ -10,13 +10,12 @@
 //
 
 #include "MixedProcessedAudioStream.h"
+#include "AudioLogging.h"
 
 static const int STEREO_FACTOR = 2;
 
-MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, const InboundAudioStream::Settings& settings)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, settings)
-{
-}
+MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames)
+    : InboundAudioStream(numFrameSamples, numFramesCapacity, numStaticJitterFrames) {}
 
 void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
     _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
@@ -56,6 +55,7 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
     emit processSamples(decodedBuffer, outputBuffer);
 
     _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
+    qCDebug(audiostream, "Wrote %d samples to buffer (%d available)", outputBuffer.size() / (int)sizeof(int16_t), getSamplesAvailable());
     
     return packetAfterStreamProperties.size();
 }

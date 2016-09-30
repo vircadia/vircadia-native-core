@@ -130,6 +130,11 @@ Var AR_RegFlags
   SectionSetFlags ${${SecName}} $AR_SecFlags
 
  "default_${SecName}:"
+ ; The client is always selected by default
+ ${If} ${SecName} == @CLIENT_COMPONENT_NAME@
+   SectionSetFlags ${${SecName}} 17
+ ${EndIf}
+
  !insertmacro LoadSectionSelectedIntoVar ${SecName} ${SecName}_selected
 !macroend
 
@@ -243,6 +248,12 @@ FunctionEnd
 
 ;--------------------------------
 ; Installation types
+
+Section "-Previous Install Cleanup"
+  ; Remove the resources folder so we don't end up including removed QML files
+  RMDir /r "$INSTDIR\resources"
+SectionEnd
+
 @CPACK_NSIS_INSTALLATION_TYPES@
 
 ;--------------------------------
@@ -588,6 +599,9 @@ Section "-Core installation"
   Delete "$INSTDIR\vccorlib120.dll"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
+
+  ;Delete old Qt files
+  Delete "$INSTDIR\audio\qtaudio_windows.dll"
 
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"

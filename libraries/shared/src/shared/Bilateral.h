@@ -28,7 +28,7 @@ namespace bilateral {
             case Side::Right:
                 return 0x02;
         }
-        return UINT8_MAX;
+        return std::numeric_limits<uint8_t>::max();
     }
 
     inline uint8_t index(Side side) {
@@ -38,7 +38,7 @@ namespace bilateral {
             case Side::Right:
                 return 1;
         }
-        return UINT8_MAX;
+        return std::numeric_limits<uint8_t>::max();
     }
 
     template <typename F>

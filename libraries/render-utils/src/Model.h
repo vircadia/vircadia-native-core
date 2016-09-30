@@ -232,6 +232,12 @@ public:
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
+    size_t getRenderInfoVertexCount() const { return _renderInfoVertexCount; }
+    size_t getRenderInfoTextureSize();
+    int getRenderInfoTextureCount();
+    int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
+    bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -400,9 +406,17 @@ protected:
 
     bool _renderItemsNeedUpdate { false };
 
+    size_t _renderInfoVertexCount { 0 };
+    int _renderInfoTextureCount { 0 };
+    size_t _renderInfoTextureSize { 0 };
+    bool _hasCalculatedTextureInfo { false };
+    int _renderInfoDrawCalls { 0 };
+    int _renderInfoHasTransparent { false };
+
 private:
     float _loadingPriority { 0.0f };
 
+    void calculateTextureInfo();
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

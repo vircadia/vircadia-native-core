@@ -60,7 +60,7 @@ void AssetClient::init() {
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
         cache->setCacheDirectory(cachePath);
         networkAccessManager.setCache(cache);
-        qDebug() << "ResourceManager disk cache setup at" << cachePath
+        qInfo() << "ResourceManager disk cache setup at" << cachePath
                  << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }
@@ -91,7 +91,7 @@ void AssetClient::clearCache() {
     }
 
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
-        qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
+        qInfo() << "AssetClient::clearCache(): Clearing disk cache.";
         cache->clear();
     } else {
         qCWarning(asset_client) << "No disk cache to clear.";

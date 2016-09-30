@@ -154,7 +154,6 @@ ScrollingWindow {
                 return i;
             }
         }
-        console.warn("Could not find tab for " + source);
         return -1;
     }
 
@@ -189,7 +188,6 @@ ScrollingWindow {
                 return i;
             }
         }
-        console.warn("Could not find free tab");
         return -1;
     }
 
@@ -216,7 +214,6 @@ ScrollingWindow {
 
         var existingTabIndex = findIndexForUrl(properties.source);
         if (existingTabIndex >= 0) {
-            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source);
             var tab = tabView.getTab(existingTabIndex);
             return tab.item;
         }
@@ -239,16 +236,13 @@ ScrollingWindow {
         var tab = tabView.getTab(freeTabIndex);
         tab.title = properties.title || "Unknown";
         tab.enabled = true;
-        console.log("New tab URL: " + properties.source)
         tab.originalUrl = properties.source;
 
         var eventBridge = properties.eventBridge;
-        console.log("Event bridge: " + eventBridge);
 
         var result = tab.item;
         result.enabled = true;
         tabView.tabCount++;
-        console.log("Setting event bridge: " + eventBridge);
         result.eventBridgeWrapper.eventBridge = eventBridge;
         result.url = properties.source;
         return result;

@@ -43,16 +43,14 @@ public:
         GLuint allocate();
     public:
         GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GL41Texture* original);
 
     protected:
-        void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
+        void transferMip(uint16_t mipLevel, uint8_t face) const;
+        void startTransfer() override;
         void allocateStorage() const override;
         void updateSize() const override;
-        void transfer() const override;
         void syncSampler() const override;
         void generateMips() const override;
-        void withPreservedTexture(std::function<void()> f) const override;
     };
 
 
