@@ -168,10 +168,9 @@ void Model::calculateTextureInfo() {
         bool allTexturesLoaded = true;
         foreach(auto renderItem, _modelMeshRenderItemsSet) {
             auto meshPart = renderItem.get();
-            bool allTexturesForThisMesh = meshPart->calculateMaterialSize();
-            allTexturesLoaded = allTexturesLoaded & allTexturesForThisMesh;
             textureSize += meshPart->getMaterialTextureSize();
             textureCount += meshPart->getMaterialTextureCount();
+            allTexturesLoaded = allTexturesLoaded & meshPart->hasTextureInfo();
         }
         _renderInfoTextureSize = textureSize;
         _renderInfoTextureCount = textureCount;
