@@ -46,8 +46,8 @@ void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& z
     yPlanes.resize(dims.y + 1);
     zPlanes.resize(dims.z + 1);
 
-    float centerY = float(dims.y) * 0.5;
-    float centerX = float(dims.x) * 0.5;
+    float centerY = float(dims.y) * 0.5f;
+    float centerX = float(dims.x) * 0.5f;
 
     for (int z = 0; z < (int) zPlanes.size(); z++) {
         ivec3 pos(0, 0, z);
@@ -400,7 +400,7 @@ void LightClusters::updateClusters() {
         checkBudget = true;
     }
     uint16_t indexOffset = 0;
-    for (int i = 0; i < clusterGridPoint.size(); i++) {
+    for (int i = 0; i < (int) clusterGridPoint.size(); i++) {
         auto& clusterPoint = clusterGridPoint[i];
         auto& clusterSpot = clusterGridSpot[i];
 
@@ -417,7 +417,7 @@ void LightClusters::updateClusters() {
         }
 
      //   _clusterGrid[i] = (uint32_t)((numLights << 16) | offset);
-        _clusterGrid[i] = (uint32_t)((numLightsSpot << 24) | (numLightsPoint << 16) | offset);
+        _clusterGrid[i] = (uint32_t)((0xFF000000 & (numLightsSpot << 24)) | (0x00FF0000 & (numLightsPoint << 16)) | (0x0000FFFF & offset));
 
 
         if (numLightsPoint) {

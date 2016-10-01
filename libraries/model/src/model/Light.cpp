@@ -120,7 +120,6 @@ void Light::setSpotAngle(float angle) {
         dangle = glm::half_pi<double>();
     }
     auto cosAngle = cos(dangle);
-    auto sinAngle = sin(dangle);
     _spotCos = (float)std::abs(cosAngle);
 
     if (isSpot()) {

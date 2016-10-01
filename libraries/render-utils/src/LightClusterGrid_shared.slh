@@ -1,21 +1,21 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
 float frustumGrid_depthRampGridToVolume(float ngrid) {
-    if (ngrid < 0.0)
+    if (ngrid < 0.0f)
         return ngrid;
     // return ngrid;
    // return sqrt(ngrid);
-    return exp2(ngrid) - 1.0;
+    return exp2(ngrid) - 1.0f;
 }
 float frustumGrid_depthRampInverseVolumeToGrid(float nvolume) {
-    if (nvolume < 0.0)
+    if (nvolume < 0.0f)
         return nvolume;
     //  return nvolume;
    // return nvolume * nvolume;
-    return log2(nvolume + 1.0);
+    return log2(nvolume + 1.0f);
 }
 
 vec3 frustumGrid_gridToVolume(vec3 pos, ivec3 dims) {
-    vec3 gridScale = vec3(1.0, 1.0, 1.0) / vec3(dims);
+    vec3 gridScale = vec3(1.0f) / vec3(dims);
     vec3 volumePos = pos * gridScale;
     volumePos.z = frustumGrid_depthRampGridToVolume(volumePos.z);
     return volumePos;
@@ -33,9 +33,9 @@ vec3 frustumGrid_volumeToGrid(vec3 vpos, ivec3 dims) {
 
 
 vec4 frustumGrid_volumeToClip(vec3 vpos, float rangeNear, float rangeFar) {
-    vec3 ndcPos = vec3(-1.0 + 2.0 * vpos.x, -1.0 + 2.0 * vpos.y, vpos.z);
+    vec3 ndcPos = vec3(-1.0f + 2.0f * vpos.x, -1.0f + 2.0f * vpos.y, vpos.z);
     float depth = rangeNear * (1 - ndcPos.z) + rangeFar * (ndcPos.z);
-    vec4 clipPos = vec4(ndcPos.x * depth, ndcPos.y * depth, 1.0, depth);
+    vec4 clipPos = vec4(ndcPos.x * depth, ndcPos.y * depth, 1.0f, depth);
     return clipPos;
 }
 
@@ -64,7 +64,7 @@ vec3 frustumGrid_eyeToVolume(vec3 epos, mat4 projection, float rangeNear, float 
         -epos.z);
     vec4 ndcPos = clipPos / clipPos.w;
 
-    vec3 volumePos = vec3(0.5 * (ndcPos.x + 1.0), 0.5 * (ndcPos.y + 1.0), (clipPos.w - rangeNear) / (rangeFar - rangeNear));
+    vec3 volumePos = vec3(0.5f * (ndcPos.x + 1.0f), 0.5f * (ndcPos.y + 1.0f), (clipPos.w - rangeNear) / (rangeFar - rangeNear));
     return volumePos;
 }
 
@@ -145,28 +145,28 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 }
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
-    if (eyeDir.z >= 0.0) {
+    if (eyeDir.z >= 0.0f) {
         return (eyeDir.x > 0 ? frustumGrid.dims.x : -1);
     }
 
     float eyeDepth = -eyeDir.z;
     float nclipDir = eyeDir.x / eyeDepth;
     float ndcDir = nclipDir * frustumGrid.eyeToGridProj[0][0] - frustumGrid.eyeToGridProj[2][0];
-    float volumeDir = 0.5 * (ndcDir + 1.0);
+    float volumeDir = 0.5f * (ndcDir + 1.0f);
     float gridPos = volumeDir * float(frustumGrid.dims.x);
 
     return int(gridPos);
 }
 
 int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
-    if (eyeDir.z >= 0.0) {
+    if (eyeDir.z >= 0.0f) {
         return (eyeDir.y > 0 ? frustumGrid.dims.y : -1);
     }
 
     float eyeDepth = -eyeDir.z;
     float nclipDir = eyeDir.y / eyeDepth;
     float ndcDir = nclipDir * frustumGrid.eyeToGridProj[1][1] - frustumGrid.eyeToGridProj[2][1];
-    float volumeDir = 0.5 * (ndcDir + 1.0);
+    float volumeDir = 0.5f * (ndcDir + 1.0f);
     float gridPos = volumeDir * float(frustumGrid.dims.y);
 
     return int(gridPos);
