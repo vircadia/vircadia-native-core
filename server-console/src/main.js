@@ -574,6 +574,7 @@ function checkNewContent() {
               dialog.showMessageBox({
                   type: 'question',
                   buttons: ['Yes', 'No'],
+                  defaultId: 1,
                   title: 'New home content',
                   message: 'A newer version of the home content set is available.\nDo you wish to update?'
               }, function(idx) {
@@ -581,6 +582,7 @@ function checkNewContent() {
                       dialog.showMessageBox({
                           type: 'warning',
                           buttons: ['Yes', 'No'],
+                          defaultId: 1,
                           title: 'Are you sure?',
                           message: 'Updating with the new content will remove all your current content and settings and place them in a backup folder.\nAre you sure?'
                       }, function(idx) {
