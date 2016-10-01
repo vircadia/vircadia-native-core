@@ -377,8 +377,10 @@ void GeometryResource::deleter() {
 }
 
 void GeometryResource::setTextures() {
-    for (const FBXMaterial& material : _fbxGeometry->materials) {
-        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+    if (_fbxGeometry) {
+        for (const FBXMaterial& material : _fbxGeometry->materials) {
+            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+        }
     }
 }
 
@@ -457,7 +459,9 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, c
     _textures[channel] = Texture { fbxTexture.name, texture };
 
     auto map = std::make_shared<model::TextureMap>();
-    map->setTextureSource(texture->_textureSource);
+    if (texture) {
+        map->setTextureSource(texture->_textureSource);
+    }
     map->setTextureTransform(fbxTexture.transform);
 
     return map;
