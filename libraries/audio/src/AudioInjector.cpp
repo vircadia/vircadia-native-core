@@ -211,6 +211,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     // if we haven't setup the packet to send then do so now
+    static int loopbackOptionOffset = -1;
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
@@ -260,10 +261,9 @@ int64_t AudioInjector::injectNextFrame() {
             // pack the stereo/mono type of the stream
             audioPacketStream << _options.stereo;
 
-            // pack the flag for loopback.  Now, we don't loopback
-            // and _always_ play locally, so loopbackFlag should be
-            // false always.
-            uchar loopbackFlag = (uchar)false;
+            // pack the flag for loopback, if requested
+            loopbackOptionOffset = _currentPacket->pos();
+            uchar loopbackFlag = (_localAudioInterface && _localAudioInterface->shouldLoopbackInjectors());
             audioPacketStream << loopbackFlag;
 
             // pack the position for injected audio
@@ -293,6 +293,7 @@ int64_t AudioInjector::injectNextFrame() {
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
+
     if (!_frameTimer->isValid()) {
         // in the case where we have been restarted, the frame timer will be invalid and we need to start it back over here
         _frameTimer->restart();
@@ -316,6 +317,9 @@ int64_t AudioInjector::injectNextFrame() {
 
     // pack the sequence number
     _currentPacket->writePrimitive(_outgoingSequenceNumber);
+
+    _currentPacket->seek(loopbackOptionOffset);
+    _currentPacket->writePrimitive((uchar)(_localAudioInterface && _localAudioInterface->shouldLoopbackInjectors()));
 
     _currentPacket->seek(positionOptionOffset);
     _currentPacket->writePrimitive(_options.position);
