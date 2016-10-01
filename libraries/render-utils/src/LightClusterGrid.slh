@@ -47,12 +47,18 @@ float projection_getFar(mat4 projection) {
 // end of hybrid include
 
 
+<@if GLPROFILE == MAC_GL @>
+#define GRID_NUM_ELEMENTS 4096
+<@else@>
+#define GRID_NUM_ELEMENTS 16384
+<@endif@>
+
 uniform clusterGridBuffer {
-    int _clusterGridTable[16384];
+    int _clusterGridTable[GRID_NUM_ELEMENTS];
 };
 
 uniform clusterContentBuffer {
-    int _clusterGridContent[16384];
+    int _clusterGridContent[GRID_NUM_ELEMENTS];
 };
 
 ivec3 clusterGrid_getCluster(int index) {

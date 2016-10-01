@@ -158,7 +158,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
 }
 
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShadingDielectric(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness, float fresnel = 0.03) {
+vec4 evalPBRShadingDielectric(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness, float fresnel) {
     // Diffuse Lighting
     float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
 

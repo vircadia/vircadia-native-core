@@ -69,8 +69,11 @@ void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& z
 }
 
 #include "DeferredLightingEffect.h"
-
+#ifdef Q_OS_MAC
+const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 8, 8, 8, 4096 };
+#else
 const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 32, 32, 31, 16384 };
+#endif
 
 
 LightClusters::LightClusters() :
