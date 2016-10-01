@@ -183,7 +183,7 @@ float distanceToPlane(const glm::vec3& point, const glm::vec4& plane) {
 bool reduceSphereToPlane(const glm::vec4& sphere, const glm::vec4& plane, glm::vec4& reducedSphere) {
     float distance = distanceToPlane(glm::vec3(sphere), plane);
 
-    if (abs(distance) <= sphere.w) {
+    if (std::abs(distance) <= sphere.w) {
         reducedSphere = glm::vec4(sphere.x - distance * plane.x, sphere.y - distance * plane.y, sphere.z - distance * plane.z, sqrt(sphere.w * sphere.w - distance * distance));
         return true;
     }
@@ -242,7 +242,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
             auto x = xMin;
             for (; (x < xMax); ++x) {
-                auto& plane = xPlanes[x + 1];
+                const auto& plane = xPlanes[x + 1];
                 auto testDistance = distanceToPlane(spherePoint, plane) + ySphere.w;
                 if (testDistance >= 0.0f) {
                     break;
@@ -250,7 +250,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
             }
             auto xs = xMax;
             for (; (xs >= x); --xs) {
-                auto& plane = -xPlanes[xs];
+                auto plane = -xPlanes[xs];
                 auto testDistance = distanceToPlane(spherePoint, plane) + ySphere.w;
                 if (testDistance >= 0.0f) {
                     break;
@@ -313,25 +313,14 @@ void LightClusters::updateClusters() {
             continue;
         }
 
-        // Firt slice volume ?
-      /*  if (zMin == -1) {
-            clusterGrid[0].emplace_back(lightId);
-            numClusterTouched++;
-        } */
-
-        // Stop there with this light if zmax is in near range
-        if (zMax == -1) {
+        // Before Range NEar just apss, range neatr == true near for now
+        if (zMin == -1 || zMax == -1) {
             continue;
         }
 
-        // is it a light whose origin is behind the near ?
-        bool behindLight = (eyeOri.z >= -theFrustumGrid.rangeNear);
-        // 
-        float eyeOriLen2 = glm::length2(eyeOri);
 
         // CLamp the z range 
         zMin = std::max(0, zMin);
-
 
 
         // find 2D corners of the sphere in grid

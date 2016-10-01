@@ -92,6 +92,10 @@ void main(void) {
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
+    // COmpute the rougness into gloss2 once:
+    float fragGloss2 = pow(frag.roughness + 0.001, 2.0);
+    frag.roughness = fragGloss2;
+
     int numLightTouching = 0;
     for (int i = 0; i < cluster.x; i++) {
         // Need the light now
@@ -130,12 +134,7 @@ void main(void) {
         evalFragShading(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
         ,frag.scattering, midNormalCurvature, lowNormalCurvature
         );
-        /*
-        evalLightingPoint(diffuse, specular, light,
-                        fragLightDirLen.xyzw, fragEyeDir, frag.normal, frag.roughness,
-                        frag.metallic, frag.fresnel, frag.albedo, 1.0,
-                        frag.scattering, midNormalCurvature, lowNormalCurvature);
-                        */
+
         diffuse *= lightEnergy * isDiffuseEnabled();
         specular *= lightEnergy * isSpecularEnabled();
 
@@ -187,11 +186,7 @@ void main(void) {
         evalFragShading(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
          ,frag.scattering, midNormalCurvature, lowNormalCurvature
         );
-     /*   evalLightingSpot(diffuse, specular, light,
-            fragLightDirLen.xyzw, cosSpotAngle, fragEyeDir, frag.normal, frag.roughness,
-            frag.metallic, frag.fresnel, frag.albedo, 1.0,
-            frag.scattering, midNormalCurvature, lowNormalCurvature);
-            */
+
         diffuse *= lightEnergy * isDiffuseEnabled();
         specular *= lightEnergy * isSpecularEnabled();
 

@@ -20,8 +20,8 @@
 class FrustumGrid {
 public:
     float frustumNear { 0.1f };
-    float rangeNear { 1.0f };
-    float rangeFar { 100.0f };
+    float rangeNear { 0.1f };
+    float rangeFar { 200.0f };
     float frustumFar { 10000.0f };
 
     glm::ivec3 dims { 16, 12, 16 };
@@ -121,8 +121,8 @@ class LightClusteringPassConfig : public render::Job::Config {
     Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
 public:
     LightClusteringPassConfig() : render::Job::Config(true){}
-    float rangeNear{ 1.0f };
-    float rangeFar{ 512.0f };
+    float rangeNear{ 0.1f };
+    float rangeFar{ 200.0f };
 
     int dimX { 16 };
     int dimY { 16 };

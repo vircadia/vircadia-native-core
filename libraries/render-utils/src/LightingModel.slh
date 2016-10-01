@@ -118,10 +118,19 @@ float fresnelSchlickScalar(float fresnelScalar, vec3 lightDir, vec3 halfDir) {
     return (exponential) + fresnelScalar * (1.0 - exponential);
 }
 
-
 float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
-    float gloss2 = pow(0.001 + roughness, 4);
+//    float gloss2 = pow(0.001 + roughness, 4);
+    float gloss2 = (0.001 + roughness);
+    gloss2 *= gloss2; // pow 2
+    gloss2 *= gloss2; // pow 4
+    float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
+    float power = gloss2 / (3.14159 * denom * denom);
+    return power;
+}
+float specularDistributionGloss(float gloss2, vec3 normal, vec3 halfDir) {
+    float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
+//    float gloss2 = pow(0.001 + roughness, 4);  
     float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
     float power = gloss2 / (3.14159 * denom * denom);
     return power;
@@ -143,23 +152,50 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
     vec3 fresnelColor = fresnelSchlickColor(fresnel, fragLightDir, halfDir);
     float power = specularDistribution(roughness, fragNormal, halfDir);
-    vec3 specular = power * fresnelColor * diffuse;
+    vec3 specular = fresnelColor * power * diffuse;
 
     return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
 }
 
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShadingDielectric(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness) {
+vec4 evalPBRShadingDielectric(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness, float fresnel = 0.03) {
     // Diffuse Lighting
     float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
 
     // Specular Lighting
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
-    float fresnelScalar = fresnelSchlickScalar(0.03, fragLightDir, halfDir);
+    float fresnelScalar = fresnelSchlickScalar(fresnel, fragLightDir, halfDir);
     float power = specularDistribution(roughness, fragNormal, halfDir);
-    float specular = power * fresnelScalar * diffuse;
+    vec3 specular = vec3(fresnelScalar) * power * diffuse;
 
-    return vec4(vec3(specular),  diffuse * (1 - fresnelScalar));
+    return vec4(specular,  diffuse * (1 - fresnelScalar));
+}
+
+vec4 evalPBRShadingMetallic(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness, vec3 fresnel) {
+    // Diffuse Lighting
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlickColor(fresnel, fragLightDir, halfDir);
+    float power = specularDistribution(roughness, fragNormal, halfDir);
+    vec3 specular = fresnelColor * power * diffuse;
+
+    return vec4(specular, 0.f);
+}
+
+// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
+vec4 evalPBRShadingGloss(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float gloss2) {
+    // Diffuse Lighting
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlickColor(fresnel, fragLightDir, halfDir);
+    float power = specularDistributionGloss(gloss2, fragNormal, halfDir);
+    vec3 specular = fresnelColor * power * diffuse;
+
+    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
 }
 
 <@endfunc@>
@@ -209,22 +245,19 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
         diffuse = vec3(shading.w);
         specular = shading.xyz;
     }
-    if (isAlbedoEnabled() > 0.0) {
-        diffuse *= albedo;
-    }
+    diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
 }
 
 void evalFragShadingSimpler(out vec3 diffuse, out vec3 specular,
     vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
     float metallic, vec3 fresnel, float roughness, vec3 albedo
-/*
+
     ,float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
-*/
+
 ) {
-    vec4 shading = evalPBRShadingDielectric(fragNormal, fragLightDir, fragEyeDir, roughness);
-  //  vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+    vec4 shading = evalPBRShadingGloss(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
     diffuse = vec3(shading.w);
-    diffuse *= albedo;
+    diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
     specular = shading.xyz;
 }
 
