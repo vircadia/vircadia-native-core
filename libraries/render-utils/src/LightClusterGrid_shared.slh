@@ -1,14 +1,14 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
 float frustumGrid_depthRampGridToVolume(float ngrid) {
-    if (ngrid < 0.0f)
-        return ngrid;
+    //if (ngrid < 0.0f)
+    //    return ngrid;
     // return ngrid;
    // return sqrt(ngrid);
-    return exp2(ngrid) - 1.0f;
+    return exp2(float(ngrid)) - 1.0f;
 }
 float frustumGrid_depthRampInverseVolumeToGrid(float nvolume) {
-    if (nvolume < 0.0f)
-        return nvolume;
+    //if (nvolume < 0.0f)
+    //    return nvolume;
     //  return nvolume;
    // return nvolume * nvolume;
     return log2(nvolume + 1.0f);
