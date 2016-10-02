@@ -241,21 +241,37 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
         diffuse *= specularBrdf.y;
         specular = vec3(specularBrdf.x);
     } else {
-        vec4 shading = evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+        vec4 shading = evalPBRShadingGloss(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
         diffuse = vec3(shading.w);
         specular = shading.xyz;
     }
     diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
 }
 
-void evalFragShadingSimpler(out vec3 diffuse, out vec3 specular,
+
+void evalFragShadingScattering(out vec3 diffuse, out vec3 specular,
     vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
     float metallic, vec3 fresnel, float roughness, vec3 albedo
-
     ,float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
-
 ) {
-    vec4 shading = evalPBRShadingGloss(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, roughness);
+    vec3 brdf = evalSkinBRDF(fragLightDir, fragNormal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
+    float NdotL = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+    diffuse = mix(vec3(NdotL), brdf, scattering);
+
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec2 specularBrdf = skinSpecular(fragNormal, fragLightDir, fragEyeDir, roughness, 1.0);
+        
+    diffuse *= specularBrdf.y;
+    specular = vec3(specularBrdf.x);
+    diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
+}
+
+void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
+    vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir,
+    float metallic, vec3 fresnel, float gloss, vec3 albedo
+) {
+    vec4 shading = evalPBRShadingGloss(fragNormal, fragLightDir, fragEyeDir, metallic, fresnel, gloss);
     diffuse = vec3(shading.w);
     diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
     specular = shading.xyz;

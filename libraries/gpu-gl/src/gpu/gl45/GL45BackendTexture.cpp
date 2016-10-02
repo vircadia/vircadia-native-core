@@ -513,7 +513,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     syncSampler();
     size_t oldSize = _size;
     updateSize();
-    Q_ASSERT(_size > oldSize);
+   // Q_ASSERT(_size > oldSize);
 
 
     // Re-insert into the texture-by-mips map if appropriate

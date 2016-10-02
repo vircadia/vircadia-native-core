@@ -202,7 +202,7 @@ uint32_t scanLightVolumeBox(FrustumGrid& grid, const FrustumGrid::Planes planes[
     for (auto z = zMin; (z <= zMax); z++) {
         for (auto y = yMin; (y <= yMax); y++) {
             for (auto x = xMin; (x <= xMax); x++) {
-                auto index = 1 + x + gridPosToOffset.y * y + gridPosToOffset.z * z;
+                auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * z;
                 clusterGrid[index].emplace_back(lightId);
                 numClustersTouched++;
             }
@@ -220,12 +220,15 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
     const auto& yPlanes = planes[1];
     const auto& zPlanes = planes[2];
 
-    int center_z = grid.frustumGrid_eyeDepthToClusterLayer(eyePosRadius.z);
-    int center_y = (yMax + yMin) >> 1;
+    // FInd the light origin cluster
+    auto centerCluster = grid.frustumGrid_eyeToClusterPos(glm::vec3(eyePosRadius));
+    int center_z = centerCluster.z;
+    int center_y = centerCluster.y;
+
     for (auto z = zMin; (z <= zMax); z++) {
         auto zSphere = eyePosRadius;
         if (z != center_z) {
-            auto& plane = (z < center_z) ? zPlanes[z + 1] : -zPlanes[z];
+            auto plane = (z < center_z) ? zPlanes[z + 1] : -zPlanes[z];
             if (!reduceSphereToPlane(zSphere, plane, zSphere)) {
                 // pass this slice!
                 continue;
@@ -234,7 +237,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
         for (auto y = yMin; (y <= yMax); y++) {
             auto ySphere = zSphere;
             if (y != center_y) {
-                auto& plane = (y < center_y) ? yPlanes[y + 1] : -yPlanes[y];
+                auto plane = (y < center_y) ? yPlanes[y + 1] : -yPlanes[y];
                 if (!reduceSphereToPlane(ySphere, plane, ySphere)) {
                     // pass this slice!
                     continue;
@@ -262,8 +265,12 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
             for (; (x <= xs); x++) {
                 auto index = grid.frustumGrid_clusterToIndex(ivec3(x, y, z));
-                clusterGrid[index].emplace_back(lightId);
-                numClustersTouched++;
+                if (index < (int) clusterGrid.size()) {
+                    clusterGrid[index].emplace_back(lightId);
+                    numClustersTouched++;
+                } else {
+                    qDebug() << "WARNING: LightClusters::scanLightVolumeSphere invalid index found ? numClusters = " << clusterGrid.size() << " index = " << index << " found from cluster xyz = " << x << " " << y << " " << z;
+                }
             }
         }
     }
@@ -324,7 +331,7 @@ void LightClusters::updateClusters() {
 
         // CLamp the z range 
         zMin = std::max(0, zMin);
-
+     //   zMax = std::min(zMax, theFrustumGrid.dims.z);
 
         // find 2D corners of the sphere in grid
         int xMin { 0 };
@@ -362,7 +369,7 @@ void LightClusters::updateClusters() {
             auto rc = theFrustumGrid.frustumGrid_eyeToClusterDirH(rightDir);
 
             xMin = std::max(xMin, lc);
-            xMax = std::max(0, std::min(rc, xMax));
+            xMax = std::min(rc, xMax);
         }
 
         if ((eyeOriLen2V > radius2)) {
@@ -385,12 +392,14 @@ void LightClusters::updateClusters() {
             auto tc = theFrustumGrid.frustumGrid_eyeToClusterDirV(topDir);
 
             yMin = std::max(yMin, bc);
-            yMax = std::max(yMin, std::min(tc, yMax));
+            yMax =std::min(tc, yMax);
         }
 
         // now voxelize
         auto& clusterGrid = (isSpot ? clusterGridSpot : clusterGridPoint);
-        numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+       // numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+        numClusterTouched += scanLightVolumeBox(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+    
     }
 
     // Lights have been gathered now reexpress in terms of 2 sequential buffers
