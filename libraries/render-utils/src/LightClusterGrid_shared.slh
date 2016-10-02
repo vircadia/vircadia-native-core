@@ -1,10 +1,16 @@
 // glsl / C++ compatible source as interface for FrustrumGrid
+#if defined(Q_OS_LINUX)
+#define float_exp2 exp2f
+#else
+#define float_exp2 exp2
+#endif
+
 float frustumGrid_depthRampGridToVolume(float ngrid) {
     //if (ngrid < 0.0f)
     //    return ngrid;
     // return ngrid;
    // return sqrt(ngrid);
-    return exp2(float(ngrid)) - 1.0f;
+    return float_exp2(ngrid) - 1.0f;
 }
 float frustumGrid_depthRampInverseVolumeToGrid(float nvolume) {
     //if (nvolume < 0.0f)
