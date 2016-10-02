@@ -397,7 +397,12 @@ ItemKey ModelMeshPartPayload::getKey() const {
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-    assert(_model->isLoaded());
+
+    // guard against partially loaded meshes
+    if (!_model || !_model->isLoaded() || !_model->getGeometry()) {
+        return ShapeKey::Builder::invalid();
+    }
+
     const FBXGeometry& geometry = _model->getFBXGeometry();
     const auto& networkMeshes = _model->getGeometry()->getMeshes();
 
