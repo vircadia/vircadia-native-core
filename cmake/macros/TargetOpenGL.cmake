@@ -6,6 +6,7 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 macro(TARGET_OPENGL)
+    add_definitions(-DGLEW_STATIC) 
     if (APPLE)
       # link in required OS X frameworks and include the right GL headers
       find_library(OpenGL OpenGL)
