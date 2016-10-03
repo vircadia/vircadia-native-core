@@ -817,6 +817,13 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         return;
     }
 
+    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
+    // multimedia OS they should be. If there is a device that this is not true for, we can
+    // add back support to do resampling.
+    if (_inputFormat.sampleRate() != _outputFormat.sampleRate()) {
+        return;
+    }
+
     // if this person wants local loopback add that to the locally injected audio
     // if there is reverb apply it to local audio and substract the origin samples
 
@@ -832,11 +839,6 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
             return;
         }
     }
-
-    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
-    // multimedia OS they should be. If there is a device that this is not true for, we can
-    // add back support to do resampling.
-    Q_ASSERT(_inputFormat.sampleRate() == _outputFormat.sampleRate());
 
     static QByteArray loopBackByteArray;
 
