@@ -331,5 +331,7 @@ bool RenderableWebEntityItem::isTransparent() {
 }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
-    _webSurface->emitScriptEvent(message);
+    if (_webSurface) {
+        _webSurface->emitScriptEvent(message);
+    }
 }
