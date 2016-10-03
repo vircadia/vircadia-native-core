@@ -386,10 +386,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
     });
 
-    if (!updatedEntity) {
-        return QUuid();
-    }
-
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
