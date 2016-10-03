@@ -939,11 +939,11 @@ bool getProcessorInfo(ProcessorInfo& info) {
 
                 if (NULL == buffer) {
                     qDebug() << "Error: Allocation failure";
-                    return (2);
+                    return false;
                 }
             } else {
                 qDebug() << "Error " << GetLastError();
-                return (3);
+                return false;
             }
         } else {
             done = true;
