@@ -25,10 +25,13 @@ function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
 
-var emptyishPlace = 'empty';
-var cachePlaces = ['localhost', 'Welcome'];
-var isInCachePlace = cachePlaces.indexOf(location.hostname) >= 0;
-var defaultPlace = isInCachePlace ? 'Playa' : location.hostname;
+function isNowIn(place) { // true if currently in specified place
+    return location.hostname.toLowerCase() === place.toLowerCase();
+}
+
+var cachePlaces = ['dev-Welcome', 'localhost']; // For now, list the lighter weight one first.
+var isInCachePlace = cachePlaces.some(isNowIn);
+var defaultPlace = isInCachePlace ? 'dev-Playa' : location.hostname;
 var prompt = "domain-check.js version " + version + "\n\nWhat place should we enter?";
 debug(cachePlaces, isInCachePlace, defaultPlace, prompt);
 var entryPlace = Window.prompt(prompt, defaultPlace);
@@ -114,17 +117,9 @@ function doLoad(place, continuationWithLoadTime) { // Go to place and call conti
         }
     };
 
-    function doit() {
-        debug('go', place);
-        location.hostChanged.connect(waitForLoad);
-        location.handleLookupString(place);
-    }
-    if (location.placename.toLowerCase() === place.toLowerCase()) {
-        location.handleLookupString(emptyishPlace);
-        Script.setTimeout(doit, 1000);
-    } else {
-        doit();
-    }
+    debug('go', place);
+    location.hostChanged.connect(waitForLoad);
+    location.handleLookupString(place);
 }
 
 var config = Render.getConfig("Stats");
@@ -144,6 +139,7 @@ function doRender(continuation) {
     });
 }
 
+var TELEPORT_PAUSE = 500;
 function maybePrepareCache(continuation) {
     var prepareCache = Window.confirm("Prepare cache?\n\n\
 Should we start with all and only those items cached that are encountered when visiting:\n" + cachePlaces.join(', ') + "\n\
@@ -151,8 +147,6 @@ If 'yes', cache will be cleared and we will visit these two, with a turn in each
 You would want to say 'no' (and make other preparations) if you were testing these places.");
 
     if (prepareCache) {
-        location.handleLookupString(emptyishPlace);
-        Window.alert("Please do menu Edit->Reload Content (Clears all caches) and THEN press 'ok'.");
         function loadNext() {
             var place = cachePlaces.shift();
             doLoad(place, function (prepTime) {
@@ -164,9 +158,12 @@ You would want to say 'no' (and make other preparations) if you were testing the
                 }
             });
         }
-        loadNext();
+        location.handleLookupString(cachePlaces[cachePlaces.length - 1]);
+        Menu.triggerOption("Reload Content (Clears all caches)");
+        Script.setTimeout(loadNext, TELEPORT_PAUSE);
     } else {
-        continuation();
+        location.handleLookupString(isNowIn(cachePlaces[0]) ? cachePlaces[1] : cachePlaces[0]);
+        Script.setTimeout(continuation, TELEPORT_PAUSE);
     }
 }
 
