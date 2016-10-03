@@ -54,6 +54,7 @@ public slots:
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& path);
+    bool isPhysicsEnabled();
 
 signals:
     void domainChanged(const QString& domainHostname);

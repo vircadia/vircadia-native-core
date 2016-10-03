@@ -125,3 +125,8 @@ void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool 
                 Q_ARG(const QString&, menuOption),
                 Q_ARG(bool, isChecked));
 }
+
+void MenuScriptingInterface::triggerOption(const QString& menuOption) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "triggerOption", Q_ARG(const QString&, menuOption));    
+}
+
