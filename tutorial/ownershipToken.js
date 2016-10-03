@@ -108,6 +108,7 @@ OwnershipToken.prototype = {
         }
 
         if (this.updateLifetimeID) {
+            debug(this.name, "Clearing update lifetime interval");
             Script.clearInterval(this.updateLifetimeID);
             this.updateLifetimeID = null;
         }
