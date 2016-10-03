@@ -1283,10 +1283,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
 
         qDebug() << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-        qDebug() << "has tutorial content" << hasTutorialContent;
-        qDebug() << "tutorial complete" << tutorialComplete.get();
-        qDebug() << "should go to tutorial " << shouldGoToTutorial;
-
+        qDebug() << "Has tutorial content: " << hasTutorialContent;
+        qDebug() << "Tutorial complete: " << tutorialComplete.get();
+        qDebug() << "Should go to tutorial: " << shouldGoToTutorial;
 
         // when --url in command line, teleport to location
         const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1315,11 +1314,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             });
         } else {
 
-            if (firstRun.get()) {
+            bool isFirstRun = firstRun.get();
+
+            if (isFirstRun) {
                 showHelp();
             }
 
-            if (addressLookupString.isEmpty() && firstRun.get()) {
+            // If this is a first run we short-circuit the address passed in
+            if (isFirstRun) {
                 if (hasHMDAndHandControllers) {
                     DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
                         qDebug() << "Home sandbox appears to be running, going to Home.";
