@@ -107,9 +107,11 @@ void AssetRequest::start() {
         
         auto assetClient = DependencyManager::get<AssetClient>();
         auto that = QPointer<AssetRequest>(this); // Used to track the request's lifetime
+        auto hash = _hash;
         _assetRequestID = assetClient->getAsset(_hash, start, end,
-                [this, that, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+                [this, that, hash, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
             if (!that) {
+                qCWarning(asset_client) << "Got reply for dead asset request " << hash << "- error code" << _error;
                 // If the request is dead, return
                 return;
             }
@@ -148,6 +150,8 @@ void AssetRequest::start() {
             
             if (_error != NoError) {
                 qCWarning(asset_client) << "Got error retrieving asset" << _hash << "- error code" << _error;
+            } else {
+                qCDebug(asset_client) << "Received asset successfully: " << _hash;
             }
             
             _state = Finished;
