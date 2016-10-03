@@ -143,6 +143,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _fileNameString(fileNameString),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    _assetScriptingInterface.moveToThread(thread());
     DependencyManager::get<ScriptEngines>()->addScriptEngine(this);
 
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
