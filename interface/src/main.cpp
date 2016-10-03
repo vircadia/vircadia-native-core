@@ -129,18 +129,20 @@ int main(int argc, const char* argv[]) {
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
     if (parser.isSet(runServerOption)) {
-        QString serverPath = QFileInfo(arguments[0]).path();
-        serverPath += "/server-console/server-console.exe";
-        //serverPath = "./server-console/server-console.exe";
+        //QString serverPath = QFileInfo(arguments[0]).path();
+        QString applicationDirPath = QCoreApplication::applicationDirPath();
+        QString serverPath = "/server-console/server-console.exe";
+        qDebug() << "Application dir path is: " << applicationDirPath;
+        qDebug() << "Server path is: " << serverPath;
         QStringList args;
         if (parser.isSet(serverContentPathOption)) {
             QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPathOption);
             args << "--" << "--contentPath" << serverContentPath;
         }
-        qDebug() << "server path: " << serverPath << args;
         qDebug() << QFileInfo(arguments[0]).path();
         qDebug() << QProcess::startDetached(serverPath, args);
 
+        // Sleep a short amount of time to give the server a chance to start
         usleep(2000000);
     }
 
