@@ -27,6 +27,10 @@
 
 enum LightClusterGridShader_MapSlot {
     DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 0,
+    DEFERRED_BUFFER_COLOR_UNIT,
+    DEFERRED_BUFFER_NORMAL_UNIT,
+    DEFERRED_BUFFER_EMISSIVE_UNIT,
+    DEFERRED_BUFFER_DEPTH_UNIT,
 };
 
 enum LightClusterGridShader_BufferSlot {
@@ -324,7 +328,7 @@ void LightClusters::updateClusters() {
         }
 
         // Before Range NEar just apss, range neatr == true near for now
-        if (zMin == -1 || zMax == -1) {
+        if ((zMin == -1) && (zMax == -1)) {
             continue;
         }
 
@@ -397,8 +401,8 @@ void LightClusters::updateClusters() {
 
         // now voxelize
         auto& clusterGrid = (isSpot ? clusterGridSpot : clusterGridPoint);
-       // numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
-        numClusterTouched += scanLightVolumeBox(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+        numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+       // numClusterTouched += scanLightVolumeBox(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
     
     }
 
@@ -539,6 +543,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
+
         slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
 
@@ -546,9 +551,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
 
 
         auto state = std::make_shared<gpu::State>();
-
-    //    state->setDepthTest(true, false, gpu::LESS_EQUAL);
-
+        
         // Blend on transparent
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
@@ -560,23 +563,27 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
     if (!_drawClusterContent) {
-        auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawClusterContent_vert));
+      //  auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawClusterContent_vert));
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawClusterContent_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+
         slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
 
+        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
 
         gpu::Shader::makeProgram(*program, slotBindings);
 
 
         auto state = std::make_shared<gpu::State>();
-
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-
+        
         // Blend on transparent
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
@@ -611,6 +618,14 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
     // Then the actual ClusterGrid attributes
     batch.setModelTransform(Transform());
 
+    
+    // Bind the G-Buffer surfaces
+/*    batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, deferredFramebuffer->getDeferredColorTexture());
+    batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, deferredFramebuffer->getDeferredNormalTexture());
+    batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, deferredFramebuffer->getDeferredSpecularTexture());
+    batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
+*/
+    batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->_lightArrayBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
@@ -626,9 +641,7 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
         }
 
         batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-
-        // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
-      
+              
         batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     }
@@ -637,10 +650,16 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
 
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawClusterContentPipeline());
+        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
 
-        auto dims = lightClusters->_frustumGridBuffer->dims;
-        glm::ivec3 summedDims(dims.x*dims.y * dims.z, dims.x*dims.y, dims.x);
-        batch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
+        if (linearDepthTarget) {
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
+        }
+
+        batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+              
+        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
+        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     }
     
     if (doDrawGrid) {
@@ -651,6 +670,17 @@ void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, co
         glm::ivec3 summedDims(dims.x*dims.y * dims.z, dims.x*dims.y, dims.x);
         batch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
     }
+
+    batch.setUniformBuffer(LIGHT_GPU_SLOT, nullptr);
+    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
+    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
+    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
+
+    batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
+    batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
+    batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
+    batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
+
     args->_context->appendFrameBatch(batch);
 
 }

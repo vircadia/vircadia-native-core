@@ -79,9 +79,6 @@ void main(void) {
         discard;
     }
 
-
-
-
     vec4 midNormalCurvature;
     vec4 lowNormalCurvature;
     if (frag.mode == FRAG_MODE_SCATTERING) {
