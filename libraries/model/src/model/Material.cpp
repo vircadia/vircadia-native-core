@@ -44,8 +44,11 @@ Material::Material(const Material& material) :
 }
 
 Material& Material::operator= (const Material& material) {
+    QMutexLocker locker(&_textureMapsMutex);
+
     _key = (material._key);
     _textureMaps = (material._textureMaps);
+    _hasCalculatedTextureInfo = false;
 
     // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
     Schema schema;
@@ -112,6 +115,8 @@ void Material::setScattering(float scattering) {
 }
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
+    QMutexLocker locker(&_textureMapsMutex);
+
     if (textureMap) {
         _key.setMapChannel(channel, (true));
         _textureMaps[channel] = textureMap;
@@ -119,6 +124,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _key.setMapChannel(channel, (false));
         _textureMaps.erase(channel);
     }
+    _hasCalculatedTextureInfo = false;
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
 
@@ -173,10 +179,46 @@ void Material::resetOpacityMap() const {
 
 
 const TextureMapPointer Material::getTextureMap(MapChannel channel) const {
+    QMutexLocker locker(&_textureMapsMutex);
+
     auto result = _textureMaps.find(channel);
     if (result != _textureMaps.end()) {
         return (result->second);
     } else {
         return TextureMapPointer();
     }
+}
+
+
+bool Material::calculateMaterialInfo() const {
+    if (!_hasCalculatedTextureInfo) {
+        QMutexLocker locker(&_textureMapsMutex);
+
+        bool allTextures = true; // assume we got this...
+        _textureSize = 0;
+        _textureCount = 0;
+
+        for (auto const &textureMapItem : _textureMaps) {
+            auto textureMap = textureMapItem.second;
+            if (textureMap) {
+                auto textureSoure = textureMap->getTextureSource();
+                if (textureSoure) {
+                    auto texture = textureSoure->getGPUTexture();
+                    if (texture) {
+                        auto size = texture->getSize();
+                        _textureSize += size;
+                        _textureCount++;
+                    } else {
+                        allTextures = false;
+                    }
+                } else {
+                    allTextures = false;
+                }
+            } else {
+                allTextures = false;
+            }
+        }
+        _hasCalculatedTextureInfo = allTextures;
+    }
+    return _hasCalculatedTextureInfo;
 }

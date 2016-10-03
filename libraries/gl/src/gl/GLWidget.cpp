@@ -67,8 +67,8 @@ void GLWidget::createContext() {
     _context = new gl::Context();
     _context->setWindow(windowHandle());
     _context->create();
-    _context->clear();
     _context->makeCurrent();
+    _context->clear();
 }
 
 bool GLWidget::makeCurrent() {

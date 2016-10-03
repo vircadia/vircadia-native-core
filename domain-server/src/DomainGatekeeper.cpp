@@ -771,6 +771,21 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
 
+    QJsonObject json;
+    QSet<QString> groupIDSet;
+    foreach (QUuid groupID, _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs()) {
+        groupIDSet += groupID.toString().mid(1,36);
+    }
+
+    if (groupIDSet.isEmpty()) {
+        // if no groups are in the permissions settings, don't ask who is in which groups.
+        return;
+    }
+
+    QJsonArray groupIDs = QJsonArray::fromStringList(groupIDSet.toList());
+    json["groups"] = groupIDs;
+
+
     // if we've already asked, wait for the answer before asking again
     QString lowerUsername = username.toLower();
     if (_inFlightGroupMembershipsRequests.contains(lowerUsername)) {
@@ -779,13 +794,6 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
     }
     _inFlightGroupMembershipsRequests += lowerUsername;
 
-    QJsonObject json;
-    QSet<QString> groupIDSet;
-    foreach (QUuid groupID, _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs()) {
-        groupIDSet += groupID.toString().mid(1,36);
-    }
-    QJsonArray groupIDs = QJsonArray::fromStringList(groupIDSet.toList());
-    json["groups"] = groupIDs;
 
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;

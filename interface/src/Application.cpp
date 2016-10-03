@@ -68,6 +68,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
+#include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
@@ -4918,6 +4919,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
+
+    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+    scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
+    UserInputMapper::registerControllerTypes(scriptEngine);
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
