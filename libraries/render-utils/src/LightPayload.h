@@ -27,13 +27,17 @@ public:
 
     model::LightPointer editLight() { _needUpdate = true; return _light; }
     render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
-    
+
+    void setVisible(bool visible) { _isVisible = visible; }
+    bool isVisible() const { return _isVisible; }
+
 protected:
     model::LightPointer _light;
     render::Item::Bound _bound;
     LightStagePointer _stage;
     LightStage::Index _index { LightStage::INVALID_INDEX };
     bool _needUpdate { true };
+    bool _isVisible{ true };
 };
 
 namespace render {

@@ -74,7 +74,6 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 <@endif@>
     ) {
 
-
     // Diffuse from ambient
     diffuse = (1 - metallic) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
 

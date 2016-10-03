@@ -57,6 +57,7 @@ public:
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
+    void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
     void setGlobalLight(const model::LightPointer& light);

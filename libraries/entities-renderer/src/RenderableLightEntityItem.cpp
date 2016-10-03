@@ -140,6 +140,9 @@ void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pe
 
 void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload* lightPayload) {
     auto entity = this;
+
+    lightPayload->setVisible(entity->getVisible());
+
     auto light = lightPayload->editLight();
     light->setPosition(entity->getPosition());
     light->setOrientation(entity->getRotation());

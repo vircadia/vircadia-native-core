@@ -43,7 +43,6 @@ using namespace render;
 
 struct LightLocations {
     int radius{ -1 };
-    int ambientSphere{ -1 };
     int lightBufferUnit{ -1 };
     int ambientBufferUnit { -1 };
     int lightIndexBufferUnit { -1 };
@@ -199,6 +198,22 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
     }
 }
+
+void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
+    auto keyLight = _allocatedLights[_globalLights.front()];
+
+    if (lightBufferUnit >= 0) {
+        batch.setUniformBuffer(lightBufferUnit, nullptr);
+    }
+    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+        batch.setUniformBuffer(ambientBufferUnit, nullptr);
+    }
+
+    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, nullptr);
+    }
+}
+
 static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
     auto VS = gpu::Shader::createVertex(std::string(vertSource));
     auto PS = gpu::Shader::createPixel(std::string(fragSource));
@@ -237,7 +252,6 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     gpu::Shader::makeProgram(*program, slotBindings);
 
     locations->radius = program->getUniforms().findLocation("radius");
-    locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
@@ -646,15 +660,14 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
-        { // Setup the global lighting
-            deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
-        }
-
+        // Setup the global lighting
+        deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        if (keyLight->getAmbientMap()) {
-            batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
-        }
+        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+
+
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
     }
 }
@@ -806,6 +819,11 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
         //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
+
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
+
     }
 
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();

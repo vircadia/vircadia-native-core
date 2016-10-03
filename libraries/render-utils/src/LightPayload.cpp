@@ -16,7 +16,12 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const LightPayload::Pointer& payload) {
-        return ItemKey::Builder::light();
+        ItemKey::Builder builder;
+        builder.withTypeLight();
+        if (!payload || !payload->isVisible()) {
+            builder.withInvisible();
+        }
+        return builder.build();
     }
 
     template <> const Item::Bound payloadGetBound(const LightPayload::Pointer& payload) {
@@ -63,7 +68,9 @@ void LightPayload::render(RenderArgs* args) {
         _needUpdate = false;
     }
     
-    // FInally, push the light visible in the frame
-    _stage->_currentFrame.pushLight(_index, _light->getType());
+    if (isVisible()) {
+        // FInally, push the light visible in the frame
+        _stage->_currentFrame.pushLight(_index, _light->getType());
+    }
 }
 

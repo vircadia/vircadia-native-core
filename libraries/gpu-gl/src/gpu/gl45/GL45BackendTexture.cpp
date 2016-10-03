@@ -511,10 +511,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     _minMip = newMinMip;
     // Re-sync the sampler to force access to the new mip level
     syncSampler();
-    size_t oldSize = _size;
     updateSize();
-   // Q_ASSERT(_size > oldSize);
-
 
     // Re-insert into the texture-by-mips map if appropriate
     mipLevels = usedMipLevels();

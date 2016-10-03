@@ -11,13 +11,10 @@
 <@if not MODEL_LIGHT_SLH@>
 <@def MODEL_LIGHT_SLH@>
 
-<@include model/SphericalHarmonics.shared.slh@>
 <@include model/LightVolume.shared.slh@>
 <@include model/LightIrradiance.shared.slh@>
 
 // NOw lets define Light
-
-
 struct Light {
     LightVolume volume;
     LightIrradiance irradiance;
@@ -28,38 +25,23 @@ bool light_isSpot(Light l) { return lightVolume_isSpot(l.volume); }
 vec3 getLightPosition(Light l) { return lightVolume_getPosition(l.volume); }
 vec3 getLightDirection(Light l) { return lightVolume_getDirection(l.volume); }
 
-
 vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
 float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
 vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
 
-
-
-
-
-
-
+// AMbient lighting needs extra info provided from a different Buffer
+<@include model/SphericalHarmonics.shared.slh@>
+// Light Ambient
 struct LightAmbient {
     vec4 _ambient;
     SphericalHarmonics _ambientSphere;
 };
 
-SphericalHarmonics getLightAmbientSphere(LightAmbient l) {
-    return l._ambientSphere;
-}
+SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphere; }
 
-
-float getLightAmbientIntensity(LightAmbient l) { return l._ambient.w; }
-
-
-bool getLightHasAmbientMap(LightAmbient l) {
-    return l._ambient.x > 0;
-  //  return l._control.x > 0;
-}
-
-float getLightAmbientMapNumMips(LightAmbient l) {
-    return l._ambient.x;
-}
+float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
+bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0; }
+float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
 <@func declareLightBuffer(N)@>
 
