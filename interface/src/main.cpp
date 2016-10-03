@@ -129,9 +129,8 @@ int main(int argc, const char* argv[]) {
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
     if (parser.isSet(runServerOption)) {
-        //QString serverPath = QFileInfo(arguments[0]).path();
-        QString applicationDirPath = QCoreApplication::applicationDirPath();
-        QString serverPath = "/server-console/server-console.exe";
+        QString applicationDirPath = QFileInfo(arguments[0]).path();
+        QString serverPath = applicationDirPath + "/server-console/server-console.exe";
         qDebug() << "Application dir path is: " << applicationDirPath;
         qDebug() << "Server path is: " << serverPath;
         QStringList args;
