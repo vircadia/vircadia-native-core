@@ -173,7 +173,7 @@ You would want to say 'no' (and make other preparations) if you were testing the
 function maybeRunTribbles(continuation) {
     if (Window.confirm("Run tribbles?\n\n\
 At most, only one participant should say yes.")) {
-        Script.load('http://howard-stearns.github.io/models/scripts/tests/performance/tribbles.js'); // FIXME: replace with AWS
+        Script.load('http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/tribbles.js'); // FIXME: replace with AWS
         Script.setTimeout(continuation, 3000);
     } else {
         continuation();
