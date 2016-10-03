@@ -815,7 +815,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
         { "gl_sl_version", glContextData["slVersion"] },
-        { "gl_renderer", glContextData["renderer"] }
+        { "gl_renderer", glContextData["renderer"] },
+        { "ideal_thread_count", QThread::idealThreadCount() }
     };
     auto macVersion = QSysInfo::macVersion();
     if (macVersion != QSysInfo::MV_None) {
@@ -825,6 +826,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     if (windowsVersion != QSysInfo::WV_None) {
         properties["os_win_version"] = QSysInfo::windowsVersion();
     }
+
+    ProcessorInfo procInfo;
+    if (getProcessorInfo(procInfo)) {
+        properties["processor_core_count"] = procInfo.numProcessorCores;
+        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    }
+
     UserActivityLogger::getInstance().logAction("launch", properties);
 
     _connectionMonitor.init();
