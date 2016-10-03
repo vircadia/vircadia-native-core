@@ -4365,7 +4365,9 @@ namespace render {
                         sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
                         sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
                     } else {
-                        qWarning() << "Failed to get a valid Default SKybox Ambient Texture ? probably because it couldn't be find during initialization step";
+                        static QString repeatedMessage
+                            = LogHandler::getInstance().addRepeatedMessageRegex(
+                            "Failed to get a valid Default Skybox Ambient Texture ? probably because it couldn't be find during initialization step");
                     }
                     // fall through: render defaults skybox
                 } else {
