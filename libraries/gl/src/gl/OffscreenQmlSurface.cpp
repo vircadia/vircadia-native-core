@@ -988,31 +988,34 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
 }
 
 void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
-    auto utf8Key = key.toUtf8();
+    auto eventHandler = getEventHandler();
+    if (eventHandler) {
+        auto utf8Key = key.toUtf8();
 
-    int scanCode = (int)utf8Key[0];
-    QString keyString = key;
-    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
-        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
-        return;  // ignore
-    } else if (equals(utf8Key, LEFT_ARROW)) {
-        scanCode = Qt::Key_Backspace;
-        keyString = "\x08";
-    } else if (equals(utf8Key, RETURN_SYMBOL)) {
-        scanCode = Qt::Key_Return;
-        keyString = "\x0d";
-    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Left;
-        keyString = "";
-    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Right;
-        keyString = "";
+        int scanCode = (int)utf8Key[0];
+        QString keyString = key;
+        if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+            equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+            return;  // ignore
+        } else if (equals(utf8Key, LEFT_ARROW)) {
+            scanCode = Qt::Key_Backspace;
+            keyString = "\x08";
+        } else if (equals(utf8Key, RETURN_SYMBOL)) {
+            scanCode = Qt::Key_Return;
+            keyString = "\x0d";
+        } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Left;
+            keyString = "";
+        } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Right;
+            keyString = "";
+        }
+
+        QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+        QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+        QCoreApplication::postEvent(eventHandler, pressEvent);
+        QCoreApplication::postEvent(eventHandler, releaseEvent);
     }
-
-    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
-    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
-    QCoreApplication::postEvent(getEventHandler(), pressEvent);
-    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
