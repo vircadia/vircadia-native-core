@@ -14,7 +14,7 @@
     };
 
     const LIGHTER_ON_SOUND_URL = getResourceURL('tutorial_sounds/lighter_on.wav');
-    const BUTANE_SOUND_URL = getResourceURL('tutorial_sound/butane.wav');
+    const BUTANE_SOUND_URL = getResourceURL('tutorial_sounds/butane.wav');
 
     // TODO: fix this in the client, changing the sound volume while a sound is playing doesn't seem to work right now
     const DYNAMIC_SOUND_VOLUME = false;
