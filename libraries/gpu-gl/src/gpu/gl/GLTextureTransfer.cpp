@@ -18,7 +18,6 @@
 std::unordered_map<TexturePointer, nvtxRangeId_t> _map;
 #endif
 
-//#define TEXTURE_TRANSFER_PBOS
 
 #ifdef TEXTURE_TRANSFER_PBOS
 #define TEXTURE_TRANSFER_BLOCK_SIZE (64 * 1024)
@@ -62,11 +61,16 @@ void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texture
 void GLTextureTransferHelper::setup() {
 #ifdef THREADED_TEXTURE_TRANSFER
     _context.makeCurrent();
+
+#ifdef TEXTURE_TRANSFER_FORCE_DRAW
+    // FIXME don't use opengl 4.5 DSA functionality without verifying it's present
     glCreateRenderbuffers(1, &_drawRenderbuffer);
     glNamedRenderbufferStorage(_drawRenderbuffer, GL_RGBA8, 128, 128);
     glCreateFramebuffers(1, &_drawFramebuffer);
     glNamedFramebufferRenderbuffer(_drawFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _drawRenderbuffer);
     glCreateFramebuffers(1, &_readFramebuffer);
+#endif
+
 #ifdef TEXTURE_TRANSFER_PBOS
     std::array<GLuint, TEXTURE_TRANSFER_PBO_COUNT> pbos;
     glCreateBuffers(TEXTURE_TRANSFER_PBO_COUNT, &pbos[0]);
@@ -84,7 +88,9 @@ void GLTextureTransferHelper::setup() {
 void GLTextureTransferHelper::shutdown() {
 #ifdef THREADED_TEXTURE_TRANSFER
     _context.makeCurrent();
+#endif
 
+#ifdef TEXTURE_TRANSFER_FORCE_DRAW
     glNamedFramebufferRenderbuffer(_drawFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, 0);
     glDeleteFramebuffers(1, &_drawFramebuffer);
     _drawFramebuffer = 0;
@@ -165,6 +171,11 @@ bool GLTextureTransferHelper::process() {
         }
 
         gltexture->finishTransfer();
+
+#ifdef TEXTURE_TRANSFER_FORCE_DRAW
+        // FIXME force a draw on the texture transfer thread before passing the texture to the main thread for use
+#endif
+
 #ifdef THREADED_TEXTURE_TRANSFER
         clientWait();
 #endif

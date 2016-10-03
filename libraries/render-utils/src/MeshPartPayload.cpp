@@ -71,38 +71,7 @@ void MeshPartPayload::updateTransform(const Transform& transform, const Transfor
 
 void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
-    calculateMaterialSize();
 }
-
-bool MeshPartPayload::calculateMaterialSize() {
-    bool allTextures = true; // assume we got this...
-    _materialTextureSize = 0;
-    _materialTextureCount = 0;
-    auto textureMaps = _drawMaterial->getTextureMaps();
-    for (auto const &textureMapItem : textureMaps) {
-        auto textureMap = textureMapItem.second;
-        if (textureMap) {
-            auto textureSoure = textureMap->getTextureSource();
-            if (textureSoure) {
-                auto texture = textureSoure->getGPUTexture();
-                if (texture) {
-                    //auto storedSize = texture->getStoredSize();
-                    auto size = texture->getSize();
-                    _materialTextureSize += size;
-                    _materialTextureCount++;
-                } else {
-                    allTextures = false;
-                }
-            } else {
-                allTextures = false;
-            }
-        } else {
-            allTextures = false;
-        }
-    }
-    return allTextures;
-}
-
 
 ItemKey MeshPartPayload::getKey() const {
     ItemKey::Builder builder;
@@ -378,7 +347,6 @@ void ModelMeshPartPayload::initCache() {
     auto networkMaterial = _model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         _drawMaterial = networkMaterial;
-        calculateMaterialSize();
     }
 }
 
@@ -429,7 +397,12 @@ ItemKey ModelMeshPartPayload::getKey() const {
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-    assert(_model->isLoaded());
+
+    // guard against partially loaded meshes
+    if (!_model || !_model->isLoaded() || !_model->getGeometry()) {
+        return ShapeKey::Builder::invalid();
+    }
+
     const FBXGeometry& geometry = _model->getFBXGeometry();
     const auto& networkMeshes = _model->getGeometry()->getMeshes();
 

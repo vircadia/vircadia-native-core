@@ -21,6 +21,14 @@
 #define THREADED_TEXTURE_TRANSFER
 #endif
 
+#ifdef THREADED_TEXTURE_TRANSFER
+// FIXME when sparse textures are enabled, it's harder to force a draw on the transfer thread
+// also, the current draw code is implicitly using OpenGL 4.5 functionality
+//#define TEXTURE_TRANSFER_FORCE_DRAW
+// FIXME PBO's increase the complexity and don't seem to work reliably
+//#define TEXTURE_TRANSFER_PBOS
+#endif
+
 namespace gpu { namespace gl {
 
 using TextureList = std::list<TexturePointer>;
@@ -43,11 +51,15 @@ public:
 private:
 #ifdef THREADED_TEXTURE_TRANSFER
     ::gl::OffscreenContext _context;
+#endif
+
+#ifdef TEXTURE_TRANSFER_FORCE_DRAW
     // Framebuffers / renderbuffers for forcing access to the texture on the transfer thread
     GLuint _drawRenderbuffer { 0 };
     GLuint _drawFramebuffer { 0 };
     GLuint _readFramebuffer { 0 };
 #endif
+
     // A mutex for protecting items access on the render and transfer threads
     Mutex _mutex;
     // Commands that have been submitted for execution on the texture transfer thread
