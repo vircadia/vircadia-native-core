@@ -182,8 +182,11 @@ GLTexture::~GLTexture() {
     if (backend) {
         if (_external) {
             auto recycler = _gpuObject.getExternalRecycler();
-            assert(recycler);
-            backend->releaseExternalTexture(_id, recycler);
+            if (recycler) {
+                backend->releaseExternalTexture(_id, recycler);
+            } else {
+                qWarning() << "No recycler available for texture " << _id << " possible leak";
+            }
         } else if (_id) {
             backend->releaseTexture(_id, _size);
         }

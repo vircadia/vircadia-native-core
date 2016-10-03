@@ -73,7 +73,12 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = new OffscreenQmlSurface();
+        auto deleter = [](OffscreenQmlSurface* webSurface) {
+            AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+                webSurface->deleteLater();
+            });
+        };
+        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
         _webSurface->create(currentContext);
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
         _webSurface->load("WebView.qml");
@@ -95,8 +100,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_texture) {
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([this](uint32_t recycleTexture, void* recycleFence) {
-            _webSurface->releaseTexture({ recycleTexture, recycleFence });
+        auto webSurface = _webSurface;
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([webSurface](uint32_t recycleTexture, void* recycleFence) {
+            webSurface->releaseTexture({ recycleTexture, recycleFence });
         }));
         _texture->setSource(__FUNCTION__);
     }

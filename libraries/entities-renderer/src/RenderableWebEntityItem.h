@@ -78,7 +78,7 @@ private:
     void destroyWebSurface();
     glm::vec2 getWindowSize() const;
 
-    OffscreenQmlSurface* _webSurface{ nullptr };
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     ivec2  _lastPress { INT_MIN };

@@ -41,7 +41,7 @@ public:
     virtual Web3DOverlay* createClone() const override;
 
 private:
-    OffscreenQmlSurface* _webSurface{ nullptr };
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     QString _url;

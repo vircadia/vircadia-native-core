@@ -129,7 +129,19 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
-    _webSurface = new OffscreenQmlSurface();
+
+    auto deleter = [](OffscreenQmlSurface* webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+            webSurface->deleteLater();
+        });
+    };
+    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+
+    // The lifetime of the QML surface MUST be managed by the main thread
+    // Additionally, we MUST use local variables copied by value, rather than
+    // member variables, since they would implicitly refer to a this that 
+    // is no longer valid
+
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
@@ -215,9 +227,11 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
     if (!_texture) {
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([this](uint32_t recycleTexture, void* recycleFence) {
-            _webSurface->releaseTexture({ recycleTexture, recycleFence });
-        }));
+        auto webSurface = _webSurface;
+        auto recycler = [webSurface] (uint32_t recycleTexture, void* recycleFence) {
+            webSurface->releaseTexture({ recycleTexture, recycleFence });
+        };
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(recycler));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
@@ -352,16 +366,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
         _mouseMoveConnection = QMetaObject::Connection();
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
-
-        // The lifetime of the QML surface MUST be managed by the main thread
-        // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that
-        // is no longer valid
-        auto webSurface = _webSurface;
-        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            webSurface->deleteLater();
-        });
-        _webSurface = nullptr;
+        _webSurface.reset();
     }
 }
 
