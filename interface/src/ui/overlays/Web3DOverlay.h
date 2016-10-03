@@ -43,7 +43,7 @@ public:
 private:
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
-    uint32_t _texture{ 0 };
+    gpu::TexturePointer _texture;
     QString _url;
     float _dpi;
     vec2 _resolution{ 640, 480 };

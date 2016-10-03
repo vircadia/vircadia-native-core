@@ -80,9 +80,6 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
-        _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-            _texture = textureId;
-        });
         currentContext->makeCurrent(currentSurface);
     }
 
@@ -97,14 +94,21 @@ void Web3DOverlay::render(RenderArgs* args) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }
 
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    if (_texture) {
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    if (!_texture) {
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([this](uint32_t recycleTexture, void* recycleFence) {
+            _webSurface->releaseTexture({ recycleTexture, recycleFence });
+        }));
+        _texture->setSource(__FUNCTION__);
+    }
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
     }
 
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setResourceTexture(0, _texture);
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {

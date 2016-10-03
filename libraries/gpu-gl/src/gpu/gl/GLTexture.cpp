@@ -136,6 +136,7 @@ float GLTexture::getMemoryPressure() {
 // Create the texture and allocate storage
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLObject(backend, texture, id),
+    _external(false),
     _source(texture.source()),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
@@ -152,10 +153,38 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     Backend::setGPUObject(texture, this);
 }
 
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :
+    GLObject(backend, texture, id),
+    _external(true),
+    _source(texture.source()),
+    _storageStamp(0),
+    _target(getGLTextureType(texture)),
+    _internalFormat(GL_RGBA8),
+    // FIXME force mips to 0?
+    _maxMip(texture.maxMip()),
+    _minMip(texture.minMip()),
+    _virtualSize(0),
+    _transferrable(false) 
+{
+    Backend::setGPUObject(texture, this);
+
+    // FIXME Is this necessary?
+    //withPreservedTexture([this] {
+    //    syncSampler();
+    //    if (_gpuObject.isAutogenerateMips()) {
+    //        generateMips();
+    //    }
+    //});
+}
+
 GLTexture::~GLTexture() {
-    if (_id) {
-        auto backend = _backend.lock();
-        if (backend) {
+    auto backend = _backend.lock();
+    if (backend) {
+        if (_external) {
+            auto recycler = _gpuObject.getExternalRecycler();
+            assert(recycler);
+            backend->releaseExternalTexture(_id, recycler);
+        } else if (_id) {
             backend->releaseTexture(_id, _size);
         }
     }

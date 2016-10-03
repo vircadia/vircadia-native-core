@@ -140,9 +140,6 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
     _webSurface->getRootContext()->setContextProperty("webEntity", _webEntityAPIHelper);
-    _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-        _texture = textureId;
-    });
     // Restore the original GL context
     currentContext->makeCurrent(currentSurface);
 
@@ -217,20 +214,31 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     // without worrying about excessive overhead.
     _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
+    if (!_texture) {
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([this](uint32_t recycleTexture, void* recycleFence) {
+            _webSurface->releaseTexture({ recycleTexture, recycleFence });
+        }));
+        _texture->setSource(__FUNCTION__);
+    }
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+    }
+
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
     static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
+
     bool success;
     batch.setModelTransform(getTransformToCenter(success));
     if (!success) {
         return;
     }
-    if (_texture) {
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-    }
+    batch.setResourceTexture(0, _texture);
 
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
 
