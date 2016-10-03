@@ -25,14 +25,25 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
 {
     _type = ACTION_TYPE_HOLD;
     _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    if (myAvatar) {
+        myAvatar->addHoldAction(this);
+    }
+
 #if WANT_DEBUG
-    qDebug() << "AvatarActionHold::AvatarActionHold";
+    qDebug() << "AvatarActionHold::AvatarActionHold" << (void*)this;
 #endif
 }
 
 AvatarActionHold::~AvatarActionHold() {
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    if (myAvatar) {
+        myAvatar->removeHoldAction(this);
+    }
+
 #if WANT_DEBUG
-    qDebug() << "AvatarActionHold::~AvatarActionHold";
+    qDebug() << "AvatarActionHold::~AvatarActionHold" << (void*)this;
 #endif
 }
 
@@ -459,4 +470,41 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
     });
 
     forceBodyNonStatic();
+}
+
+void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, const AnimPose& postAvatarUpdateRoomPose) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        return;
+    }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState ? motionState->getRigidBody() : nullptr;
+    if (!rigidBody) {
+        return;
+    }
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+    if (!holdingAvatar || !holdingAvatar->isMyAvatar()) {
+        return;
+    }
+
+    btTransform worldTrans = rigidBody->getWorldTransform();
+    AnimPose worldBodyPose(glm::vec3(1), bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
+
+    // transform the body transform into sensor space with the prePhysics sensor-to-world matrix.
+    // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.
+    AnimPose newWorldBodyPose = postAvatarUpdateRoomPose * prePhysicsRoomPose.inverse() * worldBodyPose;
+
+    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans));
+    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot));
+    rigidBody->setWorldTransform(worldTrans);
+
+    bool positionSuccess;
+    ownerEntity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
+    bool orientationSuccess;
+    ownerEntity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
 }

@@ -45,6 +45,7 @@
 #include "Application.h"
 #include "devices/Faceshift.h"
 #include "AvatarManager.h"
+#include "AvatarActionHold.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
@@ -1309,6 +1310,8 @@ void MyAvatar::prepareForPhysicsSimulation() {
     } else {
         _follow.deactivate();
     }
+
+    _prePhysicsRoomPose = AnimPose(_sensorToWorldMatrix);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
@@ -1549,8 +1552,11 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
-}
 
+    AnimPose postUpdateRoomPose(_sensorToWorldMatrix);
+
+    updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
+}
 
 void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 
@@ -2255,5 +2261,27 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
         }
+    }
+}
+
+// thread-safe
+void MyAvatar::addHoldAction(AvatarActionHold* holdAction) {
+    std::lock_guard<std::mutex> guard(_holdActionsMutex);
+    _holdActions.push_back(holdAction);
+}
+
+// thread-safe
+void MyAvatar::removeHoldAction(AvatarActionHold* holdAction) {
+    std::lock_guard<std::mutex> guard(_holdActionsMutex);
+    auto iter = std::find(std::begin(_holdActions), std::end(_holdActions), holdAction);
+    if (iter != std::end(_holdActions)) {
+        _holdActions.erase(iter);
+    }
+}
+
+void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose) {
+    std::lock_guard<std::mutex> guard(_holdActionsMutex);
+    for (auto& holdAction : _holdActions) {
+        holdAction->lateAvatarUpdate(prePhysicsPose, postUpdatePose);
     }
 }
