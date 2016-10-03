@@ -166,7 +166,7 @@ public:
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded; }
     bool isUserLoaded() const { return _isUserLoaded; }
 
-    // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
+    // NOTE - this is used by the TypedArray implementation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
     void setEmitScriptUpdatesFunction(std::function<bool()> func) { _emitScriptUpdates = func; }

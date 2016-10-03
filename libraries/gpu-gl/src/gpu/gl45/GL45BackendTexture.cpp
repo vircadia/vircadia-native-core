@@ -16,21 +16,14 @@
 #include <unordered_map>
 #include <glm/gtx/component_wise.hpp>
 
+#include <QtCore/QDebug>
 #include <QtCore/QThread>
-#include <QtCore/QProcessEnvironment>
 
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
-
-#ifdef Q_OS_WIN
-static const QString DEBUG_FLAG("HIFI_DISABLE_SPARSE_TEXTURES");
-static bool enableSparseTextures = !QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-#else
-static bool enableSparseTextures = false;
-#endif
 
 // Allocate 1 MB of buffer space for paged transfers
 #define DEFAULT_PAGE_BUFFER_SIZE (1024*1024)
@@ -253,7 +246,7 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
-    if (enableSparseTextures && _transferrable) {
+    if (_transferrable && Texture::getEnableSparseTextures()) {
         _sparseInfo.maybeMakeSparse();
     }
 }
@@ -352,6 +345,31 @@ void GL45Texture::startTransfer() {
 }
 
 bool GL45Texture::continueTransfer() {
+    if (!Texture::getEnableIncrementalTextureTransfers()) {
+        size_t maxFace = GL_TEXTURE_CUBE_MAP == _target ? CUBE_NUM_FACES : 1;
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            for (uint16_t mipLevel = _minMip; mipLevel <= _maxMip; ++mipLevel) {
+                if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
+                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
+                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
+                    auto size = _gpuObject.evalMipDimensions(mipLevel);
+                    if (GL_TEXTURE_2D == _target) {
+                        glTextureSubImage2D(_id, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else if (GL_TEXTURE_CUBE_MAP == _target) {
+                        // DSA ARB does not work on AMD, so use EXT
+                        // glTextureSubImage3D(_id, mipLevel, 0, 0, face, size.x, size.y, 1, texelFormat.format, texelFormat.type, mip->readData());
+                        auto target = CUBE_FACE_LAYOUT[face];
+                        glTextureSubImage2DEXT(_id, target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
+                    } else {
+                        Q_ASSERT(false);
+                    }
+                    (void)CHECK_GL_ERROR();
+                }
+            }
+        }
+        return false;
+    }
+
     static std::vector<uint8_t> buffer;
     if (buffer.empty()) {
         buffer.resize(DEFAULT_PAGE_BUFFER_SIZE);

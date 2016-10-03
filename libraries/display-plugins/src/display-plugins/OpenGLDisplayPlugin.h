@@ -8,6 +8,7 @@
 #pragma once
 
 #include "DisplayPlugin.h"
+#include <gl/Config.h>
 
 #include <condition_variable>
 #include <memory>
@@ -18,7 +19,6 @@
 
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
-#include <gl/GLEscrow.h>
 #include <shared/RateCounter.h>
 
 namespace gpu {
@@ -35,7 +35,6 @@ protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
-    using TextureEscrow = GLEscrow<gpu::TexturePointer>;
 public:
     // These must be final to ensure proper ordering of operations 
     // between the main thread and the presentation thread
