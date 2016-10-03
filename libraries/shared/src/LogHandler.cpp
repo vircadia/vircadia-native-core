@@ -137,9 +137,10 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         dateFormatPtr = &DATE_STRING_FORMAT_WITH_MILLISECONDS;
     }
 
-    QString prefixString = QString("[%1]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr));
+    QString prefixString = QString("[%1] [%2] [%3]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr),
+        stringForLogType(type), context.category);
 
-    prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
+    //prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
 
     if (_shouldOutputProcessID) {
         prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));
