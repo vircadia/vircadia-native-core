@@ -66,13 +66,9 @@ public:
     bool _hasColorAttrib = false;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return _materialTextureSize; }
-    int getMaterialTextureCount() { return _materialTextureCount; }
-    bool calculateMaterialSize();
-
-protected:
-    size_t _materialTextureSize { 0 };
-    int _materialTextureCount { 0 };
+    size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
+    int getMaterialTextureCount() { return _drawMaterial ? _drawMaterial->getTextureCount() : 0; }
+    bool hasTextureInfo() const { return _drawMaterial ? _drawMaterial->hasTextureInfo() : false; }
 };
 
 namespace render {
