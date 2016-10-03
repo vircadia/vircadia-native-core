@@ -28,6 +28,8 @@
 
 #include <ui-plugins/PluginContainer.h>
 
+#include "OculusHelpers.h"
+
 const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
