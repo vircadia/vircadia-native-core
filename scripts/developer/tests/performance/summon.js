@@ -91,4 +91,13 @@ Script.scriptEnding.connect(function () {
     }, 500);
 });
 
-messageSend({key: 'HELO'}); // Ask agents to report in now, before we start the tribbles.
+messageSend({key: 'HELO'}); // Ask agents to report in now.
+Script.setTimeout(function () {
+    if (0 === summonedAgents.length) {
+        Window.alert("No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
+http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/crowd-agent.js\n\
+on your domain server.");
+    } else if (summonedAgents.length < MINIMUM_AVATARS) {
+        Window.alert("Only " + summonedAgents.length + " of the expected " + MINIMUM_AVATARS + " agents reported in.");
+    }
+}, 5000);
