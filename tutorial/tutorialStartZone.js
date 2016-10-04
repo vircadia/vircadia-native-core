@@ -19,13 +19,14 @@
                     var parentID = Entities.getEntityProperties(self.entityID, 'parentID').parentID;
                     print("TutorialStartZone | Parent ID is: ", parentID);
                     if (parentID) {
-                        print("TutorialStartZone | Entered the tutorial start area");
+                        print("TutorialStartZone | Sending start");
                         Entities.callEntityMethod(parentID, 'start');
                     } else {
                         print("TutorialStartZone | ERROR: No parent id found on tutorial start zone");
                     }
                 }
                 this.sendStartIntervalID = Script.setInterval(sendStart, 1500);
+                sendStart();
             } else {
                 print("TutorialStartZone | User tried to go to tutorial with HMD and hand controllers, sending back to /");
                 Window.alert("To proceed with this tutorial, please connect your VR headset and hand controllers.");
