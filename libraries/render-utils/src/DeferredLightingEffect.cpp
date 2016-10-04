@@ -36,6 +36,7 @@
 #include "directional_skybox_light_shadow_frag.h"
 
 #include "local_lights_shading_frag.h"
+#include "local_lights_drawOutline_frag.h"
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -103,6 +104,7 @@ void DeferredLightingEffect::init() {
     _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
 
     _localLightLocations = std::make_shared<LightLocations>();
+    _localLightOutlineLocations = std::make_shared<LightLocations>();
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
@@ -115,6 +117,7 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
     loadLightProgram(deferred_light_vert, local_lights_shading_frag, true, _localLight, _localLightLocations);
+    loadLightProgram(deferred_light_vert, local_lights_drawOutline_frag, true, _localLightOutline, _localLightOutlineLocations);
 
     loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, false, _pointLightBack, _pointLightLocations);
     loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, true, _pointLightFront, _pointLightLocations);
@@ -795,6 +798,14 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
             batch._glUniform4fv(deferredLightingEffect->_localLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
             batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+             // Draw outline as well ?
+            if (lightingModel->isShowLightContourEnabled()) {
+                batch.setPipeline(deferredLightingEffect->_localLightOutline);
+                batch._glUniform4fv(deferredLightingEffect->_localLightOutlineLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
         }
     }
 }

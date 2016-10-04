@@ -54,4 +54,26 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
 
 <@endfunc@>
 
+<@func declareDrawSpotOutline()@>
+
+bool evalLightSpotEdge(out vec3 color, Light light, vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir) {
+    // Allright we re valid in the volume
+    float fragLightDistance = fragLightDirLen.w;
+    vec3 fragLightDir = fragLightDirLen.xyz;
+    
+    // Show edges
+    float edgeDistR = (lightVolume_getRadius(light.volume) - fragLightDistance);
+    float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -lightVolume_getSpotOutsideNormal2(light.volume));
+    float edgeDist = min(edgeDistR, edgeDistS);
+    float edge = abs(2.0 * (edgeDist / (0.1)) - 1.0);
+    if (edge < 1) {
+        float edgeCoord = exp2(-8.0*edge*edge);
+        color = vec3(edgeCoord * edgeCoord * getLightColor(light));
+    }
+
+    return (edge < 1);
+}
+
+<@endfunc@>
+
 

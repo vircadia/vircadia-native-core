@@ -90,6 +90,7 @@ private:
     gpu::PipelinePointer _directionalLightShadow;
 
     gpu::PipelinePointer _localLight;
+    gpu::PipelinePointer _localLightOutline;
 
     gpu::PipelinePointer _pointLightBack;
     gpu::PipelinePointer _pointLightFront;
@@ -105,6 +106,7 @@ private:
     LightLocationsPtr _directionalLightShadowLocations;
 
     LightLocationsPtr _localLightLocations;
+    LightLocationsPtr _localLightOutlineLocations;
     LightLocationsPtr _pointLightLocations;
     LightLocationsPtr _spotLightLocations;
 

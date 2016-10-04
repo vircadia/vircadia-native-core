@@ -49,20 +49,24 @@ float projection_getFar(mat4 projection) {
 
 <@if GLPROFILE == MAC_GL @>
 #define GRID_NUM_ELEMENTS 4096
+#define GRID_INDEX_TYPE ivec4
+#define GRID_FETCH_BUFFER(i) i / 4][i % 4
 <@else@>
 #define GRID_NUM_ELEMENTS 16384
+#define GRID_INDEX_TYPE int
+#define GRID_FETCH_BUFFER(i) i
 <@endif@>
 
 uniform clusterGridBuffer {
-    int _clusterGridTable[GRID_NUM_ELEMENTS];
+    GRID_INDEX_TYPE _clusterGridTable[GRID_NUM_ELEMENTS];
 };
 
 uniform clusterContentBuffer {
-    int _clusterGridContent[GRID_NUM_ELEMENTS];
+    GRID_INDEX_TYPE _clusterGridContent[GRID_NUM_ELEMENTS];
 };
 
 ivec3 clusterGrid_getCluster(int index) {
-    int clusterDesc = _clusterGridTable[index];
+    int clusterDesc = _clusterGridTable[GRID_FETCH_BUFFER(index)];
     int numPointLights = 0xFF & (clusterDesc >> 16);
     int numSpotLights = 0xFF & (clusterDesc >> 24);
     int contentOffset = 0xFFFF & (clusterDesc);
@@ -70,12 +74,11 @@ ivec3 clusterGrid_getCluster(int index) {
 }
 
 int clusterGrid_getClusterLightId(int index, int offset) {
-    int arrayElement = offset + index;
-    int element = _clusterGridContent[arrayElement];
+    int elementIndex = offset + index;
+    int element = _clusterGridContent[GRID_FETCH_BUFFER(elementIndex)];
     return element;
-//    int element = _clusterGridContent[arrayElement >> 1];
-
-//    return (((arrayElement & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
+    //int element = _clusterGridContent[GRID_FETCH_BUFFER(elementIndex)];
+    //    return (((elementIndex & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
 }
 
 <@endif@>
