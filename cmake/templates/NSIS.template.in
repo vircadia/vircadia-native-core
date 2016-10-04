@@ -600,9 +600,6 @@ Section "-Core installation"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
 
-  ;Delete old Qt files
-  Delete "$INSTDIR\audio\qtaudio_windows.dll"
-
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
