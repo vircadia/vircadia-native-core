@@ -33,6 +33,7 @@ if (!Function.prototype.bind) {
     Script.include(tutorialPath);
 
     var TutorialZone = function() {
+        print("TutorialZone | Creating");
         this.token = null;
     };
 
@@ -55,34 +56,36 @@ if (!Function.prototype.bind) {
             }
         },
         preload: function(entityID) {
+            print("TutorialZone | Preload");
             this.entityID = entityID;
         },
         start: function() {
-            print("Got start");
+            print("TutorialZone | Got start");
             var self = this;
             if (!this.token) {
+                print("TutorialZone | Creating token");
                 this.token = new OwnershipToken(Math.random() * 100000, this.entityID, {
                     onGainedOwnership: function(token) {
-                        print("GOT OWNERSHIP");
+                        print("TutorialZone | GOT OWNERSHIP");
                         if (!self.tutorialManager) {
                             self.tutorialManager = new TutorialManager();
                         }
                         self.tutorialManager.startTutorial();
-                        print("making bound release handler");
+                        print("TutorialZone | making bound release handler");
                         self.keyReleaseHandlerBound = self.keyReleaseHandler.bind(self);
-                        print("binding");
+                        print("TutorialZone | binding");
                         Controller.keyReleaseEvent.connect(self.keyReleaseHandlerBound);
-                        print("done");
+                        print("TutorialZone | done");
                     },
                     onLostOwnership: function(token) {
-                        print("LOST OWNERSHIP");
+                        print("TutorialZone | LOST OWNERSHIP");
                         if (self.tutorialManager) {
-                        print("stopping tutorial..");
+                            print("TutorialZone | stopping tutorial..");
                             self.tutorialManager.stopTutorial();
-                            print("done");
+                            print("TutorialZone | done");
                             Controller.keyReleaseEvent.disconnect(self.keyReleaseHandlerBound);
                         } else {
-                            print("no tutorial manager...");
+                            print("TutorialZone | no tutorial manager...");
                         }
                     }
                 });
@@ -90,12 +93,12 @@ if (!Function.prototype.bind) {
         },
 
         enterEntity: function() {
-            print("ENTERED THE TUTORIAL AREA");
+            print("TutorialZone | ENTERED THE TUTORIAL AREA");
         },
         leaveEntity: function() {
-            print("EXITED THE TUTORIAL AREA");
+            print("TutorialZone | EXITED THE TUTORIAL AREA");
             if (this.token) {
-                print("destroying token");
+                print("TutorialZone | Destroying token");
                 this.token.destroy();
                 this.token = null;
             }
