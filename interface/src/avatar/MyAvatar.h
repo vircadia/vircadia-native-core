@@ -26,6 +26,7 @@
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
+class AvatarActionHold;
 class ModelItemID;
 
 enum DriveKeys {
@@ -289,6 +290,10 @@ public:
 
     glm::vec3 getPreActionVelocity() const;
 
+    void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -510,6 +515,10 @@ private:
     bool _hmdLeanRecenterEnabled = true;
     bool _moveKinematically { false }; // KINEMATIC_CONTROLLER_HACK
     float _canonicalScale { 1.0f };
+
+    AnimPose _prePhysicsRoomPose;
+    std::mutex _holdActionsMutex;
+    std::vector<AvatarActionHold*> _holdActions;
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

@@ -56,98 +56,99 @@ a:hover {
     color: #2D88A4;
 }
 
-.header{
+.header {
    width: 95%;
    left: 2.5%
 }
-.colmask{
+.colmask {
    width: 95%;
    left: 2.5%
 }
-.colmid{ right: 25% }
-.colin{ right: 25% }
-.colleft{ right: 25% }
-.col1{
+.colmid { right: 25% }
+.colin { right: 25% }
+.colleft { right: 25% }
+.col1 {
    width: 23%;
    left: 101%
 }
-.col2{
+.col2 {
    width: 23%;
    left: 53%
 }
-.col3{
+.col3 {
    width: 23%;
    left: 80%
 }
-.col4{
+.col4 {
    width: 23%;
    left: 82%
 }
-.footer{
+.footer {
    width: 95%;
    left: 2.5%
 }
-.header{
+.header {
    clear: both;
    float: left;
    position: relative;
    border-bottom: #000 1px solid;
    background-color: #b4d2f7
 }
-.colmask{
+.colmask {
    clear: both;
    float: left;
    overflow: hidden;
    position: relative;
 
 }
-.colmid{
+.colmid {
    float: left;
    width: 100%;
    position: relative;
 
 }
-.colin{
+.colin {
    float: left;
    width: 100%;
    position: relative;
 
 }
-.colleft{
+.colleft {
    float: left;
    width: 100%;
    position: relative;
 
 }
-.col1{
+.col1 {
+   padding: 0px 0px 1em 0px;
+   overflow: hidden;
+   float: left;
+   position: relative;
+   word-wrap: break-word;
+
+}
+.col2 {
    padding: 0px 0px 1em 0px;
    overflow: hidden;
    float: left;
    position: relative;
 
 }
-.col2{
+.col3 {
    padding: 0px 0px 1em 0px;
    overflow: hidden;
    float: left;
    position: relative;
 
 }
-.col3{
+.col4 {
    padding: 0px 0px 1em 0px;
    overflow: hidden;
    float: left;
    position: relative;
 
 }
-.col4{
-   padding: 0px 0px 1em 0px;
-   overflow: hidden;
-   float: left;
-   position: relative;
-
-}
-.footer{
+.footer {
    clear: both;
    float: left;
    position: relative;
@@ -155,7 +156,7 @@ a:hover {
    border-top: #000 1px solid;
 
 }
-.bottom{
+.bottom {
    clear: both;
    width: 100%;
    float: left;

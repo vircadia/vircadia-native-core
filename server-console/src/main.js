@@ -501,16 +501,15 @@ function backupResourceDirectories(folder) {
         fs.mkdirSync(folder);
         console.log("Created directory " + folder);
 
-
         var dsBackup = path.join(folder, '/domain-server');
-        fs.renameSync(getDomainServerClientResourcesDirectory(), dsBackup);
-        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
-        console.log("to " + dsBackup);
-
         var acBackup = path.join(folder, '/assignment-client');
-        fs.renameSync(getAssignmentClientResourcesDirectory(), acBackup);
-        console.log("Moved directory " + getDomainServerClientResourcesDirectory());
-        console.log("to " + acBackup);
+
+        fs.copySync(getDomainServerClientResourcesDirectory(), dsBackup);
+        fs.copySync(getAssignmentClientResourcesDirectory(), acBackup);
+
+        fs.removeSync(getDomainServerClientResourcesDirectory());
+        fs.removeSync(getAssignmentClientResourcesDirectory());
+
         return true;
     } catch (e) {
         console.log(e);
@@ -519,23 +518,22 @@ function backupResourceDirectories(folder) {
 }
 
 function openBackupInstructions(folder) {
-  // Explain user how to restore server
-  var window = new BrowserWindow({
-      icon: appIcon,
-      width: 800,
-      height: 520,
-  });
-  window.loadURL('file://' + __dirname + '/content-update.html');
-  if (!debug) {
-      window.setMenu(null);
-  }
-  window.show();
+    // Explain user how to restore server
+    var window = new BrowserWindow({
+        icon: appIcon,
+        width: 800,
+        height: 520,
+    });
+    window.loadURL('file://' + __dirname + '/content-update.html');
+    if (!debug) {
+        window.setMenu(null);
+    }
+    window.show();
 
-  electron.ipcMain.on('ready', function() {
-      console.log("got ready");
-      window.webContents.send('update', folder);
-  });
-
+    electron.ipcMain.on('ready', function() {
+        console.log("got ready");
+        window.webContents.send('update', folder);
+    });
 }
 function backupResourceDirectoriesAndRestart() {
     homeServer.stop();
@@ -576,15 +574,30 @@ function checkNewContent() {
               dialog.showMessageBox({
                   type: 'question',
                   buttons: ['Yes', 'No'],
+                  defaultId: 1,
+                  cancelId: 1,
                   title: 'New home content',
-                  message: 'A newer version of the home content set is available.\nDo you wish to update?'
+                  message: 'A newer version of the home content set is available.\nDo you wish to update?',
+                  noLink: true,
               }, function(idx) {
-                if (idx === 0) {
-                  backupResourceDirectoriesAndRestart();
-                } else {
-                  // They don't want to update, mark content set as current
-                  userConfig.set('homeContentLastModified', new Date());
-                }
+                  if (idx === 0) {
+                      dialog.showMessageBox({
+                          type: 'warning',
+                          buttons: ['Yes', 'No'],
+                          defaultId: 1,
+                          cancelId: 1,
+                          title: 'Are you sure?',
+                          message: 'Updating with the new content will remove all your current content and settings and place them in a backup folder.\nAre you sure?',
+                          noLink: true,
+                      }, function(idx) {
+                          if (idx === 0) {
+                              backupResourceDirectoriesAndRestart();
+                          }
+                      });
+                  } else {
+                      // They don't want to update, mark content set as current
+                      userConfig.set('homeContentLastModified', new Date());
+                  }
               });
             }
         }

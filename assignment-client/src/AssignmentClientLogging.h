@@ -14,6 +14,6 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(assigmnentclient)
+Q_DECLARE_LOGGING_CATEGORY(assignment_client)
 
 #endif // hifi_AssignmentClientLogging_h

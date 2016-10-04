@@ -46,6 +46,7 @@
 #include "Application.h"
 #include "devices/Faceshift.h"
 #include "AvatarManager.h"
+#include "AvatarActionHold.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
@@ -1376,6 +1377,8 @@ void MyAvatar::prepareForPhysicsSimulation(float deltaTime) {
         _follow.deactivate();
         getCharacterController()->disableFollow();
     }
+
+    _prePhysicsRoomPose = AnimPose(_sensorToWorldMatrix);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
@@ -1650,8 +1653,10 @@ void MyAvatar::postUpdate(float deltaTime) {
             }
         }
     }
-}
 
+    AnimPose postUpdateRoomPose(_sensorToWorldMatrix);
+    updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
+}
 
 void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 
@@ -2391,5 +2396,37 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
         }
+    }
+}
+
+// thread-safe
+void MyAvatar::addHoldAction(AvatarActionHold* holdAction) {
+    std::lock_guard<std::mutex> guard(_holdActionsMutex);
+    _holdActions.push_back(holdAction);
+}
+
+// thread-safe
+void MyAvatar::removeHoldAction(AvatarActionHold* holdAction) {
+    std::lock_guard<std::mutex> guard(_holdActionsMutex);
+    auto iter = std::find(std::begin(_holdActions), std::end(_holdActions), holdAction);
+    if (iter != std::end(_holdActions)) {
+        _holdActions.erase(iter);
+    }
+}
+
+void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose) {
+    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        // to prevent actions from adding or removing themselves from the _holdActions vector
+        // while we are iterating, we need to enter a critical section.
+        std::lock_guard<std::mutex> guard(_holdActionsMutex);
+
+        // lateAvatarUpdate will modify entity position & orientation, so we need an entity write lock
+        entityTree->withWriteLock([&] {
+            for (auto& holdAction : _holdActions) {
+                holdAction->lateAvatarUpdate(prePhysicsPose, postUpdatePose);
+            }
+        });
     }
 }

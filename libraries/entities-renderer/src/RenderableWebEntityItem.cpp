@@ -58,9 +58,13 @@ void WebEntityAPIHelper::emitWebEvent(const QVariant& message) {
     } else {
         // special case to handle raising and lowering the virtual keyboard
         if (message.type() == QVariant::String && message.toString() == "_RAISE_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(true);
+            if (_renderableWebEntityItem) {
+                _renderableWebEntityItem->setKeyboardRaised(true);
+            }
         } else if (message.type() == QVariant::String && message.toString() == "_LOWER_KEYBOARD" && _renderableWebEntityItem) {
-            _renderableWebEntityItem->setKeyboardRaised(false);
+            if (_renderableWebEntityItem) {
+                _renderableWebEntityItem->setKeyboardRaised(false);
+            }
         } else {
             emit webEventReceived(message);
         }
@@ -343,7 +347,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
 
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that 
+        // member variables, since they would implicitly refer to a this that
         // is no longer valid
         auto webSurface = _webSurface;
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
@@ -388,35 +392,40 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
 }
 
 void RenderableWebEntityItem::synthesizeKeyPress(QString key) {
-    auto utf8Key = key.toUtf8();
+    auto eventHandler = getEventHandler();
+    if (eventHandler) {
+        auto utf8Key = key.toUtf8();
 
-    int scanCode = (int)utf8Key[0];
-    QString keyString = key;
-    if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
-        equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
-        return;  // ignore
-    } else if (equals(utf8Key, LEFT_ARROW)) {
-        scanCode = Qt::Key_Backspace;
-        keyString = "\x08";
-    } else if (equals(utf8Key, RETURN_SYMBOL)) {
-        scanCode = Qt::Key_Return;
-        keyString = "\x0d";
-    } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Left;
-        keyString = "";
-    } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
-        scanCode = Qt::Key_Right;
-        keyString = "";
+        int scanCode = (int)utf8Key[0];
+        QString keyString = key;
+        if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+            equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+            return;  // ignore
+        } else if (equals(utf8Key, LEFT_ARROW)) {
+            scanCode = Qt::Key_Backspace;
+            keyString = "\x08";
+        } else if (equals(utf8Key, RETURN_SYMBOL)) {
+            scanCode = Qt::Key_Return;
+            keyString = "\x0d";
+        } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Left;
+            keyString = "";
+        } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Right;
+            keyString = "";
+        }
+
+        QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+        QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+        QCoreApplication::postEvent(eventHandler, pressEvent);
+        QCoreApplication::postEvent(eventHandler, releaseEvent);
     }
-
-    QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
-    QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
-    QCoreApplication::postEvent(getEventHandler(), pressEvent);
-    QCoreApplication::postEvent(getEventHandler(), releaseEvent);
 }
 
 void RenderableWebEntityItem::emitScriptEvent(const QVariant& message) {
-    _webEntityAPIHelper->emitScriptEvent(message);
+    if (_webEntityAPIHelper) {
+        _webEntityAPIHelper->emitScriptEvent(message);
+    }
 }
 
 void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
@@ -424,5 +433,10 @@ void RenderableWebEntityItem::setKeyboardRaised(bool raised) {
     // raise the keyboard only while in HMD mode and it's being requested.
     bool value = AbstractViewStateInterface::instance()->isHMDMode() && raised;
 
-    _webSurface->getRootItem()->setProperty("keyboardRaised", QVariant(value));
+    if (_webSurface) {
+        auto rootItem = _webSurface->getRootItem();
+        if (rootItem) {
+            rootItem->setProperty("keyboardRaised", QVariant(value));
+        }
+    }
 }
