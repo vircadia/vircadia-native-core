@@ -52,7 +52,9 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
         COMMAND if exist ${QTAUDIO_PATH}/qtaudio_windows.dll ( ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.dll ${QTAUDIO_PATH} && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.pdb ${QTAUDIO_PATH} )
         COMMAND if exist ${QTAUDIO_PATH}/qtaudio_windowsd.dll ( ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapid.dll ${QTAUDIO_PATH} && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapid.pdb ${QTAUDIO_PATH} )
       )
-    elseif (${CMAKE_SYSTEM_VERSION} VERSION_GREATER 6.2)
+    elseif (${CMAKE_SYSTEM_VERSION} VERSION_LESS 6.2)
+      # continue using qtaudio_windows.dll on Windows 7
+    else ()
       # replace qtaudio_windows.dll with qtaudio_wasapi.dll on Windows 8/8.1/10
       add_custom_command(
         TARGET ${TARGET_NAME}
@@ -60,8 +62,6 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
         COMMAND if exist ${QTAUDIO_PATH}/qtaudio_windows.dll ( ${CMAKE_COMMAND} -E remove ${QTAUDIO_PATH}/qtaudio_windows.dll && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.dll ${QTAUDIO_PATH} && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapi.pdb ${QTAUDIO_PATH} )
         COMMAND if exist ${QTAUDIO_PATH}/qtaudio_windowsd.dll ( ${CMAKE_COMMAND} -E remove ${QTAUDIO_PATH}/qtaudio_windowsd.dll && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapid.dll ${QTAUDIO_PATH} && ${CMAKE_COMMAND} -E copy ${WASAPI_DLL_PATH}/qtaudio_wasapid.pdb ${QTAUDIO_PATH} )
       )
-    else ()
-      # continue using qtaudio_windows.dll on Windows 7
     endif ()   
 
   endif ()
