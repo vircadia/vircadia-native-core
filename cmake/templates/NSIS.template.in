@@ -24,6 +24,11 @@
   InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
 
 ;--------------------------------
+;Include WinVer to get Windows version
+
+  !include "WinVer.nsh"
+
+;--------------------------------
 ;General
   ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
   !include UAC.nsh
@@ -599,6 +604,19 @@ Section "-Core installation"
   Delete "$INSTDIR\vccorlib120.dll"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
+
+  ; The installer includes two different Qt audio plugins.
+  ; On Windows 8 and above, only qtaudio_wasapi.dll should be installed.
+  ; On Windows 7 and below, only qtaudio_windows.dll should be installed.
+  ${If} ${AtLeastWin8}
+    Delete "$INSTDIR\audio\qtaudio_windows.dll"
+    Delete "$INSTDIR\audio\qtaudio_windows.pdb"
+    MessageBox MB_OK "Detected Windows 8+" 
+  ${Else}
+    Delete "$INSTDIR\audio\qtaudio_wasapi.dll"
+    Delete "$INSTDIR\audio\qtaudio_wasapi.pdb"
+    MessageBox MB_OK "Detected Windows 7-" 
+  ${EndIf}
 
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@.lnk"
