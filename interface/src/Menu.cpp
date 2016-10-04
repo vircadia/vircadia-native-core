@@ -355,7 +355,7 @@ Menu::Menu() {
     //const QString  = "1024 MB";
     //const QString  = "2048 MB";
 
-    // Developer > Render > Resolution
+    // Developer > Render > Maximum Texture Memory
     MenuWrapper* textureMenu = renderOptionsMenu->addMenu(MenuOption::RenderMaxTextureMemory);
     QActionGroup* textureGroup = new QActionGroup(textureMenu);
     textureGroup->setExclusive(true);
@@ -382,6 +382,43 @@ Menu::Menu() {
         }
         gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
     });
+
+#ifdef Q_OS_WIN
+    #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
+    bool recommendedIncrementalTransfers = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
+    bool recommendedSparseTextures = recommendedIncrementalTransfers;
+
+    qDebug() << "[TEXTURE TRANSFER SUPPORT]"
+        << "\n\tidealThreadCount:" << QThread::idealThreadCount()
+        << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures
+        << "\n\tRECOMMENDED enableIncrementalTextures:" << recommendedIncrementalTransfers;
+
+    gpu::Texture::setEnableIncrementalTextureTransfers(recommendedIncrementalTransfers);
+    gpu::Texture::setEnableSparseTextures(recommendedSparseTextures);
+
+    // Developer > Render > Enable Dynamic Texture Management
+    {
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableDynamicTextureManagement, 0, recommendedSparseTextures);
+        connect(action, &QAction::triggered, [&](bool checked) {
+            qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Dynamic Texture Management menu option:" << checked;
+            gpu::Texture::setEnableSparseTextures(checked);
+        });
+    }
+
+    // Developer > Render > Enable Incremental Texture Transfer
+    {
+        auto action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableIncrementalTextureTransfer, 0, recommendedIncrementalTransfers);
+        connect(action, &QAction::triggered, [&](bool checked) {
+            qDebug() << "[TEXTURE TRANSFER SUPPORT] --- Enable Incremental Texture Transfer menu option:" << checked;
+            gpu::Texture::setEnableIncrementalTextureTransfers(checked);
+        });
+    }
+
+#else
+    qDebug() << "[TEXTURE TRANSFER SUPPORT] Incremental Texture Transfer and Dynamic Texture Management not supported on this platform.";
+#endif
+
+
 
     // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));

@@ -6,7 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
-#include "OglplusHelpers.h"
+#include "Config.h"
+
+#include <queue>
+#include <set>
+#include <map>
 
 #include <QtWidgets/QWidget>
 #include <QtQml/QtQml>
@@ -116,6 +120,108 @@ static const QEvent::Type RENDER = QEvent::Type(QEvent::User + 2);
 static const QEvent::Type RESIZE = QEvent::Type(QEvent::User + 3);
 static const QEvent::Type STOP = QEvent::Type(QEvent::User + 4);
 
+class RawTextureRecycler {
+public:
+    using TexturePtr = GLuint;
+    RawTextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
+    void setSize(const uvec2& size);
+    void clear();
+    TexturePtr getNextTexture();
+    void recycleTexture(GLuint texture);
+
+private:
+
+    struct TexInfo {
+        TexturePtr _tex { 0 };
+        uvec2 _size;
+        bool _active { false };
+
+        TexInfo() {}
+        TexInfo(TexturePtr tex, const uvec2& size) : _tex(tex), _size(size) {}
+    };
+
+    using Map = std::map<GLuint, TexInfo>;
+    using Queue = std::queue<TexturePtr>;
+
+    Map _allTextures;
+    Queue _readyTextures;
+    uvec2 _size { 1920, 1080 };
+    bool _useMipmaps;
+};
+
+
+void RawTextureRecycler::setSize(const uvec2& size) {
+    if (size == _size) {
+        return;
+    }
+    _size = size;
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    std::set<Map::key_type> toDelete;
+    std::for_each(_allTextures.begin(), _allTextures.end(), [&](Map::const_reference item) {
+        if (!item.second._active && item.second._size != _size) {
+            toDelete.insert(item.first);
+        }
+    });
+    std::for_each(toDelete.begin(), toDelete.end(), [&](Map::key_type key) {
+        _allTextures.erase(key);
+    });
+}
+
+void RawTextureRecycler::clear() {
+    while (!_readyTextures.empty()) {
+        _readyTextures.pop();
+    }
+    _allTextures.clear();
+}
+
+RawTextureRecycler::TexturePtr RawTextureRecycler::getNextTexture() {
+    if (_readyTextures.empty()) {
+        TexturePtr newTexture;
+        glGenTextures(1, &newTexture);
+
+        glBindTexture(GL_TEXTURE_2D, newTexture);
+        if (_useMipmaps) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        } else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); 
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _size.x, _size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        _allTextures[newTexture] = TexInfo { newTexture, _size };
+        _readyTextures.push(newTexture);
+    }
+
+    TexturePtr result = _readyTextures.front();
+    _readyTextures.pop();
+    auto& item = _allTextures[result];
+    item._active = true;
+    return result;
+}
+
+void RawTextureRecycler::recycleTexture(GLuint texture) {
+    Q_ASSERT(_allTextures.count(texture));
+    auto& item = _allTextures[texture];
+    Q_ASSERT(item._active);
+    item._active = false;
+    if (item._size != _size) {
+        // Buh-bye
+        _allTextures.erase(texture);
+        return;
+    }
+
+    _readyTextures.push(item._tex);
+}
+
+
 class OffscreenQmlRenderThread : public QThread {
 public:
     OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext);
@@ -165,9 +271,9 @@ private:
     OffscreenQmlSurface* _surface{ nullptr };
     QQuickWindow* _quickWindow{ nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
-    FramebufferPtr _fbo;
-    RenderbufferPtr _depthStencil;
-    TextureRecycler _textures { true };
+    GLuint _fbo { 0 };
+    GLuint _depthStencil { 0 };
+    RawTextureRecycler _textures { true };
     GLTextureEscrow _escrow;
 
     uint64_t _lastRenderTime{ 0 };
@@ -253,24 +359,23 @@ bool OffscreenQmlRenderThread::event(QEvent *e) {
 }
 
 void OffscreenQmlRenderThread::setupFbo() {
-    using namespace oglplus;
     _textures.setSize(_size);
-
-    try {
-        _depthStencil.reset(new Renderbuffer());
-        Context::Bound(Renderbuffer::Target::Renderbuffer, *_depthStencil)
-            .Storage(
-            PixelDataInternalFormat::DepthComponent,
-            _size.x, _size.y);
-
-        _fbo.reset(new Framebuffer());
-        _fbo->Bind(Framebuffer::Target::Draw);
-        _fbo->AttachRenderbuffer(Framebuffer::Target::Draw,
-            FramebufferAttachment::Depth, *_depthStencil);
-        DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
-    } catch (oglplus::Error& error) {
-        qWarning() << "OpenGL error in QML render setup: " << error.what();
+    if (_depthStencil) {
+        glDeleteRenderbuffers(1, &_depthStencil);
+        _depthStencil = 0;
     }
+    glGenRenderbuffers(1, &_depthStencil);
+    glBindRenderbuffer(GL_RENDERBUFFER, _depthStencil);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _size.x, _size.y);
+
+    if (_fbo) {
+        glDeleteFramebuffers(1, &_fbo);
+        _fbo = 0;
+    }
+    glGenFramebuffers(1, &_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
 QJsonObject OffscreenQmlRenderThread::getGLContextData() {
@@ -309,8 +414,15 @@ void OffscreenQmlRenderThread::init() {
 void OffscreenQmlRenderThread::cleanup() {
     _renderControl->invalidate();
 
-    _fbo.reset();
-    _depthStencil.reset();
+    if (_depthStencil) {
+        glDeleteRenderbuffers(1, &_depthStencil);
+        _depthStencil = 0;
+    }
+    if (_fbo) {
+        glDeleteFramebuffers(1, &_fbo);
+        _fbo = 0;
+    }
+
     _textures.clear();
 
     _canvas.doneCurrent();
@@ -371,42 +483,22 @@ void OffscreenQmlRenderThread::render() {
         releaseMainThread.trigger();
     }
 
-    using namespace oglplus;
-
-    _quickWindow->setRenderTarget(GetName(*_fbo), QSize(_size.x, _size.y));
+    _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
     try {
-        PROFILE_RANGE("qml_render")
-
-        TexturePtr texture = _textures.getNextTexture();
-
-        try {
-            _fbo->Bind(Framebuffer::Target::Draw);
-            _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
-            _fbo->Complete(Framebuffer::Target::Draw);
-        } catch (oglplus::Error& error) {
-            qWarning() << "OpenGL error in QML render: " << error.what();
-
-            // In case we are failing from a failed setupFbo, reset fbo before next render
-            setupFbo();
-            throw;
-        }
-
-        {
+        GLuint texture = _textures.getNextTexture();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+        glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
             PROFILE_RANGE("qml_render->rendercontrol")
             _renderControl->render();
-            // FIXME The web browsers seem to be leaving GL in an error state.
-            // Need a debug context with sync logging to figure out why.
-            // for now just clear the errors
-            glGetError();
-        }
 
-        Context::Bound(oglplus::Texture::Target::_2D, *texture).GenerateMipmap();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
-        // FIXME probably unecessary
-        DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
         _quickWindow->resetOpenGLState();
-        _escrow.submit(GetName(*texture));
+        _escrow.submit(texture);
         _lastRenderTime = usecTimestampNow();
     } catch (std::runtime_error& error) {
         qWarning() << "Failed to render QML: " << error.what();
