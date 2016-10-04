@@ -140,8 +140,6 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     QString prefixString = QString("[%1] [%2] [%3]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr),
         stringForLogType(type), context.category);
 
-    //prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
-
     if (_shouldOutputProcessID) {
         prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));
     }
