@@ -611,11 +611,9 @@ Section "-Core installation"
   ${If} ${AtLeastWin8}
     Delete "$INSTDIR\audio\qtaudio_windows.dll"
     Delete "$INSTDIR\audio\qtaudio_windows.pdb"
-    MessageBox MB_OK "Detected Windows 8+" 
   ${Else}
     Delete "$INSTDIR\audio\qtaudio_wasapi.dll"
     Delete "$INSTDIR\audio\qtaudio_wasapi.pdb"
-    MessageBox MB_OK "Detected Windows 7-" 
   ${EndIf}
 
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename
