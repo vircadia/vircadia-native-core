@@ -79,13 +79,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
-    setApplicationName(BuildInfo::DOMAIN_SERVER_NAME);
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    setApplicationVersion(BuildInfo::VERSION);
-
     qDebug() << "Setting up domain-server";
-
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;

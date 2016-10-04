@@ -45,6 +45,7 @@ namespace Setting {
         // Set settings format
         QSettings::setDefaultFormat(JSON_FORMAT);
         QSettings settings;
+        qCDebug(shared) << "Settings file:" << settings.fileName();
 
         if (settings.allKeys().isEmpty()) {
             loadOldINIFile(settings);
