@@ -214,4 +214,15 @@ struct MemoryInfo {
 
 bool getMemoryInfo(MemoryInfo& info);
 
+struct ProcessorInfo {
+    int32_t numPhysicalProcessorPackages;
+    int32_t numProcessorCores;
+    int32_t numLogicalProcessors;
+    int32_t numProcessorCachesL1;
+    int32_t numProcessorCachesL2;
+    int32_t numProcessorCachesL3;
+};
+
+bool getProcessorInfo(ProcessorInfo& info);
+
 #endif // hifi_SharedUtil_h

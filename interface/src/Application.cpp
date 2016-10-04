@@ -815,7 +815,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
         { "gl_sl_version", glContextData["slVersion"] },
-        { "gl_renderer", glContextData["renderer"] }
+        { "gl_renderer", glContextData["renderer"] },
+        { "ideal_thread_count", QThread::idealThreadCount() }
     };
     auto macVersion = QSysInfo::macVersion();
     if (macVersion != QSysInfo::MV_None) {
@@ -825,6 +826,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     if (windowsVersion != QSysInfo::WV_None) {
         properties["os_win_version"] = QSysInfo::windowsVersion();
     }
+
+    ProcessorInfo procInfo;
+    if (getProcessorInfo(procInfo)) {
+        properties["processor_core_count"] = procInfo.numProcessorCores;
+        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    }
+
     UserActivityLogger::getInstance().logAction("launch", properties);
 
     _connectionMonitor.init();
@@ -1123,6 +1134,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         auto displayPlugin = qApp->getActiveDisplayPlugin();
 
         properties["fps"] = _frameCounter.rate();
+        properties["target_frame_rate"] = getTargetFrameRate();
         properties["present_rate"] = displayPlugin->presentRate();
         properties["new_frame_present_rate"] = displayPlugin->newFramePresentRate();
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
@@ -1163,6 +1175,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
         properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
         properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
+        properties["using_hmd"] = isHMDMode();
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
