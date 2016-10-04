@@ -512,6 +512,9 @@ function Teleporter() {
             // Disable smooth arrival, possibly temporarily
             //this.smoothArrival();
             MyAvatar.position = _this.intersection.intersection;
+            _this.deleteTargetOverlay();
+            _this.deleteCancelOverlay();
+            HMD.centerUI();
         }
     };
 
