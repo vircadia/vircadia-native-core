@@ -2170,7 +2170,7 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
 
-		QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
 
@@ -4361,8 +4361,13 @@ namespace render {
                     auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
                     auto sceneKeyLight = scene->getKeyLight();
                     auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                    sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                    if (defaultSkyboxAmbientTexture) {
+                        sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                        sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+                    } else {
+                        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
+                            "Failed to get a valid Default Skybox Ambient Texture ? probably because it couldn't be find during initialization step");
+                    }
                     // fall through: render defaults skybox
                 } else {
                     break;
