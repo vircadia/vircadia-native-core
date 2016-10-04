@@ -444,7 +444,10 @@ void LightClusters::updateClusters() {
 
     // update the buffers
     _clusterGridBuffer._buffer->setData(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
-    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
+    //_clusterGridBuffer._buffer->setSubData(0, _clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
+    _clusterContentBuffer._buffer->setData(indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
+
+ //   _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
 }
 
 
