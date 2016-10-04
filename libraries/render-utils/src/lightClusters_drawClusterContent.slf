@@ -90,6 +90,6 @@ void main(void) {
         numLightTouching++;
     }
 
-   _fragColor = vec4(colorWheel(numLightTouching/20.0f), (numLightTouching > 0 ?  0.5 + 0.5 * numLightsScale : 0.0));
+    _fragColor = vec4(colorRamp(1.0 - (numLightTouching / 12.0f)), (numLightTouching > 0 ? 0.5 + 0.5 * numLightsScale : 0.0));
 }
 
