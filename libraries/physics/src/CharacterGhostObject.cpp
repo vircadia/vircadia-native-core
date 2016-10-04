@@ -242,17 +242,11 @@ bool CharacterGhostObject::sweepTest(
     return false;
 }
 
-void CharacterGhostObject::queryPenetration(const btTransform& transform, btVector3& minBoxOut, btVector3& maxBoxOut) {
-    // place in world and refresh overlapping pairs
-    setWorldTransform(transform);
-    measurePenetration(minBoxOut, maxBoxOut);
-}
-
 void CharacterGhostObject::measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut) {
     // minBoxOut and maxBoxOut will be updated with penetration envelope.
-    // If one of the points is at <0,0,0> then the penetration may be resolvable in a single step,
-    // but if the space spanned by those two corners extends in both directions along at least one
-    // component then this object is sandwiched between two opposing objects.
+    // If one of the corner points is <0,0,0> then the penetration is resolvable in a single step,
+    // but if the space spanned by the two corners extends in both directions along at least one
+    // component then we the object is sandwiched between two opposing objects.
 
     // We assume this object has just been moved to its current location, or else objects have been
     // moved around it since the last step so we must update the overlapping pairs.

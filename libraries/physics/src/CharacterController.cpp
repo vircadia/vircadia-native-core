@@ -870,9 +870,10 @@ void CharacterController::setMoveKinematically(bool kinematic) {
 bool CharacterController::queryPenetration(const btTransform& transform) {
     btVector3 minBox;
     btVector3 maxBox;
-    _ghost.queryPenetration(transform, minBox, maxBox);
-    btVector3 penetration = maxBox;
-    penetration.setMax(minBox.absolute());
+    _ghost.setWorldTransform(transform);
+    _ghost.measurePenetration(minBox, maxBox);
+    btVector3 penetration = minBox;
+    penetration.setMax(maxBox.absolute());
     const btScalar MIN_PENETRATION_SQUARED = 0.0016f; // 0.04^2
     return penetration.length2() < MIN_PENETRATION_SQUARED;
 }
