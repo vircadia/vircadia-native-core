@@ -20,7 +20,7 @@ var EXPECTED_HMD_FRAMERATE = 90;
 var MAXIMUM_LOAD_TIME = 60;         // seconds
 var MINIMUM_AVATARS = 25;             // FIXME: not implemented yet. Requires agent scripts. Idea is to have them organize themselves to the right number.
 
-var version = 1;
+var version = 2;
 function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
@@ -76,10 +76,17 @@ function startTwirl(targetRotation, degreesPerUpdate, interval, strafeDistance, 
 
 function doLoad(place, continuationWithLoadTime) { // Go to place and call continuationWithLoadTime(loadTimeInSeconds)
     var start = Date.now(), timeout, onDownloadUpdate, finishedTwirl = false, loadTime;
+    // There are two ways to learn of changes: connect to change signals, or poll.
+    // Until we get reliable results, we'll poll.
+    var POLL_INTERVAL = 500, poll;
+    function setHandlers() {
+        //Stats.downloadsPendingChanged.connect(onDownloadUpdate); downloadsChanged, and physics...
+        poll = Script.setInterval(onDownloadUpdate, POLL_INTERVAL);
+    }
     function clearHandlers() {
         debug('clearHandlers');
-        Stats.downloadsPendingChanged.disconnect(onDownloadUpdate);
-        Stats.downloadsChanged.disconnect(onDownloadUpdate);
+        //Stats.downloadsPendingChanged.disconnect(onDownloadUpdate); downloadsChanged, and physics..
+        Script.clearInterval(poll);
     }
     function waitForLoad(flag) {
         debug('entry', place, 'initial downloads/pending', Stats.downloads, Stats.downloadsPending);
@@ -96,13 +103,11 @@ function doLoad(place, continuationWithLoadTime) { // Go to place and call conti
                 continuationWithLoadTime(loadTime);
             }
         });
-        Stats.downloadsPendingChanged.connect(onDownloadUpdate);
-        Stats.downloadsChanged.connect(onDownloadUpdate);
+        setHandlers();
     }
     function isLoading() {
-        // FIXME: This tells us when download are completed, but it doesn't tell us when the objects are parsed and loaded.
-        // We really want something like _physicsEnabled, but that isn't signalled.
-        return Stats.downloads || Stats.downloadsPending;
+        // FIXME: We should also confirm that textures have loaded.
+        return Stats.downloads || Stats.downloadsPending || !Window.isPhysicsEnabled();
     }
     onDownloadUpdate = function onDownloadUpdate() {
         debug('update downloads/pending', Stats.downloads, Stats.downloadsPending);
@@ -170,7 +175,7 @@ You would want to say 'no' (and make other preparations) if you were testing the
 function maybeRunTribbles(continuation) {
     if (Window.confirm("Run tribbles?\n\n\
 At most, only one participant should say yes.")) {
-        Script.load('http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/tribbles.js'); // FIXME: replace with AWS
+        Script.load('http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/tribbles.js');
         Script.setTimeout(continuation, 3000);
     } else {
         continuation();
