@@ -459,7 +459,7 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position, intersection.surfaceNormal);
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.targetOverlay, {
@@ -480,7 +480,7 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position, intersection.surfaceNormal);
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.cancelOverlay, {
@@ -637,7 +637,7 @@ function isMoving() {
 // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
 // you can't teleport there.
 var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
-function isTooCloseToTeleport(position, surfaceNormal) {
+function isValidTeleportLocation(position, surfaceNormal) {
     var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
     var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
     return angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
