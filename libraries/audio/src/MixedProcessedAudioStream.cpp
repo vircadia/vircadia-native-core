@@ -17,27 +17,27 @@ static const int STEREO_FACTOR = 2;
 MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames)
     : InboundAudioStream(numFrameSamples, numFramesCapacity, numStaticJitterFrames) {}
 
-void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
-    _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
-    int deviceOutputFrameSize = networkToDeviceSamples(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-    _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
+void MixedProcessedAudioStream::outputFormatChanged(int sampleRate, int channelCount) {
+    _outputSampleRate = sampleRate;
+    _outputChannelCount = channelCount;
+    int deviceOutputFrameFrames = networkToDeviceFrames(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / STEREO_FACTOR);
+    int deviceOutputFrameSamples = deviceOutputFrameFrames * STEREO_FACTOR;
+    _ringBuffer.resizeForFrameSize(deviceOutputFrameSamples);
 }
 
 int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
-    
-    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(networkToDeviceSamples(silentSamples));
-    
-    emit addedSilence(deviceToNetworkSamples(deviceSilentSamplesWritten) / STEREO_FACTOR);
-
+    int deviceSilentFrames = networkToDeviceFrames(silentSamples / STEREO_FACTOR);
+    int deviceSilentSamples = deviceSilentFrames * STEREO_FACTOR;
+    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(deviceSilentSamples);
+    emit addedSilence(deviceToNetworkFrames(deviceSilentSamplesWritten / STEREO_FACTOR));
     return deviceSilentSamplesWritten;
 }
 
 int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
-
-    int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(networkToDeviceSamples(samples));
-
-    emit addedLastFrameRepeatedWithFade(deviceToNetworkSamples(deviceSamplesWritten) / STEREO_FACTOR);
-    
+    int deviceFrames = networkToDeviceFrames(samples / STEREO_FACTOR);
+    int deviceSamples = deviceFrames * STEREO_FACTOR;
+    int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(deviceSamples);
+    emit addedLastFrameRepeatedWithFade(deviceToNetworkFrames(deviceSamplesWritten / STEREO_FACTOR));
     return deviceSamplesWritten;
 }
 
@@ -60,12 +60,12 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
     return packetAfterStreamProperties.size();
 }
 
-int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
-    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR
-                                                                                               * AudioConstants::SAMPLE_RATE);
+int MixedProcessedAudioStream::networkToDeviceFrames(int networkFrames) {
+    return ((quint64)networkFrames * _outputChannelCount * _outputSampleRate) /
+        (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE);
 }
 
-int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
-    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE)
-        / (quint64)_outputFormatChannelsTimesSampleRate;
+int MixedProcessedAudioStream::deviceToNetworkFrames(int deviceFrames) {
+    return (quint64)deviceFrames * (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE) /
+        (_outputSampleRate * _outputChannelCount);
 }
