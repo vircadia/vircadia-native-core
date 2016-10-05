@@ -82,8 +82,8 @@ const glm::uvec4 LightClusters::MAX_GRID_DIMENSIONS { 32, 32, 31, 16384 };
 
 LightClusters::LightClusters() :
     _lightIndicesBuffer(std::make_shared<gpu::Buffer>()),
-    _clusterGridBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32),
-    _clusterContentBuffer(std::make_shared<gpu::Buffer>(), gpu::Element::INDEX_INT32) {
+    _clusterGridBuffer(/*std::make_shared<gpu::Buffer>(), */gpu::Element::INDEX_INT32),
+    _clusterContentBuffer(/*std::make_shared<gpu::Buffer>(), */gpu::Element::INDEX_INT32) {
     auto dims = _frustumGridBuffer.edit().dims;
     _frustumGridBuffer.edit().dims = ivec3(0); // make sure we go through the full reset of the dimensionts ion the setDImensions call
     setDimensions(dims, MAX_GRID_DIMENSIONS.w);
@@ -113,14 +113,19 @@ void LightClusters::setDimensions(glm::uvec3 gridDims, uint32_t listBudget) {
         _numClusters = numClusters;
         _clusterGrid.clear();
         _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
-        _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
+       // _clusterGridBuffer._size = _clusterGridBuffer._buffer->resize(_numClusters * sizeof(uint32_t));
+        _clusterGridBuffer._size = (_numClusters * sizeof(uint32_t));
+        _clusterGridBuffer._buffer = std::make_shared<gpu::Buffer>(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data()/*, _clusterGridBuffer._size*/);
     }
 
     auto configListBudget = std::min(MAX_GRID_DIMENSIONS.w, listBudget);
     if (configListBudget != _clusterContentBuffer.getNumElements()) {
         _clusterContent.clear();
         _clusterContent.resize(configListBudget, INVALID_LIGHT);
-        _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(configListBudget * sizeof(LightIndex));
+      //  _clusterContentBuffer._size = _clusterContentBuffer._buffer->resize(configListBudget * sizeof(LightIndex));
+        _clusterContentBuffer._size = (configListBudget * sizeof(LightIndex));
+     //   _clusterContentBuffer._buffer->setData(_clusterContentBuffer._size, (gpu::Byte*) _clusterContent.data());
+        _clusterContentBuffer._buffer = std::make_shared<gpu::Buffer>(_clusterContentBuffer._size, (gpu::Byte*) _clusterContent.data()/*, _clusterContentBuffer._size*/);
     }
 }
 
@@ -287,8 +292,10 @@ void LightClusters::updateClusters() {
     std::vector< std::vector< LightIndex > > clusterGridPoint(_numClusters);
     std::vector< std::vector< LightIndex > > clusterGridSpot(_numClusters);
 
+    _clusterGrid.clear();
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
     uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
+    _clusterContent.clear();
     _clusterContent.resize(maxNumIndices, INVALID_LIGHT);
 
     auto theFrustumGrid(_frustumGridBuffer.get());
@@ -444,10 +451,7 @@ void LightClusters::updateClusters() {
 
     // update the buffers
     _clusterGridBuffer._buffer->setData(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
-    //_clusterGridBuffer._buffer->setSubData(0, _clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
-    _clusterContentBuffer._buffer->setData(indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
-
- //   _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
+    _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
 }
 
 

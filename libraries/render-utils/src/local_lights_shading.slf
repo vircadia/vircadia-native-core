@@ -31,7 +31,6 @@
 <@include LightClusterGrid.slh@>
 
 
-
 in vec2 _texCoord0;
 out vec4 _fragColor;
 

@@ -46,7 +46,6 @@ float projection_getFar(mat4 projection) {
 
 // end of hybrid include
 
-
 <@if GLPROFILE == MAC_GL @>
 #define GRID_NUM_ELEMENTS 4096
 #define GRID_INDEX_TYPE ivec4
