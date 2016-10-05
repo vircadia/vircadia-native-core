@@ -1868,12 +1868,6 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
-        //if (this.hand === 0) {
-            //Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
-        //}
-        //if (this.hand === 1) {
-            //Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
-        //}
         this.grabPointSphereOff();
         this.lineOff();
         this.overlayLineOff();
