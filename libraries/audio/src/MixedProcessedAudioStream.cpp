@@ -12,17 +12,15 @@
 #include "MixedProcessedAudioStream.h"
 #include "AudioLogging.h"
 
-static const int STEREO_FACTOR = 2;
-
 MixedProcessedAudioStream::MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames)
-    : InboundAudioStream(STEREO_FACTOR, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+    : InboundAudioStream(AudioConstants::STEREO, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
         numFramesCapacity, numStaticJitterFrames) {}
 
 void MixedProcessedAudioStream::outputFormatChanged(int sampleRate, int channelCount) {
     _outputSampleRate = sampleRate;
     _outputChannelCount = channelCount;
-    int deviceOutputFrameFrames = networkToDeviceFrames(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / STEREO_FACTOR);
-    int deviceOutputFrameSamples = deviceOutputFrameFrames * STEREO_FACTOR;
+    int deviceOutputFrameFrames = networkToDeviceFrames(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / AudioConstants::STEREO);
+    int deviceOutputFrameSamples = deviceOutputFrameFrames * AudioConstants::STEREO;
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSamples);
 }
 
@@ -55,16 +53,16 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
 
     _ringBuffer.writeData(outputBuffer.data(), outputBuffer.size());
     qCDebug(audiostream, "Wrote %d samples to buffer (%d available)", outputBuffer.size() / (int)sizeof(int16_t), getSamplesAvailable());
-    
+
     return packetAfterStreamProperties.size();
 }
 
 int MixedProcessedAudioStream::networkToDeviceFrames(int networkFrames) {
     return ((quint64)networkFrames * _outputChannelCount * _outputSampleRate) /
-        (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE);
+        (quint64)(AudioConstants::STEREO * AudioConstants::SAMPLE_RATE);
 }
 
 int MixedProcessedAudioStream::deviceToNetworkFrames(int deviceFrames) {
-    return (quint64)deviceFrames * (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE) /
+    return (quint64)deviceFrames * (quint64)(AudioConstants::STEREO * AudioConstants::SAMPLE_RATE) /
         (_outputSampleRate * _outputChannelCount);
 }
