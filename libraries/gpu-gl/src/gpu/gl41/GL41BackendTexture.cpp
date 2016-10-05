@@ -38,7 +38,13 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transf
     return GL41Texture::sync<GL41Texture>(*this, texture, transfer);
 }
 
-GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) : GLTexture(backend, texture, allocate(), transferrable) {}
+GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId) 
+    : GLTexture(backend, texture, externalId) { 
+}
+
+GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) 
+    : GLTexture(backend, texture, allocate(), transferrable) {
+}
 
 void GL41Texture::generateMips() const {
     withPreservedTexture([&] {
