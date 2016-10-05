@@ -179,7 +179,7 @@ void ICEClientApp::doSomething() {
             }
             _socket->writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
             _stunResponseTimer.setSingleShot(true);
-            connect(&_iceResponseTimer, SIGNAL(timeout()), this, SLOT(stunResponseTimeout()));
+            connect(&_stunResponseTimer, SIGNAL(timeout()), this, SLOT(stunResponseTimeout()));
             _stunResponseTimer.start(stunResponseTimeoutMilliSeconds);
 
             setState(waitForStunResponse);
