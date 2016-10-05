@@ -68,31 +68,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtWarningMsg, false);
     }
 
-    // QString domainServerAddress = "127.0.0.1";
-    // if (parser.isSet(domainAddressOption)) {
-    //     // parse the IP and port combination for this target
-    //     QString hostnamePortString = parser.value(domainAddressOption);
-
-    //     QHostAddress address { hostnamePortString.left(hostnamePortString.indexOf(':')) };
-    //     quint16 port { (quint16) hostnamePortString.mid(hostnamePortString.indexOf(':') + 1).toUInt() };
-    //     if (port == 0) {
-    //         port = DEFAULT_DOMAIN_SERVER_PORT;
-    //     }
-
-    //     if (address.isNull()) {
-    //         qCritical() << "Could not parse an IP address and port combination from" << hostnamePortString << "-" <<
-    //             "The parsed IP was" << address.toString() << "and the parsed port was" << port;
-
-    //         QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-    //     } else {
-    //         _iceServerAddr = HifiSockAddr(address, port);
-    //     }
-
-    //     if (_verbose) {
-    //         qDebug() << "domain-server Address is" << domainServerAddress << "port is" << port;
-    //     }
-    // }
-
     QString domainServerAddress = "127.0.0.1:40103";
     if (parser.isSet(domainAddressOption)) {
         domainServerAddress = parser.value(domainAddressOption);
@@ -109,7 +84,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     Setting::preInit();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
-    // DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     Setting::init();
 
     DependencyManager::set<AccountManager>([&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
@@ -135,7 +109,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
@@ -152,24 +125,8 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     // connect(nodeList.data(), &NodeList::uuidChanged, this, &ACClientApp::setSessionUUID);
     // connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &ACClientApp::notifyPacketVersionMismatch);
 
-    // // you might think we could just do this in NodeList but we only want this connection for Interface
-    // connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-
-    // AccountManager _accountManager = new AccountManager(std::bind(&ACClientApp::getUserAgent, qApp));
-
-    // setState(lookUpStunServer);
-
-
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
                                                  << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
-
-
-    // // send the identity packet for our avatar each second to our avatar mixer
-    // connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
-    // identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
-
-
-    // DependencyManager::get<AddressManager>()->loadSettings(domainServerAddress);
 
     DependencyManager::get<AddressManager>()->handleLookupString(domainServerAddress, false);
 
