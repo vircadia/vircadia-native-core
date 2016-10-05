@@ -11,5 +11,10 @@
 
 #include "MixedAudioStream.h"
 
-MixedAudioStream::MixedAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames) :
-    InboundAudioStream(numFrameSamples, numFramesCapacity, numStaticJitterFrames) {}
+#include "AudioConstants.h"
+
+static const int STEREO_FACTOR = 2;
+
+MixedAudioStream::MixedAudioStream(int numFramesCapacity, int numStaticJitterFrames) :
+    InboundAudioStream(STEREO_FACTOR, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+        numFramesCapacity, numStaticJitterFrames) {}

@@ -46,10 +46,11 @@ static const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
 static const quint64 FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
-InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames) :
-    _ringBuffer(numFrameSamples, numFramesCapacity),
-    _dynamicJitterBufferEnabled(numStaticJitterFrames == -1),
-    _staticJitterBufferFrames(std::max(numStaticJitterFrames, DEFAULT_STATIC_JITTER_FRAMES)),
+InboundAudioStream::InboundAudioStream(int numChannels, int numFrames, int numBlocks, int numStaticJitterBlocks) :
+    _ringBuffer(numChannels * numFrames, numBlocks),
+    _numChannels(numChannels),
+    _dynamicJitterBufferEnabled(numStaticJitterBlocks == -1),
+    _staticJitterBufferFrames(std::max(numStaticJitterBlocks, DEFAULT_STATIC_JITTER_FRAMES)),
     _desiredJitterBufferFrames(_dynamicJitterBufferEnabled ? 1 : _staticJitterBufferFrames),
     _incomingSequenceNumberStats(STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
     _starveHistory(STARVE_HISTORY_CAPACITY),
@@ -224,7 +225,7 @@ int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     }
 
     // calculate how many silent frames we should drop.
-    int silentSamples = silentFrames * 2;
+    int silentSamples = silentFrames * _numChannels;
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
     int numSilentFramesToDrop = 0;
@@ -422,7 +423,7 @@ int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
 int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
     AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
     int frameSize = _ringBuffer.getNumFrameSamples();
-    int samplesToWrite = frames * 2;
+    int samplesToWrite = frames * _numChannels;
     int indexOfRepeat = 0;
     do {
         int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);

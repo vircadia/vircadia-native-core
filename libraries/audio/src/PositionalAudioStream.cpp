@@ -21,11 +21,14 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
+static const int MONO_FACTOR = 1;
+static const int STEREO_FACTOR = 2;
+
 PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, int numStaticJitterFrames) :
-    InboundAudioStream(isStereo
-                       ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-                       : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
-    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, numStaticJitterFrames),
+    InboundAudioStream(isStereo ? STEREO_FACTOR : MONO_FACTOR,
+                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+                       AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY,
+                       numStaticJitterFrames),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),

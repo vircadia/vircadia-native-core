@@ -47,7 +47,7 @@ public:
     static const bool REPETITION_WITH_FADE;
 
     InboundAudioStream() = delete;
-    InboundAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames = -1);
+    InboundAudioStream(int numChannels, int numFrames, int numBlocks, int numStaticJitterBlocks);
     ~InboundAudioStream();
 
     void reset();
@@ -144,6 +144,7 @@ protected:
 protected:
 
     AudioRingBuffer _ringBuffer;
+    int _numChannels;
 
     bool _lastPopSucceeded { false };
     AudioRingBuffer::ConstIterator _lastPopOutput;

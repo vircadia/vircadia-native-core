@@ -14,8 +14,9 @@
 
 static const int STEREO_FACTOR = 2;
 
-MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames)
-    : InboundAudioStream(numFrameSamples, numFramesCapacity, numStaticJitterFrames) {}
+MixedProcessedAudioStream::MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames)
+    : InboundAudioStream(STEREO_FACTOR, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+        numFramesCapacity, numStaticJitterFrames) {}
 
 void MixedProcessedAudioStream::outputFormatChanged(int sampleRate, int channelCount) {
     _outputSampleRate = sampleRate;
