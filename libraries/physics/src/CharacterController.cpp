@@ -146,7 +146,10 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
         // kinematic motion will move() the _ghost later
         return _ghost.hasSupport();
     }
-    _stepHeight = _minStepHeight; // clears last step obstacle
+    btScalar minStepHeight = 0.041f; // HACK: hardcoded now but should be shape margin
+    btScalar maxStepHeight = 0.75f * (_halfHeight + _radius);
+    btScalar stepHeight = minStepHeight;
+    btVector3 stepNormal = btVector3(0.0f, 0.0f, 0.0f);
 
     btScalar targetSpeed = _targetVelocity.length();
     if (targetSpeed > FLT_EPSILON) {
@@ -174,14 +177,14 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
             bool characterIsFirst = _rigidBody == contactManifold->getBody0();
             int numContacts = contactManifold->getNumContacts();
             int stepContactIndex = -1;
-            float highestStep = _minStepHeight;
+            float highestStep = minStepHeight;
             for (int j = 0; j < numContacts; j++) {
                 // check for "floor"
                 btManifoldPoint& contact = contactManifold->getContactPoint(j);
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
-                if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                if (hitHeight < maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
                     hasFloor = true;
                     if (!_ghost.isSteppingUp()) {
                         // early exit since all we need to know is that we're on a floor
@@ -192,7 +195,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 // when the _ghost has detected a steppable obstacle
                 if (_ghost.isSteppingUp()) {
                     // remember highest step obstacle
-                    if (hitHeight > _maxStepHeight) {
+                    if (hitHeight > maxStepHeight) {
                         // this manifold is invalidated by point that is too high
                         stepContactIndex = -1;
                         break;
@@ -203,20 +206,25 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                     }
                 }
             }
-            if (stepContactIndex > -1 && highestStep > _stepHeight) {
+            if (stepContactIndex > -1 && highestStep > stepHeight) {
                 // remember step info for later
                 btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
-                _stepHeight = highestStep;
-                _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
-                _stepNormal = normal;
+                stepHeight = highestStep;
+                stepNormal = normal;
             }
             if (hasFloor && !_ghost.isSteppingUp()) {
                 // early exit since all we need to know is that we're on a floor
                 break;
             }
         }
+    }
+    if (_ghost.isSteppingUp() && stepHeight > minStepHeight && _targetVelocity.dot(stepNormal) < 0.0f) {
+        // move avatar up according to kinematic character logic
+        btTransform transform = _rigidBody->getWorldTransform();
+        transform.setOrigin(_ghost.getWorldTransform().getOrigin());
+        _rigidBody->setWorldTransform(transform);
     }
     return hasFloor;
 }
@@ -408,8 +416,6 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     if (glm::abs(radius - _radius) > FLT_EPSILON || glm::abs(halfHeight - _halfHeight) > FLT_EPSILON) {
         _radius = radius;
         _halfHeight = halfHeight;
-        _minStepHeight = 0.041f; // HACK: hardcoded now but should be shape margin
-        _maxStepHeight = 0.75f * (_halfHeight + _radius);
 
         if (_dynamicsWorld) {
             // must REMOVE from world prior to shape update
@@ -578,26 +584,6 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
         btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
 
-        // adjust motorVelocity uphill when encountering a step obstacle
-        btScalar vTimescale = motor.vTimescale;
-        if (_stepHeight > _minStepHeight) {
-            // there is a step
-            btVector3 motorVelocityWF = motorVelocity.rotate(axis, angle);
-            if (motorVelocityWF.dot(_stepNormal) < 0.0f) {
-                // the motor pushes against step
-                btVector3 leverArm = _stepPoint;
-                motorVelocityWF = _stepNormal.cross(leverArm.cross(motorVelocityWF));
-                btScalar doubleCrossLength = motorVelocityWF.length();
-                if (doubleCrossLength > FLT_EPSILON) {
-                    // scale the motor in the correct direction and rotate back to motor-frame
-                    motorVelocityWF *= (motorVelocity.length() / doubleCrossLength);
-                    motorVelocity += motorVelocityWF.rotate(axis, -angle);
-                    // make vTimescale as small as possible
-                    vTimescale = glm::min(vTimescale, motor.hTimescale);
-                }
-            }
-        }
-
         // split velocity into horizontal and vertical components
         btVector3 vVelocity = velocity.dot(up) * up;
         btVector3 hVelocity = velocity - vVelocity;
@@ -614,8 +600,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
             maxTau = tau;
             hVelocity += (hMotorVelocity - hVelocity) * tau;
         }
-        if (vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
-            btScalar tau = dt / vTimescale;
+        if (motor.vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
+            btScalar tau = dt / motor.vTimescale;
             if (tau > 1.0f) {
                 tau = 1.0f;
             }
