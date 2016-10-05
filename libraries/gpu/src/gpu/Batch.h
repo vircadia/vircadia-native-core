@@ -229,9 +229,6 @@ public:
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
     // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
-
-    void _glActiveBindTexture(unsigned int unit, unsigned int target, unsigned int texture);
-
     void _glUniform1i(int location, int v0);
     void _glUniform1f(int location, float v0);
     void _glUniform2f(int location, float v0, float v1);
@@ -314,8 +311,6 @@ public:
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
         // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-        COMMAND_glActiveBindTexture,
-
         COMMAND_glUniform1i,
         COMMAND_glUniform1f,
         COMMAND_glUniform2f,
