@@ -48,8 +48,7 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _entityEditSender(),
-    _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO,
-        RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
+    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
