@@ -131,7 +131,7 @@ public:
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
-    void setTextures(const QVariantMap& textures);
+    Q_INVOKABLE void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
