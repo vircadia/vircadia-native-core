@@ -1307,7 +1307,7 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
 // so that they show up in stacktraces
 //
 // Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
-QString extractUrlFromEntityUrl(QString url) {
+QString extractUrlFromEntityUrl(const QString& url) {
     auto parts = url.split(' ', QString::SkipEmptyParts);
     if (parts.length() > 0) {
         return parts[0];
@@ -1318,7 +1318,7 @@ QString extractUrlFromEntityUrl(QString url) {
 
 // Encode an entity id into an entity url
 // Example: http://www.example.com/some/path.js [EntityID:{9fdd355f-d226-4887-9484-44432d29520e}]
-QString encodeEntityIdIntoEntityUrl(QString url, QString entityID) {
+QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID) {
     return url + " [EntityID:" + entityID + "]";
 }
 
@@ -1348,7 +1348,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = isURL ? encodeEntityIdIntoEntityUrl(scriptOrURL, entityID) : "EmbeddedEntityScript";
+    auto fileName = isURL ? encodeEntityIdIntoEntityUrl(scriptOrURL, entityID.toString()) : "EmbeddedEntityScript";
 
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program)) {
