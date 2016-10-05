@@ -27,7 +27,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     // parse command-line
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity AC client");
-    parser.addHelpOption();
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 
