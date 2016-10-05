@@ -9,10 +9,13 @@
 #ifndef hifi_OffscreenQmlSurface_h
 #define hifi_OffscreenQmlSurface_h
 
-#include <QTimer>
-#include <QUrl>
 #include <atomic>
 #include <functional>
+
+#include <QtCore/QJsonObject>
+#include <QTimer>
+#include <QUrl>
+
 
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
