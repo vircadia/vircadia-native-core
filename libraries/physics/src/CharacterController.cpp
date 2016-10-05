@@ -209,7 +209,6 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
             if (stepContactIndex > -1 && highestStep > stepHeight) {
                 // remember step info for later
                 btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
-                btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 stepHeight = highestStep;
                 stepNormal = normal;
