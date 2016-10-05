@@ -20,15 +20,18 @@ var EXPECTED_HMD_FRAMERATE = 90;
 var MAXIMUM_LOAD_TIME = 60;         // seconds
 var MINIMUM_AVATARS = 25;             // FIXME: not implemented yet. Requires agent scripts. Idea is to have them organize themselves to the right number.
 
-var version = 1;
+var version = 2;
 function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
 
-var emptyishPlace = 'empty';
-var cachePlaces = ['localhost', 'Welcome'];
-var isInCachePlace = cachePlaces.indexOf(location.hostname) >= 0;
-var defaultPlace = isInCachePlace ? 'Playa' : location.hostname;
+function isNowIn(place) { // true if currently in specified place
+    return location.hostname.toLowerCase() === place.toLowerCase();
+}
+
+var cachePlaces = ['dev-Welcome', 'localhost']; // For now, list the lighter weight one first.
+var isInCachePlace = cachePlaces.some(isNowIn);
+var defaultPlace = isInCachePlace ? 'dev-Playa' : location.hostname;
 var prompt = "domain-check.js version " + version + "\n\nWhat place should we enter?";
 debug(cachePlaces, isInCachePlace, defaultPlace, prompt);
 var entryPlace = Window.prompt(prompt, defaultPlace);
@@ -73,10 +76,17 @@ function startTwirl(targetRotation, degreesPerUpdate, interval, strafeDistance, 
 
 function doLoad(place, continuationWithLoadTime) { // Go to place and call continuationWithLoadTime(loadTimeInSeconds)
     var start = Date.now(), timeout, onDownloadUpdate, finishedTwirl = false, loadTime;
+    // There are two ways to learn of changes: connect to change signals, or poll.
+    // Until we get reliable results, we'll poll.
+    var POLL_INTERVAL = 500, poll;
+    function setHandlers() {
+        //Stats.downloadsPendingChanged.connect(onDownloadUpdate); downloadsChanged, and physics...
+        poll = Script.setInterval(onDownloadUpdate, POLL_INTERVAL);
+    }
     function clearHandlers() {
         debug('clearHandlers');
-        Stats.downloadsPendingChanged.disconnect(onDownloadUpdate);
-        Stats.downloadsChanged.disconnect(onDownloadUpdate);
+        //Stats.downloadsPendingChanged.disconnect(onDownloadUpdate); downloadsChanged, and physics..
+        Script.clearInterval(poll);
     }
     function waitForLoad(flag) {
         debug('entry', place, 'initial downloads/pending', Stats.downloads, Stats.downloadsPending);
@@ -93,13 +103,11 @@ function doLoad(place, continuationWithLoadTime) { // Go to place and call conti
                 continuationWithLoadTime(loadTime);
             }
         });
-        Stats.downloadsPendingChanged.connect(onDownloadUpdate);
-        Stats.downloadsChanged.connect(onDownloadUpdate);
+        setHandlers();
     }
     function isLoading() {
-        // FIXME: This tells us when download are completed, but it doesn't tell us when the objects are parsed and loaded.
-        // We really want something like _physicsEnabled, but that isn't signalled.
-        return Stats.downloads || Stats.downloadsPending;
+        // FIXME: We should also confirm that textures have loaded.
+        return Stats.downloads || Stats.downloadsPending || !Window.isPhysicsEnabled();
     }
     onDownloadUpdate = function onDownloadUpdate() {
         debug('update downloads/pending', Stats.downloads, Stats.downloadsPending);
@@ -114,17 +122,9 @@ function doLoad(place, continuationWithLoadTime) { // Go to place and call conti
         }
     };
 
-    function doit() {
-        debug('go', place);
-        location.hostChanged.connect(waitForLoad);
-        location.handleLookupString(place);
-    }
-    if (location.placename.toLowerCase() === place.toLowerCase()) {
-        location.handleLookupString(emptyishPlace);
-        Script.setTimeout(doit, 1000);
-    } else {
-        doit();
-    }
+    debug('go', place);
+    location.hostChanged.connect(waitForLoad);
+    location.handleLookupString(place);
 }
 
 var config = Render.getConfig("Stats");
@@ -144,6 +144,7 @@ function doRender(continuation) {
     });
 }
 
+var TELEPORT_PAUSE = 500;
 function maybePrepareCache(continuation) {
     var prepareCache = Window.confirm("Prepare cache?\n\n\
 Should we start with all and only those items cached that are encountered when visiting:\n" + cachePlaces.join(', ') + "\n\
@@ -151,8 +152,6 @@ If 'yes', cache will be cleared and we will visit these two, with a turn in each
 You would want to say 'no' (and make other preparations) if you were testing these places.");
 
     if (prepareCache) {
-        location.handleLookupString(emptyishPlace);
-        Window.alert("Please do menu Edit->Reload Content (Clears all caches) and THEN press 'ok'.");
         function loadNext() {
             var place = cachePlaces.shift();
             doLoad(place, function (prepTime) {
@@ -164,16 +163,19 @@ You would want to say 'no' (and make other preparations) if you were testing the
                 }
             });
         }
-        loadNext();
+        location.handleLookupString(cachePlaces[cachePlaces.length - 1]);
+        Menu.triggerOption("Reload Content (Clears all caches)");
+        Script.setTimeout(loadNext, TELEPORT_PAUSE);
     } else {
-        continuation();
+        location.handleLookupString(isNowIn(cachePlaces[0]) ? cachePlaces[1] : cachePlaces[0]);
+        Script.setTimeout(continuation, TELEPORT_PAUSE);
     }
 }
 
 function maybeRunTribbles(continuation) {
     if (Window.confirm("Run tribbles?\n\n\
 At most, only one participant should say yes.")) {
-        Script.load('http://howard-stearns.github.io/models/scripts/tests/performance/tribbles.js'); // FIXME: replace with AWS
+        Script.load('http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/tribbles.js');
         Script.setTimeout(continuation, 3000);
     } else {
         continuation();
