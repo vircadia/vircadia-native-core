@@ -42,7 +42,7 @@ void ShapeInfoTests::testHashFunctions() {
 
     int testCount = 0;
     int numCollisions = 0;
-    
+
     btClock timer;
     for (int x = 1; x < numSteps && testCount < maxTests; ++x) {
         float radiusX = (float)x * deltaLength;
@@ -52,7 +52,7 @@ void ShapeInfoTests::testHashFunctions() {
         DoubleHashKey key = info.getHash();
         uint32_t* hashPtr = hashes.find(key.getHash());
         if (hashPtr && *hashPtr == key.getHash2()) {
-            std::cout << testCount << "  hash collision radiusX = " << radiusX 
+            std::cout << testCount << "  hash collision radiusX = " << radiusX
                 << "  h1 = 0x" << std::hex << key.getHash()
                 << "  h2 = 0x" << std::hex << key.getHash2()
                 << std::endl;
@@ -88,7 +88,7 @@ void ShapeInfoTests::testHashFunctions() {
                 key = info.getHash();
                 hashPtr = hashes.find(key.getHash());
                 if (hashPtr && *hashPtr == key.getHash2()) {
-                    std::cout << testCount << "  hash collision radiusX = " << radiusX << "  radiusY = " << radiusY 
+                    std::cout << testCount << "  hash collision radiusX = " << radiusX << "  radiusY = " << radiusY
                         << "  h1 = 0x" << std::hex << key.getHash()
                         << "  h2 = 0x" << std::hex << key.getHash2()
                         << std::endl;
@@ -113,8 +113,8 @@ void ShapeInfoTests::testHashFunctions() {
                 DoubleHashKey key = info.getHash();
                 hashPtr = hashes.find(key.getHash());
                 if (hashPtr && *hashPtr == key.getHash2()) {
-                    std::cout << testCount << "  hash collision radiusX = " << radiusX 
-                        << "  radiusY = " << radiusY << "  radiusZ = " << radiusZ 
+                    std::cout << testCount << "  hash collision radiusX = " << radiusX
+                        << "  radiusY = " << radiusY << "  radiusZ = " << radiusZ
                         << "  h1 = 0x" << std::hex << key.getHash()
                         << "  h2 = 0x" << std::hex << key.getHash2()
                         << std::endl;
@@ -148,9 +148,9 @@ void ShapeInfoTests::testBoxShape() {
     info.setBox(halfExtents);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
-    
+
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     QCOMPARE(key.getHash(), otherKey.getHash());
@@ -165,7 +165,7 @@ void ShapeInfoTests::testSphereShape() {
     info.setSphere(radius);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
+    const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
