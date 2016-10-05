@@ -115,7 +115,7 @@ public slots:
 private:
     void packetReceivedUpdateTimingStats();
 
-    int writeSamplesForDroppedPackets(int networkSamples);
+    int writeFramesForDroppedPackets(int networkFrames);
 
     void popSamplesNoCheck(int samples);
     void framesAvailableChanged();
@@ -134,12 +134,12 @@ protected:
     /// default implementation assumes packet contains raw audio samples after stream properties
     virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties);
 
-    /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
-    virtual int writeDroppableSilentSamples(int silentSamples);
+    /// writes silent frames to the buffer that may be dropped to reduce latency caused by the buffer
+    virtual int writeDroppableSilentFrames(int silentFrames);
 
     /// writes the last written frame repeatedly, gradually fading to silence.
     /// used for writing samples for dropped packets.
-    virtual int writeLastFrameRepeatedWithFade(int samples);
+    virtual int writeLastFrameRepeatedWithFade(int frames);
     
 protected:
 

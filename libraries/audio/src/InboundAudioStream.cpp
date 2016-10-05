@@ -121,11 +121,11 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
     packetReceivedUpdateTimingStats();
 
-    int networkSamples;
-    
+    int networkFrames;
+
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = message.getPosition();
-    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
     message.seek(prePropertyPosition + propertyBytes);
 
     // handle this packet based on its arrival status.
@@ -135,7 +135,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            writeSamplesForDroppedPackets(packetsDropped * networkSamples);
+            writeFramesForDroppedPackets(packetsDropped * networkFrames);
 
             // fall through to OnTime case
         }
@@ -143,7 +143,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
                 // FIXME - Some codecs need to know about these silent frames... and can produce better output
-                writeDroppableSilentSamples(networkSamples);
+                writeDroppableSilentFrames(networkFrames);
             } else {
                 // note: PCM and no codec are identical
                 bool selectedPCM = _selectedCodecName == "pcm" || _selectedCodecName == "";
@@ -153,7 +153,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     parseAudioData(message.getType(), afterProperties);
                 } else {
                     qDebug() << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
-                    writeDroppableSilentSamples(networkSamples);
+                    writeDroppableSilentFrames(networkFrames);
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
                     emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
@@ -218,9 +218,9 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
     return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
-int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     if (_decoder) {
-        _decoder->trackLostFrames(silentSamples);
+        _decoder->trackLostFrames(silentFrames);
     }
 
     // calculate how many silent frames we should drop.
@@ -228,12 +228,12 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
     int numSilentFramesToDrop = 0;
 
-    if (silentSamples >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
+    if (silentFrames >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
 
         // our avg jitter buffer size exceeds its desired value, so ignore some silent
         // frames to get that size as close to desired as possible
         int numSilentFramesToDropDesired = _currentJitterBufferFrames - desiredJitterBufferFramesPlusPadding;
-        int numSilentFramesReceived = silentSamples / samplesPerFrame;
+        int numSilentFramesReceived = silentFrames / samplesPerFrame;
         numSilentFramesToDrop = std::min(numSilentFramesToDropDesired, numSilentFramesReceived);
 
         // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
@@ -247,7 +247,7 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
         _framesAvailableStat.reset();
     }
 
-    int ret = _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
+    int ret = _ringBuffer.addSilentSamples(silentFrames - numSilentFramesToDrop * samplesPerFrame);
     
     return ret;
 }
@@ -414,8 +414,8 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     _lastPacketReceivedTime = now;
 }
 
-int InboundAudioStream::writeSamplesForDroppedPackets(int networkSamples) {
-    return writeLastFrameRepeatedWithFade(networkSamples);
+int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
+    return writeLastFrameRepeatedWithFade(networkFrames);
 }
 
 int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {

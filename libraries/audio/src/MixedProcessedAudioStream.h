@@ -33,8 +33,8 @@ public:
     void outputFormatChanged(int sampleRate, int channelCount);
 
 protected:
-    int writeDroppableSilentSamples(int silentSamples) override;
-    int writeLastFrameRepeatedWithFade(int samples) override;
+    int writeDroppableSilentFrames(int silentFrames) override;
+    int writeLastFrameRepeatedWithFade(int frames) override;
     int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) override;
 
 private:

@@ -25,20 +25,18 @@ void MixedProcessedAudioStream::outputFormatChanged(int sampleRate, int channelC
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSamples);
 }
 
-int MixedProcessedAudioStream::writeDroppableSilentSamples(int silentSamples) {
-    int deviceSilentFrames = networkToDeviceFrames(silentSamples / STEREO_FACTOR);
-    int deviceSilentSamples = deviceSilentFrames * STEREO_FACTOR;
-    int deviceSilentSamplesWritten = InboundAudioStream::writeDroppableSilentSamples(deviceSilentSamples);
-    emit addedSilence(deviceToNetworkFrames(deviceSilentSamplesWritten / STEREO_FACTOR));
-    return deviceSilentSamplesWritten;
+int MixedProcessedAudioStream::writeDroppableSilentFrames(int silentFrames) {
+    int deviceSilentFrames = networkToDeviceFrames(silentFrames);
+    int deviceSilentFramesWritten = InboundAudioStream::writeDroppableSilentFrames(deviceSilentFrames);
+    emit addedSilence(deviceToNetworkFrames(deviceSilentFramesWritten));
+    return deviceSilentFramesWritten;
 }
 
-int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
-    int deviceFrames = networkToDeviceFrames(samples / STEREO_FACTOR);
-    int deviceSamples = deviceFrames * STEREO_FACTOR;
-    int deviceSamplesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(deviceSamples);
-    emit addedLastFrameRepeatedWithFade(deviceToNetworkFrames(deviceSamplesWritten / STEREO_FACTOR));
-    return deviceSamplesWritten;
+int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int frames) {
+    int deviceFrames = networkToDeviceFrames(frames);
+    int deviceFramesWritten = InboundAudioStream::writeLastFrameRepeatedWithFade(deviceFrames);
+    emit addedLastFrameRepeatedWithFade(deviceToNetworkFrames(deviceFramesWritten));
+    return deviceFramesWritten;
 }
 
 int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
