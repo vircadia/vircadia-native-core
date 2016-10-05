@@ -224,16 +224,17 @@ int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     }
 
     // calculate how many silent frames we should drop.
+    int silentSamples = silentFrames * 2;
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
     int numSilentFramesToDrop = 0;
 
-    if (silentFrames >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
+    if (silentSamples >= samplesPerFrame && _currentJitterBufferFrames > desiredJitterBufferFramesPlusPadding) {
 
         // our avg jitter buffer size exceeds its desired value, so ignore some silent
         // frames to get that size as close to desired as possible
         int numSilentFramesToDropDesired = _currentJitterBufferFrames - desiredJitterBufferFramesPlusPadding;
-        int numSilentFramesReceived = silentFrames / samplesPerFrame;
+        int numSilentFramesReceived = silentSamples / samplesPerFrame;
         numSilentFramesToDrop = std::min(numSilentFramesToDropDesired, numSilentFramesReceived);
 
         // dont reset _currentJitterBufferFrames here; we want to be able to drop further silent frames
@@ -247,7 +248,7 @@ int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
         _framesAvailableStat.reset();
     }
 
-    int ret = _ringBuffer.addSilentSamples(silentFrames - numSilentFramesToDrop * samplesPerFrame);
+    int ret = _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
     
     return ret;
 }
@@ -418,10 +419,10 @@ int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
     return writeLastFrameRepeatedWithFade(networkFrames);
 }
 
-int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
     AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
     int frameSize = _ringBuffer.getNumFrameSamples();
-    int samplesToWrite = samples;
+    int samplesToWrite = frames * 2;
     int indexOfRepeat = 0;
     do {
         int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);
@@ -434,7 +435,7 @@ int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
         indexOfRepeat++;
     } while (samplesToWrite > 0);
 
-    return samples;
+    return frames;
 }
 
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
