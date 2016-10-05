@@ -59,6 +59,8 @@ public:
     bool isSteppingUp() const { return _steppingUp; }
     const btVector3& getFloorNormal() const { return _floorNormal; }
 
+    void measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut);
+
 protected:
     void removeFromWorld();
     void addToWorld();

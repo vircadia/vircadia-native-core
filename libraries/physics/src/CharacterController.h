@@ -119,6 +119,8 @@ public:
     float measureMaxHipsOffsetRadius(const glm::vec3& currentHipsOffset, float maxSweepDistance);
     void setMoveKinematically(bool kinematic); // KINEMATIC_CONTROLLER_HACK
 
+    bool queryPenetration(const btTransform& transform);
+
 protected:
 #ifdef DEBUG_STATE_CHANGE
     void setState(State state, const char* reason);
@@ -162,13 +164,6 @@ protected:
     quint64 _jumpButtonDownStartTime;
     quint32 _jumpButtonDownCount;
     quint32 _takeoffJumpButtonID;
-
-    // data for walking up steps
-    btVector3 _stepPoint;
-    btVector3 _stepNormal;
-    btScalar _stepHeight { 0.0f };
-    btScalar _minStepHeight { 0.0f };
-    btScalar _maxStepHeight { 0.0f };
 
     btScalar _halfHeight { 0.0f };
     btScalar _radius { 0.0f };
