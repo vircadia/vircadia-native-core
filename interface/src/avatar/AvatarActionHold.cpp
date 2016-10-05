@@ -48,7 +48,7 @@ AvatarActionHold::~AvatarActionHold() {
 }
 
 bool AvatarActionHold::getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
     if (!controller) {
         qDebug() << "AvatarActionHold::getAvatarRigidBodyLocation failed to get character controller";

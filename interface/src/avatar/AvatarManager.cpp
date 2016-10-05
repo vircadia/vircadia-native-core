@@ -31,6 +31,7 @@
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
+#include <AvatarData.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -323,7 +324,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // an id of null. Thus this code handles any collision in which one of the participating objects is
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
-            MyAvatar* myAvatar = getMyAvatar();
+            auto myAvatar = getMyAvatar();
             auto collisionSound = myAvatar->getCollisionSound();
             if (collisionSound) {
                 const auto characterController = myAvatar->getCharacterController();
@@ -399,7 +400,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
-    if (sessionID == _myAvatar->getSessionUUID()) {
+    if (sessionID == AVATAR_SELF_ID || sessionID == _myAvatar->getSessionUUID()) {
         return _myAvatar;
     }
 
