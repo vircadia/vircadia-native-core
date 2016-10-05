@@ -42,7 +42,7 @@ Buffer::Size Buffer::getBufferGPUMemoryUsage() {
 }
 
 Buffer::Buffer(Size pageSize) :
-    _pages(pageSize) {
+    _renderPages(pageSize), _pages(pageSize) {
     _bufferCPUCount++;
 }
 
