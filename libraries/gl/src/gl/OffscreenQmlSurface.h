@@ -98,8 +98,8 @@ private:
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
     void render();
-    void resize();
     void cleanup();
+    QJsonObject getGLContextData();
 
 private slots:
     void updateQuick();
@@ -112,6 +112,8 @@ private:
     QQmlComponent* _qmlComponent { nullptr };
     QQuickItem* _rootItem { nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
+    QJsonObject _glData;
+
     QTimer _updateTimer;
     uint32_t _fbo { 0 };
     uint32_t _depthStencil { 0 };

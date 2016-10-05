@@ -116,21 +116,6 @@ QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 
-#if 0
-QJsonObject getGLContextData();
-QJsonObject _glData;
-
-QJsonObject OffscreenQmlSurface::getGLContextData() {
-    _glMutex.lock();
-    if (_glData.isEmpty()) {
-        _glWait.wait(&_glMutex);
-    }
-    _glMutex.unlock();
-    return _glData;
-}
-#endif
-
-
 void OffscreenQmlSurface::setupFbo() {
     _canvas->makeCurrent();
     _textures.setSize(_size);
@@ -324,7 +309,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     }
 
     // FIXME 
-//    _qmlEngine->rootContext()->setContextProperty("GL", _renderer->getGLContextData());
+    _qmlEngine->rootContext()->setContextProperty("GL", _glData);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlComponent = new QQmlComponent(_qmlEngine);
 
@@ -336,6 +321,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
         qWarning("Failed to make context current for QML Renderer");
         return;
     }
+    _glData = ::getGLContextData();
     _renderControl->initialize(_canvas->getContext());
     setupFbo();
 
