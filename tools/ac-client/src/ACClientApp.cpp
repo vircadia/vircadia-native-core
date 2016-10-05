@@ -213,6 +213,24 @@ void ACClientApp::notifyPacketVersionMismatch() {
     finish(1);
 }
 
+void ACClientApp::printFailedServers() {
+    if (!_sawEntityServer) {
+        qDebug() << "EntityServer";
+    }
+    if (!_sawAudioMixer) {
+        qDebug() << "AudioMixer";
+    }
+    if (!_sawAvatarMixer) {
+        qDebug() << "AvatarMixer";
+    }
+    if (!_sawAssetServer) {
+        qDebug() << "AssetServer";
+    }
+    if (!_sawMessagesMixer) {
+        qDebug() << "MessagesMixer";
+    }
+}
+
 void ACClientApp::finish(int exitCode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -230,5 +248,6 @@ void ACClientApp::finish(int exitCode) {
     nodeThread->quit();
     nodeThread->wait();
 
+    printFailedServers();
     QCoreApplication::exit(exitCode);
 }

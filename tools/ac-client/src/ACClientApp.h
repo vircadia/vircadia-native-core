@@ -38,6 +38,7 @@ private slots:
 private:
     NodeList* _nodeList;
     void timedOut();
+    void printFailedServers();
     void finish(int exitCode);
     bool _verbose;
 
