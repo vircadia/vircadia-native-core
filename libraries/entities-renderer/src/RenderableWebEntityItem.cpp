@@ -84,7 +84,19 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
-    _webSurface = new OffscreenQmlSurface();
+
+    auto deleter = [](OffscreenQmlSurface* webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+            webSurface->deleteLater();
+        });
+    };
+    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+
+    // The lifetime of the QML surface MUST be managed by the main thread
+    // Additionally, we MUST use local variables copied by value, rather than
+    // member variables, since they would implicitly refer to a this that 
+    // is no longer valid
+
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
@@ -93,14 +105,11 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-    _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-        _texture = textureId;
-    });
 
     // forward web events to EntityScriptingInterface
     auto entities = DependencyManager::get<EntityScriptingInterface>();
     const EntityItemID entityItemID = getID();
-    QObject::connect(_webSurface, &OffscreenQmlSurface::webEventReceived, [=](const QVariant& message) {
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, [=](const QVariant& message) {
         emit entities->webEventReceived(entityItemID, message);
     });
 
@@ -178,20 +187,33 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     // without worrying about excessive overhead.
     _webSurface->resize(QSize(windowSize.x, windowSize.y));
 
+    if (!_texture) {
+        auto webSurface = _webSurface;
+        auto recycler = [webSurface] (uint32_t recycleTexture, void* recycleFence) {
+            webSurface->releaseTexture({ recycleTexture, recycleFence });
+        };
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(recycler));
+        _texture->setSource(__FUNCTION__);
+    }
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+    }
+
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
     static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
+
     bool success;
     batch.setModelTransform(getTransformToCenter(success));
     if (!success) {
         return;
     }
-    if (_texture) {
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-    }
+    batch.setResourceTexture(0, _texture);
 
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
 
@@ -305,16 +327,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
         _mouseMoveConnection = QMetaObject::Connection();
         QObject::disconnect(_hoverLeaveConnection);
         _hoverLeaveConnection = QMetaObject::Connection();
-
-        // The lifetime of the QML surface MUST be managed by the main thread
-        // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that
-        // is no longer valid
-        auto webSurface = _webSurface;
-        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            webSurface->deleteLater();
-        });
-        _webSurface = nullptr;
+        _webSurface.reset();
     }
 }
 

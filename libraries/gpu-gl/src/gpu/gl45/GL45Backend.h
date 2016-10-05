@@ -33,6 +33,7 @@ public:
         static const uint32_t DEFAULT_PAGE_DIMENSION = 128;
         static const uint32_t DEFAULT_MAX_SPARSE_LEVEL = 0xFFFF;
     public:
+        GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId);
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable);
         ~GL45Texture();
 

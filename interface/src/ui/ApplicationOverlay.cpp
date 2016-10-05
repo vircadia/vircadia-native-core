@@ -40,15 +40,6 @@ ApplicationOverlay::ApplicationOverlay()
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
-
-    // Once we move UI rendering and screen rendering to different
-    // threads, we need to use a sync object to deteremine when
-    // the current UI texture is no longer being read from, and only
-    // then release it back to the UI for re-use
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
-        _uiTexture = textureId;
-    });
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -96,18 +87,32 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_uiTexture) {
-        gpu::Batch& batch = *renderArgs->_batch;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
 
-        geometryCache->useSimpleDrawPipeline(batch);
-        batch.setProjectionTransform(mat4());
-        batch.setModelTransform(Transform());
-        batch.resetViewTransform();
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _uiTexture);
-
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    if (!_uiTexture) {
+        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D([](uint32_t recycleTexture, void* recycleFence){
+            DependencyManager::get<OffscreenUi>()->releaseTexture({ recycleTexture, recycleFence });
+        }));
+        _uiTexture->setSource(__FUNCTION__);
     }
+    // Once we move UI rendering and screen rendering to different
+    // threads, we need to use a sync object to deteremine when
+    // the current UI texture is no longer being read from, and only
+    // then release it back to the UI for re-use
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = offscreenUi->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _uiTexture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+    }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    gpu::Batch& batch = *renderArgs->_batch;
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch.setProjectionTransform(mat4());
+    batch.setModelTransform(Transform());
+    batch.resetViewTransform();
+    batch.setResourceTexture(0, _uiTexture);
+    geometryCache->renderUnitQuad(batch, glm::vec4(1));
 }
 
 void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {

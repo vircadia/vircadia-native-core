@@ -294,6 +294,11 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 
 
 void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
+    if (texture && texture->getUsage().isExternal()) {
+        auto recycler = texture->getExternalRecycler();
+        Q_ASSERT(recycler);
+    }
+
     ADD_COMMAND(setResourceTexture);
 
     _params.emplace_back(_textures.cache(texture));
@@ -504,18 +509,6 @@ void Batch::popProfileRange() {
 #if defined(NSIGHT_FOUND)
     ADD_COMMAND(popProfileRange);
 #endif
-}
-
-#define GL_TEXTURE0 0x84C0
-
-void Batch::_glActiveBindTexture(uint32 unit, uint32 target, uint32 texture) {
-    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
-    setResourceTexture(unit - GL_TEXTURE0, nullptr);
-
-    ADD_COMMAND(glActiveBindTexture);
-    _params.emplace_back(texture);
-    _params.emplace_back(target);
-    _params.emplace_back(unit);
 }
 
 void Batch::_glUniform1i(int32 location, int32 v0) {

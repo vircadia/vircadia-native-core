@@ -26,6 +26,7 @@
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
+class AvatarActionHold;
 class ModelItemID;
 
 enum DriveKeys {
@@ -277,6 +278,10 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
+    void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -487,6 +492,10 @@ private:
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
+
+    AnimPose _prePhysicsRoomPose;
+    std::mutex _holdActionsMutex;
+    std::vector<AvatarActionHold*> _holdActions;
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

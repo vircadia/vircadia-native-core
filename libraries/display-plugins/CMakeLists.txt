@@ -6,7 +6,3 @@ link_hifi_libraries(shared plugins ui-plugins gl gpu-gl ui render-utils)
 target_opengl()
 
 GroupSources("src/display-plugins")
-
-if (NOT ANDROID)
-  target_oglplus()
-endif ()

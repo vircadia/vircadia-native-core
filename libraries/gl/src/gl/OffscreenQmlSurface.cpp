@@ -34,7 +34,6 @@
 #include <NetworkAccessManager.h>
 
 #include "OffscreenGLCanvas.h"
-#include "GLEscrow.h"
 #include "GLHelpers.h"
 #include "GLLogging.h"
 
@@ -265,6 +264,14 @@ private:
     // Helper methods
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
+    bool fetchTexture(OffscreenQmlSurface::TextureAndFence& textureAndFence);
+    void releaseTexture(const OffscreenQmlSurface::TextureAndFence& textureAndFence);
+
+    // Texture management
+    std::mutex _textureMutex;
+    GLuint _latestTexture { 0 };
+    GLsync _latestTextureFence { 0 };
+    std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
 
     // Rendering members
     OffscreenGLCanvas _canvas;
@@ -274,7 +281,6 @@ private:
     GLuint _fbo { 0 };
     GLuint _depthStencil { 0 };
     RawTextureRecycler _textures { true };
-    GLTextureEscrow _escrow;
 
     uint64_t _lastRenderTime{ 0 };
     uvec2 _size{ 1920, 1080 };
@@ -406,9 +412,6 @@ void OffscreenQmlRenderThread::init() {
 
     _renderControl->initialize(_canvas.getContext());
     setupFbo();
-    _escrow.setRecycler([this](GLuint texture){
-        _textures.recycleTexture(texture);
-    });
 }
 
 void OffscreenQmlRenderThread::cleanup() {
@@ -485,27 +488,93 @@ void OffscreenQmlRenderThread::render() {
 
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
+    // Clear out any pending textures to be returned
+    {
+        std::list<OffscreenQmlSurface::TextureAndFence> returnedTextures;
+        {
+            std::unique_lock<std::mutex> lock(_textureMutex);
+            returnedTextures.swap(_returnedTextures);
+        }
+        if (!returnedTextures.empty()) {
+            for (const auto& textureAndFence : returnedTextures) {
+                GLsync fence = static_cast<GLsync>(textureAndFence.second);
+                if (fence) {
+                    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+                    glDeleteSync(fence);
+                }
+                _textures.recycleTexture(textureAndFence.first);
+            }
+        }
+    }
+
     try {
         GLuint texture = _textures.getNextTexture();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
         glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-            PROFILE_RANGE("qml_render->rendercontrol")
-            _renderControl->render();
-
+        PROFILE_RANGE("qml_render->rendercontrol")
+        _renderControl->render();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        {
+            std::unique_lock<std::mutex> lock(_textureMutex);
+            // If the most recent texture was unused, we can directly recycle it
+            if (_latestTextureFence) {
+            }
+            if (_latestTexture) {
+                _textures.recycleTexture(_latestTexture);
+                glDeleteSync(_latestTextureFence);
+                _latestTexture = 0;
+                _latestTextureFence = 0;
+            }
+
+            _latestTextureFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            _latestTexture = texture;
+            // Fence will be used in another thread / context, so a flush is required
+            glFlush();
+        }
+
         _quickWindow->resetOpenGLState();
-        _escrow.submit(texture);
         _lastRenderTime = usecTimestampNow();
     } catch (std::runtime_error& error) {
         qWarning() << "Failed to render QML: " << error.what();
     }
 }
 
+bool OffscreenQmlRenderThread::fetchTexture(OffscreenQmlSurface::TextureAndFence& textureAndFence) {
+    textureAndFence = { 0, 0 };
+
+    std::unique_lock<std::mutex> lock(_textureMutex);
+    if (0 == _latestTexture) {
+        return false;
+    }
+
+    // Ensure writes to the latest texture are complete before before returning it for reading
+    Q_ASSERT(0 != _latestTextureFence);
+    textureAndFence = { _latestTexture, _latestTextureFence };
+    _latestTextureFence = 0;
+    _latestTexture = 0;
+    return true;
+}
+
+void OffscreenQmlRenderThread::releaseTexture(const OffscreenQmlSurface::TextureAndFence& textureAndFence) {
+    std::unique_lock<std::mutex> lock(_textureMutex);
+    _returnedTextures.push_back(textureAndFence);
+}
+
 bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
+    // If we already have a pending texture, don't render another one 
+    // i.e. don't render faster than the consumer context, since it wastes 
+    // GPU cycles on producing output that will never be seen
+    {
+        std::unique_lock<std::mutex> lock(_textureMutex);
+        if (0 != _latestTexture) {
+            return false;
+        }
+    }
+
     auto minRenderInterval = USECS_PER_SECOND / fps;
     auto lastInterval = usecTimestampNow() - _lastRenderTime;
     return (lastInterval > minRenderInterval);
@@ -743,13 +812,18 @@ void OffscreenQmlSurface::updateQuick() {
         // Lock the GUI size while syncing
         QMutexLocker locker(&(_renderer->_mutex));
         _renderer->_queue.add(RENDER);
+        // FIXME need to find a better way to handle the render lockout than this locking of the main thread
         _renderer->_waitCondition.wait(&(_renderer->_mutex));
         _render = false;
     }
+}
 
-    if (_renderer->_escrow.fetchSignaledAndRelease(_currentTexture)) {
-        emit textureUpdated(_currentTexture);
-    }
+bool OffscreenQmlSurface::fetchTexture(TextureAndFence& texture) {
+    return _renderer->fetchTexture(texture);
+}
+
+void OffscreenQmlSurface::releaseTexture(const TextureAndFence& texture) {
+    _renderer->releaseTexture(texture);
 }
 
 QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject) {
@@ -768,7 +842,6 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
 QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget) {
     return _mouseTranslator(originalPoint);
 }
-
 
 ///////////////////////////////////////////////////////
 //

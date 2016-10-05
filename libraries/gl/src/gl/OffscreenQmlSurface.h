@@ -73,9 +73,17 @@ public:
     void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key);
 
+    using TextureAndFence = std::pair<uint32_t, void*>;
+    // Checks to see if a new texture is available.  If one is, the function returns true and 
+    // textureAndFence will be populated with the texture ID and a fence which will be signalled 
+    // when the texture is safe to read.
+    // Returns false if no new texture is available
+    bool fetchTexture(TextureAndFence& textureAndFence);
+    // Release a previously acquired texture, along with a fence which indicates when reads from the 
+    // texture have completed.
+    void releaseTexture(const TextureAndFence& textureAndFence);
 
 signals:
-    void textureUpdated(unsigned int texture);
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
 
@@ -113,7 +121,6 @@ private:
     QQmlComponent* _qmlComponent{ nullptr };
     QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
-    uint32_t _currentTexture{ 0 };
     bool _render{ false };
     bool _polish{ true };
     bool _paused{ true };

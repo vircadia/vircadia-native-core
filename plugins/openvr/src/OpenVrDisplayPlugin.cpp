@@ -9,10 +9,13 @@
 
 #include <QtCore/QThread>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDateTime>
 
 #include <GLMHelpers.h>
 
 #include <gl/Context.h>
+#include <gl/GLShaders.h>
 
 #include <gpu/Frame.h>
 #include <gpu/gl/GLBackend.h>
@@ -25,7 +28,6 @@
 #include <display-plugins/CompositorHelper.h>
 #include <ui-plugins/PluginContainer.h>
 #include <gl/OffscreenGLCanvas.h>
-#include <gl/OglplusHelpers.h>
 
 #include "OpenVrHelpers.h"
 
@@ -45,13 +47,111 @@ static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };
 
 #if OPENVR_THREADED_SUBMIT
 
-static QString readFile(const QString& filename) {
-    QFile file(filename);
-    file.open(QFile::Text | QFile::ReadOnly);
-    QString result;
-    result.append(QTextStream(&file).readAll());
-    return result;
+#define REPROJECTION_BINDING 1
+
+static const char* HMD_REPROJECTION_VERT = R"SHADER(
+#version 450 core
+
+out vec3 vPosition;
+out vec2 vTexCoord;
+
+void main(void) {
+    const float depth = 0.0;
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    gl_Position = pos;
+    vPosition = pos.xyz;
+    vTexCoord = (pos.xy + 1.0) * 0.5;
 }
+)SHADER";
+
+static const char* HMD_REPROJECTION_FRAG = R"SHADER(
+#version 450 core
+
+uniform sampler2D sampler;
+layout(binding = 1, std140) uniform Reprojection
+{
+    mat4 projections[2];
+    mat4 inverseProjections[2];
+    mat4 reprojection;
+};
+
+in vec3 vPosition;
+in vec2 vTexCoord;
+
+out vec4 FragColor;
+
+void main() {
+    vec2 uv = vTexCoord;
+    
+    mat4 eyeInverseProjection;
+    mat4 eyeProjection;
+    
+    float xoffset = 1.0;
+    vec2 uvmin = vec2(0.0);
+    vec2 uvmax = vec2(1.0);
+    // determine the correct projection and inverse projection to use.
+    if (vTexCoord.x < 0.5) {
+        uvmax.x = 0.5;
+        eyeInverseProjection = inverseProjections[0];
+        eyeProjection = projections[0];
+    } else {
+        xoffset = -1.0;
+        uvmin.x = 0.5;
+        uvmax.x = 1.0;
+        eyeInverseProjection = inverseProjections[1];
+        eyeProjection = projections[1];
+    }
+
+    // Account for stereo in calculating the per-eye NDC coordinates
+    vec4 ndcSpace = vec4(vPosition, 1.0);
+    ndcSpace.x *= 2.0;
+    ndcSpace.x += xoffset;
+    
+    // Convert from NDC to eyespace
+    vec4 eyeSpace = eyeInverseProjection * ndcSpace;
+    eyeSpace /= eyeSpace.w;
+
+    // Convert to a noramlized ray 
+    vec3 ray = eyeSpace.xyz;
+    ray = normalize(ray);
+
+    // Adjust the ray by the rotation
+    ray = mat3(reprojection) * ray;
+
+    // Project back on to the texture plane
+    ray *= eyeSpace.z / ray.z;
+
+    // Update the eyespace vector
+    eyeSpace.xyz = ray;
+
+    // Reproject back into NDC
+    ndcSpace = eyeProjection * eyeSpace;
+    ndcSpace /= ndcSpace.w;
+    ndcSpace.x -= xoffset;
+    ndcSpace.x /= 2.0;
+    
+    // Calculate the new UV coordinates
+    uv = (ndcSpace.xy / 2.0) + 0.5;
+    if (any(greaterThan(uv, uvmax)) || any(lessThan(uv, uvmin))) {
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+        FragColor = texture(sampler, uv);
+    }
+}
+)SHADER";
+
+struct Reprojection {
+    mat4 projections[2];
+    mat4 inverseProjections[2];
+    mat4 reprojection;
+};
 
 class OpenVrSubmitThread : public QThread, public Dependency {
 public:
@@ -60,52 +160,9 @@ public:
     using Lock = std::unique_lock<Mutex>;
     friend class OpenVrDisplayPlugin;
     std::shared_ptr<gl::OffscreenContext> _canvas;
-    BasicFramebufferWrapperPtr _framebuffer;
-    ProgramPtr _program;
-    ShapeWrapperPtr _plane;
-    struct ReprojectionUniforms {
-        int32_t reprojectionMatrix{ -1 };
-        int32_t inverseProjectionMatrix{ -1 };
-        int32_t projectionMatrix{ -1 };
-    } _reprojectionUniforms;
-
 
     OpenVrSubmitThread(OpenVrDisplayPlugin& plugin) : _plugin(plugin) { 
         setObjectName("OpenVR Submit Thread");
-    }
-
-    void updateReprojectionProgram() {
-        static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_reproject.vert";
-        static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_reproject.frag";
-#if LIVE_SHADER_RELOAD
-        static qint64 vsBuiltAge = 0;
-        static qint64 fsBuiltAge = 0;
-        QFileInfo vsInfo(vsFile);
-        QFileInfo fsInfo(fsFile);
-        auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
-        auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
-        if (!_reprojectionProgram || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
-            vsBuiltAge = vsAge;
-            fsBuiltAge = fsAge;
-#else
-        if (!_program) {
-#endif
-            QString vsSource = readFile(vsFile);
-            QString fsSource = readFile(fsFile);
-            ProgramPtr program;
-            try {
-                compileProgram(program, vsSource.toLocal8Bit().toStdString(), fsSource.toLocal8Bit().toStdString());
-                if (program) {
-                    using namespace oglplus;
-                    _reprojectionUniforms.reprojectionMatrix = Uniform<glm::mat3>(*program, "reprojection").Location();
-                    _reprojectionUniforms.inverseProjectionMatrix = Uniform<glm::mat4>(*program, "inverseProjections").Location();
-                    _reprojectionUniforms.projectionMatrix = Uniform<glm::mat4>(*program, "projections").Location();
-                    _program = program;
-                }
-            } catch (std::runtime_error& error) {
-                qWarning() << "Error building reprojection shader " << error.what();
-            }
-        }
     }
 
     void updateSource() {
@@ -130,15 +187,57 @@ public:
         });
     }
 
+    GLuint _program { 0 };
+
+    void updateProgram() {
+        if (!_program) {
+            std::string vsSource = HMD_REPROJECTION_VERT;
+            std::string fsSource = HMD_REPROJECTION_FRAG;
+            GLuint vertexShader { 0 }, fragmentShader { 0 };
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader);
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } });
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+            qDebug() << "Rebuild proigram";
+        }
+    }
+
+#define COLOR_BUFFER_COUNT 4
+
     void run() override {
+
+        GLuint _framebuffer { 0 };
+        std::array<GLuint, COLOR_BUFFER_COUNT> _colors;
+        size_t currentColorBuffer { 0 };
+        size_t globalColorBufferCount { 0 };
+        GLuint _uniformBuffer { 0 };
+        GLuint _vao { 0 };
+        GLuint _depth { 0 };
+        Reprojection _reprojection;
+
         QThread::currentThread()->setPriority(QThread::Priority::TimeCriticalPriority);
         _canvas->makeCurrent();
+
+        glCreateBuffers(1, &_uniformBuffer);
+        glNamedBufferStorage(_uniformBuffer, sizeof(Reprojection), 0, GL_DYNAMIC_STORAGE_BIT);
+        glCreateVertexArrays(1, &_vao);
+        glBindVertexArray(_vao);
+
+
+        glCreateFramebuffers(1, &_framebuffer);
+        {
+            glCreateRenderbuffers(1, &_depth);
+            glNamedRenderbufferStorage(_depth, GL_DEPTH24_STENCIL8, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
+            glNamedFramebufferRenderbuffer(_framebuffer, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth);
+            glCreateTextures(GL_TEXTURE_2D, COLOR_BUFFER_COUNT, &_colors[0]);
+            for (size_t i = 0; i < COLOR_BUFFER_COUNT; ++i) {
+                glTextureStorage2D(_colors[i], 1, GL_RGBA8, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
+            }
+        }
+
         glDisable(GL_DEPTH_TEST);
         glViewport(0, 0, _plugin._renderTargetSize.x, _plugin._renderTargetSize.y);
-        _framebuffer = std::make_shared<BasicFramebufferWrapper>();
-        _framebuffer->Init(_plugin._renderTargetSize);
-        updateReprojectionProgram();
-        _plane = loadPlane(_program);
         _canvas->doneCurrent();
         while (!_quit) {
             _canvas->makeCurrent();
@@ -149,29 +248,35 @@ public:
                 continue;
             }
 
+
+            updateProgram();
             {
                 auto presentRotation = glm::mat3(_nextRender.poses[0]);
                 auto renderRotation = glm::mat3(_current.pose);
-                auto correction = glm::inverse(renderRotation) * presentRotation;
-                _framebuffer->Bound([&] {
+                for (size_t i = 0; i < 2; ++i) {
+                    _reprojection.projections[i] = _plugin._eyeProjections[i];
+                    _reprojection.inverseProjections[i] = _plugin._eyeInverseProjections[i];
+                }
+                _reprojection.reprojection = glm::inverse(renderRotation) * presentRotation;
+                glNamedBufferSubData(_uniformBuffer, 0, sizeof(Reprojection), &_reprojection);
+                glNamedFramebufferTexture(_framebuffer, GL_COLOR_ATTACHMENT0, _colors[currentColorBuffer], 0);
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _framebuffer);
+                {
+                    glClearColor(1, 1, 0, 1);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    glTextureParameteri(_current.textureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glTextureParameteri(_current.textureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glUseProgram(_program);
+                    glBindBufferBase(GL_UNIFORM_BUFFER, REPROJECTION_BINDING, _uniformBuffer);
                     glBindTexture(GL_TEXTURE_2D, _current.textureID);
-                    _program->Use();
-                    using namespace oglplus;
-                    Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-                    Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-                    Uniform<glm::mat3>(*_program, _reprojectionUniforms.reprojectionMatrix).Set(correction);
-                    //Uniform<glm::mat4>(*_reprojectionProgram, PROJECTION_MATRIX_LOCATION).Set(_eyeProjections);
-                    //Uniform<glm::mat4>(*_reprojectionProgram, INVERSE_PROJECTION_MATRIX_LOCATION).Set(_eyeInverseProjections);
-                    // FIXME what's the right oglplus mechanism to do this?  It's not that ^^^ ... better yet, switch to a uniform buffer
-                    glUniformMatrix4fv(_reprojectionUniforms.inverseProjectionMatrix, 2, GL_FALSE, &(_plugin._eyeInverseProjections[0][0][0]));
-                    glUniformMatrix4fv(_reprojectionUniforms.projectionMatrix, 2, GL_FALSE, &(_plugin._eyeProjections[0][0][0]));
-                    _plane->UseInProgram(*_program);
-                    _plane->Draw();
-                });
+                    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                }
+
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
                 static const vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
                 static const vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
                 
-                vr::Texture_t texture{ (void*)oglplus::GetName(_framebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
+                vr::Texture_t texture{ (void*)_colors[currentColorBuffer], vr::API_OpenGL, vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
                 _plugin._presentRate.increment();
@@ -199,14 +304,21 @@ public:
                     ++_presentCount;
                     _presented.notify_one();
                 });
+
+                ++globalColorBufferCount;
+                currentColorBuffer = globalColorBufferCount % COLOR_BUFFER_COUNT;
             }
             _canvas->doneCurrent();
         }
 
         _canvas->makeCurrent();
-        _plane.reset();
-        _program.reset();
-        _framebuffer.reset();
+        glDeleteBuffers(1, &_uniformBuffer);
+        glDeleteFramebuffers(1, &_framebuffer);
+        CHECK_GL_ERROR();
+        glDeleteTextures(4, &_colors[0]);
+        glDeleteProgram(_program);
+        glBindVertexArray(0);
+        glDeleteVertexArrays(1, &_vao);
         _canvas->doneCurrent();
     }
 
