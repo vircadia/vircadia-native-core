@@ -113,8 +113,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     // connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
-    // connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
-    // connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     // connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ACClientApp::domainConnectionRefused);
 
@@ -123,7 +121,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     connect(nodeList.data(), &NodeList::nodeActivated, this, &ACClientApp::nodeActivated);
     // connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
     // connect(nodeList.data(), &NodeList::uuidChanged, this, &ACClientApp::setSessionUUID);
-    // connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &ACClientApp::notifyPacketVersionMismatch);
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &ACClientApp::notifyPacketVersionMismatch);
 
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
                                                  << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
@@ -204,6 +202,13 @@ void ACClientApp::timedOut() {
     if (_verbose) {
         qDebug() << "timed out: " << _sawEntityServer << _sawAudioMixer <<
             _sawAvatarMixer << _sawAssetServer << _sawMessagesMixer;
+    }
+    finish(1);
+}
+
+void ACClientApp::notifyPacketVersionMismatch() {
+    if (_verbose) {
+        qDebug() << "packet version mismatch";
     }
     finish(1);
 }

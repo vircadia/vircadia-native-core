@@ -27,23 +27,19 @@ public:
     ACClientApp(int argc, char* argv[]);
     ~ACClientApp();
 
-    const int stunFailureExitStatus { 1 };
-    const int iceFailureExitStatus { 2 };
-    const int domainPingExitStatus { 3 };
-
 private slots:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo);
     void domainChanged(const QString& domainHostname);
     void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
+    void notifyPacketVersionMismatch();
 
 private:
     NodeList* _nodeList;
     void timedOut();
     void finish(int exitCode);
     bool _verbose;
-    QTimer* _pingDomainTimer { nullptr };
 
     bool _sawEntityServer { false };
     bool _sawAudioMixer { false };
