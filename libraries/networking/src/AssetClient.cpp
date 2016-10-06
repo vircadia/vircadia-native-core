@@ -394,12 +394,14 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
+        qCWarning(asset_client) << "Got completed asset for node that no longer exists";
         return;
     }
 
     // Check if we have any pending requests for this node
     auto messageMapIt = _pendingRequests.find(senderNode);
     if (messageMapIt == _pendingRequests.end()) {
+        qCWarning(asset_client) << "Got completed asset for a node that doesn't have any pending requests";
         return;
     }
 
@@ -409,6 +411,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
     // Check if we have this pending request
     auto requestIt = messageCallbackMap.find(messageID);
     if (requestIt == messageCallbackMap.end()) {
+        qCWarning(asset_client) << "Got completed asset for a request that doesn't exist";
         return;
     }
 
@@ -416,6 +419,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
     auto& message = callbacks.message;
 
     if (!message) {
+        qCWarning(asset_client) << "Got completed asset for a message that doesn't exist";
         return;
     }
 
