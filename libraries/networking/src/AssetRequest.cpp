@@ -150,8 +150,6 @@ void AssetRequest::start() {
             
             if (_error != NoError) {
                 qCWarning(asset_client) << "Got error retrieving asset" << _hash << "- error code" << _error;
-            } else {
-                qCDebug(asset_client) << "Received asset successfully: " << _hash;
             }
             
             _state = Finished;
