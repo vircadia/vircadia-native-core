@@ -136,8 +136,6 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         Q_ASSERT(req->getState() == AssetRequest::Finished);
 
         cleanupTimer();
-
-        qDebug() << "Asset request finished, " << req->getHash() << "error: " << req->getError();
         
         switch (req->getError()) {
             case AssetRequest::Error::NoError:
