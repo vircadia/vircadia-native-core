@@ -15,6 +15,9 @@
 //  a script like summon.js calls up to n avatars to be around you.
 
 var MESSAGE_CHANNEL = "io.highfidelity.summon-crowd";
+var soundIntervalId;
+var SOUND_POLL_INTERVAL = 500; // ms
+var SOUND_URL = "http://howard-stearns.github.io/models/sounds/piano1.wav";
 
 print('crowd-agent version 1');
 
@@ -41,9 +44,26 @@ function startAgent(parameters) { // Can also be used to update.
         Avatar.startAnimation(data.url, data.fps || 30, 1.0, (data.loopFlag === undefined) ? true : data.loopFlag, false, data.startFrame || 0, data.endFrame);
     }
     print('crowd-agent avatars started');
+    Agent.isListeningToAudioStream = true;
+    soundIntervalId = playSound();   
+    print('crowd-agent sound loop started');
+}
+function playSound() {
+    // Load a sound
+    var sound = SoundCache.getSound(SOUND_URL);
+    function loopSound(sound) {
+        // since we cannot loop, for now lets just see if we are making sounds.  If
+        // not, then play a sound.
+        if (!Agent.isPlayingAvatarSound) {
+            Agent.playAvatarSound(sound);
+        }
+    };
+    return Script.setInterval(function() {loopSound(sound);}, SOUND_POLL_INTERVAL);
 }
 function stopAgent(parameters) {
     Agent.isAvatar = false;
+    Agent.isListeningToAudioStream = false;
+    Script.clearInterval(soundIntervalId);
     print('crowd-agent stopped', JSON.stringify(parameters), JSON.stringify(Agent));
 }
 
