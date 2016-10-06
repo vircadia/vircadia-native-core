@@ -24,7 +24,6 @@ public:
     float rangeFar { 200.0f };
     float frustumFar { 10000.0f };
 
-  //  glm::ivec3 dims { 16, 16, 16 };
     glm::ivec3 dims { 16, 16, 16 };
     float spare;
 
@@ -123,11 +122,7 @@ public:
     LightClusteringPassConfig() : render::Job::Config(true){}
     float rangeNear{ 0.1f };
     float rangeFar{ 200.0f };
-    /*
-    int dimX { 16 };
-    int dimY { 16 };
-    int dimZ { 16 };
-    */
+
     int dimX { 16 };
     int dimY { 16 };
     int dimZ { 16 };
@@ -182,9 +177,8 @@ public:
 
     bool doDrawGrid{ false };
     bool doDrawClusterFromDepth { false };
-   // bool doDrawContent { false };
-    bool doDrawContent { true };
-    
+    bool doDrawContent { false };
+
 signals:
     void dirty();
 
