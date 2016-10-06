@@ -44,8 +44,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
 int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
 int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
-bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject);
-GLuint compileProgram(const std::vector<GLuint>& glshaders);
 void makeProgramBindings(ShaderObject& shaderObject);
 
 enum GLSyncState {

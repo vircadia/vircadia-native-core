@@ -39,7 +39,7 @@ public:
 
     void init();
 
-    MyAvatar* getMyAvatar() { return _myAvatar.get(); }
+    std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
     AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) override;
 
     void updateMyAvatar(float deltaTime);

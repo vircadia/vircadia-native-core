@@ -15,6 +15,7 @@ import "styles"
 import "windows"
 import "hifi"
 import "hifi/toolbars"
+import "styles-uit" as HifiStyles
 import "controls-uit" as HifiControls
 
 Window {
@@ -168,7 +169,24 @@ Window {
                 }
             }
 
-            // FIXME replace with TextField
+            HifiStyles.RalewayLight {
+                id: notice;
+                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                anchors {
+                    top: parent.top
+                    topMargin: parent.inputAreaStep + 12
+                    left: addressLine.left
+                    right: addressLine.right
+                }
+            }
+            HifiStyles.FiraSansRegular {
+                id: location;
+                font.pixelSize: addressLine.font.pixelSize;
+                color: "gray";
+                clip: true;
+                anchors.fill: addressLine;
+                visible: !addressLine.activeFocus;
+            }
             TextInput {
                 id: addressLine
                 focus: true
@@ -179,14 +197,12 @@ Window {
                     right: parent.right
                     leftMargin: forwardArrow.width
                     rightMargin: forwardArrow.width / 2
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
+                    bottomMargin: parent.inputAreaStep
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                helperText: "Go to: place, @user, /path, network address"
-                helperPixelSize: font.pixelSize * 0.75
-                helperItalic: true
                 onTextChanged: filterChoicesByText()
+                onActiveFocusChanged: updateLocationText(focus)
             }
         }
 
@@ -344,12 +360,24 @@ Window {
         });
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            addressLine.forceActiveFocus()
-            fillDestinations();
+    function updateLocationText(focus) {
+        addressLine.text = "";
+        if (focus) {
+            notice.text = "Go to a place, @user, path or network address";
+            notice.color = "gray";
         } else {
-            addressLine.text = ""
+            notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
+            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            // Display hostname, which includes ip address, localhost, and other non-placenames.
+            location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
+        }
+    }
+
+    onVisibleChanged: {
+        focus = false;
+        updateLocationText(false);
+        if (visible) {
+            fillDestinations();
         }
     }
 

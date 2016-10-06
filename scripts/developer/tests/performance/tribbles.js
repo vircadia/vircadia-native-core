@@ -54,42 +54,46 @@ function randomVector(range) {
     };
 }
 
-Script.setInterval(function () {
-    if (!Entities.serversExist() || !Entities.canRez()) {
-        return;
-    }
-    if (totalCreated >= NUMBER_TO_CREATE) {
-        print("Created " + totalCreated + " tribbles.");
-        Script.stop();
-    }
+if (!Entities.canRezTmp()) {
+    Window.alert("Cannot create temp objects here.");
+    Script.stop();
+} else {
+    Script.setInterval(function () {
+        if (!Entities.serversExist()) {
+            return;
+        }
+        if (totalCreated >= NUMBER_TO_CREATE) {
+            print("Created " + totalCreated + " tribbles.");
+            Script.stop();
+        }
 
-    var i, numToCreate = RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0);
-    var parameters = JSON.stringify({
-        moveTimeout: MOVE_TIMEOUT,
-        moveRate: MOVE_RATE,
-        editTimeout: EDIT_TIMEOUT,
-        editRate: EDIT_RATE,
-        debug: {flow: false, send: false, receive: false}
-    });
-    for (i = 0; (i < numToCreate) && (totalCreated < NUMBER_TO_CREATE); i++) {
-        Entities.addEntity({
-            userData: parameters,
-            type: TYPE,
-            name: "tribble-" + totalCreated,
-            position: Vec3.sum(center, randomVector({ x: RANGE, y: RANGE, z: RANGE })),
-            dimensions: {x: SIZE, y: SIZE, z: SIZE},
-            color: {red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255},
-            velocity: VELOCITY,
-            angularVelocity: Vec3.multiply(Math.random(), ANGULAR_VELOCITY),
-            damping: DAMPING,
-            angularDamping: ANGULAR_DAMPING,
-            gravity: GRAVITY,
-            collisionsWillMove: true,
-            lifetime: LIFETIME,
-            script: Script.resolvePath("tribbleEntity.js")
+        var i, numToCreate = RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0);
+        var parameters = JSON.stringify({
+            moveTimeout: MOVE_TIMEOUT,
+            moveRate: MOVE_RATE,
+            editTimeout: EDIT_TIMEOUT,
+            editRate: EDIT_RATE,
+            debug: {flow: false, send: false, receive: false}
         });
+        for (i = 0; (i < numToCreate) && (totalCreated < NUMBER_TO_CREATE); i++) {
+            Entities.addEntity({
+                userData: parameters,
+                type: TYPE,
+                name: "tribble-" + totalCreated,
+                position: Vec3.sum(center, randomVector({ x: RANGE, y: RANGE, z: RANGE })),
+                dimensions: {x: SIZE, y: SIZE, z: SIZE},
+                color: {red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255},
+                velocity: VELOCITY,
+                angularVelocity: Vec3.multiply(Math.random(), ANGULAR_VELOCITY),
+                damping: DAMPING,
+                angularDamping: ANGULAR_DAMPING,
+                gravity: GRAVITY,
+                collisionsWillMove: true,
+                lifetime: LIFETIME,
+                script: Script.resolvePath("tribbleEntity.js")
+            });
 
-        totalCreated++;
-    }
-}, SCRIPT_INTERVAL);
-
+            totalCreated++;
+        }
+    }, SCRIPT_INTERVAL);
+}

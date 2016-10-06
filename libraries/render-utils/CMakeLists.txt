@@ -7,5 +7,4 @@ link_hifi_libraries(shared gpu model model-networking render animation fbx entit
 
 if (NOT ANDROID)
   target_nsight()
-  target_oglplus()
 endif ()
