@@ -20,7 +20,7 @@
 #include <CollisionRenderMeshCache.h>
 #include <ShapeInfo.h> // for MAX_HULL_POINTS
 
-#include "MeshUtil.cpp"
+#include "MeshUtil.h"
 
 
 QTEST_MAIN(CollisionRenderMeshCacheTests)

@@ -6,5 +6,4 @@ target_opengl()
 
 if (NOT ANDROID)
   target_glew()
-  target_oglplus()
 endif ()
