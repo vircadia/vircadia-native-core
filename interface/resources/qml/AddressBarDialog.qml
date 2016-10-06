@@ -244,7 +244,10 @@ Window {
             running: false
             interval: 100  // ms
             repeat: false
-            onTriggered: addressLine.text = ""
+            onTriggered: {
+                addressLine.text = "";
+                isCursorVisible = false;
+            }
         }
 
         Window {
@@ -425,8 +428,6 @@ Window {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
-        clearAddressLineTimer.start();
-        isCursorVisible = false;
         root.shown = false;
     }
 
@@ -435,11 +436,13 @@ Window {
             case Qt.Key_Escape:
             case Qt.Key_Back:
                 root.shown = false
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 toggleOrGo()
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
         }
