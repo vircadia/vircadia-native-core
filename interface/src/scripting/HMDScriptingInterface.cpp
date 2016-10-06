@@ -95,7 +95,7 @@ void HMDScriptingInterface::setPosition(const glm::vec3& position) {
         QMetaObject::invokeMethod(this, "setPosition", Qt::QueuedConnection, Q_ARG(const glm::vec3&, position));
         return;
     } else {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         glm::mat4 hmdToSensor = myAvatar->getHMDSensorMatrix();
         glm::mat4 sensorToWorld = myAvatar->getSensorToWorldMatrix();
         glm::mat4 hmdToWorld = sensorToWorld * hmdToSensor;
@@ -156,6 +156,6 @@ void HMDScriptingInterface::centerUI() {
 }
 
 void HMDScriptingInterface::snapToAvatar() {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     myAvatar->updateSensorToWorldMatrix();
 }
