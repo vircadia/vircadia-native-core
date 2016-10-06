@@ -41,8 +41,7 @@ void AssetResourceRequest::setupTimer() {
     Q_ASSERT(!_sendTimer);
     static const int TIMEOUT_MS = 2000;
 
-    _sendTimer = new QTimer();
-    connect(this, &QObject::destroyed, _sendTimer, &QTimer::deleteLater);
+    _sendTimer = new QTimer(this);
     connect(_sendTimer, &QTimer::timeout, this, &AssetResourceRequest::onTimeout);
 
     _sendTimer->setSingleShot(true);
