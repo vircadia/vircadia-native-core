@@ -2318,7 +2318,7 @@ glm::mat4 MyAvatar::FollowHelper::prePhysicsUpdate(const MyAvatar& myAvatar, con
 
         if (isActive() || hasDriveInput) {
             const float TIMESCALE = 0.2f;
-            const float tau = deltaTime / TIMESCALE;
+            const float tau = glm::clamp(deltaTime / TIMESCALE, 0.0f, 1.0f);
             AnimPose newBodyPose;
             blend(1, &currentBodyPose, &followBodyPose, tau, &newBodyPose);
             return (glm::mat4)newBodyPose;
