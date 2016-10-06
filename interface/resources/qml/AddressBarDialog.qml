@@ -214,6 +214,14 @@ Window {
                 onActiveFocusChanged: {
                     cursorVisible = isCursorVisible;
                 }
+                MouseArea {
+                    // If user clicks in address bar show cursor to indicate ability to enter address.
+                    anchors.fill: parent
+                    onClicked: {
+                        isCursorVisible = true;
+                        parent.cursorVisible = true;
+                    }
+                }
             }
         }
 
