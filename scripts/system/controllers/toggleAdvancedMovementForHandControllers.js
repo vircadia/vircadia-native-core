@@ -55,7 +55,9 @@ function registerBasicMapping() {
     mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
     basicMapping = Controller.newMapping(mappingName);
     basicMapping.from(Controller.Standard.LY).to(function(value) {
-        return;
+        if (isDisabled) {
+            return;
+        }
         var stick = Controller.getValue(Controller.Standard.LS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
@@ -72,7 +74,9 @@ function registerBasicMapping() {
     });
     basicMapping.from(Controller.Standard.LX).to(Controller.Standard.RX);
     basicMapping.from(Controller.Standard.RY).to(function(value) {
-        return;
+        if (isDisabled) {
+            return;
+        }
         var stick = Controller.getValue(Controller.Standard.RS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
