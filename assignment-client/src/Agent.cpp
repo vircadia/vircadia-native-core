@@ -33,6 +33,9 @@
 #include <recording/Recorder.h>
 #include <recording/Frame.h>
 
+#include <plugins/CodecPlugin.h>
+#include <plugins/PluginManager.h>
+
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
@@ -71,6 +74,8 @@ Agent::Agent(ReceivedMessage& message) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+    connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &Agent::handleMismatchAudioFormat);
 }
 
 void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -212,6 +217,66 @@ void Agent::nodeActivated(SharedNodePointer activatedNode) {
         _pendingScriptRequest->send();
 
         _pendingScriptRequest = nullptr;
+    }
+    if (activatedNode->getType() == NodeType::AudioMixer) {
+        negotiateAudioFormat();
+    }
+
+}
+
+void Agent::negotiateAudioFormat() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    quint8 numberOfCodecs = (quint8)codecPlugins.size();
+    negotiateFormatPacket->writePrimitive(numberOfCodecs);
+    for (auto& plugin : codecPlugins) {
+        auto codecName = plugin->getName();
+        negotiateFormatPacket->writeString(codecName);
+    }
+
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+
+    if (audioMixer) {
+        // send off this mute packet
+        nodeList->sendPacket(std::move(negotiateFormatPacket), *audioMixer);
+    }
+    qInfo() << "negotiateAudioFormat called";
+}
+
+void Agent::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
+    QString selectedCodecName = message->readString();
+    selectAudioFormat(selectedCodecName);
+}
+
+void Agent::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
+    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    selectAudioFormat(recievedCodec);
+}
+
+void Agent::selectAudioFormat(const QString& selectedCodecName) {
+    _selectedCodecName = selectedCodecName;
+
+    qDebug() << "Selected Codec:" << _selectedCodecName;
+
+    // release any old codec encoder/decoder first...
+    if (_codec && _encoder) {
+        _codec->releaseEncoder(_encoder);
+        _encoder = nullptr;
+        _codec = nullptr;
+    }
+    _receivedAudioStream.cleanupCodec();
+
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& plugin : codecPlugins) {
+        if (_selectedCodecName == plugin->getName()) {
+            _codec = plugin;
+            _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
+            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+            qDebug() << "Selected Codec Plugin:" << _codec.get();
+            break;
+        }
     }
 }
 
@@ -438,8 +503,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
             } else if (nextSoundOutput) {
                 // write the codec
-                QString codecName;
-                audioPacket->writeString(codecName);
+                audioPacket->writeString(_selectedCodecName);
 
                 // assume scripted avatar audio is mono and set channel flag to zero
                 audioPacket->writePrimitive((quint8)0);
@@ -448,9 +512,19 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 audioPacket->writePrimitive(scriptedAvatar->getPosition());
                 glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
+               
+                // encode it
+                QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+                QByteArray encodedBuffer;
+                if (_encoder) {
+                    _encoder->encode(decodedBuffer, encodedBuffer);
+                } else {
+                    encodedBuffer = decodedBuffer;
+                }
+
 
                 // write the raw audio data
-                audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples * sizeof(int16_t));
+                audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
             }
 
             // write audio packet to AudioMixer nodes
