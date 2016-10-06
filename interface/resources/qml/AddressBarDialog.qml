@@ -59,6 +59,7 @@ Window {
         }
         addressLine.text = targetString;
         toggleOrGo(true);
+        clearAddressLineTimer.start();
     }
     property var allStories: [];
     property int cardWidth: 200;
