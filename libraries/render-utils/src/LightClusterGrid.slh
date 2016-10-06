@@ -74,10 +74,12 @@ ivec3 clusterGrid_getCluster(int index) {
 
 int clusterGrid_getClusterLightId(int index, int offset) {
     int elementIndex = offset + index;
+    /*
     int element = _clusterGridContent[GRID_FETCH_BUFFER(elementIndex)];
     return element;
-    //int element = _clusterGridContent[GRID_FETCH_BUFFER(elementIndex)];
-    //    return (((elementIndex & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
+    */
+    int element = _clusterGridContent[GRID_FETCH_BUFFER((elementIndex >> 1))];
+    return (((elementIndex & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
 }
 
 <@endif@>

@@ -20,10 +20,10 @@
 
 <@include model/Light.slh@>
 
-<$declareLightBuffer(120)$>
+<$declareLightBuffer(256)$>
 
 uniform lightIndexBuffer {
-    int lightIndex[120];
+    int lightIndex[256];
 };
 
 out vec4 _texCoord0;

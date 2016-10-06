@@ -16,7 +16,7 @@
 
 
 <@include model/Light.slh@>
-<$declareLightBuffer(128)$>
+<$declareLightBuffer(256)$>
 
 <@include LightClusterGrid.slh@>
 

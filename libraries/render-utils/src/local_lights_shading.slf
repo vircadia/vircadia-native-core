@@ -19,7 +19,7 @@
 
 // Everything about light
 <@include model/Light.slh@>
-<$declareLightBuffer(128)$>
+<$declareLightBuffer(256)$>
 <@include LightingModel.slh@>
 
 

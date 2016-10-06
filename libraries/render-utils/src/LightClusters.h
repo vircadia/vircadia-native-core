@@ -24,7 +24,8 @@ public:
     float rangeFar { 200.0f };
     float frustumFar { 10000.0f };
 
-    glm::ivec3 dims { 16, 12, 16 };
+  //  glm::ivec3 dims { 16, 16, 16 };
+    glm::ivec3 dims { 16, 16, 16 };
     float spare;
 
     glm::mat4 eyeToGridProj;
@@ -74,7 +75,7 @@ public:
 
     void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
 
-    void updateClusters();
+    uint32_t updateClusters();
 
     ViewFrustum _frustum;
 
@@ -94,15 +95,12 @@ public:
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
     const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
 
-    using LightIndex = uint32_t;
+    using LightIndex = uint16_t;
 
     std::vector<uint32_t> _clusterGrid;
     std::vector<LightIndex> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
-
-
-
 };
 
 using LightClustersPointer = std::shared_ptr<LightClusters>;
@@ -119,17 +117,26 @@ class LightClusteringPassConfig : public render::Job::Config {
     Q_PROPERTY(int dimZ MEMBER dimZ NOTIFY dirty)
     
     Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
+
+    Q_PROPERTY(int numClusteredLights MEMBER numClusteredLights NOTIFY dirty)
 public:
     LightClusteringPassConfig() : render::Job::Config(true){}
     float rangeNear{ 0.1f };
     float rangeFar{ 200.0f };
-
+    /*
+    int dimX { 16 };
+    int dimY { 16 };
+    int dimZ { 16 };
+    */
     int dimX { 16 };
     int dimY { 16 };
     int dimZ { 16 };
 
+
     bool freeze{ false };
     
+    void setNumClusteredLights(int numLights) { numClusteredLights = numLights; emit dirty(); }
+    int numClusteredLights { 0 };
 signals:
     void dirty();
     
@@ -175,7 +182,8 @@ public:
 
     bool doDrawGrid{ false };
     bool doDrawClusterFromDepth { false };
-    bool doDrawContent { false };
+   // bool doDrawContent { false };
+    bool doDrawContent { true };
     
 signals:
     void dirty();

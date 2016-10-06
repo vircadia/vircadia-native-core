@@ -136,7 +136,7 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
 void LightStage::updateLightArrayBuffer(Index lightId) {
     auto lightSize = sizeof(model::Light::LightSchema);
     if (!_lightArrayBuffer) {
-        _lightArrayBuffer = std::make_shared<gpu::Buffer>();
+        _lightArrayBuffer = std::make_shared<gpu::Buffer>(lightSize);
     }
 
     assert(checkLightId(lightId));

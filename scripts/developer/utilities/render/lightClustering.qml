@@ -106,6 +106,9 @@ Column {
                     checked: Render.getConfig("DebugLightClusters")["doDrawContent"]
                     onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawContent"] = checked }
             }
+            Label {
+                text:  "Num Cluster Items = " + Render.getConfig("LightClustering")["numClusteredLights"].toFixed(0)
+            }
             
         }
     }
