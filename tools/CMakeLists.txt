@@ -10,3 +10,6 @@ set_target_properties(vhacd-util PROPERTIES FOLDER "Tools")
 
 add_subdirectory(ice-client)
 set_target_properties(ice-client PROPERTIES FOLDER "Tools")
+
+add_subdirectory(ac-client)
+set_target_properties(ac-client PROPERTIES FOLDER "Tools")
