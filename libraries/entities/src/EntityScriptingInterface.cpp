@@ -395,9 +395,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
     });
 
-    if (!updatedEntity) {
-        return QUuid();
-    }
+    // FIXME: We need to figure out a better way to handle this. Allowing these edits to go through potentially
+    // breaks avatar energy and entities that are parented.
+    //
+    // To handle cases where a script needs to edit an entity with a _known_ entity id but doesn't exist
+    // in the local entity tree, we need to allow those edits to go through to the server.
+    // if (!updatedEntity) {
+    //     return QUuid();
+    // }
 
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
