@@ -236,21 +236,7 @@ var stepDisableControllers = function(name) {
 stepDisableControllers.prototype = {
     start: function(onFinish) {
         controllerDisplayManager = new ControllerDisplayManager();
-        editEntitiesWithTag('door', { visible: true, collisionless: false });
-        Menu.setIsOptionChecked("Overlays", false);
-        Controller.disableMapping('handControllerPointer-click');
-        Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
-        Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
-            nearGrabEnabled: true,
-            holdEnabled: false,
-            farGrabEnabled: false,
-        }));
-        setControllerPartLayer('touchpad', 'blank');
-        setControllerPartLayer('tips', 'blank');
-
-        hideEntitiesWithTag('finish');
-        setAwayEnabled(false);
+        disableEverything();
 
         onFinish();
     },
@@ -258,12 +244,24 @@ stepDisableControllers.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: ENABLE CONTROLLERS                                                  //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
+function disableEverything() {
+    editEntitiesWithTag('door', { visible: true, collisionless: false });
+    Menu.setIsOptionChecked("Overlays", false);
+    Controller.disableMapping('handControllerPointer-click');
+    Messages.sendLocalMessage('Hifi-Advanced-Movement-Disabler', 'disable');
+    Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
+    Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
+        nearGrabEnabled: true,
+        holdEnabled: false,
+        farGrabEnabled: false,
+    }));
+    setControllerPartLayer('touchpad', 'blank');
+    setControllerPartLayer('tips', 'blank');
+
+    hideEntitiesWithTag('finish');
+    setAwayEnabled(false);
+}
+
 function reenableEverything() {
     editEntitiesWithTag('door', { visible: false, collisionless: true });
     Menu.setIsOptionChecked("Overlays", true);
@@ -284,6 +282,13 @@ function reenableEverything() {
     }
     setAwayEnabled(true);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// STEP: ENABLE CONTROLLERS                                                  //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
 
 var stepEnableControllers = function(name) {
     this.tag = name;
@@ -321,45 +326,6 @@ stepWelcome.prototype = {
     }
 };
 
-function StayInFrontOverlay(type, properties, distance, positionOffset) {
-    this.currentOrientation = MyAvatar.orientation;
-    this.currentPosition = MyAvatar.position;
-    this.distance = distance;
-    this.positionOffset = positionOffset;
-
-    var forward = Vec3.multiply(this.distance, Quat.getFront(this.currentOrientation));
-
-    properties.rotation = this.currentOrientation;
-    properties.position = Vec3.sum(Vec3.sum(this.currentPosition, forward), this.positionOffset);
-    this.overlayID = Overlays.addOverlay(type, properties);
-
-
-    this.distance = distance;
-
-    this.boundUpdate = this.update.bind(this);
-    Script.update.connect(this.boundUpdate);
-}
-StayInFrontOverlay.prototype = {
-    update: function(dt) {
-        var targetOrientation = MyAvatar.orientation;
-        var targetPosition = MyAvatar.position;
-        this.currentOrientation = Quat.slerp(this.currentOrientation, targetOrientation, 0.05);
-        this.currentPosition = Vec3.mix(this.currentPosition, targetPosition, 0.05);
-
-        var forward = Vec3.multiply(this.distance, Quat.getFront(this.currentOrientation));
-        Overlays.editOverlay(this.overlayID, {
-            position: Vec3.sum(Vec3.sum(this.currentPosition, forward), this.positionOffset),
-            rotation: this.currentOrientation,
-        });
-    },
-    destroy: function() {
-        Overlays.deleteOverlay(this.overlayID);
-        try {
-            Script.update.disconnect(this.boundUpdate);
-        } catch(e) {
-        }
-    }
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -858,8 +824,6 @@ var stepTeleport = function(name) {
 }
 stepTeleport.prototype = {
     start: function(onFinish) {
-        //setControllerVisible("teleport", true);
-
         setControllerPartLayer('touchpad', 'teleport');
         setControllerPartLayer('tips', 'teleport');
 
@@ -926,9 +890,6 @@ stepFinish.prototype = {
         onFinish();
     },
     cleanup: function() {
-        //Menu.setIsOptionChecked("Overlays", true);
-        //hideEntitiesWithTag(this.tag);
-        //deleteEntitiesWithTag(this.tempTag);
     }
 };
 
