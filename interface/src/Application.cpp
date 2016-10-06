@@ -1336,10 +1336,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     }
 
-    initializeLocation();
-
     // After all of the constructor is completed, then set firstRun to false.
-    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
 }
 
