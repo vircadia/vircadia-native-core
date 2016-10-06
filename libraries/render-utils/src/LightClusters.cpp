@@ -210,6 +210,23 @@ bool reduceSphereToPlane(const glm::vec4& sphere, const glm::vec4& plane, glm::v
     return false;
 }
 
+
+uint32_t scanLightVolumeBoxSlice(FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zSlice, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
+    std::vector< std::vector<LightClusters::LightIndex>>& clusterGrid) {
+    glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
+    uint32_t numClustersTouched = 0;
+
+    for (auto y = yMin; (y <= yMax); y++) {
+        for (auto x = xMin; (x <= xMax); x++) {
+            auto index = x + gridPosToOffset.y * y + gridPosToOffset.z * zSlice;
+            clusterGrid[index].emplace_back(lightId);
+            numClustersTouched++;
+        }
+    }
+
+    return numClustersTouched;
+}
+
 uint32_t scanLightVolumeBox(FrustumGrid& grid, const FrustumGrid::Planes planes[3], int zMin, int zMax, int yMin, int yMax, int xMin, int xMax, LightClusters::LightID lightId, const glm::vec4& eyePosRadius,
     std::vector< std::vector<LightClusters::LightIndex>>& clusterGrid) {
     glm::ivec3 gridPosToOffset(1, grid.dims.x, grid.dims.x * grid.dims.y);
@@ -281,7 +298,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
             for (; (x <= xs); x++) {
                 auto index = grid.frustumGrid_clusterToIndex(ivec3(x, y, z));
-                if (index < (int) clusterGrid.size()) {
+                if (index < (int)clusterGrid.size()) {
                     clusterGrid[index].emplace_back(lightId);
                     numClustersTouched++;
                 } else {
@@ -301,7 +318,7 @@ uint32_t LightClusters::updateClusters() {
 
     _clusterGrid.clear();
     _clusterGrid.resize(_numClusters, EMPTY_CLUSTER);
-    uint32_t maxNumIndices = (uint32_t) _clusterContent.size();
+    uint32_t maxNumIndices = (uint32_t)_clusterContent.size();
     _clusterContent.clear();
     _clusterContent.resize(maxNumIndices, INVALID_LIGHT);
 
@@ -329,8 +346,9 @@ uint32_t LightClusters::updateClusters() {
             continue;
         }
         float eyeZMin = eyeOri.z + radius;
+        bool beyondFar = false;
         if (eyeZMin < -theFrustumGrid.rangeFar) {
-            continue;
+            beyondFar = true;
         }
 
         // Get z slices
@@ -349,7 +367,17 @@ uint32_t LightClusters::updateClusters() {
 
         // CLamp the z range 
         zMin = std::max(0, zMin);
-     //   zMax = std::min(zMax, theFrustumGrid.dims.z);
+        //   zMax = std::min(zMax, theFrustumGrid.dims.z);
+
+        auto xLeftDistance = radius - distanceToPlane(eyeOri, _gridPlanes[0][0]);
+        auto xRightDistance = radius + distanceToPlane(eyeOri, _gridPlanes[0].back());
+
+        auto yBottomDistance = radius - distanceToPlane(eyeOri, _gridPlanes[1][0]);
+        auto yTopDistance = radius + distanceToPlane(eyeOri, _gridPlanes[1].back());
+
+        if ((xLeftDistance < 0.f) || (xRightDistance < 0.f) || (yBottomDistance < 0.f) || (yTopDistance < 0.f)) {
+            continue;
+        }
 
         // find 2D corners of the sphere in grid
         int xMin { 0 };
@@ -384,10 +412,16 @@ uint32_t LightClusters::updateClusters() {
             glm::vec3 rightDir(eyeOriDirH.x * eyeToTangentCircleCosH - eyeOriDirH.z * eyeToTangentCircleSinH, 0.0f, eyeOriDirH.x * eyeToTangentCircleSinH + eyeOriDirH.z * eyeToTangentCircleCosH);
 
             auto lc = theFrustumGrid.frustumGrid_eyeToClusterDirH(leftDir);
+            if (lc > xMax) {
+                lc = xMin;
+            }
             auto rc = theFrustumGrid.frustumGrid_eyeToClusterDirH(rightDir);
-
+            if (rc < 0) {
+                rc = xMax;
+            }
             xMin = std::max(xMin, lc);
             xMax = std::min(rc, xMax);
+            assert(xMin <= xMax);
         }
 
         if ((eyeOriLen2V > radius2)) {
@@ -408,16 +442,24 @@ uint32_t LightClusters::updateClusters() {
 
             auto bc = theFrustumGrid.frustumGrid_eyeToClusterDirV(bottomDir);
             auto tc = theFrustumGrid.frustumGrid_eyeToClusterDirV(topDir);
-
+            if (bc > yMax) {
+                bc = yMin;
+            }
+            if (tc < 0) {
+                tc = yMax;
+            }
             yMin = std::max(yMin, bc);
             yMax =std::min(tc, yMax);
+            assert(yMin <= yMax);
         }
 
         // now voxelize
         auto& clusterGrid = (isSpot ? clusterGridSpot : clusterGridPoint);
-        numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
-       // numClusterTouched += scanLightVolumeBox(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
-    
+        if (beyondFar) {
+            numClusterTouched += scanLightVolumeBoxSlice(theFrustumGrid, _gridPlanes, zMin, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+        } else {
+            numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
+        }
     }
 
     // Lights have been gathered now reexpress in terms of 2 sequential buffers
