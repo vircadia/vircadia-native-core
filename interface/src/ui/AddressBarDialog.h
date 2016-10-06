@@ -37,7 +37,7 @@ signals:
     void forwardEnabledChanged();
     void useFeedChanged();
     void receivedHifiSchemeURL(const QString& url);
-    void metaverseServerUrlChanged(); // While it is a constant, qml will complain about not seeing a change signal.
+    void metaverseServerUrlChanged();
 
 protected:
     void displayAddressOfflineMessage();

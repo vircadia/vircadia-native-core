@@ -59,20 +59,26 @@ Window {
         }
         addressLine.text = targetString;
         toggleOrGo(true);
+        clearAddressLineTimer.start();
     }
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
+    property bool isCursorVisible: false  // Override default cursor visibility.
 
     AddressBarDialog {
         id: addressBarDialog
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
+
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onReceivedHifiSchemeURL: resetAfterTeleport();
+
+        // Update location after using back and forward buttons.
+        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
 
         ListModel { id: suggestions }
 
@@ -185,7 +191,7 @@ Window {
                 color: "gray";
                 clip: true;
                 anchors.fill: addressLine;
-                visible: !addressLine.activeFocus;
+                visible: addressLine.text.length === 0
             }
             TextInput {
                 id: addressLine
@@ -201,8 +207,47 @@ Window {
                     bottomMargin: parent.inputAreaStep
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                onTextChanged: filterChoicesByText()
-                onActiveFocusChanged: updateLocationText(focus)
+                cursorVisible: false
+                onTextChanged: {
+                    filterChoicesByText();
+                    updateLocationText(text.length > 0);
+                    if (!isCursorVisible && text.length > 0) {
+                        isCursorVisible = true;
+                        cursorVisible = true;
+                    }
+                }
+                onActiveFocusChanged: {
+                    cursorVisible = isCursorVisible;
+                }
+                MouseArea {
+                    // If user clicks in address bar show cursor to indicate ability to enter address.
+                    anchors.fill: parent
+                    onClicked: {
+                        isCursorVisible = true;
+                        parent.cursorVisible = true;
+                    }
+                }
+            }
+        }
+
+        Timer {
+            // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
+            id: updateLocationTextTimer
+            running: false
+            interval: 500  // ms
+            repeat: false
+            onTriggered: updateLocationText(false);
+        }
+
+        Timer {
+            // Delay clearing address line so as to avoid flicker of "not connected" being displayed after entering an address.
+            id: clearAddressLineTimer
+            running: false
+            interval: 100  // ms
+            repeat: false
+            onTriggered: {
+                addressLine.text = "";
+                isCursorVisible = false;
             }
         }
 
@@ -360,9 +405,8 @@ Window {
         });
     }
 
-    function updateLocationText(focus) {
-        addressLine.text = "";
-        if (focus) {
+    function updateLocationText(enteringAddress) {
+        if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
             notice.color = "gray";
         } else {
@@ -374,9 +418,9 @@ Window {
     }
 
     onVisibleChanged: {
-        focus = false;
         updateLocationText(false);
         if (visible) {
+            addressLine.forceActiveFocus();
             fillDestinations();
         }
     }
@@ -393,11 +437,13 @@ Window {
             case Qt.Key_Escape:
             case Qt.Key_Back:
                 root.shown = false
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 toggleOrGo()
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
         }
