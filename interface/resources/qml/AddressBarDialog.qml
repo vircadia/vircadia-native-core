@@ -185,7 +185,7 @@ Window {
                 color: "gray";
                 clip: true;
                 anchors.fill: addressLine;
-                visible: !addressLine.activeFocus;
+                visible: addressLine.text.length === 0
             }
             TextInput {
                 id: addressLine
@@ -201,8 +201,10 @@ Window {
                     bottomMargin: parent.inputAreaStep
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                onTextChanged: filterChoicesByText()
-                onActiveFocusChanged: updateLocationText(focus)
+                onTextChanged: {
+                    filterChoicesByText();
+                    updateLocationText(text.length > 0);
+                }
             }
         }
 
@@ -360,9 +362,8 @@ Window {
         });
     }
 
-    function updateLocationText(focus) {
-        addressLine.text = "";
-        if (focus) {
+    function updateLocationText(visible) {
+        if (visible) {
             notice.text = "Go to a place, @user, path or network address";
             notice.color = "gray";
         } else {
@@ -374,9 +375,9 @@ Window {
     }
 
     onVisibleChanged: {
-        focus = false;
         updateLocationText(false);
         if (visible) {
+            addressLine.forceActiveFocus();
             fillDestinations();
         }
     }
