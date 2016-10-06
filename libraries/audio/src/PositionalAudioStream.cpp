@@ -22,10 +22,10 @@
 #include <UUID.h>
 
 PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, int numStaticJitterFrames) :
-    InboundAudioStream(isStereo
-                       ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-                       : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
-    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, numStaticJitterFrames),
+    InboundAudioStream(isStereo ? AudioConstants::STEREO : AudioConstants::MONO,
+                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+                       AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY,
+                       numStaticJitterFrames),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),

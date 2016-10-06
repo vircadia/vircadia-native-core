@@ -29,6 +29,7 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
+#include <QtCore/QProcess>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
@@ -119,6 +120,29 @@ int main(int argc, const char* argv[]) {
                 return 0;
             }
         }
+    }
+
+    QCommandLineParser parser;
+    QCommandLineOption runServerOption("runServer", "Whether to run the server");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    parser.addOption(runServerOption);
+    parser.addOption(serverContentPathOption);
+    parser.parse(arguments);
+    if (parser.isSet(runServerOption)) {
+        QString applicationDirPath = QFileInfo(arguments[0]).path();
+        QString serverPath = applicationDirPath + "/server-console/server-console.exe";
+        qDebug() << "Application dir path is: " << applicationDirPath;
+        qDebug() << "Server path is: " << serverPath;
+        QStringList args;
+        if (parser.isSet(serverContentPathOption)) {
+            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPathOption);
+            args << "--" << "--contentPath" << serverContentPath;
+        }
+        qDebug() << QFileInfo(arguments[0]).path();
+        qDebug() << QProcess::startDetached(serverPath, args);
+
+        // Sleep a short amount of time to give the server a chance to start
+        usleep(2000000);
     }
 
     QElapsedTimer startupTime;
