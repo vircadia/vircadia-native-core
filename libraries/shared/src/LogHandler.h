@@ -59,7 +59,7 @@ private:
 
     QString _targetName;
     bool _shouldOutputProcessID { false };
-    bool _shouldOutputThreadID { false };
+    bool _shouldOutputThreadID { true };
     bool _shouldDisplayMilliseconds { false };
     QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
