@@ -64,6 +64,7 @@ Window {
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
+    property bool isCursorVisible: false  // Override default cursor visibility.
 
     AddressBarDialog {
         id: addressBarDialog
@@ -201,9 +202,17 @@ Window {
                     bottomMargin: parent.inputAreaStep
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+                cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
                     updateLocationText(text.length > 0);
+                    if (!isCursorVisible && text.length > 0) {
+                        isCursorVisible = true;
+                        cursorVisible = true;
+                    }
+                }
+                onActiveFocusChanged: {
+                    cursorVisible = isCursorVisible;
                 }
             }
         }
@@ -386,6 +395,7 @@ Window {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
+        isCursorVisible = false;
         root.shown = false;
     }
 
