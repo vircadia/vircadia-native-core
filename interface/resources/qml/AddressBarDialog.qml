@@ -379,8 +379,8 @@ Window {
         });
     }
 
-    function updateLocationText(visible) {
-        if (visible) {
+    function updateLocationText(enteringAddress) {
+        if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
             notice.color = "gray";
         } else {
