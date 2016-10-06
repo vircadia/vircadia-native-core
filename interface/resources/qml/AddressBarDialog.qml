@@ -70,10 +70,14 @@ Window {
         id: addressBarDialog
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
+
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onReceivedHifiSchemeURL: resetAfterTeleport();
+
+        // Update location after using back and forward buttons.
+        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
 
         ListModel { id: suggestions }
 
@@ -223,6 +227,24 @@ Window {
                     }
                 }
             }
+        }
+
+        Timer {
+            // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
+            id: updateLocationTextTimer
+            running: false
+            interval: 500  // ms
+            repeat: false
+            onTriggered: updateLocationText(false);
+        }
+
+        Timer {
+            // Delay clearing address line so as to avoid flicker of "not connected" being displayed after entering an address.
+            id: clearAddressLineTimer
+            running: false
+            interval: 100  // ms
+            repeat: false
+            onTriggered: addressLine.text = ""
         }
 
         Window {
@@ -403,6 +425,7 @@ Window {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
+        clearAddressLineTimer.start();
         isCursorVisible = false;
         root.shown = false;
     }
