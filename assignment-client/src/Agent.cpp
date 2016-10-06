@@ -75,7 +75,6 @@ Agent::Agent(ReceivedMessage& message) :
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
-    connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &Agent::handleMismatchAudioFormat);
 }
 
 void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -248,11 +247,6 @@ void Agent::negotiateAudioFormat() {
 void Agent::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
     QString selectedCodecName = message->readString();
     selectAudioFormat(selectedCodecName);
-}
-
-void Agent::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
-    selectAudioFormat(recievedCodec);
 }
 
 void Agent::selectAudioFormat(const QString& selectedCodecName) {
@@ -504,7 +498,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
             } else if (nextSoundOutput) {
                 // write the codec
                 audioPacket->writeString(_selectedCodecName);
-
+                
                 // assume scripted avatar audio is mono and set channel flag to zero
                 audioPacket->writePrimitive((quint8)0);
 
@@ -559,4 +553,10 @@ void Agent::aboutToFinish() {
     
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
+
+    // cleanup codec & encoder
+    if (_codec && _encoder) {
+        _codec->releaseEncoder(_encoder);
+        _encoder = nullptr;
+    }
 }
