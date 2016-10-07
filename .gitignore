@@ -45,7 +45,7 @@ gvr-interface/libs/*
 
 # ignore files for various dev environments
 TAGS
-*.swp
+*.sw[po]
 
 # ignore node files for the console
 node_modules

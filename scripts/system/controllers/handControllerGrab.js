@@ -344,7 +344,7 @@ function entityHasActions(entityID) {
 }
 
 function findRayIntersection(pickRay, precise, include, exclude) {
-    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude, true);
     var overlays = Overlays.findRayIntersection(pickRay);
     if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
         return entities;
@@ -1158,9 +1158,9 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = findRayIntersection(pickRay, true, [], blacklist);
+            intersection = findRayIntersection(pickRay, true, [], blacklist, true);
         } else {
-            intersection = findRayIntersection(pickRay, true);
+            intersection = findRayIntersection(pickRay, true, [], [], true);
         }
 
         if (intersection.intersects) {
@@ -1608,7 +1608,6 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
@@ -1872,12 +1871,6 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
-        if (this.hand === 0) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
-        }
-        if (this.hand === 1) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
-        }
         this.grabPointSphereOff();
         this.lineOff();
         this.overlayLineOff();
@@ -2215,7 +2208,7 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = findRayIntersection(pickRay, true);
+            var intersection = findRayIntersection(pickRay, true, [], [], true);
             if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
@@ -2343,7 +2336,6 @@ function MyController(hand) {
     };
 
     this.release = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2713,6 +2705,20 @@ var handleHandMessages = function(channel, message, sender) {
 
                 }
                 handToDisable = message;
+            }
+        } else if (channel === 'Hifi-Grab-Disable') {
+            data = JSON.parse(message);
+            if (data.holdEnabled !== undefined) {
+                print("holdEnabled: ", data.holdEnabled);
+                holdEnabled = data.holdEnabled;
+            }
+            if (data.nearGrabEnabled !== undefined) {
+                print("nearGrabEnabled: ", data.nearGrabEnabled);
+                nearGrabEnabled = data.nearGrabEnabled;
+            }
+            if (data.farGrabEnabled !== undefined) {
+                print("farGrabEnabled: ", data.farGrabEnabled);
+                farGrabEnabled = data.farGrabEnabled;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {

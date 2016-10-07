@@ -107,6 +107,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, controller::Inpu
     out = qobject_cast<controller::InputController*>(object.toQObject());
 }
 
+// FIXME Come up with a way to properly encode entity IDs in filename
 // The purpose of the following two function is to embed entity ids into entity script filenames
 // so that they show up in stacktraces
 //
@@ -848,7 +849,7 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
-    std::chrono::microseconds totalUpdates;
+    std::chrono::microseconds totalUpdates(0);
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
@@ -1113,9 +1114,10 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
 
     QScriptContextInfo contextInfo { currentContext()->parentContext() };
 
+
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL = extractUrlFromEntityUrl(contextInfo.fileName());
+    QUrl parentURL = contextInfo.fileName();
     if (parentURL.isEmpty()) {
         if (_parentURL.isEmpty()) {
             parentURL = QUrl(_fileNameString);
@@ -1348,7 +1350,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = isURL ? encodeEntityIdIntoEntityUrl(scriptOrURL, entityID.toString()) : "EmbeddedEntityScript";
+    auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program)) {

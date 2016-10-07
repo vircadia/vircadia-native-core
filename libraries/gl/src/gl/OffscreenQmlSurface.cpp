@@ -41,16 +41,16 @@
 #include "Context.h"
 
 QString fixupHifiUrl(const QString& urlString) {
-	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+    static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+    static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
     QUrl url(urlString);
-	QUrlQuery query(url);
-	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    auto accountManager = DependencyManager::get<AccountManager>();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
-	    url.setQuery(query.query());
-	    return url.toString();
-	}
+    QUrlQuery query(url);
+    if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+        auto accountManager = DependencyManager::get<AccountManager>();
+        query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
+        url.setQuery(query.query());
+        return url.toString();
+    }
     return urlString;
 }
 
@@ -403,13 +403,13 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
 
     if (_qmlComponent->isLoading()) {
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
                 finishQmlLoad(f);
             });
         return nullptr;
     }
-    
+
     return finishQmlLoad(f);
 }
 
@@ -427,6 +427,19 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
+    // FIXME: Refactor with similar code in RenderableWebEntityItem
+    QString javaScriptToInject;
+    QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+        createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    } else {
+        qWarning() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
+    }
+
     QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
     QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
@@ -439,6 +452,9 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
+    newObject->setProperty("eventBridge", QVariant::fromValue(this));
+    newContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+
     f(newContext, newObject);
     _qmlComponent->completeCreate();
 
@@ -446,7 +462,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     // All quick items should be focusable
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (newItem) {
-        // Make sure we make items focusable (critical for 
+        // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
     }
@@ -474,11 +490,11 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
-    // If we're 
+    // If we're
     //   a) not set up
     //   b) already rendering a frame
     //   c) rendering too fast
-    // then skip this 
+    // then skip this
     if (!allowNewFrame(_maxFps)) {
         return;
     }
@@ -541,7 +557,6 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     }
 #endif
 
-   
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -610,6 +625,9 @@ void OffscreenQmlSurface::pause() {
 void OffscreenQmlSurface::resume() {
     _paused = false;
     _render = true;
+
+    getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
+    getRootContext()->setContextProperty("webEntity", this);
 }
 
 bool OffscreenQmlSurface::isPaused() const {
@@ -667,21 +685,142 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     return function();
 }
 
+void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    if (!object) {
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    if (!item) {
         setFocusText(false);
+        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
+
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
+    }
+
+    // Raise and lower keyboard for QML text fields.
+    // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.
+    const char* READ_ONLY_PROPERTY = "readOnly";
+    bool raiseKeyboard = item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false;
+    if (_currentFocusItem && !raiseKeyboard) {
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+    setKeyboardRaised(item, raiseKeyboard);  // Always set focus so that alphabetic / numeric setting is updated.
+
+    _currentFocusItem = item;
+    connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
 
 void OffscreenQmlSurface::setFocusText(bool newFocusText) {
     if (newFocusText != _focusText) {
         _focusText = newFocusText;
         emit focusTextChanged(_focusText);
+    }
+}
+
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return ptr[i] == 0x00;
+}
+
+void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
+    auto eventHandler = getEventHandler();
+    if (eventHandler) {
+        auto utf8Key = key.toUtf8();
+
+        int scanCode = (int)utf8Key[0];
+        QString keyString = key;
+        if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+            equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+            return;  // ignore
+        } else if (equals(utf8Key, LEFT_ARROW)) {
+            scanCode = Qt::Key_Backspace;
+            keyString = "\x08";
+        } else if (equals(utf8Key, RETURN_SYMBOL)) {
+            scanCode = Qt::Key_Return;
+            keyString = "\x0d";
+        } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Left;
+            keyString = "";
+        } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Right;
+            keyString = "";
+        }
+
+        QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+        QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+        QCoreApplication::postEvent(eventHandler, pressEvent);
+        QCoreApplication::postEvent(eventHandler, releaseEvent);
+    }
+}
+
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+    if (!object) {
+        return;
+    }
+
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+        numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+
+        if (item->property("keyboardRaised").isValid()) {
+            if (item->property("punctuationMode").isValid()) {
+                item->setProperty("punctuationMode", QVariant(numeric));
+            }
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
+    }
+}
+
+void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        // Special case to handle raising and lowering the virtual keyboard.
+        const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
+        const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        QString messageString = message.type() == QVariant::String ? message.toString() : "";
+        if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
+            setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
+        } else if (messageString == LOWER_KEYBOARD) {
+            setKeyboardRaised(_currentFocusItem, false);
+        } else {
+            emit webEventReceived(message);
+        }
     }
 }
 
