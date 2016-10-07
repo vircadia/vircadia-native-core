@@ -849,7 +849,7 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
-    std::chrono::microseconds totalUpdates;
+    std::chrono::microseconds totalUpdates(0);
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
