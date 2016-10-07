@@ -1533,6 +1533,7 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& s
 #else
     operation();
 #endif
+    hadUncaughtExceptions(*this, _fileNameString);
 
     currentEntityIdentifier = oldIdentifier;
     currentSandboxURL = oldSandboxURL;

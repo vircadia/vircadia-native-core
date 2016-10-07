@@ -23,6 +23,7 @@ public:
     Q_INVOKABLE void enabledEdit();
     Q_INVOKABLE void openedMarketplace();
     Q_INVOKABLE void toggledAway(bool isAway);
+    Q_INVOKABLE void tutorialProgress(QString stepName, int stepNumber, float secondsToComplete, float tutorialElapsedTime);
 
 private:
     void logAction(QString action, QJsonObject details = {});

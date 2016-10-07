@@ -363,7 +363,7 @@ function makeToggleAction(hand) { // return a function(0|1) that makes the speci
     };
 }
 
-var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+var clickMapping = Controller.newMapping('handControllerPointer-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
 // Gather the trigger data for smoothing.

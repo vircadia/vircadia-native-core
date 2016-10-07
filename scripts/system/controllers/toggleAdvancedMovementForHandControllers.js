@@ -18,6 +18,7 @@ var mappingName, basicMapping, isChecked;
 var TURN_RATE = 1000;
 var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
 var SETTINGS_KEY = 'advancedMovementForHandControllersIsChecked';
+var isDisabled = false;
 var previousSetting = Settings.getValue(SETTINGS_KEY);
 if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
     previousSetting = false;
@@ -54,6 +55,9 @@ function registerBasicMapping() {
     mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
     basicMapping = Controller.newMapping(mappingName);
     basicMapping.from(Controller.Standard.LY).to(function(value) {
+        if (isDisabled) {
+            return;
+        }
         var stick = Controller.getValue(Controller.Standard.LS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
@@ -70,6 +74,9 @@ function registerBasicMapping() {
     });
     basicMapping.from(Controller.Standard.LX).to(Controller.Standard.RX);
     basicMapping.from(Controller.Standard.RY).to(function(value) {
+        if (isDisabled) {
+            return;
+        }
         var stick = Controller.getValue(Controller.Standard.RS);
         if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
             rotate180();
@@ -143,5 +150,20 @@ HMD.displayModeChanged.connect(function(isHMDMode) {
         }
     }
 });
+
+
+var HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL = 'Hifi-Advanced-Movement-Disabler';
+function handleMessage(channel, message, sender) {
+    if (channel == HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
+        if (message == 'disable') {
+            isDisabled = true;
+        } else if (message == 'enable') {
+            isDisabled = false;
+        }
+    }
+}
+
+Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
+Messages.messageReceived.connect(handleMessage);
 
 }()); // END LOCAL_SCOPE
