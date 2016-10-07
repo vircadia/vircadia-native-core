@@ -469,7 +469,7 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(minimizeButton, {
             x: windowLeft + WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
-            y: windowTop + WINDOW_MARGIN / 2
+            y: windowTop + WINDOW_MARGIN
         });
 
         scrollbarBackgroundPosition.x = windowLeft + WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH;
