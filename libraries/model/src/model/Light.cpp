@@ -44,7 +44,6 @@ void Light::setType(Type type) {
         }
         updateLightRadius();
     }
-    updateVolumeGeometry();
 }
 
 
@@ -89,7 +88,6 @@ void Light::setMaximumRadius(float radius) {
     }
     _lightSchemaBuffer.edit().volume.radius = radius;
     updateLightRadius();
-    updateVolumeGeometry();
 }
 
 void Light::updateLightRadius() {
@@ -125,8 +123,6 @@ void Light::setSpotAngle(float angle) {
     if (isSpot()) {
         _lightSchemaBuffer.edit().volume.spotCos = _spotCos;
     }
-
-    updateVolumeGeometry();
 }
 
 void Light::setSpotExponent(float exponent) {
@@ -162,14 +158,3 @@ void Light::setAmbientMapNumMips(uint16_t numMips) {
     _ambientSchemaBuffer.edit().mapNumMips = (float)numMips;
 }
 
-void Light::updateVolumeGeometry() {
-    // enlarge the scales slightly to account for tesselation
- /*   const float SCALE_EXPANSION = 0.05f;
-    glm::vec4 volumeGeometry(0.0f, 0.0f, 0.0f, getMaximumRadius() * (1.0f + SCALE_EXPANSION));
-
-    if (getType() == SPOT) {
-        const float TANGENT_LENGTH_SCALE = 0.666f;
-        volumeGeometry = glm::vec4(getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * getSpotAngle()), volumeGeometry.w);
-    }
-    editSchema()._volumeGeometry = volumeGeometry;*/
-}

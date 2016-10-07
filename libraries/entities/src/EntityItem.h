@@ -90,7 +90,7 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
 
     /// returns true if something changed
-    // THis function calls setSubClass properties and detects if any property changes value.
+    // This function calls setSubClass properties and detects if any property changes value.
     // If something changed then the "somethingChangedNotification" calls happens
     virtual bool setProperties(const EntityItemProperties& properties);
 

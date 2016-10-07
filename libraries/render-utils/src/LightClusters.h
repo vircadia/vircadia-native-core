@@ -24,7 +24,7 @@ public:
     float rangeFar { 200.0f };
     float frustumFar { 10000.0f };
 
-    glm::ivec3 dims { 16, 16, 16 };
+    glm::ivec3 dims { 1, 1, 1 };
     float spare;
 
     glm::mat4 eyeToGridProj;
@@ -68,6 +68,8 @@ public:
     void setDimensions(glm::uvec3 gridDims, uint32_t listBudget = MAX_GRID_DIMENSIONS.w);
     void setRangeNearFar(float rangeNear, float rangeFar);
 
+    uint32_t getNumClusters() const;
+
     void updateFrustum(const ViewFrustum& frustum);
 
     void updateLightStage(const LightStagePointer& lightStage);
@@ -76,7 +78,9 @@ public:
 
     glm::ivec3  updateClusters();
 
+
     ViewFrustum _frustum;
+
 
     LightStagePointer _lightStage;
 
@@ -89,8 +93,6 @@ public:
     LightStage::LightIndices _visibleLightIndices;
     gpu::BufferView _lightIndicesBuffer;
 
-    int32_t _numClusters { 0 };
-
     const uint32_t EMPTY_CLUSTER { 0x0000FFFF };
     const LightID INVALID_LIGHT { LightStage::INVALID_INDEX };
 
@@ -100,6 +102,10 @@ public:
     std::vector<LightIndex> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
+    int32_t _clusterContentBudget { 0 };
+
+    bool _clusterResourcesInvalid { true };
+    void updateClusterResource();
 };
 
 using LightClustersPointer = std::shared_ptr<LightClusters>;

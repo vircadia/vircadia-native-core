@@ -109,7 +109,7 @@ protected:
     float _cutoff { DEFAULT_CUTOFF };
 
     // Dirty flag turn true when either light properties is changing values.
-    // THis gets back to false in the somethingChangedNotification() call
+    // This gets back to false in the somethingChangedNotification() call
     // Which is called after a setProperties() or a readEntitySubClassFromBUfferCall on the entity.
     bool _lightPropertiesChanged { false };
 

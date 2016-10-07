@@ -89,30 +89,6 @@ void RenderableLightEntityItem::notifyChanged() {
     scene->enqueuePendingChanges(pendingChanges);
 }
 
-/*
-void RenderableLightEntityItem::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("RenderableLightEntityItem::render");
-    assert(getType() == EntityTypes::Light);
-    checkFading();
-
-
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-    float largestDiameter = glm::compMax(dimensions);
-
-
-   // DependencyManager::get<DeferredLightingEffect>()->addLight(_light);
-
-#ifdef WANT_DEBUG
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter());
-    DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
-#endif
-};
-*/
-
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
                         BoxFace& face, glm::vec3& surfaceNormal,

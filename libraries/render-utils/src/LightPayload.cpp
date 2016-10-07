@@ -71,6 +71,13 @@ void LightPayload::render(RenderArgs* args) {
     if (isVisible()) {
         // FInally, push the light visible in the frame
         _stage->_currentFrame.pushLight(_index, _light->getType());
+
+#ifdef WANT_DEBUG
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+        batch.setModelTransform(getTransformToCenter());
+        DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
+#endif
     }
 }
 

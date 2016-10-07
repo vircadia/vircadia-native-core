@@ -149,7 +149,7 @@ public:
     void setAmbientMapNumMips(uint16_t numMips);
     uint16_t getAmbientMapNumMips() const { return (uint16_t) _ambientSchemaBuffer->mapNumMips; }
 
-    // LIght Schema
+    // Light Schema
     class LightSchema {
     public:
         LightVolume volume;
@@ -158,8 +158,8 @@ public:
 
     class AmbientSchema {
     public:
-        float intensity { 0.f };
-        float mapNumMips { 0.f };
+        float intensity { 0.0f };
+        float mapNumMips { 0.0f };
         float spare1;
         float spare2;
         gpu::SphericalHarmonics ambientSphere;
@@ -168,27 +168,6 @@ public:
     using LightSchemaBuffer = gpu::StructBuffer<LightSchema>;
     using AmbientSchemaBuffer = gpu::StructBuffer<AmbientSchema>;
 
-    // Schema to access the attribute values of the light
-  /*  class Schema {
-    public:
-        Vec4 _position{0.0f, 0.0f, 0.0f, 1.0f}; 
-        Vec3 _direction{0.0f, 0.0f, -1.0f};
-        float _ambientIntensity{0.0f};
-        Color _color{1.0f};
-        float _intensity{1.0f};
-        Vec4 _attenuation{0.1f, 1.0f, 0.0f, 0.0f};
-        Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
-        //Vec4 _shadow{0.0f};
-
-
-        float _ambientMapNumMips{ 0.0f };
-        Vec3 _control{ 0.0f, 0.0f, 0.0f };
-
-        Vec4 _volumeGeometry { 1.f };
-
-        gpu::SphericalHarmonics _ambientSphere;
-    };
-    */
     const LightSchemaBuffer& getLightSchemaBuffer() const { return _lightSchemaBuffer; }
     const AmbientSchemaBuffer& getAmbientSchemaBuffer() const { return _ambientSchemaBuffer; }
 
@@ -207,7 +186,6 @@ protected:
     float _spotCos { -1.0f }; // stored here to be able to reset the spot angle when turning the type spot on/off
 
     void updateLightRadius();
-    void updateVolumeGeometry();
 
 };
 typedef std::shared_ptr< Light > LightPointer;
