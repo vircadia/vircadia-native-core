@@ -30,7 +30,6 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
@@ -74,6 +73,9 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
+    Q_INVOKABLE void synthesizeKeyPress(QString key);
+
     using TextureAndFence = std::pair<uint32_t, void*>;
     // Checks to see if a new texture is available.  If one is, the function returns true and 
     // textureAndFence will be populated with the texture ID and a fence which will be signalled 
@@ -90,6 +92,16 @@ signals:
 
 public slots:
     void onAboutToQuit();
+    void focusDestroyed(QObject *obj);
+
+    // event bridge
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
 
 protected:
     bool filterEnabled(QObject* originalDestination, QEvent* event) const;
@@ -137,6 +149,8 @@ private:
     uint8_t _maxFps { 60 };
     MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
+
+    QQuickItem* _currentFocusItem { nullptr };
 };
 
 #endif

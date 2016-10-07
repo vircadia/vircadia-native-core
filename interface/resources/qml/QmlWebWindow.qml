@@ -66,6 +66,24 @@ Windows.ScrollingWindow {
             anchors.fill: parent
             focus: true
             webChannel.registeredObjects: [eventBridgeWrapper]
+
+            // Create a global EventBridge object for raiseAndLowerKeyboard.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.DocumentCreation
+                worldId: WebEngineScript.MainWorld
+            }
+
+            // Detect when may want to raise and lower keyboard.
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
+
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
         }
     }
 }

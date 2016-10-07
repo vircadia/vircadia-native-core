@@ -53,10 +53,16 @@ ModalWindow {
     }
 
     Item {
+        id: modalWindowItem
         clip: true
         width: pane.width
         height: pane.height
         anchors.margins: 0
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
+        onKeyboardRaisedChanged: d.resize();
 
         QtObject {
             id: d
@@ -69,14 +75,14 @@ ModalWindow {
                 var targetWidth = Math.max(titleWidth, pane.width)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
-                root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
+                root.height = ((targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight  : targetHeight)) + (modalWindowItem.keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : 0)
             }
         }
 
         Item {
             anchors {
                 top: parent.top
-                bottom: buttons.top;
+                bottom: keyboard1.top;
                 left: parent.left;
                 right: parent.right;
                 margins: 0
@@ -108,6 +114,35 @@ ModalWindow {
                 }
                 model: items ? items : []
             }
+        }
+
+        // virtual keyboard, letters
+        Keyboard {
+            id: keyboard1
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: buttons.top
+            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+        }
+
+        KeyboardPunctuation {
+            id: keyboard2
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: buttons.top
+            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
 
         Flow {

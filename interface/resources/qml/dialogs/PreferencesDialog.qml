@@ -97,9 +97,9 @@ ScrollingWindow {
 
     footer: Row {
         anchors {
-            right: parent.right;
+            top: parent.top
+            right: parent.right
             rightMargin: hifi.dimensions.contentMargin.x
-            verticalCenter: parent.verticalCenter
         }
         spacing: hifi.dimensions.contentSpacing.x
 

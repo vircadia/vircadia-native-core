@@ -69,8 +69,12 @@ Window {
 
     AddressBarDialog {
         id: addressBarDialog
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height
+        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -252,8 +256,8 @@ Window {
         }
 
         Window {
-            width: 938;
-            height: 625;
+            width: 938
+            height: 625
             scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
@@ -269,6 +273,35 @@ Window {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
             }
+        }
+
+        // virtual keyboard, letters
+        HifiControls.Keyboard {
+            id: keyboard1
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+        }
+
+        HifiControls.KeyboardPunctuation {
+            id: keyboard2
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
         }
     }
 
