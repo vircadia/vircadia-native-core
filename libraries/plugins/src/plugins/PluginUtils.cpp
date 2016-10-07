@@ -19,7 +19,6 @@ bool PluginUtils::isHMDAvailable(const QString& pluginName) {
         // Temporarily only enable this for Vive
         if (displayPlugin->isHmd() && (pluginName.isEmpty() || displayPlugin->getName() == pluginName)) {
             return true;
-            break;
         }
     }
     return false;
@@ -29,7 +28,6 @@ bool PluginUtils::isHandControllerAvailable() {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isHandController()) {
             return true;
-            break;
         }
     }
     return false;
