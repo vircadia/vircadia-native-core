@@ -311,7 +311,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
     return numClustersTouched;
 }
 
-uint32_t LightClusters::updateClusters() {
+glm::ivec3 LightClusters::updateClusters() {
     // Clean up last info
     std::vector< std::vector< LightIndex > > clusterGridPoint(_numClusters);
     std::vector< std::vector< LightIndex > > clusterGridSpot(_numClusters);
@@ -327,11 +327,14 @@ uint32_t LightClusters::updateClusters() {
     glm::ivec3 gridPosToOffset(1, theFrustumGrid.dims.x, theFrustumGrid.dims.x * theFrustumGrid.dims.y);
 
     uint32_t numClusterTouched = 0;
+    uint32_t numLightsIn = _visibleLightIndices[0];
+    uint32_t numClusteredLights = 0;
     for (size_t lightNum = 1; lightNum < _visibleLightIndices.size(); ++lightNum) {
         auto lightId = _visibleLightIndices[lightNum];
         auto light = _lightStage->getLight(lightId);
-        if (!light)
+        if (!light) {
             continue;
+        }
 
         auto worldOri = light->getPosition();
         auto radius = light->getMaximumRadius();
@@ -460,6 +463,8 @@ uint32_t LightClusters::updateClusters() {
         } else {
             numClusterTouched += scanLightVolumeSphere(theFrustumGrid, _gridPlanes, zMin, zMax, yMin, yMax, xMin, xMax, lightId, glm::vec4(glm::vec3(eyeOri), radius), clusterGrid);
         }
+
+        numClusteredLights++;
     }
 
     // Lights have been gathered now reexpress in terms of 2 sequential buffers
@@ -502,7 +507,7 @@ uint32_t LightClusters::updateClusters() {
     _clusterGridBuffer._buffer->setData(_clusterGridBuffer._size, (gpu::Byte*) _clusterGrid.data());
     _clusterContentBuffer._buffer->setSubData(0, indexOffset * sizeof(LightIndex), (gpu::Byte*) _clusterContent.data());
     
-    return numClusterTouched;
+    return glm::ivec3(numLightsIn, numClusteredLights, numClusterTouched);
 }
 
 
@@ -543,12 +548,14 @@ void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, c
     _lightClusters->updateLightStage(lightStage);
     _lightClusters->updateLightFrame(lightStage->_currentFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
     
-    auto numClusterdLights = _lightClusters->updateClusters();
+    auto clusteringStats = _lightClusters->updateClusters();
 
     output = _lightClusters;
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->setNumClusteredLights(numClusterdLights);
+    config->setNumInputLights(clusteringStats.x);
+    config->setNumClusteredLights(clusteringStats.y);
+    config->setNumClusteredLightReferences(clusteringStats.z);
 }
 
 DebugLightClusters::DebugLightClusters() {

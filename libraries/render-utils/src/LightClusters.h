@@ -74,7 +74,7 @@ public:
 
     void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
 
-    uint32_t updateClusters();
+    glm::ivec3  updateClusters();
 
     ViewFrustum _frustum;
 
@@ -117,6 +117,8 @@ class LightClusteringPassConfig : public render::Job::Config {
     
     Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
 
+    Q_PROPERTY(int numClusteredLightReferences MEMBER numClusteredLightReferences NOTIFY dirty)
+    Q_PROPERTY(int numInputLights MEMBER numInputLights NOTIFY dirty)
     Q_PROPERTY(int numClusteredLights MEMBER numClusteredLights NOTIFY dirty)
 public:
     LightClusteringPassConfig() : render::Job::Config(true){}
@@ -130,6 +132,11 @@ public:
 
     bool freeze{ false };
     
+    void setNumClusteredLightReferences(int numRefs) { numClusteredLightReferences = numRefs; emit dirty(); }
+    int numClusteredLightReferences { 0 };
+
+    void setNumInputLights(int numLights) { numInputLights = numLights; emit dirty(); }
+    int numInputLights { 0 };
     void setNumClusteredLights(int numLights) { numClusteredLights = numLights; emit dirty(); }
     int numClusteredLights { 0 };
 signals:

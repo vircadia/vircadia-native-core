@@ -33,14 +33,28 @@ Column {
                        label: "time",
                        scale: 1,
                        color: "#FFFFFF"
+                   }
+                ]
+            }
+
+            PlotPerf {
+                title: "Lights"
+                height: 50
+                object: Render.getConfig("LightClustering")
+                valueUnit: ""
+                valueScale: 1
+                valueNumDigits: "0"
+                plots: [
+                    {
+                       object: Render.getConfig("LightClustering"),
+                       prop: "numClusteredLights",
+                       label: "visible",
+                       color: "#D959FE"
                    },
                    {
-                        object: Render.getConfig("DrawLight"),
-                        prop: "numDrawn", 
-                        unit: "",
-                        scale: 0.01,
-                        numDigits: 0,
-                        label: "Lights",
+                        object: Render.getConfig("LightClustering"),
+                        prop: "numInputLights",
+                        label: "input",
                         color: "#FED959"
                     }
                 ]
@@ -107,7 +121,7 @@ Column {
                     onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawContent"] = checked }
             }
             Label {
-                text:  "Num Cluster Items = " + Render.getConfig("LightClustering")["numClusteredLights"].toFixed(0)
+                text:  "Num Cluster Items = " + Render.getConfig("LightClustering")["numClusteredLightReferences"].toFixed(0)
             }
             
         }
