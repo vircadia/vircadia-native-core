@@ -565,28 +565,28 @@ var usersWindow = (function () {
 
     function updateOverlayVisibility() {
         Overlays.editOverlay(windowBorder, {
-            visible: isLoggedIn && isVisible && isBorderVisible
+            visible: isVisible && isBorderVisible
         });
         Overlays.editOverlay(windowPane, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(windowHeading, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(minimizeButton, {
             visible: isLoggedIn && isVisible
         });
         Overlays.editOverlay(scrollbarBackground, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(scrollbarBar, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(friendsButton, {
-            visible: isLoggedIn && isVisible && !isMinimized
+            visible: isVisible && !isMinimized
         });
-        displayControl.setVisible(isLoggedIn && isVisible && !isMinimized);
-        visibilityControl.setVisible(isLoggedIn && isVisible && !isMinimized);
+        displayControl.setVisible(isVisible && !isMinimized);
+        visibilityControl.setVisible(isVisible && !isMinimized);
     }
 
     function checkLoggedIn() {
@@ -594,6 +594,13 @@ var usersWindow = (function () {
 
         isLoggedIn = Account.isLoggedIn();
         if (isLoggedIn !== wasLoggedIn) {
+            if (wasLoggedIn) {
+                setMinimized(true);
+                calculateWindowHeight();
+                updateOverlayPositions();
+                updateUsersDisplay();
+            }
+
             updateOverlayVisibility();
         }
     }
