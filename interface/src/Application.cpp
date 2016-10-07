@@ -198,8 +198,9 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
-static const QString INFO_HELP_PATH = "html/interface-welcome.html";
+static const QString INFO_WELCOME_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
+static const QString INFO_HELP_PATH = "html/help.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
@@ -486,7 +487,7 @@ bool setupEssentials(int& argc, char** argv) {
 // FIXME move to header, or better yet, design some kind of UI manager
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
-Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
+std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 
 
@@ -1999,11 +2000,11 @@ void Application::setFieldOfView(float fov) {
 }
 
 void Application::aboutApp() {
-    InfoView::show(INFO_HELP_PATH);
+    InfoView::show(INFO_WELCOME_PATH);
 }
 
 void Application::showHelp() {
-    InfoView::show(INFO_EDIT_ENTITIES_PATH);
+    InfoView::show(INFO_HELP_PATH);
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
@@ -3625,7 +3626,7 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 _keyboardFocusedItem.set(entityItemID);
                 _lastAcceptedKeyPress = usecTimestampNow();
                 if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
-                    _keyboardFocusHighlight = new Cube3DOverlay();
+                    _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
                     _keyboardFocusHighlight->setAlpha(1.0f);
                     _keyboardFocusHighlight->setBorderSize(1.0f);
                     _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });

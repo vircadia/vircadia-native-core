@@ -291,7 +291,7 @@ function Teleporter() {
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 50));
 
 
-        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
+        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity], true, true);
 
         if (rightIntersection.intersects) {
             if (this.tooClose === true) {
@@ -354,7 +354,7 @@ function Teleporter() {
         var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 50));
 
 
-        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
+        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity], true, true);
 
         if (leftIntersection.intersects) {
 
@@ -472,7 +472,7 @@ function Teleporter() {
         };
 
         this.distance = Vec3.distance(MyAvatar.position, position);
-        this.tooClose = this.distance <= TELEPORT_CANCEL_RANGE;
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.targetOverlay, {
@@ -494,7 +494,7 @@ function Teleporter() {
         };
 
         this.distance = Vec3.distance(MyAvatar.position, position);
-        this.tooClose = this.distance <= TELEPORT_CANCEL_RANGE;
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.cancelOverlay, {
@@ -532,10 +532,20 @@ function Teleporter() {
             } else {
                 this.teleportMode = "AvatarOnly";
             }
-            this.smoothArrival();
+
+            // Disable smooth arrival, possibly temporarily
+            //this.smoothArrival();
+            // Instead jump to the intersection directly.
+            var landingPoint = _this.intersection.intersection;
+            _this.teleportTo(landingPoint);
             if (this.teleportMode === "HMDFirstAvatarWillFollow") {
-                this.dragAvatarCollisionlessly();
+                MyAvatar.position = landingPoint;
             }
+
+            // cleanup UI
+            _this.deleteTargetOverlay();
+            _this.deleteCancelOverlay();
+            HMD.centerUI();
         }
     };
 
@@ -671,6 +681,19 @@ function isMoving() {
     } else {
         return false;
     }
+};
+
+// When determininig whether you can teleport to a location, the normal of the
+// point that is being intersected with is looked at. If this normal is more
+// than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+// you can't teleport there.
+var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
+function isValidTeleportLocation(position, surfaceNormal) {
+    var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
+    var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+    return angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 };
 
 function registerMappings() {

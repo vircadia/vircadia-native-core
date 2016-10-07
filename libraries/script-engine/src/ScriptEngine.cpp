@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <QtScript/QScriptContextInfo>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
 
@@ -104,6 +105,26 @@ QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::Inp
 
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
     out = qobject_cast<controller::InputController*>(object.toQObject());
+}
+
+// FIXME Come up with a way to properly encode entity IDs in filename
+// The purpose of the following two function is to embed entity ids into entity script filenames
+// so that they show up in stacktraces
+//
+// Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
+QString extractUrlFromEntityUrl(const QString& url) {
+    auto parts = url.split(' ', QString::SkipEmptyParts);
+    if (parts.length() > 0) {
+        return parts[0];
+    } else {
+        return "";
+    }
+}
+
+// Encode an entity id into an entity url
+// Example: http://www.example.com/some/path.js [EntityID:{9fdd355f-d226-4887-9484-44432d29520e}]
+QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID) {
+    return url + " [EntityID:" + entityID + "]";
 }
 
 static bool hasCorrectSyntax(const QScriptProgram& program) {
@@ -828,7 +849,7 @@ void ScriptEngine::run() {
 
     _lastUpdate = usecTimestampNow();
 
-    std::chrono::microseconds totalUpdates;
+    std::chrono::microseconds totalUpdates(0);
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
@@ -1091,14 +1112,20 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
         return expandScriptUrl(url);
     }
 
+    QScriptContextInfo contextInfo { currentContext()->parentContext() };
+
+
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL;
-    if (_parentURL.isEmpty()) {
-        parentURL = QUrl(_fileNameString);
-    } else {
-        parentURL = QUrl(_parentURL);
+    QUrl parentURL = contextInfo.fileName();
+    if (parentURL.isEmpty()) {
+        if (_parentURL.isEmpty()) {
+            parentURL = QUrl(_fileNameString);
+        } else {
+            parentURL = QUrl(_parentURL);
+        }
     }
+
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
@@ -1323,7 +1350,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
+    auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
 
     QScriptProgram program(contents, fileName);
     if (!hasCorrectSyntax(program)) {

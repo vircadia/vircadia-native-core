@@ -9,7 +9,7 @@
 //
 
 import QtQuick 2.5
-import QtWebEngine 1.1
+import QtWebEngine 1.2
 
 WebEngineView {
     id: root

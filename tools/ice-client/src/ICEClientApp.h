@@ -33,6 +33,10 @@ public:
     const int stunResponseTimeoutMilliSeconds { 2000 };
     const int iceResponseTimeoutMilliSeconds { 2000 };
 
+public slots:
+    void iceResponseTimeout();
+    void stunResponseTimeout();
+
 private:
     enum State {
         lookUpStunServer, // 0
@@ -83,9 +87,7 @@ private:
     int _state { 0 };
 
     QTimer _stunResponseTimer;
-    bool _stunResponseTimerCanceled { false };
     QTimer _iceResponseTimer;
-    bool _iceResponseTimerCanceled { false };
     int _domainPingCount { 0 };
 };
 

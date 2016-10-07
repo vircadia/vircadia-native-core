@@ -395,9 +395,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
     });
 
-    if (!updatedEntity) {
-        return QUuid();
-    }
+    // FIXME: We need to figure out a better way to handle this. Allowing these edits to go through potentially
+    // breaks avatar energy and entities that are parented.
+    //
+    // To handle cases where a script needs to edit an entity with a _known_ entity id but doesn't exist
+    // in the local entity tree, we need to allow those edits to go through to the server.
+    // if (!updatedEntity) {
+    //     return QUuid();
+    // }
 
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
@@ -619,11 +624,11 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
 
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard, visibleOnly, collidableOnly);
 }
 
 // FIXME - we should remove this API and encourage all users to use findRayIntersection() instead. We've changed
@@ -638,17 +643,18 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
-                                                                                    Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
+        Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
 
 
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-            result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, (void**)&intersectedEntity, lockType, &result.accurate,
-                                                                precisionPicking);
+        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction,
+            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+            element, result.distance, result.face, result.surfaceNormal,
+            (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
