@@ -559,7 +559,7 @@ var usersWindow = (function () {
         });
 
         Overlays.editOverlay(windowHeading, {
-            text: linesOfUsers.length > 0 ? "Users online" : "No users online"
+            text: isLoggedIn ? (linesOfUsers.length > 0 ? "Users online" : "No users online") : "Users online - log in to view"
         });
     }
 
@@ -1028,7 +1028,7 @@ var usersWindow = (function () {
             color: WINDOW_HEADING_COLOR,
             alpha: WINDOW_HEADING_ALPHA,
             backgroundAlpha: 0.0,
-            text: "No users online",
+            text: "Users online",
             font: WINDOW_FONT,
             visible: false
         });
