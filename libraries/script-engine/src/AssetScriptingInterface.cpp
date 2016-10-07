@@ -21,7 +21,6 @@
 AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
     _engine(engine)
 {
-
 }
 
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
