@@ -124,6 +124,6 @@ Script.setTimeout(function () {
 http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/crowd-agent.js\n\
 on your domain server.");
     } else if (total < MINIMUM_AVATARS) {
-        Window.alert("Only " + summonedAgents.length + " of the expected " + (MINIMUM_AVATARS - total) + " agents +  reported in.");
+        Window.alert("Only " + summonedAgents.length + " of the expected " + (MINIMUM_AVATARS - total) + " agents reported in.");
     }
 }, 5000);
