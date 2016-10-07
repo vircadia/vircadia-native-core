@@ -26,7 +26,7 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = true;
+var FORCE_IGNORE_IK = false;
 var SHOW_GRAB_POINT_SPHERE = true;
 
 //
@@ -1901,7 +1901,7 @@ function MyController(hand) {
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
         } else {
-            this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
+            this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
         }
 
         var handRotation;
