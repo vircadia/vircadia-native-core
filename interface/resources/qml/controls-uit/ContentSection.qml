@@ -109,7 +109,7 @@ Column {
             }
 
             MouseArea {
-                // Events are propogated so that any active control is defocussed.
+                // Events are propogated so that any active control is defocused.
                 anchors.fill: parent
                 propagateComposedEvents: true
                 onPressed: {

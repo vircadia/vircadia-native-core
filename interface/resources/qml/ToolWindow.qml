@@ -56,7 +56,7 @@ ScrollingWindow {
         anchors.top: parent.top
 
         TabView {
-            id: tabView;
+            id: tabView
             width: pane.contentWidth
             // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
             height: pane.scrollHeight
@@ -69,10 +69,10 @@ ScrollingWindow {
                     // (required for letting the C++ code access the webview)
                     active: true
                     enabled: false
-                    property string originalUrl: "";
+                    property string originalUrl: ""
 
                     WebView {
-                        id: webView;
+                        id: webView
                         anchors.fill: parent
                         enabled: false
                         property alias eventBridgeWrapper: eventBridgeWrapper
@@ -80,11 +80,11 @@ ScrollingWindow {
                         QtObject {
                             id: eventBridgeWrapper
                             WebChannel.id: "eventBridgeWrapper"
-                            property var eventBridge;
+                            property var eventBridge
                         }
 
                         webChannel.registeredObjects: [eventBridgeWrapper]
-                        onEnabledChanged: toolWindow.updateVisiblity();
+                        onEnabledChanged: toolWindow.updateVisiblity()
                     }
                 }
             }

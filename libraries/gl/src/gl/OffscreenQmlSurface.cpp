@@ -581,7 +581,6 @@ bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
 }
 
 OffscreenQmlSurface::OffscreenQmlSurface() {
-    // moveToThread(qApp->thread());
 }
 
 static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
