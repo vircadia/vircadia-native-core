@@ -120,6 +120,11 @@ class LightClusteringPassConfig : public render::Job::Config {
     Q_PROPERTY(int numClusteredLightReferences MEMBER numClusteredLightReferences NOTIFY dirty)
     Q_PROPERTY(int numInputLights MEMBER numInputLights NOTIFY dirty)
     Q_PROPERTY(int numClusteredLights MEMBER numClusteredLights NOTIFY dirty)
+
+    Q_PROPERTY(int numSceneLights MEMBER numSceneLights NOTIFY dirty)
+    Q_PROPERTY(int numFreeSceneLights MEMBER numFreeSceneLights NOTIFY dirty)
+    Q_PROPERTY(int numAllocatedSceneLights MEMBER numAllocatedSceneLights NOTIFY dirty)
+
 public:
     LightClusteringPassConfig() : render::Job::Config(true){}
     float rangeNear{ 0.1f };
@@ -131,14 +136,18 @@ public:
 
 
     bool freeze{ false };
-    
-    void setNumClusteredLightReferences(int numRefs) { numClusteredLightReferences = numRefs; emit dirty(); }
-    int numClusteredLightReferences { 0 };
 
-    void setNumInputLights(int numLights) { numInputLights = numLights; emit dirty(); }
+    int numClusteredLightReferences { 0 };
     int numInputLights { 0 };
-    void setNumClusteredLights(int numLights) { numClusteredLights = numLights; emit dirty(); }
     int numClusteredLights { 0 };
+
+    void setNumClusteredLightReferences(int numRefs) { numClusteredLightReferences = numRefs; emit dirty(); }
+    void setNumInputLights(int numLights) { numInputLights = numLights; emit dirty(); }
+    void setNumClusteredLights(int numLights) { numClusteredLights = numLights; emit dirty(); }
+
+    int numSceneLights { 0 };
+    int numFreeSceneLights { 0 };
+    int numAllocatedSceneLights { 0 };
 signals:
     void dirty();
     

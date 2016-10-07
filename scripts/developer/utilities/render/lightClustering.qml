@@ -60,6 +60,35 @@ Column {
                 ]
             }
 
+             PlotPerf {
+                title: "Scene Lights"
+                height: 80
+                object: Render.getConfig("LightClustering")
+                valueUnit: ""
+                valueScale: 1
+                valueNumDigits: "0"
+                plots: [
+                    {
+                       object: Render.getConfig("LightClustering"),
+                       prop: "numSceneLights",
+                       label: "current",
+                       color: "#00B4EF"
+                   },
+                   {
+                        object: Render.getConfig("LightClustering"),
+                        prop: "numFreeSceneLights",
+                        label: "free",
+                        color: "#1AC567"
+                    },
+                   {
+                        object: Render.getConfig("LightClustering"),
+                        prop: "numAllocatedSceneLights",
+                        label: "allocated",
+                        color: "#9495FF"
+                    }
+                ]
+            }
+
             ConfigSlider {
                 label: qsTr("Range Near [m]")
                 integral: false

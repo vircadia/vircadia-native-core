@@ -31,6 +31,8 @@ namespace indexed_container {
 
         bool checkIndex(Index index) const { return ((index >= 0) && (index < _nextNewIndex)); }
         Index getNumIndices() const { return _nextNewIndex - (Index) _freeIndices.size(); }
+        Index getNumFreeIndices() const { return (Index) _freeIndices.size(); }
+        Index getNumAllocatedIndices() const { return _nextNewIndex; }
 
         Index allocateIndex() {
             if (_freeIndices.empty()) {
@@ -74,12 +76,14 @@ namespace indexed_container {
 
         bool checkIndex(Index index) const { return _allocator.checkIndex(index); };
         Index getNumElements() const { return _allocator.getNumIndices(); }
+        Index getNumFreeIndices() const { return _allocator.getNumFreeIndices(); }
+        Index getNumAllocatedIndices() const { return _allocator.getNumAllocatedIndices(); }
 
         Index newElement(const Element& e) {
             Index index = _allocator.allocateIndex();
             if (index != INVALID_INDEX) {
                 if (index < (Index) _elements.size()) {
-                    _elements.emplace(_elements.begin() + index, e);
+                    _elements[index] = e;
                 } else {
                     assert(index == _elements.size());
                     _elements.emplace_back(e);
@@ -113,12 +117,14 @@ namespace indexed_container {
 
         bool checkIndex(Index index) const { return _allocator.checkIndex(index); };
         Index getNumElements() const { return _allocator.getNumIndices(); }
+        Index getNumFreeIndices() const { return _allocator.getNumFreeIndices(); }
+        Index getNumAllocatedIndices() const { return _allocator.getNumAllocatedIndices(); }
 
         Index newElement(const ElementPtr& e) {
             Index index = _allocator.allocateIndex();
             if (index != INVALID_INDEX) {
                 if (index <  (Index) _elements.size()) {
-                    _elements.emplace(_elements.begin() + index, e);
+                    _elements[index] = e;
                 } else {
                     assert(index == (Index) _elements.size());
                     _elements.emplace_back(e);

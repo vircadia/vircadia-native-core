@@ -123,6 +123,16 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
     }
 }
 
+LightStage::Index LightStage::addShadow(Index lightIndex) {
+    auto light = getLight(lightIndex);
+    Index shadowId = INVALID_INDEX;
+    if (light) {
+        shadowId = _shadows.newElement(std::make_shared<Shadow>(light));
+        _descs[lightIndex].shadowId = shadowId;
+    }
+    return shadowId;
+}
+
 LightStage::LightPointer LightStage::removeLight(Index index) {
     LightPointer removed = _lights.freeElement(index);
     

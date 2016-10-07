@@ -80,11 +80,16 @@ public:
 
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
+
+    Index addShadow(Index lightIndex);
+
     LightPointer removeLight(Index index);
     
     bool checkLightId(Index index) const { return _lights.checkIndex(index); }
 
     Index getNumLights() const { return _lights.getNumElements(); }
+    Index getNumFreeLights() const { return _lights.getNumFreeIndices(); }
+    Index getNumAllocatedLights() const { return _lights.getNumAllocatedIndices(); }
 
     LightPointer getLight(Index lightId) const {
         return _lights.get(lightId);

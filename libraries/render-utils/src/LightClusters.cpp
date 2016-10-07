@@ -174,9 +174,7 @@ void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool p
     auto& srcPointLights = lightFrame._pointLights;
     auto& srcSpotLights = lightFrame._spotLights;
     int numPointLights = (int)srcPointLights.size();
-    // int offsetPointLights = 0;
     int numSpotLights = (int)srcSpotLights.size();
-    // int offsetSpotLights = numPointLights;
 
     _visibleLightIndices.resize(numPointLights + numSpotLights + 1);
 
@@ -367,10 +365,8 @@ glm::ivec3 LightClusters::updateClusters() {
             continue;
         }
 
-
         // CLamp the z range 
         zMin = std::max(0, zMin);
-        //   zMax = std::min(zMax, theFrustumGrid.dims.z);
 
         auto xLeftDistance = radius - distanceToPlane(eyeOri, _gridPlanes[0][0]);
         auto xRightDistance = radius + distanceToPlane(eyeOri, _gridPlanes[0].back());
@@ -389,8 +385,9 @@ glm::ivec3 LightClusters::updateClusters() {
         int yMax { theFrustumGrid.dims.y - 1 };
 
         float radius2 = radius * radius;
-        auto eyeOriH = eyeOri;
-        auto eyeOriV = eyeOri;
+
+        auto eyeOriH = glm::vec3(eyeOri);
+        auto eyeOriV = glm::vec3(eyeOri);
 
         eyeOriH.y = 0.0f;
         eyeOriV.x = 0.0f;
@@ -490,6 +487,7 @@ glm::ivec3 LightClusters::updateClusters() {
             }
         }
 
+        // Encode the cluster grid: [ ContentOffset - 16bits, Num Point LIghts - 8bits, Num Spot Lights - 8bits] 
         _clusterGrid[i] = (uint32_t)((0xFF000000 & (numLightsSpot << 24)) | (0x00FF0000 & (numLightsPoint << 16)) | (0x0000FFFF & offset));
 
 
@@ -553,6 +551,9 @@ void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, c
     output = _lightClusters;
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    config->numSceneLights = lightStage->getNumLights();
+    config->numFreeSceneLights = lightStage->getNumFreeLights();
+    config->numAllocatedSceneLights = lightStage->getNumAllocatedLights();
     config->setNumInputLights(clusteringStats.x);
     config->setNumClusteredLights(clusteringStats.y);
     config->setNumClusteredLightReferences(clusteringStats.z);

@@ -139,6 +139,7 @@ void DeferredLightingEffect::init() {
 
     // Add the global light to the light stage (for later shadow rendering)
     _globalLights.push_back(_lightStage->addLight(lp));
+    _lightStage->addShadow(_globalLights[0]);
 
 }
 
