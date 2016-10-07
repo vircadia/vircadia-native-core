@@ -136,9 +136,9 @@ public:
     float rangeNear{ 0.1f };
     float rangeFar{ 200.0f };
 
-    int dimX { 16 };
-    int dimY { 16 };
-    int dimZ { 16 };
+    int dimX { 14 };
+    int dimY { 14 };
+    int dimZ { 14 };
 
 
     bool freeze{ false };
