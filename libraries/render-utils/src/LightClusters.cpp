@@ -126,7 +126,7 @@ uint32_t LightClusters::getNumClusters() const {
     }
     _clusterResourcesInvalid = false;
     auto numClusters = getNumClusters();
-    if (numClusters != _clusterGrid.size()) {
+    if (numClusters != (uint32_t) _clusterGrid.size()) {
         _clusterGrid.clear();
         _clusterGrid.resize(numClusters, EMPTY_CLUSTER);
         _clusterGridBuffer._size = (numClusters * sizeof(uint32_t));
@@ -139,7 +139,7 @@ uint32_t LightClusters::getNumClusters() const {
         configListBudget *= 2;
     }
 
-    if (configListBudget != _clusterContent.size()) {
+    if (configListBudget != (uint32_t) _clusterContent.size()) {
         _clusterContent.clear();
         _clusterContent.resize(configListBudget, INVALID_LIGHT);
         _clusterContentBuffer._size = (configListBudget * sizeof(LightIndex));

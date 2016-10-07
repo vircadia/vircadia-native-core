@@ -102,7 +102,7 @@ public:
     std::vector<LightIndex> _clusterContent;
     gpu::BufferView _clusterGridBuffer;
     gpu::BufferView _clusterContentBuffer;
-    int32_t _clusterContentBudget { 0 };
+    uint32_t _clusterContentBudget { 0 };
 
     bool _clusterResourcesInvalid { true };
     void updateClusterResource();
