@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QTimer>
 #include <QUuid>
 
 #include <EntityEditPacketSender.h>
@@ -70,7 +71,7 @@ private slots:
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message); 
 
-    void processAgentAvatarAndAudio(float deltaTime);
+    void processAgentAvatarAndAudio();
     void nodeActivated(SharedNodePointer activatedNode);
 
 private:
@@ -101,8 +102,7 @@ private:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; 
-
-
+    QTimer* _avatarAudioTimer;
 };
 
 #endif // hifi_Agent_h

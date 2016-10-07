@@ -373,8 +373,13 @@ void Agent::executeScript() {
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
 
+    _avatarAudioTimer = new QTimer(this);
+    _avatarAudioTimer->setTimerType(Qt::PreciseTimer);
+    connect(_avatarAudioTimer, SIGNAL(timeout()), this, SLOT(processAgentAvatarAndAudio()));
+    _avatarAudioTimer->start(10);
+
     // wire up our additional agent related processing to the update signal
-    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
+    //QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
 
@@ -420,10 +425,10 @@ void Agent::sendAvatarIdentityPacket() {
     }
 }
 
-void Agent::processAgentAvatarAndAudio(float deltaTime) {
+void Agent::processAgentAvatarAndAudio() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / SCRIPT_FPS + 0.5;
+        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / 100;//SCRIPT_FPS + 0.5;
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
@@ -513,9 +518,8 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 if (_encoder) {
                     _encoder->encode(decodedBuffer, encodedBuffer);
                 } else {
-                    encodedBuffer = decodedBuffer;
+                    audioPacket->write(decodedBuffer.data(), decodedBuffer.size());
                 }
-
 
                 // write the raw audio data
                 audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
