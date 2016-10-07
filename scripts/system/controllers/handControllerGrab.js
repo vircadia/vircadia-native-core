@@ -1382,10 +1382,11 @@ function MyController(hand) {
     this.chooseBestEquipHotspot = function(candidateEntities) {
         var DISTANCE = 0;
         var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
+        var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var handControllerLocation = getControllerWorldLocation(this.handToController(), true);
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
                 var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
                 var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
                 return aDistance - bDistance;
