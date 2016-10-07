@@ -49,6 +49,7 @@ public:
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
     QUrl getUrl() const { return ::getATPUrl(_hash); }
+    QString getHash() const { return _hash; }
 
 signals:
     void finished(AssetRequest* thisRequest);

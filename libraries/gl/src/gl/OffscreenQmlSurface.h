@@ -9,24 +9,27 @@
 #ifndef hifi_OffscreenQmlSurface_h
 #define hifi_OffscreenQmlSurface_h
 
-#include <QTimer>
-#include <QUrl>
 #include <atomic>
 #include <functional>
 
+#include <QtCore/QJsonObject>
+#include <QTimer>
+#include <QUrl>
+
+
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
+#include "TextureRecycler.h"
 
 class QWindow;
 class QMyQuickRenderControl;
+class OffscreenGLCanvas;
 class QOpenGLContext;
 class QQmlEngine;
 class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-class OffscreenQmlRenderThread;
-
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
@@ -88,8 +91,6 @@ signals:
     void focusTextChanged(bool focusText);
 
 public slots:
-    void requestUpdate();
-    void requestRender();
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
 
@@ -109,24 +110,44 @@ protected:
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
+    void setupFbo();
+    bool allowNewFrame(uint8_t fps);
+    void render();
+    void cleanup();
+    QJsonObject getGLContextData();
 
 private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
 
 private:
-    friend class OffscreenQmlRenderThread;
-    OffscreenQmlRenderThread* _renderer{ nullptr };
-    QQmlEngine* _qmlEngine{ nullptr };
-    QQmlComponent* _qmlComponent{ nullptr };
-    QQuickItem* _rootItem{ nullptr };
+    QQuickWindow* _quickWindow { nullptr };
+    QMyQuickRenderControl* _renderControl{ nullptr };
+    QQmlEngine* _qmlEngine { nullptr };
+    QQmlComponent* _qmlComponent { nullptr };
+    QQuickItem* _rootItem { nullptr };
+    OffscreenGLCanvas* _canvas { nullptr };
+    QJsonObject _glData;
+
     QTimer _updateTimer;
-    bool _render{ false };
-    bool _polish{ true };
-    bool _paused{ true };
+    uint32_t _fbo { 0 };
+    uint32_t _depthStencil { 0 };
+    uint64_t _lastRenderTime { 0 };
+    uvec2 _size { 1920, 1080 };
+    TextureRecycler _textures { true };
+
+    // Texture management
+    std::mutex _textureMutex;
+    TextureAndFence _latestTextureAndFence { 0, 0 };
+    std::list<TextureAndFence> _returnedTextures;
+
+
+    bool _render { false };
+    bool _polish { true };
+    bool _paused { true };
     bool _focusText { false };
-    uint8_t _maxFps{ 60 };
-    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
+    uint8_t _maxFps { 60 };
+    MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };

@@ -61,6 +61,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 

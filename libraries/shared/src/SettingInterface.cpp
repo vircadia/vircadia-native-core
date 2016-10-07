@@ -34,7 +34,6 @@ namespace Setting {
         DependencyManager::destroy<Manager>();
 
         //
-        globalManager->deleteLater();
         globalManager.reset();
         
         // quit the settings manager thread and wait on it to make sure it's gone
@@ -72,9 +71,9 @@ namespace Setting {
 
         globalManager = DependencyManager::set<Manager>();
 
-        QObject::connect(globalManager.data(), SIGNAL(destroyed()), thread, SLOT(quit()));
         QObject::connect(thread, SIGNAL(started()), globalManager.data(), SLOT(startTimer()));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+        QObject::connect(thread, SIGNAL(finished()), globalManager.data(), SLOT(deleteLater()));
         globalManager->moveToThread(thread);
         thread->start();
         qCDebug(shared) << "Settings thread started.";    
