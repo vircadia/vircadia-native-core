@@ -180,23 +180,10 @@ Window {
                 children: [ footer ]
             }
 
-            HiFiControls.KeyboardAlpha {
-                id: keyboard1
-                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
-                enabled: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                }
-            }
-
-            HiFiControls.KeyboardPunctuation {
-                id: keyboard2
-                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
-                enabled: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
+            HiFiControls.Keyboard {
+                enabled: keyboardEnabled
+                raised: keyboardRaised
+                numeric: punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
