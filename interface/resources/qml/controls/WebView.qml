@@ -106,7 +106,7 @@ Item {
     }
 
     // virtual keyboard, letters
-    HiFiControls.Keyboard {
+    HiFiControls.KeyboardAlpha {
         id: keyboard1
         y: keyboardRaised ? parent.height : 0
         height: keyboardRaised ? 200 : 0

@@ -276,7 +276,7 @@ Window {
         }
 
         // virtual keyboard, letters
-        HifiControls.Keyboard {
+        HifiControls.KeyboardAlpha {
             id: keyboard1
             y: parent.keyboardRaised ? parent.height : 0
             height: parent.keyboardRaised ? 200 : 0

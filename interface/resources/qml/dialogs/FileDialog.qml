@@ -647,7 +647,7 @@ ModalWindow {
             KeyNavigation.right: openButton
         }
 
-        Keyboard {
+        KeyboardAlpha {
             id: keyboard1
             height: parent.keyboardRaised ? 200 : 0
             visible: parent.keyboardRaised && !parent.punctuationMode

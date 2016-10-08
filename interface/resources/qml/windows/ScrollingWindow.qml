@@ -180,7 +180,7 @@ Window {
                 children: [ footer ]
             }
 
-            HiFiControls.Keyboard {
+            HiFiControls.KeyboardAlpha {
                 id: keyboard1
                 height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
                 visible: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode

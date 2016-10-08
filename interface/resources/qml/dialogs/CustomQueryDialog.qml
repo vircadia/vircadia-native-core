@@ -165,7 +165,7 @@ ModalWindow {
                     bottomMargin: keyboardRaised ? hifi.dimensions.contentSpacing.y : 0
                 }
 
-                Keyboard {
+                KeyboardAlpha {
                     id: keyboard1
                     visible: keyboardRaised && !punctuationMode
                     enabled: keyboardRaised && !punctuationMode
