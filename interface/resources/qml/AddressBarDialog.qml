@@ -74,7 +74,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
+        implicitHeight: backgroundImage.height + (keyboardRaised ? keyboard.raisedHeight : 0)
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -275,34 +275,17 @@ Window {
             }
         }
 
-        // virtual keyboard, letters
-        HifiControls.KeyboardAlpha {
-            id: keyboard1
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
+        HifiControls.Keyboard {
+            id: keyboard
+            raised: parent.keyboardRaised
+            numeric: parent.punctuationMode
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
         }
 
-        HifiControls.KeyboardPunctuation {
-            id: keyboard2
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-        }
     }
 
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.

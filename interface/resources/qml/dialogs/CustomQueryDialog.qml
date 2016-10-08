@@ -116,7 +116,7 @@ ModalWindow {
                 var targetHeight = (textField.visible ? textField.controlHeight + hifi.dimensions.contentSpacing.y : 0) +
                                    (extraInputs.visible ? extraInputs.height + hifi.dimensions.contentSpacing.y : 0) +
                                    (buttons.height + 3 * hifi.dimensions.contentSpacing.y) +
-                                   (root.keyboardRaised ? (200 + hifi.dimensions.contentSpacing.y) : 0);
+                                   (root.keyboardRaised ? (keyboard.raisedHeight + hifi.dimensions.contentSpacing.y) : 0);
 
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
@@ -153,38 +153,15 @@ ModalWindow {
                 }
             }
 
-            Item {
+            Keyboard {
                 id: keyboard
-
-                height: keyboardRaised ? 200 : 0
-
+                raised: keyboardRaised
+                numeric: punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
                     bottom: parent.bottom
                     bottomMargin: keyboardRaised ? hifi.dimensions.contentSpacing.y : 0
-                }
-
-                KeyboardAlpha {
-                    id: keyboard1
-                    visible: keyboardRaised && !punctuationMode
-                    enabled: keyboardRaised && !punctuationMode
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        bottom: parent.bottom
-                    }
-                }
-
-                KeyboardPunctuation {
-                    id: keyboard2
-                    visible: keyboardRaised && punctuationMode
-                    enabled: keyboardRaised && punctuationMode
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        bottom: parent.bottom
-                    }
                 }
             }
         }

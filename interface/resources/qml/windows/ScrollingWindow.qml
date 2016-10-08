@@ -141,7 +141,7 @@ Window {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footerContentHeight + (keyboardEnabled && keyboardRaised ? 200 : 0)
+            height: footerContentHeight + (keyboardEnabled && keyboardRaised ? keyboard.height : 0)
             color: hifi.colors.baseGray
             visible: footer.height > 0 || keyboardEnabled && keyboardRaised
 
@@ -181,6 +181,7 @@ Window {
             }
 
             HiFiControls.Keyboard {
+                id: keyboard
                 enabled: keyboardEnabled
                 raised: keyboardRaised
                 numeric: punctuationMode
@@ -196,7 +197,7 @@ Window {
     onKeyboardRaisedChanged: {
         if (keyboardEnabled && keyboardRaised) {
             var delta = activator.mouseY
-                    - (activator.height + activator.y - 200 - footerContentHeight - hifi.dimensions.controlLineHeight);
+                    - (activator.height + activator.y - keyboard.raisedHeight - footerContentHeight - hifi.dimensions.controlLineHeight);
 
             if (delta > 0) {
                 pane.scrollBy(delta);

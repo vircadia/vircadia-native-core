@@ -27,7 +27,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? 200 + hifi.dimensions.contentSpacing.y : 0)
+    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? keyboard.raisedHeight + hifi.dimensions.contentSpacing.y : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -626,7 +626,7 @@ ModalWindow {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right
                 rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
-                bottom: keyboard1.top
+                bottom: keyboard.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             readOnly: !root.saveDialog
@@ -647,26 +647,16 @@ ModalWindow {
             KeyNavigation.right: openButton
         }
 
-        KeyboardAlpha {
-            id: keyboard1
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: visible
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.bottom: buttonRow.top
-            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
-        }
-
-        KeyboardPunctuation {
-            id: keyboard2
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: visible
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.bottom: buttonRow.top
-            anchors.bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
+        Keyboard {
+            id: keyboard
+            raised: parent.keyboardRaised
+            numeric: parent.punctuationMode
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: buttonRow.top
+                bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
+            }
         }
 
         Row {
