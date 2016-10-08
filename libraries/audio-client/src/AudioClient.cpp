@@ -115,7 +115,7 @@ AudioClient::AudioClient() :
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
-    _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
+    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
@@ -817,6 +817,13 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         return;
     }
 
+    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
+    // multimedia OS they should be. If there is a device that this is not true for, we can
+    // add back support to do resampling.
+    if (_inputFormat.sampleRate() != _outputFormat.sampleRate()) {
+        return;
+    }
+
     // if this person wants local loopback add that to the locally injected audio
     // if there is reverb apply it to local audio and substract the origin samples
 
@@ -832,11 +839,6 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
             return;
         }
     }
-
-    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
-    // multimedia OS they should be. If there is a device that this is not true for, we can
-    // add back support to do resampling.
-    Q_ASSERT(_inputFormat.sampleRate() == _outputFormat.sampleRate());
 
     static QByteArray loopBackByteArray;
 
@@ -1150,9 +1152,9 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
 }
 
 void AudioClient::outputFormatChanged() {
-    int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();
-    _outputFrameSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * outputFormatChannelCountTimesSampleRate / _desiredOutputFormat.sampleRate();
-    _receivedAudioStream.outputFormatChanged(outputFormatChannelCountTimesSampleRate);
+    _outputFrameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate()) /
+        _desiredOutputFormat.sampleRate();
+    _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), _outputFormat.channelCount());
 }
 
 bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
@@ -1362,7 +1364,7 @@ int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
 // proportional to the accelerator ratio.
 
 #ifdef Q_OS_WIN
-const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 1.0f;
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = IsWindows8OrGreater() ? 1.0f : 0.25f;
 #endif
 
 #ifdef Q_OS_MAC

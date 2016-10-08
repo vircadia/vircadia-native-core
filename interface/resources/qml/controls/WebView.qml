@@ -1,6 +1,7 @@
 import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
+import "../controls-uit" as HiFiControls
 
 Item {
     property alias url: root.url
@@ -105,7 +106,7 @@ Item {
     }
 
     // virtual keyboard, letters
-    Keyboard {
+    HiFiControls.Keyboard {
         id: keyboard1
         y: keyboardRaised ? parent.height : 0
         height: keyboardRaised ? 200 : 0
@@ -119,7 +120,7 @@ Item {
         anchors.bottomMargin: 0
     }
 
-    KeyboardPunctuation {
+    HiFiControls.KeyboardPunctuation {
         id: keyboard2
         y: keyboardRaised ? parent.height : 0
         height: keyboardRaised ? 200 : 0

@@ -6,6 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLShader.h"
+#include <gl/GLShaders.h>
+
 #include "GLBackend.h"
 
 using namespace gpu;
@@ -68,7 +70,11 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
 
         std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
 
-        bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
+#ifdef SEPARATE_PROGRAM
+        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
+#else
+        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader);
+#endif
         if (!result) {
             return nullptr;
         }
@@ -103,7 +109,7 @@ GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
             }
         }
 
-        GLuint glprogram = compileProgram(shaderGLObjects);
+        GLuint glprogram = ::gl::compileProgram(shaderGLObjects);
         if (glprogram == 0) {
             return nullptr;
         }

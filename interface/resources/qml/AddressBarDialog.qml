@@ -15,6 +15,7 @@ import "styles"
 import "windows"
 import "hifi"
 import "hifi/toolbars"
+import "styles-uit" as HifiStyles
 import "controls-uit" as HifiControls
 
 Window {
@@ -58,20 +59,30 @@ Window {
         }
         addressLine.text = targetString;
         toggleOrGo(true);
+        clearAddressLineTimer.start();
     }
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
+    property bool isCursorVisible: false  // Override default cursor visibility.
 
     AddressBarDialog {
         id: addressBarDialog
+
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height
+        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
+
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onReceivedHifiSchemeURL: resetAfterTeleport();
+
+        // Update location after using back and forward buttons.
+        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
 
         ListModel { id: suggestions }
 
@@ -168,7 +179,24 @@ Window {
                 }
             }
 
-            // FIXME replace with TextField
+            HifiStyles.RalewayLight {
+                id: notice;
+                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                anchors {
+                    top: parent.top
+                    topMargin: parent.inputAreaStep + 12
+                    left: addressLine.left
+                    right: addressLine.right
+                }
+            }
+            HifiStyles.FiraSansRegular {
+                id: location;
+                font.pixelSize: addressLine.font.pixelSize;
+                color: "gray";
+                clip: true;
+                anchors.fill: addressLine;
+                visible: addressLine.text.length === 0
+            }
             TextInput {
                 id: addressLine
                 focus: true
@@ -179,20 +207,57 @@ Window {
                     right: parent.right
                     leftMargin: forwardArrow.width
                     rightMargin: forwardArrow.width / 2
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
+                    bottomMargin: parent.inputAreaStep
                 }
                 font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                helperText: "Go to: place, @user, /path, network address"
-                helperPixelSize: font.pixelSize * 0.75
-                helperItalic: true
-                onTextChanged: filterChoicesByText()
+                cursorVisible: false
+                onTextChanged: {
+                    filterChoicesByText();
+                    updateLocationText(text.length > 0);
+                    if (!isCursorVisible && text.length > 0) {
+                        isCursorVisible = true;
+                        cursorVisible = true;
+                    }
+                }
+                onActiveFocusChanged: {
+                    cursorVisible = isCursorVisible;
+                }
+                MouseArea {
+                    // If user clicks in address bar show cursor to indicate ability to enter address.
+                    anchors.fill: parent
+                    onClicked: {
+                        isCursorVisible = true;
+                        parent.cursorVisible = true;
+                    }
+                }
+            }
+        }
+
+        Timer {
+            // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
+            id: updateLocationTextTimer
+            running: false
+            interval: 500  // ms
+            repeat: false
+            onTriggered: updateLocationText(false);
+        }
+
+        Timer {
+            // Delay clearing address line so as to avoid flicker of "not connected" being displayed after entering an address.
+            id: clearAddressLineTimer
+            running: false
+            interval: 100  // ms
+            repeat: false
+            onTriggered: {
+                addressLine.text = "";
+                isCursorVisible = false;
             }
         }
 
         Window {
-            width: 938;
-            height: 625;
+            width: 938
+            height: 625
             scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
@@ -208,6 +273,35 @@ Window {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
             }
+        }
+
+        // virtual keyboard, letters
+        HifiControls.Keyboard {
+            id: keyboard1
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && !parent.punctuationMode
+            enabled: parent.keyboardRaised && !parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+        }
+
+        HifiControls.KeyboardPunctuation {
+            id: keyboard2
+            y: parent.keyboardRaised ? parent.height : 0
+            height: parent.keyboardRaised ? 200 : 0
+            visible: parent.keyboardRaised && parent.punctuationMode
+            enabled: parent.keyboardRaised && parent.punctuationMode
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
         }
     }
 
@@ -344,12 +438,23 @@ Window {
         });
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            addressLine.forceActiveFocus()
-            fillDestinations();
+    function updateLocationText(enteringAddress) {
+        if (enteringAddress) {
+            notice.text = "Go to a place, @user, path or network address";
+            notice.color = "gray";
         } else {
-            addressLine.text = ""
+            notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
+            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            // Display hostname, which includes ip address, localhost, and other non-placenames.
+            location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
+        }
+    }
+
+    onVisibleChanged: {
+        updateLocationText(false);
+        if (visible) {
+            addressLine.forceActiveFocus();
+            fillDestinations();
         }
     }
 
@@ -365,11 +470,13 @@ Window {
             case Qt.Key_Escape:
             case Qt.Key_Back:
                 root.shown = false
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 toggleOrGo()
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
         }

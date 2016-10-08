@@ -43,7 +43,36 @@ void QmlWebWindowClass::emitWebEvent(const QVariant& webMessage) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
     } else {
-        emit webEventReceived(webMessage);
+        // Special case to handle raising and lowering the virtual keyboard.
+        const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
+        const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        QString messageString = webMessage.type() == QVariant::String ? webMessage.toString() : "";
+        if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
+            setKeyboardRaised(asQuickItem(), true, messageString == RAISE_KEYBOARD_NUMERIC);
+        } else if (messageString == LOWER_KEYBOARD) {
+            setKeyboardRaised(asQuickItem(), false);
+        } else {
+            emit webEventReceived(webMessage);
+        }
+    }
+}
+
+void QmlWebWindowClass::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+    if (!object) {
+        return;
+    }
+
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        if (item->property("keyboardRaised").isValid()) {
+            if (item->property("punctuationMode").isValid()) {
+                item->setProperty("punctuationMode", QVariant(numeric));
+            }
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
     }
 }
 

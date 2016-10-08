@@ -48,8 +48,7 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _entityEditSender(),
-    _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO,
-        RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
+    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
@@ -62,6 +61,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -351,6 +351,21 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
+
+            // The avatar mixer never times out a connection (e.g., based on identity or data packets)
+            // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
+            // when we stop sending identity, but then get woken up again by the mixer itself, which sends
+            // identity packets to everyone. Here we explicitly tell the mixer to kill the entry for us.
+            auto nodeList = DependencyManager::get<NodeList>();
+            auto packetList = NLPacketList::create(PacketType::KillAvatar, QByteArray(), true, true);
+            packetList->write(getSessionUUID().toRfc4122());
+            nodeList->eachMatchingNode(
+                [&](const SharedNodePointer& node)->bool {
+                return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+            },
+                [&](const SharedNodePointer& node) {
+                nodeList->sendPacketList(std::move(packetList), *node);
+            });
         }
     }
 }

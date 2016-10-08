@@ -78,6 +78,9 @@
                         _this.explodeWithColor();
                         _this.smokePuff();
                         Entities.deleteEntity(otherID)
+                        Messages.sendMessage('Entity-Exploded', JSON.stringify({
+                            entityID: otherID,
+                        }));
                     }
                 }
             }

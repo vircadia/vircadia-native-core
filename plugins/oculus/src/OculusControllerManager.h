@@ -26,6 +26,8 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    bool isHandController() const override { return _touch != nullptr; }
+
     bool activate() override;
     void deactivate() override;
 

@@ -90,7 +90,11 @@ bool copyShapeToMesh(const btTransform& transform, const btConvexShape* shape,
         avgVertex = transform * (avgVertex * (1.0f / (float)numHullVertices));
 
         for (int i = 0; i < numHullVertices; ++i) {
-            btVector3 norm = (transform * hullVertices[i] - avgVertex).normalize();
+            btVector3 norm = transform * hullVertices[i] - avgVertex;
+            btScalar normLength = norm.length();
+            if (normLength > FLT_EPSILON) {
+                norm /= normLength;
+            }
             memcpy(tempVertices + 3 * i, norm.m_floats, SIZE_OF_VEC3);
         }
         gpu::BufferView::Size numBytes = sizeof(float) * (3 * numHullVertices);

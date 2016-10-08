@@ -28,12 +28,18 @@ protected:
 
 private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onTimeout();
 
 private:
+    void setupTimer();
+    void cleanupTimer();
+
     bool urlIsAssetHash() const;
 
     void requestMappingForPath(const AssetPath& path);
     void requestHash(const AssetHash& hash);
+
+    QTimer* _sendTimer { nullptr };
 
     GetMappingRequest* _assetMappingRequest { nullptr };
     AssetRequest* _assetRequest { nullptr };

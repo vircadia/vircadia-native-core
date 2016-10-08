@@ -119,8 +119,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_startNamedCall),
     (&::gpu::gl::GLBackend::do_stopNamedCall),
 
-    (&::gpu::gl::GLBackend::do_glActiveBindTexture),
-
     (&::gpu::gl::GLBackend::do_glUniform1i),
     (&::gpu::gl::GLBackend::do_glUniform1f),
     (&::gpu::gl::GLBackend::do_glUniform2f),
@@ -388,14 +386,6 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 // #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-void GLBackend::do_glActiveBindTexture(const Batch& batch, size_t paramOffset) {
-    glActiveTexture(batch._params[paramOffset + 2]._uint);
-    glBindTexture(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._uint),
-        batch._params[paramOffset + 0]._uint);
-
-    (void)CHECK_GL_ERROR();
-}
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
@@ -568,6 +558,11 @@ void GLBackend::releaseBuffer(GLuint id, Size size) const {
     _buffersTrash.push_back({ id, size });
 }
 
+void GLBackend::releaseExternalTexture(GLuint id, const Texture::ExternalRecycler& recycler) const {
+    Lock lock(_trashMutex);
+    _externalTexturesTrash.push_back({ id, recycler });
+}
+
 void GLBackend::releaseTexture(GLuint id, Size size) const {
     Lock lock(_trashMutex);
     _texturesTrash.push_back({ id, size });
@@ -659,6 +654,19 @@ void GLBackend::recycle() const {
         }
         if (!ids.empty()) {
             glDeleteTextures((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
+        {
+            Lock lock(_trashMutex);
+            std::swap(_externalTexturesTrash, externalTexturesTrash);
+        }
+        for (auto pair : externalTexturesTrash) {
+            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            pair.second(pair.first, fence);
+            decrementTextureGPUCount();
         }
     }
 

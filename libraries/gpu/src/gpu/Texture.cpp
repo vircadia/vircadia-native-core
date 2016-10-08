@@ -238,6 +238,16 @@ bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Si
     return allocated == size;
 }
 
+Texture* Texture::createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler) {
+    Texture* tex = new Texture();
+    tex->_type = TEX_2D;
+    tex->_maxMip = 0;
+    tex->_sampler = sampler;
+    tex->setUsage(Usage::Builder().withExternal().withColor());
+    tex->setExternalRecycler(recycler);
+    return tex;
+}
+
 Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
     return create(TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
 }
@@ -925,3 +935,16 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
+void Texture::setExternalTexture(uint32 externalId, void* externalFence) {
+    Lock lock(_externalMutex);
+    _externalUpdates.push_back({ externalId, externalFence });
+}
+
+Texture::ExternalUpdates Texture::getUpdates() const {
+    Texture::ExternalUpdates result;
+    {
+        Lock lock(_externalMutex);
+        _externalUpdates.swap(result);
+    }
+    return result;
+}

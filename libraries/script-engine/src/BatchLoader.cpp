@@ -13,12 +13,14 @@
 #include <QNetworkReply>
 
 #include <QFile>
+#include <QPointer>
 #include "ScriptEngineLogging.h"
 #include "BatchLoader.h"
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 #include "ResourceManager.h"
 #include "ScriptEngines.h"
+#include "ScriptCache.h"
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
@@ -38,30 +40,25 @@ void BatchLoader::start() {
 
     for (const auto& rawURL : _urls) {
         QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
-        auto request = ResourceManager::createResourceRequest(this, url);
-        if (!request) {
-            _data.insert(url, QString());
-            qCDebug(scriptengine) << "Could not load" << url;
-            continue;
-        }
-        connect(request, &ResourceRequest::finished, this, [=]() {
-            if (request->getResult() == ResourceRequest::Success) {
-                _data.insert(url, request->getData());
+
+        qCDebug(scriptengine) << "Loading script at " << url;
+
+        QPointer<BatchLoader> self = this;
+        DependencyManager::get<ScriptCache>()->getScriptContents(url.toString(), [this, self](const QString& url, const QString& contents, bool isURL, bool success) {
+            if (!self) {
+                return;
+            }
+            if (isURL && success) {
+                _data.insert(url, contents);
+                qCDebug(scriptengine) << "Loaded: " << url;
             } else {
                 _data.insert(url, QString());
                 qCDebug(scriptengine) << "Could not load" << url;
             }
-            request->deleteLater();
             checkFinished();
-        });
-
-        // If we end up being destroyed before the reply finishes, clean it up
-        connect(this, &QObject::destroyed, request, &QObject::deleteLater);
-
-        qCDebug(scriptengine) << "Loading script at " << url;
-
-        request->send();
+        }, false);
     }
+
     checkFinished();
 }
 

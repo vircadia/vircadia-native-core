@@ -243,6 +243,10 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
     return GL45Texture::getId<GL45Texture>(*this, texture, transfer);
 }
 
+GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId)
+    : GLTexture(backend, texture, externalId), _sparseInfo(*this), _transferState(*this) {
+}
+
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
@@ -252,7 +256,10 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 GL45Texture::~GL45Texture() {
-    qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
+    // External textures cycle very quickly, so don't spam the log with messages about them.
+    if (!_gpuObject.getUsage().isExternal()) {
+        qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
+    }
     if (_sparseInfo.sparse) {
         // Remove this texture from the candidate list of derezzable textures
         {
@@ -511,9 +518,7 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     _minMip = newMinMip;
     // Re-sync the sampler to force access to the new mip level
     syncSampler();
-    size_t oldSize = _size;
     updateSize();
-    Q_ASSERT(_size > oldSize);
 
 
     // Re-insert into the texture-by-mips map if appropriate
