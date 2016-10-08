@@ -104,9 +104,9 @@ void releaseOpenVrSystem() {
                 qCDebug(displayplugins) << "OpenVR: zero refcount, deallocate VR system";
             #endif
 
-            // HACK: workaround openvr crash, call submit right before VR_Shutdown.
-            const GLuint NON_ZERO_GL_TEXTURE_HANDLE = 1;
-            vr::Texture_t vrTexture{ (void*)NON_ZERO_GL_TEXTURE_HANDLE, vr::API_OpenGL, vr::ColorSpace_Auto };
+            // HACK: workaround openvr crash, call submit with an invalid texture, right before VR_Shutdown.
+            const GLuint INVALID_GL_TEXTURE_HANDLE = -1;
+            vr::Texture_t vrTexture{ (void*)INVALID_GL_TEXTURE_HANDLE, vr::API_OpenGL, vr::ColorSpace_Auto };
             static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_LEFT{ 0, 0, 0.5f, 1 };
             static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };
             vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
