@@ -1,6 +1,6 @@
-// this script turns an entity into an exploder -- anything that collides with it will be vaporized!
-// 
+// Originally written by James Pollack, modified by Ryan Huffman for the tutorial
 //
+// this script turns an entity into an exploder -- anything that collides with it will be vaporized!
 
 (function() {
 
@@ -58,7 +58,6 @@
         preload: function(entityID) {
             this.entityID = entityID;
             this.EXPLOSION_SOUND = SoundCache.getSound("atp:/firepit/fire_burst.wav");
-
         },
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var otherProps = Entities.getEntityProperties(otherID);
@@ -73,12 +72,10 @@
             } else {
                 if (data.hasOwnProperty('hifiHomeKey')) {
                     if (data.hifiHomeKey.reset === true) {
-                        print('FLAMMABLE THING, EXPLODE IT!');
                         _this.playSoundAtCurrentPosition();
                         _this.explodeWithColor();
-                        _this.smokePuff();
                         Entities.deleteEntity(otherID)
-                        Messages.sendMessage('Entity-Exploded', JSON.stringify({
+                        Messages.sendLocalMessage('Entity-Exploded', JSON.stringify({
                             entityID: otherID,
                         }));
                     }
@@ -86,7 +83,6 @@
             }
         },
         explodeWithColor: function() {
-            print('EXPLODE!')
             var myProps = Entities.getEntityProperties(this.entityID);
             var color = colors[Math.floor(Math.random() * colors.length)];
             var explosionParticleProperties = {
@@ -148,10 +144,6 @@
             };
 
             var explosion = Entities.addEntity(explosionParticleProperties);
-            print('explosion is: ' + explosion)
-        },
-        smokePuff: function() {
-            //smoke puff here
         },
         playSoundAtCurrentPosition: function() {
 

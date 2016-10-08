@@ -15,16 +15,10 @@
 #include <QtWidgets/qapplication.h>
 #include <QDebug>
 
-QString ServerPathUtils::getDataDirectory() {
-    auto dataPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+#include "PathUtils.h"
 
-#ifdef Q_OS_WIN
-    dataPath += "/AppData/Roaming/";
-#elif defined(Q_OS_OSX)
-    dataPath += "/Library/Application Support/";
-#else
-    dataPath += "/.local/share/";
-#endif
+QString ServerPathUtils::getDataDirectory() {
+    auto dataPath = PathUtils::getRootDataDirectory();
 
     dataPath += qApp->organizationName() + "/" + qApp->applicationName();
 

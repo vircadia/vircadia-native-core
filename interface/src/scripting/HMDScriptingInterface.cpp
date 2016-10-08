@@ -13,10 +13,12 @@
 
 #include <QtScript/QScriptContext>
 
+#include <avatar/AvatarManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
 #include <OffscreenUi.h>
-#include <avatar/AvatarManager.h>
+#include <plugins/PluginUtils.h>
+
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
@@ -45,6 +47,14 @@ glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) 
 
 glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
     return qApp->getApplicationCompositor().overlayToSpherical(position);
+}
+
+bool HMDScriptingInterface::isHMDAvailable() {
+    return PluginUtils::isHMDAvailable();
+}
+
+bool HMDScriptingInterface::isHandControllerAvailable() {
+    return PluginUtils::isHandControllerAvailable();
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
