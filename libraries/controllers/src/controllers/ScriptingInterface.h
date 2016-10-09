@@ -81,6 +81,7 @@ namespace controller {
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
         Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
+        Q_INVOKABLE float getAxisValue(int source) const;
         Q_INVOKABLE Pose getPoseValue(const int& source) const;
         Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
 
