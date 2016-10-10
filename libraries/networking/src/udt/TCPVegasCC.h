@@ -39,7 +39,7 @@ public:
     
 protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
-    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override { _lastAck = seqNum - 1; }
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override { _lastACK = seqNum - 1; }
 private:
     bool isCongestionWindowLimited();
     void performRenoCongestionAvoidance(SequenceNumber ack);
@@ -52,7 +52,7 @@ private:
 
     bool _slowStart { true }; // Marker for slow start phase
 
-    SequenceNumber _lastAck; // Sequence number of last packet that was ACKed
+    SequenceNumber _lastACK; // Sequence number of last packet that was ACKed
 
     int _numACKSinceFastRetransmit { 3 }; // Number of ACKs received since last fast re-transmit
 

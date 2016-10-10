@@ -27,8 +27,8 @@ TCPVegasCC::TCPVegasCC() {
 bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point receiveTime) {
     auto it = _sentPacketTimes.find(ack);
 
-    auto previousAck = _lastAck;
-    _lastAck = ack;
+    auto previousAck = _lastACK;
+    _lastACK = ack;
 
     if (it != _sentPacketTimes.end()) {
 
@@ -113,8 +113,6 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         _duplicateACKCount = 0;
     }
 
-    _lastAck = ack;
-
     // ACK processed, no fast re-transmit required
     return false;
 }
@@ -188,7 +186,7 @@ bool TCPVegasCC::isCongestionWindowLimited() {
     if (_slowStart) {
         return true;
     } else {
-        return seqlen(_sendCurrSeqNum, _lastAck) < _congestionWindowSize;
+        return seqlen(_sendCurrSeqNum, _lastACK) < _congestionWindowSize;
     }
 }
 
