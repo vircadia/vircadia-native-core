@@ -39,6 +39,7 @@ function shouldShowWebTablet() {
 
 function showMarketplace(marketplaceID) {
     if (shouldShowWebTablet()) {
+        updateButtonState(true);
         marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace");
     } else {
         var url = MARKETPLACE_URL;
@@ -58,6 +59,7 @@ function hideMarketplace() {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
     } else if (marketplaceWebTablet) {
+        updateButtonState(false);
         marketplaceWebTablet.destroy();
         marketplaceWebTablet = null;
     }
@@ -83,10 +85,13 @@ var browseExamplesButton = toolBar.addButton({
     alpha: 0.9
 });
 
+function updateButtonState(visible) {
+    browseExamplesButton.writeProperty('buttonState', visible ? 0 : 1);
+    browseExamplesButton.writeProperty('defaultState', visible ? 0 : 1);
+    browseExamplesButton.writeProperty('hoverState', visible ? 2 : 3);
+}
 function onMarketplaceWindowVisibilityChanged() {
-    browseExamplesButton.writeProperty('buttonState', marketplaceWindow.visible ? 0 : 1);
-    browseExamplesButton.writeProperty('defaultState', marketplaceWindow.visible ? 0 : 1);
-    browseExamplesButton.writeProperty('hoverState', marketplaceWindow.visible ? 2 : 3);
+    updateButtonState(marketplaceWindow.visible);
     marketplaceVisible = marketplaceWindow.visible;
 }
 
