@@ -308,6 +308,17 @@ function hudReticleDistance() { // 3d distance from camera to the reticle positi
     var reticlePositionOnHUD = HMD.worldPointFromOverlay(Reticle.position);
     return Vec3.distance(reticlePositionOnHUD, HMD.position);
 }
+
+function maybeAdjustReticleDepth() {
+    if (HMD.active) { // set depth
+        if (isPointingAtOverlay()) {
+            Reticle.depth = hudReticleDistance();
+        }
+    }
+}
+var ADJUST_RETICLE_DEPTH_INTERVAL = 50; // 20hz
+Script.setInterval(maybeAdjustReticleDepth,ADJUST_RETICLE_DEPTH_INTERVAL);
+
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
     if (ignoreMouseActivity()) {
