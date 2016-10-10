@@ -1339,12 +1339,19 @@ void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply& request
 
 void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
     _sendICEServerAddressToMetaverseAPIInProgress = false;
-    const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
+    if (_sendICEServerAddressToMetaverseAPIRedo) {
+        // if we have new data, retry right away, even though the previous attempt didn't go well.
+        _sendICEServerAddressToMetaverseAPIRedo = false;
+        sendICEServerAddressToMetaverseAPI();
+    } else {
+        const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
-    qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was" << requestReply.errorString();
-    qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
+        qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was"
+                   << requestReply.errorString();
+        qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
 
-    QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
+        QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
+    }
 }
 
 void DomainServer::sendHeartbeatToIceServer() {
