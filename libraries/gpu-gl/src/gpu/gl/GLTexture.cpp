@@ -115,7 +115,7 @@ float GLTexture::getMemoryPressure() {
                 if (freeGpuMemory != lastFreeGpuMemory) {
                     lastFreeGpuMemory = freeGpuMemory;
                     if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
-                        qDebug() << "Exceeded max GPU memory";
+                        qCDebug(gpugllogging) << "Exceeded min free GPU memory " << freePercentage;
                         return OVER_MEMORY_PRESSURE;
                     }
                 }
@@ -129,7 +129,13 @@ float GLTexture::getMemoryPressure() {
 
     // Return the consumed texture memory divided by the available texture memory.
     auto consumedGpuMemory = Context::getTextureGPUMemoryUsage();
-    return (float)consumedGpuMemory / (float)availableTextureMemory;
+    float memoryPressure = (float)consumedGpuMemory / (float)availableTextureMemory;
+    static Context::Size lastConsumedGpuMemory = 0;
+    if (memoryPressure > 1.0f && lastConsumedGpuMemory != consumedGpuMemory) {
+        lastConsumedGpuMemory = consumedGpuMemory;
+        qCDebug(gpugllogging) << "Exceeded max allowed texture memory: " << consumedGpuMemory << " / " << availableTextureMemory;
+    }
+    return memoryPressure;
 }
 
 
