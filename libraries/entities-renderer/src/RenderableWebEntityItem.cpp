@@ -83,6 +83,9 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
+    if (!currentContext) {
+        return false;
+    }
     QSurface * currentSurface = currentContext->surface();
 
     auto deleter = [](OffscreenQmlSurface* webSurface) {
