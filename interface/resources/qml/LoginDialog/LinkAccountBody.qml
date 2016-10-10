@@ -27,6 +27,11 @@ Item {
         loginDialog.login(usernameField.text, passwordField.text)
     }
 
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    onKeyboardRaisedChanged: d.resize();
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -35,13 +40,13 @@ Item {
         readonly property int maxHeight: 720
 
         function resize() {
-            var targetWidth = Math.max(titleWidth, form.contentWidth)
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
-                               4 * hifi.dimensions.contentSpacing.y + form.height +
-                               4 * hifi.dimensions.contentSpacing.y + buttons.height
+            var targetWidth = Math.max(titleWidth, form.contentWidth);
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height
+                    + 4 * hifi.dimensions.contentSpacing.y + form.height + hifi.dimensions.contentSpacing.y + buttons.height;
 
-            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+                    + (linkAccountBody.keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
 
@@ -130,13 +135,39 @@ Item {
 
     }
 
+    // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
+    Keyboard {
+        y: parent.keyboardRaised ? parent.height : 0
+        height: parent.keyboardRaised ? 200 : 0
+        visible: parent.keyboardRaised && !parent.punctuationMode
+        enabled: parent.keyboardRaised && !parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: buttons.top
+            bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+        }
+    }
+
+    KeyboardPunctuation {
+        y: parent.keyboardRaised ? parent.height : 0
+        height: parent.keyboardRaised ? 200 : 0
+        visible: parent.keyboardRaised && parent.punctuationMode
+        enabled: parent.keyboardRaised && parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: buttons.top
+            bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+        }
+    }
+
     Row {
         id: buttons
         anchors {
-            top: form.bottom
             right: parent.right
-            margins: 0
-            topMargin: 3 * hifi.dimensions.contentSpacing.y
+            bottom: parent.bottom
+            bottomMargin: hifi.dimensions.contentSpacing.y
         }
         spacing: hifi.dimensions.contentSpacing.x
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
