@@ -63,7 +63,6 @@ void OculusBaseDisplayPlugin::customizeContext() {
 
 void OculusBaseDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
-    internalPresent();
 }
 
 bool OculusBaseDisplayPlugin::internalActivate() {
