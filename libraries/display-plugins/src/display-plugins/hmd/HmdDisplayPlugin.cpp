@@ -124,7 +124,6 @@ void HmdDisplayPlugin::uncustomizeContext() {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     });
-    internalPresent();
     _overlayRenderer = OverlayRenderer();
     Parent::uncustomizeContext();
 }

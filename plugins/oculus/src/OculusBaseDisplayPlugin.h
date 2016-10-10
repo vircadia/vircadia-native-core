@@ -26,6 +26,7 @@ public:
 
 protected:
     void customizeContext() override;
+    void uncustomizeContext() override;
     bool internalActivate() override;
     void internalDeactivate() override;
     void updatePresentPose() override;
