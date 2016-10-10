@@ -32,9 +32,8 @@ float lightIrradiance_getFalloffSpot(LightIrradiance li) { return li.attenuation
 float lightIrradiance_evalLightAttenuation(LightIrradiance li, float d) {
     float radius = lightIrradiance_getFalloffRadius(li);
     float cutoff = lightIrradiance_getCutoffRadius(li);
-    float denom = d / radius + 1.0;
+    float denom = (d / radius) + 1.0;
     float attenuation = 1.0 / (denom * denom);
-
 
     // "Fade" the edges of light sources to make things look a bit more attractive.
     // Note: this tends to look a bit odd at lower exponents.

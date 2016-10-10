@@ -11,11 +11,13 @@
 #ifndef hifi_render_utils_LightClusters_h
 #define hifi_render_utils_LightClusters_h
 
+#include <ViewFrustum.h>
 #include <gpu/Buffer.h>
 #include <render/Engine.h>
 #include "LightStage.h"
-
-#include <ViewFrustum.h>
+#include "DeferredFrameTransform.h"
+#include "LightingModel.h"
+#include "SurfaceGeometryPass.h"
 
 class FrustumGrid {
 public:
@@ -159,10 +161,6 @@ signals:
     
 protected:
 };
-
-#include "DeferredFrameTransform.h"
-#include "LightingModel.h"
-#include "SurfaceGeometryPass.h"
 
 class LightClusteringPass {
 public:

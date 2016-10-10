@@ -42,7 +42,7 @@ namespace gpu {
     protected:
         Handler _returnHandler;
 
-        std::string _name;
+        const std::string _name;
         uint64_t _queryResult { 0 };
         uint64_t _usecBatchElapsedTime { 0 };
     };
@@ -67,7 +67,7 @@ namespace gpu {
         
         static const int QUERY_QUEUE_SIZE { 4 };
 
-        std::string _name;
+        const std::string _name;
         gpu::Queries _timerQueries;
         int _headIndex = -1;
         int _tailIndex = -1;
