@@ -40,13 +40,13 @@
 
         if (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard) {
 
-            if (typeof EventBridge !== "undefined") {
+            if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
                     keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "")) : "_LOWER_KEYBOARD"
                 );
             } else {
                 if (numWarnings < MAX_WARNINGS) {
-                    console.log("WARNING: no global EventBridge object found");
+                    console.log("WARNING: No global EventBridge object found");
                     numWarnings++;
                 }
             }
