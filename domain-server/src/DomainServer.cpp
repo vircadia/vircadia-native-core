@@ -1278,6 +1278,13 @@ void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
 }
 
 void DomainServer::sendICEServerAddressToMetaverseAPI() {
+    if (_sendICEServerAddressToMetaverseAPIInProgress) {
+        // don't have more than one of these in-flight at a time.  set a flag to indicate that once the current one
+        // is done, we need to do update metaverse again.
+        _sendICEServerAddressToMetaverseAPIRedo = true;
+        return;
+    }
+    _sendICEServerAddressToMetaverseAPIInProgress = true;
     const QString ICE_SERVER_ADDRESS = "ice_server_address";
 
     QJsonObject domainObject;
@@ -1302,6 +1309,8 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     JSONCallbackParameters callbackParameters;
     callbackParameters.errorCallbackReceiver = this;
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
+    callbackParameters.jsonCallbackReceiver = this;
+    callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
     static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
         ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
@@ -1317,7 +1326,19 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
                                                           domainUpdateJSON.toUtf8());
 }
 
+void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply) {
+    _sendICEServerAddressToMetaverseAPIInProgress = false;
+    if (_sendICEServerAddressToMetaverseAPIRedo) {
+        qDebug() << "ice-server address updated with metaverse, but has since changed.  redoing update...";
+        _sendICEServerAddressToMetaverseAPIRedo = false;
+        sendICEServerAddressToMetaverseAPI();
+    } else {
+        qDebug() << "ice-server address updated with metaverse.";
+    }
+}
+
 void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
+    _sendICEServerAddressToMetaverseAPIInProgress = false;
     const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
     qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was" << requestReply.errorString();

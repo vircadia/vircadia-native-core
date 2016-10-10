@@ -96,6 +96,7 @@ private slots:
     void handleICEHostInfo(const QHostInfo& hostInfo);
 
     void sendICEServerAddressToMetaverseAPI();
+    void handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
 
 signals:
@@ -211,6 +212,9 @@ private:
     int _iceServerPort;
     bool _overrideDomainID { false }; // should we override the domain-id from settings?
     QUuid _overridingDomainID { QUuid() }; // what should we override it with?
+
+    bool _sendICEServerAddressToMetaverseAPIInProgress { false };
+    bool _sendICEServerAddressToMetaverseAPIRedo { false };
 };
 
 
