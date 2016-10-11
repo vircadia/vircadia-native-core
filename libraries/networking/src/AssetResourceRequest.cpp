@@ -164,7 +164,7 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
         int percentage =  roundf((float) bytesReceived / (float) bytesTotal * 100.0f);
 
         qCDebug(networking).nospace() << "Progress for " << _url.path() << " - "
-            << bytesReceived << " bytes of " << bytesTotal << " - " << percentage << "%";
+            << bytesReceived << " of " << bytesTotal << " bytes - " << percentage << "%";
 
         _lastProgressDebug = now;
     }
