@@ -11,7 +11,7 @@
 
 #include "AssetResourceRequest.h"
 
-#include <QtCore/qloggingcategory.h>
+#include <QtCore/QLoggingCategory>
 
 #include "AssetClient.h"
 #include "AssetUtils.h"
