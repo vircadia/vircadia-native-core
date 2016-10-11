@@ -22,7 +22,7 @@ ModalWindow {
     implicitWidth: 640
     implicitHeight: 320
     visible: true
-    keyboardEnabled: false  // Disable ModalWindow's keyboard.
+    keyboardOverride: true  // Disable ModalWindow's keyboard.
 
     signal selected(var result);
     signal canceled();
@@ -46,6 +46,7 @@ ModalWindow {
     property int titleWidth: 0
     onTitleWidthChanged: d.resize();
 
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
@@ -76,7 +77,7 @@ ModalWindow {
                 var targetWidth = Math.max(titleWidth, pane.width)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
-                root.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight  : targetHeight)) + (root.keyboardRaised ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0)
+                root.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0)
             }
         }
 
@@ -119,13 +120,13 @@ ModalWindow {
 
         Keyboard {
             id: keyboard
-            raised: keyboardRaised
+            raised: keyboardEnabled && keyboardRaised
             numeric: punctuationMode
             anchors {
                 left: parent.left
                 right: parent.right
                 bottom: buttons.top
-                bottomMargin: root.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+                bottomMargin: raised ? 2 * hifi.dimensions.contentSpacing.y : 0
             }
         }
 
@@ -187,6 +188,7 @@ ModalWindow {
     }
 
     Component.onCompleted: {
+        keyboardEnabled = HMD.active;
         updateIcon();
         d.resize();
         textResult.forceActiveFocus();

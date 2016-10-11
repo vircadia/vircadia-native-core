@@ -27,7 +27,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360 + (fileDialogItem.keyboardRaised ? keyboard.raisedHeight + hifi.dimensions.contentSpacing.y : 0)
+    implicitHeight: 360 + (fileDialogItem.keyboardEnabled && fileDialogItem.keyboardRaised ? keyboard.raisedHeight + hifi.dimensions.contentSpacing.y : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -70,7 +70,9 @@ ModalWindow {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives)
+        console.log("Helper " + helper + " drives " + drives);
+
+        fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
         // works properly from the initial screen.
@@ -106,6 +108,7 @@ ModalWindow {
         height: pane.height
         anchors.margins: 0
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
@@ -649,7 +652,7 @@ ModalWindow {
 
         Keyboard {
             id: keyboard
-            raised: parent.keyboardRaised
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 left: parent.left

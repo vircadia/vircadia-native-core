@@ -42,6 +42,10 @@ ScrollingWindow {
         }
     }
 
+    onShownChanged: {
+        keyboardEnabled = HMD.active;
+    }
+
     Settings {
         category: "ToolWindow.Position"
         property alias x: toolWindow.x

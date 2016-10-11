@@ -34,7 +34,8 @@ Window {
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
     readonly property var footerContentHeight: footer.height > 0 ? (footer.height + 2 * hifi.dimensions.contentSpacing.y + 3) : 0
 
-    property bool keyboardEnabled: true  // Set false if derived control implements its own keyboard.
+    property bool keyboardOverride: false  // Set true in derived control if it implements its own keyboard.
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
@@ -132,7 +133,8 @@ Window {
             // Optional non-scrolling footer.
             id: footerPane
 
-            property alias keyboardEnabled: window.keyboardEnabled
+            // @@@@@@@ TODO: Are these aliases actually needed?
+            property alias keyboardOverride: window.keyboardOverride
             property alias keyboardRaised: window.keyboardRaised
             property alias punctuationMode: window.punctuationMode
 
@@ -141,9 +143,9 @@ Window {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footerContentHeight + (keyboardEnabled && keyboardRaised ? keyboard.height : 0)
+            height: footerContentHeight + (keyboard.enabled && keyboard.raised ? keyboard.height : 0)
             color: hifi.colors.baseGray
-            visible: footer.height > 0 || keyboardEnabled && keyboardRaised
+            visible: footer.height > 0 || keyboard.enabled && keyboard.raised
 
             Item {
                 // Horizontal rule.
@@ -182,8 +184,8 @@ Window {
 
             HiFiControls.Keyboard {
                 id: keyboard
-                enabled: keyboardEnabled
-                raised: keyboardRaised
+                enabled: !keyboardOverride
+                raised: keyboardEnabled && keyboardRaised
                 numeric: punctuationMode
                 anchors {
                     left: parent.left
@@ -195,7 +197,7 @@ Window {
     }
 
     onKeyboardRaisedChanged: {
-        if (keyboardEnabled && keyboardRaised) {
+        if (keyboard.enabled && keyboard.raised) {
             var delta = activator.mouseY
                     - (activator.height + activator.y - keyboard.raisedHeight - footerContentHeight - hifi.dimensions.controlLineHeight);
 
@@ -207,5 +209,9 @@ Window {
                 pane.scrollBy(1);
             }
         }
+    }
+
+    Component.onCompleted: {
+        keyboardEnabled = HMD.active;
     }
 }

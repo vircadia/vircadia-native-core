@@ -29,6 +29,7 @@ Window {
     Item {
         anchors.fill: parent
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: true
         property bool punctuationMode: false
 
@@ -76,13 +77,17 @@ Window {
 
         Keyboard {
             id: keyboard
-            raised: parent.keyboardRaised
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 left: parent.left
                 right: parent.right
                 bottom: parent.bottom
             }
+        }
+
+        Component.onCompleted: {
+            keyboardEnabled = HMD.active;
         }
     }
 }

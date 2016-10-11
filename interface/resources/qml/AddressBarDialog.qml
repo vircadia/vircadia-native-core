@@ -34,7 +34,10 @@ Window {
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
 
-    onShownChanged: addressBarDialog.observeShownChanged(shown);
+    onShownChanged: {
+        addressBarDialog.keyboardEnabled = HMD.active;
+        addressBarDialog.observeShownChanged(shown);
+    }
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
@@ -70,11 +73,12 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
 
+        property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardRaised ? keyboard.raisedHeight : 0)
+        implicitHeight: backgroundImage.height + ((keyboardEnabled && keyboardRaised) ? keyboard.raisedHeight : 0)
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -277,7 +281,7 @@ Window {
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardRaised
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 left: parent.left
@@ -285,7 +289,6 @@ Window {
                 bottom: parent.bottom
             }
         }
-
     }
 
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
