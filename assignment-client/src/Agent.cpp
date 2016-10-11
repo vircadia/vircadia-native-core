@@ -52,10 +52,15 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 // this should send a signal every 10ms, with pretty good precision
 void AvatarAudioTimer::start() {
     qDebug() << "AvatarAudioTimer::start called";
+    auto startTime = usecTimestampNow();
+    quint64 frameCounter = 0;
     const int TARGET_INTERVAL_USEC = 10000; // 10ms
     while (!_quit) {
+        frameCounter++;
         // simplest possible timer
-        usleep(TARGET_INTERVAL_USEC);
+        quint64 targetTime = startTime + frameCounter * TARGET_INTERVAL_USEC;
+        quint64 interval = std::max((quint64)0, targetTime - usecTimestampNow());
+        usleep(interval);
         emit avatarTick();
     }
     qDebug() << "AvatarAudioTimer is finished";
@@ -89,6 +94,16 @@ Agent::Agent(ReceivedMessage& message) :
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+}
+
+void Agent::playAvatarSound(SharedSoundPointer sound) {
+    // this must happen on Agent's main thread
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "playAvatarSound", Q_ARG(SharedSoundPointer, sound));
+        return;
+    } else {
+        setAvatarSound(sound);
+    }
 }
 
 void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -233,7 +248,6 @@ void Agent::nodeActivated(SharedNodePointer activatedNode) {
     if (activatedNode->getType() == NodeType::AudioMixer) {
         negotiateAudioFormat();
     }
-
 }
 
 void Agent::negotiateAudioFormat() {
@@ -254,7 +268,6 @@ void Agent::negotiateAudioFormat() {
         // send off this mute packet
         nodeList->sendPacket(std::move(negotiateFormatPacket), *audioMixer);
     }
-    qInfo() << "negotiateAudioFormat called";
 }
 
 void Agent::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
@@ -386,7 +399,6 @@ void Agent::executeScript() {
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
     
-    qDebug() << "Connecting avatarAudioTimer and starting...";
     AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
     audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
     connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAndAudio);
@@ -394,9 +406,6 @@ void Agent::executeScript() {
     connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
     connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
     _avatarAudioTimerThread.start();
-
-    // wire up our additional agent related processing to the update signal
-    //QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
 
@@ -424,7 +433,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-        // tell the audiotimer worker to start working
+        // tell the avatarAudioTimer to start ticking
         emit startAvatarAudioTimer();
 
     }
@@ -464,8 +473,6 @@ void Agent::sendAvatarIdentityPacket() {
 void Agent::processAgentAvatarAndAudio() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / 100 + 0.5;
-        const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
         scriptedAvatar->doneEncoding(true);
@@ -484,7 +491,7 @@ void Agent::processAgentAvatarAndAudio() {
             // if we have an avatar audio stream then send it out to our audio-mixer
             bool silentFrame = true;
 
-            int16_t numAvailableSamples = SCRIPT_AUDIO_BUFFER_SAMPLES;
+            int16_t numAvailableSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
             const int16_t* nextSoundOutput = NULL;
 
             if (_avatarSound) {
@@ -492,8 +499,8 @@ void Agent::processAgentAvatarAndAudio() {
                 nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
                     + _numAvatarSoundSentBytes);
 
-                int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
-                    ? SCRIPT_AUDIO_BUFFER_BYTES
+                int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
+                    ? AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
                     : soundByteArray.size() - _numAvatarSoundSentBytes;
                 numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
@@ -529,7 +536,7 @@ void Agent::processAgentAvatarAndAudio() {
                 }
 
                 // write the number of silent samples so the audio-mixer can uphold timing
-                audioPacket->writePrimitive(SCRIPT_AUDIO_BUFFER_SAMPLES);
+                audioPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 // use the orientation and position of this avatar for the source of this audio
                 audioPacket->writePrimitive(scriptedAvatar->getPosition());
