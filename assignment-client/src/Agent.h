@@ -32,6 +32,20 @@
 #include "MixedAudioStream.h"
 
 
+class AvatarAudioTimer : public QObject {
+    Q_OBJECT
+
+signals:
+    void avatarTick();
+
+public slots:
+    void start();
+    void stop() { _quit = true; }
+
+private:
+    bool _quit { false };
+};
+
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 
@@ -60,6 +74,7 @@ public:
 public slots:
     void run() override;
     void playAvatarSound(SharedSoundPointer avatarSound) { setAvatarSound(avatarSound); }
+    void processAgentAvatarAndAudio();
 
 private slots:
     void requestScript();
@@ -71,9 +86,11 @@ private slots:
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message); 
 
-    void processAgentAvatarAndAudio();
     void nodeActivated(SharedNodePointer activatedNode);
 
+signals:
+    void startAvatarAudioTimer();
+    void stopAvatarAudioTimer();
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -102,7 +119,7 @@ private:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; 
-    QTimer* _avatarAudioTimer;
+    QThread _avatarAudioTimerThread;
 };
 
 #endif // hifi_Agent_h

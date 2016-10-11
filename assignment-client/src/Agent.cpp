@@ -15,6 +15,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
+#include <QThread>
 
 #include <AssetClient.h>
 #include <AvatarHashMap.h>
@@ -47,6 +48,18 @@
 #include "Agent.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
+
+// this should send a signal every 10ms, with pretty good precision
+void AvatarAudioTimer::start() {
+    qDebug() << "AvatarAudioTimer::start called";
+    const int TARGET_INTERVAL_USEC = 10000; // 10ms
+    while (!_quit) {
+        // simplest possible timer
+        usleep(TARGET_INTERVAL_USEC);
+        emit avatarTick();
+    }
+    qDebug() << "AvatarAudioTimer is finished";
+}
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
@@ -121,7 +134,6 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
     _receivedAudioStream.parseData(*message);
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
-
     _receivedAudioStream.clearBuffer();
 }
 
@@ -372,11 +384,15 @@ void Agent::executeScript() {
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
-
-    _avatarAudioTimer = new QTimer(this);
-    _avatarAudioTimer->setTimerType(Qt::PreciseTimer);
-    connect(_avatarAudioTimer, SIGNAL(timeout()), this, SLOT(processAgentAvatarAndAudio()));
-    _avatarAudioTimer->start(10);
+    
+    qDebug() << "Connecting avatarAudioTimer and starting...";
+    AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
+    audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
+    connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAndAudio);
+    connect(this, &Agent::startAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::start);
+    connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
+    connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
+    _avatarAudioTimerThread.start();
 
     // wire up our additional agent related processing to the update signal
     //QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
@@ -406,6 +422,10 @@ void Agent::setIsAvatar(bool isAvatar) {
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+
+        // tell the audiotimer worker to start working
+        emit startAvatarAudioTimer();
+
     }
 
     if (!_isAvatar) {
@@ -428,7 +448,7 @@ void Agent::sendAvatarIdentityPacket() {
 void Agent::processAgentAvatarAndAudio() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / 100;//SCRIPT_FPS + 0.5;
+        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / 100 + 0.5;
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
@@ -513,16 +533,15 @@ void Agent::processAgentAvatarAndAudio() {
                 audioPacket->writePrimitive(headOrientation);
                
                 // encode it
-                QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
-                QByteArray encodedBuffer;
-                if (_encoder) {
+                if(_encoder) {
+                    QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+                    QByteArray encodedBuffer;
                     _encoder->encode(decodedBuffer, encodedBuffer);
+                    audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
                 } else {
-                    audioPacket->write(decodedBuffer.data(), decodedBuffer.size());
+                    audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
                 }
 
-                // write the raw audio data
-                audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
             }
 
             // write audio packet to AudioMixer nodes
@@ -557,6 +576,9 @@ void Agent::aboutToFinish() {
     
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
+
+    emit stopAvatarAudioTimer();
+    _avatarAudioTimerThread.quit();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
