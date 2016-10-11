@@ -487,10 +487,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                 }
             } else {
                 if (keyLight->getAmbientMap()) {
-                    program = deferredLightingEffect->_directionalAmbientSphereLight;
-                    locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
-                    //program = deferredLightingEffect->_directionalSkyboxLight;
-                    //locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                    program = deferredLightingEffect->_directionalSkyboxLight;
+                    locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
                     program = deferredLightingEffect->_directionalAmbientSphereLight;
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
