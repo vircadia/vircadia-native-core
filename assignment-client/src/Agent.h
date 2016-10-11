@@ -73,7 +73,7 @@ public:
 
 public slots:
     void run() override;
-    void playAvatarSound(SharedSoundPointer avatarSound);// { setAvatarSound(avatarSound); }
+    void playAvatarSound(SharedSoundPointer avatarSound);
     void processAgentAvatarAndAudio();
 
 private slots:
