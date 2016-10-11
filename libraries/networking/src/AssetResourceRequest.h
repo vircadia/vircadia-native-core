@@ -14,6 +14,8 @@
 
 #include <QUrl>
 
+#include <PortableHighResolutionClock.h>
+
 #include "AssetRequest.h"
 #include "ResourceRequest.h"
 
@@ -28,21 +30,17 @@ protected:
 
 private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onTimeout();
 
 private:
-    void setupTimer();
-    void cleanupTimer();
-
     bool urlIsAssetHash() const;
 
     void requestMappingForPath(const AssetPath& path);
     void requestHash(const AssetHash& hash);
 
-    QTimer* _sendTimer { nullptr };
-
     GetMappingRequest* _assetMappingRequest { nullptr };
     AssetRequest* _assetRequest { nullptr };
+
+    p_high_resolution_clock::time_point _lastProgressDebug;
 };
 
 #endif
