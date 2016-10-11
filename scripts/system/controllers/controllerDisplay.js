@@ -31,14 +31,26 @@ function resolveHardware(path) {
     return resolveInner(Controller.Hardware, parts, 0);
 }
 
+var DEBUG = true;
+function debug() {
+    if (DEBUG) {
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift("controllerDisplay.js | ");
+        print.apply(this, args);
+    }
+}
+
 createControllerDisplay = function(config) {
     var controllerDisplay = {
         overlays: [],
-        partOverlays: {},
-        parts: {},
-        mappingName: "mapping-display",
+        partOverlays: {
+        },
+        parts: {
+        },
+        mappingName: "mapping-display-" + Math.random(),
 
         setVisible: function(visible) {
+            debug("Setting visible", this.overlays.length);
             for (var i = 0; i < this.overlays.length; ++i) {
                 Overlays.editOverlay(this.overlays[i], {
                     visible: visible
@@ -166,7 +178,7 @@ createControllerDisplay = function(config) {
                 } else if (part.type === "static") {
                     // do nothing
                 } else {
-                    print("TYPE NOT SUPPORTED: ", part.type);
+                    debug("TYPE NOT SUPPORTED: ", part.type);
                 }
 
                 controllerDisplay.overlays.push(overlayID);

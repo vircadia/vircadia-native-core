@@ -1,12 +1,13 @@
-birdFirework1 = {
-    "clientOnly": 0,
-    "collisionsWillMove": 1,
-    "created": "2016-09-13T23:05:08Z",
-    "dimensions": {
-        "x": 0.10120716691017151,
-        "y": 0.12002291530370712,
-        "z": 0.18833979964256287
-    },
+fireworkURLs = [
+    "atp:/tutorial_models/bomb1.fbx",
+    "atp:/tutorial_models/bomb2.fbx",
+    "atp:/tutorial_models/bomb3.fbx",
+    "atp:/tutorial_models/bomb4.fbx",
+    "atp:/tutorial_models/bomb5.fbx",
+    "atp:/tutorial_models/bomb6.fbx",
+];
+
+fireworkBaseProps = {
     "collisionsWillMove": 1,
     velocity: {
         x: 0,
@@ -20,7 +21,7 @@ birdFirework1 = {
         "z": 0
     },
     "id": "{1c4061bc-b2e7-4435-bc47-3fcc39ae6624}",
-    "modelURL": "atp:/tutorial_models/birdStatue15.fbx",
+    "modelURL": "atp:/tutorial_models/bomb1.fbx",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "position": {
         "x": 0.11612319946289062,
@@ -44,15 +45,8 @@ birdFirework1 = {
     "userData": "{\n  \"hifiHomeKey\": {\n    \"reset\": true\n  }\n}"
 } ;
 
+
 birdFirework2 = {
-    "clientOnly": 0,
-    "collisionsWillMove": 1,
-    "created": "2016-09-12T22:56:48Z",
-    "dimensions": {
-        "x": 0.098819166421890259,
-        "y": 0.11143554747104645,
-        "z": 0.18833979964256287
-    },
     "collisionsWillMove": 1,
     velocity: {
         x: 0,
@@ -66,7 +60,8 @@ birdFirework2 = {
         "z": 0
     },
     "id": "{ba067084-8d0f-4eeb-a8a1-c6814527c1bb}",
-    "modelURL": "atp:/tutorial_models/statuebird4.fbx",
+    //"modelURL": "atp:/tutorial_models/statuebird4.fbx",
+    "modelURL": "atp:/tutorial_models/bomb2.fbx",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "position": {
         "x": 0,
