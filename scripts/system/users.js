@@ -469,7 +469,7 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(minimizeButton, {
             x: windowLeft + WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
-            y: windowTop + WINDOW_MARGIN / 2
+            y: windowTop + WINDOW_MARGIN
         });
 
         scrollbarBackgroundPosition.x = windowLeft + WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH;
@@ -559,34 +559,34 @@ var usersWindow = (function () {
         });
 
         Overlays.editOverlay(windowHeading, {
-            text: linesOfUsers.length > 0 ? "Users online" : "No users online"
+            text: isLoggedIn ? (linesOfUsers.length > 0 ? "Users online" : "No users online") : "Users online - log in to view"
         });
     }
 
     function updateOverlayVisibility() {
         Overlays.editOverlay(windowBorder, {
-            visible: isLoggedIn && isVisible && isBorderVisible
+            visible: isVisible && isBorderVisible
         });
         Overlays.editOverlay(windowPane, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(windowHeading, {
-            visible: isLoggedIn && isVisible
+            visible: isVisible
         });
         Overlays.editOverlay(minimizeButton, {
             visible: isLoggedIn && isVisible
         });
         Overlays.editOverlay(scrollbarBackground, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(scrollbarBar, {
-            visible: isLoggedIn && isVisible && isUsingScrollbars && !isMinimized
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
         Overlays.editOverlay(friendsButton, {
-            visible: isLoggedIn && isVisible && !isMinimized
+            visible: isVisible && !isMinimized
         });
-        displayControl.setVisible(isLoggedIn && isVisible && !isMinimized);
-        visibilityControl.setVisible(isLoggedIn && isVisible && !isMinimized);
+        displayControl.setVisible(isVisible && !isMinimized);
+        visibilityControl.setVisible(isVisible && !isMinimized);
     }
 
     function checkLoggedIn() {
@@ -594,6 +594,13 @@ var usersWindow = (function () {
 
         isLoggedIn = Account.isLoggedIn();
         if (isLoggedIn !== wasLoggedIn) {
+            if (wasLoggedIn) {
+                setMinimized(true);
+                calculateWindowHeight();
+                updateOverlayPositions();
+                updateUsersDisplay();
+            }
+
             updateOverlayVisibility();
         }
     }
@@ -1021,7 +1028,7 @@ var usersWindow = (function () {
             color: WINDOW_HEADING_COLOR,
             alpha: WINDOW_HEADING_ALPHA,
             backgroundAlpha: 0.0,
-            text: "No users online",
+            text: "Users online",
             font: WINDOW_FONT,
             visible: false
         });
