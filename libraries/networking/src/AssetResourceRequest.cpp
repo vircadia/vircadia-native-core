@@ -39,7 +39,7 @@ bool AssetResourceRequest::urlIsAssetHash() const {
 
 void AssetResourceRequest::setupTimer() {
     Q_ASSERT(!_sendTimer);
-    static const int TIMEOUT_MS = 2000;
+    static const int TIMEOUT_MS = 15000;
 
     _sendTimer = new QTimer(this);
     connect(_sendTimer, &QTimer::timeout, this, &AssetResourceRequest::onTimeout);
