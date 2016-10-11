@@ -1498,6 +1498,9 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
+    _displayPlugin.reset();
+    PluginManager::getInstance()->shutdown();
+
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
 

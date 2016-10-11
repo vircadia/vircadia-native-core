@@ -101,7 +101,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
     }
 
     if (!_blurredFramebuffer) {
-        _blurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _blurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("blur"));
 
         // attach depthStencil if present in source
         //if (sourceFramebuffer->hasDepthStencil()) {
@@ -124,7 +124,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         // The job output the blur result in a new Framebuffer spawning here.
         // Let s make sure it s ready for this
         if (!_outputFramebuffer) {
-            _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+            _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("blurOutput"));
 
             // attach depthStencil if present in source
          /*   if (sourceFramebuffer->hasDepthStencil()) {
