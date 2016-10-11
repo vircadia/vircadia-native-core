@@ -1,28 +1,49 @@
 {
     "name": "XBox to Standard",
     "channels": [
-        { "from": "GamePad.LY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LY" },
-        { "from": "GamePad.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.LX" },
+        { "from": "GamePad.LY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateZ" },
+        { "from": "GamePad.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
         { "from": "GamePad.LT", "to": "Standard.LT" }, 
         { "from": "GamePad.LB", "to": "Standard.LB" }, 
         { "from": "GamePad.LS", "to": "Standard.LS" },
 
-        { "from": "GamePad.RY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RY" },
-        { "from": "GamePad.RX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Standard.RX" },
+
+        { "from": "GamePad.RX",
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "deadZone", "min": 0.15 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.25 },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+
+        { "from": "GamePad.RX", "to": "Actions.Yaw" },
+
+        { "from": "GamePad.RY", 
+          "to": "Actions.VERTICAL_UP", 
+          "filters": 
+            [
+                { "type": "deadZone", "min": 0.95 },
+                "invert"
+            ]
+        }, 
+
         { "from": "GamePad.RT", "to": "Standard.RT" }, 
         { "from": "GamePad.RB", "to": "Standard.RB" }, 
         { "from": "GamePad.RS", "to": "Standard.RS" },
 
-        { "from": "GamePad.Back", "to": "Standard.Back" }, 
-        { "from": "GamePad.Start", "to": "Standard.Start" }, 
+        { "from": "GamePad.Start", "to": "Actions.CycleCamera" },
+        { "from": "GamePad.Back", "to": "Actions.ContextMenu" },
 
-        { "from": [ "GamePad.DU", "GamePad.DL", "GamePad.DR", "GamePad.DD" ], "to": "Standard.LeftPrimaryThumb", "peek": true },
         { "from": "GamePad.DU", "to": "Standard.DU" },
         { "from": "GamePad.DD", "to": "Standard.DD" }, 
         { "from": "GamePad.DL", "to": "Standard.DL" },
         { "from": "GamePad.DR", "to": "Standard.DR" }, 
 
-        { "from": [ "GamePad.A", "GamePad.B", "GamePad.X", "GamePad.Y" ], "to": "Standard.RightPrimaryThumb", "peek": true },
+        { "from": [ "GamePad.Y" ], "to": "Standard.RightPrimaryThumb", "peek": true },
         { "from": "GamePad.A", "to": "Standard.A" }, 
         { "from": "GamePad.B", "to": "Standard.B" }, 
         { "from": "GamePad.X", "to": "Standard.X" },

@@ -633,6 +633,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
                     program = deferredLightingEffect->_directionalSkyboxLightShadow;
                     locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
@@ -641,11 +643,11 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                     locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
                 }
             } else {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
-                    program = deferredLightingEffect->_directionalAmbientSphereLight;
-                    locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
-                    //program = deferredLightingEffect->_directionalSkyboxLight;
-                    //locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                    program = deferredLightingEffect->_directionalSkyboxLight;
+                    locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
                     program = deferredLightingEffect->_directionalAmbientSphereLight;
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
