@@ -20,8 +20,19 @@ std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
 
 // FIXME placeholder for texture memory over-use
 #define DEFAULT_MAX_MEMORY_MB 256
-#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
 #define OVER_MEMORY_PRESSURE 2.0f
+
+// FIXME other apps show things like Oculus home consuming large amounts of GPU memory
+// which causes us to blur textures needlessly (since other app GPU memory usage will likely 
+// be swapped out and not cause any actual impact
+//#define CHECK_MIN_FREE_GPU_MEMORY
+#ifdef CHECK_MIN_FREE_GPU_MEMORY
+#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
+#endif
+
+// Allow 65% of all available GPU memory to be consumed by textures
+// FIXME overly conservative?
+#define MAX_CONSUMED_TEXTURE_MEMORY_PERCENTAGE 0.65f
 
 const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -107,6 +118,7 @@ float GLTexture::getMemoryPressure() {
             // If we can't query the dedicated memory just use a fallback fixed value of 256 MB
             totalGpuMemory = MB_TO_BYTES(DEFAULT_MAX_MEMORY_MB);
         } else {
+#ifdef CHECK_MIN_FREE_GPU_MEMORY
             // Check the global free GPU memory
             auto freeGpuMemory = getFreeDedicatedMemory();
             if (freeGpuMemory) {
@@ -120,11 +132,10 @@ float GLTexture::getMemoryPressure() {
                     }
                 }
             }
+#endif
         }
 
-        // Allow 50% of all available GPU memory to be consumed by textures
-        // FIXME overly conservative?
-        availableTextureMemory = (totalGpuMemory >> 1);
+        availableTextureMemory = static_cast<gpu::Size>(totalGpuMemory * MAX_CONSUMED_TEXTURE_MEMORY_PERCENTAGE);
     }
 
     // Return the consumed texture memory divided by the available texture memory.
