@@ -11,10 +11,20 @@
 
 #include "AssetResourceRequest.h"
 
+#include <QtCore/QLoggingCategory>
+
 #include "AssetClient.h"
 #include "AssetUtils.h"
 #include "MappingRequest.h"
-#include <QtCore/qloggingcategory.h>
+#include "NetworkLogging.h"
+
+static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
+
+AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
+    ResourceRequest(url)
+{
+    _lastProgressDebug = p_high_resolution_clock::now() - std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS);
+}
 
 AssetResourceRequest::~AssetResourceRequest() {
     if (_assetMappingRequest) {
@@ -24,10 +34,6 @@ AssetResourceRequest::~AssetResourceRequest() {
     if (_assetRequest) {
         _assetRequest->deleteLater();
     }
-
-    if (_sendTimer) {
-        cleanupTimer();
-    }
 }
 
 bool AssetResourceRequest::urlIsAssetHash() const {
@@ -35,24 +41,6 @@ bool AssetResourceRequest::urlIsAssetHash() const {
 
     QRegExp hashRegex { ATP_HASH_REGEX_STRING };
     return hashRegex.exactMatch(_url.toString());
-}
-
-void AssetResourceRequest::setupTimer() {
-    Q_ASSERT(!_sendTimer);
-    static const int TIMEOUT_MS = 2000;
-
-    _sendTimer = new QTimer(this);
-    connect(_sendTimer, &QTimer::timeout, this, &AssetResourceRequest::onTimeout);
-
-    _sendTimer->setSingleShot(true);
-    _sendTimer->start(TIMEOUT_MS);
-}
-
-void AssetResourceRequest::cleanupTimer() {
-    Q_ASSERT(_sendTimer);
-    disconnect(_sendTimer, 0, this, 0);
-    _sendTimer->deleteLater();
-    _sendTimer = nullptr;
 }
 
 void AssetResourceRequest::doSend() {
@@ -80,8 +68,6 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
-
-        cleanupTimer();
 
         switch (request->getError()) {
             case MappingRequest::NoError:
@@ -118,7 +104,6 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
         _assetMappingRequest = nullptr;
     });
 
-    setupTimer();
     _assetMappingRequest->start();
 }
 
@@ -133,8 +118,6 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::Finished);
-
-        cleanupTimer();
         
         switch (req->getError()) {
             case AssetRequest::Error::NoError:
@@ -162,35 +145,29 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         _assetRequest = nullptr;
     });
 
-    setupTimer();
     _assetRequest->start();
 }
 
 void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     Q_ASSERT(_state == InProgress);
 
-    // We've received data, so reset the timer
-    _sendTimer->start();
-
     emit progress(bytesReceived, bytesTotal);
+
+    auto now = p_high_resolution_clock::now();
+
+    // if we haven't received the full asset check if it is time to output progress to log
+    // we do so every X seconds to assist with ATP download tracking
+
+    if (bytesReceived != bytesTotal
+        && now - _lastProgressDebug > std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS)) {
+
+        int percentage =  roundf((float) bytesReceived / (float) bytesTotal * 100.0f);
+
+        qCDebug(networking).nospace() << "Progress for " << _url.path() << " - "
+            << bytesReceived << " of " << bytesTotal << " bytes - " << percentage << "%";
+
+        _lastProgressDebug = now;
+    }
+
 }
 
-void AssetResourceRequest::onTimeout() {
-    if (_state == InProgress) {
-        qWarning() << "Asset request timed out: " << _url;
-        if (_assetRequest) {
-            disconnect(_assetRequest, 0, this, 0);
-            _assetRequest->deleteLater();
-            _assetRequest = nullptr;
-        }
-        if (_assetMappingRequest) {
-            disconnect(_assetMappingRequest, 0, this, 0);
-            _assetMappingRequest->deleteLater();
-            _assetMappingRequest = nullptr;
-        }
-        _result = Timeout;
-        _state = Finished;
-        emit finished();
-    }
-    cleanupTimer();
-}

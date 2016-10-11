@@ -867,6 +867,10 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
 void AudioClient::handleAudioInput() {
 
+    if (!_inputDevice) {
+        return;
+    }
+
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired = (_inputToNetworkResampler ? 
                                       _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) : 

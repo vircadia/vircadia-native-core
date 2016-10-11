@@ -4625,11 +4625,15 @@ void Application::resetSensors(bool andReload) {
 
 void Application::updateWindowTitle() const {
 
-    QString buildVersion = " (build " + applicationVersion() + ")";
     auto nodeList = DependencyManager::get<NodeList>();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
-    QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
-    QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
+    QString buildVersion = " (build " + applicationVersion() + ")";
+
+    QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
+
+    QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
+    QString username = accountManager->getAccountInfo().getUsername();
     QString currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
 
     if (currentPlaceName.isEmpty()) {
@@ -4637,7 +4641,7 @@ void Application::updateWindowTitle() const {
     }
 
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + currentPlaceName + connectionStatus + buildVersion;
+        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
