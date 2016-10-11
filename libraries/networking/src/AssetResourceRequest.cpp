@@ -18,6 +18,14 @@
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
 
+static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
+
+AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
+    ResourceRequest(url)
+{
+    _lastProgressDebug = p_high_resolution_clock::now() - std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS);
+}
+
 AssetResourceRequest::~AssetResourceRequest() {
     if (_assetMappingRequest) {
         _assetMappingRequest->deleteLater();
@@ -145,7 +153,6 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
 
     emit progress(bytesReceived, bytesTotal);
 
-    static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
     auto now = p_high_resolution_clock::now();
 
     // if we haven't received the full asset check if it is time to output progress to log
