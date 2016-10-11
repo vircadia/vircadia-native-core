@@ -19,7 +19,7 @@ var soundIntervalId;
 var SOUND_POLL_INTERVAL = 500; // ms
 var SOUND_URL = "http://howard-stearns.github.io/models/sounds/piano1.wav";
 
-print('crowd-agent version 1');
+print('crowd-agent version 2');
 
 /* Observations:
 - File urls for AC scripts silently fail. Use a local server (e.g., python SimpleHTTPServer) for development.
@@ -27,9 +27,26 @@ print('crowd-agent version 1');
 - JSON.stringify(Avatar) silently fails (even when Agent.isAvatar)
 */
 
+function messageSend(message) {
+    Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
+}
+
+function getSound(data, callback) { // callback(sound) when downloaded (which may be immediate).
+    var sound = SoundCache.getSound(data.url);
+    if (sound.downloaded) {
+        return callback(sound);
+    }
+    sound.ready.connect(function () { callback(sound); });
+}
+function onFinishedPlaying() {
+    messageSend({key: 'finishedSound'});
+}
+
+var MILLISECONDS_IN_SECOND = 1000;
 function startAgent(parameters) { // Can also be used to update.
     print('crowd-agent starting params', JSON.stringify(parameters), JSON.stringify(Agent));
     Agent.isAvatar = true;
+    Agent.isListeningToAudioStream = true; // Send silence when not chattering.
     if (parameters.position) {
         Avatar.position = parameters.position;
     }
@@ -38,6 +55,12 @@ function startAgent(parameters) { // Can also be used to update.
     }
     if (parameters.skeletonModelURL) {
         Avatar.skeletonModelURL = parameters.skeletonModelURL;
+    }
+    if (parameters.soundData) {
+        getSound(parameters.soundData, function (sound) {
+            Script.setTimeout(onFinishedPlaying, sound.duration * MILLISECONDS_IN_SECOND);
+            Agent.playAvatarSound(sound);
+        });
     }
     if (parameters.animationData) {
         data = parameters.animationData;
@@ -67,9 +90,6 @@ function stopAgent(parameters) {
     print('crowd-agent stopped', JSON.stringify(parameters), JSON.stringify(Agent));
 }
 
-function messageSend(message) {
-    Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
-}
 function messageHandler(channel, messageString, senderID) {
     if (channel !== MESSAGE_CHANNEL) {
         return;

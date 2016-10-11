@@ -87,6 +87,7 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
+#include <plugins/PluginUtils.h>
 #include <plugins/CodecPlugin.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
@@ -198,8 +199,9 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
-static const QString INFO_HELP_PATH = "html/interface-welcome.html";
+static const QString INFO_WELCOME_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
+static const QString INFO_HELP_PATH = "html/help.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
@@ -486,7 +488,7 @@ bool setupEssentials(int& argc, char** argv) {
 // FIXME move to header, or better yet, design some kind of UI manager
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
-Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
+std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 
 
@@ -1254,8 +1256,87 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return entityServerNode && !isPhysicsEnabled();
     });
 
+
+
+    // Get sandbox content set version, if available
+    auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+    auto contentVersionPath = acDirPath + "content-version.txt";
+    qDebug() << "Checking " << contentVersionPath << " for content version";
+    auto contentVersion = 0;
+    QFile contentVersionFile(contentVersionPath);
+    if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString line = contentVersionFile.readAll();
+        // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
+        contentVersion = line.toInt();
+    }
+    qDebug() << "Server content version: " << contentVersion;
+
+    bool hasTutorialContent = contentVersion >= 1;
+
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
+    Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+
+    bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
+
+    qDebug() << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
+    qDebug() << "Has tutorial content: " << hasTutorialContent;
+    qDebug() << "Tutorial complete: " << tutorialComplete.get();
+    qDebug() << "Should go to tutorial: " << shouldGoToTutorial;
+
+    // when --url in command line, teleport to location
+    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    QString addressLookupString;
+    if (urlIndex != -1) {
+        addressLookupString = arguments().value(urlIndex + 1);
+    }
+
+    const QString TUTORIAL_PATH = "/tutorial_begin";
+
+    if (shouldGoToTutorial) {
+        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+            qDebug() << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+        }, [=]() {
+            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            if (firstRun.get()) {
+                showHelp();
+            }
+            if (addressLookupString.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToEntry();
+            } else {
+                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            }
+        });
+    } else {
+
+        bool isFirstRun = firstRun.get();
+
+        if (isFirstRun) {
+            showHelp();
+        }
+
+        // If this is a first run we short-circuit the address passed in
+        if (isFirstRun) {
+            if (hasHMDAndHandControllers) {
+                DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+                    qDebug() << "Home sandbox appears to be running, going to Home.";
+                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                }, [=]() {
+                    qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                });
+            } else {
+                DependencyManager::get<AddressManager>()->goToEntry();
+            }
+        } else {
+            qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        }
+    }
+
     // After all of the constructor is completed, then set firstRun to false.
-    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
 }
 
@@ -1999,11 +2080,11 @@ void Application::setFieldOfView(float fov) {
 }
 
 void Application::aboutApp() {
-    InfoView::show(INFO_HELP_PATH);
+    InfoView::show(INFO_WELCOME_PATH);
 }
 
 void Application::showHelp() {
-    InfoView::show(INFO_EDIT_ENTITIES_PATH);
+    InfoView::show(INFO_HELP_PATH);
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
@@ -3278,15 +3359,6 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-    QString addressLookupString;
-    if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
-    }
-
     // when +connect_lobby in command line, join steam lobby
     const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
     int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
@@ -3295,21 +3367,6 @@ void Application::init() {
         SteamClient::joinLobby(lobbyId);
     }
 
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    if (addressLookupString.isEmpty() && firstRun.get()) {
-        qCDebug(interfaceapp) << "First run and no URL passed... attempting to go to Home or Entry...";
-        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox();
-        }, 
-        [](){
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            DependencyManager::get<AddressManager>()->goToEntry();
-        });
-    } else {
-        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-    }
 
     qCDebug(interfaceapp) << "Loaded settings";
 
@@ -3625,7 +3682,7 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 _keyboardFocusedItem.set(entityItemID);
                 _lastAcceptedKeyPress = usecTimestampNow();
                 if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
-                    _keyboardFocusHighlight = new Cube3DOverlay();
+                    _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
                     _keyboardFocusHighlight->setAlpha(1.0f);
                     _keyboardFocusHighlight->setBorderSize(1.0f);
                     _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });

@@ -3,6 +3,75 @@ import QtQuick 2.0
 Item {
     id: keyboardBase
     height: 200
+    property alias shiftKey: key27
+    property bool shiftMode: false
+
+    function resetShiftMode(mode) {
+        shiftMode = mode;
+        shiftKey.resetToggledMode(mode);
+    }
+
+    function toUpper(str) {
+        if (str === ",") {
+            return "<";
+        } else if (str === ".") {
+            return ">";
+        } else if (str === "/") {
+            return "?";
+        } else {
+            return str.toUpperCase(str);
+        }
+    }
+
+    function toLower(str) {
+        if (str === "<") {
+            return ",";
+        } else if (str === ">") {
+            return ".";
+        } else if (str === "?") {
+            return "/";
+        } else {
+            return str.toLowerCase(str);
+        }
+    }
+
+    function forEachKey(func) {
+        var i, j;
+        for (i = 0; i < column1.children.length; i++) {
+            var row = column1.children[i];
+            for (j = 0; j < row.children.length; j++) {
+                var key = row.children[j];
+                func(key);
+            }
+        }
+    }
+
+    onShiftModeChanged: {
+        forEachKey(function (key) {
+            if (shiftMode) {
+                key.glyph = keyboardBase.toUpper(key.glyph);
+            } else {
+                key.glyph = keyboardBase.toLower(key.glyph);
+            }
+        });
+    }
+
+    function alphaKeyClickedHandler(mouseArea) {
+        // reset shift mode to false after first keypress
+        if (shiftMode) {
+            resetShiftMode(false);
+        }
+    }
+
+    Component.onCompleted: {
+        // hook up callbacks to every ascii key
+        forEachKey(function (key) {
+            if (/^[a-z]+$/i.test(key.glyph)) {
+                key.mouseArea.onClicked.connect(alphaKeyClickedHandler);
+            }
+        });
+    }
+
     Rectangle {
         id: leftRect
         y: 0
@@ -41,67 +110,67 @@ Item {
 
                 Key {
                     id: key1
-                    width: 43
-                    glyph: "1"
+                    width: 44
+                    glyph: "q"
                 }
 
                 Key {
                     id: key2
-                    width: 43
-                    glyph: "2"
+                    width: 44
+                    glyph: "w"
                 }
 
                 Key {
                     id: key3
-                    width: 43
-                    glyph: "3"
+                    width: 44
+                    glyph: "e"
                 }
 
                 Key {
                     id: key4
                     width: 43
-                    glyph: "4"
+                    glyph: "r"
                 }
 
                 Key {
                     id: key5
                     width: 43
-                    glyph: "5"
+                    glyph: "t"
                 }
 
                 Key {
                     id: key6
-                    width: 43
-                    glyph: "6"
+                    width: 44
+                    glyph: "y"
                 }
 
                 Key {
                     id: key7
-                    width: 43
-                    glyph: "7"
+                    width: 44
+                    glyph: "u"
                 }
 
                 Key {
                     id: key8
                     width: 43
-                    glyph: "8"
+                    glyph: "i"
                 }
 
                 Key {
                     id: key9
-                    width: 43
-                    glyph: "9"
+                    width: 42
+                    glyph: "o"
                 }
 
                 Key {
                     id: key10
-                    width: 43
-                    glyph: "0"
+                    width: 44
+                    glyph: "p"
                 }
 
                 Key {
                     id: key28
-                    width: 50
+                    width: 45
                     glyph: "←"
                 }
             }
@@ -111,71 +180,64 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 0
+                anchors.leftMargin: 18
 
                 Key {
                     id: key11
                     width: 43
-                    glyph: "!"
                 }
 
                 Key {
                     id: key12
                     width: 43
-                    glyph: "@"
+                    glyph: "s"
                 }
 
                 Key {
                     id: key13
                     width: 43
-                    glyph: "#"
+                    glyph: "d"
                 }
 
                 Key {
                     id: key14
                     width: 43
-                    glyph: "$"
+                    glyph: "f"
                 }
 
                 Key {
                     id: key15
                     width: 43
-                    glyph: "%"
+                    glyph: "g"
                 }
 
                 Key {
                     id: key16
                     width: 43
-                    glyph: "^"
+                    glyph: "h"
                 }
 
                 Key {
                     id: key17
                     width: 43
-                    glyph: "&"
+                    glyph: "j"
                 }
 
                 Key {
                     id: key18
                     width: 43
-                    glyph: "*"
+                    glyph: "k"
                 }
 
                 Key {
                     id: key19
                     width: 43
-                    glyph: "("
+                    glyph: "l"
                 }
 
                 Key {
                     id: key32
-                    width: 43
-                    glyph: ")"
-                }
-
-                Key {
-                    id: key37
-                    width: 50
+                    width: 75
                     glyph: "⏎"
                 }
             }
@@ -185,72 +247,76 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 4
+                anchors.leftMargin: 0
 
                 Key {
                     id: key27
-                    width: 43
-                    glyph: "="
+                    width: 46
+                    glyph: "⇪"
+                    toggle: true
+                    onToggledChanged: {
+                        shiftMode = toggled;
+                    }
                 }
 
                 Key {
                     id: key20
                     width: 43
-                    glyph: "+"
+                    glyph: "z"
                 }
 
                 Key {
                     id: key21
                     width: 43
-                    glyph: "-"
+                    glyph: "x"
                 }
 
                 Key {
                     id: key22
                     width: 43
-                    glyph: "_"
+                    glyph: "c"
                 }
 
                 Key {
                     id: key23
                     width: 43
-                    glyph: ";"
+                    glyph: "v"
                 }
 
                 Key {
                     id: key24
                     width: 43
-                    glyph: ":"
+                    glyph: "b"
                 }
 
                 Key {
                     id: key25
                     width: 43
-                    glyph: "'"
+                    glyph: "n"
                 }
 
                 Key {
                     id: key26
-                    width: 43
-                    glyph: "\""
+                    width: 44
+                    glyph: "m"
                 }
 
                 Key {
                     id: key31
                     width: 43
-                    glyph: "<"
+                    glyph: "_"
                 }
 
                 Key {
                     id: key33
                     width: 43
-                    glyph: ">"
+                    glyph: "?"
                 }
 
                 Key {
                     id: key36
-                    width: 43
-                    glyph: "?"
+                    width: 46
+                    glyph: "/"
                 }
 
             }
@@ -264,10 +330,10 @@ Item {
 
                 Key {
                     id: key30
-                    width: 65
-                    glyph: "abc"
+                    width: 89
+                    glyph: "&123"
                     mouseArea.onClicked: {
-                        keyboardBase.parent.punctuationMode = false
+                        keyboardBase.parent.punctuationMode = true;
                     }
                 }
 

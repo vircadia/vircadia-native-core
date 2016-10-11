@@ -193,7 +193,7 @@ var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 function controllerComputePickRay(hand) {
     var controllerPose = getControllerWorldLocation(hand, true);
     if (controllerPose.valid) {
-        return { origin: controllerPose.position, direction: controllerPose.orientation };
+        return { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
     }
 }
 

@@ -127,6 +127,8 @@ function loaded() {
 
         augmentSpinButtons();
 
+        setUpKeyboardControl();
+
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
 

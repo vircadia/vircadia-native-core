@@ -32,23 +32,25 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
+#include <GLMHelpers.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLHelpers.h"
 #include "GLLogging.h"
-
+#include "TextureRecycler.h"
+#include "Context.h"
 
 QString fixupHifiUrl(const QString& urlString) {
-	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+    static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+    static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
     QUrl url(urlString);
-	QUrlQuery query(url);
-	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    auto accountManager = DependencyManager::get<AccountManager>();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
-	    url.setQuery(query.query());
-	    return url.toString();
-	}
+    QUrlQuery query(url);
+    if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+        auto accountManager = DependencyManager::get<AccountManager>();
+        query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
+        url.setQuery(query.query());
+        return url.toString();
+    }
     return urlString;
 }
 
@@ -114,257 +116,8 @@ QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 
-static const QEvent::Type INIT = QEvent::Type(QEvent::User + 1);
-static const QEvent::Type RENDER = QEvent::Type(QEvent::User + 2);
-static const QEvent::Type RESIZE = QEvent::Type(QEvent::User + 3);
-static const QEvent::Type STOP = QEvent::Type(QEvent::User + 4);
-
-class RawTextureRecycler {
-public:
-    using TexturePtr = GLuint;
-    RawTextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
-    void setSize(const uvec2& size);
-    void clear();
-    TexturePtr getNextTexture();
-    void recycleTexture(GLuint texture);
-
-private:
-
-    struct TexInfo {
-        TexturePtr _tex { 0 };
-        uvec2 _size;
-        bool _active { false };
-
-        TexInfo() {}
-        TexInfo(TexturePtr tex, const uvec2& size) : _tex(tex), _size(size) {}
-    };
-
-    using Map = std::map<GLuint, TexInfo>;
-    using Queue = std::queue<TexturePtr>;
-
-    Map _allTextures;
-    Queue _readyTextures;
-    uvec2 _size { 1920, 1080 };
-    bool _useMipmaps;
-};
-
-
-void RawTextureRecycler::setSize(const uvec2& size) {
-    if (size == _size) {
-        return;
-    }
-    _size = size;
-    while (!_readyTextures.empty()) {
-        _readyTextures.pop();
-    }
-    std::set<Map::key_type> toDelete;
-    std::for_each(_allTextures.begin(), _allTextures.end(), [&](Map::const_reference item) {
-        if (!item.second._active && item.second._size != _size) {
-            toDelete.insert(item.first);
-        }
-    });
-    std::for_each(toDelete.begin(), toDelete.end(), [&](Map::key_type key) {
-        _allTextures.erase(key);
-    });
-}
-
-void RawTextureRecycler::clear() {
-    while (!_readyTextures.empty()) {
-        _readyTextures.pop();
-    }
-    _allTextures.clear();
-}
-
-RawTextureRecycler::TexturePtr RawTextureRecycler::getNextTexture() {
-    if (_readyTextures.empty()) {
-        TexturePtr newTexture;
-        glGenTextures(1, &newTexture);
-
-        glBindTexture(GL_TEXTURE_2D, newTexture);
-        if (_useMipmaps) {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        } else {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        }
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _size.x, _size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        _allTextures[newTexture] = TexInfo { newTexture, _size };
-        _readyTextures.push(newTexture);
-    }
-
-    TexturePtr result = _readyTextures.front();
-    _readyTextures.pop();
-    auto& item = _allTextures[result];
-    item._active = true;
-    return result;
-}
-
-void RawTextureRecycler::recycleTexture(GLuint texture) {
-    Q_ASSERT(_allTextures.count(texture));
-    auto& item = _allTextures[texture];
-    Q_ASSERT(item._active);
-    item._active = false;
-    if (item._size != _size) {
-        // Buh-bye
-        _allTextures.erase(texture);
-        return;
-    }
-
-    _readyTextures.push(item._tex);
-}
-
-
-class OffscreenQmlRenderThread : public QThread {
-public:
-    OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext);
-    virtual ~OffscreenQmlRenderThread() = default;
-
-    virtual void run() override;
-    virtual bool event(QEvent *e) override;
-
-protected:
-    class Queue : private QQueue<QEvent*> {
-    public:
-        void add(QEvent::Type type);
-        QEvent* take();
-
-    private:
-        QMutex _mutex;
-        QWaitCondition _waitCondition;
-        bool _isWaiting{ false };
-    };
-
-    friend class OffscreenQmlSurface;
-
-    QJsonObject getGLContextData();
-
-    Queue _queue;
-    QMutex _mutex;
-    QWaitCondition _waitCondition;
-    std::atomic<bool> _rendering { false };
-
-    QJsonObject _glData;
-    QMutex _glMutex;
-    QWaitCondition _glWait;
-
-private:
-    // Event-driven methods
-    void init();
-    void render();
-    void resize();
-    void cleanup();
-
-    // Helper methods
-    void setupFbo();
-    bool allowNewFrame(uint8_t fps);
-    bool fetchTexture(OffscreenQmlSurface::TextureAndFence& textureAndFence);
-    void releaseTexture(const OffscreenQmlSurface::TextureAndFence& textureAndFence);
-
-    // Texture management
-    std::mutex _textureMutex;
-    GLuint _latestTexture { 0 };
-    GLsync _latestTextureFence { 0 };
-    std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
-
-    // Rendering members
-    OffscreenGLCanvas _canvas;
-    OffscreenQmlSurface* _surface{ nullptr };
-    QQuickWindow* _quickWindow{ nullptr };
-    QMyQuickRenderControl* _renderControl{ nullptr };
-    GLuint _fbo { 0 };
-    GLuint _depthStencil { 0 };
-    RawTextureRecycler _textures { true };
-
-    uint64_t _lastRenderTime{ 0 };
-    uvec2 _size{ 1920, 1080 };
-    QSize _newSize;
-    bool _quit{ false };
-};
-
-void OffscreenQmlRenderThread::Queue::add(QEvent::Type type) {
-    QMutexLocker locker(&_mutex);
-    enqueue(new QEvent(type));
-    if (_isWaiting) {
-        _waitCondition.wakeOne();
-    }
-}
-
-QEvent* OffscreenQmlRenderThread::Queue::take() {
-    QMutexLocker locker(&_mutex);
-    while (isEmpty()) {
-        _isWaiting = true;
-        _waitCondition.wait(&_mutex);
-        _isWaiting = false;
-    }
-    QEvent* e = dequeue();
-    return e;
-}
-
-OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
-    _canvas.setObjectName("OffscreenQmlRenderCanvas");
-    qCDebug(glLogging) << "Building QML Renderer";
-    if (!_canvas.create(shareContext)) {
-        qWarning("Failed to create OffscreenGLCanvas");
-        _quit = true;
-        return;
-    };
-
-    _renderControl = new QMyQuickRenderControl();
-    QQuickWindow::setDefaultAlphaBuffer(true);
-    // Create a QQuickWindow that is associated with our render control.
-    // This window never gets created or shown, meaning that it will never get an underlying native (platform) window.
-    // NOTE: Must be created on the main thread so that OffscreenQmlSurface can send it events
-    // NOTE: Must be created on the rendering thread or it will refuse to render,
-    //       so we wait until after its ctor to move object/context to this thread.
-    _quickWindow = new QQuickWindow(_renderControl);
-    _quickWindow->setColor(QColor(255, 255, 255, 0));
-    _quickWindow->setFlags(_quickWindow->flags() | static_cast<Qt::WindowFlags>(Qt::WA_TranslucentBackground));
-
-    // We can prepare, but we must wait to start() the thread until after the ctor
-    _renderControl->prepareThread(this);
-    _canvas.getContextObject()->moveToThread(this);
-    moveToThread(this);
-
-    _queue.add(INIT);
-}
-
-void OffscreenQmlRenderThread::run() {
-    qCDebug(glLogging) << "Starting QML Renderer thread";
-
-    while (!_quit) {
-        QEvent* e = _queue.take();
-        event(e);
-        delete e;
-    }
-}
-
-bool OffscreenQmlRenderThread::event(QEvent *e) {
-    switch (int(e->type())) {
-    case INIT:
-        init();
-        return true;
-    case RENDER:
-        render();
-        return true;
-    case RESIZE:
-        resize();
-        return true;
-    case STOP:
-        cleanup();
-        return true;
-    default:
-        return QObject::event(e);
-    }
-}
-
-void OffscreenQmlRenderThread::setupFbo() {
+void OffscreenQmlSurface::setupFbo() {
+    _canvas->makeCurrent();
     _textures.setSize(_size);
     if (_depthStencil) {
         glDeleteRenderbuffers(1, &_depthStencil);
@@ -382,41 +135,12 @@ void OffscreenQmlRenderThread::setupFbo() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    _canvas->doneCurrent();
 }
 
-QJsonObject OffscreenQmlRenderThread::getGLContextData() {
-    _glMutex.lock();
-    if (_glData.isEmpty()) {
-        _glWait.wait(&_glMutex);
-    }
-    _glMutex.unlock();
-    return _glData;
-}
-
-void OffscreenQmlRenderThread::init() {
-    qCDebug(glLogging) << "Initializing QML Renderer";
-
-    if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on QML Renderer Thread");
-        _quit = true;
-        return;
-    }
-
-    _glMutex.lock();
-    _glData = ::getGLContextData();
-    _glMutex.unlock();
-    _glWait.wakeAll();
-
-    connect(_renderControl, &QQuickRenderControl::renderRequested, _surface, &OffscreenQmlSurface::requestRender);
-    connect(_renderControl, &QQuickRenderControl::sceneChanged, _surface, &OffscreenQmlSurface::requestUpdate);
-
-    _renderControl->initialize(_canvas.getContext());
-    setupFbo();
-}
-
-void OffscreenQmlRenderThread::cleanup() {
+void OffscreenQmlSurface::cleanup() {
+    _canvas->makeCurrent();
     _renderControl->invalidate();
-
     if (_depthStencil) {
         glDeleteRenderbuffers(1, &_depthStencil);
         _depthStencil = 0;
@@ -427,65 +151,17 @@ void OffscreenQmlRenderThread::cleanup() {
     }
 
     _textures.clear();
-
-    _canvas.doneCurrent();
-    _canvas.getContextObject()->moveToThread(QCoreApplication::instance()->thread());
-
-    _quit = true;
+    _canvas->doneCurrent();
 }
 
-void OffscreenQmlRenderThread::resize() {
-    // Lock _newSize changes
-    {
-        QMutexLocker locker(&_mutex);
-
-        // Update our members
-        if (_quickWindow) {
-            _quickWindow->setGeometry(QRect(QPoint(), _newSize));
-            _quickWindow->contentItem()->setSize(_newSize);
-        }
-
-        // Qt bug in 5.4 forces this check of pixel ratio,
-        // even though we're rendering offscreen.
-        qreal pixelRatio = 1.0;
-        if (_renderControl && _renderControl->_renderWindow) {
-            pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
-        }
-
-        uvec2 newOffscreenSize = toGlm(_newSize * pixelRatio);
-        if (newOffscreenSize == _size) {
-            return;
-        }
-
-        qCDebug(glLogging) << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
-        _size = newOffscreenSize;
-    }
-
-    _textures.setSize(_size);
-    setupFbo();
-}
-
-void OffscreenQmlRenderThread::render() {
-    // Ensure we always release the main thread
-    Finally releaseMainThread([this] {
-        _waitCondition.wakeOne();
-    });
-
-    if (_surface->_paused) {
+void OffscreenQmlSurface::render() {
+    if (_paused) {
         return;
     }
 
-    _rendering = true;
-    Finally unmarkRenderingFlag([this] {
-        _rendering = false;
-    });
+    _canvas->makeCurrent();
 
-    {
-        QMutexLocker locker(&_mutex);
-        _renderControl->sync();
-        releaseMainThread.trigger();
-    }
-
+    _renderControl->sync();
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
     // Clear out any pending textures to be returned
@@ -507,70 +183,61 @@ void OffscreenQmlRenderThread::render() {
         }
     }
 
-    try {
-        GLuint texture = _textures.getNextTexture();
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-        glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-        PROFILE_RANGE("qml_render->rendercontrol")
-        _renderControl->render();
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, 0);
+    GLuint texture = _textures.getNextTexture();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+    PROFILE_RANGE("qml_render->rendercontrol")
+    _renderControl->render();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-        {
-            std::unique_lock<std::mutex> lock(_textureMutex);
-            // If the most recent texture was unused, we can directly recycle it
-            if (_latestTextureFence) {
-            }
-            if (_latestTexture) {
-                _textures.recycleTexture(_latestTexture);
-                glDeleteSync(_latestTextureFence);
-                _latestTexture = 0;
-                _latestTextureFence = 0;
-            }
-
-            _latestTextureFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            _latestTexture = texture;
-            // Fence will be used in another thread / context, so a flush is required
-            glFlush();
+    {
+        std::unique_lock<std::mutex> lock(_textureMutex);
+        // If the most recent texture was unused, we can directly recycle it
+        if (_latestTextureAndFence.first) {
+            _textures.recycleTexture(_latestTextureAndFence.first);
+            glDeleteSync(static_cast<GLsync>(_latestTextureAndFence.second));
+            _latestTextureAndFence = { 0, 0 };
         }
 
-        _quickWindow->resetOpenGLState();
-        _lastRenderTime = usecTimestampNow();
-    } catch (std::runtime_error& error) {
-        qWarning() << "Failed to render QML: " << error.what();
+        _latestTextureAndFence = { texture, glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0) };
+        // Fence will be used in another thread / context, so a flush is required
+        glFlush();
     }
+
+    _quickWindow->resetOpenGLState();
+    _lastRenderTime = usecTimestampNow();
+    _canvas->doneCurrent();
 }
 
-bool OffscreenQmlRenderThread::fetchTexture(OffscreenQmlSurface::TextureAndFence& textureAndFence) {
+bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
     textureAndFence = { 0, 0 };
 
     std::unique_lock<std::mutex> lock(_textureMutex);
-    if (0 == _latestTexture) {
+    if (0 == _latestTextureAndFence.first) {
         return false;
     }
 
     // Ensure writes to the latest texture are complete before before returning it for reading
-    Q_ASSERT(0 != _latestTextureFence);
-    textureAndFence = { _latestTexture, _latestTextureFence };
-    _latestTextureFence = 0;
-    _latestTexture = 0;
+    textureAndFence = _latestTextureAndFence;
+    _latestTextureAndFence = { 0, 0 };
     return true;
 }
 
-void OffscreenQmlRenderThread::releaseTexture(const OffscreenQmlSurface::TextureAndFence& textureAndFence) {
+void OffscreenQmlSurface::releaseTexture(const TextureAndFence& textureAndFence) {
     std::unique_lock<std::mutex> lock(_textureMutex);
     _returnedTextures.push_back(textureAndFence);
 }
 
-bool OffscreenQmlRenderThread::allowNewFrame(uint8_t fps) {
+bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
     // If we already have a pending texture, don't render another one 
     // i.e. don't render faster than the consumer context, since it wastes 
     // GPU cycles on producing output that will never be seen
     {
         std::unique_lock<std::mutex> lock(_textureMutex);
-        if (0 != _latestTexture) {
+        if (0 != _latestTextureAndFence.first) {
             return false;
         }
     }
@@ -588,33 +255,46 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
 
-    qCDebug(glLogging) << "Stopping QML Renderer Thread " << _renderer->currentThreadId();
-    _renderer->_queue.add(STOP);
-    if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
-        qWarning() << "Failed to shut down the QML Renderer Thread";
-    }
 
-    delete _rootItem;
-    delete _renderer;
-    delete _qmlComponent;
-    delete _qmlEngine;
+    cleanup();
+
+    _canvas->deleteLater();
+    _rootItem->deleteLater();
+    _qmlComponent->deleteLater();
+    _qmlEngine->deleteLater();
+    _quickWindow->deleteLater();
 }
 
 void OffscreenQmlSurface::onAboutToQuit() {
+    _paused = true;
     QObject::disconnect(&_updateTimer);
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     qCDebug(glLogging) << "Building QML surface";
 
-    _renderer = new OffscreenQmlRenderThread(this, shareContext);
-    _renderer->moveToThread(_renderer);
-    _renderer->setObjectName("QML Renderer Thread");
-    _renderer->start();
+    _renderControl = new QMyQuickRenderControl();
 
-    _renderer->_renderControl->_renderWindow = _proxyWindow;
+    QQuickWindow::setDefaultAlphaBuffer(true);
 
-    connect(_renderer->_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+    // Create a QQuickWindow that is associated with our render control.
+    // This window never gets created or shown, meaning that it will never get an underlying native (platform) window.
+    // NOTE: Must be created on the main thread so that OffscreenQmlSurface can send it events
+    // NOTE: Must be created on the rendering thread or it will refuse to render,
+    //       so we wait until after its ctor to move object/context to this thread.
+    _quickWindow = new QQuickWindow(_renderControl);
+    _quickWindow->setColor(QColor(255, 255, 255, 0));
+    _quickWindow->setFlags(_quickWindow->flags() | static_cast<Qt::WindowFlags>(Qt::WA_TranslucentBackground));
+
+    _renderControl->_renderWindow = _proxyWindow;
+
+    _canvas = new OffscreenGLCanvas();
+    if (!_canvas->create(shareContext)) {
+        qFatal("Failed to create OffscreenGLCanvas");
+        return;
+    };
+
+    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
 
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
@@ -625,12 +305,25 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     importList.insert(importList.begin(), PathUtils::resourcesPath());
     _qmlEngine->setImportPathList(importList);
     if (!_qmlEngine->incubationController()) {
-        _qmlEngine->setIncubationController(_renderer->_quickWindow->incubationController());
+        _qmlEngine->setIncubationController(_quickWindow->incubationController());
     }
 
-    _qmlEngine->rootContext()->setContextProperty("GL", _renderer->getGLContextData());
+    // FIXME 
+    _qmlEngine->rootContext()->setContextProperty("GL", _glData);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlComponent = new QQmlComponent(_qmlEngine);
+
+
+    connect(_renderControl, &QQuickRenderControl::renderRequested, [this] { _render = true; });
+    connect(_renderControl, &QQuickRenderControl::sceneChanged, [this] { _render = _polish = true; });
+
+    if (!_canvas->makeCurrent()) {
+        qWarning("Failed to make context current for QML Renderer");
+        return;
+    }
+    _glData = ::getGLContextData();
+    _renderControl->initialize(_canvas->getContext());
+    setupFbo();
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
@@ -646,7 +339,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
-    if (!_renderer || !_renderer->_quickWindow) {
+    if (!_quickWindow) {
         return;
     }
 
@@ -662,7 +355,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
                 std::max(static_cast<int>(scale * newSize.height()), 10));
     }
 
-    QSize currentSize = _renderer->_quickWindow->geometry().size();
+    QSize currentSize = _quickWindow->geometry().size();
     if (newSize == currentSize && !forceResize) {
         return;
     }
@@ -673,12 +366,26 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
         _rootItem->setSize(newSize);
     }
 
-    {
-        QMutexLocker locker(&(_renderer->_mutex));
-        _renderer->_newSize = newSize;
+    // Update our members
+    _quickWindow->setGeometry(QRect(QPoint(), newSize));
+    _quickWindow->contentItem()->setSize(newSize);
+
+    // Qt bug in 5.4 forces this check of pixel ratio,
+    // even though we're rendering offscreen.
+    qreal pixelRatio = 1.0;
+    if (_renderControl && _renderControl->_renderWindow) {
+        pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
     }
 
-    _renderer->_queue.add(RESIZE);
+    uvec2 newOffscreenSize = toGlm(newSize * pixelRatio);
+    if (newOffscreenSize == _size) {
+        return;
+    }
+
+    qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
+    _size = newOffscreenSize;
+    _textures.setSize(_size);
+    setupFbo();
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {
@@ -696,27 +403,18 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
 
     if (_qmlComponent->isLoading()) {
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
                 finishQmlLoad(f);
             });
         return nullptr;
     }
-    
+
     return finishQmlLoad(f);
 }
 
 void OffscreenQmlSurface::clearCache() {
     getRootContext()->engine()->clearComponentCache();
-}
-
-void OffscreenQmlSurface::requestUpdate() {
-    _polish = true;
-    _render = true;
-}
-
-void OffscreenQmlSurface::requestRender() {
-    _render = true;
 }
 
 QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
@@ -727,6 +425,19 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
             qWarning() << error.url() << error.line() << error;
         }
         return nullptr;
+    }
+
+    // FIXME: Refactor with similar code in RenderableWebEntityItem
+    QString javaScriptToInject;
+    QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
+    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+        createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+        javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+    } else {
+        qWarning() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
     QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
@@ -741,6 +452,9 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
+    newObject->setProperty("eventBridge", QVariant::fromValue(this));
+    newContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+
     f(newContext, newObject);
     _qmlComponent->completeCreate();
 
@@ -748,7 +462,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     // All quick items should be focusable
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (newItem) {
-        // Make sure we make items focusable (critical for 
+        // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
     }
@@ -770,43 +484,31 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     }
     // The root item is ready. Associate it with the window.
     _rootItem = newItem;
-    _rootItem->setParentItem(_renderer->_quickWindow->contentItem());
-    _rootItem->setSize(_renderer->_quickWindow->renderTargetSize());
+    _rootItem->setParentItem(_quickWindow->contentItem());
+    _rootItem->setSize(_quickWindow->renderTargetSize());
     return _rootItem;
 }
 
 void OffscreenQmlSurface::updateQuick() {
-    // If we're 
+    // If we're
     //   a) not set up
     //   b) already rendering a frame
     //   c) rendering too fast
-    // then skip this 
-    if (!_renderer || _renderer->_rendering || !_renderer->allowNewFrame(_maxFps)) {
+    // then skip this
+    if (!allowNewFrame(_maxFps)) {
         return;
     }
 
     if (_polish) {
-        _renderer->_renderControl->polishItems();
+        _renderControl->polishItems();
         _polish = false;
     }
 
     if (_render) {
         PROFILE_RANGE(__FUNCTION__);
-        // Lock the GUI size while syncing
-        QMutexLocker locker(&(_renderer->_mutex));
-        _renderer->_queue.add(RENDER);
-        // FIXME need to find a better way to handle the render lockout than this locking of the main thread
-        _renderer->_waitCondition.wait(&(_renderer->_mutex));
+        render();
         _render = false;
     }
-}
-
-bool OffscreenQmlSurface::fetchTexture(TextureAndFence& texture) {
-    return _renderer->fetchTexture(texture);
-}
-
-void OffscreenQmlSurface::releaseTexture(const TextureAndFence& texture) {
-    _renderer->releaseTexture(texture);
 }
 
 QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject) {
@@ -818,7 +520,7 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
     }
     vec2 offscreenPosition = toGlm(sourcePosition);
     offscreenPosition /= sourceSize;
-    offscreenPosition *= vec2(toGlm(_renderer->_quickWindow->size()));
+    offscreenPosition *= vec2(toGlm(_quickWindow->size()));
     return QPointF(offscreenPosition.x, offscreenPosition.y);
 }
 
@@ -832,7 +534,7 @@ QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QO
 //
 
 bool OffscreenQmlSurface::filterEnabled(QObject* originalDestination, QEvent* event) const {
-    if (_renderer->_quickWindow == originalDestination) {
+    if (_quickWindow == originalDestination) {
         return false;
     }
     // Only intercept events while we're in an active state
@@ -850,12 +552,11 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     // Don't intercept our own events, or we enter an infinite recursion
     QObject* recurseTest = originalDestination;
     while (recurseTest) {
-        Q_ASSERT(recurseTest != _rootItem && recurseTest != _renderer->_quickWindow);
+        Q_ASSERT(recurseTest != _rootItem && recurseTest != _quickWindow);
         recurseTest = recurseTest->parent();
     }
 #endif
 
-   
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -869,7 +570,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
         case QEvent::KeyPress:
         case QEvent::KeyRelease: {
             event->ignore();
-            if (QCoreApplication::sendEvent(_renderer->_quickWindow, event)) {
+            if (QCoreApplication::sendEvent(_quickWindow, event)) {
                 return event->isAccepted();
             }
             break;
@@ -883,7 +584,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     wheelEvent->delta(),  wheelEvent->buttons(),
                     wheelEvent->modifiers(), wheelEvent->orientation());
             mappedEvent.ignore();
-            if (QCoreApplication::sendEvent(_renderer->_quickWindow, &mappedEvent)) {
+            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
                 return mappedEvent.isAccepted();
             }
             break;
@@ -904,7 +605,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                 _qmlEngine->rootContext()->setContextProperty("lastMousePosition", transformedPos);
             }
             mappedEvent.ignore();
-            if (QCoreApplication::sendEvent(_renderer->_quickWindow, &mappedEvent)) {
+            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
                 return mappedEvent.isAccepted();
             }
             break;
@@ -923,7 +624,10 @@ void OffscreenQmlSurface::pause() {
 
 void OffscreenQmlSurface::resume() {
     _paused = false;
-    requestRender();
+    _render = true;
+
+    getRootItem()->setProperty("eventBridge", QVariant::fromValue(this));
+    getRootContext()->setContextProperty("webEntity", this);
 }
 
 bool OffscreenQmlSurface::isPaused() const {
@@ -932,8 +636,8 @@ bool OffscreenQmlSurface::isPaused() const {
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _proxyWindow = window;
-    if (_renderer && _renderer->_renderControl) {
-        _renderer->_renderControl->_renderWindow = window;
+    if (_renderControl) {
+        _renderControl->_renderWindow = window;
     }
 }
 
@@ -942,11 +646,11 @@ QObject* OffscreenQmlSurface::getEventHandler() {
 }
 
 QQuickWindow* OffscreenQmlSurface::getWindow() {
-    return _renderer->_quickWindow;
+    return _quickWindow;
 }
 
 QSize OffscreenQmlSurface::size() const {
-    return _renderer->_quickWindow->geometry().size();
+    return _quickWindow->geometry().size();
 }
 
 QQmlContext* OffscreenQmlSurface::getRootContext() {
@@ -981,21 +685,142 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     return function();
 }
 
+void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    if (!object) {
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    if (!item) {
         setFocusText(false);
+        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
+
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
+    }
+
+    // Raise and lower keyboard for QML text fields.
+    // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.
+    const char* READ_ONLY_PROPERTY = "readOnly";
+    bool raiseKeyboard = item->hasActiveFocus() && item->property(READ_ONLY_PROPERTY) == false;
+    if (_currentFocusItem && !raiseKeyboard) {
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+    setKeyboardRaised(item, raiseKeyboard);  // Always set focus so that alphabetic / numeric setting is updated.
+
+    _currentFocusItem = item;
+    connect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
 }
 
 void OffscreenQmlSurface::setFocusText(bool newFocusText) {
     if (newFocusText != _focusText) {
         _focusText = newFocusText;
         emit focusTextChanged(_focusText);
+    }
+}
+
+// UTF-8 encoded symbols
+static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
+static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
+static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
+static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
+static const char PUNCTUATION_STRING[] = "&123";
+static const char ALPHABET_STRING[] = "abc";
+
+static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
+    int i;
+    for (i = 0; i < byteArray.size(); i++) {
+        if ((char)ptr[i] != byteArray[i]) {
+            return false;
+        }
+    }
+    return ptr[i] == 0x00;
+}
+
+void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
+    auto eventHandler = getEventHandler();
+    if (eventHandler) {
+        auto utf8Key = key.toUtf8();
+
+        int scanCode = (int)utf8Key[0];
+        QString keyString = key;
+        if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+            equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
+            return;  // ignore
+        } else if (equals(utf8Key, LEFT_ARROW)) {
+            scanCode = Qt::Key_Backspace;
+            keyString = "\x08";
+        } else if (equals(utf8Key, RETURN_SYMBOL)) {
+            scanCode = Qt::Key_Return;
+            keyString = "\x0d";
+        } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Left;
+            keyString = "";
+        } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+            scanCode = Qt::Key_Right;
+            keyString = "";
+        }
+
+        QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+        QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+        QCoreApplication::postEvent(eventHandler, pressEvent);
+        QCoreApplication::postEvent(eventHandler, releaseEvent);
+    }
+}
+
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+    if (!object) {
+        return;
+    }
+
+    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    while (item) {
+        // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+        numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+
+        if (item->property("keyboardRaised").isValid()) {
+            if (item->property("punctuationMode").isValid()) {
+                item->setProperty("punctuationMode", QVariant(numeric));
+            }
+            item->setProperty("keyboardRaised", QVariant(raised));
+            return;
+        }
+        item = dynamic_cast<QQuickItem*>(item->parentItem());
+    }
+}
+
+void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        emit scriptEventReceived(message);
+    }
+}
+
+void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else {
+        // Special case to handle raising and lowering the virtual keyboard.
+        const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
+        const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        QString messageString = message.type() == QVariant::String ? message.toString() : "";
+        if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
+            setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
+        } else if (messageString == LOWER_KEYBOARD) {
+            setKeyboardRaised(_currentFocusItem, false);
+        } else {
+            emit webEventReceived(message);
+        }
     }
 }
 

@@ -399,6 +399,7 @@ protected:
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
+    const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
