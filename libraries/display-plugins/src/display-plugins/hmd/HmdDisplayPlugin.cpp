@@ -374,7 +374,8 @@ void HmdDisplayPlugin::updateFrameData() {
         }
 
         // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js
-        static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.1f, 0.04f, -0.32f);
+        //static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.1f, 0.04f, -0.32f);
+        static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.0f, 0.0f, -0.175f);
         vec3 grabPointOffset = GRAB_POINT_SPHERE_OFFSET;
         if (i == 0) {
             grabPointOffset.x *= -1.0f; // this changes between left and right hands

@@ -112,7 +112,7 @@ var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
-var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
+var GRAB_POINT_SPHERE_COLOR = { red: 240, green: 240, blue: 240 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
 
 
