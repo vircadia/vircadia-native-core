@@ -6,6 +6,11 @@ function ready() {
 
     electron.ipcRenderer.on('update', function(event, message) {
         $('#directory').html(message);
+
+        electron.ipcRenderer.send('setSize',  {
+            width: $(window).width(),
+            height:  $('#content').height() + 50
+        });
     });
 
     electron.ipcRenderer.send('ready');
