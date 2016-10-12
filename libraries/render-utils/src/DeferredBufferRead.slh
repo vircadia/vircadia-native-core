@@ -52,7 +52,7 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     vec4 specularVal;
     
     DeferredFragment frag;
-    frag.depthVal = -1;
+    frag.depthVal = -1.0;
     normalVal = texture(normalMap, texcoord);
     diffuseVal = texture(albedoMap, texcoord);
     specularVal = texture(specularMap, texcoord);
@@ -186,8 +186,8 @@ void unpackMidLowNormalCurvature(vec2 texcoord, out vec4 midNormalCurvature, out
     lowNormalCurvature = fetchDiffusedCurvature(texcoord);
     midNormalCurvature.xyz = normalize((midNormalCurvature.xyz - 0.5f) * 2.0f);
     lowNormalCurvature.xyz = normalize((lowNormalCurvature.xyz - 0.5f) * 2.0f);
-    midNormalCurvature.w = (midNormalCurvature.w * 2 - 1);
-    lowNormalCurvature.w = (lowNormalCurvature.w * 2 - 1);
+    midNormalCurvature.w = (midNormalCurvature.w * 2.0 - 1.0);
+    lowNormalCurvature.w = (lowNormalCurvature.w * 2.0 - 1.0);
 }
 <@endfunc@>
 

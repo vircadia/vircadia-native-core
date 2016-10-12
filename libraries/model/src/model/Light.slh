@@ -39,17 +39,18 @@ struct LightAmbient {
 
 SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphere; }
 
+
 float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
 bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0; }
 float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
 <@func declareLightBuffer(N)@>
 
+
 <@if N@>
 uniform lightBuffer {
     Light lightArray[<$N$>];
 };
-
 Light getLight(int index) {
     return lightArray[index];
 }
