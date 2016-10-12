@@ -2239,7 +2239,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
 
                 // prepare a packet for the response
-                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse);
+                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse, -1, true);
 
                 // check the number of bytes the viewpoint is
                 quint16 numViewpointBytes = viewpointUTF8.size();

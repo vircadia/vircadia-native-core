@@ -389,7 +389,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
     if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
-        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery);
+        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery, -1, true);
 
         // get the UTF8 representation of path query
         QByteArray pathQueryUTF8 = newPath.toUtf8();
