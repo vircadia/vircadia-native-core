@@ -65,8 +65,6 @@ void GetMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    qDebug() << "Asking asset client to get mapping for" << _path;
-
     _mappingRequestID = assetClient->getAssetMapping(_path,
             [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
