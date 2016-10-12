@@ -156,7 +156,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
     vec3 diffuseLight = lightAttenuation * lightmap;
 
     // Ambient light is the lightmap when in shadow
-    vec3 ambientLight = (1.0 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
+    vec3 ambientLight = (1.0 - lightAttenuation) * lightmap * getLightAmbientIntensity(ambient);
 
     return  isLightmapEnabled() * obscurance * albedo * (diffuseLight + ambientLight);
 }
