@@ -65,10 +65,12 @@ Item {
 
     onShiftModeChanged: {
         forEachKey(function (key) {
-            if (shiftMode) {
-                key.glyph = keyboardBase.toUpper(key.glyph);
-            } else {
-                key.glyph = keyboardBase.toLower(key.glyph);
+            if (/[a-z]/i.test(key.glyph)) {
+                if (shiftMode) {
+                    key.glyph = keyboardBase.toUpper(key.glyph);
+                } else {
+                    key.glyph = keyboardBase.toLower(key.glyph);
+                }
             }
         });
     }
