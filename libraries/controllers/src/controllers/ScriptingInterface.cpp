@@ -95,6 +95,11 @@ namespace controller {
         return getValue(Input(device, source, ChannelType::BUTTON).getID());
     }
 
+    float ScriptingInterface::getAxisValue(int source) const {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return userInputMapper->getValue(Input((uint32_t)source));
+    }
+
     float ScriptingInterface::getAxisValue(StandardAxisChannel source, uint16_t device) const {
         return getValue(Input(device, source, ChannelType::AXIS).getID());
     }
