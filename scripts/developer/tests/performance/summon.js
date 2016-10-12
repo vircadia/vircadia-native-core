@@ -23,9 +23,9 @@ var DENSITY = 0.3; // square meters per person. Some say 10 sq ft is arm's lengt
 var SOUND_DATA = {url: "http://howard-stearns.github.io/models/sounds/piano1.wav"};
 var AVATARS_CHATTERING_AT_ONCE = 4; // How many of the agents should we request to play SOUND at once.
 var NEXT_SOUND_SPREAD = 500; // millisecond range of how long to wait after one sound finishes, before playing the next
-var ANIMATION_DATA = { // T-pose until we get animations working again.
+var ANIMATION_DATA = {
     "url": "http://howard-stearns.github.io/models/resources/avatar/animations/idle.fbx",
-    //"url": "http://howard-stearns.github.io/models/resources/avatar/animations/walk_fwd.fbx",
+    // "url": "http://howard-stearns.github.io/models/resources/avatar/animations/walk_fwd.fbx", // alternative example
     "startFrame": 0.0,
     "endFrame": 300.0,
     "timeScale": 1.0,
@@ -80,8 +80,6 @@ function messageHandler(channel, messageString, senderID) {
                 position: Vec3.sum(MyAvatar.position, {x: coord(), y: 0, z: coord()}),
                 orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
                 soundData: chatter && SOUND_DATA,
-                // No need to specify skeletonModelURL
-                //skeletonModelURL: "file:///c:/Program Files/High Fidelity Release/resources/meshes/defaultAvatar_full.fst"/,
                 animationData: ANIMATION_DATA
             });
         }
