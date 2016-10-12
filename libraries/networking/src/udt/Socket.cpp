@@ -171,11 +171,28 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
 }
 
 void Socket::writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr) {
-    findOrCreateConnection(sockAddr, true)->sendReliablePacket(std::unique_ptr<Packet>(packet));
+    auto connection = findOrCreateConnection(sockAddr);
+    if (connection) {
+        connection->sendReliablePacket(std::unique_ptr<Packet>(packet));
+    }
+#ifdef UDT_CONNECTION_DEBUG
+    else {
+        qCDebug(networking) << "Socket::writeReliablePacket refusing to send packet - no connection was created";
+    }
+#endif
+
 }
 
 void Socket::writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr) {
-    findOrCreateConnection(sockAddr, true)->sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
+    auto connection = findOrCreateConnection(sockAddr);
+    if (connection) {
+        connection->sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
+    }
+#ifdef UDT_CONNECTION_DEBUG
+    else {
+        qCDebug(networking) << "Socket::writeReliablePacketList refusing to send packet list - no connection was created";
+    }
+#endif
 }
 
 qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
@@ -198,34 +215,33 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     return bytesWritten;
 }
 
-Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool forceCreation) {
+Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
         // we did not have a matching connection, time to see if we should make one
 
-        if (!forceCreation && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
-            // we weren't asked to force the creation of a connection
-            // and the connection creation filter did not tell us to create one
+        if (_connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
+            // the connection creation filter did not allow us to create a new connection
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
                 << "due to connection creation filter";
 #endif
             return nullptr;
-        }
+        } else {
+            auto congestionControl = _ccFactory->create();
+            congestionControl->setMaxBandwidth(_maxBandwidth);
+            auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
 
-        auto congestionControl = _ccFactory->create();
-        congestionControl->setMaxBandwidth(_maxBandwidth);
-        auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
-
-        // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
-        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
+            // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
+            QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
 
 #ifdef UDT_CONNECTION_DEBUG
-        qCDebug(networking) << "Creating new connection to" << sockAddr;
+            qCDebug(networking) << "Creating new connection to" << sockAddr;
 #endif
 
-        it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
+            it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
+        }
     }
 
     return it->second.get();

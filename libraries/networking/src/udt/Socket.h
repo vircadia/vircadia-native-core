@@ -25,7 +25,7 @@
 #include "CongestionControl.h"
 #include "Connection.h"
 
-//#define UDT_CONNECTION_DEBUG
+#define UDT_CONNECTION_DEBUG
 
 class UDTTest;
 
@@ -96,7 +96,7 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool forceCreation = false);
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
     bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
