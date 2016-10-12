@@ -189,11 +189,13 @@ Item {
                 anchors.leftMargin: 4
 
                 Key {
-                    width: 86
+                    width: 70
                     glyph: "123"
                     mouseArea.onClicked: keyboardBase.parent.punctuationMode = true
                 }
-                Key { width: 285; glyph: " "; }
+                Key { width: 43; glyph: ","; }
+                Key { width: 215; glyph: " "; }
+                Key { width: 43; glyph: "."; }
                 Key { width: 43; glyph: "⇦"; }
                 Key { width: 43; glyph: "⇨"; }
             }
@@ -269,11 +271,13 @@ Item {
                 anchors.leftMargin: 4
 
                 Key {
-                    width: 86
+                    width: 70
                     glyph: "abc"
                     mouseArea.onClicked: keyboardBase.parent.punctuationMode = false
                 }
-                Key { width: 285; glyph: " "; }
+                Key { width: 43; glyph: ","; }
+                Key { width: 215; glyph: " "; }
+                Key { width: 43; glyph: "."; }
                 Key { width: 43; glyph: "⇦"; }
                 Key { width: 43; glyph: "⇨"; }
             }
