@@ -108,7 +108,7 @@ float evalLightAttenuation(Light l, float d) {
     
     // "Fade" the edges of light sources to make things look a bit more attractive.
     // Note: this tends to look a bit odd at lower exponents.
-    attenuation *= min(1, max(0, -(d - cutoff)));
+    attenuation *= min(1.0, max(0.0, -(d - cutoff)));
     
     return attenuation;
 }
@@ -118,7 +118,7 @@ SphericalHarmonics getLightAmbientSphere(Light l) {
 }
 
 bool getLightHasAmbientMap(Light l) {
-    return l._control.x > 0;
+    return l._control.x > 0.0;
 }
 
 float getLightAmbientMapNumMips(Light l) {

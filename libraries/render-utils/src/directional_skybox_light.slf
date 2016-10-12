@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_light.frag
+//  directional_skybox_light.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 5/8/2015.
