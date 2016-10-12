@@ -12,17 +12,7 @@
 #ifndef hifi_SettingHelpers_h
 #define hifi_SettingHelpers_h
 
-
-
-
 #include <QSettings>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QRect>
-#include <QSize>
-#include <QPoint>
-#include <QDataStream>
-#include <QStringList>
 
 bool readJSONFile(QIODevice& device, QSettings::SettingsMap& map);
 bool writeJSONFile(QIODevice& device, const QSettings::SettingsMap& map);

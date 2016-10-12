@@ -12,7 +12,6 @@
 #include <QCommandLineParser>
 #include <QThread>
 
-#include <BuildInfo.h>
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
@@ -39,11 +38,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 #   else
     ShutdownEventListener::getInstance();
 #   endif
-
-    setApplicationName(BuildInfo::ASSIGNMENT_CLIENT_NAME);
-    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    setApplicationVersion(BuildInfo::VERSION);
 
     // use the verbose message handler in Logging
     qInstallMessageHandler(LogHandler::verboseMessageHandler);

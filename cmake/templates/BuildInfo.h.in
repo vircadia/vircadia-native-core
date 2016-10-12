@@ -20,6 +20,7 @@ namespace BuildInfo {
     const QString INTERFACE_NAME = "Interface";
     const QString ASSIGNMENT_CLIENT_NAME = "assignment-client";
     const QString DOMAIN_SERVER_NAME = "domain-server";
+    const QString AC_CLIENT_SERVER_NAME = "ac-client";
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
     const QString ORGANIZATION_DOMAIN = "highfidelity.io";
     const QString VERSION = "@BUILD_VERSION@";
