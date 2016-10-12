@@ -114,6 +114,8 @@ private slots:
     void sendKeepAlivePings();
 
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
+
+    void fakeHandshakeReq();
     
 private:
     NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile

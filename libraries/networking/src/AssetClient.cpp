@@ -19,6 +19,8 @@
 #include <QtScript/QScriptEngine>
 #include <QtNetwork/QNetworkDiskCache>
 
+#include "udt/ControlPacket.h"
+
 #include "AssetRequest.h"
 #include "AssetUpload.h"
 #include "AssetUtils.h"

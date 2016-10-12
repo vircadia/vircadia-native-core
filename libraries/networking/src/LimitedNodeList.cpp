@@ -32,6 +32,7 @@
 #include <UUID.h>
 
 #include "AccountManager.h"
+#include "AssetClient.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
