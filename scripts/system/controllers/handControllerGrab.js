@@ -112,7 +112,7 @@ var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
-var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
+var GRAB_POINT_SPHERE_COLOR = { red: 240, green: 240, blue: 240 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
 
 
@@ -1075,12 +1075,6 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
 
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
-
         var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
@@ -1103,9 +1097,11 @@ function MyController(hand) {
             if (!this.grabPointIntersectsEntity) {
                 Controller.triggerHapticPulse(1, 20, this.hand);
                 this.grabPointIntersectsEntity = true;
+                this.grabPointSphereOn();
             }
         } else {
             this.grabPointIntersectsEntity = false;
+            this.grabPointSphereOff();
         }
     };
 
@@ -1426,12 +1422,6 @@ function MyController(hand) {
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var handPosition = controllerLocation.position;
-
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
