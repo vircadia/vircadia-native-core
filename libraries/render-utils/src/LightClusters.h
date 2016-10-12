@@ -33,6 +33,9 @@ public:
     glm::mat4 worldToEyeMat;
     glm::mat4 eyeToWorldMat;
 
+    FrustumGrid() = default;
+    FrustumGrid(const FrustumGrid& source);
+
     void updateFrustum(const ViewFrustum& frustum) {
         frustumNear = frustum.getNearClip();
         frustumFar = frustum.getFarClip();

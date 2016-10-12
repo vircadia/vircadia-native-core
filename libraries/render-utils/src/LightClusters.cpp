@@ -44,6 +44,17 @@ enum LightClusterGridShader_BufferSlot {
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
 };
 
+FrustumGrid::FrustumGrid(const FrustumGrid& source) :
+    frustumNear(source.frustumNear),
+    rangeNear(source.rangeNear),
+    rangeFar(source.rangeFar),
+    frustumFar(source.frustumFar),
+    dims(source.dims),
+    spare(source.spare),
+    eyeToGridProj(source.eyeToGridProj),
+    worldToEyeMat(source.worldToEyeMat),
+    eyeToWorldMat(source.eyeToWorldMat)
+{}
 
 void FrustumGrid::generateGridPlanes(Planes& xPlanes, Planes& yPlanes, Planes& zPlanes) {
     xPlanes.resize(dims.x + 1);

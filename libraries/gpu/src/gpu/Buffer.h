@@ -384,12 +384,12 @@ public:
     template <class T> class StructBuffer : public gpu::BufferView {
     public:
 
-        static BufferPointer makeBuffer() {
-            T t;
-            return std::make_shared<gpu::Buffer>(sizeof(T), (const gpu::Byte*) &t);
+        template <class U> static BufferPointer makeBuffer() {
+            U t;
+            return std::make_shared<gpu::Buffer>(sizeof(U), (const gpu::Byte*) &t, sizeof(U));
         }
         ~StructBuffer<T>() {};
-        StructBuffer<T>() : gpu::BufferView(makeBuffer()) {}
+        StructBuffer<T>() : gpu::BufferView(makeBuffer<T>()) {}
 
 
         T& edit() {
