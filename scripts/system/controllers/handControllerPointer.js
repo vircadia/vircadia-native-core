@@ -471,7 +471,12 @@ function update() {
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
     }
-    if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
+    if ((!Window.hasFocus() && !HMD.active) || !Reticle.allowMouseCapture) {
+        // In desktop it's pretty clear when another app is on top. In that case we bail, because
+        // hand controllers might be sputtering "valid" data and that will keep someone from deliberately
+        // using the mouse on another app. (Fogbugz case 546.)
+        // However, in HMD, you might not realize you're not on top, and you wouldn't be able to operate
+        // other apps anyway. So in that case, we DO keep going even though we're not on top. (Fogbugz 1831.)
         return off(); // Don't mess with other apps or paused mouse activity
     }
     leftTrigger.update();
