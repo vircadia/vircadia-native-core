@@ -171,11 +171,11 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
 }
 
 void Socket::writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr) {
-    findOrCreateConnection(sockAddr).sendReliablePacket(std::unique_ptr<Packet>(packet));
+    findOrCreateConnection(sockAddr, true)->sendReliablePacket(std::unique_ptr<Packet>(packet));
 }
 
 void Socket::writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr) {
-    findOrCreateConnection(sockAddr).sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
+    findOrCreateConnection(sockAddr, true)->sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
 }
 
 qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
@@ -198,10 +198,22 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     return bytesWritten;
 }
 
-Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool forceCreation) {
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
+        // we did not have a matching connection, time to see if we should make one
+
+        if (!forceCreation && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
+            // we weren't asked to force the creation of a connection
+            // and the connection creation filter did not tell us to create one
+#ifdef UDT_CONNECTION_DEBUG
+            qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
+                << "due to connection creation filter";
+#endif
+            return nullptr;
+        }
+
         auto congestionControl = _ccFactory->create();
         congestionControl->setMaxBandwidth(_maxBandwidth);
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
@@ -216,7 +228,7 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
 
-    return *it->second;
+    return it->second.get();
 }
 
 void Socket::clearConnections() {
@@ -292,9 +304,12 @@ void Socket::readPendingDatagrams() {
             // setup a control packet from the data we just read
             auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
 
-            // move this control packet to the matching connection
-            auto& connection = findOrCreateConnection(senderSockAddr);
-            connection.processControl(move(controlPacket));
+            // move this control packet to the matching connection, if there is one
+            auto connection = findOrCreateConnection(senderSockAddr);
+
+            if (connection) {
+                connection->processControl(move(controlPacket));
+            }
 
         } else {
             // setup a Packet from the data we just read
@@ -304,19 +319,21 @@ void Socket::readPendingDatagrams() {
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto& connection = findOrCreateConnection(senderSockAddr);
+                    auto connection = findOrCreateConnection(senderSockAddr);
 
-                    if (!connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
-                                                                  packet->getDataSize(),
-                                                                  packet->getPayloadSize())) {
-                        // the connection indicated that we should not continue processing this packet
+                    if (!connection || !connection->processReceivedSequenceNumber(packet->getSequenceNumber(),
+                                                                                  packet->getDataSize(),
+                                                                                  packet->getPayloadSize())) {
+                        // the connection could not be created or indicated that we should not continue processing this packet
                         continue;
                     }
                 }
 
                 if (packet->isPartOfMessage()) {
-                    auto& connection = findOrCreateConnection(senderSockAddr);
-                    connection.queueReceivedMessagePacket(std::move(packet));
+                    auto connection = findOrCreateConnection(senderSockAddr);
+                    if (connection) {
+                        connection->queueReceivedMessagePacket(std::move(packet));
+                    }
                 } else if (_packetHandler) {
                     // call the verified packet callback to let it handle this packet
                     _packetHandler(std::move(packet));

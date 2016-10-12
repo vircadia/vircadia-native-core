@@ -113,6 +113,10 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     using std::placeholders::_1;
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
 
+    // set our socketBelongsToNode method as the connection creation filter operator for the udt::Socket
+    using std::placeholders::_1;
+    _nodeSocket.setConnectionCreationFilterOperator(std::bind(&LimitedNodeList::sockAddrBelongsToNode, this, _1));
+
     _packetStatTimer.start();
 
     if (_stunSockAddr.getAddress().isNull()) {

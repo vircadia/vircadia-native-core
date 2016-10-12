@@ -37,6 +37,7 @@ class PacketList;
 class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
+using ConnectionCreationFilterOperator = std::function<bool(const HifiSockAddr&)>;
 
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
@@ -68,6 +69,8 @@ public:
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     void setMessageHandler(MessageHandler handler) { _messageHandler = handler; }
     void setMessageFailureHandler(MessageFailureHandler handler) { _messageFailureHandler = handler; }
+    void setConnectionCreationFilterOperator(ConnectionCreationFilterOperator filterOperator)
+        { _connectionCreationFilterOperator = filterOperator; }
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
@@ -93,7 +96,8 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool forceCreation = false);
+    bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
@@ -109,6 +113,7 @@ private:
     PacketHandler _packetHandler;
     MessageHandler _messageHandler;
     MessageFailureHandler _messageFailureHandler;
+    ConnectionCreationFilterOperator _connectionCreationFilterOperator;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
