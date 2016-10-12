@@ -123,118 +123,37 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 0
+                anchors.leftMargin: 4
 
-                Key {
-                    width: 44
-                    glyph: "q"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "w"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "e"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "r"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "t"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "y"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "u"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "i"
-                }
-
-                Key {
-                    width: 42
-                    glyph: "o"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "p"
-                }
-
-                Key {
-                    width: 45
-                    glyph: "←"
-                }
+                Key { width: 43; glyph: "q"; }
+                Key { width: 43; glyph: "w"; }
+                Key { width: 43; glyph: "e"; }
+                Key { width: 43; glyph: "r"; }
+                Key { width: 43; glyph: "t"; }
+                Key { width: 43; glyph: "y"; }
+                Key { width: 43; glyph: "u"; }
+                Key { width: 43; glyph: "i"; }
+                Key { width: 43; glyph: "o"; }
+                Key { width: 43; glyph: "p"; }
+                Key { width: 43; glyph: "←"; }
             }
 
             Row {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 18
+                anchors.leftMargin: 20
 
-                Key {
-                    width: 43
-                }
-
-                Key {
-                    width: 43
-                    glyph: "s"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "d"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "f"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "g"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "h"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "j"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "k"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "l"
-                }
-
-                Key {
-                    width: 75
-                    glyph: "⏎"
-                }
+                Key { width: 43; glyph: "a"; }
+                Key { width: 43; glyph: "s"; }
+                Key { width: 43; glyph: "d"; }
+                Key { width: 43; glyph: "f"; }
+                Key { width: 43; glyph: "g"; }
+                Key { width: 43; glyph: "h"; }
+                Key { width: 43; glyph: "j"; }
+                Key { width: 43; glyph: "k"; }
+                Key { width: 43; glyph: "l"; }
+                Key { width: 70; glyph: "⏎"; }
             }
 
             Row {
@@ -242,100 +161,41 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 0
+                anchors.leftMargin: 4
 
                 Key {
                     id: shiftKey
-                    width: 46
+                    width: 43
                     glyph: "⇪"
                     toggle: true
-                    onToggledChanged: {
-                        shiftMode = toggled;
-                    }
+                    onToggledChanged: shiftMode = toggled
                 }
-
-                Key {
-                    width: 43
-                    glyph: "z"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "x"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "c"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "v"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "b"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "n"
-                }
-
-                Key {
-                    width: 44
-                    glyph: "m"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "_"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "?"
-                }
-
-                Key {
-                    width: 46
-                    glyph: "/"
-                }
-
+                Key { width: 43; glyph: "z"; }
+                Key { width: 43; glyph: "x"; }
+                Key { width: 43; glyph: "c"; }
+                Key { width: 43; glyph: "v"; }
+                Key { width: 43; glyph: "b"; }
+                Key { width: 43; glyph: "n"; }
+                Key { width: 43; glyph: "m"; }
+                Key { width: 43; glyph: "_"; }
+                Key { width: 43; glyph: "?"; }
+                Key { width: 43; glyph: "/"; }
             }
 
             Row {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 19
+                anchors.leftMargin: 4
 
                 Key {
-                    width: 89
-                    glyph: "&123"
-                    mouseArea.onClicked: {
-                        keyboardBase.parent.punctuationMode = true;
-                    }
+                    width: 86
+                    glyph: "123"
+                    mouseArea.onClicked: keyboardBase.parent.punctuationMode = true
                 }
-
-                Key {
-                    width: 285
-                    glyph: " "
-                }
-
-                Key {
-                    width: 43
-                    glyph: "⇦"
-                }
-
-                Key {
-                    x: 343
-                    width: 43
-                    glyph: "⇨"
-                }
-
+                Key { width: 285; glyph: " "; }
+                Key { width: 43; glyph: "⇦"; }
+                Key { width: 43; glyph: "⇨"; }
             }
         }
 
@@ -349,124 +209,57 @@ Item {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 0
+                anchors.leftMargin: 4
 
-                Key {
-                    width: 43
-                    glyph: "1"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "2"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "3"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "4"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "5"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "6"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "7"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "8"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "9"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "0"
-                }
-
-                Key {
-                    width: 50
-                    glyph: "←"
-                }
+                Key { width: 43; glyph: "1"; }
+                Key { width: 43; glyph: "2"; }
+                Key { width: 43; glyph: "3"; }
+                Key { width: 43; glyph: "4"; }
+                Key { width: 43; glyph: "5"; }
+                Key { width: 43; glyph: "6"; }
+                Key { width: 43; glyph: "7"; }
+                Key { width: 43; glyph: "8"; }
+                Key { width: 43; glyph: "9"; }
+                Key { width: 43; glyph: "0"; }
+                Key { width: 43; glyph: "←"; }
             }
 
             Row {
                 width: 480
                 height: 50
                 anchors.left: parent.left
-                anchors.leftMargin: 0
+                anchors.leftMargin: 4
 
-                Key {
-                    width: 43
-                    glyph: "!"
-                }
+                Key { width: 43; glyph: "!"; }
+                Key { width: 43; glyph: "@"; }
+                Key { width: 43; glyph: "#"; }
+                Key { width: 43; glyph: "$"; }
+                Key { width: 43; glyph: "%"; }
+                Key { width: 43; glyph: "^"; }
+                Key { width: 43; glyph: "&"; }
+                Key { width: 43; glyph: "*"; }
+                Key { width: 43; glyph: "("; }
+                Key { width: 43; glyph: ")"; }
+                Key { width: 43; glyph: "⏎"; }
+            }
 
-                Key {
-                    width: 43
-                    glyph: "@"
-                }
+            Row {
+                width: 480
+                height: 50
+                anchors.left: parent.left
+                anchors.leftMargin: 4
 
-                Key {
-                    width: 43
-                    glyph: "#"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "$"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "%"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "^"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "&"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "*"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "("
-                }
-
-                Key {
-                    width: 43
-                    glyph: ")"
-                }
-
-                Key {
-                    width: 50
-                    glyph: "⏎"
-                }
+                Key { width: 43; glyph: "="; }
+                Key { width: 43; glyph: "+"; }
+                Key { width: 43; glyph: "-"; }
+                Key { width: 43; glyph: ","; }
+                Key { width: 43; glyph: "."; }
+                Key { width: 43; glyph: ";"; }
+                Key { width: 43; glyph: ":"; }
+                Key { width: 43; glyph: "'"; }
+                Key { width: 43; glyph: "\""; }
+                Key { width: 43; glyph: "<"; }
+                Key { width: 43; glyph: ">"; }
             }
 
             Row {
@@ -476,92 +269,13 @@ Item {
                 anchors.leftMargin: 4
 
                 Key {
-                    width: 43
-                    glyph: "="
-                }
-
-                Key {
-                    width: 43
-                    glyph: "+"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "-"
-                }
-
-                Key {
-                    width: 43
-                    glyph: ","
-                }
-
-                Key {
-                    width: 43
-                    glyph: "."
-                }
-
-                Key {
-                    width: 43
-                    glyph: ";"
-                }
-
-                Key {
-                    width: 43
-                    glyph: ":"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "'"
-                }
-
-                Key {
-                    width: 43
-                    glyph: "\""
-                }
-
-                Key {
-                    width: 43
-                    glyph: "<"
-                }
-
-                Key {
-                    width: 43
-                    glyph: ">"
-                }
-
-            }
-
-            Row {
-                width: 480
-                height: 50
-                anchors.left: parent.left
-                anchors.leftMargin: 19
-
-                Key {
-                    width: 65
+                    width: 86
                     glyph: "abc"
-                    mouseArea.onClicked: {
-                        keyboardBase.parent.punctuationMode = false
-                    }
+                    mouseArea.onClicked: keyboardBase.parent.punctuationMode = false
                 }
-
-                Key {
-                    width: 285
-                    glyph: " "
-                }
-
-                Key {
-                    width: 43
-                    glyph: "⇦"
-                }
-
-                Key {
-                    x: 343
-                    width: 43
-                    glyph: "⇨"
-                }
-
+                Key { width: 285; glyph: " "; }
+                Key { width: 43; glyph: "⇦"; }
+                Key { width: 43; glyph: "⇨"; }
             }
         }
     }
@@ -592,5 +306,4 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: 0
     }
-
 }
