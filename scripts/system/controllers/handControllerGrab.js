@@ -26,7 +26,7 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = true;
+var FORCE_IGNORE_IK = false;
 var SHOW_GRAB_POINT_SPHERE = true;
 
 //
@@ -1382,10 +1382,11 @@ function MyController(hand) {
     this.chooseBestEquipHotspot = function(candidateEntities) {
         var DISTANCE = 0;
         var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
+        var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var handControllerLocation = getControllerWorldLocation(this.handToController(), true);
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
                 var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
                 var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
                 return aDistance - bDistance;
@@ -1896,7 +1897,7 @@ function MyController(hand) {
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
         } else {
-            this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
+            this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
         }
 
         var handRotation;

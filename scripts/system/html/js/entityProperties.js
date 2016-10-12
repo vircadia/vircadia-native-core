@@ -830,7 +830,7 @@ function loaded() {
 
                         elGrabbable.checked = properties.dynamic;
                         elWantsTrigger.checked = false;
-                        elIgnoreIK.checked = false;
+                        elIgnoreIK.checked = true;
                         var parsedUserData = {}
                         try {
                             parsedUserData = JSON.parse(properties.userData);
@@ -1143,7 +1143,7 @@ function loaded() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
         });
         elIgnoreIK.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, false);
+            userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, true);
         });
 
         elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
