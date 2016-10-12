@@ -93,7 +93,7 @@ private:
     bool cancelGetAssetRequest(MessageID id);
     bool cancelUploadAssetRequest(MessageID id);
 
-    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length);
+    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, qint64 size, DataOffset length);
     void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID);
 
     struct GetAssetRequestData {

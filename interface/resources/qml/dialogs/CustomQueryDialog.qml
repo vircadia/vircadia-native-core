@@ -211,6 +211,7 @@ ModalWindow {
                     left: parent.left;
                     bottom: parent.bottom;
                     leftMargin: 6;  // Magic number to align with warning icon
+                    bottomMargin: 6;
                 }
             }
 
@@ -224,7 +225,10 @@ ModalWindow {
                     bottom: parent.bottom;
                 }
                 model: root.comboBox ? root.comboBox.items : [];
-                onCurrentTextChanged: updateCheckbox();
+                onAccepted: {
+                    updateCheckbox();
+                    focus = true;
+                }
             }
         }
 
@@ -336,6 +340,7 @@ ModalWindow {
 
     Component.onCompleted: {
         updateIcon();
+        updateCheckbox();
         d.resize();
         textField.forceActiveFocus();
     }

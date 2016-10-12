@@ -39,6 +39,10 @@ const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probab
 PoseData _nextRenderPoseData;
 PoseData _nextSimPoseData;
 
+#define MIN_CORES_FOR_NORMAL_RENDER 5
+bool forceInterleavedReprojection = (QThread::idealThreadCount() < MIN_CORES_FOR_NORMAL_RENDER);
+
+
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 bool _openVrDisplayActive { false };
 // Flip y-axis since GL UV coords are backwards.
@@ -399,7 +403,10 @@ bool OpenVrDisplayPlugin::internalActivate() {
     });
 
     // enable async time warp
-    //vr::VRCompositor()->ForceInterleavedReprojectionOn(true);
+    if (forceInterleavedReprojection) {
+        vr::VRCompositor()->ForceInterleavedReprojectionOn(true);
+    }
+    
 
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
@@ -628,7 +635,11 @@ void OpenVrDisplayPlugin::postPreview() {
         _nextSimPoseData = nextSim;
     });
     _nextRenderPoseData = nextRender;
+
+    // FIXME - this looks wrong!
     _hmdActivityLevel = vr::k_EDeviceActivityLevel_UserInteraction; // _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
+#else
+    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
 #endif
 }
 

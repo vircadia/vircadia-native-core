@@ -666,7 +666,6 @@ void GLBackend::recycle() const {
         for (auto pair : externalTexturesTrash) {
             auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
             pair.second(pair.first, fence);
-            decrementTextureGPUCount();
         }
     }
 

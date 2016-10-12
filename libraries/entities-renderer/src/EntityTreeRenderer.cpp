@@ -478,7 +478,8 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
         }
     }
 
-    if (_pendingSkyboxTexture && !_skyboxTexture) {
+    if (_pendingSkyboxTexture && 
+        (!_skyboxTexture || (_skyboxTexture->getURL() != _skyboxTextureURL))) {
         _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, NetworkTexture::CUBE_TEXTURE);
     }
     if (_skyboxTexture && _skyboxTexture->isLoaded()) {

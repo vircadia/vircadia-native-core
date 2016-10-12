@@ -141,7 +141,11 @@ bool haveAssetServer() {
 }
 
 GetMappingRequest* AssetClient::createGetMappingRequest(const AssetPath& path) {
-    return new GetMappingRequest(path);
+    auto request = new GetMappingRequest(path);
+
+    request->moveToThread(thread());
+
+    return request;
 }
 
 GetAllMappingsRequest* AssetClient::createGetAllMappingsRequest() {
@@ -305,7 +309,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
 void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto assetHash = message->read(SHA256_HASH_LENGTH);
+    auto assetHash = message->readHead(SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
@@ -349,8 +353,8 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     } else {
         auto weakNode = senderNode.toWeakRef();
 
-        connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length]() {
-            handleProgressCallback(weakNode, messageID, length);
+        connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
+            handleProgressCallback(weakNode, messageID, size, length);
         });
         connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
             handleCompleteCallback(weakNode, messageID);
@@ -358,7 +362,8 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     }
 }
 
-void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length) {
+void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID,
+                                         qint64 size, DataOffset length) {
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
@@ -381,13 +386,7 @@ void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, Message
     }
 
     auto& callbacks = requestIt->second;
-    auto& message = callbacks.message;
-
-    if (!message) {
-        return;
-    }
-
-    callbacks.progressCallback(message->getSize(), length);
+    callbacks.progressCallback(size, length);
 }
 
 void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID) {

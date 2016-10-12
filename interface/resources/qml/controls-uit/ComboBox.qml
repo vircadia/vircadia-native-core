@@ -32,6 +32,8 @@ FocusScope {
 
     readonly property ComboBox control: comboBox
 
+    signal accepted();
+
     implicitHeight: comboBox.height;
     focus: true
 
@@ -134,6 +136,7 @@ FocusScope {
     function hideList() {
         popup.visible = false;
         scrollView.hoverEnabled = false;
+        root.accepted();
     }
 
     FocusScope {
