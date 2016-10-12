@@ -635,7 +635,11 @@ void OpenVrDisplayPlugin::postPreview() {
         _nextSimPoseData = nextSim;
     });
     _nextRenderPoseData = nextRender;
+
+    // FIXME - this looks wrong!
     _hmdActivityLevel = vr::k_EDeviceActivityLevel_UserInteraction; // _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
+#else
+    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
 #endif
 }
 

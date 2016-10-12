@@ -1133,6 +1133,7 @@ var usersWindow = (function () {
         if (VISIBILITY_VALUES.indexOf(myVisibility) === -1) {
             myVisibility = VISIBILITY_FRIENDS;
         }
+        GlobalServices.findableBy = myVisibility;
 
         visibilityControl = new PopUpMenu({
             prompt: VISIBILITY_PROMPT,

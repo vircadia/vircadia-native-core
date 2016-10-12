@@ -26,7 +26,7 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = true;
+var FORCE_IGNORE_IK = false;
 var SHOW_GRAB_POINT_SPHERE = true;
 
 //
@@ -112,7 +112,7 @@ var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
-var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
+var GRAB_POINT_SPHERE_COLOR = { red: 240, green: 240, blue: 240 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
 
 
@@ -1075,12 +1075,6 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
 
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
-
         var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
@@ -1103,9 +1097,11 @@ function MyController(hand) {
             if (!this.grabPointIntersectsEntity) {
                 Controller.triggerHapticPulse(1, 20, this.hand);
                 this.grabPointIntersectsEntity = true;
+                this.grabPointSphereOn();
             }
         } else {
             this.grabPointIntersectsEntity = false;
+            this.grabPointSphereOff();
         }
     };
 
@@ -1386,10 +1382,11 @@ function MyController(hand) {
     this.chooseBestEquipHotspot = function(candidateEntities) {
         var DISTANCE = 0;
         var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
+        var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var handControllerLocation = getControllerWorldLocation(this.handToController(), true);
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
                 var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
                 var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
                 return aDistance - bDistance;
@@ -1426,12 +1423,6 @@ function MyController(hand) {
 
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var handPosition = controllerLocation.position;
-
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
@@ -1906,7 +1897,7 @@ function MyController(hand) {
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
         } else {
-            this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
+            this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
         }
 
         var handRotation;

@@ -118,8 +118,8 @@ vec3 fresnelSchlickColor(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
 
 float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
-    float gloss2 = pow(0.001 + roughness, 4);
-    float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
+    float gloss2 = pow(0.001 + roughness, 4.0);
+    float denom = (ndoth * ndoth*(gloss2 - 1.0) + 1.0);
     float power = gloss2 / (3.14159 * denom * denom);
     return power;
 }
@@ -142,7 +142,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
     float power = specularDistribution(roughness, fragNormal, halfDir);
     vec3 specular = power * fresnelColor * diffuse;
 
-    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
+    return vec4(specular, (1.0 - metallic) * diffuse * (1.0 - fresnelColor.x));
 }
 <@endfunc@>
 

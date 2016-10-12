@@ -23,7 +23,7 @@
     // prepareGlobalLight
     // Transform directions to worldspace
     vec3 fragNormal = vec3((normal));
-    vec3 fragEyeVector = vec3(invViewMat * vec4(-position, 0.0));
+    vec3 fragEyeVector = vec3(invViewMat * vec4(-1.0*position, 0.0));
     vec3 fragEyeDir = normalize(fragEyeVector);
 
     // Get light
@@ -143,13 +143,13 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
     float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
 
     // Reevaluate the shadow attenuation for light facing fragments
-    float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
+    float lightAttenuation = (1.0 - facingLight) + facingLight * shadowAttenuation;
 
     // Diffuse light is the lightmap dimmed by shadow
     vec3 diffuseLight = lightAttenuation * lightmap;
 
     // Ambient light is the lightmap when in shadow
-    vec3 ambientLight = (1 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
+    vec3 ambientLight = (1.0 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
 
     return  isLightmapEnabled() * obscurance * albedo * (diffuseLight + ambientLight);
 }
