@@ -184,7 +184,7 @@ ScrollingWindow {
         prompt.selected.connect(function (jsonResult) {
             if (jsonResult) {
                 var result = JSON.parse(jsonResult);
-                var url = result.textInput;
+                var url = result.textInput.trim();
                 var shapeType;
                 switch (result.comboBox) {
                     case SHAPE_TYPE_SIMPLE_HULL:

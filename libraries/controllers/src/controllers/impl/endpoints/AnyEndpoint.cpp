@@ -27,19 +27,27 @@ AnyEndpoint::AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPU
     }
 }
 
+// The value of an any-point is considered to be the maxiumum absolute value,
+// this handles any's of multiple axis values as well as single values as well
 float AnyEndpoint::peek() const {
-    float result = 0;
+    float result = 0.0f;
     for (auto& child : _children) {
-        result = std::max(result, child->peek());
+        auto childValue = child->peek();
+        if (std::abs(childValue) > std::abs(result)) {
+            result = childValue;
+        }
     }
     return result;
 }
 
 // Fetching the value must trigger any necessary side effects of value() on ALL the children.
 float AnyEndpoint::value() {
-    float result = 0;
+    float result = 0.0f;
     for (auto& child : _children) {
-        result = std::max(result, child->value());
+        auto childValue = child->value();
+        if (std::abs(childValue) > std::abs(result)) {
+            result = childValue;
+        }
     }
     return result;
 }

@@ -132,6 +132,7 @@ void ViveControllerManager::deactivate() {
     _container->removeMenu(MENU_PATH);
 
     if (_system) {
+        _container->makeRenderingContextCurrent();
         releaseOpenVrSystem();
         _system = nullptr;
     }
