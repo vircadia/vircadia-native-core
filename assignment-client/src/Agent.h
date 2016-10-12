@@ -31,21 +31,6 @@
 
 #include "MixedAudioStream.h"
 
-
-class AvatarAudioTimer : public QObject {
-    Q_OBJECT
-
-signals:
-    void avatarTick();
-
-public slots:
-    void start();
-    void stop() { _quit = true; }
-
-private:
-    bool _quit { false };
-};
-
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 
@@ -74,7 +59,6 @@ public:
 public slots:
     void run() override;
     void playAvatarSound(SharedSoundPointer avatarSound);
-    void processAgentAvatarAndAudio();
 
 private slots:
     void requestScript();
@@ -87,6 +71,9 @@ private slots:
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message); 
 
     void nodeActivated(SharedNodePointer activatedNode);
+    
+    void processAgentAvatar();
+    void processAgentAvatarAudio();
 
 signals:
     void startAvatarAudioTimer();

@@ -46,25 +46,9 @@
 #include "AbstractAudioInterface.h"
 
 #include "Agent.h"
+#include "AvatarAudioTimer.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
-
-// this should send a signal every 10ms, with pretty good precision
-void AvatarAudioTimer::start() {
-    qDebug() << "AvatarAudioTimer::start called";
-    auto startTime = usecTimestampNow();
-    quint64 frameCounter = 0;
-    const int TARGET_INTERVAL_USEC = 10000; // 10ms
-    while (!_quit) {
-        frameCounter++;
-        // simplest possible timer
-        quint64 targetTime = startTime + frameCounter * TARGET_INTERVAL_USEC;
-        quint64 interval = std::max((quint64)0, targetTime - usecTimestampNow());
-        usleep(interval);
-        emit avatarTick();
-    }
-    qDebug() << "AvatarAudioTimer is finished";
-}
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
@@ -399,14 +383,17 @@ void Agent::executeScript() {
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
     
+    // 100Hz timer for audio
     AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
     audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
-    connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAndAudio);
+    connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAudio);
     connect(this, &Agent::startAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::start);
     connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
     connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
     _avatarAudioTimerThread.start();
-
+    
+    // 60Hz timer for avatar
+    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatar);
     _scriptEngine->run();
 
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
@@ -460,6 +447,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacketList(std::move(packetList), *node);
             });
         }
+        emit stopAvatarAudioTimer();
     }
 }
 
@@ -470,7 +458,7 @@ void Agent::sendAvatarIdentityPacket() {
     }
 }
 
-void Agent::processAgentAvatarAndAudio() {
+void Agent::processAgentAvatar() {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
@@ -486,102 +474,106 @@ void Agent::processAgentAvatarAndAudio() {
         auto nodeList = DependencyManager::get<NodeList>();
 
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
+    }
+}
 
-        if (_isListeningToAudioStream || _avatarSound) {
-            // if we have an avatar audio stream then send it out to our audio-mixer
-            bool silentFrame = true;
+void Agent::processAgentAvatarAudio() {
+    if (_isAvatar && (_isListeningToAudioStream || _avatarSound)) {
+        // if we have an avatar audio stream then send it out to our audio-mixer
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        bool silentFrame = true;
 
-            int16_t numAvailableSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-            const int16_t* nextSoundOutput = NULL;
+        int16_t numAvailableSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+        const int16_t* nextSoundOutput = NULL;
 
-            if (_avatarSound) {
-                const QByteArray& soundByteArray = _avatarSound->getByteArray();
-                nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
+        if (_avatarSound) {
+            const QByteArray& soundByteArray = _avatarSound->getByteArray();
+            nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
                     + _numAvatarSoundSentBytes);
 
-                int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
-                    ? AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
-                    : soundByteArray.size() - _numAvatarSoundSentBytes;
-                numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
+            int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
+                ? AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
+                : soundByteArray.size() - _numAvatarSoundSentBytes;
+            numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
 
-                // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
-                for (int i = 0; i < numAvailableSamples; ++i) {
-                    if (nextSoundOutput[i] != 0) {
-                        silentFrame = false;
-                        break;
-                    }
-                }
-
-                _numAvatarSoundSentBytes += numAvailableBytes;
-                if (_numAvatarSoundSentBytes == soundByteArray.size()) {
-                    // we're done with this sound object - so set our pointer back to NULL
-                    // and our sent bytes back to zero
-                    _avatarSound.clear();
-                    _numAvatarSoundSentBytes = 0;
+            // check if the all of the _numAvatarAudioBufferSamples to be sent are silence
+            for (int i = 0; i < numAvailableSamples; ++i) {
+                if (nextSoundOutput[i] != 0) {
+                    silentFrame = false;
+                    break;
                 }
             }
 
-            auto audioPacket = NLPacket::create(silentFrame
+            _numAvatarSoundSentBytes += numAvailableBytes;
+            if (_numAvatarSoundSentBytes == soundByteArray.size()) {
+                // we're done with this sound object - so set our pointer back to NULL
+                // and our sent bytes back to zero
+                _avatarSound.clear();
+                _numAvatarSoundSentBytes = 0;
+            }
+        }
+
+        auto audioPacket = NLPacket::create(silentFrame
                 ? PacketType::SilentAudioFrame
                 : PacketType::MicrophoneAudioNoEcho);
 
-            // seek past the sequence number, will be packed when destination node is known
-            audioPacket->seek(sizeof(quint16));
+        // seek past the sequence number, will be packed when destination node is known
+        audioPacket->seek(sizeof(quint16));
 
-            if (silentFrame) {
-                if (!_isListeningToAudioStream) {
-                    // if we have a silent frame and we're not listening then just send nothing and break out of here
-                    return;
-                }
-
-                // write the number of silent samples so the audio-mixer can uphold timing
-                audioPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-                // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(scriptedAvatar->getPosition());
-                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
-                audioPacket->writePrimitive(headOrientation);
-
-            } else if (nextSoundOutput) {
-                // write the codec
-                audioPacket->writeString(_selectedCodecName);
-                
-                // assume scripted avatar audio is mono and set channel flag to zero
-                audioPacket->writePrimitive((quint8)0);
-
-                // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(scriptedAvatar->getPosition());
-                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
-                audioPacket->writePrimitive(headOrientation);
-               
-                // encode it
-                if(_encoder) {
-                    QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
-                    QByteArray encodedBuffer;
-                    _encoder->encode(decodedBuffer, encodedBuffer);
-                    audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
-                } else {
-                    audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
-                }
-
+        if (silentFrame) {
+            if (!_isListeningToAudioStream) {
+                // if we have a silent frame and we're not listening then just send nothing and break out of here
+                return;
             }
 
-            // write audio packet to AudioMixer nodes
-            auto nodeList = DependencyManager::get<NodeList>();
-            nodeList->eachNode([this, &nodeList, &audioPacket](const SharedNodePointer& node){
-                // only send to nodes of type AudioMixer
-                if (node->getType() == NodeType::AudioMixer) {
-                    // pack sequence number
-                    quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
-                    audioPacket->seek(0);
-                    audioPacket->writePrimitive(sequence);
+            // write the number of silent samples so the audio-mixer can uphold timing
+            audioPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-                    // send audio packet
-                    nodeList->sendUnreliablePacket(*audioPacket, *node);
-                }
-            });
+            // use the orientation and position of this avatar for the source of this audio
+            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
+            audioPacket->writePrimitive(headOrientation);
+
+        } else if (nextSoundOutput) {
+            
+            // write the codec
+            audioPacket->writeString(_selectedCodecName);
+
+            // assume scripted avatar audio is mono and set channel flag to zero
+            audioPacket->writePrimitive((quint8)0);
+
+            // use the orientation and position of this avatar for the source of this audio
+            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
+            audioPacket->writePrimitive(headOrientation);
+
+            // encode it
+            if(_encoder) {
+                QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+                QByteArray encodedBuffer;
+                _encoder->encode(decodedBuffer, encodedBuffer);
+                audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
+             } else {
+                audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+            }
+
         }
+
+            // write audio packet to AudioMixer nodes
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachNode([this, &nodeList, &audioPacket](const SharedNodePointer& node) {
+            // only send to nodes of type AudioMixer
+            if (node->getType() == NodeType::AudioMixer) {
+            // pack sequence number
+            quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
+            audioPacket->seek(0);
+            audioPacket->writePrimitive(sequence);
+
+            // send audio packet
+            nodeList->sendUnreliablePacket(*audioPacket, *node);
+            }
+        });
     }
 }
 
