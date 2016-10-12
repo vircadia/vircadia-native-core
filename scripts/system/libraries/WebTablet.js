@@ -39,7 +39,7 @@ function calcSpawnInfo() {
 }
 
 // ctor
-WebTablet = function (url, width, dpi) {
+WebTablet = function (url, width, dpi, clientOnly) {
 
     var ASPECT = 4.0 / 3.0;
     var WIDTH = width || DEFAULT_WIDTH;
@@ -63,7 +63,7 @@ WebTablet = function (url, width, dpi) {
         dimensions: {x: WIDTH, y: HEIGHT, z: DEPTH},
         parentID: MyAvatar.sessionUUID,
         parentJointIndex: -2
-    });
+    }, clientOnly);
 
     var WEB_ENTITY_REDUCTION_FACTOR = {x: 0.78, y: 0.85};
     var WEB_ENTITY_Z_OFFSET = -0.01;
@@ -84,7 +84,7 @@ WebTablet = function (url, width, dpi) {
         dpi: DPI,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
-    });
+    }, clientOnly);
 
     this.state = "idle";
 };

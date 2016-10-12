@@ -40,7 +40,7 @@ function shouldShowWebTablet() {
 function showMarketplace(marketplaceID) {
     if (shouldShowWebTablet()) {
         updateButtonState(true);
-        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace");
+        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace", null, null, false);
     } else {
         var url = MARKETPLACE_URL;
         if (marketplaceID) {
