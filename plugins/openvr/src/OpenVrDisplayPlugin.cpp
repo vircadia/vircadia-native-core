@@ -445,8 +445,9 @@ void OpenVrDisplayPlugin::internalDeactivate() {
     _openVrDisplayActive = false;
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
-        // Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
+        // TODO: Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
         // we don't want ViveControllerManager to consider old values to be valid.
+        _container->makeRenderingContextCurrent();
         releaseOpenVrSystem();
         _system = nullptr;
     }
