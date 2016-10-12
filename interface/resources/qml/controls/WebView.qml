@@ -6,8 +6,17 @@ import "../controls-uit" as HiFiControls
 Item {
     property alias url: root.url
     property alias eventBridge: eventBridgeWrapper.eventBridge
+    property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+
+    // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
+    // or provide HMDinfo object to QML in RenderableWebEntityItem and do the following.
+    /*
+    onKeyboardRaisedChanged: {
+        keyboardEnabled = HMDinfo.active;
+    }
+    */
 
     QtObject {
         id: eventBridgeWrapper
@@ -20,7 +29,7 @@ Item {
         x: 0
         y: 0
         width: parent.width
-        height: keyboardRaised ? parent.height - keyboard.height : parent.height
+        height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -107,7 +116,7 @@ Item {
 
     HiFiControls.Keyboard {
         id: keyboard
-        raised: parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: parent.punctuationMode
         anchors {
             left: parent.left

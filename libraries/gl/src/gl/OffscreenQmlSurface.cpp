@@ -787,6 +787,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
         if (item->property("keyboardRaised").isValid()) {
+            // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
             if (item->property("punctuationMode").isValid()) {
                 item->setProperty("punctuationMode", QVariant(numeric));
             }
