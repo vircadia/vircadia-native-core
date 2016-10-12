@@ -11,6 +11,7 @@
             Entities.callEntityMethod(fuseID, "light");
         },
         preload: function(entityID) {
+            print("fuseCollider.js | preload");
             this.entityID = entityID;
         },
     };
