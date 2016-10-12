@@ -224,7 +224,10 @@ ModalWindow {
                     bottom: parent.bottom;
                 }
                 model: root.comboBox ? root.comboBox.items : [];
-                onCurrentTextChanged: updateCheckbox();
+                onAccepted: {
+                    updateCheckbox();
+                    focus = true;
+                }
             }
         }
 
