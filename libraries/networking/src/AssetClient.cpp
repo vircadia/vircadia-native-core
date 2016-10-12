@@ -453,7 +453,7 @@ MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCa
 
         packetList->writeString(path);
 
-        if (nodeList->sendPacketList(std::move(packetList), *assetServer)) {
+        if (nodeList->sendPacketList(std::move(packetList), *assetServer) != -1) {
             _pendingMappingRequests[assetServer][messageID] = callback;
 
             return messageID;
