@@ -453,15 +453,17 @@ MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCa
 
         packetList->writeString(path);
 
-        nodeList->sendPacketList(std::move(packetList), *assetServer);
+        if (nodeList->sendPacketList(std::move(packetList), *assetServer)) {
+            _pendingMappingRequests[assetServer][messageID] = callback;
 
-        _pendingMappingRequests[assetServer][messageID] = callback;
-
-        return messageID;
-    } else {
-        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
-        return INVALID_MESSAGE_ID;
+            return messageID;
+        } else {
+            qDebug() << "getAssetMapping would have been sent but no active socket - send back no response received";
+        }
     }
+
+    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    return INVALID_MESSAGE_ID;
 }
 
 MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
