@@ -530,6 +530,9 @@ function openBackupInstructions(folder) {
     }
     window.show();
 
+    electron.ipcMain.on('setSize', function(event, obj) {
+        window.setSize(obj.width, obj.height);
+    });
     electron.ipcMain.on('ready', function() {
         console.log("got ready");
         window.webContents.send('update', folder);
