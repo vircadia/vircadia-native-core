@@ -2283,12 +2283,13 @@ void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose&
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
-        // to prevent actions from adding or removing themselves from the _holdActions vector
-        // while we are iterating, we need to enter a critical section.
-        std::lock_guard<std::mutex> guard(_holdActionsMutex);
-
         // lateAvatarUpdate will modify entity position & orientation, so we need an entity write lock
         entityTree->withWriteLock([&] {
+
+            // to prevent actions from adding or removing themselves from the _holdActions vector
+            // while we are iterating, we need to enter a critical section.
+            std::lock_guard<std::mutex> guard(_holdActionsMutex);
+
             for (auto& holdAction : _holdActions) {
                 holdAction->lateAvatarUpdate(prePhysicsPose, postUpdatePose);
             }
