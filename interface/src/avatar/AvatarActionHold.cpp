@@ -37,9 +37,13 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
 }
 
 AvatarActionHold::~AvatarActionHold() {
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    if (myAvatar) {
-        myAvatar->removeHoldAction(this);
+    // Sometimes actions are destroyed after the AvatarManager is destroyed by the Application.
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    if (avatarManager) {
+        auto myAvatar = avatarManager->getMyAvatar();
+        if (myAvatar) {
+            myAvatar->removeHoldAction(this);
+        }
     }
 
 #if WANT_DEBUG
