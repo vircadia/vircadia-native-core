@@ -36,6 +36,19 @@ void ScriptCache::clearCache() {
     _scriptCache.clear();
 }
 
+void ScriptCache::clearATPScriptsFromCache() {
+    Lock lock(_containerLock);
+    qDebug(scriptengine) << "Clearing ATP scripts from ScriptCache";
+    for (auto it = _scriptCache.begin(); it != _scriptCache.end();) {
+        if (it.key().scheme() == "atp") {
+            qDebug(scriptengine) << "Removing: " << it.key();
+            it = _scriptCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 QString ScriptCache::getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool reload) {
     QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
     QString scriptContents;
