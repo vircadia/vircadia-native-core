@@ -28,7 +28,6 @@
 #include "HifiSockAddr.h"
 
 #include "NetworkLogging.h"
-#include "udt/ControlPacket.h"
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -126,21 +125,6 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
-
-    // setup a timer to occasionally delete the AssetServer node - hopefully to help repro a specific stuck asset case
-    auto killASTimer = new QTimer(this);
-    connect(killASTimer, &QTimer::timeout, this, &NodeList::fakeHandshakeReq);
-    killASTimer->start(10000);
-}
-
-void NodeList::fakeHandshakeReq() {
-    SharedNodePointer assetServer = soloNodeOfType(NodeType::AssetServer);
-
-    if (assetServer && assetServer->getActiveSocket()) {
-        // randomly send a handshake request packet to get assets we previously asked for into a stuck state
-        auto handshakeRequestPacket = udt::ControlPacket::create(udt::ControlPacket::HandshakeRequest, 0);
-        _nodeSocket.writeBasePacket(*handshakeRequestPacket, *assetServer->getActiveSocket());
-    }
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {

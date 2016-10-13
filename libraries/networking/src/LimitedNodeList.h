@@ -41,6 +41,7 @@
 #include "NLPacketList.h"
 #include "PacketReceiver.h"
 #include "ReceivedMessage.h"
+#include "udt/ControlPacket.h"
 #include "udt/PacketHeaders.h"
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
@@ -235,6 +236,7 @@ public:
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
+    void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 
 public slots:
     void reset();
