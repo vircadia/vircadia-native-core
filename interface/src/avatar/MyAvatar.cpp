@@ -247,6 +247,15 @@ void MyAvatar::centerBody() {
     auto worldBodyPos = extractTranslation(worldBodyMatrix);
     auto worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
+    if (_characterController.getState() == CharacterController::State::Ground) {
+        // the avatar's physical aspect thinks it is standing on something
+        // therefore need to be careful to not "center" the body below the floor
+        float downStep = glm::dot(worldBodyPos - getPosition(), _worldUpDirection);
+        if (downStep < -0.5f * _characterController.getCapsuleHalfHeight() + _characterController.getCapsuleRadius()) {
+            worldBodyPos -= downStep * _worldUpDirection;
+        }
+    }
+
     // this will become our new position.
     setPosition(worldBodyPos);
     setOrientation(worldBodyRot);
