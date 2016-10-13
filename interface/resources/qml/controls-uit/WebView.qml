@@ -13,8 +13,8 @@ import "."
 
 BaseWebView {
     onNewViewRequested: {
-        var component = Qt.createComponent("../Browser.qml");
-        var newWindow = component.createObject(desktop);
-        request.openIn(newWindow.webView)
+        // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
+        var browser = OffscreenUi.load("Browser.qml");
+        request.openIn(browser.webView);
     }
 }

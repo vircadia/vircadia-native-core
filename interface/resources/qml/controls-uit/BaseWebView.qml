@@ -25,8 +25,6 @@ WebEngineView {
         });
     }
 
-
-
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
     Timer {
         id: urlReplacementTimer
