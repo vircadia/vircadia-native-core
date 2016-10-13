@@ -937,6 +937,10 @@ stepCleanupFinish.prototype = {
 
 
 
+function isEntityInLocalTree(entityID) {
+    return Entities.getEntityProperties(entityID, 'visible').visible !== undefined;
+}
+
 function showEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -955,6 +959,7 @@ function showEntitiesWithTag(tag) {
                 collisionless: collisionless,
                 userData: JSON.stringify(data),
             };
+            debug("Showing: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
             Entities.editEntity(entityID, newProperties);
         }
     }
@@ -979,6 +984,7 @@ function showEntitiesWithTag(tag) {
         Entities.editEntity(entityID, newProperties);
     });
 }
+
 function hideEntitiesWithTag(tag) {
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
     if (entities) {
@@ -994,6 +1000,8 @@ function hideEntitiesWithTag(tag) {
                 ignoreForCollisions: 1,
                 userData: JSON.stringify(data),
             };
+
+            debug("Hiding: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
             Entities.editEntity(entityID, newProperties);
         }
     }
@@ -1020,7 +1028,9 @@ function hideEntitiesWithTag(tag) {
 // cached list of entities. Otherwise, return undefined.
 function getEntityWithName(name) {
     debug("Getting entity with name:", name);
-    return TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
+    var entityID = TUTORIAL_NAME_TO_ENTITY_PROPERTIES_MAP[name];
+    debug("Entity id: ", entityID, ", Is in local tree: ", isEntityInLocalTree(entityID));
+    return entityID;
 }
 
 
