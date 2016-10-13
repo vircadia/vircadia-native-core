@@ -20,7 +20,7 @@
                     print("TutorialStartZone | Parent ID is: ", parentID);
                     if (parentID) {
                         print("TutorialStartZone | Sending start");
-                        Entities.callEntityMethod(parentID, 'start');
+                        Entities.callEntityMethod(parentID, 'onEnteredStartZone');
                     } else {
                         print("TutorialStartZone | ERROR: No parent id found on tutorial start zone");
                     }
@@ -37,6 +37,12 @@
             print("TutorialStartZone | Exited the tutorial start area");
             if (this.sendStartIntervalID) {
                 Script.clearInterval(this.sendStartIntervalID);
+            }
+            var parentID = Entities.getEntityProperties(this.entityID, 'parentID').parentID;
+            print("TutorialStartZone | Parent ID is: ", parentID);
+            if (parentID) {
+                print("TutorialStartZone | Sending onLeftStartZone");
+                Entities.callEntityMethod(parentID, 'on');
             }
         }
     };

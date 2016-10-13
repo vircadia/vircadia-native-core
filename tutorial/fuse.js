@@ -11,7 +11,7 @@
 (function() {
     Script.include('utils.js');
 
-    var DEBUG = false;
+    var DEBUG = true;
     function debug() {
         if (DEBUG) {
             var args = Array.prototype.slice.call(arguments);
@@ -109,7 +109,7 @@
             Script.setTimeout(function() {
                 debug("Setting fuse to inactive");
                 active = false;
-            }, 10000);
+            }, 14000);
         },
         preload: function(entityID) {
             debug("Preload");

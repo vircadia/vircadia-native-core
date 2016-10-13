@@ -9,10 +9,10 @@
 //
 
 (function() {
-    var DEBUG = false;
+    var DEBUG = true;
     function debug() {
         if (DEBUG) {
-            print.apply(self, arguments);
+            print.apply(this, arguments);
         }
     }
 

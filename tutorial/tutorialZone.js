@@ -59,11 +59,13 @@ if (!Function.prototype.bind) {
             print("TutorialZone | Preload");
             this.entityID = entityID;
         },
-        start: function() {
-            print("TutorialZone | Got start");
+        onEnteredStartZone: function() {
+            print("TutorialZone | Got onEnteredStartZone");
             var self = this;
             if (!this.token) {
                 print("TutorialZone | Creating token");
+                // The start zone has been entered, hide the overlays immediately
+                Menu.setIsOptionChecked("Overlays", false);
                 this.token = new OwnershipToken(Math.random() * 100000, this.entityID, {
                     onGainedOwnership: function(token) {
                         print("TutorialZone | GOT OWNERSHIP");
@@ -89,6 +91,15 @@ if (!Function.prototype.bind) {
                         }
                     }
                 });
+            }
+        },
+        onLeftStartZone: function() {
+            print("TutorialZone | Got onLeftStartZone");
+
+            // If the start zone was exited, and the tutorial hasn't started, go ahead and
+            // re-enable the HUD/Overlays
+            if (!self.tutorialManager) {
+                Menu.setIsOptionChecked("Overlays", true);
             }
         },
 
