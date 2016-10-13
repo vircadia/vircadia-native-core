@@ -38,6 +38,10 @@ public:
         return _displayPlugins;
     }
 
+    virtual void destroyDisplayPlugins() override {
+        _displayPlugins.clear();
+    }
+
 private:
     DisplayPluginList _displayPlugins;
 };

@@ -62,6 +62,14 @@ public:
         return _inputPlugins;
     }
 
+    virtual void destroyInputPlugins() override {
+        _inputPlugins.clear();
+    }
+
+    virtual void destroyDisplayPlugins() override {
+        _displayPlugins.clear();
+    }
+
 private:
     DisplayPluginList _displayPlugins;
     InputPluginList _inputPlugins;

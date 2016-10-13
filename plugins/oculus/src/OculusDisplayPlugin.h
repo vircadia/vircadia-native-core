@@ -12,6 +12,7 @@
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
+    ~OculusDisplayPlugin();
     const QString& getName() const override { return NAME; }
 
     void init() override;

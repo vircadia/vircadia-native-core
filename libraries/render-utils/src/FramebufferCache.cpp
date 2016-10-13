@@ -36,7 +36,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
 
-    _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("selfie"));
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
     _selfieFramebuffer->setRenderBuffer(0, tex);
 
@@ -47,7 +47,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
     std::unique_lock<std::mutex> lock(_mutex);
     if (_cachedFramebuffers.empty()) {
-        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, _frameBufferSize.width(), _frameBufferSize.height())));
+        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create("cached", gpu::Element::COLOR_SRGBA_32, _frameBufferSize.width(), _frameBufferSize.height())));
     }
     gpu::FramebufferPointer result = _cachedFramebuffers.front();
     _cachedFramebuffers.pop_front();
