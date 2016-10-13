@@ -22,6 +22,7 @@ Item {
     visible: enabled && raised
 
     property bool shiftMode: false
+    property bool numericShiftMode: false
 
     function resetShiftMode(mode) {
         shiftMode = mode;
@@ -159,7 +160,6 @@ Item {
             }
 
             Row {
-                id: row3
                 width: 480
                 height: 50
                 anchors.left: parent.left
@@ -180,8 +180,8 @@ Item {
                 Key { width: 43; glyph: "n"; }
                 Key { width: 43; glyph: "m"; }
                 Key { width: 43; glyph: "_"; }
-                Key { width: 43; glyph: "?"; }
                 Key { width: 43; glyph: "/"; }
+                Key { width: 43; glyph: "?"; }
             }
 
             Row {
@@ -198,8 +198,8 @@ Item {
                 Key { width: 43; glyph: ","; }
                 Key { width: 215; glyph: " "; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "⇦"; }
-                Key { width: 43; glyph: "⇨"; }
+                Key { width: 43; glyph: "\u276C"; }
+                Key { width: 43; glyph: "\u276D"; }
             }
         }
 
@@ -253,17 +253,23 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
-                Key { width: 43; glyph: "="; }
-                Key { width: 43; glyph: "+"; }
-                Key { width: 43; glyph: "-"; }
-                Key { width: 43; glyph: ","; }
-                Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: ";"; }
-                Key { width: 43; glyph: ":"; }
-                Key { width: 43; glyph: "'"; }
-                Key { width: 43; glyph: "\""; }
-                Key { width: 43; glyph: "<"; }
-                Key { width: 43; glyph: ">"; }
+                Key {
+                    id: numericShiftKey
+                    width: 43
+                    glyph: "\u21E8"
+                    toggle: true
+                    onToggledChanged: numericShiftMode = toggled
+                }
+                Key { width: 43; glyph: numericShiftMode ? "`" : "+"; }
+                Key { width: 43; glyph: numericShiftMode ? "~" : "-"; }
+                Key { width: 43; glyph: numericShiftMode ? "\u00A3" : "="; }
+                Key { width: 43; glyph: numericShiftMode ? "\u20AC" : ";"; }
+                Key { width: 43; glyph: numericShiftMode ? "\u00A5" : ":"; }
+                Key { width: 43; glyph: numericShiftMode ? "<" : "'"; }
+                Key { width: 43; glyph: numericShiftMode ? ">" : "\""; }
+                Key { width: 43; glyph: numericShiftMode ? "[" : "{"; }
+                Key { width: 43; glyph: numericShiftMode ? "]" : "}"; }
+                Key { width: 43; glyph: numericShiftMode ? "\\" : "|"; }
             }
 
             Row {
@@ -280,8 +286,8 @@ Item {
                 Key { width: 43; glyph: ","; }
                 Key { width: 215; glyph: " "; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "⇦"; }
-                Key { width: 43; glyph: "⇨"; }
+                Key { width: 43; glyph: "\u276C"; }
+                Key { width: 43; glyph: "\u276D"; }
             }
         }
     }
