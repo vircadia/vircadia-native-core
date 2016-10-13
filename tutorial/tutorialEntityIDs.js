@@ -83,7 +83,7 @@ TUTORIAL_TAG_TO_ENTITY_IDS_MAP = {
         }
     },
     "equip-part2": {
-        "{8b92eec5-aeed-4368-bce0-432cc9ad4c51}": {
+        "{b5d17eda-90ab-40cf-b973-efcecb2e992e}": {
             "tag": "equip-part2"
         },
         "{6307cd16-dd1d-4988-a339-578178436b45}": {
