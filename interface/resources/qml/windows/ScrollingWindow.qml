@@ -133,7 +133,6 @@ Window {
             // Optional non-scrolling footer.
             id: footerPane
 
-            // @@@@@@@ TODO: Are these aliases actually needed?
             property alias keyboardOverride: window.keyboardOverride
             property alias keyboardRaised: window.keyboardRaised
             property alias punctuationMode: window.punctuationMode
@@ -212,6 +211,8 @@ Window {
     }
 
     Component.onCompleted: {
-        keyboardEnabled = HMD.active;
+        if (typeof HMD !== "undefined") {
+            keyboardEnabled = HMD.active;
+        }
     }
 }

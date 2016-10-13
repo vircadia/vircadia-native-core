@@ -309,6 +309,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     }
 
     // FIXME 
+    _glData = ::getGLContextData();  // Initialize JSON structure so that it can be filled in later and then used in QML.
     _qmlEngine->rootContext()->setContextProperty("GL", _glData);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlComponent = new QQmlComponent(_qmlEngine);
