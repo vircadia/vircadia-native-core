@@ -945,7 +945,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     properties.setLifetime(_maxTmpEntityLifetime);
                     // also bump up the lastEdited time of the properties so that the interface that created this edit
                     // will accept our adjustment to lifetime back into its own entity-tree.
-                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                    if (properties.getLastEdited() != UNKNOWN_CREATED_TIME) {
+                        properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                    }
                 }
             }
 
