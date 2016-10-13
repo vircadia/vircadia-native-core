@@ -789,6 +789,8 @@ void Connection::processHandshake(ControlPacketPointer controlPacket) {
     
     // indicate that handshake has been received
     _hasReceivedHandshake = true;
+
+    emit receiverHandshakeComplete(_destination);
 }
 
 void Connection::processHandshakeACK(ControlPacketPointer controlPacket) {

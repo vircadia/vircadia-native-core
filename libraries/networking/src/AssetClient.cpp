@@ -47,6 +47,8 @@ AssetClient::AssetClient() {
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::clientConnectionToNodeReset,
+            this, &::AssetClient::handleNodeClientConnectionReset);
 }
 
 void AssetClient::init() {
@@ -706,6 +708,34 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         return;
     }
 
+    forceFailureOfPendingRequests(node);
+
+    {
+        auto messageMapIt = _pendingUploads.find(node);
+        if (messageMapIt != _pendingUploads.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(false, AssetServerError::NoError, "");
+            }
+            messageMapIt->second.clear();
+        }
+    }
+}
+
+void AssetClient::handleNodeClientConnectionReset(SharedNodePointer node) {
+    // a client connection to a Node was reset
+    // if it was an AssetServer we need to cause anything pending to fail so it is re-attempted
+
+    if (node->getType() != NodeType::AssetServer) {
+        return;
+    }
+
+    qCDebug(asset_client) << "AssetClient detected completed client handshake with Asset Server - failing any pending requests";
+
+    forceFailureOfPendingRequests(node);
+}
+
+void AssetClient::forceFailureOfPendingRequests(SharedNodePointer node) {
+
     {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
@@ -728,16 +758,6 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
             AssetInfo info { "", 0 };
             for (const auto& value : messageMapIt->second) {
                 value.second(false, AssetServerError::NoError, info);
-            }
-            messageMapIt->second.clear();
-        }
-    }
-
-    {
-        auto messageMapIt = _pendingUploads.find(node);
-        if (messageMapIt != _pendingUploads.end()) {
-            for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, "");
             }
             messageMapIt->second.clear();
         }

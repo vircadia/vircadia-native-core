@@ -75,6 +75,7 @@ private slots:
     void handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
     void handleNodeKilled(SharedNodePointer node);
+    void handleNodeClientConnectionReset(SharedNodePointer node);
 
 private:
     MessageID getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
@@ -95,6 +96,8 @@ private:
 
     void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, qint64 size, DataOffset length);
     void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID);
+
+    void forceFailureOfPendingRequests(SharedNodePointer node);
 
     struct GetAssetRequestData {
         QSharedPointer<ReceivedMessage> message;

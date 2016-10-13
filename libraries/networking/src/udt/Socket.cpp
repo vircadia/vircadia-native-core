@@ -236,6 +236,9 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
             // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
             QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
 
+            // allow higher-level classes to find out when connections have completed a handshake
+            QObject::connect(connection.get(), &Connection::receiverHandshakeComplete, this, &Socket::clientHandshakeComplete);
+
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Creating new connection to" << sockAddr;
 #endif

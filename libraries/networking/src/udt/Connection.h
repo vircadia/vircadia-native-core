@@ -82,7 +82,8 @@ public:
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);
-    
+    void receiverHandshakeComplete(const HifiSockAddr& sockAddr);
+
 private slots:
     void recordSentPackets(int payload, int total);
     void recordRetransmission();

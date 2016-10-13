@@ -83,6 +83,9 @@ public:
     
     StatsVector sampleStatsForAllConnections();
 
+signals:
+    void clientHandshakeComplete(const HifiSockAddr& sockAddr);
+
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
     void clearConnections();

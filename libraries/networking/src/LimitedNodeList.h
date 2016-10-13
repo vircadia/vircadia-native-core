@@ -262,6 +262,8 @@ signals:
     void nodeKilled(SharedNodePointer);
     void nodeActivated(SharedNodePointer);
 
+    void clientConnectionToNodeReset(SharedNodePointer);
+
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
@@ -274,6 +276,8 @@ signals:
 protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
+    
+    void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
 protected:
     LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);

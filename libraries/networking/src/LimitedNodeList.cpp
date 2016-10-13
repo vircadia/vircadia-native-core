@@ -119,6 +119,9 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     using std::placeholders::_1;
     _nodeSocket.setConnectionCreationFilterOperator(std::bind(&LimitedNodeList::sockAddrBelongsToNode, this, _1));
 
+    // handle when a socket connection has its receiver side reset - might need to emit clientConnectionToNodeReset
+    connect(&_nodeSocket, &udt::Socket::clientHandshakeComplete, this, &LimitedNodeList::clientConnectionToSockAddrReset);
+
     _packetStatTimer.start();
 
     if (_stunSockAddr.getAddress().isNull()) {
@@ -1140,5 +1143,14 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, q
         if (connectionStep == ConnectionStep::ReceiveFirstAudioPacket) {
             _areConnectionTimesComplete = true;
         }
+    }
+}
+
+void LimitedNodeList::clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr) {
+    // for certain reliable channels higher level classes may need to know if the udt::Connection has been reset
+    auto matchingNode = findNodeWithAddr(sockAddr);
+
+    if (matchingNode) {
+        emit clientConnectionToNodeReset(matchingNode);
     }
 }
