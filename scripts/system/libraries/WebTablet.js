@@ -93,4 +93,14 @@ WebTablet.prototype.destroy = function () {
     Entities.deleteEntity(this.webEntityID);
     Entities.deleteEntity(this.tabletEntityID);
 };
-
+WebTablet.prototype.pickle = function () {
+    return JSON.stringify({webEntityID: this.webEntityID, tabletEntityID: this.tabletEntityID});
+};
+WebTablet.unpickle = function (string) {
+    if (!string) {
+        return;
+    }
+    var tablet = JSON.parse(string);
+    tablet.__proto__ = WebTablet.prototype;
+    return tablet;
+};
