@@ -11,6 +11,7 @@
     var POLL_FREQUENCY = 500; // ms
     var MAX_WARNINGS = 3;
     var numWarnings = 0;
+    var isWindowFocused = true;
     var isKeyboardRaised = false;
     var isNumericKeyboard = false;
     var KEYBOARD_HEIGHT = 200;
@@ -38,7 +39,7 @@
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
 
-        if (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard) {
+        if (isWindowFocused && (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
@@ -65,4 +66,14 @@
             isNumericKeyboard = numericKeyboard;
         }
     }, POLL_FREQUENCY);
+
+    window.addEventListener("focus", function () {
+        isWindowFocused = true;
+    });
+
+    window.addEventListener("blur", function () {
+        isWindowFocused = false;
+        isKeyboardRaised = false;
+        isNumericKeyboard = false;
+    });
 })();
