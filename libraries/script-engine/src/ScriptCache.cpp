@@ -38,10 +38,10 @@ void ScriptCache::clearCache() {
 
 void ScriptCache::clearATPScriptsFromCache() {
     Lock lock(_containerLock);
-    qDebug(scriptengine) << "Clearing ATP scripts from ScriptCache";
+    qCDebug(scriptengine) << "Clearing ATP scripts from ScriptCache";
     for (auto it = _scriptCache.begin(); it != _scriptCache.end();) {
         if (it.key().scheme() == "atp") {
-            qDebug(scriptengine) << "Removing: " << it.key();
+            qCDebug(scriptengine) << "Removing: " << it.key();
             it = _scriptCache.erase(it);
         } else {
             ++it;
