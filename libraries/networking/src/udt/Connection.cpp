@@ -478,29 +478,30 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss
-    if (_congestionControl->shouldNAK() && sequenceNumber > _lastReceivedSequenceNumber + 1) {
+    if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
             _lossList.append(_lastReceivedSequenceNumber + 1);
         } else {
             _lossList.append(_lastReceivedSequenceNumber + 1, sequenceNumber - 1);
         }
-        
-        // Send a NAK packet
-        sendNAK(sequenceNumber);
-        
-        // figure out when we should send the next loss report, if we haven't heard anything back
-        _nakInterval = estimatedTimeout();
-        
-        int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
-        if (receivedPacketsPerSecond > 0) {
-            // the NAK interval is at least the _minNAKInterval
-            // but might be the time required for all lost packets to be retransmitted
-            _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
-        }
-        
-        // the NAK interval is at least the _minNAKInterval but might be the value calculated above, if that is larger
-        _nakInterval = std::max(_nakInterval, _minNAKInterval);
 
+        if (_congestionControl->shouldNAK()) {
+            // Send a NAK packet
+            sendNAK(sequenceNumber);
+
+            // figure out when we should send the next loss report, if we haven't heard anything back
+            _nakInterval = estimatedTimeout();
+
+            int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
+            if (receivedPacketsPerSecond > 0) {
+                // the NAK interval is at least the _minNAKInterval
+                // but might be the time required for all lost packets to be retransmitted
+                _nakInterval += (int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond));
+            }
+
+            // the NAK interval is at least the _minNAKInterval but might be the value calculated above, if that is larger
+            _nakInterval = std::max(_nakInterval, _minNAKInterval);
+        }
     }
     
     bool wasDuplicate = false;
@@ -508,7 +509,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     if (sequenceNumber > _lastReceivedSequenceNumber) {
         // Update largest recieved sequence number
         _lastReceivedSequenceNumber = sequenceNumber;
-    } else  if (_congestionControl->shouldNAK()) {
+    } else {
         // Otherwise, it could be a resend, try and remove it from the loss list
         wasDuplicate = !_lossList.remove(sequenceNumber);
     }
