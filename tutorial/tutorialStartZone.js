@@ -29,7 +29,7 @@
                 sendStart();
             } else {
                 print("TutorialStartZone | User tried to go to tutorial with HMD and hand controllers, sending back to /");
-                Window.alert("To proceed with this tutorial, please connect your VR headset and hand controllers.");
+                Window.alert("To proceed with this tutorial, please connect your Vive headset and hand controllers.");
                 location = "/";
             }
         },
