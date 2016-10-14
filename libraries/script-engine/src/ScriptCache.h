@@ -39,6 +39,7 @@ class ScriptCache : public QObject, public Dependency {
 
 public:
     void clearCache();
+    Q_INVOKABLE void clearATPScriptsFromCache();
     void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
 
 
