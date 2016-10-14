@@ -727,7 +727,7 @@ void AssetClient::handleNodeClientConnectionReset(SharedNodePointer node) {
         return;
     }
 
-    qCDebug(asset_client) << "AssetClient detected completed client handshake with Asset Server - failing any pending requests";
+    qCDebug(asset_client) << "AssetClient detected client connection reset handshake with Asset Server - failing any pending requests";
 
     forceFailureOfPendingRequests(node);
 }

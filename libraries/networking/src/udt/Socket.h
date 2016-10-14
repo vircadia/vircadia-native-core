@@ -83,6 +83,10 @@ public:
     
     StatsVector sampleStatsForAllConnections();
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendFakedHandshakeRequest(const HifiSockAddr& sockAddr);
+#endif
+
 signals:
     void clientHandshakeRequestComplete(const HifiSockAddr& sockAddr);
 

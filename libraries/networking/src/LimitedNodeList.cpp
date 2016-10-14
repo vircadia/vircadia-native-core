@@ -1161,9 +1161,7 @@ void LimitedNodeList::clientConnectionToSockAddrReset(const HifiSockAddr& sockAd
 void LimitedNodeList::sendFakedHandshakeRequestToNode(SharedNodePointer node) {
 
     if (node && node->getActiveSocket()) {
-        // randomly send a handshake request packet to get assets we previously asked for into a stuck state
-        auto handshakeRequestPacket = udt::ControlPacket::create(udt::ControlPacket::HandshakeRequest, 0);
-        _nodeSocket.writeBasePacket(*handshakeRequestPacket, *node->getActiveSocket());
+        _nodeSocket.sendFakedHandshakeRequest(*node->getActiveSocket());
     }
 }
 

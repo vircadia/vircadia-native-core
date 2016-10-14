@@ -79,6 +79,8 @@ public:
 
     void setMaxBandwidth(int maxBandwidth);
 
+    void sendHandshakeRequest();
+
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);

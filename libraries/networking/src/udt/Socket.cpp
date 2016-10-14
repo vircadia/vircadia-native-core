@@ -464,3 +464,14 @@ void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
         qCWarning(networking) << "udt::Socket state changed - state is now" << socketState;
     }
 }
+
+#if (PR_BUILD || DEV_BUILD)
+
+void Socket::sendFakedHandshakeRequest(const HifiSockAddr& sockAddr) {
+    auto connection = findOrCreateConnection(sockAddr);
+    if (connection) {
+        connection->sendHandshakeRequest();
+    }
+}
+
+#endif
