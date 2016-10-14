@@ -434,6 +434,8 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
         _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
 
+        _didRequestHandshake = true;
+
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Received packet before receiving handshake, sending HandshakeRequest";
 #endif
@@ -790,7 +792,10 @@ void Connection::processHandshake(ControlPacketPointer controlPacket) {
     // indicate that handshake has been received
     _hasReceivedHandshake = true;
 
-    emit receiverHandshakeComplete(_destination);
+    if (_didRequestHandshake) {
+        emit receiverHandshakeRequestComplete(_destination);
+        _didRequestHandshake = false;
+    }
 }
 
 void Connection::processHandshakeACK(ControlPacketPointer controlPacket) {

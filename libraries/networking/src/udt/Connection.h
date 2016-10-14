@@ -82,7 +82,7 @@ public:
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);
-    void receiverHandshakeComplete(const HifiSockAddr& sockAddr);
+    void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
 
 private slots:
     void recordSentPackets(int payload, int total);
@@ -130,6 +130,7 @@ private:
     
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    bool _didRequestHandshake { false }; // flag for request of handshake from server
    
     p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
