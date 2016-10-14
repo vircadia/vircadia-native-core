@@ -236,7 +236,9 @@ public:
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
+#if (PR_BUILD || DEV_BUILD)
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
+#endif
 
 public slots:
     void reset();

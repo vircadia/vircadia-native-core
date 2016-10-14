@@ -325,6 +325,8 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
     }
 }
 
+static const qint64 ERROR_SENDING_PACKET_BYTES = -1;
+
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
 
@@ -361,7 +363,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
-        return -1;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -400,7 +402,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
             << " - not sending.";
-        return -1;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -446,7 +448,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node. Not sending.";
-        return -1;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -454,7 +456,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
                                    const HifiSockAddr& overridenSockAddr) {
     if (overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node. Not sending.";
-        return -1;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 
     // use the node's active socket as the destination socket if there is no overriden socket address
@@ -1154,6 +1156,8 @@ void LimitedNodeList::clientConnectionToSockAddrReset(const HifiSockAddr& sockAd
     }
 }
 
+#if (PR_BUILD || DEV_BUILD)
+
 void LimitedNodeList::sendFakedHandshakeRequestToNode(SharedNodePointer node) {
 
     if (node && node->getActiveSocket()) {
@@ -1162,3 +1166,5 @@ void LimitedNodeList::sendFakedHandshakeRequestToNode(SharedNodePointer node) {
         _nodeSocket.writeBasePacket(*handshakeRequestPacket, *node->getActiveSocket());
     }
 }
+
+#endif
