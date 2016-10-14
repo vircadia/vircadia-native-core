@@ -254,6 +254,7 @@ var stepDisableControllers = function(name) {
 stepDisableControllers.prototype = {
     start: function(onFinish) {
         HMD.requestShowHandControllers();
+
         disableEverything();
 
         onFinish();
@@ -277,6 +278,9 @@ function disableEverything() {
     setControllerPartLayer('tips', 'blank');
 
     hideEntitiesWithTag('finish');
+
+    controllerDisplayManager = new ControllerDisplayManager();
+
     setAwayEnabled(false);
 }
 
@@ -471,6 +475,7 @@ stepNearGrab.prototype = {
 
         setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         var tag = this.tag;
 
         // Spawn content set
@@ -513,6 +518,7 @@ stepNearGrab.prototype = {
         this.finished = true;
         setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
         deleteEntitiesWithTag(this.tempTag);
         if (this.positionWatcher) {
@@ -548,6 +554,7 @@ stepFarGrab.prototype = {
 
         setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             farGrabEnabled: true,
         }));
@@ -591,6 +598,7 @@ stepFarGrab.prototype = {
         this.finished = true;
         setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         hideEntitiesWithTag(this.tag, { visible: false});
         hideEntitiesWithTag('bothGrab', { visible: false});
         deleteEntitiesWithTag(this.tempTag);
@@ -650,6 +658,7 @@ stepEquip.prototype = {
     start: function(onFinish) {
         setControllerVisible("trigger", true);
         setControllerPartLayer('tips', 'trigger');
+        setControllerPartLayer('trigger', 'highlight');
         Messages.sendLocalMessage('Hifi-Grab-Disable', JSON.stringify({
             holdEnabled: true,
         }));
@@ -723,6 +732,7 @@ stepEquip.prototype = {
                     this.currentPart = this.PART3;
                     hideEntitiesWithTag(this.tagPart1);
                     showEntitiesWithTag(this.tagPart2);
+                    setControllerPartLayer('trigger', 'normal');
                     setControllerPartLayer('tips', 'grip');
                     Messages.subscribe('Hifi-Object-Manipulation');
                     debug("Equip | Finished starting part 3");
@@ -750,6 +760,7 @@ stepEquip.prototype = {
 
         setControllerVisible("trigger", false);
         setControllerPartLayer('tips', 'blank');
+        setControllerPartLayer('trigger', 'normal');
         this.stopWatchingGun();
         this.currentPart = this.COMPLETE;
 
