@@ -46,7 +46,7 @@ void OculusDisplayPlugin::cycleDebugOutput() {
 
 void OculusDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
+    _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OculusOutput", gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
     ovrTextureSwapChainDesc desc = { };
     desc.Type = ovrTexture_2D;
     desc.ArraySize = 1;
@@ -97,6 +97,7 @@ void OculusDisplayPlugin::uncustomizeContext() {
 
     ovr_DestroyTextureSwapChain(_session, _textureSwapChain);
     _textureSwapChain = nullptr;
+    _outputFramebuffer.reset();
     Parent::uncustomizeContext();
 }
 
@@ -162,4 +163,8 @@ QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
         return QString();
     }
     return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+
+OculusDisplayPlugin::~OculusDisplayPlugin() {
+    qDebug() << "Destroying OculusDisplayPlugin";
 }

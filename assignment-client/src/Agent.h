@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QTimer>
 #include <QUuid>
 
 #include <EntityEditPacketSender.h>
@@ -26,8 +27,9 @@
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
-#include "MixedAudioStream.h"
+#include <plugins/CodecPlugin.h>
 
+#include "MixedAudioStream.h"
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
@@ -56,7 +58,7 @@ public:
 
 public slots:
     void run() override;
-    void playAvatarSound(SharedSoundPointer avatarSound) { setAvatarSound(avatarSound); }
+    void playAvatarSound(SharedSoundPointer avatarSound);
 
 private slots:
     void requestScript();
@@ -66,12 +68,20 @@ private slots:
     void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-
-    void processAgentAvatarAndAudio(float deltaTime);
+    void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message); 
 
     void nodeActivated(SharedNodePointer activatedNode);
+    
+    void processAgentAvatar();
+    void processAgentAvatarAudio();
 
+signals:
+    void startAvatarAudioTimer();
+    void stopAvatarAudioTimer();
 private:
+    void negotiateAudioFormat();
+    void selectAudioFormat(const QString& selectedCodecName);
+    
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
@@ -92,7 +102,11 @@ private:
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
-
+    
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
+    Encoder* _encoder { nullptr }; 
+    QThread _avatarAudioTimerThread;
 };
 
 #endif // hifi_Agent_h

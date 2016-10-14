@@ -1155,7 +1155,7 @@ function getPositionToImportEntity() {
     return position;
 }
 function importSVO(importURL) {
-    if (!Entities.canAdjustLocks()) {
+    if (!Entities.canRez() && !Entities.canRezTmp()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }

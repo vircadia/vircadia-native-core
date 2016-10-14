@@ -258,7 +258,7 @@ void ApplicationOverlay::buildFramebufferObject() {
 
     auto uiSize = qApp->getUiSize();
     if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
-        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ApplicationOverlay"));
     }
 
     auto width = uiSize.x;

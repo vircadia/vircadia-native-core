@@ -36,6 +36,7 @@ protected:
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
 public:
+    ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations 
     // between the main thread and the presentation thread
     bool activate() override final;
@@ -115,7 +116,7 @@ protected:
     RateCounter<> _renderRate;
 
     gpu::FramePointer _currentFrame;
-    gpu::FramePointer _lastFrame;
+    gpu::Frame* _lastFrame { nullptr };
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::PipelinePointer _overlayPipeline;
     gpu::PipelinePointer _simplePipeline;
