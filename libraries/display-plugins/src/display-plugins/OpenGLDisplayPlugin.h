@@ -78,6 +78,8 @@ protected:
     glm::uvec2 getSurfaceSize() const;
     glm::uvec2 getSurfacePixels() const;
 
+    void updateCompositeFramebuffer();
+
     virtual void compositeLayers();
     virtual void compositeScene();
     virtual void compositeOverlay();

@@ -377,9 +377,6 @@ void OpenVrDisplayPlugin::init() {
 }
 
 bool OpenVrDisplayPlugin::internalActivate() {
-    _openVrDisplayActive = true;
-    _container->setIsOptionChecked(StandingHMDSensorMode, true);
-
     if (!_system) {
         _system = acquireOpenVrSystem();
     }
@@ -387,6 +384,18 @@ bool OpenVrDisplayPlugin::internalActivate() {
         qWarning() << "Failed to initialize OpenVR";
         return false;
     }
+
+    // If OpenVR isn't running, then the compositor won't be accessible
+    // FIXME find a way to launch the compositor?
+    if (!vr::VRCompositor()) {
+        qWarning() << "Failed to acquire OpenVR compositor";
+        releaseOpenVrSystem();
+        _system = nullptr;
+        return false;
+    }
+
+    _openVrDisplayActive = true;
+    _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
