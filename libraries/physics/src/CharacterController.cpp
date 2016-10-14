@@ -507,7 +507,8 @@ void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyM
             // character is snapping to avatar position or avatar is stopping quickly
             // HACK: slam _followVelocity and _rigidBody velocity immediately
             _followVelocity = newFollowVelocity;
-            _rigidBody->setLinearVelocity(_followVelocity);
+            newFollowVelocity.setY(0.0f);
+            _rigidBody->setLinearVelocity(newFollowVelocity);
         } else {
             // use simple blending to filter noise from the velocity measurement
             const float blend = 0.2f;
