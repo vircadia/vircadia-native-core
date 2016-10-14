@@ -507,10 +507,15 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-setupHandler(Script.update, update);
+
+var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update();
+}, BASIC_TIMER_INTERVAL);
+
 
 // Check periodically for changes to setup.
-var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
+var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
     updateFieldOfView();
     updateRecommendedArea();
@@ -520,6 +525,7 @@ checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    Script.clearInterval(updateIntervalTimer);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

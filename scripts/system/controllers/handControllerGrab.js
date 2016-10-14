@@ -2770,7 +2770,13 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.messageReceived.connect(handleHandMessages);
 
+var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update();
+}, BASIC_TIMER_INTERVAL);
+
 function cleanup() {
+    Script.clearInterval(updateIntervalTimer);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
@@ -2778,6 +2784,5 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
-Script.update.connect(update);
 
 }()); // END LOCAL_SCOPE
