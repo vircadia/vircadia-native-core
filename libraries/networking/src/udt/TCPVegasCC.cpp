@@ -71,7 +71,6 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
 
         // remove this sent packet time from the hash
         _sentPacketTimes.erase(it);
-
     }
 
 
@@ -224,6 +223,8 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
 }
 
 void TCPVegasCC::onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
-    _sentPacketTimes[seqNum] = { timePoint, packetSize };
+    if (_sentPacketTimes.find(seqNum) == _sentPacketTimes.end()) {
+        _sentPacketTimes[seqNum] = { timePoint, packetSize };
+    }
 }
 
