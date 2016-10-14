@@ -195,8 +195,8 @@ Item {
                     glyph: "123"
                     mouseArea.onClicked: keyboardBase.parent.punctuationMode = true
                 }
+                Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
-                Key { width: 215; glyph: " "; }
                 Key { width: 43; glyph: "."; }
                 Key { width: 43; glyph: "\u276C"; }
                 Key { width: 43; glyph: "\u276D"; }
@@ -283,8 +283,8 @@ Item {
                     glyph: "abc"
                     mouseArea.onClicked: keyboardBase.parent.punctuationMode = false
                 }
+                Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
-                Key { width: 215; glyph: " "; }
                 Key { width: 43; glyph: "."; }
                 Key { width: 43; glyph: "\u276C"; }
                 Key { width: 43; glyph: "\u276D"; }
