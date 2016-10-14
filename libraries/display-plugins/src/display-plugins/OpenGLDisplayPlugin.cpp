@@ -414,6 +414,7 @@ void OpenGLDisplayPlugin::customizeContext() {
             _cursorPipeline = gpu::Pipeline::create(program, state);
         }
     }
+    updateCompositeFramebuffer();
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
@@ -557,10 +558,7 @@ void OpenGLDisplayPlugin::compositeScene() {
 }
 
 void OpenGLDisplayPlugin::compositeLayers() {
-    auto renderSize = getRecommendedRenderSize();
-    if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("displayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
-    }
+    updateCompositeFramebuffer();
 
     {
         PROFILE_RANGE_EX("compositeScene", 0xff0077ff, (uint64_t)presentCount())
@@ -759,4 +757,11 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
     qDebug() << "Destroying OpenGLDisplayPlugin";
+}
+
+void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
+    auto renderSize = getRecommendedRenderSize();
+    if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+    }
 }
