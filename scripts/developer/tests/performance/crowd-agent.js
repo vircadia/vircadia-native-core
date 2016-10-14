@@ -22,6 +22,7 @@ print('crowd-agent version 2');
 - File urls for AC scripts silently fail. Use a local server (e.g., python SimpleHTTPServer) for development.
 - URLs are cached regardless of server headers. Must use cache-defeating query parameters.
 - JSON.stringify(Avatar) silently fails (even when Agent.isAvatar)
+- If you run from a dev build directory, you must link assignment-client/<target>/resources to ../../interface/<target>/resources
 */
 
 function messageSend(message) {

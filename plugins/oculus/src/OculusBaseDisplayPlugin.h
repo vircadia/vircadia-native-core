@@ -16,6 +16,7 @@
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
+    ~OculusBaseDisplayPlugin();
     bool isSupported() const override;
 
     // Stereo specific methods

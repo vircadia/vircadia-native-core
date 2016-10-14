@@ -28,6 +28,8 @@ public:
     void disableInputs(const QStringList& inputs);
     void saveSettings();
     void setContainer(PluginContainer* container) { _container = container; }
+
+    void shutdown();
 private:
     PluginContainer* _container { nullptr };
 };
