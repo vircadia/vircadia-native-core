@@ -30,6 +30,10 @@ var TOOLBAR_MARGIN_Y = 0;
 var marketplaceVisible = false;
 var marketplaceWebTablet;
 
+// We persist clientOnly data in the .ini file, and reconsistitute it on restart.
+// To keep things consistent, we pickle the tablet data in Settings, and kill any existing such on restart and domain change.
+var persistenceKey = "io.highfidelity.lastDomainTablet";
+
 function shouldShowWebTablet() {
     var rightPose = Controller.getPoseValue(Controller.Standard.RightHand);
     var leftPose = Controller.getPoseValue(Controller.Standard.LeftHand);
@@ -40,7 +44,8 @@ function shouldShowWebTablet() {
 function showMarketplace(marketplaceID) {
     if (shouldShowWebTablet()) {
         updateButtonState(true);
-        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace");
+        marketplaceWebTablet = new WebTablet("https://metaverse.highfidelity.com/marketplace", null, null, true);
+        Settings.setValue(persistenceKey, marketplaceWebTablet.pickle());
     } else {
         var url = MARKETPLACE_URL;
         if (marketplaceID) {
@@ -54,14 +59,25 @@ function showMarketplace(marketplaceID) {
     UserActivityLogger.openedMarketplace();
 }
 
+function hideTablet(tablet) {
+    if (!tablet) {
+        return;
+    }
+    updateButtonState(false);
+    tablet.destroy();
+    marketplaceWebTablet = null;
+    Settings.setValue(persistenceKey, "");
+}
+function clearOldTablet() { // If there was a tablet from previous domain or session, kill it and let it be recreated
+    var tablet = WebTablet.unpickle(Settings.getValue(persistenceKey, ""));
+    hideTablet(tablet);
+}
 function hideMarketplace() {
     if (marketplaceWindow.visible) {
         marketplaceWindow.setVisible(false);
         marketplaceWindow.setURL("about:blank");
     } else if (marketplaceWebTablet) {
-        updateButtonState(false);
-        marketplaceWebTablet.destroy();
-        marketplaceWebTablet = null;
+        hideTablet(marketplaceWebTablet);
     }
     marketplaceVisible = false;
 }
@@ -101,6 +117,10 @@ function onClick() {
 
 browseExamplesButton.clicked.connect(onClick);
 marketplaceWindow.visibleChanged.connect(onMarketplaceWindowVisibilityChanged);
+
+clearOldTablet(); // Run once at startup, in case there's anything laying around from a crash.
+// We could also optionally do something like Window.domainChanged.connect(function () {Script.setTimeout(clearOldTablet, 2000)}),
+// but the HUD version stays around, so lets do the same.
 
 Script.scriptEnding.connect(function () {
     toolBar.removeButton("marketplace");
