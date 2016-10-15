@@ -116,8 +116,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             // restore gravity settings because adding an object to the world overwrites its gravity setting
             _rigidBody->setGravity(_gravity * _currentUp);
             btCollisionShape* shape = _rigidBody->getCollisionShape();
-            assert(shape && shape->getShapeType() == CAPSULE_SHAPE_PROXYTYPE);
-            _ghost.setCharacterCapsule(static_cast<btCapsuleShape*>(shape)); // KINEMATIC_CONTROLLER_HACK
+            assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
+            _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
         }
         // KINEMATIC_CONTROLLER_HACK
         _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
@@ -171,7 +171,6 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
                 if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
-                    //std::cout << "adebug manifoldIndex = " << i << "  contactIndex = " << j << "  hitOnCharacter*up = " << pointOnCharacter.dot(_currentUp) << std::endl;  // adebug
                     hasFloor = true;
                     if (!pushing) {
                         // we're not pushing against anything so we can early exit

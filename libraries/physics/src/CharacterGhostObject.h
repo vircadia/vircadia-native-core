@@ -40,7 +40,7 @@ public:
     void setLinearVelocity(const btVector3& velocity) { _linearVelocity = velocity; }
     const btVector3& getLinearVelocity() const { return _linearVelocity; }
 
-    void setCharacterCapsule(btCapsuleShape* capsule);
+    void setCharacterShape(btConvexHullShape* shape);
 
     void setCollisionWorld(btCollisionWorld* world);
 
@@ -88,8 +88,8 @@ protected:
     btScalar _radius { 0.0f };
     btScalar _maxWallNormalUpComponent { 0.0f }; // input: max vertical component of wall normal
     btScalar _maxStepHeight { 0.0f }; // input, max step height the character can climb
-    btCapsuleShape* _characterShape { nullptr }; // input, shape of character
-    CharacterGhostShape* _ghostShape{ nullptr }; // internal, shape whose Aabb is used for overlap cache
+    btConvexHullShape* _characterShape { nullptr }; // input, shape of character
+    CharacterGhostShape* _ghostShape { nullptr }; // internal, shape whose Aabb is used for overlap cache
     int16_t _collisionFilterGroup { 0 };
     int16_t _collisionFilterMask { 0 };
     bool _inWorld { false }; // internal, was added to world

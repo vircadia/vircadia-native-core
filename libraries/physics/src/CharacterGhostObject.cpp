@@ -16,8 +16,8 @@
 
 #include <PhysicsHelpers.h>
 
-#include "CharacterGhostShape.h"
 #include "CharacterRayResult.h"
+#include "CharacterGhostShape.h"
 
 
 CharacterGhostObject::~CharacterGhostObject() {
@@ -62,13 +62,14 @@ void CharacterGhostObject::setMotorVelocity(const btVector3& velocity) {
 }
 
 // override of btCollisionObject::setCollisionShape()
-void CharacterGhostObject::setCharacterCapsule(btCapsuleShape* capsule) {
-    assert(capsule);
-    // we create our own CharacterGhostShape which has a larger Aabb for more reliable sweep tests
+void CharacterGhostObject::setCharacterShape(btConvexHullShape* shape) {
+    assert(shape);
+    // we create our own shape with an expanded Aabb for more reliable sweep tests
     if (_ghostShape) {
         delete _ghostShape;
     }
-    _ghostShape = new CharacterGhostShape(capsule->getRadius(), 2.0f * capsule->getHalfHeight());
+
+    _ghostShape = new CharacterGhostShape(static_cast<const btConvexHullShape*>(shape));
     setCollisionShape(_ghostShape);
 }
 
@@ -127,14 +128,10 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
         return;
     }
 
-    const btCollisionShape* shape = getCollisionShape();
-    assert(shape->isConvex());
-    const btConvexShape* convexShape= static_cast<const btConvexShape*>(shape);
-
     // augment forwardSweep to help slow moving sweeps get over steppable ledges
-    btScalar margin = shape->getMargin();
-    if (overshoot < margin) {
-        overshoot = margin;
+    const btScalar MIN_OVERSHOOT = 0.04f; // default margin
+    if (overshoot < MIN_OVERSHOOT) {
+        overshoot = MIN_OVERSHOOT;
     }
     btScalar longSweepDistance = stepDistance + overshoot;
     forwardSweep *= longSweepDistance / stepDistance;
@@ -143,7 +140,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
     CharacterSweepResult result(this);
     btTransform nextTransform = startTransform;
     nextTransform.setOrigin(startPosition + forwardSweep);
-    sweepTest(convexShape, startTransform, nextTransform, result); // forward
+    sweepTest(_characterShape, startTransform, nextTransform, result); // forward
 
     if (!result.hasHit()) {
         nextTransform.setOrigin(startPosition + (stepDistance / longSweepDistance) * forwardSweep);
@@ -151,7 +148,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
         updateTraction(nextTransform.getOrigin());
         return;
     }
-    bool verticalOnly = btFabs(btFabs(_linearVelocity.dot(_upDirection)) - speed) < margin;
+    bool verticalOnly = btFabs(btFabs(_linearVelocity.dot(_upDirection)) - speed) < MIN_OVERSHOOT;
     if (verticalOnly) {
         // no need to step
         nextTransform.setOrigin(startPosition + (result.m_closestHitFraction * stepDistance / longSweepDistance) * forwardSweep);
@@ -172,7 +169,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
     btVector3 hitFromBase = result.m_hitPointWorld - (startPosition - ((_radius + _halfHeight) * _upDirection));
     btScalar hitHeight = hitFromBase.dot(_upDirection);
     if (hitHeight > _maxStepHeight) {
-        // capsule can't step over the obstacle so move forward as much as possible before we bail
+        // shape can't step over the obstacle so move forward as much as possible before we bail
         btVector3 forwardTranslation = result.m_closestHitFraction * forwardSweep;
         btScalar forwardDistance = forwardTranslation.length();
         if (forwardDistance > stepDistance) {
@@ -195,7 +192,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
     result.resetHitHistory();
     startTransform.setOrigin(startPosition + availableStepHeight * _upDirection);
     nextTransform.setOrigin(startTransform.getOrigin() + forwardSweep);
-    sweepTest(convexShape, startTransform, nextTransform, result);
+    sweepTest(_characterShape, startTransform, nextTransform, result);
     if (result.hasHit()) {
         startTransform.setOrigin(startTransform.getOrigin() + result.m_closestHitFraction * forwardSweep);
     } else {
@@ -206,7 +203,7 @@ void CharacterGhostObject::move(btScalar dt, btScalar overshoot, btScalar gravit
     result.resetHitHistory();
     btVector3 downSweep = (- availableStepHeight) * _upDirection;
     nextTransform.setOrigin(startTransform.getOrigin() + downSweep);
-    sweepTest(convexShape, startTransform, nextTransform, result);
+    sweepTest(_characterShape, startTransform, nextTransform, result);
     if (result.hasHit() && result.m_hitNormalWorld.dot(_upDirection) > _maxWallNormalUpComponent) {
         // can stand on future landing spot, so we interpolate toward it
         _floorNormal = result.m_hitNormalWorld;
@@ -395,7 +392,7 @@ void CharacterGhostObject::updateTraction(const btVector3& position) {
     if (_hovering || _motorOnly) {
         _linearVelocity = _motorVelocity;
     } else if (_onFloor) {
-        // compute a velocity that swings the capsule around the _floorContact
+        // compute a velocity that swings the shape around the _floorContact
         btVector3 leverArm = _floorContact - position;
         btVector3 pathDirection = leverArm.cross(_motorVelocity.cross(leverArm));
         btScalar pathLength = pathDirection.length();
@@ -408,15 +405,11 @@ void CharacterGhostObject::updateTraction(const btVector3& position) {
 }
 
 btScalar CharacterGhostObject::measureAvailableStepHeight() const {
-    const btCollisionShape* shape = getCollisionShape();
-    assert(shape->isConvex());
-    const btConvexShape* convexShape= static_cast<const btConvexShape*>(shape);
-
     CharacterSweepResult result(this);
     btTransform transform = getWorldTransform();
     btTransform nextTransform = transform;
     nextTransform.setOrigin(transform.getOrigin() + _maxStepHeight * _upDirection);
-    sweepTest(convexShape, transform, nextTransform, result);
+    sweepTest(_characterShape, transform, nextTransform, result);
     return result.m_closestHitFraction * _maxStepHeight;
 }
 
