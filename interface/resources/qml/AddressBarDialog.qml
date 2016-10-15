@@ -23,12 +23,12 @@ Window {
     HifiConstants { id: hifi }
 
     objectName: "AddressBarDialog"
-    frame: HiddenFrame {}
-    hideBackground: true
+    title: "Go To"
 
     shown: false
     destroyOnHidden: false
     resizable: false
+    pinnable: false;
     scale: 1.25  // Make this dialog a little larger than normal
 
     width: addressBarDialog.implicitWidth
@@ -62,6 +62,7 @@ Window {
         clearAddressLineTimer.start();
     }
     property var allStories: [];
+    property int keyboardHeight: 200;
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
@@ -70,11 +71,10 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
 
-        property bool keyboardRaised: false
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardRaised ? 200 : 0)
+        implicitHeight: backgroundImage.height + keyboardHeight + cardHeight - 25; // fudge to make header reasonable
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -94,7 +94,6 @@ Window {
             clip: true;
             anchors {
                 bottom: backgroundImage.top;
-                bottomMargin: 2 * hifi.layout.spacing;
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -134,6 +133,10 @@ Window {
             source: "../images/address-bar.svg"
             width: 576 * root.scale
             height: 80 * root.scale
+            anchors {
+                verticalCenter: parent.verticalCenter;
+                verticalCenterOffset: -15; // fudge to keep header reasonable and keep us under Card
+            }
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
@@ -279,29 +282,29 @@ Window {
         // virtual keyboard, letters
         HifiControls.Keyboard {
             id: keyboard1
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
+            y: parent.height
+            height: keyboardHeight
+            visible: !parent.punctuationMode
+            enabled: !parent.punctuationMode
             anchors.right: parent.right
             anchors.rightMargin: 0
             anchors.left: parent.left
             anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
+            anchors.top: backgroundImage.bottom
             anchors.bottomMargin: 0
         }
 
         HifiControls.KeyboardPunctuation {
             id: keyboard2
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
+            y: parent.height
+            height: keyboardHeight
+            visible: parent.punctuationMode
+            enabled: parent.punctuationMode
             anchors.right: parent.right
             anchors.rightMargin: 0
             anchors.left: parent.left
             anchors.leftMargin: 0
-            anchors.bottom: parent.bottom
+            anchors.top: backgroundImage.bottom
             anchors.bottomMargin: 0
         }
     }
