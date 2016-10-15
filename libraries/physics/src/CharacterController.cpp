@@ -146,22 +146,8 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
         // kinematic motion will move() the _ghost later
         return _ghost.hasSupport();
     }
-    btScalar minStepHeight = 0.041f; // HACK: hardcoded now but should be shape margin
-    btScalar maxStepHeight = 0.75f * (_halfHeight + _radius);
-    btScalar stepHeight = minStepHeight;
-    btVector3 stepNormal = btVector3(0.0f, 0.0f, 0.0f);
 
-    btScalar targetSpeed = _targetVelocity.length();
-    if (targetSpeed > FLT_EPSILON) {
-        // move the _ghost forward to test for step
-        btTransform transform = _rigidBody->getWorldTransform();
-        transform.setOrigin(transform.getOrigin());
-        _ghost.setWorldTransform(transform);
-        _ghost.setMotorVelocity(_targetVelocity);
-        float overshoot = _radius;
-        _ghost.setHovering(_state == State::Hover);
-        _ghost.move(dt, overshoot, _gravity);
-    }
+    bool pushing = _targetVelocity.length2() > FLT_EPSILON;
 
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
@@ -177,25 +163,25 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
             bool characterIsFirst = _rigidBody == contactManifold->getBody0();
             int numContacts = contactManifold->getNumContacts();
             int stepContactIndex = -1;
-            float highestStep = minStepHeight;
+            float highestStep = _minStepHeight;
             for (int j = 0; j < numContacts; j++) {
                 // check for "floor"
                 btManifoldPoint& contact = contactManifold->getContactPoint(j);
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
-                if (hitHeight < maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                    //std::cout << "adebug manifoldIndex = " << i << "  contactIndex = " << j << "  hitOnCharacter*up = " << pointOnCharacter.dot(_currentUp) << std::endl;  // adebug
                     hasFloor = true;
-                    if (!_ghost.isSteppingUp()) {
-                        // early exit since all we need to know is that we're on a floor
+                    if (!pushing) {
+                        // we're not pushing against anything so we can early exit
+                        // (all we need to know is that there is a floor)
                         break;
                     }
                 }
-                // analysis of the step info using manifold data is unreliable, so we only proceed
-                // when the _ghost has detected a steppable obstacle
-                if (_ghost.isSteppingUp()) {
+                if (pushing && _targetVelocity.dot(normal) < 0.0f) {
                     // remember highest step obstacle
-                    if (hitHeight > maxStepHeight) {
+                    if (hitHeight > _maxStepHeight) {
                         // this manifold is invalidated by point that is too high
                         stepContactIndex = -1;
                         break;
@@ -206,24 +192,19 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                     }
                 }
             }
-            if (stepContactIndex > -1 && highestStep > stepHeight) {
+            if (stepContactIndex > -1 && highestStep > _stepHeight) {
                 // remember step info for later
                 btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
-                btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
-                stepHeight = highestStep;
-                stepNormal = normal;
+                btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
+                _stepNormal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
+                _stepHeight = highestStep;
+                _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
             }
-            if (hasFloor && !_ghost.isSteppingUp()) {
+            if (hasFloor && !pushing) {
                 // early exit since all we need to know is that we're on a floor
                 break;
             }
         }
-    }
-    if (_ghost.isSteppingUp() && stepHeight > minStepHeight && _targetVelocity.dot(stepNormal) < 0.0f) {
-        // move avatar up according to kinematic character logic
-        btTransform transform = _rigidBody->getWorldTransform();
-        transform.setOrigin(_ghost.getWorldTransform().getOrigin());
-        _rigidBody->setWorldTransform(transform);
     }
     return hasFloor;
 }
@@ -259,6 +240,7 @@ const btScalar MIN_TARGET_SPEED = 0.001f;
 const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
 
 void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar dt) {
+    _stepHeight = _minStepHeight; // clears memory of last step obstacle
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (_following) {
         _followTimeAccumulator += dt;
@@ -336,10 +318,25 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         _rigidBody->setWorldTransform(transform);
         _rigidBody->setLinearVelocity(_ghost.getLinearVelocity());
     } else {
-        // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
-        // Rather than add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
-        // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
+        float stepUpSpeed2 = _stepUpVelocity.length2();
+        if (stepUpSpeed2 > FLT_EPSILON) {
+            // we step up with teleports rather than applying velocity
+            // use a speed that would ballistically reach _stepHeight under gravity
+            _stepUpVelocity /= sqrtf(stepUpSpeed2);
+            btScalar minStepUpSpeed = sqrtf(fabsf(2.0f * _gravity * _stepHeight));
 
+            btTransform transform = _rigidBody->getWorldTransform();
+            transform.setOrigin(transform.getOrigin() + (dt * minStepUpSpeed) * _stepUpVelocity);
+            _rigidBody->setWorldTransform(transform);
+
+            // make sure the upward velocity is large enough to clear the very top of the step
+            const btScalar MAGIC_STEP_OVERSHOOT_SPEED_COEFFICIENT = 0.5f;
+            minStepUpSpeed = MAGIC_STEP_OVERSHOOT_SPEED_COEFFICIENT * sqrtf(fabsf(2.0f * _gravity * _minStepHeight));
+            btScalar vDotUp = velocity.dot(_currentUp);
+            if (vDotUp < minStepUpSpeed) {
+                velocity += (minStepUpSpeed - vDotUp) * _stepUpVelocity;
+            }
+        }
         _rigidBody->setLinearVelocity(velocity + _parentVelocity);
         _ghost.setWorldTransform(_rigidBody->getWorldTransform());
     }
@@ -415,6 +412,10 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     if (glm::abs(radius - _radius) > FLT_EPSILON || glm::abs(halfHeight - _halfHeight) > FLT_EPSILON) {
         _radius = radius;
         _halfHeight = halfHeight;
+        const btScalar DEFAULT_MIN_STEP_HEIGHT = 0.041f; // HACK: hardcoded now but should just larger than shape margin
+        const btScalar MAX_STEP_FRACTION_OF_HALF_HEIGHT = 0.56f;
+        _minStepHeight = DEFAULT_MIN_STEP_HEIGHT;
+        _maxStepHeight = MAX_STEP_FRACTION_OF_HALF_HEIGHT * (_halfHeight + _radius);
 
         if (_dynamicsWorld) {
             // must REMOVE from world prior to shape update
@@ -584,6 +585,21 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
         btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
 
+        if (_stepHeight > _minStepHeight) {
+            // there is a step --> compute velocity direction to go over step
+            btVector3 motorVelocityWF = motorVelocity.rotate(axis, angle);
+            if (motorVelocityWF.dot(_stepNormal) < 0.0f) {
+                // the motor pushes against step
+                motorVelocityWF = _stepNormal.cross(_stepPoint.cross(motorVelocityWF));
+                btScalar doubleCrossLength2 = motorVelocityWF.length2();
+                if (doubleCrossLength2 > FLT_EPSILON) {
+                    // scale the motor in the correct direction and rotate back to motor-frame
+                    motorVelocityWF *= (motorVelocity.length() / sqrtf(doubleCrossLength2));
+                    _stepUpVelocity += motorVelocityWF.rotate(axis, -angle);
+                }
+            }
+        }
+
         // split velocity into horizontal and vertical components
         btVector3 vVelocity = velocity.dot(up) * up;
         btVector3 hVelocity = velocity - vVelocity;
@@ -632,6 +648,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     std::vector<btScalar> weights;
     weights.reserve(_motors.size());
     _targetVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    _stepUpVelocity = btVector3(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < (int)_motors.size(); ++i) {
         applyMotor(i, dt, velocity, velocities, weights);
     }
