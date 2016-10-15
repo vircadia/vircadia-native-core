@@ -46,7 +46,7 @@ AssetClient::AssetClient() {
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
     connect(nodeList.data(), &LimitedNodeList::clientConnectionToNodeReset,
-            this, &::AssetClient::handleNodeClientConnectionReset);
+            this, &AssetClient::handleNodeClientConnectionReset);
 }
 
 void AssetClient::init() {
