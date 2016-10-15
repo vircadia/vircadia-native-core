@@ -94,6 +94,7 @@
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
+#include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
@@ -415,8 +416,6 @@ bool setupEssentials(int& argc, char** argv) {
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
     bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
-    CrashHandler::writeRunningMarkerFiler();
-    qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -504,8 +503,11 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
+    _shouldRunServer(runServer),
+    _runServerPath(runServerPathOption),
+    _runningMarker(this, RUNNING_MARKER_FILENAME),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
@@ -529,7 +531,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-
+    _runningMarker.startRunningMarker();
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
@@ -575,6 +577,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
+    
+    bool wantsSandboxRunning = shouldRunServer();
+    bool determinedSandboxState = false;
+    bool sandboxRunning = false;
+    SandboxUtils sandboxUtils;
+    sandboxUtils.ifLocalSandboxRunningElse([&]() {
+        qDebug() << "Home sandbox appears to be running.....";
+        determinedSandboxState = true;
+        sandboxRunning = true;
+    }, [&]() {
+        qDebug() << "Home sandbox does not appear to be running....";
+        determinedSandboxState = true;
+        sandboxRunning = false;
+        if (wantsSandboxRunning) {
+            QString contentPath = getRunServerPath();
+            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+        }
+    });
+
+    quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
+    auto startWaiting = usecTimestampNow();
+    while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
+        QCoreApplication::processEvents();
+        usleep(USECS_PER_MSEC * 50); // 20hz
+    }
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -1299,7 +1326,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+        sandboxUtils.ifLocalSandboxRunningElse([=]() {
             qDebug() << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
         }, [=]() {
@@ -1324,7 +1351,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
+                sandboxUtils.ifLocalSandboxRunningElse([=]() {
                     qDebug() << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
                 }, [=]() {

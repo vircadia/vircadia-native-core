@@ -37,6 +37,8 @@
 #include <CrashReporter.h>
 #endif
 
+
+
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
     static QString BUG_SPLAT_DATABASE = "interface_alpha";
@@ -128,22 +130,9 @@ int main(int argc, const char* argv[]) {
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.parse(arguments);
-    if (parser.isSet(runServerOption)) {
-        QString applicationDirPath = QFileInfo(arguments[0]).path();
-        QString serverPath = applicationDirPath + "/server-console/server-console.exe";
-        qDebug() << "Application dir path is: " << applicationDirPath;
-        qDebug() << "Server path is: " << serverPath;
-        QStringList args;
-        if (parser.isSet(serverContentPathOption)) {
-            QString serverContentPath = QFileInfo(arguments[0]).path() + "/" + parser.value(serverContentPathOption);
-            args << "--" << "--contentPath" << serverContentPath;
-        }
-        qDebug() << QFileInfo(arguments[0]).path();
-        qDebug() << QProcess::startDetached(serverPath, args);
-
-        // Sleep a short amount of time to give the server a chance to start
-        usleep(2000000);
-    }
+    bool runServer = parser.isSet(runServerOption);
+    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
+    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -166,10 +155,11 @@ int main(int argc, const char* argv[]) {
 
     SteamClient::init();
 
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startupTime);
+        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
@@ -223,7 +213,6 @@ int main(int argc, const char* argv[]) {
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
-
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();
