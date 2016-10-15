@@ -20,7 +20,7 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
 //
@@ -483,6 +483,9 @@ function update() {
     rightTrigger.update();
     if (!activeTrigger.state) {
         return off(); // No trigger
+    }
+    if (getGrabCommunications()) {
+        return off();
     }
     var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {

@@ -15,9 +15,9 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-Script.include("/~/system/libraries/utils.js");
-Script.include("/~/system/libraries/Xform.js");
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/utils.js");
+Script.include("../libraries/Xform.js");
+Script.include("../libraries/controllers.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -792,7 +792,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-
+        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_NEAR_GRABBING));
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
