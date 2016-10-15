@@ -41,8 +41,10 @@ endif ()
 
 if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras)
+  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
 endif ()
 
 find_package(
@@ -244,7 +246,8 @@ target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine 
+  Qt5::WebChannel Qt5::WebEngine
+  ${PLATFORM_QT_LIBRARIES}
 )
 
 if (UNIX)

@@ -34,6 +34,8 @@
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
 
+#include <QtWebEngineWidgets/QWebEngineProfile>
+
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
@@ -121,6 +123,7 @@
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
+#include "HFWebEngineRequestInterceptor.h"
 #include "InterfaceActionFactory.h"
 #include "InterfaceLogging.h"
 #include "LODManager.h"
@@ -1093,6 +1096,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // the 3Dconnexion device wants to be initialized after a window is displayed.
     SpacemouseManager::getInstance().init();
 #endif
+
+    // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
+    auto requestInterceptor = new HFWebEngineRequestInterceptor(this);
+    QWebEngineProfile::defaultProfile()->setRequestInterceptor(requestInterceptor);
 
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
