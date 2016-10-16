@@ -34,7 +34,8 @@ Window {
     property var footer: Item { }  // Optional static footer at the bottom of the dialog.
     readonly property var footerContentHeight: footer.height > 0 ? (footer.height + 2 * hifi.dimensions.contentSpacing.y + 3) : 0
 
-    property bool keyboardEnabled: true  // Set false if derived control implements its own keyboard.
+    property bool keyboardOverride: false  // Set true in derived control if it implements its own keyboard.
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
@@ -132,7 +133,7 @@ Window {
             // Optional non-scrolling footer.
             id: footerPane
 
-            property alias keyboardEnabled: window.keyboardEnabled
+            property alias keyboardOverride: window.keyboardOverride
             property alias keyboardRaised: window.keyboardRaised
             property alias punctuationMode: window.punctuationMode
 
@@ -141,9 +142,9 @@ Window {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footerContentHeight + (keyboardEnabled && keyboardRaised ? 200 : 0)
+            height: footerContentHeight + (keyboard.enabled && keyboard.raised ? keyboard.height : 0)
             color: hifi.colors.baseGray
-            visible: footer.height > 0 || keyboardEnabled && keyboardRaised
+            visible: footer.height > 0 || keyboard.enabled && keyboard.raised
 
             Item {
                 // Horizontal rule.
@@ -181,22 +182,10 @@ Window {
             }
 
             HiFiControls.Keyboard {
-                id: keyboard1
-                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
-                enabled: parent.keyboardEnabled && parent.keyboardRaised && !parent.punctuationMode
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                }
-            }
-
-            HiFiControls.KeyboardPunctuation {
-                id: keyboard2
-                height: parent.keyboardEnabled && parent.keyboardRaised ? 200 : 0
-                visible: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
-                enabled: parent.keyboardEnabled && parent.keyboardRaised && parent.punctuationMode
+                id: keyboard
+                enabled: !keyboardOverride
+                raised: keyboardEnabled && keyboardRaised
+                numeric: punctuationMode
                 anchors {
                     left: parent.left
                     right: parent.right
@@ -207,9 +196,9 @@ Window {
     }
 
     onKeyboardRaisedChanged: {
-        if (keyboardEnabled && keyboardRaised) {
+        if (!keyboardOverride && keyboardEnabled && keyboardRaised) {
             var delta = activator.mouseY
-                    - (activator.height + activator.y - 200 - footerContentHeight - hifi.dimensions.controlLineHeight);
+                    - (activator.height + activator.y - keyboard.raisedHeight - footerContentHeight - hifi.dimensions.controlLineHeight);
 
             if (delta > 0) {
                 pane.scrollBy(delta);
@@ -218,6 +207,12 @@ Window {
                 pane.scrollBy(-1);
                 pane.scrollBy(1);
             }
+        }
+    }
+
+    Component.onCompleted: {
+        if (typeof HMD !== "undefined") {
+            keyboardEnabled = HMD.active;
         }
     }
 }

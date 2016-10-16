@@ -6,8 +6,17 @@ import "../controls-uit" as HiFiControls
 Item {
     property alias url: root.url
     property alias eventBridge: eventBridgeWrapper.eventBridge
+    property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+
+    // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
+    // or provide HMDinfo object to QML in RenderableWebEntityItem and do the following.
+    /*
+    onKeyboardRaisedChanged: {
+        keyboardEnabled = HMDinfo.active;
+    }
+    */
 
     QtObject {
         id: eventBridgeWrapper
@@ -20,7 +29,7 @@ Item {
         x: 0
         y: 0
         width: parent.width
-        height: keyboardRaised ? parent.height - keyboard1.height : parent.height
+        height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -82,7 +91,7 @@ Item {
         onLoadingChanged: {
             keyboardRaised = false;
             punctuationMode = false;
-            keyboard1.resetShiftMode(false);
+            keyboard.resetShiftMode(false);
 
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
@@ -105,32 +114,15 @@ Item {
         }
     }
 
-    // virtual keyboard, letters
     HiFiControls.Keyboard {
-        id: keyboard1
-        y: keyboardRaised ? parent.height : 0
-        height: keyboardRaised ? 200 : 0
-        visible: keyboardRaised && !punctuationMode
-        enabled: keyboardRaised && !punctuationMode
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
+        id: keyboard
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
     }
 
-    HiFiControls.KeyboardPunctuation {
-        id: keyboard2
-        y: keyboardRaised ? parent.height : 0
-        height: keyboardRaised ? 200 : 0
-        visible: keyboardRaised && punctuationMode
-        enabled: keyboardRaised && punctuationMode
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
-    }
 }

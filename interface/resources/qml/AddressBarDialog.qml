@@ -34,7 +34,10 @@ Window {
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
 
-    onShownChanged: addressBarDialog.observeShownChanged(shown);
+    onShownChanged: {
+        addressBarDialog.keyboardEnabled = HMD.active;
+        addressBarDialog.observeShownChanged(shown);
+    }
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
@@ -62,7 +65,6 @@ Window {
         clearAddressLineTimer.start();
     }
     property var allStories: [];
-    property int keyboardHeight: 200;
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
@@ -71,10 +73,13 @@ Window {
     AddressBarDialog {
         id: addressBarDialog
 
+        property bool keyboardEnabled: false
+        property bool keyboardRaised: false
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + keyboardHeight + cardHeight - 25; // fudge to make header reasonable
+        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.raisedHeight + 2 * hifi.layout.spacing : 0)
+                        + cardHeight - 36 // Fudge to reduce bottom margin.
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -93,7 +98,7 @@ Window {
             spacing: hifi.layout.spacing;
             clip: true;
             anchors {
-                bottom: backgroundImage.top;
+                top: parent.top
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -134,9 +139,9 @@ Window {
             width: 576 * root.scale
             height: 80 * root.scale
             anchors {
-                verticalCenter: parent.verticalCenter;
-                verticalCenterOffset: -15; // fudge to keep header reasonable and keep us under Card
+                top: scroll.bottom
             }
+
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
@@ -279,33 +284,15 @@ Window {
             }
         }
 
-        // virtual keyboard, letters
         HifiControls.Keyboard {
-            id: keyboard1
-            y: parent.height
-            height: keyboardHeight
-            visible: !parent.punctuationMode
-            enabled: !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.top: backgroundImage.bottom
-            anchors.bottomMargin: 0
-        }
-
-        HifiControls.KeyboardPunctuation {
-            id: keyboard2
-            y: parent.height
-            height: keyboardHeight
-            visible: parent.punctuationMode
-            enabled: parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.top: backgroundImage.bottom
-            anchors.bottomMargin: 0
+            id: keyboard
+            raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
+            numeric: parent.punctuationMode
+            anchors {
+                top: backgroundImage.bottom
+                left: parent.left
+                right: parent.right
+            }
         }
     }
 

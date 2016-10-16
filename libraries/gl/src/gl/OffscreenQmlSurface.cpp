@@ -309,6 +309,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     }
 
     // FIXME 
+    _glData = ::getGLContextData();  // Initialize JSON structure so that it can be filled in later and then used in QML.
     _qmlEngine->rootContext()->setContextProperty("GL", _glData);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlComponent = new QQmlComponent(_qmlEngine);
@@ -726,13 +727,13 @@ void OffscreenQmlSurface::setFocusText(bool newFocusText) {
 }
 
 // UTF-8 encoded symbols
-static const uint8_t UPWARDS_WHITE_ARROW_FROM_BAR[] = { 0xE2, 0x87, 0xAA, 0x00 }; // shift
-static const uint8_t LEFT_ARROW[] = { 0xE2, 0x86, 0x90, 0x00 }; // backspace
-static const uint8_t LEFTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA6, 0x00 }; // left arrow
-static const uint8_t RIGHTWARD_WHITE_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 }; // right arrow
-static const uint8_t ASTERISIM[] = { 0xE2, 0x81, 0x82, 0x00 }; // symbols
-static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 }; // return
-static const char PUNCTUATION_STRING[] = "&123";
+static const uint8_t SHIFT_ARROW[] = { 0xE2, 0x87, 0xAA, 0x00 };
+static const uint8_t NUMERIC_SHIFT_ARROW[] = { 0xE2, 0x87, 0xA8, 0x00 };
+static const uint8_t BACKSPACE_SYMBOL[] = { 0xE2, 0x86, 0x90, 0x00 };
+static const uint8_t LEFT_ARROW[] = { 0xE2, 0x9D, 0xAC, 0x00 };
+static const uint8_t RIGHT_ARROW[] = { 0xE2, 0x9D, 0xAD, 0x00 };
+static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 };
+static const char PUNCTUATION_STRING[] = "123";
 static const char ALPHABET_STRING[] = "abc";
 
 static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
@@ -752,19 +753,19 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
 
         int scanCode = (int)utf8Key[0];
         QString keyString = key;
-        if (equals(utf8Key, UPWARDS_WHITE_ARROW_FROM_BAR) || equals(utf8Key, ASTERISIM) ||
+        if (equals(utf8Key, SHIFT_ARROW) || equals(utf8Key, NUMERIC_SHIFT_ARROW) ||
             equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
             return;  // ignore
-        } else if (equals(utf8Key, LEFT_ARROW)) {
+        } else if (equals(utf8Key, BACKSPACE_SYMBOL)) {
             scanCode = Qt::Key_Backspace;
             keyString = "\x08";
         } else if (equals(utf8Key, RETURN_SYMBOL)) {
             scanCode = Qt::Key_Return;
             keyString = "\x0d";
-        } else if (equals(utf8Key, LEFTWARD_WHITE_ARROW)) {
+        } else if (equals(utf8Key, LEFT_ARROW)) {
             scanCode = Qt::Key_Left;
             keyString = "";
-        } else if (equals(utf8Key, RIGHTWARD_WHITE_ARROW)) {
+        } else if (equals(utf8Key, RIGHT_ARROW)) {
             scanCode = Qt::Key_Right;
             keyString = "";
         }
@@ -787,6 +788,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
         if (item->property("keyboardRaised").isValid()) {
+            // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
             if (item->property("punctuationMode").isValid()) {
                 item->setProperty("punctuationMode", QVariant(numeric));
             }
