@@ -10,6 +10,10 @@
 //
 
 #include "CharacterGhostShape.h"
+
+#include <assert.h>
+
+
 CharacterGhostShape::CharacterGhostShape(const btConvexHullShape* shape) :
         btConvexHullShape(reinterpret_cast<const btScalar*>(shape->getUnscaledPoints()), shape->getNumPoints(), sizeof(btVector3)) {
     assert(shape);
