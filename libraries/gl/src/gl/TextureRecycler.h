@@ -15,6 +15,10 @@
 
 #include <GLMHelpers.h>
 
+// GPU resources are typically buffered for one copy being used by the renderer, 
+// one copy in flight, and one copy being used by the receiver
+#define GPU_RESOURCE_BUFFER_SIZE 3
+
 class TextureRecycler {
 public:
     TextureRecycler(bool useMipmaps) : _useMipmaps(useMipmaps) {}
@@ -44,7 +48,7 @@ private:
     Queue _readyTextures;
     uvec2 _size{ 1920, 1080 };
     bool _useMipmaps;
-    uint8_t _textureCount { 3 };
+    uint8_t _textureCount { GPU_RESOURCE_BUFFER_SIZE };
 };
 
 #endif
