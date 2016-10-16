@@ -48,6 +48,11 @@ void BatchLoader::start() {
             if (!self) {
                 return;
             }
+
+            // Because the ScriptCache may call this callback from differents threads,
+            // we need to make sure this is thread-safe.
+            std::lock_guard<std::mutex> lock(_dataLock);
+
             if (isURL && success) {
                 _data.insert(url, contents);
                 qCDebug(scriptengine) << "Loaded: " << url;
@@ -55,16 +60,11 @@ void BatchLoader::start() {
                 _data.insert(url, QString());
                 qCDebug(scriptengine) << "Could not load" << url;
             }
-            checkFinished();
+
+            if (!_finished && _urls.size() == _data.size()) {
+                _finished = true;
+                emit finished(_data);
+            }
         }, false);
-    }
-
-    checkFinished();
-}
-
-void BatchLoader::checkFinished() {
-    if (!_finished && _urls.size() == _data.size()) {
-        _finished = true;
-        emit finished(_data);
     }
 }
