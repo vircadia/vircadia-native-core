@@ -43,9 +43,7 @@ const QString SNAPSHOTS_DIRECTORY = "Snapshots";
 
 const QString URL = "highfidelity_url";
 
-Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
-    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
-Setting::Handle<bool> Snapshot::hasSetSnapshotsLocation("hasSetSnapshotsLocation", false);
+Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation");
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 
@@ -105,42 +103,44 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
-        QString snapshotFullPath;
-        if (!hasSetSnapshotsLocation.get()) {
+        QString snapshotFullPath = snapshotsLocation.get();
+
+        if (snapshotFullPath.isEmpty()) {
             snapshotFullPath = QFileDialog::getExistingDirectory(nullptr, "Choose Snapshots Directory", snapshotsLocation.get());
-            hasSetSnapshotsLocation.set(true);
             snapshotsLocation.set(snapshotFullPath);
-        } else {
-            snapshotFullPath = snapshotsLocation.get();
         }
 
-        if (!snapshotFullPath.endsWith(QDir::separator())) {
-            snapshotFullPath.append(QDir::separator());
+        if (!snapshotFullPath.isEmpty()) { // not cancelled
+
+            if (!snapshotFullPath.endsWith(QDir::separator())) {
+                snapshotFullPath.append(QDir::separator());
+            }
+
+            snapshotFullPath.append(filename);
+
+            QFile* imageFile = new QFile(snapshotFullPath);
+            imageFile->open(QIODevice::WriteOnly);
+
+            shot.save(imageFile, 0, IMAGE_QUALITY);
+            imageFile->close();
+
+            return imageFile;
         }
 
-        snapshotFullPath.append(filename);
-
-        QFile* imageFile = new QFile(snapshotFullPath);
-        imageFile->open(QIODevice::WriteOnly);
-
-        shot.save(imageFile, 0, IMAGE_QUALITY);
-        imageFile->close();
-
-        return imageFile;
-
-    } else {
-        QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
-
-        if (!imageTempFile->open()) {
-            qDebug() << "Unable to open QTemporaryFile for temp snapshot. Will not save.";
-            return NULL;
-        }
-
-        shot.save(imageTempFile, 0, IMAGE_QUALITY);
-        imageTempFile->close();
-
-        return imageTempFile;
     }
+    // Either we were asked for a tempororary, or the user didn't set a directory.
+    QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
+
+    if (!imageTempFile->open()) {
+        qDebug() << "Unable to open QTemporaryFile for temp snapshot. Will not save.";
+        return NULL;
+    }
+    imageTempFile->setAutoRemove(isTemporary);
+
+    shot.save(imageTempFile, 0, IMAGE_QUALITY);
+    imageTempFile->close();
+
+    return imageTempFile;
 }
 
 void Snapshot::uploadSnapshot(const QString& filename) {
