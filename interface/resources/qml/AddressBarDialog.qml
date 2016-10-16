@@ -29,7 +29,6 @@ Window {
     destroyOnHidden: false
     resizable: false
     pinnable: false;
-    scale: 1.25  // Make this dialog a little larger than normal
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
@@ -74,7 +73,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + keyboardHeight + cardHeight - 25; // fudge to make header reasonable
+        implicitHeight: backgroundImage.height + keyboardHeight + cardHeight;
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -131,13 +130,12 @@ Window {
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
-            width: 576 * root.scale
-            height: 80 * root.scale
+            width: 720
+            height: 100
             anchors {
                 verticalCenter: parent.verticalCenter;
-                verticalCenterOffset: -15; // fudge to keep header reasonable and keep us under Card
             }
-            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
+            property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             ToolbarButton {
@@ -184,7 +182,7 @@ Window {
 
             HifiStyles.RalewayLight {
                 id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
                 anchors {
                     top: parent.top
                     topMargin: parent.inputAreaStep + 12
@@ -213,7 +211,7 @@ Window {
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
                 cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
@@ -262,7 +260,6 @@ Window {
         Window {
             width: 938
             height: 625
-            scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
