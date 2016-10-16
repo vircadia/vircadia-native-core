@@ -426,17 +426,24 @@ SequenceNumber Connection::nextACK() const {
     }
 }
 
+void Connection::sendHandshakeRequest() {
+    auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
+    _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
+
+    _didRequestHandshake = true;
+}
+
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
     
     if (!_hasReceivedHandshake) {
         // Refuse to process any packets until we've received the handshake
         // Send handshake request to re-request a handshake
-        auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
-        _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Received packet before receiving handshake, sending HandshakeRequest";
 #endif
+
+        sendHandshakeRequest();
 
         return false;
     }
@@ -789,6 +796,11 @@ void Connection::processHandshake(ControlPacketPointer controlPacket) {
     
     // indicate that handshake has been received
     _hasReceivedHandshake = true;
+
+    if (_didRequestHandshake) {
+        emit receiverHandshakeRequestComplete(_destination);
+        _didRequestHandshake = false;
+    }
 }
 
 void Connection::processHandshakeACK(ControlPacketPointer controlPacket) {

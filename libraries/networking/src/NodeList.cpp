@@ -104,6 +104,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
+    // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
+    using std::placeholders::_1;
+    _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
+
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
 
@@ -701,6 +705,10 @@ void NodeList::sendKeepAlivePings() {
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });
+}
+
+bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+    return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
 }
 
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {

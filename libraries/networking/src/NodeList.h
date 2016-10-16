@@ -132,6 +132,8 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
+    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;

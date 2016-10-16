@@ -97,6 +97,9 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _currentSequenceNumber = _initialSequenceNumber - 1;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
     _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
+
+    // default the last receiver response to the current time
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -166,7 +169,7 @@ void SendQueue::ack(SequenceNumber ack) {
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch(); 
     
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
@@ -520,7 +523,6 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
 
     if (sinceLastResponse > 0 &&
         sinceLastResponse >= int64_t(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
-        _lastReceiverResponse > 0 &&
         sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
         // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
         // then signal the queue is inactive and return so it can be cleaned up
