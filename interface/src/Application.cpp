@@ -579,15 +579,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     
     bool wantsSandboxRunning = shouldRunServer();
-    bool determinedSandboxState = false;
-    bool sandboxRunning = false;
+    static bool determinedSandboxState = false;
+    static bool sandboxRunning = false;
     SandboxUtils sandboxUtils;
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
-        qDebug() << "Home sandbox appears to be running.....";
+        qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
         sandboxRunning = true;
     }, [&]() {
-        qDebug() << "Home sandbox does not appear to be running....";
+        qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         determinedSandboxState = true;
         sandboxRunning = false;
         if (wantsSandboxRunning) {
@@ -1292,7 +1292,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Get sandbox content set version, if available
     auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
     auto contentVersionPath = acDirPath + "content-version.txt";
-    qDebug() << "Checking " << contentVersionPath << " for content version";
+    qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
     auto contentVersion = 0;
     QFile contentVersionFile(contentVersionPath);
     if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -1300,7 +1300,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
         contentVersion = line.toInt();
     }
-    qDebug() << "Server content version: " << contentVersion;
+    qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
     bool hasTutorialContent = contentVersion >= 1;
 
@@ -1310,10 +1310,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
 
-    qDebug() << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-    qDebug() << "Has tutorial content: " << hasTutorialContent;
-    qDebug() << "Tutorial complete: " << tutorialComplete.get();
-    qDebug() << "Should go to tutorial: " << shouldGoToTutorial;
+    qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
+    qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
+    qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
+    qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
 
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1327,10 +1327,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     if (shouldGoToTutorial) {
         sandboxUtils.ifLocalSandboxRunningElse([=]() {
-            qDebug() << "Home sandbox appears to be running, going to Home.";
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
         }, [=]() {
-            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
                 showHelp();
             }
@@ -1352,17 +1352,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
                 sandboxUtils.ifLocalSandboxRunningElse([=]() {
-                    qDebug() << "Home sandbox appears to be running, going to Home.";
+                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
                 }, [=]() {
-                    qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
                 });
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
             }
         } else {
-            qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         }
     }

@@ -859,7 +859,7 @@ function onContentLoaded() {
         var MAX_TIME_SINCE_EDIT = 5000; // 5 seconds between updates
         var firstAttemptToCheck = new Date().getTime();
         var shutdownWatchInterval = setInterval(function(){
-            var stats = fs.stat(argv.shutdownWatcher,function(err, stats) {
+            var stats = fs.stat(argv.shutdownWatcher, function(err, stats) {
                 if (err) {
                     var sinceFirstCheck = new Date().getTime() - firstAttemptToCheck;
                     if (sinceFirstCheck > MAX_TIME_SINCE_EDIT) {

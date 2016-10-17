@@ -41,6 +41,9 @@ void RunningMarker::startRunningMarker() {
         writeRunningMarkerFiler();
     });
     runningMarkerTimer->start(RUNNING_STATE_CHECK_IN_MSECS);
+
+    // put the time on the thread
+    runningMarkerTimer->moveToThread(runningMarkerThread);
 }
 
 RunningMarker::~RunningMarker() {
