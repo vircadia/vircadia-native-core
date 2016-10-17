@@ -201,12 +201,18 @@ function deleteEntitiesWithTag(tag) {
     }
 }
 function editEntitiesWithTag(tag, propertiesOrFn) {
-    var entityIDs = findEntitiesWithTag(tag);
-    for (var i = 0; i < entityIDs.length; ++i) {
-        if (isFunction(propertiesOrFn)) {
-            Entities.editEntity(entityIDs[i], propertiesOrFn(entityIDs[i]));
-        } else {
-            Entities.editEntity(entityIDs[i], propertiesOrFn);
+    //var entityIDs = findEntitiesWithTag(tag);
+    var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
+
+    debug("Editing tag: ", tag);
+    if (entities) {
+        for (entityID in entities) {
+            debug("Editing: ", entityID, ", ", propertiesOrFn, ", Is in local tree: ", isEntityInLocalTree(entityID));
+            if (isFunction(propertiesOrFn)) {
+                Entities.editEntity(entityID, propertiesOrFn(entityIDs[i]));
+            } else {
+                Entities.editEntity(entityID, propertiesOrFn);
+            }
         }
     }
 }
