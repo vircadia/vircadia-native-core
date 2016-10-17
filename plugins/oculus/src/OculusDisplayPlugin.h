@@ -32,5 +32,6 @@ private:
     static const QString NAME;
     ovrTextureSwapChain _textureSwapChain;
     gpu::FramebufferPointer _outputFramebuffer;
+    bool _customized { false };
 };
 
