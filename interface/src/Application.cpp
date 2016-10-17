@@ -580,16 +580,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     
     bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
-    static bool sandboxRunning = false;
     SandboxUtils sandboxUtils;
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
-        sandboxRunning = true;
     }, [&, wantsSandboxRunning]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         determinedSandboxState = true;
-        sandboxRunning = false;
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
