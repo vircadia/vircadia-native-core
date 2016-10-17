@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import HFWebEngineProfile 1.0
 import "."
 
 BaseWebView {
