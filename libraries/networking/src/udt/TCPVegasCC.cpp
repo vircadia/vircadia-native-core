@@ -35,12 +35,16 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         // calculate the RTT (receive time - time ACK sent)
         int lastRTT = duration_cast<microseconds>(receiveTime - it->second.first).count();
 
+        const int MAX_RTT_SAMPLE_MICROSECONDS = 10000000;
+
         if (lastRTT < 0) {
             Q_ASSERT_X(false, "TCPVegasCC::onACK", "calculated an RTT that is not > 0");
             return false;
         } else if (lastRTT == 0) {
             // we do not allow a 0 microsecond RTT
             lastRTT = 1;
+        } else if (lastRTT > MAX_RTT_SAMPLE_MICROSECONDS) {
+            lastRTT = MAX_RTT_SAMPLE_MICROSECONDS;
         }
 
         if (_ewmaRTT == -1) {
@@ -129,7 +133,7 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     // (though congestion may be noticed a bit later)
     int rtt = _currentMinRTT;
 
-    int windowSizeDiff = _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
+    int64_t windowSizeDiff = (int64_t) _congestionWindowSize * (rtt - _baseRTT) / _baseRTT;
 
     if (_numACKs <= 2) {
         performRenoCongestionAvoidance(ack);
@@ -169,7 +173,11 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     // we never allow the congestion window to be smaller than two packets
     static int VEGAS_CW_MIN_PACKETS = 2;
-    _congestionWindowSize = std::max(_congestionWindowSize, VEGAS_CW_MIN_PACKETS);
+    if (_congestionWindowSize < VEGAS_CW_MIN_PACKETS) {
+        _congestionWindowSize = VEGAS_CW_MIN_PACKETS;
+    } else if (_congestionWindowSize > udt::MAX_PACKETS_IN_FLIGHT) {
+        _congestionWindowSize = udt::MAX_PACKETS_IN_FLIGHT;
+    }
 
     // mark this as the last adjustment time
     _lastAdjustmentTime = p_high_resolution_clock::now();
