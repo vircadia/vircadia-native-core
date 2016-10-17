@@ -68,6 +68,8 @@ public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
 
+    void merge(const EntityItemProperties& other);
+
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 

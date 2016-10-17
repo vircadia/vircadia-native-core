@@ -49,6 +49,15 @@ void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, glmVec3, setDirection, getDirection);
 }
 
+void KeyLightPropertyGroup::merge(const KeyLightPropertyGroup& other) {
+    COPY_PROPERTY_IF_CHANGED(color);
+    COPY_PROPERTY_IF_CHANGED(intensity);
+    COPY_PROPERTY_IF_CHANGED(ambientIntensity);
+    COPY_PROPERTY_IF_CHANGED(direction);
+    COPY_PROPERTY_IF_CHANGED(ambientURL);
+}
+
+
 
 void KeyLightPropertyGroup::debugDump() const {
     qDebug() << "   KeyLightPropertyGroup: ---------------------------------------------";
