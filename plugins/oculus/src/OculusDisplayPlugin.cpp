@@ -59,14 +59,14 @@ void OculusDisplayPlugin::customizeContext() {
 
     ovrResult result = ovr_CreateTextureSwapChainGL(_session, &desc, &_textureSwapChain);
     if (!OVR_SUCCESS(result)) {
-        logFatal("Failed to create swap textures");
+        logCritical("Failed to create swap textures");
         return;
     }
 
     int length = 0;
     result = ovr_GetTextureSwapChainLength(_session, _textureSwapChain, &length);
     if (!OVR_SUCCESS(result) || !length) {
-        logFatal("Unable to count swap chain textures");
+        logCritical("Unable to count swap chain textures");
         return;
     }
     for (int i = 0; i < length; ++i) {
