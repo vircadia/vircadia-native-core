@@ -30,9 +30,11 @@ void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& i
         // if we have an access token, add it to the right HTTP header for authorization
         auto accountManager = DependencyManager::get<AccountManager>();
 
-        static const QString OAUTH_AUTHORIZATION_HEADER = "Authorization";
+        if (accountManager->hasValidAccessToken()) {
+            static const QString OAUTH_AUTHORIZATION_HEADER = "Authorization";
 
-        QString bearerTokenString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;
-        info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
+            QString bearerTokenString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;
+            info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
+        }
     }
 }
