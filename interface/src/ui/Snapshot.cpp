@@ -106,7 +106,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
         QString snapshotFullPath = snapshotsLocation.get();
 
         if (snapshotFullPath.isEmpty()) {
-            snapshotFullPath = QFileDialog::getExistingDirectory(nullptr, "Choose Snapshots Directory", snapshotsLocation.get());
+            snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Choose Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
             snapshotsLocation.set(snapshotFullPath);
         }
 
