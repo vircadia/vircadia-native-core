@@ -23,7 +23,7 @@
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
-const QString DEFAULT_HIFI_ADDRESS = "hifi://ova-welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString INDEX_PATH = "/";
 
