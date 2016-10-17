@@ -19,6 +19,7 @@ QString const Line3DOverlay::TYPE = "line3d";
 Line3DOverlay::Line3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    qDebug() << "Building line3D overlay";
 }
 
 Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
@@ -27,9 +28,15 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     _end(line3DOverlay->_end),
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    qDebug() << "Building line3D overlay";
 }
 
 Line3DOverlay::~Line3DOverlay() {
+    qDebug() << "Destryoing line3D overlay";
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryCacheID) {
+        geometryCache->releaseID(_geometryCacheID);
+    }
 }
 
 glm::vec3 Line3DOverlay::getStart() const {
@@ -84,7 +91,6 @@ void Line3DOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-
     auto batch = args->_batch;
     if (batch) {
         batch->setModelTransform(getTransform());

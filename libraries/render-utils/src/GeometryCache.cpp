@@ -441,6 +441,34 @@ GeometryCache::~GeometryCache() {
 #endif //def WANT_DEBUG
 }
 
+void GeometryCache::releaseID(int id) {
+    _registeredQuad3DTextures.remove(id);
+    _lastRegisteredQuad2DTexture.remove(id);
+    _registeredQuad2DTextures.remove(id);
+    _lastRegisteredQuad3D.remove(id);
+    _registeredQuad3D.remove(id);
+
+    _lastRegisteredQuad2D.remove(id);
+    _registeredQuad2D.remove(id);
+
+    _lastRegisteredBevelRects.remove(id);
+    _registeredBevelRects.remove(id);
+
+    _lastRegisteredLine3D.remove(id);
+    _registeredLine3DVBOs.remove(id);
+
+    _lastRegisteredLine2D.remove(id);
+    _registeredLine2DVBOs.remove(id);
+
+    _registeredVertices.remove(id);
+
+    _lastRegisteredDashedLines.remove(id);
+    _registeredDashedLines.remove(id);
+
+    _lastRegisteredGridBuffer.remove(id);
+    _registeredGridBuffers.remove(id);
+}
+
 void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     batch.setInputBuffer(gpu::Stream::COLOR, colorView);

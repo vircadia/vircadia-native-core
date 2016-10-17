@@ -28,6 +28,10 @@ Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOver
 }
 
 Rectangle3DOverlay::~Rectangle3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryCacheID) {
+        geometryCache->releaseID(_geometryCacheID);
+    }
 }
 
 void Rectangle3DOverlay::render(RenderArgs* args) {

@@ -19,6 +19,7 @@ QString const Circle3DOverlay::TYPE = "circle3d";
 Circle3DOverlay::Circle3DOverlay() {
     memset(&_minorTickMarksColor, 0, sizeof(_minorTickMarksColor));
     memset(&_majorTickMarksColor, 0, sizeof(_majorTickMarksColor));
+    qDebug() << "Building circle3d overlay";
 }
 
 Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
@@ -39,8 +40,25 @@ Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     _majorTicksVerticesID(GeometryCache::UNKNOWN_ID),
     _minorTicksVerticesID(GeometryCache::UNKNOWN_ID)
 {
+    qDebug() << "Building circle3d overlay";
 }
 
+Circle3DOverlay::~Circle3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_quadVerticesID) {
+        geometryCache->releaseID(_quadVerticesID);
+    }
+    if (_lineVerticesID) {
+        geometryCache->releaseID(_lineVerticesID);
+    }
+    if (_majorTicksVerticesID) {
+        geometryCache->releaseID(_majorTicksVerticesID);
+    }
+    if (_minorTicksVerticesID) {
+        geometryCache->releaseID(_minorTicksVerticesID);
+    }
+    qDebug() << "Destroying circle3d overlay";
+}
 void Circle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
