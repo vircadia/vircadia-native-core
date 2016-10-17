@@ -285,6 +285,9 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(sendingMode, sendingModeResult);
     }
 
+    STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+    STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+
     // Incoming packets
     QLocale locale(QLocale::English);
     auto voxelPacketsToProcess = qApp->getOctreePacketProcessor().packetsToProcessCount();
