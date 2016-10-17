@@ -39,12 +39,12 @@ void logWarning(const char* what) {
     qWarning(oculus) << what << ":" << getError().ErrorString;
 }
 
-void logFatal(const char* what) {
+void logCritical(const char* what) {
     std::string error("[oculus] ");
     error += what;
     error += ": ";
     error += getError().ErrorString;
-    qFatal(error.c_str());
+    qCritical(error.c_str());
 }
 
 
