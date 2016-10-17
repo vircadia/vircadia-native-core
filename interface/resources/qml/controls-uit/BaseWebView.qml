@@ -25,28 +25,6 @@ WebEngineView {
         });
     }
 
-    // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
-    Timer {
-        id: urlReplacementTimer
-        running: false
-        repeat: false
-        interval: 50
-        onTriggered: url = newUrl;
-    }
-
-    onUrlChanged: {
-        var originalUrl = url.toString();
-        newUrl = urlHandler.fixupUrl(originalUrl).toString();
-        if (newUrl !== originalUrl) {
-            root.stop();
-            if (urlReplacementTimer.running) {
-                console.warn("Replacement timer already running");
-                return;
-            }
-            urlReplacementTimer.start();
-        }
-    }
-
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {

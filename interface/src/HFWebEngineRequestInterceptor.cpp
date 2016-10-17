@@ -13,6 +13,26 @@
 
 #include <QtCore/QDebug>
 
+#include <AccountManager.h>
+
+bool isHighFidelityURL(const QUrl& url) {
+    static const QStringList HF_HOSTS = {
+        "highfidelity.com", "highfidelity.io",
+        "metaverse.highfidelity.com", "metaverse.highfidelity.io"
+    };
+
+    return HF_HOSTS.contains(url.host());
+}
+
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    qDebug() << "==================== We have a request we can intercept! COOL!";
+    // check if this is a request to a highfidelity URL
+    if (isHighFidelityURL(info.requestUrl())) {
+        // if we have an access token, add it to the right HTTP header for authorization
+        auto accountManager = DependencyManager::get<AccountManager>();
+
+        static const QString OAUTH_AUTHORIZATION_HEADER = "Authorization";
+
+        QString bearerTokenString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;
+        info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
+    }
 }

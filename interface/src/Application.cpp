@@ -123,7 +123,7 @@
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
-#include "HFWebEngineRequestInterceptor.h"
+#include "HFWebEngineProfile.h"
 #include "InterfaceActionFactory.h"
 #include "InterfaceLogging.h"
 #include "LODManager.h"
@@ -1097,10 +1097,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     SpacemouseManager::getInstance().init();
 #endif
 
-    // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
-    auto requestInterceptor = new HFWebEngineRequestInterceptor(this);
-    QWebEngineProfile::defaultProfile()->setRequestInterceptor(requestInterceptor);
-
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
@@ -1681,6 +1677,7 @@ void Application::initializeUi() {
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
+    qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
