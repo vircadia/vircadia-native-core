@@ -59,6 +59,10 @@ void DialogsManager::showFeed() {
     emit setUseFeed(true);
 }
 
+void DialogsManager::indicateDomainConnectionFailure() {
+    OffscreenUi::information("No Connection", "Unable to connect to this domain. Click the 'GO TO' button on the toolbar to visit another domain.");
+}
+
 void DialogsManager::toggleDiskCacheEditor() {
     maybeCreateDialog(_diskCacheEditor);
     _diskCacheEditor->toggle();
