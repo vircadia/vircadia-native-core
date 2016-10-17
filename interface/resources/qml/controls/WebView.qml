@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
+import HFWebEngineProfile 1.0
 
 Item {
     property alias url: root.url
@@ -30,6 +31,11 @@ Item {
         y: 0
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
+
+        profile: HFWebEngineProfile {
+            id: webviewProfile
+            storageName: "qmlWebEngine"
+        }
 
         // creates a global EventBridge object.
         WebEngineScript {
