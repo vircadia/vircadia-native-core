@@ -94,6 +94,7 @@
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
+#include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
@@ -415,8 +416,6 @@ bool setupEssentials(int& argc, char** argv) {
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
     bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
-    CrashHandler::writeRunningMarkerFiler();
-    qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -504,8 +503,11 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
+    _shouldRunServer(runServer),
+    _runServerPath(runServerPathOption),
+    _runningMarker(this, RUNNING_MARKER_FILENAME),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
@@ -529,7 +531,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-
+    _runningMarker.startRunningMarker();
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
@@ -575,6 +577,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
+    
+    bool wantsSandboxRunning = shouldRunServer();
+    static bool determinedSandboxState = false;
+    SandboxUtils sandboxUtils;
+    sandboxUtils.ifLocalSandboxRunningElse([&]() {
+        qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
+        determinedSandboxState = true;
+    }, [&, wantsSandboxRunning]() {
+        qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
+        determinedSandboxState = true;
+        if (wantsSandboxRunning) {
+            QString contentPath = getRunServerPath();
+            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+        }
+    });
+
+    quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
+    auto startWaiting = usecTimestampNow();
+    while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
+        QCoreApplication::processEvents();
+        usleep(USECS_PER_MSEC * 50); // 20hz
+    }
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -1265,7 +1289,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Get sandbox content set version, if available
     auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
     auto contentVersionPath = acDirPath + "content-version.txt";
-    qDebug() << "Checking " << contentVersionPath << " for content version";
+    qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
     auto contentVersion = 0;
     QFile contentVersionFile(contentVersionPath);
     if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -1273,7 +1297,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
         contentVersion = line.toInt();
     }
-    qDebug() << "Server content version: " << contentVersion;
+    qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
     bool hasTutorialContent = contentVersion >= 1;
 
@@ -1283,10 +1307,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
 
-    qDebug() << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-    qDebug() << "Has tutorial content: " << hasTutorialContent;
-    qDebug() << "Tutorial complete: " << tutorialComplete.get();
-    qDebug() << "Should go to tutorial: " << shouldGoToTutorial;
+    qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
+    qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
+    qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
+    qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
 
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1299,11 +1323,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
-            qDebug() << "Home sandbox appears to be running, going to Home.";
+        sandboxUtils.ifLocalSandboxRunningElse([=]() {
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
         }, [=]() {
-            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
                 showHelp();
             }
@@ -1324,18 +1348,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([=]() {
-                    qDebug() << "Home sandbox appears to be running, going to Home.";
+                sandboxUtils.ifLocalSandboxRunningElse([=]() {
+                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
                 }, [=]() {
-                    qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
                 });
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
             }
         } else {
-            qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         }
     }
