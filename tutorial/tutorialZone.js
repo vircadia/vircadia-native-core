@@ -27,10 +27,14 @@ if (!Function.prototype.bind) {
 }
 
 (function() {
-    var ownershipTokenPath = Script.resolvePath("ownershipToken.js");
-    var tutorialPath = Script.resolvePath("tutorial.js");
-    Script.include(ownershipTokenPath);
-    Script.include(tutorialPath);
+    Script.include("ownershipToken.js");
+    Script.include("tutorial.js");
+
+    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+    function setAwayEnabled(value) {
+        var message = value ? 'enable' : 'disable';
+        Messages.sendLocalMessage(CHANNEL_AWAY_ENABLE, message);
+    }
 
     var TutorialZone = function() {
         print("TutorialZone | Creating");
@@ -65,7 +69,9 @@ if (!Function.prototype.bind) {
             if (!this.token) {
                 print("TutorialZone | Creating token");
                 // The start zone has been entered, hide the overlays immediately
+                setAwayEnabled(false);
                 Menu.setIsOptionChecked("Overlays", false);
+                MyAvatar.shouldRenderLocally = false;
                 this.token = new OwnershipToken(Math.random() * 100000, this.entityID, {
                     onGainedOwnership: function(token) {
                         print("TutorialZone | GOT OWNERSHIP");
@@ -100,6 +106,8 @@ if (!Function.prototype.bind) {
             // re-enable the HUD/Overlays
             if (!self.tutorialManager) {
                 Menu.setIsOptionChecked("Overlays", true);
+                MyAvatar.shouldRenderLocally = true;
+                setAwayEnabled(true);
             }
         },
 

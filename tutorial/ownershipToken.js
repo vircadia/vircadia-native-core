@@ -185,3 +185,5 @@ OwnershipToken.prototype = {
         Script.setTimeout(checkOwnershipRequest.bind(this), 2000);
     },
 };
+
+debug("Returning from ownershipToken");
