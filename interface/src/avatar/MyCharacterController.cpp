@@ -112,11 +112,29 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     rayDirection /= stepLength;
     const btScalar backSlop = 0.04f;
 
+    // compute rotation that will orient local ray start points to face step direction
+    btVector3 forward = rotation * btVector3(0.0f, 0.0f, -1.0f);
+    btVector3 adjustedDirection = rayDirection - rayDirection.dot(_currentUp) * _currentUp;
+    btVector3 axis = forward.cross(adjustedDirection);
+    btScalar lengthAxis = axis.length();
+    if (lengthAxis > FLT_EPSILON) {
+        // we're walking sideways
+        btScalar angle = acosf(lengthAxis / adjustedDirection.length());
+        if (rayDirection.dot(forward) < 0.0f) {
+            angle = PI - angle;
+        }
+        axis /= lengthAxis;
+        rotation = btMatrix3x3(btQuaternion(axis, angle)) * rotation;
+    } else if (rayDirection.dot(forward) < 0.0f) {
+        // we're walking backwards
+        rotation = btMatrix3x3(btQuaternion(_currentUp, PI)) * rotation;
+    }
+
     // scan the top
     // NOTE: if we scan an extra distance forward we can detect flat surfaces that are too steep to walk on.
     // The approximate extra distance can be derived with trigonometry.
     //
-    //   minimumForward = [ (maxStepHeight + radius / sinTheta - radius) * (sinTheta / cosTheta) - radius ]
+    //   minimumForward = [ (maxStepHeight + radius / cosTheta - radius) * (cosTheta / sinTheta) - radius ]
     //
     // where: theta = max angle between floor normal and vertical
     //
@@ -124,11 +142,16 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     //
     btScalar cosTheta = _minFloorNormalDotUp;
     btScalar sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
-    btScalar forwardSlop = (_maxStepHeight + _radius / sinTheta - _radius) * (sinTheta / cosTheta) - (_radius + stepLength);
-    bool needToRemoveForwardSlop = true;
+    const btScalar MIN_FORWARD_SLOP = 0.12f; // HACK: not sure why this is necessary to detect steepest walkable slope
+    btScalar forwardSlop = (_maxStepHeight + _radius / cosTheta - _radius) * (cosTheta / sinTheta) - (_radius + stepLength) + MIN_FORWARD_SLOP;
+
+    btScalar adjacent = (_radius + stepLength + forwardSlop);
+    btScalar opposite = (_topPoints[0].dot(_currentUp) + (_radius + _halfHeight)) + _radius / cosTheta - _radius;
+    btScalar angle = atanf(opposite/adjacent);
+
     if (forwardSlop < 0.0f) {
+        // BIG step, no slop necessary
         forwardSlop = 0.0f;
-        needToRemoveForwardSlop = false;
     }
 
     for (int32_t i = 0; i < _topPoints.size(); ++i) {
@@ -151,10 +174,9 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         // remove both forwardSlop and backSlop
         result.hitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - backSlop) / stepLength);
     } else {
-        if (needToRemoveForwardSlop && result.hitFraction < 1.0f) {
-            // remove forwardSlop
-            result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop)) / (backSlop + stepLength);
-        }
+        // remove forwardSlop
+        result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop)) / (backSlop + stepLength);
+
         // scan the bottom
         for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
             rayStart = newPosition + rotation * _bottomPoints[i] - backSlop * rayDirection;
