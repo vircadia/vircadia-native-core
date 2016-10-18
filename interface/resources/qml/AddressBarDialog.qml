@@ -138,7 +138,7 @@ Window {
             width: 720
             height: 100
             anchors {
-                verticalCenter: parent.verticalCenter;
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
             }
             property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
@@ -286,7 +286,7 @@ Window {
             raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
             numeric: parent.punctuationMode
             anchors {
-                top: backgroundImage.bottom
+                bottom: parent.bottom
                 left: parent.left
                 right: parent.right
             }
