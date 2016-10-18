@@ -249,6 +249,16 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
+                        text: "GPU Textures: " + root.gpuTextures;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "GPU Buffers: " + root.gpuBuffers;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
                         visible: root.expanded;
                         text: "Items rendered / considered: " +
                             root.itemRendered + " / " + root.itemConsidered;

@@ -3701,7 +3701,18 @@ void Application::setKeyboardFocusEntity(QUuid id) {
 void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (_keyboardFocusedItem.get() != entityItemID) {
+        // reset focused entity
         _keyboardFocusedItem.set(UNKNOWN_ENTITY_ID);
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
+
+        // if invalid, return without expensive (locking) operations
+        if (entityItemID == UNKNOWN_ENTITY_ID) {
+            return;
+        }
+
+        // if valid, query properties
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
         if (!properties.getLocked() && properties.getVisible()) {
             auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
@@ -3712,6 +3723,8 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 }
                 _keyboardFocusedItem.set(entityItemID);
                 _lastAcceptedKeyPress = usecTimestampNow();
+
+                // create a focus
                 if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
                     _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
                     _keyboardFocusHighlight->setAlpha(1.0f);
@@ -3723,16 +3736,15 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                     _keyboardFocusHighlight->setColorPulse(1.0);
                     _keyboardFocusHighlight->setIgnoreRayIntersection(true);
                     _keyboardFocusHighlight->setDrawInFront(false);
+                    _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
                 }
+
+                // position the focus
                 _keyboardFocusHighlight->setRotation(entity->getRotation());
                 _keyboardFocusHighlight->setPosition(entity->getPosition());
                 _keyboardFocusHighlight->setDimensions(entity->getDimensions() * 1.05f);
                 _keyboardFocusHighlight->setVisible(true);
-                _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
             }
-        }
-        if (_keyboardFocusedItem.get() == UNKNOWN_ENTITY_ID && _keyboardFocusHighlight) {
-            _keyboardFocusHighlight->setVisible(false);
         }
     }
 }

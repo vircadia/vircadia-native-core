@@ -23,6 +23,7 @@ public:
 
     Circle3DOverlay();
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
+    ~Circle3DOverlay();
     
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;

@@ -773,23 +773,29 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 } else if (object.name == "Texture") {
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "RelativeFilename") {
+                        const int RELATIVE_FILENAME_MIN_SIZE = 1;
+                        const int TEXTURE_NAME_MIN_SIZE = 1;
+                        const int TEXTURE_ALPHA_SOURCE_MIN_SIZE = 1;
+                        const int MODEL_UV_TRANSLATION_MIN_SIZE = 2;
+                        const int MODEL_UV_SCALING_MIN_SIZE = 2;
+                        const int CROPPING_MIN_SIZE = 4;
+                        if (subobject.name == "RelativeFilename" && subobject.properties.length() >= RELATIVE_FILENAME_MIN_SIZE) {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             QByteArray filepath = filename.replace('\\', '/');
                             filename = fileOnUrl(filepath, url);
                             _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
-                        } else if (subobject.name == "TextureName") {
+                        } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
                             _textureNames.insert(getID(object.properties), name);
-                        } else if (subobject.name == "Texture_Alpha_Source") {
+                        } else if (subobject.name == "Texture_Alpha_Source" && subobject.properties.length() >= TEXTURE_ALPHA_SOURCE_MIN_SIZE) {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
-                        } else if (subobject.name == "ModelUVTranslation") {
+                        } else if (subobject.name == "ModelUVTranslation" && subobject.properties.length() >= MODEL_UV_TRANSLATION_MIN_SIZE) {
                             tex.assign(tex.UVTranslation, glm::vec2(subobject.properties.at(0).value<double>(),
-                                                                subobject.properties.at(1).value<double>()));
-                        } else if (subobject.name == "ModelUVScaling") {
+                                                                    subobject.properties.at(1).value<double>()));
+                        } else if (subobject.name == "ModelUVScaling" && subobject.properties.length() >= MODEL_UV_SCALING_MIN_SIZE) {
                             tex.assign(tex.UVScaling, glm::vec2(subobject.properties.at(0).value<double>(),
                                                                 subobject.properties.at(1).value<double>()));
                             if (tex.UVScaling.x == 0.0f) {
@@ -798,7 +804,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             if (tex.UVScaling.y == 0.0f) {
                                 tex.UVScaling.y = 1.0f;
                             }
-                        } else if (subobject.name == "Cropping") {
+                        } else if (subobject.name == "Cropping" && subobject.properties.length() >= CROPPING_MIN_SIZE) {
                             tex.assign(tex.cropping, glm::vec4(subobject.properties.at(0).value<int>(),
                                                                 subobject.properties.at(1).value<int>(),
                                                                 subobject.properties.at(2).value<int>(),

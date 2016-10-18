@@ -87,6 +87,8 @@ ModalWindow {
 
         if (selectDirectory) {
             currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+            d.currentSelectionIsFolder = true;
+            d.currentSelectionUrl = initialFolder;
         }
 
         helper.contentsChanged.connect(function() {

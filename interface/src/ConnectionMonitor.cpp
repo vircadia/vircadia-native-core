@@ -34,7 +34,7 @@ void ConnectionMonitor::init() {
     }
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::showAddressBar);
+    connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::indicateDomainConnectionFailure);
 }
 
 void ConnectionMonitor::disconnectedFromDomain() {
