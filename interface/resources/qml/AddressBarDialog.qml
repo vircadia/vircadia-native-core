@@ -77,7 +77,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.raisedHeight : keyboardHeight) + cardHeight;
+        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.height : 0) + cardHeight;
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -96,7 +96,7 @@ Window {
             spacing: hifi.layout.spacing;
             clip: true;
             anchors {
-                top: parent.top
+                bottom: backgroundImage.top
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -131,6 +131,7 @@ Window {
                 verticalCenter: scroll.verticalCenter;
             }
         }
+
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
