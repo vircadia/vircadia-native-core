@@ -19,15 +19,22 @@ QString const Rectangle3DOverlay::TYPE = "rectangle3d";
 Rectangle3DOverlay::Rectangle3DOverlay() :
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
     Planar3DOverlay(rectangle3DOverlay),
     _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
+    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::~Rectangle3DOverlay() {
+    qDebug() << "Destryoing rect3d overlay";
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryCacheID && geometryCache) {
+        geometryCache->releaseID(_geometryCacheID);
+    }
 }
 
 void Rectangle3DOverlay::render(RenderArgs* args) {
