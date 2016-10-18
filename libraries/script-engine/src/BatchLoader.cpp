@@ -38,6 +38,12 @@ void BatchLoader::start() {
 
     _started = true;
 
+    if (_urls.size() == 0) {
+        _finished = true;
+        emit finished(_data);
+        return;
+    }
+
     for (const auto& rawURL : _urls) {
         QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
 
