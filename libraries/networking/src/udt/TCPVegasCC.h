@@ -52,14 +52,14 @@ private:
 
     SequenceNumber _lastACK; // Sequence number of last packet that was ACKed
 
-    int _numACKSinceFastRetransmit { 3 }; // Number of ACKs received since last fast re-transmit
+    int _numACKSinceFastRetransmit { 3 }; // Number of ACKs received since fast re-transmit, default avoids immediate re-transmit
 
-    int _currentMinRTT { 0x7FFFFFFF }; // Current RTT, in microseconds
-    int _baseRTT { 0x7FFFFFFF }; // Lowest RTT during connection, in microseconds
+    int _currentMinRTT; // Current min RTT during last RTT (since last congestion avoidance check), in microseconds
+    int _baseRTT; // Lowest RTT during connection, in microseconds
     int _ewmaRTT { -1 }; // Exponential weighted moving average RTT
     int _rttVariance { 0 }; // Variance in collected RTT values
 
-    int _numACKs { 0 }; // Holds the number of ACKs received during the last RTT
+    int _numACKs { 0 }; // Number of ACKs received during the last RTT (since last performed congestion avoidance)
 
     int _ackAICount { 0 }; // Counter for number of ACKs received for Reno additive increase
     int _duplicateACKCount { 0 }; // Counter for duplicate ACKs received
