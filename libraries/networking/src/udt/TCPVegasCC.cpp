@@ -89,11 +89,10 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         _sentPacketTimes.erase(it);
     }
 
-
-    // we check if we need a fast re-transmit if this is a duplicate ACK or if this is the first or second ACK
-    // after a previous fast re-transmit
     ++_numACKSinceFastRetransmit;
 
+    // perform the fast re-transmit check if this is a duplicate ACK or if this is the first or second ACK
+    // after a previous fast re-transmit
     if (ack == previousAck || _numACKSinceFastRetransmit < 3) {
         // we may need to re-send ackNum + 1 if it has been more than our estimated timeout since it was sent
 
@@ -113,7 +112,10 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
 
         // if this is the 3rd duplicate ACK, we fallback to Reno's fast re-transmit
         static const int RENO_FAST_RETRANSMIT_DUPLICATE_COUNT = 3;
-        if (ack == previousAck && ++_duplicateACKCount == RENO_FAST_RETRANSMIT_DUPLICATE_COUNT) {
+
+        ++_duplicateACKCount;
+
+        if (ack == previousAck &&  _duplicateACKCount == RENO_FAST_RETRANSMIT_DUPLICATE_COUNT) {
             // break out of slow start, we just hit loss
             _slowStart = false;
 
@@ -137,10 +139,12 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
     static int VEGAS_BETA_SEGMENTS = 6;
     static int VEGAS_GAMMA_SEGMENTS = 1;
 
+    // http://pages.cs.wisc.edu/~akella/CS740/S08/740-Papers/BOP94.pdf
     // Use the Vegas algorithm to see if we should
     // increase or decrease the congestion window size, and by how much
 
-    // Grab the minimum RTT seen during the last RTT
+    // Grab the minimum RTT seen during the last RTT (since the last performed congestion avoidance)
+    
     // Taking the min avoids the effects of delayed ACKs
     // (though congestion may be noticed a bit later)
     int rtt = _currentMinRTT;
