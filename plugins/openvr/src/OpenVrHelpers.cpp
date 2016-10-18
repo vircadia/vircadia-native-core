@@ -299,10 +299,11 @@ controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat
     static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ * eighthX) * touchToHand;
     static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
 
-    static const float CONTROLLER_X_OFFSET = 0.0381f; // sideways
-    static const float CONTROLLER_Y_OFFSET = 0.0495f; // forwards
-    static const float CONTROLLER_Z_OFFSET = 0.1371f; // upwards
-    static const glm::vec3 CONTROLLER_OFFSET(CONTROLLER_X_OFFSET, CONTROLLER_Y_OFFSET, CONTROLLER_Z_OFFSET);
+    // this needs to match the leftBasePosition in tutorial/viveControllerConfiguration.js:21
+    static const float CONTROLLER_LATERAL_OFFSET = 0.0381f;
+    static const float CONTROLLER_VERTICAL_OFFSET = 0.0495f;
+    static const float CONTROLLER_FORWARD_OFFSET = 0.1371f;
+    static const glm::vec3 CONTROLLER_OFFSET(CONTROLLER_LATERAL_OFFSET, CONTROLLER_VERTICAL_OFFSET, CONTROLLER_FORWARD_OFFSET);
 
     static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
     static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
