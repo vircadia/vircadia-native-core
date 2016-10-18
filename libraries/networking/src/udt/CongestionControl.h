@@ -40,7 +40,10 @@ public:
     void setMaxBandwidth(int maxBandwidth);
 
     virtual void init() {}
+
+    // return value specifies if connection should perform a fast re-transmit of ACK + 1 (used in TCP style congestion control)
     virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) { return false; }
+
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     virtual void onTimeout() {}
 
