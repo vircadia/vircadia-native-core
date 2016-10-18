@@ -1199,6 +1199,11 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         }
     }
 
+    // If there are no URLs left to download, don't bother attempting to download anything and return early
+    if (urls.size() == 0) {
+        return;
+    }
+
     BatchLoader* loader = new BatchLoader(urls);
     EntityItemID capturedEntityIdentifier = currentEntityIdentifier;
     QUrl capturedSandboxURL = currentSandboxURL;
