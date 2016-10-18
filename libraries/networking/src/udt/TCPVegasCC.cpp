@@ -235,7 +235,7 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
         // allowing it to grow as high as the slow start threshold
         int congestionWindow = _congestionWindowSize + numAcked;
 
-        if (_congestionWindowSize > udt::MAX_PACKETS_IN_FLIGHT) {
+        if (congestionWindow > udt::MAX_PACKETS_IN_FLIGHT) {
             // we're done with slow start, set the congestion window to the slow start threshold
             _congestionWindowSize = udt::MAX_PACKETS_IN_FLIGHT;
 
