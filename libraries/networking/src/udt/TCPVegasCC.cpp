@@ -225,22 +225,37 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
 
     int numAcked = _numACKs;
 
-    // In "safe" area, increase.
     if (_slowStart) {
-        int congestionWindow = std::min(_congestionWindowSize + numAcked, udt::MAX_PACKETS_IN_FLIGHT);
-        numAcked -= congestionWindow - _congestionWindowSize;
+        // while in slow start we grow the congestion window by the number of ACKed packets
+        // allowing it to grow as high as the slow start threshold
+        int congestionWindow = _congestionWindowSize + numAcked;
+
+        if (_congestionWindowSize > udt::MAX_PACKETS_IN_FLIGHT) {
+            // we're done with slow start, set the congestion window to the slow start threshold
+            _congestionWindowSize = udt::MAX_PACKETS_IN_FLIGHT;
+
+            // figure out how many left over ACKs we should apply using the regular reno congestion avoidance
+            numAcked -= congestionWindow - _congestionWindowSize;
+        } else {
+            _congestionWindowSize = congestionWindow;
+            numAcked = 0;
+        }
     }
 
+    // grab the size of the window prior to reno additive increase
     int preAIWindowSize = _congestionWindowSize;
 
     if (numAcked > 0) {
-        // In dangerous area, increase slowly.
-        // If credits accumulated at a higher w, apply them gently now.
+        // Once we are out of slow start, we use additive increase to grow the window slowly.
+        // We grow the congestion window by a single packet everytime the entire congestion window is sent.
+
+        // If credits accumulated at a higher preAIWindowSize, apply them gently now.
         if (_ackAICount >= preAIWindowSize) {
             _ackAICount = 0;
             ++_congestionWindowSize;
         }
 
+        // increase the window size by (1 / window size) for every ACK received
         _ackAICount += numAcked;
         if (_ackAICount >= preAIWindowSize) {
             int delta = _ackAICount / preAIWindowSize;
