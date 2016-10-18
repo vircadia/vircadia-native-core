@@ -144,11 +144,6 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     btScalar sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
     const btScalar MIN_FORWARD_SLOP = 0.12f; // HACK: not sure why this is necessary to detect steepest walkable slope
     btScalar forwardSlop = (_maxStepHeight + _radius / cosTheta - _radius) * (cosTheta / sinTheta) - (_radius + stepLength) + MIN_FORWARD_SLOP;
-
-    btScalar adjacent = (_radius + stepLength + forwardSlop);
-    btScalar opposite = (_topPoints[0].dot(_currentUp) + (_radius + _halfHeight)) + _radius / cosTheta - _radius;
-    btScalar angle = atanf(opposite/adjacent);
-
     if (forwardSlop < 0.0f) {
         // BIG step, no slop necessary
         forwardSlop = 0.0f;
