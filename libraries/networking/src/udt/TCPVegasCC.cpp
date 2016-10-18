@@ -38,12 +38,13 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         const int MAX_RTT_SAMPLE_MICROSECONDS = 10000000;
 
         if (lastRTT < 0) {
-            Q_ASSERT_X(false, "TCPVegasCC::onACK", "calculated an RTT that is not > 0");
+            Q_ASSERT_X(false, __FUNCTION__, "calculated an RTT that is not > 0");
             return false;
         } else if (lastRTT == 0) {
-            // we do not allow a 0 microsecond RTT
+            // we do not allow a zero microsecond RTT (as per the UNIX kernel implementation of TCP Vegas)
             lastRTT = 1;
         } else if (lastRTT > MAX_RTT_SAMPLE_MICROSECONDS) {
+            // we cap the lastRTT to MAX_RTT_SAMPLE_MICROSECONDS to avoid overflows in window size calculations
             lastRTT = MAX_RTT_SAMPLE_MICROSECONDS;
         }
 
