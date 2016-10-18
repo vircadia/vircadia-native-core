@@ -239,6 +239,15 @@ bool CharacterGhostObject::sweepTest(
     return false;
 }
 
+bool CharacterGhostObject::rayTest(const btVector3& start,
+        const btVector3& end,
+        CharacterRayResult& result) const {
+    if (_world && _inWorld) {
+        _world->rayTest(start, end, result);
+    }
+    return result.hasHit();
+}
+
 void CharacterGhostObject::measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut) {
     // minBoxOut and maxBoxOut will be updated with penetration envelope.
     // If one of the corner points is <0,0,0> then the penetration is resolvable in a single step,
@@ -315,6 +324,14 @@ void CharacterGhostObject::measurePenetration(btVector3& minBoxOut, btVector3& m
     }
 }
 
+void CharacterGhostObject::refreshOverlappingPairCache() {
+    assert(_world && _inWorld);
+    btVector3 minAabb, maxAabb;
+    getCollisionShape()->getAabb(getWorldTransform(), minAabb, maxAabb);
+    // this updates both pairCaches: world broadphase and ghostobject
+    _world->getBroadphase()->setAabb(getBroadphaseHandle(), minAabb, maxAabb, _world->getDispatcher());
+}
+
 void CharacterGhostObject::removeFromWorld() {
     if (_world && _inWorld) {
         _world->removeCollisionObject(this);
@@ -331,15 +348,6 @@ void CharacterGhostObject::addToWorld() {
     }
 }
 
-bool CharacterGhostObject::rayTest(const btVector3& start,
-        const btVector3& end,
-        CharacterRayResult& result) const {
-    if (_world && _inWorld) {
-        _world->rayTest(start, end, result);
-    }
-    return result.hasHit();
-}
-
 bool CharacterGhostObject::resolvePenetration(int numTries) {
     btVector3 minBox, maxBox;
     measurePenetration(minBox, maxBox);
@@ -351,14 +359,6 @@ bool CharacterGhostObject::resolvePenetration(int numTries) {
         return false;
     }
     return true;
-}
-
-void CharacterGhostObject::refreshOverlappingPairCache() {
-    assert(_world && _inWorld);
-    btVector3 minAabb, maxAabb;
-    getCollisionShape()->getAabb(getWorldTransform(), minAabb, maxAabb);
-    // this updates both pairCaches: world broadphase and ghostobject
-    _world->getBroadphase()->setAabb(getBroadphaseHandle(), minAabb, maxAabb, _world->getDispatcher());
 }
 
 void CharacterGhostObject::updateVelocity(btScalar dt, btScalar gravity) {

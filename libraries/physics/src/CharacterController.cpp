@@ -152,7 +152,6 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
     bool hasFloor = false;
-    const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
 
     btTransform rotation = _rigidBody->getWorldTransform();
     rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
@@ -170,7 +169,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
-                if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
+                if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > _minFloorNormalDotUp) {
                     hasFloor = true;
                     if (!pushing) {
                         // we're not pushing against anything so we can early exit
@@ -180,7 +179,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 }
                 if (pushing && _targetVelocity.dot(normal) < 0.0f) {
                     // remember highest step obstacle
-                    if (hitHeight > _maxStepHeight) {
+                    if (!_stepUpEnabled || hitHeight > _maxStepHeight) {
                         // this manifold is invalidated by point that is too high
                         stepContactIndex = -1;
                         break;
@@ -199,7 +198,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld, btSc
                 _stepHeight = highestStep;
                 _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
             }
-            if (hasFloor && !pushing) {
+            if (hasFloor && !(pushing && _stepUpEnabled)) {
                 // early exit since all we need to know is that we're on a floor
                 break;
             }

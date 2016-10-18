@@ -51,6 +51,10 @@ public:
             const btTransform& end,
             CharacterSweepResult& result) const;
 
+    bool rayTest(const btVector3& start,
+            const btVector3& end,
+            CharacterRayResult& result) const;
+
     bool isHovering() const { return _hovering; }
     void setHovering(bool hovering) { _hovering = hovering; }
     void setMotorOnly(bool motorOnly) { _motorOnly = motorOnly; }
@@ -60,17 +64,13 @@ public:
     const btVector3& getFloorNormal() const { return _floorNormal; }
 
     void measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut);
+    void refreshOverlappingPairCache();
 
 protected:
     void removeFromWorld();
     void addToWorld();
 
-    bool rayTest(const btVector3& start,
-            const btVector3& end,
-            CharacterRayResult& result) const;
-
     bool resolvePenetration(int numTries);
-    void refreshOverlappingPairCache();
     void updateVelocity(btScalar dt, btScalar gravity);
     void updateTraction(const btVector3& position);
     btScalar measureAvailableStepHeight() const;

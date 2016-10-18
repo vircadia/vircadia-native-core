@@ -1325,7 +1325,7 @@ void MyAvatar::updateMotors() {
 
         if (qApp->isHMDMode()) {
             // OUTOFBODY_HACK: only apply vertical component of _actionMotorVelocity to the characterController
-            _characterController.addMotor(glm::vec3(0, _actionMotorVelocity.y, 0), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            _characterController.addMotor(glm::vec3(0.0f, _actionMotorVelocity.y, 0.0f), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
         } else {
             if (_isPushing || _isBraking || !_isBeingPushed) {
                 _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
@@ -1889,8 +1889,16 @@ void MyAvatar::updatePosition(float deltaTime) {
         float speed2 = glm::length2(velocity);
         _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
 
-        if (qApp->isHMDMode()) {
+        if (_moving) {
+            // scan for walkability
+            glm::vec3 position = getPosition();
+            MyCharacterController::RayShotgunResult result;
+            glm::vec3 step = deltaTime * (getRotation() * _actionMotorVelocity);
+            _characterController.testRayShotgun(position, step, result);
+            _characterController.setStepUpEnabled(result.walkable);
+        }
 
+        if (qApp->isHMDMode()) {
             // Apply _actionMotorVelocity directly to the sensorToWorld matrix.
             glm::quat motorRotation;
             glm::quat liftRotation;
