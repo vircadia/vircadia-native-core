@@ -26,7 +26,6 @@ class TCPVegasCC : public CongestionControl {
 public:
     TCPVegasCC();
 
-public:
     virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) override;
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override {};
     virtual void onTimeout() override {};
@@ -35,7 +34,7 @@ public:
     virtual bool shouldACK2() override { return false; }
     virtual bool shouldProbe() override { return false; }
 
-    virtual void onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
+    virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
     
 protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
@@ -44,8 +43,7 @@ private:
     bool isCongestionWindowLimited();
     void performRenoCongestionAvoidance(SequenceNumber ack);
 
-    using TimeSizePair = std::pair<p_high_resolution_clock::time_point, int>;
-    using PacketTimeList = std::map<SequenceNumber, TimeSizePair>;
+    using PacketTimeList = std::map<SequenceNumber, p_high_resolution_clock::time_point>;
     PacketTimeList _sentPacketTimes; // Map of sequence numbers to sent time
 
     p_high_resolution_clock::time_point _lastAdjustmentTime; // Time of last congestion control adjustment

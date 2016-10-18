@@ -77,8 +77,8 @@ public slots:
     void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
-    void packetSent(int dataSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
-    void packetRetransmitted(int dataSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetRetransmitted(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     
     void queueInactive();
 

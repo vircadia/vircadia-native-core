@@ -33,7 +33,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
     if (it != _sentPacketTimes.end()) {
 
         // calculate the RTT (receive time - time ACK sent)
-        int lastRTT = duration_cast<microseconds>(receiveTime - it->second.first).count();
+        int lastRTT = duration_cast<microseconds>(receiveTime - it->second).count();
 
         const int MAX_RTT_SAMPLE_MICROSECONDS = 10000000;
 
@@ -90,7 +90,7 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
             auto estimatedTimeout = _ewmaRTT + _rttVariance * 4;
 
             auto now = p_high_resolution_clock::now();
-            auto sinceSend = duration_cast<microseconds>(now - it->second.first).count();
+            auto sinceSend = duration_cast<microseconds>(now - it->second).count();
 
             if (sinceSend >= estimatedTimeout) {
                 // we've detected we need a fast re-transmit, send that back to the connection
@@ -230,9 +230,9 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
     }
 }
 
-void TCPVegasCC::onPacketSent(int packetSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+void TCPVegasCC::onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     if (_sentPacketTimes.find(seqNum) == _sentPacketTimes.end()) {
-        _sentPacketTimes[seqNum] = { timePoint, packetSize };
+        _sentPacketTimes[seqNum] = timePoint;
     }
 }
 
