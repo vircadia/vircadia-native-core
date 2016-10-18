@@ -15,18 +15,18 @@
 
 #include <AccountManager.h>
 
-bool isHighFidelityURL(const QUrl& url) {
+bool isAuthableHighFidelityURL(const QUrl& url) {
     static const QStringList HF_HOSTS = {
         "highfidelity.com", "highfidelity.io",
         "metaverse.highfidelity.com", "metaverse.highfidelity.io"
     };
 
-    return HF_HOSTS.contains(url.host());
+    return url.scheme() == "https" && HF_HOSTS.contains(url.host());
 }
 
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
     // check if this is a request to a highfidelity URL
-    if (isHighFidelityURL(info.requestUrl())) {
+    if (isAuthableHighFidelityURL(info.requestUrl())) {
         // if we have an access token, add it to the right HTTP header for authorization
         auto accountManager = DependencyManager::get<AccountManager>();
 

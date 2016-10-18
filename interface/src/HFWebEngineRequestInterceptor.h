@@ -20,7 +20,7 @@ class HFWebEngineRequestInterceptor : public QWebEngineUrlRequestInterceptor {
 public:
     HFWebEngineRequestInterceptor(QObject* parent) : QWebEngineUrlRequestInterceptor(parent) {};
 
-    virtual void interceptRequest(QWebEngineUrlRequestInfo& info);
+    virtual void interceptRequest(QWebEngineUrlRequestInfo& info) override;
 };
 
 #endif // hifi_HFWebEngineRequestInterceptor_h
