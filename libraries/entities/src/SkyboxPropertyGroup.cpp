@@ -27,6 +27,12 @@ void SkyboxPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& 
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, url, QString, setURL);
 }
 
+void SkyboxPropertyGroup::merge(const SkyboxPropertyGroup& other) {
+    COPY_PROPERTY_IF_CHANGED(color);
+    COPY_PROPERTY_IF_CHANGED(url);
+}
+
+
 void SkyboxPropertyGroup::debugDump() const {
     qDebug() << "   SkyboxPropertyGroup: ---------------------------------------------";
     qDebug() << "       Color:" << getColor() << " has changed:" << colorChanged();

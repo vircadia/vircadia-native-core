@@ -34,6 +34,9 @@ public:
                                    QScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) override;
+
+    void merge(const SkyboxPropertyGroup& other);
+
     virtual void debugDump() const override;
     virtual void listChangedProperties(QList<QString>& out) override;
 
