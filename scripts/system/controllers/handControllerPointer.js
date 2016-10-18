@@ -204,7 +204,7 @@ function overlayFromWorldPoint(point) {
 }
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
-    var controllerPose = getControllerWorldLocation(activeHand, true);
+    var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will use head pose of hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         return; // Controller is cradled.
     }
