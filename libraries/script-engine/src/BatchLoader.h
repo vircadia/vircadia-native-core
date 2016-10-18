@@ -19,6 +19,8 @@
 #include <QString>
 #include <QUrl>
 
+#include <mutex>
+
 class BatchLoader : public QObject {
     Q_OBJECT
 public:
@@ -37,6 +39,7 @@ private:
     bool _finished;
     QSet<QUrl> _urls;
     QMap<QUrl, QString> _data;
+    std::mutex _dataLock;
 };
 
 #endif // hifi_BatchLoader_h

@@ -148,6 +148,7 @@ public:
     };
 
     int allocateID() { return _nextID++; }
+    void releaseID(int id);
     static const int UNKNOWN_ID;
 
     // Bind the pipeline and get the state to render static geometry
