@@ -109,8 +109,13 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
             auto sinceSend = duration_cast<microseconds>(now - it->second).count();
 
             if (sinceSend >= estimatedTimeout) {
-                // we've detected we need a fast re-transmit, send that back to the connection
+                // break out of slow start, we've decided this is loss
+                _slowStart = false;
+
+                // reset the fast re-transmit counter
                 _numACKSinceFastRetransmit = 0;
+
+                // return true so the caller knows we needed a fast re-transmit
                 return true;
             }
         }
