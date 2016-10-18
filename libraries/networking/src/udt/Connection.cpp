@@ -519,7 +519,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     
     // check if we need to send an ACK, according to CC params
     if (_congestionControl->_ackInterval == 1) {
-        // Using TCP Vegas
+        // using a congestion control that ACKs every packet (like TCP Vegas)
         sendACK(true);
     } else if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval * _acksDuringSYN) {
         _acksDuringSYN++;
