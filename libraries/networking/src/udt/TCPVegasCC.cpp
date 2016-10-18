@@ -49,15 +49,26 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
         }
 
         if (_ewmaRTT == -1) {
+            // first RTT sample - set _ewmaRTT to the value and set the variance to half the value
             _ewmaRTT = lastRTT;
             _rttVariance = lastRTT / 2;
         } else {
-            static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
-            static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
+            // This updates the RTT using exponential weighted moving average
+            // This is the Jacobson's forumla for RTT estimation
+            // http://www.mathcs.emory.edu/~cheung/Courses/455/Syllabus/7-transport/Jacobson-88.pdf
 
-            _ewmaRTT = (_ewmaRTT * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + lastRTT) / RTT_ESTIMATION_ALPHA_NUMERATOR;
-            _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
-                            + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
+            // Estimated RTT = (1 - x)(estimatedRTT) + (x)(sampleRTT)
+            // (where x = 0.125 via Jacobson)
+
+            // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
+            // (where x = 0.25 via Jacobson)
+
+            static const int RTT_ESTIMATION_ALPHA = 8;
+            static const int RTT_ESTIMATION_VARIANCE_ALPHA = 4;
+
+            _ewmaRTT = (_ewmaRTT * (RTT_ESTIMATION_ALPHA - 1) + lastRTT) / RTT_ESTIMATION_ALPHA;
+            _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA- 1)
+                            + abs(lastRTT - _ewmaRTT)) / RTT_ESTIMATION_VARIANCE_ALPHA;
         }
 
         // add 1 to the number of ACKs during this RTT
