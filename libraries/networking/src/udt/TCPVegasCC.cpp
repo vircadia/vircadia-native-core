@@ -240,7 +240,7 @@ void TCPVegasCC::performRenoCongestionAvoidance(SequenceNumber ack) {
             _congestionWindowSize = udt::MAX_PACKETS_IN_FLIGHT;
 
             // figure out how many left over ACKs we should apply using the regular reno congestion avoidance
-            numAcked -= congestionWindow - _congestionWindowSize;
+            numAcked = congestionWindow - udt::MAX_PACKETS_IN_FLIGHT;
         } else {
             _congestionWindowSize = congestionWindow;
             numAcked = 0;
