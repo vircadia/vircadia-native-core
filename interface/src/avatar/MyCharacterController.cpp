@@ -149,11 +149,11 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     if (!result.walkable) {
         // the top scan wasn't walkable so don't bother scanning the bottom
         // remove both forwardSlop and backSlop
-        result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - forwardSlop) / (backSlop + stepLength);
+        result.hitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop) - backSlop) / stepLength);
     } else {
         if (needToRemoveForwardSlop && result.hitFraction < 1.0f) {
             // remove forwardSlop
-            result.hitFraction = (closestRayResult.m_closestHitFraction * (stepLength + forwardSlop) - forwardSlop) / stepLength;
+            result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop)) / (backSlop + stepLength);
         }
         // scan the bottom
 	    for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
@@ -168,7 +168,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         // remove backSlop
         // NOTE: backSlop removal can produce a NEGATIVE hitFraction!
         // which means the shape is actually in interpenetration
-        result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength) - backSlop) / stepLength;
+        result.hitFraction = ((closestRayResult.m_closestHitFraction * (backSlop + stepLength)) - backSlop) / stepLength;
     }
     return result.hitFraction < 1.0f;
 }
