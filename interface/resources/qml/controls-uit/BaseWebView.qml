@@ -15,10 +15,7 @@ import HFWebEngineProfile 1.0
 WebEngineView {
     id: root
 
-    profile: HFWebEngineProfile {
-        id: webviewProfile
-        storageName: "qmlWebEngine"
-    }
+    profile: desktop.browserProfile
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")

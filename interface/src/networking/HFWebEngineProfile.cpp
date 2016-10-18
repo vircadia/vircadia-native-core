@@ -1,6 +1,6 @@
 //
 //  HFWebEngineProfile.cpp
-//  interface/src
+//  interface/src/networking
 //
 //  Created by Stephen Birarda on 2016-10-17.
 //  Copyright 2016 High Fidelity, Inc.

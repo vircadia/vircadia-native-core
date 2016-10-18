@@ -1,6 +1,6 @@
 //
 //  HFWebEngineRequestInterceptor.cpp
-//  libraries/networking/src
+//  interface/src/networking
 //
 //  Created by Stephen Birarda on 2016-10-14.
 //  Copyright 2016 High Fidelity, Inc.
