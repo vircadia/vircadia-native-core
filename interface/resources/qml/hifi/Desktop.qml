@@ -27,7 +27,7 @@ OriginalDesktop.Desktop {
     property alias toolWindow: toolWindow
     ToolWindow { id: toolWindow }
 
-    property var browserProfile: WebEngineProfile {
+    property var browserProfile: HFWebEngineProfile {
         id: webviewProfile
         storageName: "qmlWebEngine"
     }
@@ -125,5 +125,3 @@ OriginalDesktop.Desktop {
         return result;
     }
 }
-
-
