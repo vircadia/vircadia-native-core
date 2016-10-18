@@ -415,7 +415,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 // check if we had a path to override the path returned
                 QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
 
-                if (!overridePath.isEmpty()) {
+                if (!overridePath.isEmpty() && overridePath != "/") {
                     // make sure we don't re-handle an overriden path if this was a refresh of info from API
                     if (trigger != LookupTrigger::AttemptedRefresh) {
                         handlePath(overridePath, trigger);
