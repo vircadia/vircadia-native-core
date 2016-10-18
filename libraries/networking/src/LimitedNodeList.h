@@ -321,9 +321,8 @@ protected:
 
     PacketReceiver* _packetReceiver;
 
-    // XXX can BandwidthRecorder be used for this?
-    int _numCollectedPackets;
-    int _numCollectedBytes;
+    std::atomic<int> _numCollectedPackets;
+    std::atomic<int> _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
     NodePermissions _permissions;
