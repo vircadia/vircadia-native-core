@@ -131,7 +131,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         needToRemoveForwardSlop = false;
     }
 
-	for (int32_t i = 0; i < _topPoints.size(); ++i) {
+    for (int32_t i = 0; i < _topPoints.size(); ++i) {
         rayStart = newPosition + rotation * _topPoints[i] - backSlop * rayDirection;
         rayEnd = rayStart + (backSlop + stepLength + forwardSlop) * rayDirection;
         if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
@@ -145,7 +145,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
                 }
             }
         }
-	}
+    }
     if (!result.walkable) {
         // the top scan wasn't walkable so don't bother scanning the bottom
         // remove both forwardSlop and backSlop
@@ -156,7 +156,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
             result.hitFraction = (closestRayResult.m_closestHitFraction * (backSlop + stepLength + forwardSlop)) / (backSlop + stepLength);
         }
         // scan the bottom
-	    for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
+        for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
             rayStart = newPosition + rotation * _bottomPoints[i] - backSlop * rayDirection;
             rayEnd = rayStart + (backSlop + stepLength) * rayDirection;
             if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
@@ -164,7 +164,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
                     closestRayResult = rayResult;
                 }
             }
-	    }
+        }
         // remove backSlop
         // NOTE: backSlop removal can produce a NEGATIVE hitFraction!
         // which means the shape is actually in interpenetration
@@ -263,8 +263,8 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
                 btVector3 localRayEnd(offsetX + (btScalar)(j) * stepX, divisionLine + (btScalar)(i) * stepY, 0.0f);
                 btVector3 localRayStart = localRayEnd - reach;
                 MeOnlyResultCallback result(_rigidBody);
-			    world->rayTest(position + rotation * localRayStart, position + rotation * localRayEnd, result);
-			    if (result.m_closestHitFraction < 1.0f) {
+                world->rayTest(position + rotation * localRayStart, position + rotation * localRayEnd, result);
+                if (result.m_closestHitFraction < 1.0f) {
                     _topPoints.push_back(localRayStart + result.m_closestHitFraction * reach);
                 }
             }
@@ -294,8 +294,8 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
                 btVector3 localRayEnd(offsetX + (btScalar)(j) * stepX, (divisionLine - slop) - (btScalar)(i) * stepY, 0.0f);
                 btVector3 localRayStart = localRayEnd - reach;
                 MeOnlyResultCallback result(_rigidBody);
-			    world->rayTest(position + rotation * localRayStart, position + rotation * localRayEnd, result);
-			    if (result.m_closestHitFraction < 1.0f) {
+                world->rayTest(position + rotation * localRayStart, position + rotation * localRayEnd, result);
+                if (result.m_closestHitFraction < 1.0f) {
                     _bottomPoints.push_back(localRayStart + result.m_closestHitFraction * reach);
                 }
             }
