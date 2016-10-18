@@ -34,7 +34,9 @@ const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
 const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+const quat Quaternions::X_180{ 0.0f, 1.0f, 0.0f, 0.0f };
 const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
+const quat Quaternions::Z_180{ 0.0f, 0.0f, 0.0f, 1.0f };
 
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,

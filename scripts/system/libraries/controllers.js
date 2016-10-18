@@ -21,7 +21,7 @@ getGrabCommunications = function getFarGrabCommunications() {
 // var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.32, z: 0.04 };
 
 // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.0, y: 0.175, z: 0.0 };
+var GRAB_POINT_SPHERE_OFFSET = { x: 0.075, y: 0.175, z: 0.039 };  // x = upward, y = forward, z = inward
 
 getGrabPointSphereOffset = function(handController) {
     if (handController === Controller.Standard.RightHand) {
