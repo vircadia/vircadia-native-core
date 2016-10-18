@@ -34,7 +34,7 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
 Line3DOverlay::~Line3DOverlay() {
     qDebug() << "Destryoing line3D overlay";
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (_geometryCacheID) {
+    if (_geometryCacheID && geometryCache) {
         geometryCache->releaseID(_geometryCacheID);
     }
 }

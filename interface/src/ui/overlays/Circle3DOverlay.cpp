@@ -45,17 +45,19 @@ Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
 
 Circle3DOverlay::~Circle3DOverlay() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (_quadVerticesID) {
-        geometryCache->releaseID(_quadVerticesID);
-    }
-    if (_lineVerticesID) {
-        geometryCache->releaseID(_lineVerticesID);
-    }
-    if (_majorTicksVerticesID) {
-        geometryCache->releaseID(_majorTicksVerticesID);
-    }
-    if (_minorTicksVerticesID) {
-        geometryCache->releaseID(_minorTicksVerticesID);
+    if (geometryCache) {
+        if (_quadVerticesID) {
+            geometryCache->releaseID(_quadVerticesID);
+        }
+        if (_lineVerticesID) {
+            geometryCache->releaseID(_lineVerticesID);
+        }
+        if (_majorTicksVerticesID) {
+            geometryCache->releaseID(_majorTicksVerticesID);
+        }
+        if (_minorTicksVerticesID) {
+            geometryCache->releaseID(_minorTicksVerticesID);
+        }
     }
     qDebug() << "Destroying circle3d overlay";
 }
