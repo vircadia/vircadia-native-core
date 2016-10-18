@@ -57,8 +57,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
 
-    if (requestAssignmentType != Assignment::AvatarMixerType &&
-        requestAssignmentType != Assignment::AudioMixerType) {
+    if (requestAssignmentType == Assignment::AgentType) {
         auto scriptEngines = DependencyManager::set<ScriptEngines>();
     }
 
