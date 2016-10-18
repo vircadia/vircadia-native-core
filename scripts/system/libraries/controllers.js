@@ -7,6 +7,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /* global MyAvatar, Vec3, Controller, Quat */
 
+var GRAB_COMMUNICATIONS_SETTING = "io.highfidelity.isFarGrabbing";
+setGrabCommunications = function setFarGrabCommunications(on) {
+    Settings.setValue(GRAB_COMMUNICATIONS_SETTING, on ? "on" : "");
+}
+getGrabCommunications = function getFarGrabCommunications() {
+    return !!Settings.getValue(GRAB_COMMUNICATIONS_SETTING, "");
+}
+
 
 // var GRAB_POINT_SPHERE_OFFSET = { x: 0, y: 0.2, z: 0 };
 // var GRAB_POINT_SPHERE_OFFSET = { x: 0.1, y: 0.175, z: 0.04 };

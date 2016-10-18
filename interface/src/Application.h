@@ -46,6 +46,8 @@
 #include <ThreadSafeValueCache.h>
 #include <shared/FileLogger.h>
 
+#include <RunningMarker.h>
+
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -87,6 +89,8 @@ static const UINT UWM_SHOW_APPLICATION =
     RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
 #endif
 
+static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+
 class Application;
 #if defined(qApp)
 #undef qApp
@@ -103,7 +107,16 @@ class Application : public QApplication,
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
 
+private:
+    bool _shouldRunServer { false };
+    QString _runServerPath;
+    RunningMarker _runningMarker;
+
 public:
+    // startup related getter/setters
+    bool shouldRunServer() const { return _shouldRunServer; }
+    bool hasRunServerPath() const { return !_runServerPath.isEmpty(); }
+    QString getRunServerPath() const { return _runServerPath; }
 
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
@@ -127,7 +140,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;

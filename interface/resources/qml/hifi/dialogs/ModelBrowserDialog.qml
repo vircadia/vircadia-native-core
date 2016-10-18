@@ -30,7 +30,7 @@ ScrollingWindow {
 
         Rectangle {
             width: parent.width
-            height: root.height  - (keyboardRaised ? 200 : 0)
+            height: root.height  - (keyboardEnabled && keyboardRaised ? 200 : 0)
             radius: 4
             color: hifi.colors.baseGray
 

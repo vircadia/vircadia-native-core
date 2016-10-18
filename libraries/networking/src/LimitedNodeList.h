@@ -41,6 +41,7 @@
 #include "NLPacketList.h"
 #include "PacketReceiver.h"
 #include "ReceivedMessage.h"
+#include "udt/ControlPacket.h"
 #include "udt/PacketHeaders.h"
 #include "udt/Socket.h"
 #include "UUIDHasher.h"
@@ -235,6 +236,9 @@ public:
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendFakedHandshakeRequestToNode(SharedNodePointer node);
+#endif
 
 public slots:
     void reset();
@@ -262,6 +266,8 @@ signals:
     void nodeKilled(SharedNodePointer);
     void nodeActivated(SharedNodePointer);
 
+    void clientConnectionToNodeReset(SharedNodePointer);
+
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
@@ -274,6 +280,8 @@ signals:
 protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
+    
+    void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
 protected:
     LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
@@ -298,6 +306,8 @@ protected:
 
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
+
+    bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr) { return findNodeWithAddr(sockAddr) != SharedNodePointer(); }
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;

@@ -831,32 +831,3 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
     }
 }
 
-void AddressManager::ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
-                                               std::function<void()> localSandboxNotRunningDoThat) {
-
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest sandboxStatus(SANDBOX_STATUS_URL);
-    sandboxStatus.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    sandboxStatus.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(sandboxStatus);
-
-    connect(reply, &QNetworkReply::finished, this, [reply, localSandboxRunningDoThis, localSandboxNotRunningDoThat]() {
-        auto statusData = reply->readAll();
-        auto statusJson = QJsonDocument::fromJson(statusData);
-        if (!statusJson.isEmpty()) {
-            auto statusObject = statusJson.object();
-            auto serversValue = statusObject.value("servers");
-            if (!serversValue.isUndefined() && serversValue.isObject()) {
-                auto serversObject = serversValue.toObject();
-                auto serversCount = serversObject.size();
-                const int MINIMUM_EXPECTED_SERVER_COUNT = 5;
-                if (serversCount >= MINIMUM_EXPECTED_SERVER_COUNT) {
-                    localSandboxRunningDoThis();
-                    return;
-                }
-            }
-        }
-        localSandboxNotRunningDoThat();
-    });
-}
-

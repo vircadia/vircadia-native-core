@@ -22,6 +22,7 @@ ModalWindow {
     implicitWidth: 640
     implicitHeight: 320
     visible: true
+    keyboardOverride: true  // Disable ModalWindow's keyboard.
 
     signal selected(var result);
     signal canceled();
@@ -45,6 +46,12 @@ ModalWindow {
     property int titleWidth: 0
     onTitleWidthChanged: d.resize();
 
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    onKeyboardRaisedChanged: d.resize();
+
     function updateIcon() {
         if (!root) {
             return;
@@ -59,11 +66,6 @@ ModalWindow {
         height: pane.height
         anchors.margins: 0
 
-        property bool keyboardRaised: false
-        property bool punctuationMode: false
-
-        onKeyboardRaisedChanged: d.resize();
-
         QtObject {
             id: d
             readonly property int minWidth: 480
@@ -74,15 +76,15 @@ ModalWindow {
             function resize() {
                 var targetWidth = Math.max(titleWidth, pane.width)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
-                root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
-                root.height = ((targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight  : targetHeight)) + (modalWindowItem.keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : 0)
+                root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
+                root.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0)
             }
         }
 
         Item {
             anchors {
                 top: parent.top
-                bottom: keyboard1.top;
+                bottom: keyboard.top;
                 left: parent.left;
                 right: parent.right;
                 margins: 0
@@ -116,33 +118,16 @@ ModalWindow {
             }
         }
 
-        // virtual keyboard, letters
         Keyboard {
-            id: keyboard1
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && !parent.punctuationMode
-            enabled: parent.keyboardRaised && !parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: buttons.top
-            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
-        }
-
-        KeyboardPunctuation {
-            id: keyboard2
-            y: parent.keyboardRaised ? parent.height : 0
-            height: parent.keyboardRaised ? 200 : 0
-            visible: parent.keyboardRaised && parent.punctuationMode
-            enabled: parent.keyboardRaised && parent.punctuationMode
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.bottom: buttons.top
-            anchors.bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+            id: keyboard
+            raised: keyboardEnabled && keyboardRaised
+            numeric: punctuationMode
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: buttons.top
+                bottomMargin: raised ? 2 * hifi.dimensions.contentSpacing.y : 0
+            }
         }
 
         Flow {
@@ -203,6 +188,7 @@ ModalWindow {
     }
 
     Component.onCompleted: {
+        keyboardEnabled = HMD.active;
         updateIcon();
         d.resize();
         textResult.forceActiveFocus();

@@ -33,6 +33,8 @@ ModalWindow {
     property string title: ""
     property int titleWidth: 0
 
+    keyboardOverride: true  // Disable ModalWindow's keyboard.
+
     LoginDialog {
         id: loginDialog
 
