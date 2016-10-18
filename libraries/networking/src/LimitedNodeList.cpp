@@ -300,7 +300,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
             qCDebug(networking) << "Packet of type" << headerType
-                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
         }
     }
 
