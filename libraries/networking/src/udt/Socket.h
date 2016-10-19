@@ -22,7 +22,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
-#include "CongestionControl.h"
+#include "TCPVegasCC.h"
 #include "Connection.h"
 
 //#define UDT_CONNECTION_DEBUG
@@ -130,8 +130,8 @@ private:
     QTimer* _synTimer { nullptr };
 
     int _maxBandwidth { -1 };
-    
-    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
+
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
     
     friend UDTTest;
 };

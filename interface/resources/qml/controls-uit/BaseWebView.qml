@@ -10,10 +10,10 @@
 
 import QtQuick 2.5
 import QtWebEngine 1.2
+import HFWebEngineProfile 1.0
 
 WebEngineView {
     id: root
-    property var newUrl;
 
     profile: desktop.browserProfile
 
@@ -23,28 +23,6 @@ WebEngineView {
         root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
-    }
-
-    // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
-    Timer {
-        id: urlReplacementTimer
-        running: false
-        repeat: false
-        interval: 50
-        onTriggered: url = newUrl;
-    }
-
-    onUrlChanged: {
-        var originalUrl = url.toString();
-        newUrl = urlHandler.fixupUrl(originalUrl).toString();
-        if (newUrl !== originalUrl) {
-            root.stop();
-            if (urlReplacementTimer.running) {
-                console.warn("Replacement timer already running");
-                return;
-            }
-            urlReplacementTimer.start();
-        }
     }
 
     onLoadingChanged: {

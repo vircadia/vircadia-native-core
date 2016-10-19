@@ -34,6 +34,8 @@
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
 
+#include <QtWebEngineWidgets/QWebEngineProfile>
+
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
@@ -126,6 +128,7 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
+#include "networking/HFWebEngineProfile.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -1698,6 +1701,7 @@ void Application::initializeUi() {
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
+    qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());

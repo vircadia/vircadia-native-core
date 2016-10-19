@@ -603,14 +603,14 @@ void Avatar::fixupModelsInScene() {
         _skeletonModel->removeFromScene(scene, pendingChanges);
         _skeletonModel->addToScene(scene, pendingChanges);
     }
-    for (auto& attachmentModel : _attachmentModels) {
+    for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
 
-    for (auto& attachmentModelToRemove : _attachmentsToRemove) {
+    for (auto attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, pendingChanges);
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());

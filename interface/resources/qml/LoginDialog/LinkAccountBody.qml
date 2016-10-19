@@ -42,8 +42,14 @@ Item {
 
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height
-                    + 4 * hifi.dimensions.contentSpacing.y + form.height + hifi.dimensions.contentSpacing.y + buttons.height;
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
+                            4 * hifi.dimensions.contentSpacing.y + form.height +
+                                hifi.dimensions.contentSpacing.y + buttons.height;
+
+            if (additionalInformation.visible) {
+                targetWidth = Math.max(targetWidth, additionalInformation.width);
+                targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
+            }
 
             root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
@@ -134,6 +140,25 @@ Item {
             }
         }
 
+    }
+
+    InfoItem {
+        id: additionalInformation
+        anchors {
+            top: form.bottom
+            left: parent.left
+            margins: 0
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        visible: loginDialog.isSteamRunning()
+
+        text: qsTr("Your steam account informations will not be exposed to other users.")
+        wrapMode: Text.WordWrap
+        color: hifi.colors.baseGrayHighlight
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
     }
 
     // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
