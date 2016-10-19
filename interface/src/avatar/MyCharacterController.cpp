@@ -92,6 +92,13 @@ void MyCharacterController::updateShapeIfNecessary() {
 }
 
 bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm::vec3& step, RayShotgunResult& result) {
+    btVector3 rayDirection = glmToBullet(step);
+    btScalar stepLength = rayDirection.length();
+    if (stepLength < FLT_EPSILON) {
+        return false;
+    }
+    rayDirection /= stepLength;
+
     // get _ghost ready for ray traces
     btTransform transform = _rigidBody->getWorldTransform();
     btVector3 newPosition = glmToBullet(position);
@@ -104,14 +111,6 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     CharacterRayResult closestRayResult(&_ghost);
     btVector3 rayStart;
     btVector3 rayEnd;
-    btVector3 rayDirection = glmToBullet(step);
-
-    btScalar stepLength = rayDirection.length();
-    if (stepLength < FLT_EPSILON) {
-        return false;
-    }
-    rayDirection /= stepLength;
-    const btScalar backSlop = 0.04f;
 
     // compute rotation that will orient local ray start points to face step direction
     btVector3 forward = rotation * btVector3(0.0f, 0.0f, -1.0f);
@@ -150,6 +149,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         forwardSlop = 0.0f;
     }
 
+    const btScalar backSlop = 0.04f;
     for (int32_t i = 0; i < _topPoints.size(); ++i) {
         rayStart = newPosition + rotation * _topPoints[i] - backSlop * rayDirection;
         rayEnd = rayStart + (backSlop + stepLength + forwardSlop) * rayDirection;
@@ -190,6 +190,156 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     }
     return result.hitFraction < 1.0f;
 }
+
+glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const glm::vec3& step) {
+    btVector3 stepDirection = glmToBullet(step);
+    btScalar stepLength = stepDirection.length();
+    if (stepLength < FLT_EPSILON) {
+        return glm::vec3(0.0f);
+    }
+    stepDirection /= stepLength;
+
+    // get _ghost ready for ray traces
+    btTransform transform = _rigidBody->getWorldTransform();
+    btVector3 newPosition = glmToBullet(position);
+    transform.setOrigin(newPosition);
+    btMatrix3x3 rotation = transform.getBasis();
+    _ghost.setWorldTransform(transform);
+    _ghost.refreshOverlappingPairCache();
+
+    // compute rotation that will orient local ray start points to face stepDirection
+    btVector3 forward = rotation * btVector3(0.0f, 0.0f, -1.0f);
+    btVector3 horizontalDirection = stepDirection - stepDirection.dot(_currentUp) * _currentUp;
+    btVector3 axis = forward.cross(horizontalDirection);
+    btScalar lengthAxis = axis.length();
+    if (lengthAxis > FLT_EPSILON) {
+        // non-zero sideways component
+        btScalar angle = acosf(lengthAxis / horizontalDirection.length());
+        if (stepDirection.dot(forward) < 0.0f) {
+            angle = PI - angle;
+        }
+        axis /= lengthAxis;
+        rotation = btMatrix3x3(btQuaternion(axis, angle)) * rotation;
+    } else if (stepDirection.dot(forward) < 0.0f) {
+        // backwards
+        rotation = btMatrix3x3(btQuaternion(_currentUp, PI)) * rotation;
+    }
+
+    // scan the top
+    // NOTE: if we scan an extra distance forward we can detect flat surfaces that are too steep to walk on.
+    // The approximate extra distance can be derived with trigonometry.
+    //
+    //   minimumForward = [ (maxStepHeight + radius / cosTheta - radius) * (cosTheta / sinTheta) - radius ]
+    //
+    // where: theta = max angle between floor normal and vertical
+    //
+    // if stepLength is not long enough we can add the difference.
+    //
+    btScalar cosTheta = _minFloorNormalDotUp;
+    btScalar sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+    const btScalar MIN_FORWARD_SLOP = 0.12f; // HACK: not sure why this is necessary to detect steepest walkable slope
+    btScalar forwardSlop = (_maxStepHeight + _radius / cosTheta - _radius) * (cosTheta / sinTheta) - (_radius + stepLength) + MIN_FORWARD_SLOP;
+    if (forwardSlop < 0.0f) {
+        // BIG step, no slop necessary
+        forwardSlop = 0.0f;
+    }
+
+    // we push the step forward by stepMargin to help reduce accidental overlap
+    btScalar stepMargin = 0.04f;
+    btScalar expandedStepLength = stepLength + forwardSlop + stepMargin;
+
+    // loop
+    CharacterRayResult rayResult(&_ghost);
+    CharacterRayResult closestRayResult(&_ghost);
+    btVector3 rayStart;
+    btVector3 rayEnd;
+    btVector3 overlap = btVector3(0.0f, 0.0f, 0.0f);
+    int32_t numOverlaps = 0;
+    bool walkable = true;
+    for (int32_t i = 0; i < _topPoints.size(); ++i) {
+        rayStart = newPosition + rotation * _topPoints[i];
+        rayEnd = rayStart + expandedStepLength * stepDirection;
+        rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+        if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+            // track closest hit
+            if (rayResult.m_closestHitFraction < closestRayResult.m_closestHitFraction) {
+                closestRayResult = rayResult;
+            }
+            // check if walkable
+            if (walkable) {
+                if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
+                    walkable = false;
+                }
+            }
+            // sum any overlap
+            btScalar distanceToPlane = -rayResult.m_closestHitFraction * stepLength * stepDirection.dot(rayResult.m_hitNormalWorld);
+            if (distanceToPlane < stepMargin) {
+                overlap += (stepMargin - distanceToPlane) * rayResult.m_hitNormalWorld;
+                ++numOverlaps;
+            }
+        }
+    }
+    // remove expansion from the closestHitFraction
+    btScalar closestHitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength);
+
+    /*
+    // scan the bottom
+    closestRayResult.m_closestHitFraction = 1.0f; // reset closestRayResult for next barrage
+    btScalar stepHeight = _minStepHeight;
+    for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
+        rayStart = newPosition + rotation * _bottomPoints[i];
+        rayEnd = rayStart + (stepLength + stepMargin) * stepDirection;
+        rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+        if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+            // track closest hit
+            if (rayResult.m_closestHitFraction < closestRayResult.m_closestHitFraction) {
+                closestRayResult = rayResult;
+            }
+            // sum any overlap
+            btScalar distanceToPlane = -rayResult.m_closestHitFraction * stepDirection * stepDirection.dot(rayResult.m_hitNormalWorld);
+            if (distanceToPlane < stepMargin) {
+                overlap += (stepMargin - distanceToPlane) * rayResult.m_hitNormalWorld;
+                ++numOverlaps;
+            }
+        }
+    }
+    btScalar adjustedHitFraction = (closestRayResult.m_closestHitFraction * (stepLength - stepMargin) - stepMargin) / stepLength;
+    if (adjustedHitFraction < closestHitFraction) {
+        closestHitFraction = adjustedHitFraction;
+    }
+    */
+
+    // compute the final step
+    btVector3 finalStep = (closestHitFraction * stepLength) * stepDirection;
+    if (numOverlaps > 0) {
+        // we have two independent measures of displacement: finalStep and overlap
+        if (numOverlaps > 1) {
+            overlap /= (btScalar)numOverlaps;
+        }
+
+        // reconcile distinct displacements as follows:
+        // add components that point in opposite directions, otherwise take the component with largest absolute value
+        btVector3 product = finalStep;
+        product *= overlap; // component-wise multiplication --> negative components point in opposite directions
+        if (product.getX() < 0.0f) {
+            finalStep.setX(finalStep.getX() + overlap.getX());
+        } else if (fabsf(overlap.getX()) > fabsf(finalStep.getX())) {
+            finalStep.setX(overlap.getX());
+        }
+        if (product.getY() < 0.0f) {
+            finalStep.setY(finalStep.getY() + overlap.getY());
+        } else if (fabsf(overlap.getY()) > fabsf(finalStep.getY())) {
+            finalStep.setY(overlap.getY());
+        }
+        if (product.getZ() < 0.0f) {
+            finalStep.setZ(finalStep.getZ() + overlap.getZ());
+        } else if (fabsf(overlap.getZ()) > fabsf(finalStep.getZ())) {
+            finalStep.setZ(overlap.getZ());
+        }
+    }
+
+    return bulletToGLM(finalStep);
+} // foo
 
 btConvexHullShape* MyCharacterController::computeShape() const {
     // HACK: the avatar collides using convex hull with a collision margin equal to
