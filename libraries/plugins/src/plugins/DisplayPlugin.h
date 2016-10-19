@@ -115,6 +115,10 @@ public:
         return false;
     }
 
+    virtual bool setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) {
+        return false;
+    }
+
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }

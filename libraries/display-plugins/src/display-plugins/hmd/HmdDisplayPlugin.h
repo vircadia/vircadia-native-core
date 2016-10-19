@@ -23,6 +23,7 @@
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
+    HmdDisplayPlugin();
     ~HmdDisplayPlugin();
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
@@ -38,6 +39,7 @@ public:
     virtual glm::mat4 getHeadPose() const override;
 
     bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
+    bool setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) override;
 
     bool wantVsync() const override {
         return false;
@@ -79,6 +81,12 @@ protected:
     std::array<HandLaserInfo, 2> _presentHandLasers;
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
+
+    HandLaserInfo _extraLaser;
+    HandLaserInfo _presentExtraLaser;
+    mat4 _extraLaserPose;
+    mat4 _presentExtraLaserPose;
+    std::pair<vec3, vec3> _presentExtraLaserPoints;
 
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
@@ -130,6 +138,9 @@ private:
             vec2 resolution { CompositorHelper::VIRTUAL_SCREEN_SIZE };
             float radius { 0.005f };
             float alpha { 1.0f };
+
+            vec4 extraGlowColor;
+            vec2 extraGlowPoint { -1 };
         } uniforms;
         
         struct Vertex {
@@ -145,4 +156,6 @@ private:
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
     } _overlayRenderer;
+
+    int _glowLineID { -1 };
 };

@@ -341,6 +341,11 @@ void HmdDisplayPlugin::updateFrameData() {
 
     if (_currentFrame) {
         auto batchPose = _currentFrame->pose;
+
+        // HACK o RAMA
+        //_handPoses[0] = _currentFrame->pose;
+        //_handPoses[1] = _currentFrame->pose;
+
         auto currentPose = _currentPresentFrameInfo.presentPose;
         auto correction = glm::inverse(batchPose) * currentPose;
         getGLBackend()->setCameraCorrection(correction);
@@ -350,11 +355,16 @@ void HmdDisplayPlugin::updateFrameData() {
         _presentHandLasers = _handLasers;
         _presentHandPoses = _handPoses;
         _presentUiModelTransform = _uiModelTransform;
+
+        _presentExtraLaser = _extraLaser;
+        _presentExtraLaserPose = _extraLaserPose;
+
     });
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
     std::array<vec2, NUMBER_OF_HANDS> handGlowPoints{ { vec2(-1), vec2(-1) } };
+    vec2 extraGlowPoint(-1);
 
     // compute the glow point interesections
     for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
@@ -419,6 +429,55 @@ void HmdDisplayPlugin::updateFrameData() {
         handGlowPoints[i] = yawPitch;
     }
 
+    // compute the glow point interesections
+    if (_presentExtraLaser.valid()) {
+        const auto& handLaser = _presentExtraLaser;
+
+        const vec3& laserDirection = handLaser.direction;
+        mat4 model = _presentExtraLaserPose;
+        vec3 castStart = vec3(model[3]);
+        vec3 castDirection = glm::quat_cast(model) * laserDirection;
+        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
+            castDirection = glm::normalize(castDirection);
+            castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
+        }
+
+        // FIXME - no offset
+        vec3 grabPointOffset {0};
+        castStart += glm::quat_cast(model) * grabPointOffset;
+
+        // FIXME fetch the actual UI radius from... somewhere?
+        float uiRadius = 1.0f;
+
+        // Find the intersection of the laser with he UI and use it to scale the model matrix
+        float distance;
+        if (glm::intersectRaySphere(castStart, castDirection,
+            _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
+
+            _presentExtraLaserPoints.first = castStart;
+            _presentExtraLaserPoints.second = _presentExtraLaserPoints.first + (castDirection * distance);
+
+            vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
+            intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
+
+            // Take the interesection normal and convert it to a texture coordinate
+            vec2 yawPitch;
+            {
+                vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
+                yawPitch.x = glm::atan(xdir.x, xdir.y);
+                yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
+            }
+            vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
+
+            // Are we out of range
+            if (!glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
+                yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
+                yawPitch += 0.5f;
+                extraGlowPoint = yawPitch;
+            }
+        }
+    }
+
 
     for_each_eye([&](Eye eye) {
         auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
@@ -432,6 +491,8 @@ void HmdDisplayPlugin::updateFrameData() {
         uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
         uniforms.glowColors[0] = _presentHandLasers[0].color;
         uniforms.glowColors[1] = _presentHandLasers[1].color;
+        uniforms.extraGlowPoint = extraGlowPoint;
+        uniforms.extraGlowColor = _presentExtraLaser.color;
     }
 }
 
@@ -607,6 +668,20 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
     return true;
 }
 
+bool HmdDisplayPlugin::setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) {
+    HandLaserInfo info;
+    info.mode = mode;
+    info.color = color;
+    info.direction = direction;
+    withNonPresentThreadLock([&] {
+        _extraLaser = info;
+        _extraLaserPose = extraLaserPose;
+    });
+    // FIXME defer to a child class plugin to determine if hand lasers are actually 
+    // available based on the presence or absence of hand controllers
+    return true;
+}
+
 void HmdDisplayPlugin::compositeExtra() {
     // If neither hand laser is activated, exit
     if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid()) {
@@ -628,14 +703,23 @@ void HmdDisplayPlugin::compositeExtra() {
                 return;
             }
             const auto& laser = _presentHandLasers[index];
+
+            const float glowIntensity = 1.0f;
+            const float glowWidth = 0.05f;
             if (laser.valid()) {
                 const auto& points = _presentHandLaserPoints[index];
-                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color);
+                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color,
+                    glowIntensity, glowWidth, _glowLineID);
             }
         });
     });
 }
 
+HmdDisplayPlugin::HmdDisplayPlugin() {
+    _glowLineID = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
 HmdDisplayPlugin::~HmdDisplayPlugin() {
     qDebug() << "Destroying HmdDisplayPlugin";
+    DependencyManager::get<GeometryCache>()->releaseID(_glowLineID);
 }

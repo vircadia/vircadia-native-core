@@ -11,6 +11,9 @@ struct OverlayData {
     vec4 glowPoints;
     vec4 glowColors[2];
     vec4 resolutionRadiusAlpha;
+
+    vec4 extraGlowColor;
+    vec2 extraGlowPoint;
 };
 
 layout(std140) uniform overlayBuffer {
