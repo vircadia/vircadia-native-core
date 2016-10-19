@@ -638,7 +638,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     newPath = newPath.trimmed();
 
     if (!isValidFilePath(oldPath) || !isValidFilePath(newPath)) {
-        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
+        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward and no ending slashes:"
             << oldPath << "=>" << newPath;
 
         return false;
