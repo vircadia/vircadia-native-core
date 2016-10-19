@@ -40,8 +40,9 @@ MyCharacterController::~MyCharacterController() {
 
 void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     CharacterController::setDynamicsWorld(world);
-
-    initRayShotgun(world);
+    if (world) {
+        initRayShotgun(world);
+    }
 }
 
 void MyCharacterController::updateShapeIfNecessary() {
