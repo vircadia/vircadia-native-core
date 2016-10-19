@@ -21,6 +21,7 @@ import "controls-uit" as HifiControls
 Window {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
     title: "Go To"
@@ -29,7 +30,6 @@ Window {
     destroyOnHidden: false
     resizable: false
     pinnable: false;
-    scale: 1.25  // Make this dialog a little larger than normal
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
@@ -78,8 +78,7 @@ Window {
         property bool punctuationMode: false
 
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.raisedHeight + 2 * hifi.layout.spacing : 0)
-                        + cardHeight - 36 // Fudge to reduce bottom margin.
+        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.height : 0) + cardHeight;
 
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
@@ -98,7 +97,7 @@ Window {
             spacing: hifi.layout.spacing;
             clip: true;
             anchors {
-                top: parent.top
+                bottom: backgroundImage.top
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -133,16 +132,16 @@ Window {
                 verticalCenter: scroll.verticalCenter;
             }
         }
+
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
-            width: 576 * root.scale
-            height: 80 * root.scale
+            width: 720
+            height: 100
             anchors {
-                top: scroll.bottom
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
             }
-
-            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
+            property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             ToolbarButton {
@@ -189,7 +188,7 @@ Window {
 
             HifiStyles.RalewayLight {
                 id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.50;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
                 anchors {
                     top: parent.top
                     topMargin: parent.inputAreaStep + 12
@@ -218,7 +217,7 @@ Window {
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
                 cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
@@ -267,7 +266,6 @@ Window {
         Window {
             width: 938
             height: 625
-            scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
@@ -290,7 +288,7 @@ Window {
             raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
             numeric: parent.punctuationMode
             anchors {
-                top: backgroundImage.bottom
+                bottom: parent.bottom
                 left: parent.left
                 right: parent.right
             }
@@ -433,10 +431,10 @@ Window {
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
-            notice.color = "gray";
+            notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
-            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }
