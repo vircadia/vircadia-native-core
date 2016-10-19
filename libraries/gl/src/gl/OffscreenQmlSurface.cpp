@@ -122,7 +122,9 @@ void OffscreenQmlSurface::setupFbo() {
 
 void OffscreenQmlSurface::cleanup() {
     _canvas->makeCurrent();
-    _renderControl->invalidate();
+
+    delete _renderControl; // and invalidate
+
     if (_depthStencil) {
         glDeleteRenderbuffers(1, &_depthStencil);
         _depthStencil = 0;
@@ -236,7 +238,6 @@ static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
 OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
-
 
     cleanup();
 
