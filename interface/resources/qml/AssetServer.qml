@@ -362,15 +362,15 @@ ScrollingWindow {
                         console.log("Asset Browser - finished uploading: ", fileUrl);
                         reload();
                     } else {
+                        uploadSpinner.visible = false;
+                        uploadButton.enabled = true;
+                        uploadOpen = false;
+
                         if (err !== -1) {
                             console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
                             var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
                             box.selected.connect(reload);
                         }
-
-                        uploadSpinner.visible = false;
-                        uploadButton.enabled = true;
-                        uploadOpen = false;
                     }
             }, dropping);
         }
