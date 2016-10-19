@@ -79,6 +79,9 @@ void Web3DOverlay::render(RenderArgs* args) {
             });
         };
         _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+        // and the current rendering load)
+        _webSurface->setMaxFps(10);
         _webSurface->create(currentContext);
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
         _webSurface->load("WebView.qml");
