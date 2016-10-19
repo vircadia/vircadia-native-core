@@ -297,8 +297,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _qmlComponent = new QQmlComponent(_qmlEngine);
 
 
-    connect(_renderControl, &QQuickRenderControl::renderRequested, [this] { _render = true; });
-    connect(_renderControl, &QQuickRenderControl::sceneChanged, [this] { _render = _polish = true; });
+    connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
+    connect(_renderControl, &QQuickRenderControl::sceneChanged, this, [this] { _render = _polish = true; });
 
     if (!_canvas->makeCurrent()) {
         qWarning("Failed to make context current for QML Renderer");
