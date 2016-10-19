@@ -95,11 +95,14 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     };
     _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
 
+    // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+    // and the current rendering load)
+    _webSurface->setMaxFps(10);
+
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
     // member variables, since they would implicitly refer to a this that 
     // is no longer valid
-
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
