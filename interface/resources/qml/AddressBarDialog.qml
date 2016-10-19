@@ -21,6 +21,7 @@ import "controls-uit" as HifiControls
 Window {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
     title: "Go To"
@@ -430,10 +431,10 @@ Window {
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
             notice.text = "Go to a place, @user, path or network address";
-            notice.color = "gray";
+            notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
-            notice.color = AddressManager.isConnected ? "gray" : "crimson";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }
