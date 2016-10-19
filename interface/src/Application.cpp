@@ -589,13 +589,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         determinedSandboxState = true;
     }, [&, wantsSandboxRunning]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
-        determinedSandboxState = true;
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
         }
+        determinedSandboxState = true;
     });
 
+    // SandboxUtils::runLocalSandbox currently has 2 sec delay after spawning sandbox, so 4
+    // sec here is ok I guess.  TODO: ping sandbox so we know it is up, perhaps?
     quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
     auto startWaiting = usecTimestampNow();
     while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
