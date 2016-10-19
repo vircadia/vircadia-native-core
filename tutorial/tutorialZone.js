@@ -72,6 +72,7 @@ if (!Function.prototype.bind) {
                 setAwayEnabled(false);
                 Menu.setIsOptionChecked("Overlays", false);
                 MyAvatar.shouldRenderLocally = false;
+                Toolbars.getToolbar("com.highfidelity.interface.toolbar.system").writeProperty("visible", false);
                 this.token = new OwnershipToken(Math.random() * 100000, this.entityID, {
                     onGainedOwnership: function(token) {
                         print("TutorialZone | GOT OWNERSHIP");
@@ -108,6 +109,7 @@ if (!Function.prototype.bind) {
                 Menu.setIsOptionChecked("Overlays", true);
                 MyAvatar.shouldRenderLocally = true;
                 setAwayEnabled(true);
+                Toolbars.getToolbar("com.highfidelity.interface.toolbar.system").writeProperty("visible", true);
             }
         },
 
@@ -120,6 +122,10 @@ if (!Function.prototype.bind) {
                 print("TutorialZone | Destroying token");
                 this.token.destroy();
                 this.token = null;
+            }
+            if (self.tutorialManager) {
+                self.tutorialManager.stopTutorial();
+                self.tutorialManager = null;
             }
         }
     };
