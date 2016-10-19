@@ -19,6 +19,7 @@
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <PhysicsCollisionGroups.h>
 
 #include "BulletUtil.h"
@@ -29,6 +30,7 @@ const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
+const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
 const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
 
@@ -48,7 +50,7 @@ public:
 
     bool needsRemoval() const;
     bool needsAddition() const;
-    void setDynamicsWorld(btDynamicsWorld* world);
+    virtual void setDynamicsWorld(btDynamicsWorld* world);
     btCollisionObject* getCollisionObject() { return _rigidBody; }
 
     virtual void updateShapeIfNecessary() = 0;
@@ -70,6 +72,7 @@ public:
     void clearMotors();
     void addMotor(const glm::vec3& velocity, const glm::quat& rotation, float horizTimescale, float vertTimescale = -1.0f);
     void applyMotor(int index, btScalar dt, btVector3& worldVelocity, std::vector<btVector3>& velocities, std::vector<btScalar>& weights);
+    void setStepUpEnabled(bool enabled) { _stepUpEnabled = enabled; }
     void computeNewVelocity(btScalar dt, btVector3& velocity);
     void computeNewVelocity(btScalar dt, glm::vec3& velocity);
 
@@ -165,10 +168,20 @@ protected:
     quint32 _jumpButtonDownCount;
     quint32 _takeoffJumpButtonID;
 
+    // data for walking up steps
+    btVector3 _stepPoint;
+    btVector3 _stepNormal { 0.0f, 0.0f, 0.0f };
+    btVector3 _stepUpVelocity { 0.0f, 0.0f, 0.0f };
+    btScalar _stepHeight { 0.0f };
+    btScalar _minStepHeight { 0.0f };
+    btScalar _maxStepHeight { 0.0f };
+    btScalar _minFloorNormalDotUp { DEFAULT_MIN_FLOOR_NORMAL_DOT_UP };
+
     btScalar _halfHeight { 0.0f };
     btScalar _radius { 0.0f };
 
     btScalar _floorDistance;
+    bool _stepUpEnabled { true };
     bool _hasSupport;
 
     btScalar _gravity { DEFAULT_CHARACTER_GRAVITY };

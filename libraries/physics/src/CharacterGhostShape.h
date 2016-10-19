@@ -12,13 +12,12 @@
 #ifndef hifi_CharacterGhostShape_h
 #define hifi_CharacterGhostShape_h
 
-#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
+#include <BulletCollision/CollisionShapes/btConvexHullShape.h>
 
-class CharacterGhostShape : public btCapsuleShape {
-    // Same as btCapsuleShape but reports an expanded Aabb for larger ghost overlap cache
+class CharacterGhostShape : public btConvexHullShape {
+    // Same as btConvexHullShape but reports an expanded Aabb for larger ghost overlap cache
 public:
-    CharacterGhostShape(btScalar radius, btScalar height) : btCapsuleShape(radius, height) {
-    }
+    CharacterGhostShape(const btConvexHullShape* shape);
 
     virtual void getAabb (const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override;
 };

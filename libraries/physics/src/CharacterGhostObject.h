@@ -40,7 +40,7 @@ public:
     void setLinearVelocity(const btVector3& velocity) { _linearVelocity = velocity; }
     const btVector3& getLinearVelocity() const { return _linearVelocity; }
 
-    void setCharacterCapsule(btCapsuleShape* capsule);
+    void setCharacterShape(btConvexHullShape* shape);
 
     void setCollisionWorld(btCollisionWorld* world);
 
@@ -51,6 +51,10 @@ public:
             const btTransform& end,
             CharacterSweepResult& result) const;
 
+    bool rayTest(const btVector3& start,
+            const btVector3& end,
+            CharacterRayResult& result) const;
+
     bool isHovering() const { return _hovering; }
     void setHovering(bool hovering) { _hovering = hovering; }
     void setMotorOnly(bool motorOnly) { _motorOnly = motorOnly; }
@@ -60,17 +64,13 @@ public:
     const btVector3& getFloorNormal() const { return _floorNormal; }
 
     void measurePenetration(btVector3& minBoxOut, btVector3& maxBoxOut);
+    void refreshOverlappingPairCache();
 
 protected:
     void removeFromWorld();
     void addToWorld();
 
-    bool rayTest(const btVector3& start,
-            const btVector3& end,
-            CharacterRayResult& result) const;
-
     bool resolvePenetration(int numTries);
-    void refreshOverlappingPairCache();
     void updateVelocity(btScalar dt, btScalar gravity);
     void updateTraction(const btVector3& position);
     btScalar measureAvailableStepHeight() const;
@@ -88,8 +88,8 @@ protected:
     btScalar _radius { 0.0f };
     btScalar _maxWallNormalUpComponent { 0.0f }; // input: max vertical component of wall normal
     btScalar _maxStepHeight { 0.0f }; // input, max step height the character can climb
-    btCapsuleShape* _characterShape { nullptr }; // input, shape of character
-    CharacterGhostShape* _ghostShape{ nullptr }; // internal, shape whose Aabb is used for overlap cache
+    btConvexHullShape* _characterShape { nullptr }; // input, shape of character
+    CharacterGhostShape* _ghostShape { nullptr }; // internal, shape whose Aabb is used for overlap cache
     int16_t _collisionFilterGroup { 0 };
     int16_t _collisionFilterMask { 0 };
     bool _inWorld { false }; // internal, was added to world
