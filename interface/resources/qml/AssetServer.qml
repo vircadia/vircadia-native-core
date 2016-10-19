@@ -368,7 +368,7 @@ ScrollingWindow {
 
                         if (err !== -1) {
                             console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
+                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
                             box.selected.connect(reload);
                         }
                     }
