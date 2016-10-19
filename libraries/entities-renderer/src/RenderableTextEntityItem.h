@@ -23,13 +23,14 @@ class RenderableTextEntityItem : public TextEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableTextEntityItem(const EntityItemID& entityItemID) : TextEntityItem(entityItemID) { }
-    ~RenderableTextEntityItem() { delete _textRenderer; }
+    ~RenderableTextEntityItem();
 
     virtual void render(RenderArgs* args) override;
 
     SIMPLE_RENDERABLE();
     
 private:
+    int _geometryID { 0 };
     TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
 };
 

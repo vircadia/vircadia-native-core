@@ -18,9 +18,29 @@
 
 QString const Cube3DOverlay::TYPE = "cube";
 
+Cube3DOverlay::Cube3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
+}
+
 Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
     Volume3DOverlay(cube3DOverlay)
 {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
+}
+
+Cube3DOverlay::~Cube3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        for (size_t i = 0; i < _geometryIds.size(); ++i) {
+            geometryCache->releaseID(_geometryIds[i]);
+        }
+    }
 }
 
 void Cube3DOverlay::render(RenderArgs* args) {
@@ -71,20 +91,20 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 glm::vec3 topLeftFar(-halfDimensions.x, halfDimensions.y, halfDimensions.z);
                 glm::vec3 topRightFar(halfDimensions.x, halfDimensions.y, halfDimensions.z);
 
-                geometryCache->renderDashedLine(*batch, bottomLeftNear, bottomRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightNear, bottomRightFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightFar, bottomLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomLeftFar, bottomLeftNear, cubeColor);
+                geometryCache->renderDashedLine(*batch, bottomLeftNear, bottomRightNear, cubeColor, _geometryIds[0]);
+                geometryCache->renderDashedLine(*batch, bottomRightNear, bottomRightFar, cubeColor, _geometryIds[1]);
+                geometryCache->renderDashedLine(*batch, bottomRightFar, bottomLeftFar, cubeColor, _geometryIds[2]);
+                geometryCache->renderDashedLine(*batch, bottomLeftFar, bottomLeftNear, cubeColor, _geometryIds[3]);
 
-                geometryCache->renderDashedLine(*batch, topLeftNear, topRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, topRightNear, topRightFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, topRightFar, topLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, topLeftFar, topLeftNear, cubeColor);
+                geometryCache->renderDashedLine(*batch, topLeftNear, topRightNear, cubeColor, _geometryIds[4]);
+                geometryCache->renderDashedLine(*batch, topRightNear, topRightFar, cubeColor, _geometryIds[5]);
+                geometryCache->renderDashedLine(*batch, topRightFar, topLeftFar, cubeColor, _geometryIds[6]);
+                geometryCache->renderDashedLine(*batch, topLeftFar, topLeftNear, cubeColor, _geometryIds[7]);
 
-                geometryCache->renderDashedLine(*batch, bottomLeftNear, topLeftNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightNear, topRightNear, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomLeftFar, topLeftFar, cubeColor);
-                geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor);
+                geometryCache->renderDashedLine(*batch, bottomLeftNear, topLeftNear, cubeColor, _geometryIds[8]);
+                geometryCache->renderDashedLine(*batch, bottomRightNear, topRightNear, cubeColor, _geometryIds[9]);
+                geometryCache->renderDashedLine(*batch, bottomLeftFar, topLeftFar, cubeColor, _geometryIds[10]);
+                geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor, _geometryIds[11]);
 
             } else {
                 transform.setScale(dimensions);

@@ -112,6 +112,10 @@ void HmdDisplayPlugin::internalDeactivate() {
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     _overlayRenderer.build();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -126,6 +130,11 @@ void HmdDisplayPlugin::uncustomizeContext() {
     });
     _overlayRenderer = OverlayRenderer();
     _previewTexture.reset();
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        geometryCache->releaseID(_geometryIds[i]);
+    }
     Parent::uncustomizeContext();
 }
 
@@ -630,7 +639,7 @@ void HmdDisplayPlugin::compositeExtra() {
             const auto& laser = _presentHandLasers[index];
             if (laser.valid()) {
                 const auto& points = _presentHandLaserPoints[index];
-                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color);
+                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color, _geometryIds[index]);
             }
         });
     });

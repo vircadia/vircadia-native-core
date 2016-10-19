@@ -525,8 +525,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     Vec2FloatPairPair key(majorKey, minorKey);
 
     // Make the gridbuffer
-    if ((registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) ||
-        (!registered && !_gridBuffers.contains(key))) {
+    if (registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) {
         GridSchema gridSchema;
         GridBuffer gridBuffer = std::make_shared<gpu::Buffer>(sizeof(GridSchema), (const gpu::Byte*) &gridSchema);
 
@@ -534,12 +533,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
             gridBuffer = _registeredGridBuffers[id];
         }
 
-        if (registered) {
-            _registeredGridBuffers[id] = gridBuffer;
-            _lastRegisteredGridBuffer[id] = key;
-        } else {
-            _gridBuffers[key] = gridBuffer;
-        }
+        _registeredGridBuffers[id] = gridBuffer;
+        _lastRegisteredGridBuffer[id] = key;
 
         gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
         gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
@@ -552,7 +547,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     // Set the grid pipeline
-    useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key], isLayered);
+    useGridPipeline(batch, _registeredGridBuffers[id], isLayered);
 
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
@@ -805,7 +800,7 @@ void GeometryCache::renderVertices(gpu::Batch& batch, gpu::Primitive primitiveTy
 void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, 0.0f), glm::vec3(width, height, bevelDistance));
-    BatchItemDetails& details = registered ? _registeredBevelRects[id] : _bevelRects[key];
+    BatchItemDetails& details = _registeredBevelRects[id];
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
         Vec3Pair& lastKey = _lastRegisteredBevelRects[id];
@@ -906,7 +901,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec4Pair key(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y), color);
-    BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
+    BatchItemDetails& details = _registeredQuad2D[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -991,14 +986,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner,
     const glm::vec4& color, int id) {
 
-    bool registered = (id != UNKNOWN_ID);
     Vec4PairVec4 key(Vec4Pair(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y),
         glm::vec4(texCoordMinCorner.x, texCoordMinCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y)),
         color);
-    BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
+    BatchItemDetails& details = _registeredQuad2DTextures[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registered && details.isCreated) {
+    if (details.isCreated) {
         Vec4PairVec4& lastKey = _lastRegisteredQuad2DTexture[id];
         if (lastKey != key) {
             details.clear();
@@ -1077,7 +1071,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec4 key(Vec3Pair(minCorner, maxCorner), color);
-    BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
+    BatchItemDetails& details = _registeredQuad3D[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1173,7 +1167,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         Vec4Pair(glm::vec4(texCoordTopLeft.x, texCoordTopLeft.y, texCoordBottomRight.x, texCoordBottomRight.y),
         color));
 
-    BatchItemDetails& details = registered ? _registeredQuad3DTextures[id] : _quad3DTextures[key];
+    BatchItemDetails& details = _registeredQuad3DTextures[id];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1254,7 +1248,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
 
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
-    BatchItemDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
+    BatchItemDetails& details = _registeredDashedLines[id];
 
     // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
@@ -1423,7 +1417,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);
 
-    BatchItemDetails& details = registered ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
+    BatchItemDetails& details = _registeredLine3DVBOs[id];
 
     int compactColor1 = ((int(color1.x * 255.0f) & 0xFF)) |
         ((int(color1.y * 255.0f) & 0xFF) << 8) |
@@ -1512,7 +1506,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(p1, p2);
 
-    BatchItemDetails& details = registered ? _registeredLine2DVBOs[id] : _line2DVBOs[key];
+    BatchItemDetails& details = _registeredLine2DVBOs[id];
 
     int compactColor1 = ((int(color1.x * 255.0f) & 0xFF)) |
         ((int(color1.y * 255.0f) & 0xFF) << 8) |
@@ -1627,7 +1621,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 
     Vec3Pair key(p1, p2);
     bool registered = (id != UNKNOWN_ID);
-    BatchItemDetails& details = registered ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
+    BatchItemDetails& details = _registeredLine3DVBOs[id];
 
     int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
         ((int(color.y * 255.0f) & 0xFF) << 8) |

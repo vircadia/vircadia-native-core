@@ -69,6 +69,7 @@ private:
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
+    int _geometryId { 0 };
 };
 
 #endif // hifi_RenderableWebEntityItem_h
