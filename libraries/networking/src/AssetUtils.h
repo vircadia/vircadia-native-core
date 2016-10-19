@@ -31,7 +31,8 @@ const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;
 const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
 
-const QString ASSET_PATH_REGEX_STRING = "^\\/(?!\\/)(?:[^\\/]|\\/(?!\\/))*$";
+const QString ASSET_FILE_PATH_REGEX_STRING = "^\\/([^\\/\\0]+(\\/)?)*([^\\/\\0]+)$";
+const QString ASSET_PATH_REGEX_STRING = "^\\/([^\\/\\0]+(\\/)?)+$";
 const QString ASSET_HASH_REGEX_STRING = QString("^[a-fA-F0-9]{%1}$").arg(SHA256_HASH_HEX_LENGTH);
 
 enum AssetServerError : uint8_t {
@@ -59,6 +60,7 @@ QByteArray hashData(const QByteArray& data);
 QByteArray loadFromCache(const QUrl& url);
 bool saveToCache(const QUrl& url, const QByteArray& file);
 
+bool isValidFilePath(const AssetPath& path);
 bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
 
