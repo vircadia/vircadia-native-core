@@ -40,9 +40,18 @@ public:
     void setMaxBandwidth(int maxBandwidth);
 
     virtual void init() {}
-    virtual void onACK(SequenceNumber ackNum) {}
+
+    // return value specifies if connection should perform a fast re-transmit of ACK + 1 (used in TCP style congestion control)
+    virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) { return false; }
+
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     virtual void onTimeout() {}
+
+    virtual bool shouldNAK() { return true; }
+    virtual bool shouldACK2() { return true; }
+    virtual bool shouldProbe() { return true; }
+
+    virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {}
 protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRTO(int rto) { _userDefinedRTO = true; _rto = rto; }
@@ -57,11 +66,11 @@ protected:
     void setPacketSendPeriod(double newSendPeriod); // call this internally to ensure send period doesn't go past max bandwidth
     
     double _packetSendPeriod { 1.0 }; // Packet sending period, in microseconds
-    double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
+    int _congestionWindowSize { 16 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
     std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bits per second
-    double _maxCongestionWindowSize { 0.0 }; // maximum cwnd size, in packets
+    int _maxCongestionWindowSize { 0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers
     SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
@@ -102,7 +111,7 @@ public:
     DefaultCC();
     
 public:
-    virtual void onACK(SequenceNumber ackNum) override;
+    virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) override;
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override;
     virtual void onTimeout() override;
 

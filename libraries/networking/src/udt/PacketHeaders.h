@@ -189,6 +189,10 @@ const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
 
+enum class AssetServerPacketVersion: PacketVersion {
+    VegasCongestionControl = 19
+};
+
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,

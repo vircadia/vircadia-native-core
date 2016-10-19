@@ -282,6 +282,7 @@ Window {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
             }
+            z: 100
         }
 
         HifiControls.Keyboard {
