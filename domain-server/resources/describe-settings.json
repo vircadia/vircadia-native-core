@@ -863,15 +863,6 @@
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "default": "",
           "advanced": true
-        },
-        {
-          "name": "max_bandwidth",
-          "type": "double",
-          "label": "Max Bandwidth Per User",
-          "help": "The maximum upstream bandwidth each user can use (in Mb/s).",
-          "placeholder": "10.0",
-          "default": "",
-          "advanced": true
         }
       ]
     },
