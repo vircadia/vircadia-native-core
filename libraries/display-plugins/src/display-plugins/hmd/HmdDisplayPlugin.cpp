@@ -379,10 +379,6 @@ void HmdDisplayPlugin::updateFrameData() {
         mat4 model = _presentHandPoses[i];
         vec3 castStart = vec3(model[3]);
         vec3 castDirection = glm::quat_cast(model) * laserDirection;
-        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
-            castDirection = glm::normalize(castDirection);
-            castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
-        }
 
         // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
         static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
