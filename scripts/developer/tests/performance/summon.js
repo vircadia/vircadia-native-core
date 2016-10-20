@@ -80,6 +80,7 @@ function messageHandler(channel, messageString, senderID) {
                 position: Vec3.sum(MyAvatar.position, {x: coord(), y: 0, z: coord()}),
                 orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
                 soundData: chatter && SOUND_DATA,
+                skeletonModelURL: "http://howard-stearns.github.io/models/resources/meshes/defaultAvatar_full.fst",
                 animationData: ANIMATION_DATA
             });
         }
