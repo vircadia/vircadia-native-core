@@ -60,7 +60,6 @@ birdFirework2 = {
         "z": 0
     },
     "id": "{ba067084-8d0f-4eeb-a8a1-c6814527c1bb}",
-    //"modelURL": "atp:/tutorial_models/statuebird4.fbx",
     "modelURL": "atp:/tutorial_models/bomb2.fbx",
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
     "position": {

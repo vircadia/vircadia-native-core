@@ -84,7 +84,6 @@
             var self = this;
             Script.setTimeout(function() {
                 debug("Setting off fireworks");
-                //var spinnerID = Utils.findEntity({ name: "tutorial/equip/spinner" }, 20); 
                 var spinnerID = "{dd13fcd5-616f-4749-ab28-2e1e8bc512e9}";
                 Entities.callEntityMethod(spinnerID, "onLit");
                 injector.stop();

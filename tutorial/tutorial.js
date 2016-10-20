@@ -193,7 +193,6 @@ function deleteEntitiesWithTag(tag) {
     }
 }
 function editEntitiesWithTag(tag, propertiesOrFn) {
-    //var entityIDs = findEntitiesWithTag(tag);
     var entities = TUTORIAL_TAG_TO_ENTITY_IDS_MAP[tag];
 
     debug("Editing tag: ", tag);
@@ -665,12 +664,6 @@ stepEquip.prototype = {
         this.currentPart = this.PART1;
 
         function createLighter() {
-            //var boxSpawnID = findEntity({ name: GUN_SPAWN_NAME }, 10000);
-            //if (!boxSpawnID) {
-                //info("Error creating block, cannot find spawn");
-                //return null;
-            //}
-
             var transform = {};
 
             var boxSpawnProps = getEntityWithName(GUN_SPAWN_NAME);
@@ -855,8 +848,6 @@ stepTeleport.prototype = {
         Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
 
         // Wait until touching teleport pad...
-        //var padID = findEntity({ name: TELEPORT_PAD_NAME }, 100);
-        //var padProps = Entities.getEntityProperties(padID, ["position", "dimensions"]);
         var padProps = getEntityWithName(TELEPORT_PAD_NAME);
         var xMin = padProps.position.x - padProps.dimensions.x / 2;
         var xMax = padProps.position.x + padProps.dimensions.x / 2;
