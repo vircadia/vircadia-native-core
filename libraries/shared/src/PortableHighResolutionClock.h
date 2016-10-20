@@ -51,6 +51,9 @@ using p_high_resolution_clock = std::chrono::high_resolution_clock;
 
 Q_DECLARE_METATYPE(p_high_resolution_clock::time_point);
 
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((unused))
+#endif
 static const int timePointMetaTypeID = qRegisterMetaType<p_high_resolution_clock::time_point>();
 
 #endif // hifi_PortableHighResolutionClock_h
