@@ -1328,10 +1328,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        sandboxUtils.ifLocalSandboxRunningElse([=]() {
+        if(determinedSandboxState) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
-        }, [=]() {
+        } else {
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
                 showHelp();
@@ -1341,7 +1341,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             } else {
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
             }
-        });
+        }
     } else {
 
         bool isFirstRun = firstRun.get();
@@ -1353,13 +1353,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                sandboxUtils.ifLocalSandboxRunningElse([=]() {
+                if(determinedSandboxState) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                }, [=]() {
+                } else {
                     qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
-                });
+                }
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
             }
