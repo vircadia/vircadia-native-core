@@ -5681,6 +5681,9 @@ void Application::updateDisplayMode() {
     // Make the switch atomic from the perspective of other threads
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
+        // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
+        bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
+        offscreenUi->getDesktop()->setProperty("repositionLocked", true);
 
         auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
@@ -5717,6 +5720,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
+        offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
     emit activeDisplayPluginChanged();
