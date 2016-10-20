@@ -591,10 +591,7 @@ function loaded() {
 
         var elLifetime = document.getElementById("property-lifetime");
         var elScriptURL = document.getElementById("property-script-url");
-        /*
-        FIXME: See FIXME for property-script-url.
         var elScriptTimestamp = document.getElementById("property-script-timestamp");
-        */
         var elReloadScriptButton = document.getElementById("reload-script-button");
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
@@ -851,10 +848,7 @@ function loaded() {
                         elCollisionSoundURL.value = properties.collisionSoundURL;
                         elLifetime.value = properties.lifetime;
                         elScriptURL.value = properties.script;
-                        /*
-                        FIXME: See FIXME for property-script-url.
                         elScriptTimestamp.value = properties.scriptTimestamp;
-                        */
 
                         var json = null;
                         try {
@@ -1150,11 +1144,7 @@ function loaded() {
 
         elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
         elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
-        /*
-        FIXME: See FIXME for property-script-url.
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
-        */
-
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
@@ -1171,10 +1161,7 @@ function loaded() {
                     properties: properties,
                 })
             );
-
-
         });
-
 
         elSaveUserData.addEventListener("click", function() {
             saveJSONUserData(true);
@@ -1410,15 +1397,12 @@ function loaded() {
                 percentage: parseInt(elRescaleDimensionsPct.value),
             }));
         });
-        /*
-        FIXME: See FIXME for property-script-url.
         elReloadScriptButton.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadScript"
             }));
         });
-        */
 
         window.onblur = function() {
             // Fake a change event
