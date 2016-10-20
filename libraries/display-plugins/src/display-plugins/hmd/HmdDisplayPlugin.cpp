@@ -375,10 +375,10 @@ void HmdDisplayPlugin::updateFrameData() {
             castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
         }
 
-        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js
-        static const vec3 GRAB_POINT_SPHERE_OFFSET(0.075f, 0.175f, 0.039f);
+        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
+        static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
 
-        // swizzle grab point so that (x = upward, y = inward, z = forward)
+        // swizzle grab point so that (x = upward, y = lateral, z = forward)
         vec3 grabPointOffset = glm::vec3(GRAB_POINT_SPHERE_OFFSET.x, GRAB_POINT_SPHERE_OFFSET.z, -GRAB_POINT_SPHERE_OFFSET.y);
         if (i == 0) {
             grabPointOffset.x *= -1.0f; // this changes between left and right hands
