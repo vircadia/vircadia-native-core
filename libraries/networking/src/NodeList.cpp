@@ -127,19 +127,30 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject),
+                                  Q_ARG(HifiSockAddr, destination));
+        return 0;
+    }
+
     auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
     QJsonDocument jsonDocument(statsObject);
     statsPacketList->write(jsonDocument.toBinaryData());
 
     sendPacketList(std::move(statsPacketList), destination);
-
-    // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;
 }
 
-qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
+qint64 NodeList::sendStatsToDomainServer(QJsonObject statsObject) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendStatsToDomainServer", Qt::QueuedConnection,
+                                  Q_ARG(QJsonObject, statsObject));
+        return 0;
+    }
+
     return sendStats(statsObject, _domainHandler.getSockAddr());
 }
 
@@ -251,11 +262,16 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
+        return;
+    }
+
     if (_isShuttingDown) {
         qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
         return;
     }
-    
+
     if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";

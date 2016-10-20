@@ -19,15 +19,29 @@ SimpleMovingAverage::SimpleMovingAverage(int numSamplesToAverage) :
     _eventDeltaAverage(0.0f),
     WEIGHTING(1.0f / numSamplesToAverage),
     ONE_MINUS_WEIGHTING(1 - WEIGHTING) {
-        
 }
+
+SimpleMovingAverage::SimpleMovingAverage(const SimpleMovingAverage& other) {
+    *this = other;
+}
+
+SimpleMovingAverage& SimpleMovingAverage::operator=(const SimpleMovingAverage& other) {
+    _numSamples = (int)other._numSamples;
+    _lastEventTimestamp = (uint64_t)other._lastEventTimestamp;
+    _average = (float)other._average;
+    _eventDeltaAverage = (float)other._eventDeltaAverage;
+    WEIGHTING = other.WEIGHTING;
+    ONE_MINUS_WEIGHTING = other.ONE_MINUS_WEIGHTING;
+    return *this;
+}
+
 
 int SimpleMovingAverage::updateAverage(float sample) {
     if (_numSamples > 0) {
         _average = (ONE_MINUS_WEIGHTING * _average) + (WEIGHTING * sample);
-        
+
         float eventDelta = (usecTimestampNow() - _lastEventTimestamp) / 1000000.0f;
-        
+
         if (_numSamples > 1) {
             _eventDeltaAverage = (ONE_MINUS_WEIGHTING * _eventDeltaAverage) +
                 (WEIGHTING * eventDelta);
