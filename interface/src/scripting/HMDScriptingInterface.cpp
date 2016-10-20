@@ -130,6 +130,22 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
         color, direction);
 }
 
+bool HMDScriptingInterface::setExtraLaser(const vec3& worldStart, bool enabled, const vec4& color, const vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+
+    mat4 extraLaserPose;
+    return qApp->getActiveDisplayPlugin()->setExtraLaser(extraLaserPose,
+        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, direction);
+}
+
+void HMDScriptingInterface::disableExtraLaser() const {
+    setExtraLaser(vec3(0), false, vec4(0), vec3(0));
+}
+
 void HMDScriptingInterface::disableHandLasers(int hands) const {
     setHandLasers(hands, false, vec4(0), vec3(0));
 }
