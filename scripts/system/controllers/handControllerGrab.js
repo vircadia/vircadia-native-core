@@ -11,7 +11,7 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset */
+/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -27,7 +27,7 @@ var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = false;
-var SHOW_GRAB_POINT_SPHERE = true;
+var SHOW_GRAB_POINT_SPHERE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -101,7 +101,7 @@ var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
-var NEAR_GRAB_RADIUS = 0.04; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_RADIUS = 0.1; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
@@ -835,7 +835,7 @@ function MyController(hand) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
                 localPosition: getGrabPointSphereOffset(this.handToController()),
                 localRotation: { x: 0, y: 0, z: 0, w: 1 },
-                dimensions: GRAB_POINT_SPHERE_RADIUS,
+                dimensions: GRAB_POINT_SPHERE_RADIUS * 2,
                 color: GRAB_POINT_SPHERE_COLOR,
                 alpha: GRAB_POINT_SPHERE_ALPHA,
                 solid: true,
@@ -2661,6 +2661,15 @@ mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.
 
 Controller.enableMapping(MAPPING_NAME);
 
+function handleMenuEvent(menuItem) {
+    if (menuItem === "Show Grab Sphere") {
+        SHOW_GRAB_POINT_SPHERE = Menu.isOptionChecked("Show Grab Sphere");
+    }
+}
+
+Menu.addMenuItem({ menuName: "Developer", menuItemName: "Show Grab Sphere", isCheckable: true, isChecked: false });
+Menu.menuItemEvent.connect(handleMenuEvent);
+
 // the section below allows the grab script to listen for messages
 // that disable either one or both hands.  useful for two handed items
 var handToDisable = 'none';
@@ -2776,6 +2785,7 @@ var updateIntervalTimer = Script.setInterval(function(){
 }, BASIC_TIMER_INTERVAL_MS);
 
 function cleanup() {
+    Menu.removeMenuItem("Developer", "Show Grab Sphere");
     Script.clearInterval(updateIntervalTimer);
     rightController.cleanup();
     leftController.cleanup();
