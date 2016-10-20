@@ -118,8 +118,14 @@ qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const HifiSockAddr
 qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
 
+    SequenceNumber sequenceNumber;
+    {
+        Lock lock(_unreliableSequenceNumbersMutex);
+        sequenceNumber = ++_unreliableSequenceNumbers[sockAddr];
+    }
+
     // write the correct sequence number to the Packet here
-    packet.writeSequenceNumber(++_unreliableSequenceNumbers[sockAddr]);
+    packet.writeSequenceNumber(sequenceNumber);
 
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }

@@ -24,7 +24,7 @@ QString const Image3DOverlay::TYPE = "image3d";
 
 Image3DOverlay::Image3DOverlay() {
     _isLoaded = false;
-    _emissive = false;
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
@@ -34,6 +34,14 @@ Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
     _emissive(image3DOverlay->_emissive),
     _fromImage(image3DOverlay->_fromImage)
 {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+Image3DOverlay::~Image3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 void Image3DOverlay::update(float deltatime) {
@@ -100,7 +108,8 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
+        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha),
+        _geometryId
     );
 
     batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me

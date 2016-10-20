@@ -50,6 +50,8 @@ private:
     gpu::TexturePointer _overlayDepthTexture;
     gpu::TexturePointer _overlayColorTexture;
     gpu::FramebufferPointer _overlayFramebuffer;
+    int _qmlGeometryId { 0 };
+    int _rearViewGeometryId { 0 };
 };
 
 #endif // hifi_ApplicationOverlay_h

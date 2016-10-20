@@ -122,7 +122,9 @@ void OffscreenQmlSurface::setupFbo() {
 
 void OffscreenQmlSurface::cleanup() {
     _canvas->makeCurrent();
-    _renderControl->invalidate();
+
+    delete _renderControl; // and invalidate
+
     if (_depthStencil) {
         glDeleteRenderbuffers(1, &_depthStencil);
         _depthStencil = 0;
@@ -237,7 +239,6 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
 
-
     cleanup();
 
     _canvas->deleteLater();
@@ -297,8 +298,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _qmlComponent = new QQmlComponent(_qmlEngine);
 
 
-    connect(_renderControl, &QQuickRenderControl::renderRequested, [this] { _render = true; });
-    connect(_renderControl, &QQuickRenderControl::sceneChanged, [this] { _render = _polish = true; });
+    connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
+    connect(_renderControl, &QQuickRenderControl::sceneChanged, this, [this] { _render = _polish = true; });
 
     if (!_canvas->makeCurrent()) {
         qWarning("Failed to make context current for QML Renderer");

@@ -17,7 +17,7 @@ using namespace udt;
 
 Q_DECLARE_METATYPE(SequenceNumber);
 
-static const int sequenceNumberMetaTypeID = qRegisterMetaType<SequenceNumber>();
+int sequenceNumberMetaTypeID = qRegisterMetaType<SequenceNumber>();
 
 int udt::seqlen(const SequenceNumber& seq1, const SequenceNumber& seq2) {
     return (seq1._value <= seq2._value) ? (seq2._value - seq1._value + 1)

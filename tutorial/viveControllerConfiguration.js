@@ -16,16 +16,20 @@ var rightBaseRotation = Quat.multiply(
         Quat.fromPitchYawRollDegrees(0, 0, -90)
     )
 );
-var CONTROLLER_LENGTH_OFFSET = 0.0762; 
+
+// keep these in sync with the values from plugins/openvr/src/OpenVrHelpers.cpp:303
+var CONTROLLER_LATERAL_OFFSET = 0.0381;
+var CONTROLLER_VERTICAL_OFFSET = 0.0495;
+var CONTROLLER_FORWARD_OFFSET = 0.1371;
 var leftBasePosition = {
-    x: CONTROLLER_LENGTH_OFFSET / 2,
-    y: CONTROLLER_LENGTH_OFFSET * 2,
-    z: CONTROLLER_LENGTH_OFFSET / 2
+    x: CONTROLLER_VERTICAL_OFFSET,
+    y: CONTROLLER_FORWARD_OFFSET,
+    z: CONTROLLER_LATERAL_OFFSET
 };
 var rightBasePosition = {
-    x: -CONTROLLER_LENGTH_OFFSET / 2,
-    y: CONTROLLER_LENGTH_OFFSET * 2,
-    z: CONTROLLER_LENGTH_OFFSET / 2
+    x: -CONTROLLER_VERTICAL_OFFSET,
+    y: CONTROLLER_FORWARD_OFFSET,
+    z: CONTROLLER_LATERAL_OFFSET
 };
 
 var viveNaturalDimensions = {

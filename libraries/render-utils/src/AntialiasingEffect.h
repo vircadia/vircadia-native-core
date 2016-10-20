@@ -29,6 +29,7 @@ public:
     using JobModel = render::Job::ModelI<Antialiasing, gpu::FramebufferPointer, Config>;
 
     Antialiasing();
+    ~Antialiasing();
     void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
@@ -46,7 +47,7 @@ private:
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
-
+    int _geometryId { 0 };
 };
 
 #endif // hifi_AntialiasingEffect_h

@@ -25,6 +25,7 @@ QString const Text3DOverlay::TYPE = "text3d";
 
 Text3DOverlay::Text3DOverlay() {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
@@ -39,10 +40,15 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     _bottomMargin(text3DOverlay->_bottomMargin)
 {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Text3DOverlay::~Text3DOverlay() {
     delete _textRenderer;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 xColor Text3DOverlay::getBackgroundColor() {
@@ -97,7 +103,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor, _geometryId);
 
     // Same font properties as textSize()
     float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;

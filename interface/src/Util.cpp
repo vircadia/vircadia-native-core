@@ -50,50 +50,69 @@ void renderWorldBox(gpu::Batch& batch) {
     static const float DASH_LENGTH = 1.0f;
     static const float GAP_LENGTH = 1.0f;
     auto transform = Transform{};
+    static std::array<int, 18> geometryIds;
+    static std::once_flag initGeometryIds;
+    std::call_once(initGeometryIds, [&] {
+        for (size_t i = 0; i < geometryIds.size(); ++i) {
+            geometryIds[i] = geometryCache->allocateID();
+        }
+    });
 
     batch.setModelTransform(transform);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), RED);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(HALF_TREE_SCALE, 0.0f, 0.0f), RED, geometryIds[0]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-HALF_TREE_SCALE, 0.0f, 0.0f), DASHED_RED,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[1]);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, HALF_TREE_SCALE, 0.0f), GREEN);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, HALF_TREE_SCALE, 0.0f), GREEN, geometryIds[2]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -HALF_TREE_SCALE, 0.0f), DASHED_GREEN,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[3]);
 
-    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), BLUE);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, HALF_TREE_SCALE), BLUE, geometryIds[4]);
     geometryCache->renderDashedLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -HALF_TREE_SCALE), DASHED_BLUE,
-                                    DASH_LENGTH, GAP_LENGTH);
+                                    DASH_LENGTH, GAP_LENGTH, geometryIds[5]);
 
     // X center boundaries
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[6]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[7]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[8]);
     geometryCache->renderLine(batch, glm::vec3(HALF_TREE_SCALE, -HALF_TREE_SCALE, 0.0f),
-                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY);
+                              glm::vec3(HALF_TREE_SCALE, HALF_TREE_SCALE, 0.0f), GREY,
+                              geometryIds[9]);
 
     // Z center boundaries
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[10]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE), GREY,
+                              geometryIds[11]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, HALF_TREE_SCALE, -HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[12]);
     geometryCache->renderLine(batch, glm::vec3(0.0f, -HALF_TREE_SCALE, HALF_TREE_SCALE),
-                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY);
+                              glm::vec3(0.0f, HALF_TREE_SCALE, HALF_TREE_SCALE), GREY,
+                              geometryIds[13]);
 
     // Center boundaries
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[14]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE), GREY,
+                              geometryIds[15]);
     geometryCache->renderLine(batch, glm::vec3(HALF_TREE_SCALE, 0.0f, -HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[16]);
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE),
-                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
+                              glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
+                              geometryIds[17]);
 
     
     geometryCache->renderWireCubeInstance(batch, GREY4);
