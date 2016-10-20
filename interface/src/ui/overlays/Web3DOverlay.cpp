@@ -32,7 +32,9 @@ static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) { }
+Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     Billboard3DOverlay(Web3DOverlay),
@@ -40,6 +42,7 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _dpi(Web3DOverlay->_dpi),
     _resolution(Web3DOverlay->_resolution)
 {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Web3DOverlay::~Web3DOverlay() {
@@ -54,6 +57,10 @@ Web3DOverlay::~Web3DOverlay() {
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
             webSurface->deleteLater();
         });
+    }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
     }
 }
 
@@ -125,7 +132,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     } else {
         geometryCache->bindOpaqueWebBrowserProgram(batch);
     }
-    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
+    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 

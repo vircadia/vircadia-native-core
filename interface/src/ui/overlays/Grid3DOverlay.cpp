@@ -24,6 +24,7 @@ const float DEFAULT_SCALE = 100.0f;
 Grid3DOverlay::Grid3DOverlay() {
     setDimensions(DEFAULT_SCALE);
     updateGrid();
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
@@ -32,6 +33,14 @@ Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
     _minorGridEvery(grid3DOverlay->_minorGridEvery)
 {
     updateGrid();
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
+
+Grid3DOverlay::~Grid3DOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 AABox Grid3DOverlay::getBounds() const {
@@ -80,7 +89,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
             _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
             _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
-            gridColor, _drawInFront);
+            gridColor, _drawInFront, _geometryId);
     }
 }
 

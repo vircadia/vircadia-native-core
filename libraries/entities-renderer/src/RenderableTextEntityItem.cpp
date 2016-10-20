@@ -24,6 +24,14 @@ EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID
     return entity;
 }
 
+RenderableTextEntityItem::~RenderableTextEntityItem() { 
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryID && geometryCache) {
+        geometryCache->releaseID(_geometryID);
+    }
+    delete _textRenderer;
+}
+
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
@@ -62,9 +70,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
     
     batch.setModelTransform(transformToTopLeft);
-    
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, transparent, false, false, true);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (!_geometryID) {
+        _geometryID = geometryCache->allocateID();
+    }
+    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, true);
+    geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height

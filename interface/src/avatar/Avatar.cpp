@@ -99,6 +99,11 @@ Avatar::Avatar(RigPointer rig) :
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    _nameRectGeometryID = geometryCache->allocateID();
+    _leftPointerGeometryID = geometryCache->allocateID();
+    _rightPointerGeometryID = geometryCache->allocateID();
 }
 
 Avatar::~Avatar() {
@@ -118,6 +123,13 @@ Avatar::~Avatar() {
     if (_motionState) {
         delete _motionState;
         _motionState = nullptr;
+    }
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_nameRectGeometryID);
+        geometryCache->releaseID(_leftPointerGeometryID);
+        geometryCache->releaseID(_rightPointerGeometryID);
     }
 }
 
@@ -492,7 +504,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _leftPointerGeometryID);
             }
         }
 
@@ -516,7 +528,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _rightPointerGeometryID);
             }
         }
     }
@@ -782,7 +794,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
             DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
-                bevelDistance, backgroundColor);
+                bevelDistance, backgroundColor, _nameRectGeometryID);
         }
 
         // Render actual name
