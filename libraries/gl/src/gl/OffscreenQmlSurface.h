@@ -10,16 +10,16 @@
 #define hifi_OffscreenQmlSurface_h
 
 #include <atomic>
+#include <queue>
+#include <map>
 #include <functional>
 
 #include <QtCore/QJsonObject>
-#include <QTimer>
-#include <QUrl>
-
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
 
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
-#include "TextureRecycler.h"
 
 class QWindow;
 class QMyQuickRenderControl;
@@ -30,6 +30,11 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
+
+// GPU resources are typically buffered for one copy being used by the renderer, 
+// one copy in flight, and one copy being used by the receiver
+#define GPU_RESOURCE_BUFFER_SIZE 3
+
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
@@ -82,9 +87,8 @@ public:
     // when the texture is safe to read.
     // Returns false if no new texture is available
     bool fetchTexture(TextureAndFence& textureAndFence);
-    // Release a previously acquired texture, along with a fence which indicates when reads from the 
-    // texture have completed.
-    void releaseTexture(const TextureAndFence& textureAndFence);
+
+    static std::function<void(uint32_t, void*)> getDiscardLambda();
 
 signals:
     void focusObjectChanged(QObject* newFocus);
@@ -133,14 +137,10 @@ private:
     uint32_t _fbo { 0 };
     uint32_t _depthStencil { 0 };
     uint64_t _lastRenderTime { 0 };
-    uvec2 _size { 1920, 1080 };
-    TextureRecycler _textures { true };
+    uvec2 _size;
 
     // Texture management
-    std::mutex _textureMutex;
     TextureAndFence _latestTextureAndFence { 0, 0 };
-    std::list<TextureAndFence> _returnedTextures;
-
 
     bool _render { false };
     bool _polish { true };

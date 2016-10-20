@@ -287,6 +287,22 @@ Texture::Texture():
 Texture::~Texture()
 {
     _textureCPUCount--;
+    if (getUsage().isExternal()) {
+        Texture::ExternalUpdates externalUpdates;
+        {
+            Lock lock(_externalMutex);
+            _externalUpdates.swap(externalUpdates);
+        }
+        for (const auto& update : externalUpdates) {
+            assert(_externalRecycler);
+            _externalRecycler(update.first, update.second);
+        }
+        // Force the GL object to be destroyed here
+        // If we let the normal destructor do it, then it will be 
+        // cleared after the _externalRecycler has been destroyed, 
+        // resulting in leaked texture memory
+        gpuObject.setGPUObject(nullptr);
+    }
 }
 
 Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices) {
@@ -935,8 +951,20 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     return glm::max(dimensions, Vec3u(1));
 }
 
+void Texture::setExternalRecycler(const ExternalRecycler& recycler) { 
+    Lock lock(_externalMutex);
+    _externalRecycler = recycler;
+}
+
+Texture::ExternalRecycler Texture::getExternalRecycler() const {
+    Lock lock(_externalMutex);
+    Texture::ExternalRecycler result = _externalRecycler;
+    return result;
+}
+
 void Texture::setExternalTexture(uint32 externalId, void* externalFence) {
     Lock lock(_externalMutex);
+    assert(_externalRecycler);
     _externalUpdates.push_back({ externalId, externalFence });
 }
 

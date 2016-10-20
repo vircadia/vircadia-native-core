@@ -466,8 +466,8 @@ public:
     void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     void setExternalTexture(uint32 externalId, void* externalFence);
-    void setExternalRecycler(const ExternalRecycler& recycler) { _externalRecycler = recycler; }
-    ExternalRecycler getExternalRecycler() const { return _externalRecycler; }
+    void setExternalRecycler(const ExternalRecycler& recycler);
+    ExternalRecycler getExternalRecycler() const;
 
     const GPUObjectPointer gpuObject {};
 
