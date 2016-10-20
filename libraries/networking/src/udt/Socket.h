@@ -16,13 +16,14 @@
 
 #include <functional>
 #include <unordered_map>
+#include <mutex>
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
-#include "CongestionControl.h"
+#include "TCPVegasCC.h"
 #include "Connection.h"
 
 //#define UDT_CONNECTION_DEBUG
@@ -46,6 +47,10 @@ using MessageFailureHandler = std::function<void(HifiSockAddr, udt::Packet::Mess
 
 class Socket : public QObject {
     Q_OBJECT
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
 public:
     using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
     
@@ -121,7 +126,9 @@ private:
     MessageHandler _messageHandler;
     MessageFailureHandler _messageFailureHandler;
     ConnectionCreationFilterOperator _connectionCreationFilterOperator;
-    
+
+    Mutex _unreliableSequenceNumbersMutex;
+
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
@@ -130,8 +137,8 @@ private:
     QTimer* _synTimer { nullptr };
 
     int _maxBandwidth { -1 };
-    
-    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
+
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
     
     friend UDTTest;
 };

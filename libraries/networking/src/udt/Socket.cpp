@@ -118,8 +118,14 @@ qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const HifiSockAddr
 qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
 
+    SequenceNumber sequenceNumber;
+    {
+        Lock lock(_unreliableSequenceNumbersMutex);
+        sequenceNumber = ++_unreliableSequenceNumbers[sockAddr];
+    }
+
     // write the correct sequence number to the Packet here
-    packet.writeSequenceNumber(++_unreliableSequenceNumbers[sockAddr]);
+    packet.writeSequenceNumber(sequenceNumber);
 
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
@@ -289,6 +295,9 @@ void Socket::messageFailed(Connection* connection, Packet::MessageNumber message
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
     while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+        // grab a time point we can mark as the receive time of this packet
+        auto receiveTime = p_high_resolution_clock::now();
+        
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -311,6 +320,7 @@ void Socket::readPendingDatagrams() {
             // we have a registered unfiltered handler for this HifiSockAddr - call that and return
             if (it->second) {
                 auto basePacket = BasePacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+                basePacket->setReceiveTime(receiveTime);
                 it->second(std::move(basePacket));
             }
 
@@ -323,6 +333,7 @@ void Socket::readPendingDatagrams() {
         if (isControlPacket) {
             // setup a control packet from the data we just read
             auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+            controlPacket->setReceiveTime(receiveTime);
 
             // move this control packet to the matching connection, if there is one
             auto connection = findOrCreateConnection(senderSockAddr);
@@ -334,6 +345,7 @@ void Socket::readPendingDatagrams() {
         } else {
             // setup a Packet from the data we just read
             auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+            packet->setReceiveTime(receiveTime);
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {

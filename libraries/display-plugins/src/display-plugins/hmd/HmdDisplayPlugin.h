@@ -23,7 +23,6 @@
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
-    HmdDisplayPlugin();
     ~HmdDisplayPlugin();
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
@@ -79,6 +78,7 @@ protected:
 
     Transform _presentUiModelTransform;
     std::array<HandLaserInfo, 2> _presentHandLasers;
+    std::array<int, 2> _geometryIds;
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
 
@@ -156,6 +156,4 @@ private:
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
     } _overlayRenderer;
-
-    int _glowLineID { -1 };
 };
