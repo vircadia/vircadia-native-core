@@ -55,12 +55,12 @@ class OffscreenTextures {
 public:
     GLuint getNextTexture(const uvec2& size) {
         assert(QThread::currentThread() == qApp->thread());
-        assert(textures.count(size));
 
         recycle();
 
         ++_activeTextureCount;
         auto sizeKey = uvec2ToUint64(size);
+        assert(_textures.count(sizeKey));
         auto& textureSet = _textures[sizeKey];
         if (!textureSet.returnedTextures.empty()) {
             auto textureAndFence = textureSet.returnedTextures.front();
@@ -73,10 +73,9 @@ public:
     }
 
     void releaseSize(const uvec2& size) {
-        assert(QOpenGLContext::currentContext());
         assert(QThread::currentThread() == qApp->thread());
-        assert(textures.count(size));
         auto sizeKey = uvec2ToUint64(size);
+        assert(_textures.count(sizeKey));
         auto& textureSet = _textures[sizeKey];
         if (0 == --textureSet.count) {
             for (const auto& textureAndFence : textureSet.returnedTextures) {
@@ -88,7 +87,6 @@ public:
 
     void acquireSize(const uvec2& size) {
         assert(QThread::currentThread() == qApp->thread());
-        assert(textures.count(size));
         auto sizeKey = uvec2ToUint64(size);
         auto& textureSet = _textures[sizeKey];
         ++textureSet.count;
@@ -241,6 +239,7 @@ Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 void OffscreenQmlSurface::cleanup() {
     _canvas->makeCurrent();
 
+    _renderControl->invalidate();
     delete _renderControl; // and invalidate
 
     if (_depthStencil) {
