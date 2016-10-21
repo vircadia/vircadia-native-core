@@ -67,6 +67,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<ScriptCache>();
+    auto scriptEngines = DependencyManager::set<ScriptEngines>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -588,9 +589,10 @@ void Agent::aboutToFinish() {
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
     ResourceManager::cleanup();
-    
+
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
+    DependencyManager::destroy<ScriptEngines>();
 
     emit stopAvatarAudioTimer();
     _avatarAudioTimerThread.quit();
