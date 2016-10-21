@@ -9,6 +9,9 @@
 
 /* globals ControllerDisplayManager:true createControllerDisplay deleteControllerDisplay
    VIVE_CONTROLLER_CONFIGURATION_LEFT VIVE_CONTROLLER_CONFIGURATION_RIGHT */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
+
+(function () {
 
 Script.include("controllerDisplay.js");
 Script.include("viveControllerConfiguration.js");
@@ -35,7 +38,7 @@ ControllerDisplayManager = function() {
     };
 
     function updateControllers() {
-        if (HMD.active) {
+        if (HMD.active && HMD.shouldShowHandControllers()) {
             if ("Vive" in Controller.Hardware) {
                 if (!controllerLeft) {
                     controllerLeft = createControllerDisplay(VIVE_CONTROLLER_CONFIGURATION_LEFT);
@@ -139,12 +142,23 @@ ControllerDisplayManager = function() {
 
     this.destroy = function() {
         Messages.messageReceived.disconnect(handleMessages);
+
+        HMD.displayModeChanged.disconnect(updateControllers);
+        HMD.shouldShowHandControllersChanged.disconnect(updateControllers);
+
         self.deleteControllerDisplays();
     };
 
     HMD.displayModeChanged.connect(updateControllers);
+    HMD.shouldShowHandControllersChanged.connect(updateControllers);
 
     updateControllers();
 };
 
 var controllerDisplayManager = new ControllerDisplayManager();
+
+Script.scriptEnding.connect(function () {
+    controllerDisplayManager.destroy();
+});
+
+}());

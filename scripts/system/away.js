@@ -178,6 +178,8 @@ function goAway(fromStartup) {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
+    HMD.requestShowHandControllers();
+
     // remember the View > Overlays state...
     wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 
@@ -221,6 +223,8 @@ function goActive() {
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
+
+    HMD.requestHideHandControllers();
 
     // update the UI sphere to be centered about the current HMD orientation.
     HMD.centerUI();
