@@ -37,6 +37,7 @@
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
+#include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -1134,6 +1135,10 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     // at this point we should have a legitimate fully qualified URL for our parent
     url = expandScriptUrl(parentURL.resolved(url));
     return url;
+}
+
+QUrl ScriptEngine::resourcesPath() const {
+    return QUrl::fromLocalFile(PathUtils::resourcesPath());
 }
 
 void ScriptEngine::print(const QString& message) {
