@@ -58,6 +58,8 @@ var viveNaturalPosition = {
 };
 
 var BASE_URL = Script.resourcesPath();
+var TIP_TEXTURE_BASE_URL = BASE_URL + "meshes/controller/vive_tips.fbm/";
+
 var viveModelURL = BASE_URL + "meshes/controller/vive_body.fbx";
 var viveTipsModelURL = BASE_URL + "meshes/controller/vive_tips.fbx";
 
@@ -84,19 +86,19 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Blank.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "Blank.png"
                         },
                         trigger: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Trigger.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Trigger.png"
                         },
                         arrows: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Rotate.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Grip.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Grip.png"
                         },
                         teleport: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Teleport.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Teleport.png"
                         }
                     }
                 },
@@ -205,19 +207,19 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Blank.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Blank.png"
                         },
                         trigger: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Trigger.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Trigger.png"
                         },
                         arrows: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Rotate.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Grip.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Grip.png"
                         },
                         teleport: {
-                            defaultTextureURL: viveTipsModelURL + "meshes/Controller-Tips.fbm/Teleport.png"
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Teleport.png"
                         }
                     }
                 },
