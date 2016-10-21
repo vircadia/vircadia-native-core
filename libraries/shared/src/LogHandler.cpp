@@ -21,6 +21,8 @@
 
 #include "LogHandler.h"
 
+QMutex LogHandler::_mutex;
+
 LogHandler& LogHandler::getInstance() {
     static LogHandler staticInstance;
     return staticInstance;
@@ -63,8 +65,29 @@ const QString DATE_STRING_FORMAT = "MM/dd hh:mm:ss";
 // the following will produce 11/18 13:55:36.999
 const QString DATE_STRING_FORMAT_WITH_MILLISECONDS = "MM/dd hh:mm:ss.zzz";
 
+void LogHandler::setTargetName(const QString& targetName) {
+    QMutexLocker lock(&_mutex);
+    _targetName = targetName;
+}
+
+void LogHandler::setShouldOutputProcessID(bool shouldOutputProcessID) {
+    QMutexLocker lock(&_mutex);
+    _shouldOutputProcessID = shouldOutputProcessID;
+}
+
+void LogHandler::setShouldOutputThreadID(bool shouldOutputThreadID) {
+    QMutexLocker lock(&_mutex);
+    _shouldOutputThreadID = shouldOutputThreadID;
+}
+
+void LogHandler::setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) {
+    QMutexLocker lock(&_mutex);
+    _shouldDisplayMilliseconds = shouldDisplayMilliseconds;
+}
+
+
 void LogHandler::flushRepeatedMessages() {
-    QMutexLocker locker(&_repeatedMessageLock);
+    QMutexLocker lock(&_mutex);
     QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
     while (message != _repeatMessageCountHash.end()) {
 
@@ -73,7 +96,9 @@ void LogHandler::flushRepeatedMessages() {
             .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
 
             QMessageLogContext emptyContext;
+            lock.unlock();
             printMessage(LogSuppressed, emptyContext, repeatMessage);
+            lock.relock();
         }
 
         _lastRepeatedMessage.remove(message.key());
@@ -82,13 +107,13 @@ void LogHandler::flushRepeatedMessages() {
 }
 
 QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& context, const QString& message) {
+    QMutexLocker lock(&_mutex);
     if (message.isEmpty()) {
         return QString();
     }
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
-        QMutexLocker locker(&_repeatedMessageLock);
         foreach(const QString& regexString, getInstance()._repeatedMessageRegexes) {
             QRegExp repeatRegex(regexString);
             if (repeatRegex.indexIn(message) != -1) {
@@ -111,7 +136,6 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         }
     }
     if (type == LogDebug) {
-        QMutexLocker locker(&_onlyOnceMessageLock);
         // see if this message is one we should only print once
         foreach(const QString& regexString, getInstance()._onlyOnceMessageRegexes) {
             QRegExp onlyOnceRegex(regexString);
@@ -163,11 +187,11 @@ void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext&
 }
 
 const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
-    QMutexLocker locker(&_repeatedMessageLock);
+    QMutexLocker lock(&_mutex);
     return *_repeatedMessageRegexes.insert(regexString);
 }
 
 const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
-    QMutexLocker locker(&_onlyOnceMessageLock);
+    QMutexLocker lock(&_mutex);
     return *_onlyOnceMessageRegexes.insert(regexString);
 }
