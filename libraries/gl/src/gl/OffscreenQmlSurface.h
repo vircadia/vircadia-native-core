@@ -89,6 +89,7 @@ public:
     bool fetchTexture(TextureAndFence& textureAndFence);
 
     static std::function<void(uint32_t, void*)> getDiscardLambda();
+    static size_t getUsedTextureMemory();
 
 signals:
     void focusObjectChanged(QObject* newFocus);

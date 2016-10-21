@@ -89,6 +89,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, localLeaves, 0)
     STATS_PROPERTY(int, gpuBuffers, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
+    STATS_PROPERTY(int, qmlTextureMemory, 0)
 
 public:
     static Stats* getInstance();
@@ -176,6 +177,7 @@ signals:
     void timingStatsChanged();
     void gpuBuffersChanged();
     void gpuTexturesChanged();
+    void qmlTextureMemoryChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process

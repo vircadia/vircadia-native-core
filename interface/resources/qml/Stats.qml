@@ -259,6 +259,11 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
+                        text: "QML Texture Memory: " + root.qmlTextureMemory + " MB";
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
                         visible: root.expanded;
                         text: "Items rendered / considered: " +
                             root.itemRendered + " / " + root.itemConsidered;

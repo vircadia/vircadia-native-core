@@ -74,7 +74,8 @@ ENTITY_SPAWNER = function (properties) {
             for (; n > 0; --n) {
                 entities.push(makeEntity({
                     type: "Web",
-                    sourceUrl: "https://www.reddit.com/r/random/",
+                    //sourceUrl: "https://www.reddit.com/r/random/",
+                    sourceUrl: "https://en.wikipedia.org/wiki/Special:Random",
                     name: TEST_ENTITY_NAME,
                     position: randomPositionXZ(center, RADIUS),
                     rotation: MyAvatar.orientation,
