@@ -583,15 +583,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     
     bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
+    static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
+        sandboxIsRunning = true;
     }, [&, wantsSandboxRunning]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+            sandboxIsRunning = true;
         }
         determinedSandboxState = true;
     });
@@ -1328,7 +1331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        if(determinedSandboxState) {
+        if(sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
         } else {
@@ -1353,7 +1356,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                if(determinedSandboxState) {
+                if(sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
                 } else {
