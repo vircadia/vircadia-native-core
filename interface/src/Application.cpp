@@ -583,19 +583,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     
     bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
+    static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
+        sandboxIsRunning = true;
     }, [&, wantsSandboxRunning]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
-        determinedSandboxState = true;
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+            sandboxIsRunning = true;
         }
+        determinedSandboxState = true;
     });
 
+    // SandboxUtils::runLocalSandbox currently has 2 sec delay after spawning sandbox, so 4
+    // sec here is ok I guess.  TODO: ping sandbox so we know it is up, perhaps?
     quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
     auto startWaiting = usecTimestampNow();
     while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
@@ -1326,10 +1331,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        sandboxUtils.ifLocalSandboxRunningElse([=]() {
+        if(sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
-        }, [=]() {
+        } else {
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
                 showHelp();
@@ -1339,7 +1344,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             } else {
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
             }
-        });
+        }
     } else {
 
         bool isFirstRun = firstRun.get();
@@ -1351,13 +1356,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                sandboxUtils.ifLocalSandboxRunningElse([=]() {
+                if(sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                }, [=]() {
+                } else {
                     qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
-                });
+                }
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
             }
