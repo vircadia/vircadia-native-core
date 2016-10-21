@@ -15,9 +15,6 @@ var inTeleportMode = false;
 var SMOOTH_ARRIVAL_SPACING = 33;
 var NUMBER_OF_STEPS_FOR_TELEPORT = 6;
 
-var AVATAR_DRAG_SPACING = 33;
-var NUMBER_OF_STEPS_FOR_AVATAR_DRAG = 12;
-
 var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
 var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
 var TARGET_MODEL_DIMENSIONS = {
@@ -91,10 +88,7 @@ function Teleporter() {
     this.cancelOverlay = null;
     this.updateConnected = null;
     this.smoothArrivalInterval = null;
-    this.dragAvatarInterval = null;
-    this.oldAvatarCollisionsEnabled = MyAvatar.avatarCollisionsEnabled;
     this.teleportHand = null;
-    this.distance = 0.0;
     this.teleportMode = "HMDAndAvatarTogether";
     this.tooClose = false;
     this.inCoolIn = false;
@@ -135,10 +129,6 @@ function Teleporter() {
 
         if (this.smoothArrivalInterval !== null) {
             Script.clearInterval(this.smoothArrivalInterval);
-        }
-        if (this.dragAvatarInterval !== null) {
-            Script.clearInterval(this.dragAvatarInterval);
-            MyAvatar.avatarCollisionsEnabled = _this.oldAvatarCollisionsEnabled;
         }
         if (activationTimeout !== null) {
             Script.clearInterval(activationTimeout);
@@ -503,7 +493,6 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.distance = Vec3.distance(MyAvatar.position, position);
         this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
@@ -526,7 +515,6 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.distance = Vec3.distance(MyAvatar.position, position);
         this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
@@ -558,7 +546,7 @@ function Teleporter() {
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
             if (MyAvatar.hmdLeanRecenterEnabled) {
-                if (this.distance > MAX_HMD_AVATAR_SEPARATION) {
+                if (Vec3.distance(MyAvatar.position, _this.intersection.intersection) > MAX_HMD_AVATAR_SEPARATION) {
                     this.teleportMode = "HMDAndAvatarTogether";
                 } else {
                     this.teleportMode = "HMDFirstAvatarWillFollow";
