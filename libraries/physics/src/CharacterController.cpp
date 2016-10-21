@@ -524,7 +524,7 @@ void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
 }
 
 void CharacterController::preSimulation() {
-    if (_enabled && _dynamicsWorld) {
+    if (_enabled && _dynamicsWorld && _rigidBody) {
         quint64 now = usecTimestampNow();
 
         // slam body to where it is supposed to be
@@ -632,9 +632,10 @@ void CharacterController::preSimulation() {
 
 void CharacterController::postSimulation() {
     // postSimulation() exists for symmetry and just in case we need to do something here later
-
-    btVector3 velocity = _rigidBody->getLinearVelocity();
-    _velocityChange = velocity - _preSimulationVelocity;
+    if (_enabled && _dynamicsWorld && _rigidBody) {
+        btVector3 velocity = _rigidBody->getLinearVelocity();
+        _velocityChange = velocity - _preSimulationVelocity;
+    }
 }
 
 

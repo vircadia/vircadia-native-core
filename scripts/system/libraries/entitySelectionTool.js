@@ -16,6 +16,8 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
 
+Script.include("./controllers.js");
+
 function objectTranslationPlanePoint(position, dimensions) {
     var newPosition = { x: position.x, y: position.y, z: position.z };
     newPosition.y -= dimensions.y / 2.0;
@@ -1046,12 +1048,11 @@ SelectionDisplay = (function() {
     that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
     that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
     function controllerComputePickRay() {
-        var controllerPose = Controller.getPoseValue(activeHand);
+        var controllerPose = getControllerWorldLocation(activeHand, true);
         if (controllerPose.valid && that.triggered) {
-            var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
-                                              MyAvatar.position);
+            var controllerPosition = controllerPose.translation;
             // This gets point direction right, but if you want general quaternion it would be more complicated:
-            var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
+            var controllerDirection = Quat.getUp(controllerPose.rotation);
             return {origin: controllerPosition, direction: controllerDirection};
         }
     }

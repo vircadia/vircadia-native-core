@@ -28,8 +28,6 @@ class Stats : public QQuickItem {
     Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
     Q_PROPERTY(bool timingExpanded READ isTimingExpanded NOTIFY timingExpandedChanged)
     Q_PROPERTY(QString monospaceFont READ monospaceFont CONSTANT)
-    Q_PROPERTY(float audioPacketlossUpstream READ getAudioPacketLossUpstream)
-    Q_PROPERTY(float audioPacketlossDownstream READ getAudioPacketLossDownstream)
 
     STATS_PROPERTY(int, serverCount, 0)
     // How often the app is creating new gpu::Frames
@@ -101,9 +99,6 @@ public:
     const QString& monospaceFont() {
         return _monospaceFont;
     }
-
-    float getAudioPacketLossUpstream() { return _audioStats->getMixerAvatarStreamStats()._packetStreamStats.getLostRate(); }
-    float getAudioPacketLossDownstream() { return _audioStats->getMixerDownstreamStats()._packetStreamStats.getLostRate(); }
 
     void updateStats(bool force = false);
 

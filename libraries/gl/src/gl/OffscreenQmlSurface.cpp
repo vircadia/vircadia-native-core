@@ -8,9 +8,8 @@
 #include "OffscreenQmlSurface.h"
 #include "Config.h"
 
-#include <queue>
-#include <set>
-#include <map>
+#include <unordered_set>
+#include <unordered_map>
 
 #include <QtWidgets/QWidget>
 #include <QtQml/QtQml>
@@ -37,9 +36,148 @@
 #include "OffscreenGLCanvas.h"
 #include "GLHelpers.h"
 #include "GLLogging.h"
-#include "TextureRecycler.h"
 #include "Context.h"
 
+struct TextureSet {
+    // The number of surfaces with this size
+    size_t count { 0 };
+    std::list<OffscreenQmlSurface::TextureAndFence> returnedTextures;
+};
+
+uint64_t uvec2ToUint64(const uvec2& v) {
+    uint64_t result = v.x;
+    result <<= 32;
+    result |= v.y;
+    return result;
+}
+
+class OffscreenTextures {
+public:
+    GLuint getNextTexture(const uvec2& size) {
+        assert(QThread::currentThread() == qApp->thread());
+
+        recycle();
+
+        ++_activeTextureCount;
+        auto sizeKey = uvec2ToUint64(size);
+        assert(_textures.count(sizeKey));
+        auto& textureSet = _textures[sizeKey];
+        if (!textureSet.returnedTextures.empty()) {
+            auto textureAndFence = textureSet.returnedTextures.front();
+            textureSet.returnedTextures.pop_front();
+            waitOnFence(static_cast<GLsync>(textureAndFence.second));
+            return textureAndFence.first;
+        }
+
+        return createTexture(size);
+    }
+
+    void releaseSize(const uvec2& size) {
+        assert(QThread::currentThread() == qApp->thread());
+        auto sizeKey = uvec2ToUint64(size);
+        assert(_textures.count(sizeKey));
+        auto& textureSet = _textures[sizeKey];
+        if (0 == --textureSet.count) {
+            for (const auto& textureAndFence : textureSet.returnedTextures) {
+                destroy(textureAndFence);
+            }
+            _textures.erase(sizeKey);
+        }
+    }
+
+    void acquireSize(const uvec2& size) {
+        assert(QThread::currentThread() == qApp->thread());
+        auto sizeKey = uvec2ToUint64(size);
+        auto& textureSet = _textures[sizeKey];
+        ++textureSet.count;
+    }
+
+    // May be called on any thread
+    void releaseTexture(const OffscreenQmlSurface::TextureAndFence & textureAndFence) {
+        --_activeTextureCount;
+        Lock lock(_mutex);
+        _returnedTextures.push_back(textureAndFence);
+    }
+
+    void report() {
+        uint64_t now = usecTimestampNow();
+        if ((now - _lastReport) > USECS_PER_SECOND * 5) {
+            _lastReport = now;
+            qCDebug(glLogging) << "Current offscreen texture count " << _allTextureCount;
+            qCDebug(glLogging) << "Current offscreen active texture count " << _activeTextureCount;
+        }
+    }
+
+private:
+    static void waitOnFence(GLsync fence) {
+        glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+        glDeleteSync(fence);
+    }
+
+    void destroyTexture(GLuint texture) {
+        --_allTextureCount;
+        _textureSizes.erase(texture);
+        glDeleteTextures(1, &texture);
+    }
+
+    void destroy(const OffscreenQmlSurface::TextureAndFence& textureAndFence) {
+        waitOnFence(static_cast<GLsync>(textureAndFence.second));
+        destroyTexture(textureAndFence.first);
+    }
+
+    GLuint createTexture(const uvec2& size) {
+        // Need a new texture
+        uint32_t newTexture;
+        glGenTextures(1, &newTexture);
+        ++_allTextureCount;
+        _textureSizes[newTexture] = size;
+        glBindTexture(GL_TEXTURE_2D, newTexture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        return newTexture;
+    }
+
+    void recycle() {
+        assert(QThread::currentThread() == qApp->thread());
+        // First handle any global returns
+        std::list<OffscreenQmlSurface::TextureAndFence> returnedTextures;
+        {
+            Lock lock(_mutex);
+            returnedTextures.swap(_returnedTextures);
+        }
+
+        for (auto textureAndFence : returnedTextures) {
+            GLuint texture = textureAndFence.first;
+            uvec2 size = _textureSizes[texture];
+            auto sizeKey = uvec2ToUint64(size);
+            // Textures can be returned after all surfaces of the given size have been destroyed, 
+            // in which case we just destroy the texture
+            if (!_textures.count(sizeKey)) {
+                destroy(textureAndFence);
+                continue;
+            }
+            _textures[sizeKey].returnedTextures.push_back(textureAndFence);
+        }
+    }
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+    std::atomic<int> _allTextureCount;
+    std::atomic<int> _activeTextureCount;
+    std::unordered_map<uint64_t, TextureSet> _textures;
+    std::unordered_map<GLuint, uvec2> _textureSizes;
+    Mutex _mutex;
+    std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
+    uint64_t _lastReport { 0 };
+} offscreenTextures;
 
 class UrlHandler : public QObject {
     Q_OBJECT
@@ -98,31 +236,10 @@ QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 
-void OffscreenQmlSurface::setupFbo() {
-    _canvas->makeCurrent();
-    _textures.setSize(_size);
-    if (_depthStencil) {
-        glDeleteRenderbuffers(1, &_depthStencil);
-        _depthStencil = 0;
-    }
-    glGenRenderbuffers(1, &_depthStencil);
-    glBindRenderbuffer(GL_RENDERBUFFER, _depthStencil);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _size.x, _size.y);
-
-    if (_fbo) {
-        glDeleteFramebuffers(1, &_fbo);
-        _fbo = 0;
-    }
-    glGenFramebuffers(1, &_fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    _canvas->doneCurrent();
-}
-
 void OffscreenQmlSurface::cleanup() {
     _canvas->makeCurrent();
 
+    _renderControl->invalidate();
     delete _renderControl; // and invalidate
 
     if (_depthStencil) {
@@ -134,7 +251,8 @@ void OffscreenQmlSurface::cleanup() {
         _fbo = 0;
     }
 
-    _textures.clear();
+    offscreenTextures.releaseSize(_size);
+
     _canvas->doneCurrent();
 }
 
@@ -148,26 +266,7 @@ void OffscreenQmlSurface::render() {
     _renderControl->sync();
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
-    // Clear out any pending textures to be returned
-    {
-        std::list<OffscreenQmlSurface::TextureAndFence> returnedTextures;
-        {
-            std::unique_lock<std::mutex> lock(_textureMutex);
-            returnedTextures.swap(_returnedTextures);
-        }
-        if (!returnedTextures.empty()) {
-            for (const auto& textureAndFence : returnedTextures) {
-                GLsync fence = static_cast<GLsync>(textureAndFence.second);
-                if (fence) {
-                    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
-                    glDeleteSync(fence);
-                }
-                _textures.recycleTexture(textureAndFence.first);
-            }
-        }
-    }
-
-    GLuint texture = _textures.getNextTexture();
+    GLuint texture = offscreenTextures.getNextTexture(_size);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     PROFILE_RANGE("qml_render->rendercontrol")
@@ -177,12 +276,11 @@ void OffscreenQmlSurface::render() {
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+
     {
-        std::unique_lock<std::mutex> lock(_textureMutex);
         // If the most recent texture was unused, we can directly recycle it
         if (_latestTextureAndFence.first) {
-            _textures.recycleTexture(_latestTextureAndFence.first);
-            glDeleteSync(static_cast<GLsync>(_latestTextureAndFence.second));
+            offscreenTextures.releaseTexture(_latestTextureAndFence);
             _latestTextureAndFence = { 0, 0 };
         }
 
@@ -199,7 +297,6 @@ void OffscreenQmlSurface::render() {
 bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
     textureAndFence = { 0, 0 };
 
-    std::unique_lock<std::mutex> lock(_textureMutex);
     if (0 == _latestTextureAndFence.first) {
         return false;
     }
@@ -210,20 +307,18 @@ bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
     return true;
 }
 
-void OffscreenQmlSurface::releaseTexture(const TextureAndFence& textureAndFence) {
-    std::unique_lock<std::mutex> lock(_textureMutex);
-    _returnedTextures.push_back(textureAndFence);
+std::function<void(uint32_t, void*)> OffscreenQmlSurface::getDiscardLambda() {
+    return [](uint32_t texture, void* fence) {
+        offscreenTextures.releaseTexture({ texture, static_cast<GLsync>(fence) });
+    };
 }
 
 bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
     // If we already have a pending texture, don't render another one 
     // i.e. don't render faster than the consumer context, since it wastes 
     // GPU cycles on producing output that will never be seen
-    {
-        std::unique_lock<std::mutex> lock(_textureMutex);
-        if (0 != _latestTextureAndFence.first) {
-            return false;
-        }
+    if (0 != _latestTextureAndFence.first) {
+        return false;
     }
 
     auto minRenderInterval = USECS_PER_SECOND / fps;
@@ -307,7 +402,6 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     }
     _glData = ::getGLContextData();
     _renderControl->initialize(_canvas->getContext());
-    setupFbo();
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
@@ -367,9 +461,40 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
     }
 
     qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
+
+    _canvas->makeCurrent();
+
+    // Release hold on the textures of the old size
+    if (uvec2() != _size) {
+        // If the most recent texture was unused, we can directly recycle it
+        if (_latestTextureAndFence.first) {
+            offscreenTextures.releaseTexture(_latestTextureAndFence);
+            _latestTextureAndFence = { 0, 0 };
+        }
+        offscreenTextures.releaseSize(_size);
+    }
+
     _size = newOffscreenSize;
-    _textures.setSize(_size);
-    setupFbo();
+
+    // Acquire the new texture size
+    if (uvec2() != _size) {
+        offscreenTextures.acquireSize(_size);
+        if (_depthStencil) {
+            glDeleteRenderbuffers(1, &_depthStencil);
+            _depthStencil = 0;
+        }
+        glGenRenderbuffers(1, &_depthStencil);
+        glBindRenderbuffer(GL_RENDERBUFFER, _depthStencil);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _size.x, _size.y);
+        if (!_fbo) {
+            glGenFramebuffers(1, &_fbo);
+        }
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencil);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
+    _canvas->doneCurrent();
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {
@@ -421,7 +546,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
         javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
     } else {
-        qWarning() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
+        qCWarning(glLogging) << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
     QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
@@ -429,7 +554,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
         foreach(const QQmlError& error, errorList)
-            qWarning() << error.url() << error.line() << error;
+            qCWarning(glLogging) << error.url() << error.line() << error;
         if (!_rootItem) {
             qFatal("Unable to finish loading QML root");
         }
@@ -474,6 +599,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
+    offscreenTextures.report();
     // If we're
     //   a) not set up
     //   b) already rendering a frame

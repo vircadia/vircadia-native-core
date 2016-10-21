@@ -98,9 +98,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
 
     if (!_uiTexture) {
-        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D([](uint32_t recycleTexture, void* recycleFence){
-            DependencyManager::get<OffscreenUi>()->releaseTexture({ recycleTexture, recycleFence });
-        }));
+        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _uiTexture->setSource(__FUNCTION__);
     }
     // Once we move UI rendering and screen rendering to different
