@@ -3968,8 +3968,6 @@ void Application::update(float deltaTime) {
                 auto collisionEvents = _physicsEngine->getCollisionEvents();
                 avatarManager->handleCollisionEvents(collisionEvents);
 
-                _physicsEngine->dumpStatsIfNecessary();
-
                 if (!_aboutToQuit) {
                     PerformanceTimer perfTimer("entities");
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
@@ -3982,6 +3980,13 @@ void Application::update(float deltaTime) {
                 }
 
                 myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+
+                if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                        Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
+                    _physicsEngine->harvestPerformanceStats();
+                }
+                // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
+                _physicsEngine->dumpStatsIfNecessary();
             }
         }
     }
