@@ -31,7 +31,6 @@
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
 #include <ResourceScriptingInterface.h>
-#include <ScriptEngines.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentActionFactory.h"

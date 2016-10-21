@@ -28,6 +28,7 @@
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
+#include <ScriptEngines.h>
 #include <UUID.h>
 
 #include <recording/Deck.h>
@@ -67,7 +68,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<ScriptCache>();
-    auto scriptEngines = DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<ScriptEngines>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
