@@ -49,6 +49,8 @@ Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
+
+
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
         // member variables, since they would implicitly refer to a this that
@@ -111,9 +113,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D([webSurface](uint32_t recycleTexture, void* recycleFence) {
-            webSurface->releaseTexture({ recycleTexture, recycleFence });
-        }));
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
