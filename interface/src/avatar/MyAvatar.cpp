@@ -1924,7 +1924,11 @@ void MyAvatar::updatePosition(float deltaTime) {
             worldVelocity += THRUST_DAMPING_FACTOR * _thrust;
 
             if (glm::length2(worldVelocity) > FLT_EPSILON) {
-                applyVelocityToSensorToWorldMatrix(worldVelocity, deltaTime);
+                glm::mat4 worldBodyMatrix = _sensorToWorldMatrix * _bodySensorMatrix;
+                glm::vec3 position = extractTranslation(worldBodyMatrix);
+                glm::vec3 step = deltaTime * worldVelocity;
+                glm::vec3 newVelocity = _characterController.computeHMDStep(position, step) / deltaTime;
+                applyVelocityToSensorToWorldMatrix(newVelocity, deltaTime);
             }
         }
     }

@@ -224,7 +224,6 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
         // backwards
         rotation = btMatrix3x3(btQuaternion(_currentUp, PI)) * rotation;
     }
-
     // scan the top
     // NOTE: if we scan an extra distance forward we can detect flat surfaces that are too steep to walk on.
     // The approximate extra distance can be derived with trigonometry.
@@ -244,99 +243,101 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
         forwardSlop = 0.0f;
     }
 
-    // we push the step forward by stepMargin to help reduce accidental overlap
-    btScalar stepMargin = 0.04f;
+    // we push the step forward by stepMargin to help reduce accidental penetration
+    btScalar stepMargin = glm::max(_radius, 0.4f);
     btScalar expandedStepLength = stepLength + forwardSlop + stepMargin;
+    bool slideOnWalls = false; // HACK: hard coded for now, maybe we'll make it optional
 
     // loop
     CharacterRayResult rayResult(&_ghost);
-    CharacterRayResult closestRayResult(&_ghost);
     btVector3 rayStart;
     btVector3 rayEnd;
-    btVector3 overlap = btVector3(0.0f, 0.0f, 0.0f);
-    int32_t numOverlaps = 0;
+    btVector3 penetration = btVector3(0.0f, 0.0f, 0.0f);
+    btVector3 rescuePenetration = penetration;
+    int32_t numPenetrations = 0;
+    btScalar closestHitFraction = 1.0f;
     bool walkable = true;
     for (int32_t i = 0; i < _topPoints.size(); ++i) {
         rayStart = newPosition + rotation * _topPoints[i];
         rayEnd = rayStart + expandedStepLength * stepDirection;
         rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
         if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
-            // track closest hit
-            if (rayResult.m_closestHitFraction < closestRayResult.m_closestHitFraction) {
-                closestRayResult = rayResult;
-            }
             // check if walkable
             if (walkable) {
                 if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
                     walkable = false;
                 }
             }
-            // sum any overlap
-            btScalar distanceToPlane = -rayResult.m_closestHitFraction * stepLength * stepDirection.dot(rayResult.m_hitNormalWorld);
-            if (distanceToPlane < stepMargin) {
-                overlap += (stepMargin - distanceToPlane) * rayResult.m_hitNormalWorld;
-                ++numOverlaps;
+            btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
+            if (adjustedHitFraction < 1.0f) {
+                if (slideOnWalls) {
+                    // sum penetration
+                    btScalar depth = ((1.0f - adjustedHitFraction) * stepLength) * stepDirection.dot(rayResult.m_hitNormalWorld);
+                    penetration -= depth * rayResult.m_hitNormalWorld;
+                    ++numPenetrations;
+                } else if (adjustedHitFraction < 0.0f) {
+                    // evidence suggests we need to back out of penetration however there is a
+                    // literal corner case where backing out may put us in deeper penetration,
+                    // so we check for it by casting another ray straight out from center
+                    rayEnd = rayStart;
+                    rayStart = rayStart.dot(_currentUp) * _currentUp;
+                    btVector3 segment = rayEnd - rayStart;
+                    btScalar radius = segment.length();
+                    if (radius > FLT_EPSILON) {
+                        rayEnd += (stepMargin / radius) * segment;
+                        CharacterRayResult checkResult(&_ghost);
+                        if (_ghost.rayTest(rayStart, rayEnd, checkResult)) {
+                            if (checkResult.m_hitNormalWorld.dot(stepDirection) > 0.0f) {
+                                // the second test says backing out would be a bad idea
+                                continue;
+                            }
+                        }
+                    }
+                }
+                if (adjustedHitFraction < closestHitFraction) {
+                    closestHitFraction = adjustedHitFraction;
+                    const btScalar STEEP_ENOUGH_TO_BACK_OUT = -0.3f;
+                    if (adjustedHitFraction < 0.0f && stepDirection.dot(rayResult.m_hitNormalWorld) < STEEP_ENOUGH_TO_BACK_OUT) {
+                        closestHitFraction = 0.0f;
+                    }
+                }
             }
         }
     }
-    // remove expansion from the closestHitFraction
-    btScalar closestHitFraction = glm::min(1.0f, (closestRayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength);
 
-    /*
-    // scan the bottom
-    closestRayResult.m_closestHitFraction = 1.0f; // reset closestRayResult for next barrage
-    btScalar stepHeight = _minStepHeight;
-    for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
-        rayStart = newPosition + rotation * _bottomPoints[i];
-        rayEnd = rayStart + (stepLength + stepMargin) * stepDirection;
-        rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
-        if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
-            // track closest hit
-            if (rayResult.m_closestHitFraction < closestRayResult.m_closestHitFraction) {
-                closestRayResult = rayResult;
-            }
-            // sum any overlap
-            btScalar distanceToPlane = -rayResult.m_closestHitFraction * stepDirection * stepDirection.dot(rayResult.m_hitNormalWorld);
-            if (distanceToPlane < stepMargin) {
-                overlap += (stepMargin - distanceToPlane) * rayResult.m_hitNormalWorld;
-                ++numOverlaps;
+    /* TODO: implement sliding along sloped floors
+    bool steppingUp = false;
+    if (walkable && closestHitFraction > 0.0f) {
+        // scan the bottom
+        for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
+            rayStart = newPosition + rotation * _bottomPoints[i];
+            rayEnd = rayStart + (stepLength + stepMargin) * stepDirection;
+            rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+            if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+                btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
+                if (adjustedHitFraction < 1.0f) {
+                    steppingUp = true;
+                    break;
+                }
             }
         }
-    }
-    btScalar adjustedHitFraction = (closestRayResult.m_closestHitFraction * (stepLength - stepMargin) - stepMargin) / stepLength;
-    if (adjustedHitFraction < closestHitFraction) {
-        closestHitFraction = adjustedHitFraction;
     }
     */
 
-    // compute the final step
-    btVector3 finalStep = (closestHitFraction * stepLength) * stepDirection;
-    if (numOverlaps > 0) {
-        // we have two independent measures of displacement: finalStep and overlap
-        if (numOverlaps > 1) {
-            overlap /= (btScalar)numOverlaps;
+    btVector3 finalStep = stepLength * stepDirection;
+    if (slideOnWalls) {
+        if (numPenetrations > 1) {
+            penetration /= (btScalar)numPenetrations;
         }
-
-        // reconcile distinct displacements as follows:
-        // add components that point in opposite directions, otherwise take the component with largest absolute value
-        btVector3 product = finalStep;
-        product *= overlap; // component-wise multiplication --> negative components point in opposite directions
-        if (product.getX() < 0.0f) {
-            finalStep.setX(finalStep.getX() + overlap.getX());
-        } else if (fabsf(overlap.getX()) > fabsf(finalStep.getX())) {
-            finalStep.setX(overlap.getX());
-        }
-        if (product.getY() < 0.0f) {
-            finalStep.setY(finalStep.getY() + overlap.getY());
-        } else if (fabsf(overlap.getY()) > fabsf(finalStep.getY())) {
-            finalStep.setY(overlap.getY());
-        }
-        if (product.getZ() < 0.0f) {
-            finalStep.setZ(finalStep.getZ() + overlap.getZ());
-        } else if (fabsf(overlap.getZ()) > fabsf(finalStep.getZ())) {
-            finalStep.setZ(overlap.getZ());
-        }
+        finalStep += penetration;
+    } else {
+        finalStep *= closestHitFraction;
     }
+    /* TODO: implement sliding along sloped floors
+    if (steppingUp) {
+        finalStep += stepLength * _currentUp;
+    }
+    */
 
     return bulletToGLM(finalStep);
 } // foo
