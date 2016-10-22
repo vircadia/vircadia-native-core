@@ -30,7 +30,7 @@ public:
     static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
 
     template <typename GLTextureType>
-    static GLTextureType* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
+    static GLTexture* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
         const Texture& texture = *texturePointer;
 
         // Special case external textures
@@ -74,7 +74,7 @@ public:
         }
 
         // If the object hasn't been created, or the object definition is out of date, drop and re-create
-        GLTextureType* object = Backend::getGPUObject<GLTextureType>(texture);
+        GLTexture* object = Backend::getGPUObject<GLTextureType>(texture);
 
         // Create the texture if need be (force re-creation if the storage stamp changes
         // for easier use of immutable storage)
@@ -84,6 +84,7 @@ public:
             if (!object->_transferrable) {
                 object->createTexture();
                 object->_contentStamp = texture.getDataStamp();
+                object->updateSize();
                 object->postTransfer();
             }
         }
@@ -119,7 +120,7 @@ public:
         if (!texture) {
             return 0;
         }
-        GLTextureType* object { nullptr };
+        GLTexture* object { nullptr };
         if (shouldSync) {
             object = sync<GLTextureType>(backend, texture, shouldSync);
         } else {

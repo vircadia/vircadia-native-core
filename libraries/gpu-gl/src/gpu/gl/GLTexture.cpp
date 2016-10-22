@@ -205,6 +205,8 @@ GLTexture::~GLTexture() {
                 qWarning() << "No recycler available for texture " << _id << " possible leak";
             }
         } else if (_id) {
+            // WARNING!  Sparse textures do not use this code path.  See GL45BackendTexture for 
+            // the GL45Texture destructor for doing any required work tracking GPU stats
             backend->releaseTexture(_id, _size);
         }
     }
@@ -275,7 +277,7 @@ void GLTexture::postTransfer() {
     setSyncState(GLSyncState::Idle);
     ++_transferCount;
 
-    // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
+    // At this point the mip pixels have been loaded, we can notify the g   pu texture to abandon it's memory
     switch (_gpuObject.getType()) {
         case Texture::TEX_2D:
             for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {

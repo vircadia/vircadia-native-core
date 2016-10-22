@@ -89,7 +89,12 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, localLeaves, 0)
     STATS_PROPERTY(int, gpuBuffers, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
+    STATS_PROPERTY(int, gpuTexturesSparse, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
+    STATS_PROPERTY(int, gpuTextureMemory, 0)
+    STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
+    STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
 
 public:
     static Stats* getInstance();
@@ -175,9 +180,14 @@ signals:
     void localInternalChanged();
     void localLeavesChanged();
     void timingStatsChanged();
+    void qmlTextureMemoryChanged();
     void gpuBuffersChanged();
     void gpuTexturesChanged();
-    void qmlTextureMemoryChanged();
+    void gpuTexturesSparseChanged();
+    void gpuTextureMemoryChanged();
+    void gpuTextureVirtualMemoryChanged();
+    void gpuTextureSparseMemoryChanged();
+    void gpuSparseTextureEnabledChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process

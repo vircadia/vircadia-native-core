@@ -167,9 +167,11 @@ std::atomic<uint32_t> Context::_bufferGPUCount { 0 };
 std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage { 0 };
 
 std::atomic<uint32_t> Context::_textureGPUCount{ 0 };
-std::atomic<Texture::Size> Context::_textureGPUMemoryUsage{ 0 };
+std::atomic<uint32_t> Context::_textureGPUSparseCount { 0 };
+std::atomic<Texture::Size> Context::_textureGPUMemoryUsage { 0 };
 std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage{ 0 };
-std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
+std::atomic<Texture::Size> Context::_textureGPUSparseMemoryUsage { 0 };
+std::atomic<uint32_t> Context::_textureGPUTransferCount { 0 };
 
 void Context::incrementBufferGPUCount() {
     static std::atomic<uint32_t> max { 0 };
@@ -217,6 +219,18 @@ void Context::decrementTextureGPUCount() {
     --_textureGPUCount;
 }
 
+void Context::incrementTextureGPUSparseCount() {
+    static std::atomic<uint32_t> max { 0 };
+    auto total = ++_textureGPUSparseCount;
+    if (total > max.load()) {
+        max = total;
+        qCDebug(gpulogging) << "New max GPU textures " << total;
+    }
+}
+void Context::decrementTextureGPUSparseCount() {
+    --_textureGPUSparseCount;
+}
+
 void Context::updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
@@ -236,6 +250,17 @@ void Context::updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newOb
         _textureGPUVirtualMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
     } else {
         _textureGPUVirtualMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    }
+}
+
+void Context::updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (newObjectSize > prevObjectSize) {
+        _textureGPUSparseMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    } else {
+        _textureGPUSparseMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
     }
 }
 
@@ -263,12 +288,20 @@ uint32_t Context::getTextureGPUCount() {
     return _textureGPUCount.load();
 }
 
+uint32_t Context::getTextureGPUSparseCount() {
+    return _textureGPUSparseCount.load();
+}
+
 Context::Size Context::getTextureGPUMemoryUsage() {
     return _textureGPUMemoryUsage.load();
 }
 
 Context::Size Context::getTextureGPUVirtualMemoryUsage() {
     return _textureGPUVirtualMemoryUsage.load();
+}
+
+Context::Size Context::getTextureGPUSparseMemoryUsage() {
+    return _textureGPUSparseMemoryUsage.load();
 }
 
 uint32_t Context::getTextureGPUTransferCount() {
@@ -280,7 +313,10 @@ void Backend::decrementBufferGPUCount() { Context::decrementBufferGPUCount(); }
 void Backend::updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateBufferGPUMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUCount() { Context::incrementTextureGPUCount(); }
 void Backend::decrementTextureGPUCount() { Context::decrementTextureGPUCount(); }
+void Backend::incrementTextureGPUSparseCount() { Context::incrementTextureGPUSparseCount(); }
+void Backend::decrementTextureGPUSparseCount() { Context::decrementTextureGPUSparseCount(); }
 void Backend::updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUVirtualMemoryUsage(prevObjectSize, newObjectSize); }
+void Backend::updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUSparseMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::incrementTextureGPUTransferCount() { Context::incrementTextureGPUTransferCount(); }
 void Backend::decrementTextureGPUTransferCount() { Context::decrementTextureGPUTransferCount(); }
