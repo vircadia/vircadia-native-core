@@ -116,11 +116,8 @@ private:
     }
 
     static size_t getMemoryForSize(const uvec2& size) {
-        // Base size
-        size_t result = ((size.x * size.y) << 2);
-        // Accounting for mips
-        result += (result >> 1);
-        return result;
+        // Base size + mips
+        return static_cast<size_t>(((size.x * size.y) << 2) * 1.33f);
     }
 
     void destroyTexture(GLuint texture) {
