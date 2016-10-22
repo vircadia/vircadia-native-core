@@ -585,6 +585,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     static bool determinedSandboxState = false;
     static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
+    // updateHeartbeat() because we are going to poll shortly...
+    updateHeartbeat();
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
@@ -605,6 +607,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto startWaiting = usecTimestampNow();
     while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
         QCoreApplication::processEvents();
+        // updateHeartbeat() while polling so we don't scare the deadlock watchdog
+        updateHeartbeat();
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
 
