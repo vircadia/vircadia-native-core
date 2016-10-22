@@ -108,14 +108,23 @@ public:
         }
     }
 
+    size_t getUsedTextureMemory() { return _totalTextureUsage; }
 private:
     static void waitOnFence(GLsync fence) {
         glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(fence);
     }
 
+    static size_t getMemoryForSize(const uvec2& size) {
+        // Base size + mips
+        return static_cast<size_t>(((size.x * size.y) << 2) * 1.33f);
+    }
+
     void destroyTexture(GLuint texture) {
         --_allTextureCount;
+        auto size = _textureSizes[texture];
+        assert(getMemoryForSize(size) < _totalTextureUsage);
+        _totalTextureUsage -= getMemoryForSize(size);
         _textureSizes.erase(texture);
         glDeleteTextures(1, &texture);
     }
@@ -131,6 +140,7 @@ private:
         glGenTextures(1, &newTexture);
         ++_allTextureCount;
         _textureSizes[newTexture] = size;
+        _totalTextureUsage += getMemoryForSize(size);
         glBindTexture(GL_TEXTURE_2D, newTexture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -177,6 +187,7 @@ private:
     Mutex _mutex;
     std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
     uint64_t _lastReport { 0 };
+    size_t _totalTextureUsage { 0 };
 } offscreenTextures;
 
 class UrlHandler : public QObject {
@@ -216,6 +227,10 @@ private:
     friend class OffscreenQmlRenderThread;
     friend class OffscreenQmlSurface;
 };
+
+size_t OffscreenQmlSurface::getUsedTextureMemory() {
+    return offscreenTextures.getUsedTextureMemory();
+}
 
 class QmlNetworkAccessManager : public NetworkAccessManager {
 public:

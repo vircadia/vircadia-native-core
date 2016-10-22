@@ -287,6 +287,7 @@ void Stats::updateStats(bool force) {
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+    STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
 
     // Incoming packets
     QLocale locale(QLocale::English);
