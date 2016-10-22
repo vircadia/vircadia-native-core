@@ -1,26 +1,45 @@
-var VISIBLE_BY_DEFAULT = false;
+//
+//  controllerDisplay.js
+//
+//  Created by Anthony J. Thibault on 10/20/16
+//  Originally created by Ryan Huffman on 9/21/2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+/* globals createControllerDisplay:true deleteControllerDisplay:true */
+
 var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
 
-var DEBUG = false;
-function debug() {
-    if (DEBUG) {
-        print.apply(self, arguments);
+function clamp(value, min, max) {
+    if (value < min) {
+        return min;
+    } else if (value > max) {
+        return max;
     }
+    return value;
+}
+
+function resolveHardware(path) {
+    var parts = path.split(".");
+    function resolveInner(base, path, i) {
+        if (i >= path.length) {
+            return base;
+        }
+        return resolveInner(base[path[i]], path, ++i);
+    }
+    return resolveInner(Controller.Hardware, parts, 0);
 }
 
 createControllerDisplay = function(config) {
     var controllerDisplay = {
         overlays: [],
-        partOverlays: {
-        },
-        parts: {
-        },
+        partOverlays: {},
+        parts: {},
         mappingName: "mapping-display",
 
         setVisible: function(visible) {
-            print("CONTROLLER_DISPLAY::Setting visible", this.overlays.length);
             for (var i = 0; i < this.overlays.length; ++i) {
-                print("i", i, this.overlays[i]);
                 Overlays.editOverlay(this.overlays[i], {
                     visible: visible
                 });
@@ -30,7 +49,6 @@ createControllerDisplay = function(config) {
         setPartVisible: function(partName, visible) {
             return;
             if (partName in this.partOverlays) {
-                debug("Setting part visible", partName, visible);
                 for (var i = 0; i < this.partOverlays[partName].length; ++i) {
                     Overlays.editOverlay(this.partOverlays[partName][i], {
                         //visible: visible
@@ -41,7 +59,6 @@ createControllerDisplay = function(config) {
 
         setLayerForPart: function(partName, layerName) {
             if (partName in this.parts) {
-                debug("Setting layer...", partName, layerName);
                 var part = this.parts[partName];
                 if (part.textureLayers && layerName in part.textureLayers) {
                     var layer = part.textureLayers[layerName];
@@ -50,6 +67,9 @@ createControllerDisplay = function(config) {
                         textures[part.textureName] = layer.defaultTextureURL;
                     }
                     for (var i = 0; i < this.partOverlays[partName].length; ++i) {
+
+                        // AJT: REMOVE
+                        print("AJT: Overlays.editOverlays(" + partName + ", " + i + ", { textures: " + JSON.stringify(textures) + " })");
                         Overlays.editOverlay(this.partOverlays[partName][i], {
                             textures: textures
                         });
@@ -64,8 +84,7 @@ createControllerDisplay = function(config) {
         var position = controller.position;
 
         if (controller.naturalPosition) {
-            position = Vec3.sum(Vec3.multiplyQbyV(
-                        controller.rotation, controller.naturalPosition), position);
+            position = Vec3.sum(Vec3.multiplyQbyV(controller.rotation, controller.naturalPosition), position);
         }
 
         var overlayID = Overlays.addOverlay("model", {
@@ -75,26 +94,17 @@ createControllerDisplay = function(config) {
             localPosition: position,
             parentID: PARENT_ID,
             parentJointIndex: controller.jointIndex,
-            ignoreRayIntersection: true,
+            ignoreRayIntersection: true
         });
 
         controllerDisplay.overlays.push(overlayID);
         overlayID = null;
 
-        function clamp(value, min, max) {
-            if (value < min) {
-                return min;
-            } else if (value > max) {
-                return max
-            }
-            return value;
-        }
-
         if (controller.parts) {
             for (var partName in controller.parts) {
                 var part = controller.parts[partName];
                 var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
-                var innerRotation = controller.rotation
+                var innerRotation = controller.rotation;
 
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
@@ -104,7 +114,7 @@ createControllerDisplay = function(config) {
                     localRotation: innerRotation,
                     parentID: PARENT_ID,
                     parentJointIndex: controller.jointIndex,
-                    ignoreRayIntersection: true,
+                    ignoreRayIntersection: true
                 };
 
                 if (part.defaultTextureLayer) {
@@ -113,10 +123,9 @@ createControllerDisplay = function(config) {
                     properties['textures'] = textures;
                 }
 
-                var overlayID = Overlays.addOverlay("model", properties);
+                overlayID = Overlays.addOverlay("model", properties);
 
-                if (part.type == "rotational") {
-                    var range = part.maxValue - part.minValue;
+                if (part.type === "rotational") {
                     mapping.from([part.input]).peek().to(function(controller, overlayID, part) {
                         return function(value) {
                             value = clamp(value, part.minValue, part.maxValue);
@@ -127,7 +136,7 @@ createControllerDisplay = function(config) {
 
                             var offset = { x: 0, y: 0, z: 0 };
                             if (part.origin) {
-                                var offset = Vec3.multiplyQbyV(rotation, part.origin);
+                                offset = Vec3.multiplyQbyV(rotation, part.origin);
                                 offset = Vec3.subtract(offset, part.origin);
                             }
 
@@ -138,20 +147,9 @@ createControllerDisplay = function(config) {
                                 localPosition: partPosition,
                                 localRotation: Quat.multiply(controller.rotation, rotation)
                             });
-                        }
+                        };
                     }(controller, overlayID, part));
-                } else if (part.type == "touchpad") {
-                    function resolveHardware(path) {
-                        var parts = path.split(".");
-                        function resolveInner(base, path, i) {
-                            if (i >= path.length) {
-                                return base;
-                            }
-                            return resolveInner(base[path[i]], path, ++i);
-                        }
-                        return resolveInner(Controller.Hardware, parts, 0);
-                    }
-
+                } else if (part.type === "touchpad") {
                     var visibleInput = resolveHardware(part.visibleInput);
                     var xinput = resolveHardware(part.xInput);
                     var yinput = resolveHardware(part.yInput);
@@ -165,7 +163,8 @@ createControllerDisplay = function(config) {
                     });
                     mapping.from([yinput]).peek().invert().to(function(value) {
                     });
-                } else if (part.type == "static") {
+                } else if (part.type === "static") {
+                    // do nothing
                 } else {
                     print("TYPE NOT SUPPORTED: ", part.type);
                 }
@@ -180,16 +179,11 @@ createControllerDisplay = function(config) {
     }
     Controller.enableMapping(controllerDisplay.mappingName);
     return controllerDisplay;
-}
-
-ControllerDisplay = function() {
 };
 
 deleteControllerDisplay = function(controllerDisplay) {
-    print("Deleting controller display");
     for (var i = 0; i < controllerDisplay.overlays.length; ++i) {
         Overlays.deleteOverlay(controllerDisplay.overlays[i]);
     }
     Controller.disableMapping(controllerDisplay.mappingName);
-}
-
+};

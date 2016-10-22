@@ -57,6 +57,20 @@ bool HMDScriptingInterface::isHandControllerAvailable() {
     return PluginUtils::isHandControllerAvailable();
 }
 
+void HMDScriptingInterface::requestShowHandControllers() {
+    _showHandControllersCount++;
+    emit shouldShowHandControllersChanged();
+}
+
+void HMDScriptingInterface::requestHideHandControllers() {
+    _showHandControllersCount--;
+    emit shouldShowHandControllersChanged();
+}
+
+bool HMDScriptingInterface::shouldShowHandControllers() const {
+    return _showHandControllersCount > 0;
+}
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();

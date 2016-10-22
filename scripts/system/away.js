@@ -177,6 +177,8 @@ function goAway(fromStartup) {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
+    HMD.requestShowHandControllers();
+
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
     // Allow users to find their way to other applications, our menus, etc.
@@ -214,6 +216,8 @@ function goActive() {
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
+
+    HMD.requestHideHandControllers();
 
     // update the UI sphere to be centered about the current HMD orientation.
     HMD.centerUI();

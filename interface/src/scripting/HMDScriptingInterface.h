@@ -41,6 +41,10 @@ public:
     Q_INVOKABLE bool isHMDAvailable();
     Q_INVOKABLE bool isHandControllerAvailable();
 
+    Q_INVOKABLE void requestShowHandControllers();
+    Q_INVOKABLE void requestHideHandControllers();
+    Q_INVOKABLE bool shouldShowHandControllers() const;
+
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
 
     Q_INVOKABLE void disableHandLasers(int hands) const;
@@ -61,6 +65,9 @@ public:
     // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
     Q_INVOKABLE void centerUI();
 
+signals:
+    bool shouldShowHandControllersChanged();
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -77,6 +84,7 @@ private:
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
     glm::mat4 getWorldHMDMatrix() const;
+    std::atomic<int> _showHandControllersCount { 0 };
 };
 
 #endif // hifi_HMDScriptingInterface_h
