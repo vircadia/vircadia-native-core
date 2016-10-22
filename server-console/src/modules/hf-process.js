@@ -8,6 +8,7 @@ const childProcess = require('child_process');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
+const log = require('electron-log');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -43,7 +44,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
     },
     start: function() {
         if (this.state != ProcessGroupStates.STOPPED) {
-            console.warn("Can't start process group that is not stopped.");
+            log.warn("Can't start process group that is not stopped.");
             return;
         }
 
@@ -56,7 +57,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
     },
     stop: function() {
         if (this.state != ProcessGroupStates.STARTED) {
-            console.warn("Can't stop process group that is not started.");
+            log.warn("Can't stop process group that is not started.");
             return;
         }
         for (let process of this.processes) {
@@ -120,10 +121,10 @@ util.inherits(Process, events.EventEmitter);
 Process.prototype = extend(Process.prototype, {
     start: function() {
         if (this.state != ProcessStates.STOPPED) {
-            console.warn("Can't start process that is not stopped.");
+            log.warn("Can't start process that is not stopped.");
             return;
         }
-        console.log("Starting " + this.command + " " + this.commandArgs.join(' '));
+        log.debug("Starting " + this.command + " " + this.commandArgs.join(' '));
 
         var logStdout = 'ignore',
             logStderr = 'ignore';
@@ -138,7 +139,7 @@ Process.prototype = extend(Process.prototype, {
                 if (e.code == 'EEXIST') {
                     logDirectoryCreated = true;
                 } else {
-                    console.error("Error creating log directory");
+                    log.error("Error creating log directory");
                 }
             }
 
@@ -151,13 +152,13 @@ Process.prototype = extend(Process.prototype, {
                 try {
                     logStdout = fs.openSync(tmpLogStdout, 'ax');
                 } catch(e) {
-                    console.log("Error creating stdout log file", e);
+                    log.debug("Error creating stdout log file", e);
                     logStdout = 'ignore';
                 }
                 try {
                     logStderr = fs.openSync(tmpLogStderr, 'ax');
                 } catch(e) {
-                    console.log("Error creating stderr log file", e);
+                    log.debug("Error creating stderr log file", e);
                     logStderr = 'ignore';
                 }
             }
@@ -169,7 +170,7 @@ Process.prototype = extend(Process.prototype, {
                 stdio: ['ignore', logStdout, logStderr]
             });
         } catch (e) {
-            console.log("Got error starting child process for " + this.name, e);
+            log.debug("Got error starting child process for " + this.name, e);
             this.child = null;
             this.updateState(ProcessStates.STOPPED);
             return;
@@ -179,7 +180,7 @@ Process.prototype = extend(Process.prototype, {
             var pidLogStdout = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt");
             fs.rename(tmpLogStdout, pidLogStdout, function(e) {
                 if (e !== null) {
-                    console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
+                    log.debug("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
             this.logStdout = pidLogStdout;
@@ -190,7 +191,7 @@ Process.prototype = extend(Process.prototype, {
             var pidLogStderr = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt");
             fs.rename(tmpLogStderr, pidLogStderr, function(e) {
                 if (e !== null) {
-                    console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
+                    log.debug("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
             this.logStderr = pidLogStderr;
@@ -201,13 +202,13 @@ Process.prototype = extend(Process.prototype, {
         this.child.on('error', this.onChildStartError.bind(this));
         this.child.on('close', this.onChildClose.bind(this));
 
-        console.log("Child process started");
+        log.debug("Child process started");
         this.updateState(ProcessStates.STARTED);
         this.emit('logs-updated');
     },
     stop: function(force) {
         if (this.state == ProcessStates.STOPPED) {
-            console.warn("Can't stop process that is not started or stopping.");
+            log.warn("Can't stop process that is not started or stopping.");
             return;
         }
         if (os.type() == "Windows_NT") {
@@ -217,7 +218,7 @@ Process.prototype = extend(Process.prototype, {
             }
             childProcess.exec(command, {}, function(error) {
                 if (error) {
-                    console.error('Error executing taskkill:', error);
+                    log.error('Error executing taskkill:', error);
                 }
             });
         } else {
@@ -225,12 +226,12 @@ Process.prototype = extend(Process.prototype, {
             this.child.kill(signal);
         }
 
-        console.log("Stopping child process:", this.child.pid, this.name);
+        log.debug("Stopping child process:", this.child.pid, this.name);
 
         if (!force) {
             this.stoppingTimeoutID = setTimeout(function() {
                 if (this.state == ProcessStates.STOPPING) {
-                    console.log("Force killling", this.name, this.child.pid);
+                    log.debug("Force killling", this.name, this.child.pid);
                     this.stop(true);
                 }
             }.bind(this), 2500);
@@ -257,11 +258,11 @@ Process.prototype = extend(Process.prototype, {
 
     // Events
     onChildStartError: function(error) {
-        console.log("Child process error ", error);
+        log.debug("Child process error ", error);
         this.updateState(ProcessStates.STOPPED);
     },
     onChildClose: function(code) {
-        console.log("Child process closed with code ", code, this.name);
+        log.debug("Child process closed with code ", code, this.name);
         if (this.stoppingTimeoutID) {
             clearTimeout(this.stoppingTimeoutID);
             this.stoppingTimeoutID = null;
@@ -332,7 +333,7 @@ ACMonitorProcess.prototype = extend(ACMonitorProcess.prototype, {
             this.pendingRequest = null;
 
             if (error) {
-                console.error('ERROR Getting AC Monitor status', error);
+                log.error('ERROR Getting AC Monitor status', error);
             } else {
                 this.childServers = body.servers;
             }

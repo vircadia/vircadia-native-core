@@ -5,6 +5,8 @@ const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
 const nativeImage = electron.nativeImage;
 
+const log = require('electron-log');
+
 const notifier = require('node-notifier');
 const util = require('util');
 const dialog = electron.dialog;
@@ -64,7 +66,7 @@ function getBuildInfo() {
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
-        console.log('Build info path:', buildInfoPath);
+        log.debug('Build info path:', buildInfoPath);
         try {
             buildInfo = JSON.parse(fs.readFileSync(buildInfoPath));
         } catch (e) {
@@ -77,7 +79,7 @@ function getBuildInfo() {
 
 const buildInfo = getBuildInfo();
 
-console.log("build info", buildInfo);
+log.debug("build info", buildInfo);
 
 function getRootHifiDataDirectory() {
     var organization = "High Fidelity";
@@ -105,7 +107,7 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
-console.log("Root hifi directory is: ", getRootHifiDataDirectory());
+log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
 
@@ -167,36 +169,36 @@ function shutdownCallback(idx) {
 }
 
 function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
-    console.log("Deleting old log files in " + directoryPath);
+    log.debug("Deleting old log files in " + directoryPath);
 
     var filenames = [];
     try {
         filenames = fs.readdirSync(directoryPath);
     } catch (e) {
-        console.warn("Error reading contents of log file directory", e);
+        log.warn("Error reading contents of log file directory", e);
         return;
     }
 
     for (const filename of filenames) {
-        console.log("Checking", filename);
+        log.debug("Checking", filename);
         const absolutePath = path.join(directoryPath, filename);
         var stat = null;
         try {
             stat = fs.statSync(absolutePath);
         } catch (e) {
-            console.log("Error stat'ing file", absolutePath, e);
+            log.debug("Error stat'ing file", absolutePath, e);
             continue;
         }
         const curTime = Date.now();
         if (stat.isFile() && filename.search(filenameRegex) >= 0) {
             const ageInSeconds = (curTime - stat.mtime.getTime()) / 1000.0;
             if (ageInSeconds >= maxAgeInSeconds) {
-                console.log("\tDeleting:", filename, ageInSeconds);
+                log.debug("\tDeleting:", filename, ageInSeconds);
                 try {
                     fs.unlinkSync(absolutePath);
                 } catch (e) {
                     if (e.code != 'EBUSY') {
-                        console.warn("\tError deleting:", e);
+                        log.warn("\tError deleting:", e);
                     }
                 }
             }
@@ -206,8 +208,8 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
 
-console.log("Log directory:", logPath);
-console.log("Data directory:", getRootHifiDataDirectory());
+log.debug("Log directory:", logPath);
+log.debug("Data directory:", getRootHifiDataDirectory());
 
 const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
@@ -215,8 +217,8 @@ userConfig.load(configPath);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
-    console.error(err);
-    console.error(err.stack);
+    log.error(err);
+    log.error(err.stack);
 });
 
 var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
@@ -225,7 +227,7 @@ var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) 
 });
 
 if (shouldQuit) {
-    console.warn("Another instance of the Sandbox is already running - this instance will quit.");
+    log.warn("Another instance of the Sandbox is already running - this instance will quit.");
     app.quit();
     return;
 }
@@ -506,7 +508,7 @@ const httpStatusPort = 60332;
 function backupResourceDirectories(folder) {
     try {
         fs.mkdirSync(folder);
-        console.log("Created directory " + folder);
+        log.debug("Created directory " + folder);
 
         var dsBackup = path.join(folder, '/domain-server');
         var acBackup = path.join(folder, '/assignment-client');
@@ -519,7 +521,7 @@ function backupResourceDirectories(folder) {
 
         return true;
     } catch (e) {
-        console.log(e);
+        log.debug(e);
         return false;
     }
 }
@@ -541,7 +543,7 @@ function openBackupInstructions(folder) {
         window.setSize(obj.width, obj.height);
     });
     electron.ipcMain.on('ready', function() {
-        console.log("got ready");
+        log.debug("got ready");
         window.webContents.send('update', folder);
     });
 }
@@ -575,9 +577,9 @@ function checkNewContent() {
 
             var wantDebug = false;
             if (wantDebug) {
-                console.log('Last Modified: ' + response.headers['last-modified']);
-                console.log(localContent + " " + remoteContent + " " + shouldUpdate + " " + new Date());
-                console.log("Remote content is " + (shouldUpdate ? "newer" : "older") + " that local content.");
+                log.debug('Last Modified: ' + response.headers['last-modified']);
+                log.debug(localContent + " " + remoteContent + " " + shouldUpdate + " " + new Date());
+                log.debug("Remote content is " + (shouldUpdate ? "newer" : "older") + " that local content.");
             }
 
             if (shouldUpdate) {
@@ -619,46 +621,46 @@ function maybeInstallDefaultContentSet(onComplete) {
     // Check for existing data
     const acResourceDirectory = getAssignmentClientResourcesDirectory();
 
-    console.log("Checking for existence of " + acResourceDirectory);
+    log.debug("Checking for existence of " + acResourceDirectory);
 
     var userHasExistingACData = true;
     try {
         fs.accessSync(acResourceDirectory);
-        console.log("Found directory " + acResourceDirectory);
+        log.debug("Found directory " + acResourceDirectory);
     } catch (e) {
-        console.log(e);
+        log.debug(e);
         userHasExistingACData = false;
     }
 
     const dsResourceDirectory = getDomainServerClientResourcesDirectory();
 
-    console.log("checking for existence of " + dsResourceDirectory);
+    log.debug("checking for existence of " + dsResourceDirectory);
 
     var userHasExistingDSData = true;
     try {
         fs.accessSync(dsResourceDirectory);
-        console.log("Found directory " + dsResourceDirectory);
+        log.debug("Found directory " + dsResourceDirectory);
     } catch (e) {
-        console.log(e);
+        log.debug(e);
         userHasExistingDSData = false;
     }
 
     if (userHasExistingACData || userHasExistingDSData) {
-        console.log("User has existing data, suppressing downloader");
+        log.debug("User has existing data, suppressing downloader");
         onComplete();
 
         checkNewContent();
         return;
     }
 
-    console.log("Found contentPath:" + argv.contentPath);
+    log.debug("Found contentPath:" + argv.contentPath);
     if (argv.contentPath) {
         fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
             if (err) {
-                console.log('Could not copy home content: ' + err);
-                return console.error(err)
+                log.debug('Could not copy home content: ' + err);
+                return log.error(err)
             }
-            console.log('Copied home content over to: ' + getRootHifiDataDirectory());
+            log.debug('Copied home content over to: ' + getRootHifiDataDirectory());
             userConfig.set('homeContentLastModified', new Date());
             onComplete();
         });
@@ -685,11 +687,11 @@ function maybeInstallDefaultContentSet(onComplete) {
     window.on('closed', onComplete);
 
     electron.ipcMain.on('ready', function() {
-        console.log("got ready");
+        log.debug("got ready");
         var currentState = '';
 
         function sendStateUpdate(state, args) {
-            // console.log(state, window, args);
+            // log.debug(state, window, args);
             window.webContents.send('update', { state: state, args: args });
             currentState = state;
         }
@@ -723,10 +725,10 @@ function maybeInstallDefaultContentSet(onComplete) {
         });
 
         function extractError(err) {
-            console.log("Aborting request because gunzip/untar failed");
+            log.debug("Aborting request because gunzip/untar failed");
             aborted = true;
             req.abort();
-            console.log("ERROR" +  err);
+            log.debug("ERROR" +  err);
 
             sendStateUpdate('error', {
                 message: "Error installing resources."
@@ -738,7 +740,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
-            console.log("Finished unarchiving home content set");
+            log.debug("Finished unarchiving home content set");
             userConfig.set('homeContentLastModified', new Date());
             sendStateUpdate('complete');
         });
@@ -824,7 +826,7 @@ function onContentLoaded() {
                 }
             });
             notifier.on('click', function(notifierObject, options) {
-                console.log("Got click", options.url);
+                log.debug("Got click", options.url);
                 shell.openExternal(options.url);
             });
         }
@@ -855,7 +857,7 @@ function onContentLoaded() {
     // shutting down. The interface app will regularly update a running state file which we will check.
     // If the file doesn't exist or stops updating for a significant amount of time, we will shut down.
     if (argv.shutdownWatcher) {
-        console.log("Shutdown watcher requested... argv.shutdownWatcher:", argv.shutdownWatcher);
+        log.debug("Shutdown watcher requested... argv.shutdownWatcher:", argv.shutdownWatcher);
         var MAX_TIME_SINCE_EDIT = 5000; // 5 seconds between updates
         var firstAttemptToCheck = new Date().getTime();
         var shutdownWatchInterval = setInterval(function(){
@@ -863,14 +865,14 @@ function onContentLoaded() {
                 if (err) {
                     var sinceFirstCheck = new Date().getTime() - firstAttemptToCheck;
                     if (sinceFirstCheck > MAX_TIME_SINCE_EDIT) {
-                        console.log("Running state file is missing, assume interface has shutdown... shutting down snadbox.");
+                        log.debug("Running state file is missing, assume interface has shutdown... shutting down snadbox.");
                         forcedShutdown();
                         clearTimeout(shutdownWatchInterval);
                     }
                 } else {
                     var sinceEdit = new Date().getTime() - stats.mtime.getTime();
                     if (sinceEdit > MAX_TIME_SINCE_EDIT) {
-                        console.log("Running state of interface hasn't updated in MAX time... shutting down.");
+                        log.debug("Running state of interface hasn't updated in MAX time... shutting down.");
                         forcedShutdown();
                         clearTimeout(shutdownWatchInterval);
                     }

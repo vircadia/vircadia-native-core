@@ -1,5 +1,6 @@
 var fs = require('fs');
 var extend = require('extend');
+var log = require('electron-log');
 
 function Config() {
     this.data = {};
@@ -10,7 +11,7 @@ Config.prototype = {
         try {
             rawData = fs.readFileSync(filePath);
         } catch(e) {
-            console.log("Config file not found");
+            log.debug("Config file not found");
         }
         var configData = {};
 
@@ -21,7 +22,7 @@ Config.prototype = {
                 configData = {};
             }
         } catch(e) {
-            console.error("Error parsing config file", filePath)
+            log.error("Error parsing config file", filePath)
         }
 
         this.data = {};
@@ -37,7 +38,7 @@ Config.prototype = {
         return defaultValue;
     },
     set: function(key, value) {
-        console.log("Setting", key, "to", value);
+        log.debug("Setting", key, "to", value);
         this.data[key] = value;
     }
 };
