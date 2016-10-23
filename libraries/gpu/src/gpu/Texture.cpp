@@ -70,6 +70,14 @@ void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSiz
     }
 }
 
+bool Texture::getEnableSparseTextures() { 
+    return _enableSparseTextures.load(); 
+}
+
+bool Texture::getEnableIncrementalTextureTransfers() { 
+    return _enableIncrementalTextureTransfers.load(); 
+}
+
 uint32_t Texture::getTextureCPUCount() {
     return _textureCPUCount.load();
 }
@@ -82,12 +90,20 @@ uint32_t Texture::getTextureGPUCount() {
     return Context::getTextureGPUCount();
 }
 
+uint32_t Texture::getTextureGPUSparseCount() {
+    return Context::getTextureGPUSparseCount();
+}
+
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
 }
 
 Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
     return Context::getTextureGPUVirtualMemoryUsage();
+}
+
+Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
+    return Context::getTextureGPUSparseMemoryUsage();
 }
 
 uint32_t Texture::getTextureGPUTransferCount() {

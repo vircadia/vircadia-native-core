@@ -94,7 +94,10 @@ public:
     static void updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
+    static void incrementTextureGPUSparseCount();
+    static void decrementTextureGPUSparseCount();
     static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void incrementTextureGPUTransferCount();
     static void decrementTextureGPUTransferCount();
@@ -201,8 +204,10 @@ public:
     static Size getBufferGPUMemoryUsage();
 
     static uint32_t getTextureGPUCount();
+    static uint32_t getTextureGPUSparseCount();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
+    static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
 
 protected:
@@ -235,7 +240,10 @@ protected:
 
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
+    static void incrementTextureGPUSparseCount();
+    static void decrementTextureGPUSparseCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize);
     static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
     static void incrementTextureGPUTransferCount();
     static void decrementTextureGPUTransferCount();
@@ -247,7 +255,9 @@ protected:
     static std::atomic<Size> _bufferGPUMemoryUsage;
 
     static std::atomic<uint32_t> _textureGPUCount;
+    static std::atomic<uint32_t> _textureGPUSparseCount;
     static std::atomic<Size> _textureGPUMemoryUsage;
+    static std::atomic<Size> _textureGPUSparseMemoryUsage;
     static std::atomic<Size> _textureGPUVirtualMemoryUsage;
     static std::atomic<uint32_t> _textureGPUTransferCount;
 
