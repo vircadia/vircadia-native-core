@@ -194,6 +194,9 @@ Item {
                             " / Material Switches: " + root.materialSwitches
                     }
                     StatText {
+                        text: "GPU Free Memory: " + root.gpuFreeMemory + " MB";
+                    }
+                    StatText {
                         text: "GPU Textures: ";
                     }
                     StatText {

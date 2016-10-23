@@ -123,7 +123,7 @@ private:
     void destroyTexture(GLuint texture) {
         --_allTextureCount;
         auto size = _textureSizes[texture];
-        assert(getMemoryForSize(size) < _totalTextureUsage);
+        assert(getMemoryForSize(size) <= _totalTextureUsage);
         _totalTextureUsage -= getMemoryForSize(size);
         _textureSizes.erase(texture);
         glDeleteTextures(1, &texture);

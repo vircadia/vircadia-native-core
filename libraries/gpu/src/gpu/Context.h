@@ -89,6 +89,8 @@ public:
 
     // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
     // they are NOT public calls
+    static Resource::Size getFreeGPUMemory();
+    static void setFreeGPUMemory(Resource::Size prevObjectSize);
     static void incrementBufferGPUCount();
     static void decrementBufferGPUCount();
     static void updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
@@ -205,6 +207,7 @@ public:
 
     static uint32_t getTextureGPUCount();
     static uint32_t getTextureGPUSparseCount();
+    static Size getFreeGPUMemory();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static Size getTextureGPUSparseMemoryUsage();
@@ -238,6 +241,7 @@ protected:
     static void incrementFenceCount();
     static void decrementFenceCount();
 
+    static void setFreeGPUMemory(Size size);
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void incrementTextureGPUSparseCount();
@@ -249,6 +253,7 @@ protected:
     static void decrementTextureGPUTransferCount();
 
     // Buffer, Texture and Fence Counters
+    static std::atomic<Size> _freeGPUMemory;
     static std::atomic<uint32_t> _fenceCount;
 
     static std::atomic<uint32_t> _bufferGPUCount;

@@ -162,6 +162,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 }
 
 // Counters for Buffer and Texture usage in GPU/Context
+std::atomic<Size> Context::_freeGPUMemory { 0 };
 std::atomic<uint32_t> Context::_fenceCount { 0 };
 std::atomic<uint32_t> Context::_bufferGPUCount { 0 };
 std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage { 0 };
@@ -172,6 +173,14 @@ std::atomic<Texture::Size> Context::_textureGPUMemoryUsage { 0 };
 std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage{ 0 };
 std::atomic<Texture::Size> Context::_textureGPUSparseMemoryUsage { 0 };
 std::atomic<uint32_t> Context::_textureGPUTransferCount { 0 };
+
+void Context::setFreeGPUMemory(Size size) {
+    _freeGPUMemory.store(size);
+}
+
+Size Context::getFreeGPUMemory() {
+    return _freeGPUMemory.load();
+}
 
 void Context::incrementBufferGPUCount() {
     static std::atomic<uint32_t> max { 0 };
@@ -272,6 +281,7 @@ void Context::incrementTextureGPUTransferCount() {
         qCDebug(gpulogging) << "New max GPU textures transfers" << total;
     }
 }
+
 void Context::decrementTextureGPUTransferCount() {
     --_textureGPUTransferCount;
 }
@@ -308,6 +318,8 @@ uint32_t Context::getTextureGPUTransferCount() {
     return _textureGPUTransferCount.load();
 }
 
+void Backend::setFreeGPUMemory(Size size) { Context::setFreeGPUMemory(size); }
+Resource::Size Backend::getFreeGPUMemory() { return Context::getFreeGPUMemory(); }
 void Backend::incrementBufferGPUCount() { Context::incrementBufferGPUCount(); }
 void Backend::decrementBufferGPUCount() { Context::decrementBufferGPUCount(); }
 void Backend::updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateBufferGPUMemoryUsage(prevObjectSize, newObjectSize); }
