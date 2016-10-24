@@ -102,12 +102,17 @@ float GLTexture::getMemoryPressure() {
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
+#if 0
         auto totalMemory = getDedicatedMemory();
         if ((GPU_MEMORY_RESERVE_BYTES + TEXTURE_MEMORY_MIN_BYTES) > totalMemory) {
             availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
         } else {
             availableTextureMemory = totalMemory - GPU_MEMORY_RESERVE_BYTES;
         }
+#else 
+        // Hardcode texture limit for sparse textures at 1 GB for now
+        availableTextureMemory = GPU_MEMORY_RESERVE_BYTES;
+#endif
     }
 
     // Return the consumed texture memory divided by the available texture memory.
