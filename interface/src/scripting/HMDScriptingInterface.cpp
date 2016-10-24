@@ -155,12 +155,7 @@ bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enab
     auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
     auto worldToSensor = glm::inverse(sensorToWorld);
     auto sensorStart = ::transformPoint(worldToSensor, worldStart);
-    auto sensorDirection = ::transformVectorFast(worldToSensor, direction); // wrong
-
-    qDebug() << __FUNCTION__ << "worldStart:" << worldStart << "sensorStart:" << sensorStart;
-    qDebug() << __FUNCTION__ << "direction:" << direction << "sensorDirection:" << sensorDirection;
-    qDebug() << __FUNCTION__ << "enabled:" << enabled;
-
+    auto sensorDirection = ::transformVectorFast(worldToSensor, direction);
 
     return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
         color, sensorStart, sensorDirection);

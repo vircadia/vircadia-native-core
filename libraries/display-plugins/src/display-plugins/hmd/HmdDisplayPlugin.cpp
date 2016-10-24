@@ -352,11 +352,6 @@ void HmdDisplayPlugin::updateFrameData() {
 
     if (_currentFrame) {
         auto batchPose = _currentFrame->pose;
-
-        // HACK o RAMA
-        //_handPoses[0] = _currentFrame->pose;
-        //_handPoses[1] = _currentFrame->pose;
-
         auto currentPose = _currentPresentFrameInfo.presentPose;
         auto correction = glm::inverse(batchPose) * currentPose;
         getGLBackend()->setCameraCorrection(correction);
@@ -474,9 +469,6 @@ void HmdDisplayPlugin::updateFrameData() {
             _presentExtraLaserPoints.first = castStart;
             _presentExtraLaserPoints.second = _presentExtraLaserPoints.first + (castDirection * distance);
 
-            qDebug() << __FUNCTION__ << "_presentExtraLaserPoints.first:" << _presentExtraLaserPoints.first;
-            qDebug() << __FUNCTION__ << "_presentExtraLaserPoints.second:" << _presentExtraLaserPoints.second;
-
             vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
             intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
 
@@ -494,8 +486,6 @@ void HmdDisplayPlugin::updateFrameData() {
                 yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
                 yawPitch += 0.5f;
                 extraGlowPoint = yawPitch;
-            } else {
-                qDebug() << "no extraGlowPoint...";
             }
         }
     }
@@ -508,8 +498,6 @@ void HmdDisplayPlugin::updateFrameData() {
 
     // Setup the uniforms
     {
-        qDebug() << __FUNCTION__ << "extraGlowPoint:" << extraGlowPoint;
-
         auto& uniforms = _overlayRenderer.uniforms;
         uniforms.alpha = _compositeOverlayAlpha;
         uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
@@ -716,7 +704,6 @@ bool HmdDisplayPlugin::setExtraLaser(HandLaserMode mode, const vec4& color, cons
         _extraLaserStart = sensorSpaceStart;
     });
 
-    qDebug() << __FUNCTION__ << "info.mode:" << (int)info.mode;
     // FIXME defer to a child class plugin to determine if hand lasers are actually 
     // available based on the presence or absence of hand controllers
     return true;
@@ -725,11 +712,11 @@ bool HmdDisplayPlugin::setExtraLaser(HandLaserMode mode, const vec4& color, cons
 
 void HmdDisplayPlugin::compositeExtra() {
     // If neither hand laser is activated, exit
-    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid()) {
+    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid() && !_presentExtraLaser.valid()) {
         return;
     }
 
-    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX) {
+    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
         return;
     }
 
@@ -752,17 +739,8 @@ void HmdDisplayPlugin::compositeExtra() {
 
         if (_presentExtraLaser.valid()) {
             const auto& points = _presentExtraLaserPoints;
-            qDebug() << __FUNCTION__ << "_presentExtraLaserPoints... points.first:" << points.first;
-
             geometryCache->renderGlowLine(batch, points.first, points.second, _presentExtraLaser.color, _extraLaserID);
-        } else {
-            qDebug() << __FUNCTION__ << "INVALID LASER --- mode != HandLaserMode::None - " << (_presentExtraLaser.mode != HandLaserMode::None) 
-                << "mode:" << (int)_presentExtraLaser.mode
-                << "color.a > 0.0f - " << (_presentExtraLaser.color.a > 0.0f) << "direction:" << _presentExtraLaser.direction;
-
         }
-
-
     });
 }
 
