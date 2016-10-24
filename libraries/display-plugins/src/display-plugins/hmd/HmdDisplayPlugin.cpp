@@ -364,9 +364,6 @@ void HmdDisplayPlugin::updateFrameData() {
 
         _presentExtraLaser = _extraLaser;
         _presentExtraLaserStart = _extraLaserStart;
-
-        _presentExtraLaserPose = _extraLaserPose;
-
     });
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
@@ -436,24 +433,7 @@ void HmdDisplayPlugin::updateFrameData() {
 
     // compute the glow point interesections
     if (_presentExtraLaser.valid()) {
-        const auto& handLaser = _presentExtraLaser;
-
-        const vec3& laserDirection = handLaser.direction;
-
-        /*
-        mat4 model = _presentExtraLaserPose;
-        vec3 castStart = vec3(model[3]);
-        vec3 castDirection = glm::quat_cast(model) * laserDirection;
-        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
-            castDirection = glm::normalize(castDirection);
-            castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
-        }
-
-        // FIXME - no offset
-        vec3 grabPointOffset {0};
-        castStart += glm::quat_cast(model) * grabPointOffset;
-        */
-
+        const vec3& laserDirection = _presentExtraLaser.direction;
         vec3 castStart = _presentExtraLaserStart;
         vec3 castDirection = laserDirection;
 
@@ -674,20 +654,6 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
         if (hands & Hand::RightHand) {
             _handLasers[1] = info;
         }
-    });
-    // FIXME defer to a child class plugin to determine if hand lasers are actually 
-    // available based on the presence or absence of hand controllers
-    return true;
-}
-
-bool HmdDisplayPlugin::setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) {
-    HandLaserInfo info;
-    info.mode = mode;
-    info.color = color;
-    info.direction = direction;
-    withNonPresentThreadLock([&] {
-        _extraLaser = info;
-        _extraLaserPose = extraLaserPose;
     });
     // FIXME defer to a child class plugin to determine if hand lasers are actually 
     // available based on the presence or absence of hand controllers

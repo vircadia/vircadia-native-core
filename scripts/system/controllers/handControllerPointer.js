@@ -204,7 +204,7 @@ function overlayFromWorldPoint(point) {
 }
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
-    var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will use head pose of hand pose is invalid (third eye)
+    var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         return; // Controller is cradled.
     }
@@ -500,7 +500,7 @@ function update() {
         return off();
     }
 
-    if (true) {
+    if (!HMD.isHandControllerAvailable()) {
         var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
 
         var position = MyAvatar.getHeadPosition();

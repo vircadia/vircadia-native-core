@@ -115,9 +115,6 @@ public:
         return false;
     }
 
-    virtual bool setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) {
-        return false;
-    }
     virtual bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
         return false;
     }

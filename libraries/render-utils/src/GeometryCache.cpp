@@ -1585,7 +1585,6 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
 }
 
 
-// FIXME -- there's a memory leak of GPU buffers in this method
 void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
     const glm::vec4& color, float glowIntensity, float glowWidth, int id) {
 

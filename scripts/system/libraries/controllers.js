@@ -43,7 +43,6 @@ getControllerWorldLocation = function (handController, doOffset) {
             position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, getGrabPointSphereOffset(handController)));
         }
     } else if (!HMD.isHandControllerAvailable()) {
-        //print("getControllerWorldLocation(), no hand controllers -- use head");
         position = MyAvatar.getHeadPosition();
         orientation = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
         valid = true;

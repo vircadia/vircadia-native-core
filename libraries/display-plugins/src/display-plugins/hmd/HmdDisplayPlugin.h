@@ -38,8 +38,6 @@ public:
     virtual glm::mat4 getHeadPose() const override;
 
     bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
-    
-    bool setExtraLaser(mat4 extraLaserPose, HandLaserMode mode, const vec4& color, const vec3& direction) override;
     bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) override;
 
     bool wantVsync() const override {
@@ -90,11 +88,6 @@ protected:
     vec3 _extraLaserStart;
     vec3 _presentExtraLaserStart;
     std::pair<vec3, vec3> _presentExtraLaserPoints;
-
-    // FIXME - kill these
-    mat4 _extraLaserPose;
-    mat4 _presentExtraLaserPose;
-
 
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
