@@ -21,10 +21,8 @@ using namespace gpu;
 
 // FIXME: Declare this to enable compression
 //#define COMPRESS_TEXTURES
-
-#define SPARSE_PAGE_DIMENSION 128
-
-static const uvec2 SPARSE_PAGE_SIZE(SPARSE_PAGE_DIMENSION);
+static const uvec2 SPARSE_PAGE_SIZE(128);
+static const uvec2 MAX_TEXTURE_SIZE(4096);
 bool DEV_DECIMATE_TEXTURES = false;
 
 bool needsSparseRectification(const uvec2& size) {
@@ -52,8 +50,12 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     const uvec2 srcImageSize = toGlm(srcImage.size());
     uvec2 targetSize = srcImageSize;
 
-    if (!cubemap && needsSparseRectification(srcImageSize)) {
-        targetSize = rectifyToSparseSize(srcImageSize);
+    while (glm::any(glm::greaterThan(targetSize, MAX_TEXTURE_SIZE))) {
+        targetSize /= 2;
+    }
+
+    if (!cubemap && needsSparseRectification(targetSize)) {
+        targetSize = rectifyToSparseSize(targetSize);
     }
 
     if (DEV_DECIMATE_TEXTURES && glm::all(glm::greaterThanEqual(targetSize / SPARSE_PAGE_SIZE, uvec2(2)))) {
@@ -746,7 +748,8 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
 
         // Find the layout of the cubemap in the 2D image
-        int foundLayout = CubeLayout::findLayout(image.width(), image.height());
+        // Use the original image size since processSourceImage may have altered the size / aspect ratio 
+        int foundLayout = CubeLayout::findLayout(srcImage.width(), srcImage.height());
 
         std::vector<QImage> faces;
         // If found, go extract the faces as separate images
