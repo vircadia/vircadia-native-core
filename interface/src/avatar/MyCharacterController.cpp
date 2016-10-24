@@ -253,7 +253,6 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
     btVector3 rayStart;
     btVector3 rayEnd;
     btVector3 penetration = btVector3(0.0f, 0.0f, 0.0f);
-    btVector3 rescuePenetration = penetration;
     int32_t numPenetrations = 0;
     btScalar closestHitFraction = 1.0f;
     bool walkable = true;
@@ -340,7 +339,7 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
     */
 
     return bulletToGLM(finalStep);
-} // foo
+}
 
 btConvexHullShape* MyCharacterController::computeShape() const {
     // HACK: the avatar collides using convex hull with a collision margin equal to
