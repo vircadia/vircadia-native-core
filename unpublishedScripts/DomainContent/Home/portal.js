@@ -27,9 +27,6 @@
             if (portalDestination[0] == '/') {
                 print("Teleporting to " + portalDestination);
                 Window.location = portalDestination;
-            } else if (portalDestination.indexOf('welcome/3.18552,0.164796,-0.300168/0,0.763363,0,0.64597') >= 0) {
-                // Backwards compatability: convert existing hardcoded production destination to the current production/development welcome target.
-                location.goToEntry();
             } else {
                 print("Teleporting to hifi://" + portalDestination);
                 Window.location = "hifi://" + portalDestination;
