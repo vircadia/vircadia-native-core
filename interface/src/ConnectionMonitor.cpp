@@ -33,9 +33,8 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
 
     _timer.setSingleShot(true);
-    _timer.setInterval(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
     if (!domainHandler.isConnected()) {
-        _timer.start();
+        _timer.start(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
     }
 
     connect(&_timer, &QTimer::timeout, this, []() {
@@ -46,8 +45,7 @@ void ConnectionMonitor::init() {
 
 void ConnectionMonitor::startTimer() {
     qDebug() << "ConnectionMonitor: Starting timer";
-    _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
-    _timer.start();
+    _timer.start(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
 }
 
 void ConnectionMonitor::stopTimer() {
