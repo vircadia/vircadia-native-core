@@ -40,6 +40,8 @@ function onFinishedPlaying() {
     messageSend({key: 'finishedSound'});
 }
 
+var attachment;
+
 var MILLISECONDS_IN_SECOND = 1000;
 function startAgent(parameters) { // Can also be used to update.
     print('crowd-agent starting params', JSON.stringify(parameters), JSON.stringify(Agent));
@@ -61,12 +63,22 @@ function startAgent(parameters) { // Can also be used to update.
         });
     }
     if (parameters.animationData) {
-        data = parameters.animationData;
+        var data = parameters.animationData;
         Avatar.startAnimation(data.url, data.fps || 30, 1.0, (data.loopFlag === undefined) ? true : data.loopFlag, false, data.startFrame || 0, data.endFrame);
+    }
+    if (parameters.attachment) {
+        attachment = parameters.attachment;
+        Avatar.attach(attachment.modelURL, attachment.jointName, attachment.translation, attachment.rotation, attachment.scale, attachment.isSoft);
+    } else {
+        attachment = undefined;
     }
     print('crowd-agent avatars started');
 }
 function stopAgent(parameters) {
+    if (attachment) {
+        Avatar.detachOne(attachment.modelURL, attachment.jointName);
+        attachment = undefined;
+    }
     Agent.isAvatar = false;
     print('crowd-agent stopped', JSON.stringify(parameters), JSON.stringify(Agent));
 }

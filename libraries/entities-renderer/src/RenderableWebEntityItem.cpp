@@ -201,10 +201,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        auto recycler = [webSurface] (uint32_t recycleTexture, void* recycleFence) {
-            webSurface->releaseTexture({ recycleTexture, recycleFence });
-        };
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(recycler));
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;

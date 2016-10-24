@@ -227,7 +227,8 @@ enum class DomainListVersion : PacketVersion {
 enum class AudioVersion : PacketVersion {
     HasCompressedAudio = 17,
     CodecNameInAudioPackets,
-    Exactly10msAudioPackets
+    Exactly10msAudioPackets,
+    TerminatingStreamStats,
 };
 
 #endif // hifi_PacketHeaders_h

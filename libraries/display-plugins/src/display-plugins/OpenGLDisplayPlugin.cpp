@@ -630,6 +630,8 @@ void OpenGLDisplayPlugin::present() {
             PROFILE_RANGE_EX("internalPresent", 0xff00ffff, (uint64_t)presentCount())
             internalPresent();
         }
+
+        gpu::Backend::setFreeGPUMemory(gpu::gl::getFreeDedicatedMemory());
     }
 }
 

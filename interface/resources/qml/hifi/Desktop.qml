@@ -51,9 +51,10 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // Magic: sysToolbar.x and y come from settings, and are bound before the properties specified here are applied.
-        x: sysToolbar.x;
-        y: sysToolbar.y;
+        // These values will be overridden by sysToolbar.x/y if there is a saved position in Settings
+        // On exit, the sysToolbar position is saved to settings
+        x: 30
+        y: 50
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;

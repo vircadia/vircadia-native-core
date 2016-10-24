@@ -26,7 +26,7 @@ public:
 
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
-    void addPacketStatsAndSendStatsPacket(QJsonObject& statsObject);
+    void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);
 
 public slots:
     /// threaded run of assignment

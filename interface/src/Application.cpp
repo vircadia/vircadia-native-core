@@ -583,23 +583,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     
     bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
+    static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
+    // updateHeartbeat() because we are going to poll shortly...
+    updateHeartbeat();
     sandboxUtils.ifLocalSandboxRunningElse([&]() {
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
+        sandboxIsRunning = true;
     }, [&, wantsSandboxRunning]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
-        determinedSandboxState = true;
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME);
+            sandboxIsRunning = true;
         }
+        determinedSandboxState = true;
     });
 
+    // SandboxUtils::runLocalSandbox currently has 2 sec delay after spawning sandbox, so 4
+    // sec here is ok I guess.  TODO: ping sandbox so we know it is up, perhaps?
     quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
     auto startWaiting = usecTimestampNow();
     while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
         QCoreApplication::processEvents();
+        // updateHeartbeat() while polling so we don't scare the deadlock watchdog
+        updateHeartbeat();
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
 
@@ -1326,10 +1335,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
     if (shouldGoToTutorial) {
-        sandboxUtils.ifLocalSandboxRunningElse([=]() {
+        if(sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
-        }, [=]() {
+        } else {
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
                 showHelp();
@@ -1339,7 +1348,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             } else {
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
             }
-        });
+        }
     } else {
 
         bool isFirstRun = firstRun.get();
@@ -1351,13 +1360,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
             if (hasHMDAndHandControllers) {
-                sandboxUtils.ifLocalSandboxRunningElse([=]() {
+                if(sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                }, [=]() {
+                } else {
                     qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
-                });
+                }
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
             }
@@ -1729,6 +1738,7 @@ void Application::initializeUi() {
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
@@ -3759,12 +3769,6 @@ void Application::updateDialogs(float deltaTime) const {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
-    // Update audio stats dialog, if any
-    AudioStatsDialog* audioStatsDialog = dialogsManager->getAudioStatsDialog();
-    if(audioStatsDialog) {
-        audioStatsDialog->update();
-    }
-
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {
@@ -5013,6 +5017,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5681,6 +5686,9 @@ void Application::updateDisplayMode() {
     // Make the switch atomic from the perspective of other threads
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
+        // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
+        bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
+        offscreenUi->getDesktop()->setProperty("repositionLocked", true);
 
         auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
@@ -5717,6 +5725,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
+        offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
     emit activeDisplayPluginChanged();
