@@ -13,10 +13,9 @@
 
 #include "ui/DialogsManager.h"
 
-#include <NodeList.h>
 #include <DependencyManager.h>
 #include <DomainHandler.h>
-#include <AddressManager.h>
+#include <NodeList.h>
 
 // Because the connection monitor is created at startup, the time we wait on initial load
 // should be longer to allow the application to initialize.
@@ -31,6 +30,7 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::startTimer);
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::authRequired, this, &ConnectionMonitor::stopTimer);
+    connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
 
     _timer.setSingleShot(true);
     _timer.setInterval(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
