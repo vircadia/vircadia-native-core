@@ -1,6 +1,5 @@
 var fs = require('fs');
 var extend = require('extend');
-var log = require('electron-log');
 
 function Config() {
     this.data = {};

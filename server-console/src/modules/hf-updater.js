@@ -4,7 +4,6 @@ const util = require('util');
 const events = require('events');
 const cheerio = require('cheerio');
 const os = require('os');
-const log = require('electron-log');
 
 const platform = os.type() == 'Windows_NT' ? 'windows' : 'mac';
 

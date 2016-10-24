@@ -8,7 +8,6 @@ const childProcess = require('child_process');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
-const log = require('electron-log');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',

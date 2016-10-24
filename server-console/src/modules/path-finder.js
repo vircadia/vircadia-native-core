@@ -1,6 +1,5 @@
 var fs = require('fs');
 var path = require('path');
-var log = require('electron-log');
 
 function platformExtension(name) {
     if (name == "Interface") {

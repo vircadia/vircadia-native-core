@@ -1,11 +1,11 @@
 'use strict';
 
+global.log = require('electron-log');
+
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
 const nativeImage = electron.nativeImage;
-
-const log = require('electron-log');
 
 const notifier = require('node-notifier');
 const util = require('util');
