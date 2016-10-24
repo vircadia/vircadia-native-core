@@ -447,12 +447,24 @@ function clearSystemLaser() {
         return;
     }
     HMD.disableHandLasers(BOTH_HUD_LASERS);
+    HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
     Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+
+    if (!HMD.isHandControllerAvailable()){
+        var position = MyAvatar.getHeadPosition();
+        //var direction = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+        var direction = { x: 1, y: -1, z: 0 };
+
+        Vec3.print("Calling HMD.setExtraLaser() position:", position);
+        Vec3.print("Calling HMD.setExtraLaser() direction:", direction);
+        return HMD.setExtraLaser(position,true, color, direction);
+    }
+
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
@@ -491,11 +503,24 @@ function update() {
     if (!hudPoint2d) {
         return off();
     }
+
+    if (true) {
+        var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+
+        var position = MyAvatar.getHeadPosition();
+        //var direction = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+        var direction = { x: 1, y: -1, z: 0 };
+        Vec3.print("update().... Calling HMD.setExtraLaser() position:", position);
+        Vec3.print("update().... Calling HMD.setExtraLaser() direction:", direction);
+        HMD.setExtraLaser(position,true, color, direction);
+    }
+
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
         }
+
         if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
             // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
             systemLaserOn = setColoredLaser();

@@ -44,7 +44,7 @@ public:
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
     Q_INVOKABLE void disableHandLasers(int hands) const;
 
-    Q_INVOKABLE bool setExtraLaser(const vec3& worldStart, bool enabled, const vec4& color, const vec3& direction) const;
+    Q_INVOKABLE bool setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
     Q_INVOKABLE void disableExtraLaser() const;
 
 

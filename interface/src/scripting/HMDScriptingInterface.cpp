@@ -130,16 +130,26 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
         color, direction);
 }
 
-bool HMDScriptingInterface::setExtraLaser(const vec3& worldStart, bool enabled, const vec4& color, const vec3& direction) const {
+bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->executeOnUiThread([offscreenUi, enabled] {
         offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
     });
 
-    mat4 extraLaserPose;
-    return qApp->getActiveDisplayPlugin()->setExtraLaser(extraLaserPose,
-        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
-        color, direction);
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
+    auto worldToSensor = glm::inverse(sensorToWorld);
+    auto sensorStart = ::transformPoint(worldToSensor, worldStart);
+    auto sensorDirection = ::transformVectorFast(worldToSensor, direction); // wrong
+
+    qDebug() << __FUNCTION__ << "worldStart:" << worldStart << "sensorStart:" << sensorStart;
+    qDebug() << __FUNCTION__ << "direction:" << direction << "sensorDirection:" << sensorDirection;
+    qDebug() << __FUNCTION__ << "enabled:" << enabled;
+
+
+    return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, sensorStart, sensorDirection);
 }
 
 void HMDScriptingInterface::disableExtraLaser() const {

@@ -891,6 +891,9 @@ function MyController(hand) {
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
+        print("overlayLineOn()... closePoint:", closePoint.x +","+closePoint.y+","+closePoint.z,
+                        "farPoint:", farPoint.x +","+farPoint.y+","+farPoint.z);
+
         if (this.overlayLine === null) {
             var lineProperties = {
                 glow: 1.0,
