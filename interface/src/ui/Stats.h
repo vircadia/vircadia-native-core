@@ -95,6 +95,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
     STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
     STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(int, gpuFreeMemory, 0)
 
 public:
     static Stats* getInstance();
@@ -188,6 +189,7 @@ signals:
     void gpuTextureVirtualMemoryChanged();
     void gpuTextureSparseMemoryChanged();
     void gpuSparseTextureEnabledChanged();
+    void gpuFreeMemoryChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
