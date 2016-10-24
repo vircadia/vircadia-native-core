@@ -22,6 +22,7 @@ private: \
 public: \
     static void registerType(); \
     static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
+    static void hide(); \
     static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
     static void load(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
 private:
@@ -33,6 +34,7 @@ protected: \
 public: \
     static void registerType(); \
     static void show(); \
+    static void hide(); \
     static void toggle(); \
     static void load(); \
 private:
@@ -48,6 +50,11 @@ private:
     void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->show(QML, NAME, f); \
+    } \
+    \
+    void x::hide() { \
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        offscreenUi->hide(NAME); \
     } \
     \
     void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
@@ -70,6 +77,11 @@ private:
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->show(QML, NAME, f); \
     } \
+    void x::hide() { \
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        offscreenUi->hide(NAME); \
+    } \
+    \
     void x::toggle() { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->toggle(QML, NAME, f); \

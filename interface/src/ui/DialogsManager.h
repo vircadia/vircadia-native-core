@@ -45,6 +45,7 @@ public slots:
     void showAddressBar();
     void showFeed();
     void indicateDomainConnectionFailure();
+    void setDomainConnectionFailureVisibility(bool visible);
     void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();

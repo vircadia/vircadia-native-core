@@ -27,8 +27,10 @@ void ConnectionMonitor::init() {
     // Connect to domain disconnected message
     auto nodeList = DependencyManager::get<NodeList>();
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::disconnectedFromDomain);
-    connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::connectedToDomain);
+    connect(&domainHandler, &DomainHandler::resetting, this, &ConnectionMonitor::startTimer);
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::startTimer);
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
+    connect(&domainHandler, &DomainHandler::authRequired, this, &ConnectionMonitor::stopTimer);
 
     _timer.setSingleShot(true);
     _timer.setInterval(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
@@ -36,8 +38,10 @@ void ConnectionMonitor::init() {
         _timer.start();
     }
 
-    auto dialogsManager = DependencyManager::get<DialogsManager>();
-    connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::indicateDomainConnectionFailure);
+    connect(&_timer, &QTimer::timeout, this, []() {
+        qDebug() << "ConnectionMonitor: Showing connection failure window";
+        DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+    });
 }
 
 void ConnectionMonitor::startTimer() {
@@ -49,4 +53,5 @@ void ConnectionMonitor::startTimer() {
 void ConnectionMonitor::stopTimer() {
     qDebug() << "ConnectionMonitor: Stopping timer";
     _timer.stop();
+    DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
 }
