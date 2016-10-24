@@ -500,18 +500,18 @@ function update() {
         return off();
     }
 
-    if (!HMD.isHandControllerAvailable()) {
-        var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
-
-        var position = MyAvatar.getHeadPosition();
-        var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
-        HMD.setExtraLaser(position,true, color, direction);
-    }
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
+
+            if (!HMD.isHandControllerAvailable()) {
+                var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+                var position = MyAvatar.getHeadPosition();
+                var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
+                HMD.setExtraLaser(position,true, color, direction);
+            }
         }
 
         if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
