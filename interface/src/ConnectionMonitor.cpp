@@ -18,6 +18,9 @@
 #include <DomainHandler.h>
 #include <AddressManager.h>
 
+// Because the connection monitor is created at startup, the time we wait on initial load
+// should be longer to allow the application to initialize.
+static const int ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 5000;
 
 void ConnectionMonitor::init() {
@@ -28,7 +31,7 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::connectedToDomain);
 
     _timer.setSingleShot(true);
-    _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
+    _timer.setInterval(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
     if (!domainHandler.isConnected()) {
         _timer.start();
     }
@@ -37,10 +40,13 @@ void ConnectionMonitor::init() {
     connect(&_timer, &QTimer::timeout, dialogsManager.data(), &DialogsManager::indicateDomainConnectionFailure);
 }
 
-void ConnectionMonitor::disconnectedFromDomain() {
+void ConnectionMonitor::startTimer() {
+    qDebug() << "ConnectionMonitor: Starting timer";
+    _timer.setInterval(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
     _timer.start();
 }
 
-void ConnectionMonitor::connectedToDomain(const QString& name) {
+void ConnectionMonitor::stopTimer() {
+    qDebug() << "ConnectionMonitor: Stopping timer";
     _timer.stop();
 }
