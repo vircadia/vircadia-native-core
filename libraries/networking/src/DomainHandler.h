@@ -117,8 +117,6 @@ signals:
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
-    void authRequired();
-
     void iceSocketAndIDReceived();
     void icePeerSocketsReceived();
 

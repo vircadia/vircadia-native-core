@@ -29,7 +29,6 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::resetting, this, &ConnectionMonitor::startTimer);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::startTimer);
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
-    connect(&domainHandler, &DomainHandler::authRequired, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
 
     _timer.setSingleShot(true);

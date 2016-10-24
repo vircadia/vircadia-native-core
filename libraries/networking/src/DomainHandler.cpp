@@ -425,7 +425,6 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
             _hasCheckedForAccessToken = true;
-            emit authRequired();
         }
 
         static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
