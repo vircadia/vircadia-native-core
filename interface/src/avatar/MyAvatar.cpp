@@ -1324,8 +1324,7 @@ void MyAvatar::updateMotors() {
         }
 
         if (qApp->isHMDMode()) {
-            // OUTOFBODY_HACK: only apply vertical component of _actionMotorVelocity to the characterController
-            _characterController.addMotor(glm::vec3(0.0f, _actionMotorVelocity.y, 0.0f), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            // OUTOFBODY_HACK: motors are applied differently in HMDMode
         } else {
             if (_isPushing || _isBraking || !_isBeingPushed) {
                 _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
@@ -1346,8 +1345,7 @@ void MyAvatar::updateMotors() {
             motorRotation = glm::quat();
         }
         if (qApp->isHMDMode()) {
-            // OUTOFBODY_HACK: only apply vertical component of _scriptedMotorVelocity to the characterController
-            _characterController.addMotor(glm::vec3(0, _scriptedMotorVelocity.y, 0), motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            // OUTOFBODY_HACK: motors are applied differently in HMDMode
         } else {
             _characterController.addMotor(_scriptedMotorVelocity, motorRotation, _scriptedMotorTimescale);
         }
@@ -1901,10 +1899,12 @@ void MyAvatar::updatePosition(float deltaTime) {
         if (qApp->isHMDMode()) {
             // Apply _actionMotorVelocity directly to the sensorToWorld matrix.
             glm::quat motorRotation;
-            glm::quat liftRotation;
-            swingTwistDecomposition(glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix()), _worldUpDirection, liftRotation, motorRotation);
-            glm::vec3 worldVelocity = motorRotation * _actionMotorVelocity;
-            applyVelocityToSensorToWorldMatrix(worldVelocity, deltaTime);
+            glm::vec3 worldVelocity = glm::vec3(0.0f);
+            if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+                glm::quat liftRotation;
+                swingTwistDecomposition(glmExtractRotation(_sensorToWorldMatrix * getHMDSensorMatrix()), _worldUpDirection, liftRotation, motorRotation);
+                worldVelocity = motorRotation * _actionMotorVelocity;
+            }
 
             // Apply _scriptedMotorVelocity to the sensorToWorld matrix.
             if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
@@ -1916,13 +1916,20 @@ void MyAvatar::updatePosition(float deltaTime) {
                     // world-frame
                     motorRotation = glm::quat();
                 }
-                worldVelocity = motorRotation * _scriptedMotorVelocity;
-                applyVelocityToSensorToWorldMatrix(worldVelocity, deltaTime);
+                worldVelocity += motorRotation * _scriptedMotorVelocity;
             }
 
             // OUTOFBODY_HACK: apply scaling factor to _thrust, to get the same behavior as an periodically applied motor.
             const float THRUST_DAMPING_FACTOR = 0.25f;
-            applyVelocityToSensorToWorldMatrix(THRUST_DAMPING_FACTOR * _thrust, deltaTime);
+            worldVelocity += THRUST_DAMPING_FACTOR * _thrust;
+
+            if (glm::length2(worldVelocity) > FLT_EPSILON) {
+                glm::mat4 worldBodyMatrix = _sensorToWorldMatrix * _bodySensorMatrix;
+                glm::vec3 position = extractTranslation(worldBodyMatrix);
+                glm::vec3 step = deltaTime * worldVelocity;
+                glm::vec3 newVelocity = _characterController.computeHMDStep(position, step) / deltaTime;
+                applyVelocityToSensorToWorldMatrix(newVelocity, deltaTime);
+            }
         }
     }
 

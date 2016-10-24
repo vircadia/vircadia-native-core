@@ -92,6 +92,13 @@ void MyCharacterController::updateShapeIfNecessary() {
 }
 
 bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm::vec3& step, RayShotgunResult& result) {
+    btVector3 rayDirection = glmToBullet(step);
+    btScalar stepLength = rayDirection.length();
+    if (stepLength < FLT_EPSILON) {
+        return false;
+    }
+    rayDirection /= stepLength;
+
     // get _ghost ready for ray traces
     btTransform transform = _rigidBody->getWorldTransform();
     btVector3 newPosition = glmToBullet(position);
@@ -104,14 +111,6 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     CharacterRayResult closestRayResult(&_ghost);
     btVector3 rayStart;
     btVector3 rayEnd;
-    btVector3 rayDirection = glmToBullet(step);
-
-    btScalar stepLength = rayDirection.length();
-    if (stepLength < FLT_EPSILON) {
-        return false;
-    }
-    rayDirection /= stepLength;
-    const btScalar backSlop = 0.04f;
 
     // compute rotation that will orient local ray start points to face step direction
     btVector3 forward = rotation * btVector3(0.0f, 0.0f, -1.0f);
@@ -150,6 +149,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         forwardSlop = 0.0f;
     }
 
+    const btScalar backSlop = 0.04f;
     for (int32_t i = 0; i < _topPoints.size(); ++i) {
         rayStart = newPosition + rotation * _topPoints[i] - backSlop * rayDirection;
         rayEnd = rayStart + (backSlop + stepLength + forwardSlop) * rayDirection;
@@ -189,6 +189,156 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
         result.hitFraction = ((closestRayResult.m_closestHitFraction * (backSlop + stepLength)) - backSlop) / stepLength;
     }
     return result.hitFraction < 1.0f;
+}
+
+glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const glm::vec3& step) {
+    btVector3 stepDirection = glmToBullet(step);
+    btScalar stepLength = stepDirection.length();
+    if (stepLength < FLT_EPSILON) {
+        return glm::vec3(0.0f);
+    }
+    stepDirection /= stepLength;
+
+    // get _ghost ready for ray traces
+    btTransform transform = _rigidBody->getWorldTransform();
+    btVector3 newPosition = glmToBullet(position);
+    transform.setOrigin(newPosition);
+    btMatrix3x3 rotation = transform.getBasis();
+    _ghost.setWorldTransform(transform);
+    _ghost.refreshOverlappingPairCache();
+
+    // compute rotation that will orient local ray start points to face stepDirection
+    btVector3 forward = rotation * btVector3(0.0f, 0.0f, -1.0f);
+    btVector3 horizontalDirection = stepDirection - stepDirection.dot(_currentUp) * _currentUp;
+    btVector3 axis = forward.cross(horizontalDirection);
+    btScalar lengthAxis = axis.length();
+    if (lengthAxis > FLT_EPSILON) {
+        // non-zero sideways component
+        btScalar angle = acosf(lengthAxis / horizontalDirection.length());
+        if (stepDirection.dot(forward) < 0.0f) {
+            angle = PI - angle;
+        }
+        axis /= lengthAxis;
+        rotation = btMatrix3x3(btQuaternion(axis, angle)) * rotation;
+    } else if (stepDirection.dot(forward) < 0.0f) {
+        // backwards
+        rotation = btMatrix3x3(btQuaternion(_currentUp, PI)) * rotation;
+    }
+    // scan the top
+    // NOTE: if we scan an extra distance forward we can detect flat surfaces that are too steep to walk on.
+    // The approximate extra distance can be derived with trigonometry.
+    //
+    //   minimumForward = [ (maxStepHeight + radius / cosTheta - radius) * (cosTheta / sinTheta) - radius ]
+    //
+    // where: theta = max angle between floor normal and vertical
+    //
+    // if stepLength is not long enough we can add the difference.
+    //
+    btScalar cosTheta = _minFloorNormalDotUp;
+    btScalar sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+    const btScalar MIN_FORWARD_SLOP = 0.12f; // HACK: not sure why this is necessary to detect steepest walkable slope
+    btScalar forwardSlop = (_maxStepHeight + _radius / cosTheta - _radius) * (cosTheta / sinTheta) - (_radius + stepLength) + MIN_FORWARD_SLOP;
+    if (forwardSlop < 0.0f) {
+        // BIG step, no slop necessary
+        forwardSlop = 0.0f;
+    }
+
+    // we push the step forward by stepMargin to help reduce accidental penetration
+    btScalar stepMargin = glm::max(_radius, 0.4f);
+    btScalar expandedStepLength = stepLength + forwardSlop + stepMargin;
+    bool slideOnWalls = false; // HACK: hard coded for now, maybe we'll make it optional
+
+    // loop
+    CharacterRayResult rayResult(&_ghost);
+    btVector3 rayStart;
+    btVector3 rayEnd;
+    btVector3 penetration = btVector3(0.0f, 0.0f, 0.0f);
+    int32_t numPenetrations = 0;
+    btScalar closestHitFraction = 1.0f;
+    bool walkable = true;
+    for (int32_t i = 0; i < _topPoints.size(); ++i) {
+        rayStart = newPosition + rotation * _topPoints[i];
+        rayEnd = rayStart + expandedStepLength * stepDirection;
+        rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+        if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+            // check if walkable
+            if (walkable) {
+                if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
+                    walkable = false;
+                }
+            }
+            btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
+            if (adjustedHitFraction < 1.0f) {
+                if (slideOnWalls) {
+                    // sum penetration
+                    btScalar depth = ((1.0f - adjustedHitFraction) * stepLength) * stepDirection.dot(rayResult.m_hitNormalWorld);
+                    penetration -= depth * rayResult.m_hitNormalWorld;
+                    ++numPenetrations;
+                } else if (adjustedHitFraction < 0.0f) {
+                    // evidence suggests we need to back out of penetration however there is a
+                    // literal corner case where backing out may put us in deeper penetration,
+                    // so we check for it by casting another ray straight out from center
+                    rayEnd = rayStart;
+                    rayStart = rayStart.dot(_currentUp) * _currentUp;
+                    btVector3 segment = rayEnd - rayStart;
+                    btScalar radius = segment.length();
+                    if (radius > FLT_EPSILON) {
+                        rayEnd += (stepMargin / radius) * segment;
+                        CharacterRayResult checkResult(&_ghost);
+                        if (_ghost.rayTest(rayStart, rayEnd, checkResult)) {
+                            if (checkResult.m_hitNormalWorld.dot(stepDirection) > 0.0f) {
+                                // the second test says backing out would be a bad idea
+                                continue;
+                            }
+                        }
+                    }
+                }
+                if (adjustedHitFraction < closestHitFraction) {
+                    closestHitFraction = adjustedHitFraction;
+                    const btScalar STEEP_ENOUGH_TO_BACK_OUT = -0.3f;
+                    if (adjustedHitFraction < 0.0f && stepDirection.dot(rayResult.m_hitNormalWorld) < STEEP_ENOUGH_TO_BACK_OUT) {
+                        closestHitFraction = 0.0f;
+                    }
+                }
+            }
+        }
+    }
+
+    /* TODO: implement sliding along sloped floors
+    bool steppingUp = false;
+    if (walkable && closestHitFraction > 0.0f) {
+        // scan the bottom
+        for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
+            rayStart = newPosition + rotation * _bottomPoints[i];
+            rayEnd = rayStart + (stepLength + stepMargin) * stepDirection;
+            rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+            if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+                btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
+                if (adjustedHitFraction < 1.0f) {
+                    steppingUp = true;
+                    break;
+                }
+            }
+        }
+    }
+    */
+
+    btVector3 finalStep = stepLength * stepDirection;
+    if (slideOnWalls) {
+        if (numPenetrations > 1) {
+            penetration /= (btScalar)numPenetrations;
+        }
+        finalStep += penetration;
+    } else {
+        finalStep *= closestHitFraction;
+    }
+    /* TODO: implement sliding along sloped floors
+    if (steppingUp) {
+        finalStep += stepLength * _currentUp;
+    }
+    */
+
+    return bulletToGLM(finalStep);
 }
 
 btConvexHullShape* MyCharacterController::computeShape() const {

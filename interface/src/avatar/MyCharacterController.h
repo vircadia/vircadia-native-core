@@ -43,6 +43,8 @@ public:
     /// return true if RayShotgun hits anything
     bool testRayShotgun(const glm::vec3& position, const glm::vec3& step, RayShotgunResult& result);
 
+    glm::vec3 computeHMDStep(const glm::vec3& position, const glm::vec3& step);
+
 protected:
     void initRayShotgun(const btCollisionWorld* world);
 
