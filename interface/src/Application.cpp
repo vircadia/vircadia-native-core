@@ -2165,13 +2165,10 @@ void Application::resizeGL() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto uiSize = displayPlugin->getRecommendedUiSize();
     // Bit of a hack since there's no device pixel ratio change event I can find.
-    static qreal lastDevicePixelRatio = 0;
-    qreal devicePixelRatio = _window->devicePixelRatio();
-    if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
+    if (offscreenUi->size() != fromGlm(uiSize)) {
         qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
         offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
-        lastDevicePixelRatio = devicePixelRatio;
     }
 }
 
