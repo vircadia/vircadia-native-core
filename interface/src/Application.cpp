@@ -873,8 +873,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     UserActivityLogger::getInstance().logAction("launch", properties);
 
-    _connectionMonitor.init();
-
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
     _entityEditSender.setMyAvatar(myAvatar.get());
@@ -1366,6 +1364,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         }
     }
+
+    _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
     firstRun.set(false);
