@@ -114,9 +114,11 @@ const ipcMain = electron.ipcMain;
 
 var isShuttingDown = false;
 function shutdown() {
+    log.debug("Normal shutdown (isShuttingDown: " + isShuttingDown +  ")");
     if (!isShuttingDown) {
         // if the home server is running, show a prompt before quit to ask if the user is sure
         if (homeServer.state == ProcessGroupStates.STARTED) {
+            log.debug("Showing shutdown dialog.");
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
@@ -131,21 +133,26 @@ function shutdown() {
 }
 
 function forcedShutdown() {
+    log.debug("Forced shutdown (isShuttingDown: " + isShuttingDown +  ")");
     if (!isShuttingDown) {
         shutdownCallback(0);
     }
 }
 
 function shutdownCallback(idx) {
+    log.debug("Entering shutdown callback.");
     if (idx == 0 && !isShuttingDown) {
         isShuttingDown = true;
 
+        log.debug("Saving user config");
         userConfig.save(configPath);
 
         if (logWindow) {
+            log.debug("Closing log window");
             logWindow.close();
         }
         if (homeServer) {
+            log.debug("Stoping home server");
             homeServer.stop();
         }
 
@@ -153,14 +160,17 @@ function shutdownCallback(idx) {
 
         if (homeServer.state == ProcessGroupStates.STOPPED) {
             // if the home server is already down, take down the server console now
+            log.debug("Quitting.");
             app.quit();
         } else {
             // if the home server is still running, wait until we get a state change or timeout
             // before quitting the app
+            log.debug("Server still shutting down. Waiting");
             var timeoutID = setTimeout(app.quit, 5000);
             homeServer.on('state-update', function(processGroup) {
                 if (processGroup.state == ProcessGroupStates.STOPPED) {
                     clearTimeout(timeoutID);
+                    log.debug("Quitting.");
                     app.quit();
                 }
             });
