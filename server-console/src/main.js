@@ -64,7 +64,6 @@ function getBuildInfo() {
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
-        log.debug('Build info path:', buildInfoPath);
         try {
             buildInfo = JSON.parse(fs.readFileSync(buildInfoPath));
         } catch (e) {
@@ -75,15 +74,6 @@ function getBuildInfo() {
     return buildInfo;
 }
 const buildInfo = getBuildInfo();
-
-const logFile = getApplicationDataDirectory() + '/log.txt';
-fs.ensureFileSync(logFile); // Ensure file exists
-
-global.log = require('electron-log');
-log.transports.file.maxSize = 5 * 1024 * 1024;
-log.transports.file.file = logFile;
-
-log.debug("build info", buildInfo);
 
 function getRootHifiDataDirectory() {
     var organization = "High Fidelity";
@@ -111,6 +101,14 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
+// Configure log
+global.log = require('electron-log');
+const logFile = getApplicationDataDirectory() + '/log.txt';
+fs.ensureFileSync(logFile); // Ensure file exists
+log.transports.file.maxSize = 5 * 1024 * 1024;
+log.transports.file.file = logFile;
+
+log.debug("build info", buildInfo);
 log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
