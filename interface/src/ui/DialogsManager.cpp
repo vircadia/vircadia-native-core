@@ -21,6 +21,7 @@
 #include "AddressBarDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "ConnectionFailureDialog.h"
 #include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
@@ -59,8 +60,12 @@ void DialogsManager::showFeed() {
     emit setUseFeed(true);
 }
 
-void DialogsManager::indicateDomainConnectionFailure() {
-    OffscreenUi::information("No Connection", "Unable to connect to this domain. Click the 'GO TO' button on the toolbar to visit another domain.");
+void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
+    if (visible) {
+        ConnectionFailureDialog::show();
+    } else {
+        ConnectionFailureDialog::hide();
+    }
 }
 
 void DialogsManager::toggleDiskCacheEditor() {
