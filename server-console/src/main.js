@@ -1,7 +1,5 @@
 'use strict';
 
-global.log = require('electron-log');
-
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
@@ -76,8 +74,14 @@ function getBuildInfo() {
 
     return buildInfo;
 }
-
 const buildInfo = getBuildInfo();
+
+const logFile = getApplicationDataDirectory() + '/log.txt';
+fs.ensureFileSync(logFile); // Ensure file exists
+
+global.log = require('electron-log');
+log.transports.file.maxSize = 5 * 1024 * 1024;
+log.transports.file.file = logFile;
 
 log.debug("build info", buildInfo);
 
