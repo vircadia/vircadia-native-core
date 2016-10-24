@@ -22,11 +22,48 @@ using namespace gpu;
 // FIXME: Declare this to enable compression
 //#define COMPRESS_TEXTURES
 
+#define SPARSE_PAGE_DIMENSION 128
+
+static const uvec2 SPARSE_PAGE_SIZE(SPARSE_PAGE_DIMENSION);
 bool DEV_DECIMATE_TEXTURES = false;
-QImage processSourceImage(const QImage& srcImage) {
-    if (DEV_DECIMATE_TEXTURES) {
-        return srcImage.scaled(srcImage.size() * 0.5f);
+
+bool needsSparseRectification(const uvec2& size) {
+    // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
+    if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
+        return false;
     }
+
+    // Don't rectify textures that are already an exact multiple of sparse page size
+    if (uvec2(0) == (size % SPARSE_PAGE_SIZE)) {
+        return false;
+    }
+
+    // Texture is not sparse compatible, but is bigger than the sparse page size in both dimensions, rectify!
+    return true;
+}
+
+uvec2 rectifyToSparseSize(const uvec2& size) {
+    uvec2 pages = ((size / SPARSE_PAGE_SIZE) + glm::clamp(size % SPARSE_PAGE_SIZE, uvec2(0), uvec2(1)));
+    uvec2 result = pages * SPARSE_PAGE_SIZE;
+    return result;
+}
+
+QImage processSourceImage(const QImage& srcImage) {
+    const uvec2 srcImageSize = toGlm(srcImage.size());
+    uvec2 targetSize = srcImageSize;
+
+    if (needsSparseRectification(srcImageSize)) {
+        targetSize = rectifyToSparseSize(srcImageSize);
+    }
+
+    if (DEV_DECIMATE_TEXTURES && glm::all(glm::greaterThanEqual(targetSize / SPARSE_PAGE_SIZE, uvec2(2)))) {
+        targetSize /= 2;
+    }
+
+    if (targetSize != srcImageSize) {
+        return srcImage.scaled(fromGlm(targetSize));
+    }
+
     return srcImage;
 }
 
