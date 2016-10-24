@@ -151,14 +151,16 @@ public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
+    static uint32_t getTextureGPUSparseCount();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
+    static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);
 
-    static bool getEnableSparseTextures() { return _enableSparseTextures.load(); }
-    static bool getEnableIncrementalTextureTransfers() { return _enableIncrementalTextureTransfers.load(); }
+    static bool getEnableSparseTextures();
+    static bool getEnableIncrementalTextureTransfers();
 
     static void setEnableSparseTextures(bool enabled);
     static void setEnableIncrementalTextureTransfers(bool enabled);
@@ -466,8 +468,8 @@ public:
     void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     void setExternalTexture(uint32 externalId, void* externalFence);
-    void setExternalRecycler(const ExternalRecycler& recycler) { _externalRecycler = recycler; }
-    ExternalRecycler getExternalRecycler() const { return _externalRecycler; }
+    void setExternalRecycler(const ExternalRecycler& recycler);
+    ExternalRecycler getExternalRecycler() const;
 
     const GPUObjectPointer gpuObject {};
 

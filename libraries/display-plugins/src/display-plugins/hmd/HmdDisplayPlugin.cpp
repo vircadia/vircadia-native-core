@@ -112,6 +112,10 @@ void HmdDisplayPlugin::internalDeactivate() {
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     _overlayRenderer.build();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        _geometryIds[i] = geometryCache->allocateID();
+    }
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -126,6 +130,11 @@ void HmdDisplayPlugin::uncustomizeContext() {
     });
     _overlayRenderer = OverlayRenderer();
     _previewTexture.reset();
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    for (size_t i = 0; i < _geometryIds.size(); ++i) {
+        geometryCache->releaseID(_geometryIds[i]);
+    }
     Parent::uncustomizeContext();
 }
 
@@ -370,15 +379,12 @@ void HmdDisplayPlugin::updateFrameData() {
         mat4 model = _presentHandPoses[i];
         vec3 castStart = vec3(model[3]);
         vec3 castDirection = glm::quat_cast(model) * laserDirection;
-        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
-            castDirection = glm::normalize(castDirection);
-            castDirection = glm::inverse(_presentUiModelTransform.getRotation()) * castDirection;
-        }
 
-        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js
-        //static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.1f, 0.04f, -0.32f);
-        static const vec3 GRAB_POINT_SPHERE_OFFSET = vec3(0.0f, 0.0f, -0.175f);
-        vec3 grabPointOffset = GRAB_POINT_SPHERE_OFFSET;
+        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
+        static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
+
+        // swizzle grab point so that (x = upward, y = lateral, z = forward)
+        vec3 grabPointOffset = glm::vec3(GRAB_POINT_SPHERE_OFFSET.x, GRAB_POINT_SPHERE_OFFSET.z, -GRAB_POINT_SPHERE_OFFSET.y);
         if (i == 0) {
             grabPointOffset.x *= -1.0f; // this changes between left and right hands
         }
@@ -630,7 +636,7 @@ void HmdDisplayPlugin::compositeExtra() {
             const auto& laser = _presentHandLasers[index];
             if (laser.valid()) {
                 const auto& points = _presentHandLaserPoints[index];
-                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color);
+                geometryCache->renderGlowLine(batch, points.first, points.second, laser.color, _geometryIds[index]);
             }
         });
     });

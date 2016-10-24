@@ -9,7 +9,6 @@
 //
 
 Script.include("entityData.js");
-Script.include("viveHandsv2.js");
 Script.include("lighter/createButaneLighter.js");
 Script.include("tutorialEntityIDs.js");
 
@@ -235,7 +234,7 @@ var stepDisableControllers = function(name) {
 }
 stepDisableControllers.prototype = {
     start: function(onFinish) {
-        controllerDisplayManager = new ControllerDisplayManager();
+        HMD.requestShowHandControllers();
         disableEverything();
 
         onFinish();
@@ -276,10 +275,7 @@ function reenableEverything() {
     setControllerPartLayer('touchpad', 'blank');
     setControllerPartLayer('tips', 'blank');
     MyAvatar.shouldRenderLocally = true;
-    if (controllerDisplayManager) {
-        controllerDisplayManager.destroy();
-        controllerDisplayManager = null;
-    }
+    HMD.requestHideHandControllers();
     setAwayEnabled(true);
 }
 

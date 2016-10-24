@@ -663,9 +663,19 @@ void GLBackend::recycle() const {
             Lock lock(_trashMutex);
             std::swap(_externalTexturesTrash, externalTexturesTrash);
         }
-        for (auto pair : externalTexturesTrash) {
-            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            pair.second(pair.first, fence);
+        if (!externalTexturesTrash.empty()) {
+            std::vector<GLsync> fences;  
+            fences.resize(externalTexturesTrash.size());
+            for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
+                fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            }
+            // External texture fences will be read in another thread/context, so we need a flush
+            glFlush();
+            size_t index = 0;
+            for (auto pair : externalTexturesTrash) {
+                auto fence = fences[index++];
+                pair.second(pair.first, fence);
+            }
         }
     }
 

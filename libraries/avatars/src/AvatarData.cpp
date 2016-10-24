@@ -1778,7 +1778,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }

@@ -1,3 +1,16 @@
+//
+//  viveControllerConfiguration.js
+//
+//  Created by Anthony J. Thibault on 10/20/16
+//  Originally created by Ryan Huffman on 9/21/2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+/* globals VIVE_CONTROLLER_CONFIGURATION_LEFT:true VIVE_CONTROLLER_CONFIGURATION_RIGHT:true */
+/* eslint camelcase: ["error", { "properties": "never" }] */
+
 var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
 var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
 
@@ -16,16 +29,20 @@ var rightBaseRotation = Quat.multiply(
         Quat.fromPitchYawRollDegrees(0, 0, -90)
     )
 );
-var CONTROLLER_LENGTH_OFFSET = 0.0762; 
+
+// keep these in sync with the values from plugins/openvr/src/OpenVrHelpers.cpp:303
+var CONTROLLER_LATERAL_OFFSET = 0.0381;
+var CONTROLLER_VERTICAL_OFFSET = 0.0495;
+var CONTROLLER_FORWARD_OFFSET = 0.1371;
 var leftBasePosition = {
-    x: CONTROLLER_LENGTH_OFFSET / 2,
-    y: CONTROLLER_LENGTH_OFFSET * 2,
-    z: CONTROLLER_LENGTH_OFFSET / 2
+    x: CONTROLLER_VERTICAL_OFFSET,
+    y: CONTROLLER_FORWARD_OFFSET,
+    z: CONTROLLER_LATERAL_OFFSET
 };
 var rightBasePosition = {
-    x: -CONTROLLER_LENGTH_OFFSET / 2,
-    y: CONTROLLER_LENGTH_OFFSET * 2,
-    z: CONTROLLER_LENGTH_OFFSET / 2
+    x: -CONTROLLER_VERTICAL_OFFSET,
+    y: CONTROLLER_FORWARD_OFFSET,
+    z: CONTROLLER_LATERAL_OFFSET
 };
 
 var viveNaturalDimensions = {
@@ -40,8 +57,11 @@ var viveNaturalPosition = {
     z: 0.06380049744620919
 };
 
-var viveModelURL = "atp:/controller/vive_body.fbx";
-var viveTipsModelURL = "atp:/controller/vive_tips.fbx"
+var BASE_URL = Script.resourcesPath();
+var TIP_TEXTURE_BASE_URL = BASE_URL + "meshes/controller/vive_tips.fbm/";
+
+var viveModelURL = BASE_URL + "meshes/controller/vive_body.fbx";
+var viveTipsModelURL = BASE_URL + "meshes/controller/vive_tips.fbx";
 
 VIVE_CONTROLLER_CONFIGURATION_LEFT = {
     name: "Vive",
@@ -66,20 +86,20 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Blank.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "Blank.png"
                         },
                         trigger: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Trigger.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Trigger.png"
                         },
                         arrows: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Rotate.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Grip.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Grip.png"
                         },
                         teleport: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Teleport.png",
-                        },
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Teleport.png"
+                        }
                     }
                 },
 
@@ -87,7 +107,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                 // and swaps in textures based on the thumb position.
                 touchpad: {
                     type: "touchpad",
-                    modelURL: "atp:/controller/vive_trackpad.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_trackpad.fbx",
                     visibleInput: "Vive.RSTouch",
                     xInput: "Vive.LX",
                     yInput: "Vive.LY",
@@ -101,62 +121,61 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     disable_defaultTextureLayer: "blank",
                     disable_textureLayers: {
                         blank: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg"
                         },
                         teleport: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg"
                         },
                         arrows: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows.jpg"
                         }
                     }
                 },
 
                 trigger: {
                     type: "rotational",
-                    modelURL: "atp:/controller/vive_trigger.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_trigger.fbx",
                     input: Controller.Standard.LT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
                     origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
                     axis: { x: -1, y: 0, z: 0 },
-                    maxAngle: 20,
+                    maxAngle: 20
                 },
 
                 l_grip: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_l_grip.fbx",
-                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    modelURL: BASE_URL + "meshes/controller/vive_l_grip.fbx",
+                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
                 },
 
                 r_grip: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_r_grip.fbx",
-                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    modelURL: BASE_URL + "meshes/controller/vive_r_grip.fbx",
+                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
                 },
 
                 sys_button: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_sys_button.fbx",
-                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
+                    modelURL: BASE_URL + "meshes/controller/vive_sys_button.fbx",
+                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311}
                 },
 
                 button: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_button.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
                 button2: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_button.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
-                },
-            },
-        },
+                }
+            }
+        }
     ]
 };
-
 
 
 VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
@@ -188,20 +207,20 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     defaultTextureLayer: "blank",
                     textureLayers: {
                         blank: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Blank.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Blank.png"
                         },
                         trigger: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Trigger.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Trigger.png"
                         },
                         arrows: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Rotate.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Rotate.png"
                         },
                         grip: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Grip.png",
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Grip.png"
                         },
                         teleport: {
-                            defaultTextureURL: viveTipsModelURL + "/Controller-Tips.fbm/Teleport.png",
-                        },
+                            defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Teleport.png"
+                        }
                     }
                 },
 
@@ -209,7 +228,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                 // and swaps in textures based on the thumb position.
                 touchpad: {
                     type: "touchpad",
-                    modelURL: "atp:/controller/vive_trackpad.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_trackpad.fbx",
                     visibleInput: "Vive.RSTouch",
                     xInput: "Vive.RX",
                     yInput: "Vive.RY",
@@ -223,58 +242,58 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     disable_defaultTextureLayer: "blank",
                     disable_textureLayers: {
                         blank: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-blank.jpg"
                         },
                         teleport: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-teleport-active-LG.jpg"
                         },
                         arrows: {
-                            defaultTextureURL: "atp:/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows-active.jpg",
+                            defaultTextureURL: BASE_URL + "meshes/controller/vive_trackpad.fbx/Touchpad.fbm/touchpad-look-arrows-active.jpg"
                         }
                     }
                 },
 
                 trigger: {
                     type: "rotational",
-                    modelURL: "atp:/controller/vive_trigger.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_trigger.fbx",
                     input: Controller.Standard.RT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
                     origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
                     axis: { x: -1, y: 0, z: 0 },
-                    maxAngle: 25,
+                    maxAngle: 25
                 },
 
                 l_grip: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_l_grip.fbx",
-                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    modelURL: BASE_URL + "meshes/controller/vive_l_grip.fbx",
+                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
                 },
 
                 r_grip: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_r_grip.fbx",
-                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    modelURL: BASE_URL + "meshes/controller/vive_r_grip.fbx",
+                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
                 },
 
                 sys_button: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_sys_button.fbx",
-                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
+                    modelURL: BASE_URL + "meshes/controller/vive_sys_button.fbx",
+                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311}
                 },
 
                 button: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_button.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
                 },
                 button2: {
                     type: "static",
-                    modelURL: "atp:/controller/vive_button.fbx",
+                    modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
                     naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
-                },
-            },
+                }
+            }
         }
     ]
 };

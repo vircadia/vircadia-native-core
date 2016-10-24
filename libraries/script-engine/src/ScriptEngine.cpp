@@ -37,6 +37,7 @@
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
+#include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -1136,6 +1137,10 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     return url;
 }
 
+QUrl ScriptEngine::resourcesPath() const {
+    return QUrl::fromLocalFile(PathUtils::resourcesPath());
+}
+
 void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
@@ -1197,6 +1202,11 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         } else {
             qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
         }
+    }
+
+    // If there are no URLs left to download, don't bother attempting to download anything and return early
+    if (urls.size() == 0) {
+        return;
     }
 
     BatchLoader* loader = new BatchLoader(urls);

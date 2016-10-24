@@ -16,13 +16,13 @@ Item {
     width: parent.width
     height: 100
 
-    property int hitboxExtension : 20
-    
     // The title of the graph
     property string title
 
     // The object used as the default source object for the prop plots
     property var object
+
+    property var backgroundOpacity: 0.6
 
     // Plots is an array of plot descriptor
     // a default plot descriptor expects the following object:
@@ -55,9 +55,17 @@ Item {
     function createValues() {
         for (var i =0; i < plots.length; i++) {
             var plot = plots[i];
+            var object = plot["object"] || root.object;
+            var value = plot["prop"];
+            var isBinding = plot["binding"];
+            if (isBinding) {
+                object = root.parent;
+                value = isBinding;
+            }
             _values.push( {
-                object: (plot["object"] !== undefined ? plot["object"] : root.object),
-                value: plot["prop"],
+                object: object,
+                value: value,
+                fromBinding: isBinding,
                 valueMax: 1,
                 numSamplesConstantMax: 0,
                 valueHistory: new Array(),
@@ -179,7 +187,7 @@ Item {
                 ctx.fillText(text, 0, lineHeight);
             }
             function displayBackground(ctx) {
-                ctx.fillStyle = Qt.rgba(0, 0, 0, 0.6);
+                ctx.fillStyle = Qt.rgba(0, 0, 0, root.backgroundOpacity);
                 ctx.fillRect(0, 0, width, height);
                 
                 ctx.strokeStyle= "grey";
@@ -210,15 +218,9 @@ Item {
 
     MouseArea {
         id: hitbox
-        anchors.fill:mycanvas
-
-        anchors.topMargin: -hitboxExtension
-        anchors.bottomMargin: -hitboxExtension
-        anchors.leftMargin: -hitboxExtension
-        anchors.rightMargin: -hitboxExtension
+        anchors.fill: mycanvas
 
         onClicked: {
-            print("PerfPlot clicked!")
             resetMax();
         }
     }

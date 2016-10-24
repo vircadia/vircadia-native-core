@@ -70,6 +70,11 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
     return false;
 }
 
+bool isValidFilePath(const AssetPath& filePath) {
+    QRegExp filePathRegex { ASSET_FILE_PATH_REGEX_STRING };
+    return filePathRegex.exactMatch(filePath);
+}
+
 bool isValidPath(const AssetPath& path) {
     QRegExp pathRegex { ASSET_PATH_REGEX_STRING };
     return pathRegex.exactMatch(path);

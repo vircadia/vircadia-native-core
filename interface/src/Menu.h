@@ -37,7 +37,6 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";

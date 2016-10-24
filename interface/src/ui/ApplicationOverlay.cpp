@@ -40,9 +40,18 @@ ApplicationOverlay::ApplicationOverlay()
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
+    _qmlGeometryId = geometryCache->allocateID();
+    _rearViewGeometryId = geometryCache->allocateID();
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_domainStatusBorder);
+        geometryCache->releaseID(_magnifierBorder);
+        geometryCache->releaseID(_qmlGeometryId);
+        geometryCache->releaseID(_rearViewGeometryId);
+    }
 }
 
 // Renders the overlays either to a texture or to the screen
@@ -89,9 +98,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
 
     if (!_uiTexture) {
-        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D([](uint32_t recycleTexture, void* recycleFence){
-            DependencyManager::get<OffscreenUi>()->releaseTexture({ recycleTexture, recycleFence });
-        }));
+        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _uiTexture->setSource(__FUNCTION__);
     }
     // Once we move UI rendering and screen rendering to different
@@ -112,7 +119,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     batch.setModelTransform(Transform());
     batch.resetViewTransform();
     batch.setResourceTexture(0, _uiTexture);
-    geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
 }
 
 void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
@@ -188,7 +195,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
 
         batch.setResourceTexture(0, selfieTexture);
         float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha), _rearViewGeometryId);
 
         batch.setResourceTexture(0, renderArgs->_whiteTexture);
     }

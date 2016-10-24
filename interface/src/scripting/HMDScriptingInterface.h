@@ -41,14 +41,18 @@ public:
     Q_INVOKABLE bool isHMDAvailable();
     Q_INVOKABLE bool isHandControllerAvailable();
 
+    Q_INVOKABLE void requestShowHandControllers();
+    Q_INVOKABLE void requestHideHandControllers();
+    Q_INVOKABLE bool shouldShowHandControllers() const;
+
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
 
     Q_INVOKABLE void disableHandLasers(int hands) const;
-    /// Suppress the activation of any on-screen keyboard so that a script operation will 
+    /// Suppress the activation of any on-screen keyboard so that a script operation will
     /// not be interrupted by a keyboard popup
     /// Returns false if there is already an active keyboard displayed.
     /// Clients should re-enable the keyboard when the operation is complete and ensure
-    /// that they balance any call to suppressKeyboard() that returns true with a corresponding 
+    /// that they balance any call to suppressKeyboard() that returns true with a corresponding
     /// call to unsuppressKeyboard() within a reasonable amount of time
     Q_INVOKABLE bool suppressKeyboard();
 
@@ -63,6 +67,10 @@ public:
 
     // snap HMD to align with Avatar's current position in world-frame
     Q_INVOKABLE void snapToAvatar();
+
+signals:
+    bool shouldShowHandControllersChanged();
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -82,6 +90,7 @@ private:
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
     glm::mat4 getWorldHMDMatrix() const;
+    std::atomic<int> _showHandControllersCount { 0 };
 };
 
 #endif // hifi_HMDScriptingInterface_h

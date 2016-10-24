@@ -415,7 +415,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 // check if we had a path to override the path returned
                 QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
 
-                if (!overridePath.isEmpty()) {
+                if (!overridePath.isEmpty() && overridePath != "/") {
                     // make sure we don't re-handle an overriden path if this was a refresh of info from API
                     if (trigger != LookupTrigger::AttemptedRefresh) {
                         handlePath(overridePath, trigger);
@@ -829,34 +829,5 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
             _backStack.push(currentAddress());
         }
     }
-}
-
-void AddressManager::ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
-                                               std::function<void()> localSandboxNotRunningDoThat) {
-
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest sandboxStatus(SANDBOX_STATUS_URL);
-    sandboxStatus.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    sandboxStatus.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(sandboxStatus);
-
-    connect(reply, &QNetworkReply::finished, this, [reply, localSandboxRunningDoThis, localSandboxNotRunningDoThat]() {
-        auto statusData = reply->readAll();
-        auto statusJson = QJsonDocument::fromJson(statusData);
-        if (!statusJson.isEmpty()) {
-            auto statusObject = statusJson.object();
-            auto serversValue = statusObject.value("servers");
-            if (!serversValue.isUndefined() && serversValue.isObject()) {
-                auto serversObject = serversValue.toObject();
-                auto serversCount = serversObject.size();
-                const int MINIMUM_EXPECTED_SERVER_COUNT = 5;
-                if (serversCount >= MINIMUM_EXPECTED_SERVER_COUNT) {
-                    localSandboxRunningDoThis();
-                    return;
-                }
-            }
-        }
-        localSandboxNotRunningDoThat();
-    });
 }
 

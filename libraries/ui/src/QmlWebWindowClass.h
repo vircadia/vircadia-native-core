@@ -19,7 +19,7 @@ class QmlWebWindowClass : public QmlWindowClass {
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
-    public slots:
+public slots:
     QString getURL() const;
     void setURL(const QString& url);
 

@@ -52,11 +52,16 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     destroyWebSurface();
     qDebug() << "Destroyed web entity " << getID();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
+    }
 }
 
 bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
@@ -95,11 +100,14 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     };
     _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
 
+    // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+    // and the current rendering load)
+    _webSurface->setMaxFps(10);
+
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
     // member variables, since they would implicitly refer to a this that 
     // is no longer valid
-
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
     _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
@@ -108,6 +116,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
     _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+    // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
 
     // forward web events to EntityScriptingInterface
     auto entities = DependencyManager::get<EntityScriptingInterface>();
@@ -192,10 +201,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        auto recycler = [webSurface] (uint32_t recycleTexture, void* recycleFence) {
-            webSurface->releaseTexture({ recycleTexture, recycleFence });
-        };
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(recycler));
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
@@ -227,7 +233,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     } else {
         DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch);
     }
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio));
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

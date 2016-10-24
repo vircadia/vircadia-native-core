@@ -349,7 +349,7 @@ ScrollingWindow {
                 },
                 function(err, path) {
                     print(err, path);
-                    if (!err) {
+                    if (err === "") {
                         uploadProgressLabel.text = "Upload Complete";
                         timer.interval = 1000;
                         timer.repeat = false;
@@ -362,14 +362,15 @@ ScrollingWindow {
                         console.log("Asset Browser - finished uploading: ", fileUrl);
                         reload();
                     } else {
-                        if (err > 0) {
-                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
-                            box.selected.connect(reload);
-                        }
                         uploadSpinner.visible = false;
                         uploadButton.enabled = true;
                         uploadOpen = false;
+
+                        if (err !== -1) {
+                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
+                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
+                            box.selected.connect(reload);
+                        }
                     }
             }, dropping);
         }

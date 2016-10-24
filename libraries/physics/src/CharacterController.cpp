@@ -683,6 +683,9 @@ void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
 }
 
 void CharacterController::updateState() {
+    if (!_dynamicsWorld) {
+        return;
+    }
     const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
     const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
     const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
@@ -791,7 +794,7 @@ void CharacterController::updateState() {
 }
 
 void CharacterController::preSimulation() {
-    if (_dynamicsWorld) {
+    if (_rigidBody) {
         // slam body transform and remember velocity
         _rigidBody->setWorldTransform(btTransform(btTransform(_rotation, _position)));
         _preSimulationVelocity = _rigidBody->getLinearVelocity();
@@ -804,7 +807,9 @@ void CharacterController::preSimulation() {
 }
 
 void CharacterController::postSimulation() {
-    _velocityChange = _rigidBody->getLinearVelocity() - _preSimulationVelocity;
+    if (_rigidBody) {
+        _velocityChange = _rigidBody->getLinearVelocity() - _preSimulationVelocity;
+    }
 }
 
 bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {

@@ -20,7 +20,7 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
 //
@@ -484,6 +484,9 @@ function update() {
     if (!activeTrigger.state) {
         return off(); // No trigger
     }
+    if (getGrabCommunications()) {
+        return off();
+    }
     var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {
         return off();
@@ -507,10 +510,15 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-setupHandler(Script.update, update);
+
+var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update();
+}, BASIC_TIMER_INTERVAL);
+
 
 // Check periodically for changes to setup.
-var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
+var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
     updateFieldOfView();
     updateRecommendedArea();
@@ -520,6 +528,7 @@ checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
+    Script.clearInterval(updateIntervalTimer);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

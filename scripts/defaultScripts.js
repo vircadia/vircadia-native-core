@@ -23,6 +23,7 @@ var DEFAULT_SCRIPTS = [
     "system/mod.js",
     "system/selectAudioDevice.js",
     "system/notifications.js",
+    "system/controllers/controllerDisplayManager.js",
     "system/controllers/handControllerGrab.js",
     "system/controllers/handControllerPointer.js",
     "system/controllers/squeezeHands.js",

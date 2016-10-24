@@ -519,7 +519,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 
-    // set a custum packetVersionMatch as the verify packet operator for the udt::Socket
+    // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 

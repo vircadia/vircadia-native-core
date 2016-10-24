@@ -28,8 +28,6 @@ class Stats : public QQuickItem {
     Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
     Q_PROPERTY(bool timingExpanded READ isTimingExpanded NOTIFY timingExpandedChanged)
     Q_PROPERTY(QString monospaceFont READ monospaceFont CONSTANT)
-    Q_PROPERTY(float audioPacketlossUpstream READ getAudioPacketLossUpstream)
-    Q_PROPERTY(float audioPacketlossDownstream READ getAudioPacketLossDownstream)
 
     STATS_PROPERTY(int, serverCount, 0)
     // How often the app is creating new gpu::Frames
@@ -89,6 +87,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, localElements, 0)
     STATS_PROPERTY(int, localInternal, 0)
     STATS_PROPERTY(int, localLeaves, 0)
+    STATS_PROPERTY(int, gpuBuffers, 0)
+    STATS_PROPERTY(int, gpuTextures, 0)
+    STATS_PROPERTY(int, gpuTexturesSparse, 0)
+    STATS_PROPERTY(int, qmlTextureMemory, 0)
+    STATS_PROPERTY(int, gpuTextureMemory, 0)
+    STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
+    STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(int, gpuFreeMemory, 0)
 
 public:
     static Stats* getInstance();
@@ -99,9 +106,6 @@ public:
     const QString& monospaceFont() {
         return _monospaceFont;
     }
-
-    float getAudioPacketLossUpstream() { return _audioStats->getMixerAvatarStreamStats()._packetStreamStats.getLostRate(); }
-    float getAudioPacketLossDownstream() { return _audioStats->getMixerDownstreamStats()._packetStreamStats.getLostRate(); }
 
     void updateStats(bool force = false);
 
@@ -177,6 +181,15 @@ signals:
     void localInternalChanged();
     void localLeavesChanged();
     void timingStatsChanged();
+    void qmlTextureMemoryChanged();
+    void gpuBuffersChanged();
+    void gpuTexturesChanged();
+    void gpuTexturesSparseChanged();
+    void gpuTextureMemoryChanged();
+    void gpuTextureVirtualMemoryChanged();
+    void gpuTextureSparseMemoryChanged();
+    void gpuSparseTextureEnabledChanged();
+    void gpuFreeMemoryChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process

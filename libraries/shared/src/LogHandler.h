@@ -38,11 +38,11 @@ public:
 
     /// sets the target name to output via the verboseMessageHandler, called once before logging begins
     /// \param targetName the desired target name to output in logs
-    void setTargetName(const QString& targetName) { _targetName = targetName; }
+    void setTargetName(const QString& targetName);
 
-    void setShouldOutputProcessID(bool shouldOutputProcessID) { _shouldOutputProcessID = shouldOutputProcessID; }
-    void setShouldOutputThreadID(bool shouldOutputThreadID) { _shouldOutputThreadID = shouldOutputThreadID; }
-    void setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) { _shouldDisplayMilliseconds = shouldDisplayMilliseconds; }
+    void setShouldOutputProcessID(bool shouldOutputProcessID);
+    void setShouldOutputThreadID(bool shouldOutputThreadID);
+    void setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds);
 
     QString printMessage(LogMsgType type, const QMessageLogContext& context, const QString &message);
 
@@ -64,11 +64,11 @@ private:
     QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
     QHash<QString, QString> _lastRepeatedMessage;
-    QMutex _repeatedMessageLock;
 
     QSet<QString> _onlyOnceMessageRegexes;
     QHash<QString, int> _onlyOnceMessageCountHash;
-    QMutex _onlyOnceMessageLock;
+
+    static QMutex _mutex;
 };
 
 #endif // hifi_LogHandler_h

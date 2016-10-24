@@ -68,6 +68,8 @@ public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
 
+    void merge(const EntityItemProperties& other);
+
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
@@ -365,6 +367,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Created, created, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");

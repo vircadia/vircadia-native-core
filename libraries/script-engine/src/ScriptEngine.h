@@ -133,6 +133,7 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
+    Q_INVOKABLE QUrl resourcesPath() const;
 
     // Entity Script Related methods
     static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);

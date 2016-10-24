@@ -6,7 +6,7 @@
 //
 
 (function() {
-    var baseURL = "https://hifi-production.s3.amazonaws.com/hifi-production/DomainContent/CellScience/";
+    var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
     var self = this;
     this.buttonImageURL = baseURL + "GUI/play_audio.svg?2";
 

@@ -668,10 +668,6 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
-    // Developer > Audio > Audio Network Stats...
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNetworkStats, 0,
-        dialogsManager.data(), SLOT(audioStatsDetails()));
-
     // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     {

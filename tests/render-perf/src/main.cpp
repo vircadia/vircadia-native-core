@@ -18,9 +18,11 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QSettings>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
+
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>

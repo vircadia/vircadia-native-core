@@ -27,6 +27,7 @@ Item {
         loginDialog.login(usernameField.text, passwordField.text)
     }
 
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
@@ -41,12 +42,18 @@ Item {
 
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height
-                    + 4 * hifi.dimensions.contentSpacing.y + form.height + hifi.dimensions.contentSpacing.y + buttons.height;
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
+                            4 * hifi.dimensions.contentSpacing.y + form.height +
+                                hifi.dimensions.contentSpacing.y + buttons.height;
+
+            if (additionalInformation.visible) {
+                targetWidth = Math.max(targetWidth, additionalInformation.width);
+                targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
+            }
 
             root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
-                    + (linkAccountBody.keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
 
@@ -135,30 +142,34 @@ Item {
 
     }
 
-    // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
-    Keyboard {
-        y: parent.keyboardRaised ? parent.height : 0
-        height: parent.keyboardRaised ? 200 : 0
-        visible: parent.keyboardRaised && !parent.punctuationMode
-        enabled: parent.keyboardRaised && !parent.punctuationMode
+    InfoItem {
+        id: additionalInformation
         anchors {
+            top: form.bottom
             left: parent.left
-            right: parent.right
-            bottom: buttons.top
-            bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+            margins: 0
+            topMargin: hifi.dimensions.contentSpacing.y
         }
+
+        visible: loginDialog.isSteamRunning()
+
+        text: qsTr("Your steam account informations will not be exposed to other users.")
+        wrapMode: Text.WordWrap
+        color: hifi.colors.baseGrayHighlight
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
     }
 
-    KeyboardPunctuation {
-        y: parent.keyboardRaised ? parent.height : 0
-        height: parent.keyboardRaised ? 200 : 0
-        visible: parent.keyboardRaised && parent.punctuationMode
-        enabled: parent.keyboardRaised && parent.punctuationMode
+    // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
+    Keyboard {
+        raised: keyboardEnabled && keyboardRaised
+        numeric: punctuationMode
         anchors {
             left: parent.left
             right: parent.right
             bottom: buttons.top
-            bottomMargin: parent.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
+            bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 
@@ -195,9 +206,10 @@ Item {
     Component.onCompleted: {
         root.title = qsTr("Sign Into High Fidelity")
         root.iconText = "<"
+        keyboardEnabled = HMD.active;
         d.resize();
 
-        usernameField.forceActiveFocus()
+        usernameField.forceActiveFocus();
     }
 
     Connections {

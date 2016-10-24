@@ -636,7 +636,11 @@ QString AudioMixer::percentageForMixStats(int counter) {
 }
 
 void AudioMixer::sendStatsPacket() {
-    static QJsonObject statsObject;
+    QJsonObject statsObject;
+
+    if (_numStatFrames == 0) {
+        return;
+    }
 
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;

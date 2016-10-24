@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1;
 import Qt.labs.settings 1.0
+import HFWebEngineProfile 1.0
 
 import "../desktop" as OriginalDesktop
 import ".."
@@ -20,17 +21,14 @@ OriginalDesktop.Desktop {
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
         acceptedButtons: Qt.NoButton
-		
-
     }
 
     // The tool window, one instance
     property alias toolWindow: toolWindow
     ToolWindow { id: toolWindow }
 
-    property var browserProfile: WebEngineProfile {
+    property var browserProfile: HFWebEngineProfile {
         id: webviewProfile
-        httpUserAgent: "Chrome/48.0 (HighFidelityInterface)"
         storageName: "qmlWebEngine"
     }
 
@@ -53,9 +51,10 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // Magic: sysToolbar.x and y come from settings, and are bound before the properties specified here are applied.
-        x: sysToolbar.x;
-        y: sysToolbar.y;
+        // These values will be overridden by sysToolbar.x/y if there is a saved position in Settings
+        // On exit, the sysToolbar position is saved to settings
+        x: 30
+        y: 50
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;
@@ -127,5 +126,3 @@ OriginalDesktop.Desktop {
         return result;
     }
 }
-
-
