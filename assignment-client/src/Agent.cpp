@@ -349,7 +349,7 @@ void Agent::executeScript() {
         audioTransform.setRotation(scriptedAvatar->getOrientation());
         AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
     });
-    
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
