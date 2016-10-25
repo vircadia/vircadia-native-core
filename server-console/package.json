@@ -1,6 +1,6 @@
 {
-  "name": "hf-console",
-  "description": "High Fidelity Console",
+  "name": "HighFidelitySandbox",
+  "description": "High Fidelity Sandbox",
   "author": "High Fidelity",
   "license": "Apache-2.0",
   "version": "1.0.0",
@@ -33,6 +33,7 @@
     "request": "^2.67.0",
     "request-progress": "1.0.2",
     "tar-fs": "^1.12.0",
-    "yargs": "^3.30.0"
+    "yargs": "^3.30.0",
+    "electron-log": "1.1.1"
   }
 }

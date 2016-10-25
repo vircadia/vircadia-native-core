@@ -72,11 +72,11 @@ exports.discoveredPath = function (name, binaryType, releaseType) {
                 var extension = platformExtension(name);
 
                 if (stats.isFile() || (stats.isDirectory() && extension == ".app")) {
-                    console.log("Found " + name + " at " + testPath);
+                    log.debug("Found " + name + " at " + testPath);
                     return testPath;
                 }
             } catch (e) {
-                console.log("Executable with name " + name + " not found at path " + testPath);
+                log.debug("Executable with name " + name + " not found at path " + testPath);
             }
         }
 
