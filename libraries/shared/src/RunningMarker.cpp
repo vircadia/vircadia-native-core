@@ -19,35 +19,40 @@
 #include "NumericalConstants.h"
 #include "PathUtils.h"
 
-
 RunningMarker::RunningMarker(QObject* parent, QString name) :
     _parent(parent),
     _name(name)
 {
+    qDebug() << __FUNCTION__ << "parent:" << parent << "name:" << name;
 }
 
 void RunningMarker::startRunningMarker() {
     static const int RUNNING_STATE_CHECK_IN_MSECS = MSECS_PER_SECOND;
 
     // start the nodeThread so its event loop is running
-    QThread* runningMarkerThread = new QThread(_parent);
-    runningMarkerThread->setObjectName("Running Marker Thread");
-    runningMarkerThread->start();
+    _runningMarkerThread = new QThread(_parent);
+    _runningMarkerThread->setObjectName("Running Marker Thread");
+    _runningMarkerThread->start();
 
     writeRunningMarkerFiler(); // write the first file, even before timer
 
-    QTimer* runningMarkerTimer = new QTimer(_parent);
-    QObject::connect(runningMarkerTimer, &QTimer::timeout, [=](){
+    _runningMarkerTimer = new QTimer();
+    QObject::connect(_runningMarkerTimer, &QTimer::timeout, [=](){
         writeRunningMarkerFiler();
     });
-    runningMarkerTimer->start(RUNNING_STATE_CHECK_IN_MSECS);
+    //QObject::connect(_runningMarkerThread, &QThread::finished, _runningMarkerTimer, &QObject::deleteLater);
+    _runningMarkerTimer->start(RUNNING_STATE_CHECK_IN_MSECS);
 
     // put the time on the thread
-    runningMarkerTimer->moveToThread(runningMarkerThread);
+    _runningMarkerTimer->moveToThread(_runningMarkerThread);
 }
 
 RunningMarker::~RunningMarker() {
     deleteRunningMarkerFile();
+    _runningMarkerTimer->stop();
+    _runningMarkerThread->quit();
+    _runningMarkerTimer->deleteLater();
+    _runningMarkerThread->deleteLater();
 }
 
 void RunningMarker::writeRunningMarkerFiler() {
