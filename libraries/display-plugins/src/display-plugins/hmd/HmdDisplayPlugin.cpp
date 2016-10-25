@@ -437,9 +437,6 @@ void HmdDisplayPlugin::updateFrameData() {
         vec3 castStart = _presentExtraLaserStart;
         vec3 castDirection = laserDirection;
 
-        // FIXME fetch the actual UI radius from... somewhere?
-        float uiRadius = 1.0f;
-
         // Find the intersection of the laser with he UI and use it to scale the model matrix
         float distance;
         if (glm::intersectRaySphere(castStart, castDirection,
