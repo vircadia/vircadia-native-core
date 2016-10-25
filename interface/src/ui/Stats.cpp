@@ -55,7 +55,9 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/myAvatar/")) {
+            if (name.startsWith("/idle/update/physics/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
                 }
@@ -369,7 +371,7 @@ void Stats::updateStats(bool force) {
             QString functionName = j.value();
             const PerformanceTimerRecord& record = allRecords.value(functionName);
             perfLines += QString("%1: %2 [%3]\n").
-                arg(QString(qPrintable(functionName)), 90, noBreakingSpace).
+                arg(QString(qPrintable(functionName)), -80, noBreakingSpace).
                 arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
                 arg((int)record.getCount(), 6, 10, noBreakingSpace);
             linesDisplayed++;

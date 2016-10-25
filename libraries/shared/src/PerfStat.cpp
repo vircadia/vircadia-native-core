@@ -31,8 +31,8 @@ bool PerformanceWarning::_suppressShortTimings = false;
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
     quint64 end = usecTimestampNow();
-    quint64 elapsedusec = (end - _start);
-    double elapsedmsec = elapsedusec / 1000.0;
+    quint64 elapsedUsec = (end - _start);
+    double elapsedmsec = elapsedUsec / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
@@ -53,7 +53,7 @@ PerformanceWarning::~PerformanceWarning() {
     }
     // if the caller gave us a pointer to store the running total, track it now.
     if (_runningTotal) {
-        *_runningTotal += elapsedusec;
+        *_runningTotal += elapsedUsec;
     }
     if (_totalCalls) {
         *_totalCalls += 1;
@@ -65,11 +65,11 @@ PerformanceWarning::~PerformanceWarning() {
 // ----------------------------------------------------------------------------
 const quint64 STALE_STAT_PERIOD = 4 * USECS_PER_SECOND;
 
-void PerformanceTimerRecord::tallyResult(const quint64& now) { 
+void PerformanceTimerRecord::tallyResult(const quint64& now) {
     if (_numAccumulations > 0) {
-        _numTallies++; 
-        _movingAverage.updateAverage(_runningTotal - _lastTotal); 
-        _lastTotal = _runningTotal; 
+        _numTallies++;
+        _movingAverage.updateAverage(_runningTotal - _lastTotal);
+        _lastTotal = _runningTotal;
         _numAccumulations = 0;
         _expiry = now + STALE_STAT_PERIOD;
     }
@@ -96,10 +96,10 @@ PerformanceTimer::PerformanceTimer(const QString& name) {
 
 PerformanceTimer::~PerformanceTimer() {
     if (_isActive && _start != 0) {
-        quint64 elapsedusec = (usecTimestampNow() - _start);
+        quint64 elapsedUsec = (usecTimestampNow() - _start);
         QString& fullName = _fullNames[QThread::currentThread()];
         PerformanceTimerRecord& namedRecord = _records[fullName];
-        namedRecord.accumulateResult(elapsedusec);
+        namedRecord.accumulateResult(elapsedUsec);
         fullName.resize(fullName.size() - (_name.size() + 1));
     }
 }
@@ -110,6 +110,17 @@ bool PerformanceTimer::isActive() {
 }
 
 // static
+QString PerformanceTimer::getContextName() {
+    return _fullNames[QThread::currentThread()];
+}
+
+// static
+void PerformanceTimer::addTimerRecord(const QString& fullName, quint64 elapsedUsec) {
+    PerformanceTimerRecord& namedRecord = _records[fullName];
+    namedRecord.accumulateResult(elapsedUsec);
+}
+
+// static
 void PerformanceTimer::setActive(bool active) {
     if (active != _isActive) {
         _isActive.store(active);
@@ -117,7 +128,7 @@ void PerformanceTimer::setActive(bool active) {
             _fullNames.clear();
             _records.clear();
         }
-        
+
         qDebug() << "PerformanceTimer has been turned" << ((active) ? "on" : "off");
     }
 }
@@ -142,7 +153,7 @@ void PerformanceTimer::dumpAllTimerRecords() {
     QMapIterator<QString, PerformanceTimerRecord> i(_records);
     while (i.hasNext()) {
         i.next();
-        qCDebug(shared) << i.key() << ": average " << i.value().getAverage() 
+        qCDebug(shared) << i.key() << ": average " << i.value().getAverage()
             << " [" << i.value().getMovingAverage() << "]"
             << "usecs over" << i.value().getCount() << "calls";
     }
