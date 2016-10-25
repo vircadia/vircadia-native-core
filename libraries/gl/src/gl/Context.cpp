@@ -109,7 +109,7 @@ Context::~Context() {
 void Context::updateSwapchainMemoryCounter() {
     if (_window) {
         auto newSize = _window->size();
-        auto newMemSize = gl::Context::evalSurfaceMemoryUsage(newSize.width(), newSize.height(), _swapchainPixelSize);
+        auto newMemSize = gl::Context::evalSurfaceMemoryUsage(newSize.width(), newSize.height(), (uint32_t) _swapchainPixelSize);
         gl::Context::updateSwapchainMemoryUsage(_swapchainMemoryUsage, newMemSize);
         _swapchainMemoryUsage = newMemSize;
     } else {
@@ -257,8 +257,9 @@ void Context::create() {
         wglChoosePixelFormatARB(_hdc, &formatAttribs[0], NULL, 1, &pixelFormat, &numFormats);
         DescribePixelFormat(_hdc, pixelFormat, sizeof(pfd), &pfd);
     }
-    // The swap chain  pixel size for swap chains is : rgba32 * double buffer + depth24stencil8
-    _swapchainPixelSize = 32 * 2 + 32;
+    // The swap chain  pixel size for swap chains is : rgba32 + depth24stencil8
+    // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
+    _swapchainPixelSize = 32 + 32;
     updateSwapchainMemoryCounter();
 
     SetPixelFormat(_hdc, pixelFormat, &pfd);

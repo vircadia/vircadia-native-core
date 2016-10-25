@@ -15,9 +15,11 @@
 
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
-    if (format.swapBehavior() > 0) {
-        pixelSize *= format.swapBehavior(); // multiply the color buffer pixel size by the actual swapchain depth
-    }
+    // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
+    // Let s keep this here remember that:
+    // if (format.swapBehavior() > 0) {
+    //     pixelSize *= format.swapBehavior(); // multiply the color buffer pixel size by the actual swapchain depth
+    // }
     pixelSize += format.stencilBufferSize() + format.depthBufferSize();
     return pixelSize;
 }
