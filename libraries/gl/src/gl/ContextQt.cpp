@@ -15,6 +15,8 @@
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
 
+#include "GLHelpers.h"
+
 using namespace gl;
 
 void Context::destroyContext(QOpenGLContext* context) {
