@@ -17,11 +17,16 @@
 #include <QtGui/QOffscreenSurface>
 #include <QtGui/QOpenGLContext>
 
+#include "Context.h"
 #include "GLHelpers.h"
 #include "GLLogging.h"
 
 
-OffscreenGLCanvas::OffscreenGLCanvas() : _context(new QOpenGLContext), _offscreenSurface(new QOffscreenSurface){
+OffscreenGLCanvas::OffscreenGLCanvas() :
+    _context(new QOpenGLContext),
+    _offscreenSurface(new QOffscreenSurface),
+    _offscreenSurfaceCurrentMemoryUsage(0)
+{
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
@@ -29,6 +34,8 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
     _context->makeCurrent(_offscreenSurface);
     delete _context;
     _context = nullptr;
+
+    gl::Context::updateDefaultFBOMemoryUsage(_offscreenSurfaceCurrentMemoryUsage, 0);
 
     _offscreenSurface->destroy();
     delete _offscreenSurface;
@@ -53,16 +60,26 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     return false;
 }
 
+void OffscreenGLCanvas::updateMemoryCounter() {
+    if (_offscreenSurface) {
+        auto newSize =_offscreenSurface->size();
+        auto newMemSize =  gl::Context::evalMemoryUsage(newSize.width(), newSize.height());
+        gl::Context::updateDefaultFBOMemoryUsage(_offscreenSurfaceCurrentMemoryUsage, newMemSize);
+        _offscreenSurfaceCurrentMemoryUsage = newMemSize;
+    }
+}
+
 bool OffscreenGLCanvas::makeCurrent() {
     bool result = _context->makeCurrent(_offscreenSurface);
     Q_ASSERT(result);
-    
     std::call_once(_reportOnce, [this]{
         qCDebug(glLogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(glLogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(glLogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
         qCDebug(glLogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
+
+    updateMemoryCounter();
 
     return result;
 }

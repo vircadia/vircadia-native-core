@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <QtGlobal>
+#include <atomic>
 
 #if defined(Q_OS_WIN)
 #include <Windows.h>
@@ -23,7 +24,7 @@ class QThread;
 
 namespace gl {
 
-class Context {
+    class Context {
     protected:
         QWindow* _window { nullptr };
         static Context* PRIMARY;
@@ -57,6 +58,13 @@ class Context {
         virtual void create();
         QOpenGLContext* qglContext();
         void moveToThread(QThread* thread);
+
+        static size_t getDefaultFBOMemoryUsage();
+        static size_t evalMemoryUsage(uint32_t width, uint32_t height);
+        static void updateDefaultFBOMemoryUsage(size_t prevFBOSize, size_t newFBOSize);
+
+     private:
+        static std::atomic<size_t> _defaultFBOMemoryUsage;
     };
 
     class OffscreenContext : public Context {
@@ -67,6 +75,7 @@ class Context {
         virtual ~OffscreenContext();
         void create() override;
     };
+
 }
 
 #endif // hifi_gpu_GPUConfig_h

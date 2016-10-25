@@ -36,6 +36,8 @@ protected:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };
     QOffscreenSurface* _offscreenSurface{ nullptr };
+    size_t _offscreenSurfaceCurrentMemoryUsage { 0 };
+    void updateMemoryCounter();
 };
 
 #endif // hifi_OffscreenGLCanvas_h

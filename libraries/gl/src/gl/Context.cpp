@@ -40,6 +40,27 @@ static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contain
 
 using namespace gl;
 
+
+std::atomic<size_t> Context::_defaultFBOMemoryUsage { 0 };
+
+size_t Context::getDefaultFBOMemoryUsage() { return _defaultFBOMemoryUsage.load(); }
+
+size_t Context::evalMemoryUsage(uint32_t width, uint32_t height) {
+    return width * height * 4;
+}
+
+void Context::updateDefaultFBOMemoryUsage(size_t prevFBOSize, size_t newFBOSize) {
+    if (prevFBOSize == newFBOSize) {
+        return;
+    }
+    if (newFBOSize > prevFBOSize) {
+        _defaultFBOMemoryUsage.fetch_add(newFBOSize - prevFBOSize);
+    } else {
+        _defaultFBOMemoryUsage.fetch_sub(prevFBOSize - newFBOSize);
+    }
+}
+
+
 Context* Context::PRIMARY = nullptr;
 
 Context::Context() {}
@@ -277,6 +298,8 @@ void OffscreenContext::create() {
         _window->setSurfaceType(QSurface::OpenGLSurface);
         _window->create();
         setWindow(_window);
+        QSize windowSize = _window->size() * _window->devicePixelRatio();
+        qCDebug(glLogging) << "New Offscreen GLContext, window size = " << windowSize.width() << " , " << windowSize.height();
         QGuiApplication::processEvents();
     }
     Parent::create();
