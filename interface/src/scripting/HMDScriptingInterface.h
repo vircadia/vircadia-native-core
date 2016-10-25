@@ -46,8 +46,12 @@ public:
     Q_INVOKABLE bool shouldShowHandControllers() const;
 
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
-
     Q_INVOKABLE void disableHandLasers(int hands) const;
+
+    Q_INVOKABLE bool setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
+    Q_INVOKABLE void disableExtraLaser() const;
+
+
     /// Suppress the activation of any on-screen keyboard so that a script operation will 
     /// not be interrupted by a keyboard popup
     /// Returns false if there is already an active keyboard displayed.
