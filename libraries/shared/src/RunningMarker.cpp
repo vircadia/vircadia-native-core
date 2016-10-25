@@ -23,7 +23,6 @@ RunningMarker::RunningMarker(QObject* parent, QString name) :
     _parent(parent),
     _name(name)
 {
-    qDebug() << __FUNCTION__ << "parent:" << parent << "name:" << name;
 }
 
 void RunningMarker::startRunningMarker() {
@@ -40,7 +39,6 @@ void RunningMarker::startRunningMarker() {
     QObject::connect(_runningMarkerTimer, &QTimer::timeout, [=](){
         writeRunningMarkerFiler();
     });
-    //QObject::connect(_runningMarkerThread, &QThread::finished, _runningMarkerTimer, &QObject::deleteLater);
     _runningMarkerTimer->start(RUNNING_STATE_CHECK_IN_MSECS);
 
     // put the time on the thread

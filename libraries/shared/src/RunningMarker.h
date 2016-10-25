@@ -14,8 +14,9 @@
 
 #include <QObject>
 #include <QString>
-#include <QThread>
-#include <QTimer>
+
+class QThread;
+class QTimer;
 
 class RunningMarker {
 public:
