@@ -45,7 +45,7 @@ QJsonObject getGLContextData() {
 
         result = QJsonObject {
             { "version", glVersion },
-            { "slVersion", glslVersion },
+            { "sl_version", glslVersion },
             { "vendor", glVendor },
             { "renderer", glRenderer },
         };

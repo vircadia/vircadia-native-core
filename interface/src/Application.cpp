@@ -858,7 +858,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
-        { "gl_sl_version", glContextData["slVersion"] },
+        { "gl_sl_version", glContextData["sl_version"] },
         { "gl_renderer", glContextData["renderer"] },
         { "ideal_thread_count", QThread::idealThreadCount() }
     };
