@@ -181,8 +181,11 @@ GLTexture::~GLTexture() {
             // the GL45Texture destructor for doing any required work tracking GPU stats
             backend->releaseTexture(_id, _size);
         }
+
+        if (!_external && !_transferrable) {
+            Backend::updateTextureGPUFramebufferMemoryUsage(_size, 0);
+        }
     }
-    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }
 
 void GLTexture::createTexture() {
@@ -217,6 +220,9 @@ void GLTexture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GLTexture::setSize(GLuint size) const {
+    if (!_external && !_transferrable) {
+        Backend::updateTextureGPUFramebufferMemoryUsage(_size, size);
+    }
     Backend::updateTextureGPUMemoryUsage(_size, size);
     const_cast<GLuint&>(_size) = size;
 }

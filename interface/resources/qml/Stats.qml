@@ -216,6 +216,9 @@ Item {
                         text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {
+                        text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
+                    }
+                    StatText {
                         text: "  Sparse Memory: " + root.gpuTextureSparseMemory + " MB";
                         visible: 0 != root.gpuSparseTextureEnabled;
                     }
