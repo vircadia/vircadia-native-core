@@ -35,17 +35,22 @@ int glVersionToInteger(QString glVersion) {
 }
 
 QJsonObject getGLContextData() {
-    QString glVersion = QString((const char*)glGetString(GL_VERSION));
-    QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    QString glVendor = QString((const char*) glGetString(GL_VENDOR));
-    QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
+    static QJsonObject result;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        QString glVersion = QString((const char*)glGetString(GL_VERSION));
+        QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        QString glVendor = QString((const char*) glGetString(GL_VENDOR));
+        QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
 
-    return QJsonObject {
-        { "version", glVersion },
-        { "slVersion", glslVersion },
-        { "vendor", glVendor },
-        { "renderer", glRenderer },
-    };
+        result = QJsonObject {
+            { "version", glVersion },
+            { "slVersion", glslVersion },
+            { "vendor", glVendor },
+            { "renderer", glRenderer },
+        };
+    });
+    return result;
 }
 
 QThread* RENDER_THREAD = nullptr;
