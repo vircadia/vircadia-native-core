@@ -186,6 +186,7 @@ GLTexture::~GLTexture() {
             Backend::updateTextureGPUFramebufferMemoryUsage(_size, 0);
         }
     }
+    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }
 
 void GLTexture::createTexture() {

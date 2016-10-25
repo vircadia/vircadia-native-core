@@ -59,12 +59,16 @@ namespace gl {
         QOpenGLContext* qglContext();
         void moveToThread(QThread* thread);
 
-        static size_t getDefaultFBOMemoryUsage();
-        static size_t evalMemoryUsage(uint32_t width, uint32_t height);
-        static void updateDefaultFBOMemoryUsage(size_t prevFBOSize, size_t newFBOSize);
+        static size_t evalSurfaceMemoryUsage(uint32_t width, uint32_t height, uint32_t pixelSize);
+        static size_t getSwapchainMemoryUsage();
+        static void updateSwapchainMemoryUsage(size_t prevSize, size_t newSize);
 
      private:
-        static std::atomic<size_t> _defaultFBOMemoryUsage;
+        static std::atomic<size_t> _totalSwapchainMemoryUsage;
+
+        size_t _swapchainMemoryUsage { 0 };
+        size_t _swapchainPixelSize { 0 };
+        void updateSwapchainMemoryCounter();
     };
 
     class OffscreenContext : public Context {

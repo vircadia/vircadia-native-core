@@ -229,7 +229,7 @@ Item {
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
-                        text: "GL Context FBO Memory: " + root.glContextFBOMemory + " MB";
+                        text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
                     }
                     StatText {
                         text: "QML Texture Memory: " + root.qmlTextureMemory + " MB";

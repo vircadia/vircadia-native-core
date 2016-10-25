@@ -41,22 +41,22 @@ static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contain
 using namespace gl;
 
 
-std::atomic<size_t> Context::_defaultFBOMemoryUsage { 0 };
+std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
 
-size_t Context::getDefaultFBOMemoryUsage() { return _defaultFBOMemoryUsage.load(); }
+size_t Context::getSwapchainMemoryUsage() { return _totalSwapchainMemoryUsage.load(); }
 
-size_t Context::evalMemoryUsage(uint32_t width, uint32_t height) {
-    return width * height * 4;
+size_t Context::evalSurfaceMemoryUsage(uint32_t width, uint32_t height, uint32_t pixelSize) {
+    return width * height * pixelSize;
 }
 
-void Context::updateDefaultFBOMemoryUsage(size_t prevFBOSize, size_t newFBOSize) {
-    if (prevFBOSize == newFBOSize) {
+void Context::updateSwapchainMemoryUsage(size_t prevSize, size_t newSize) {
+    if (prevSize == newSize) {
         return;
     }
-    if (newFBOSize > prevFBOSize) {
-        _defaultFBOMemoryUsage.fetch_add(newFBOSize - prevFBOSize);
+    if (newSize > prevSize) {
+        _totalSwapchainMemoryUsage.fetch_add(newSize - prevSize);
     } else {
-        _defaultFBOMemoryUsage.fetch_sub(prevFBOSize - newFBOSize);
+        _totalSwapchainMemoryUsage.fetch_sub(prevSize - newSize);
     }
 }
 
@@ -99,18 +99,35 @@ void Context::release() {
     if (PRIMARY == this) {
         PRIMARY = nullptr;
     }
-    }
+    updateSwapchainMemoryCounter();
+}
 
 Context::~Context() {
     release();
 }
 
+void Context::updateSwapchainMemoryCounter() {
+    if (_window) {
+        auto newSize = _window->size();
+        auto newMemSize = gl::Context::evalSurfaceMemoryUsage(newSize.width(), newSize.height(), _swapchainPixelSize);
+        gl::Context::updateSwapchainMemoryUsage(_swapchainMemoryUsage, newMemSize);
+        _swapchainMemoryUsage = newMemSize;
+    } else {
+        // No window ? no more swapchain
+        gl::Context::updateSwapchainMemoryUsage(_swapchainMemoryUsage, 0);
+        _swapchainMemoryUsage = 0;
+    }
+}
+
 void Context::setWindow(QWindow* window) {
     release();
     _window = window;
+
 #ifdef Q_OS_WIN
     _hwnd = (HWND)window->winId();
 #endif
+
+    updateSwapchainMemoryCounter();
 }
 
 #ifdef Q_OS_WIN
@@ -119,6 +136,8 @@ static const char* PRIMARY_CONTEXT_PROPERTY_NAME = "com.highfidelity.gl.primaryC
 bool Context::makeCurrent() {
     BOOL result = wglMakeCurrent(_hdc, _hglrc);
     assert(result);
+    updateSwapchainMemoryCounter();
+
     return result;
 }
 
@@ -238,6 +257,10 @@ void Context::create() {
         wglChoosePixelFormatARB(_hdc, &formatAttribs[0], NULL, 1, &pixelFormat, &numFormats);
         DescribePixelFormat(_hdc, pixelFormat, sizeof(pfd), &pfd);
     }
+    // The swap chain  pixel size for swap chains is : rgba32 * double buffer + depth24stencil8
+    _swapchainPixelSize = 32 * 2 + 32;
+    updateSwapchainMemoryCounter();
+
     SetPixelFormat(_hdc, pixelFormat, &pfd);
     {
         std::vector<int> contextAttribs;

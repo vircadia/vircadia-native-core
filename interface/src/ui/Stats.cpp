@@ -289,7 +289,9 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
     STAT_UPDATE(gpuTexturesSparse, (int)gpu::Context::getTextureGPUSparseCount());
-    STAT_UPDATE(glContextFBOMemory, (int)BYTES_TO_MB(gl::Context::getDefaultFBOMemoryUsage()));
+
+    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+
     STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
     STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));

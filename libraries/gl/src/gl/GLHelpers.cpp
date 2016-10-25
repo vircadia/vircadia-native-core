@@ -13,6 +13,15 @@
 
 #include <QtOpenGL/QGL>
 
+size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
+    size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
+    if (format.swapBehavior() > 0) {
+        pixelSize *= format.swapBehavior(); // multiply the color buffer pixel size by the actual swapchain depth
+    }
+    pixelSize += format.stencilBufferSize() + format.depthBufferSize();
+    return pixelSize;
+}
+
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;

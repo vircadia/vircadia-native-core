@@ -45,6 +45,7 @@ void Context::moveToThread(QThread* thread) {
 
 #ifndef Q_OS_WIN
 bool Context::makeCurrent() {
+    updateSwapchainMemoryCounter();
     return _context->makeCurrent(_window);
 }
 
@@ -70,6 +71,9 @@ void Context::create() {
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
     _context->create();
+
+    _swapchainPixelSize = evalGLFormatSwapchainPixelSize(_context->format());
+    updateSwapchainMemoryCounter();
 }
 
 #endif
