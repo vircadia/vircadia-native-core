@@ -26,6 +26,8 @@
 glm::vec3 TRUNCATE_IK_CAPSULE_POSITION(0.0f, 0.0f, 0.0f);
 float TRUNCATE_IK_CAPSULE_LENGTH = 1000.0f;
 float TRUNCATE_IK_CAPSULE_RADIUS = 0.25f;
+float MIN_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS - 0.1f;
+float MAX_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS + 0.1f;
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     Model(rig, parent),
@@ -165,8 +167,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::HandParameters handParams;
 
         // compute interp factor between in body and out of body hand positions.
-        const float MIN_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS - 0.1f;
-        const float MAX_OUT_OF_BODY_DISTANCE = TRUNCATE_IK_CAPSULE_RADIUS + 0.1f;
         glm::vec3 capsuleStart = Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
         glm::vec3 capsuleEnd = -Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
         float outOfBodyAlpha = distanceFromCapsule(hmdPositionInRigSpace, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
