@@ -16,6 +16,8 @@
 Script.include("controllerDisplay.js");
 Script.include("viveControllerConfiguration.js");
 
+var HIDE_CONTROLLERS_ON_EQUIP = false;
+
 //
 // Management of controller display
 //
@@ -116,12 +118,14 @@ ControllerDisplayManager = function() {
                     }
                 }
             } else if (channel === 'Hifi-Object-Manipulation') {
-                data = JSON.parse(message);
-                visible = data.action !== 'equip';
-                if (data.joint === "LeftHand") {
-                    self.setLeftVisible(visible);
-                } else if (data.joint === "RightHand") {
-                    self.setRightVisible(visible);
+                if (HIDE_CONTROLLERS_ON_EQUIP) {
+                    data = JSON.parse(message);
+                    visible = data.action !== 'equip';
+                    if (data.joint === "LeftHand") {
+                        self.setLeftVisible(visible);
+                    } else if (data.joint === "RightHand") {
+                        self.setRightVisible(visible);
+                    }
                 }
             }
         }
