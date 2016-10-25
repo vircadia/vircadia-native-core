@@ -46,6 +46,9 @@ uvec2 rectifyToSparseSize(const uvec2& size) {
     return result;
 }
 
+std::atomic<size_t> DECIMATED_TEXTURE_COUNT { 0 };
+std::atomic<size_t> RECTIFIED_TEXTURE_COUNT { 0 };
+
 QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     const uvec2 srcImageSize = toGlm(srcImage.size());
     uvec2 targetSize = srcImageSize;
@@ -53,8 +56,12 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     while (glm::any(glm::greaterThan(targetSize, MAX_TEXTURE_SIZE))) {
         targetSize /= 2;
     }
+    if (targetSize != srcImageSize) {
+        ++DECIMATED_TEXTURE_COUNT;
+    }
 
     if (!cubemap && needsSparseRectification(targetSize)) {
+        ++RECTIFIED_TEXTURE_COUNT;
         targetSize = rectifyToSparseSize(targetSize);
     }
 
@@ -63,6 +70,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     }
 
     if (targetSize != srcImageSize) {
+        qDebug() << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
         return srcImage.scaled(fromGlm(targetSize));
     }
 

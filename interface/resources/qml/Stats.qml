@@ -206,6 +206,12 @@ Item {
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
+                        text: "  Rectified: " + root.rectifiedTextureCount;
+                    }
+                    StatText {
+                        text: "  Decimated: " + root.decimatedTextureCount;
+                    }
+                    StatText {
                         text: "  Sparse Count: " + root.gpuTexturesSparse;
                         visible: 0 != root.gpuSparseTextureEnabled;
                     }
@@ -227,6 +233,9 @@ Item {
                     }
                     StatText {
                         text: "  Count: " + root.gpuTextures;
+                    }
+                    StatText {
+                        text: "  Memory: " + root.gpuBufferMemory;
                     }
                     StatText {
                         text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
