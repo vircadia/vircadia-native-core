@@ -54,7 +54,7 @@ class Socket : public QObject {
 public:
     using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
     
-    Socket(QObject* object = 0);
+    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -139,6 +139,8 @@ private:
     int _maxBandwidth { -1 };
 
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
+
+    bool _shouldChangeSocketOptions { true };
     
     friend UDTTest;
 };

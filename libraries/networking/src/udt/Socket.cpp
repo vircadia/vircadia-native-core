@@ -29,9 +29,10 @@
 
 using namespace udt;
 
-Socket::Socket(QObject* parent) :
+Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _synTimer(new QTimer(this))
+    _synTimer(new QTimer(this)),
+    _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
 
@@ -49,17 +50,20 @@ Socket::Socket(QObject* parent) :
 
 void Socket::bind(const QHostAddress& address, quint16 port) {
     _udpSocket.bind(address, port);
-    setSystemBufferSizes();
+
+    if (_shouldChangeSocketOptions) {
+        setSystemBufferSizes();
 
 #if defined(Q_OS_LINUX)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = IP_PMTUDISC_DONT;
-    setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = IP_PMTUDISC_DONT;
+        setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
 #elif defined(Q_OS_WINDOWS)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = 0; // false
-    setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = 0; // false
+        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
 #endif
+    }
 }
 
 void Socket::rebind() {
