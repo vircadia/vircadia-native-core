@@ -349,7 +349,7 @@ void Agent::executeScript() {
         audioTransform.setRotation(scriptedAvatar->getOrientation());
         AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
     });
-
+    
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
@@ -360,10 +360,6 @@ void Agent::executeScript() {
 
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
-
-    // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why
-    // viewers would need this called.
-    //_scriptEngine->init(); // must be done before we set up the viewers
 
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
@@ -478,9 +474,24 @@ void Agent::processAgentAvatar() {
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
 }
+void Agent::flushEncoder() {
+    _flushEncoder = false;
+    static QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
+    static QByteArray encodedZeros;
+    if (_encoder) {
+        _encoder->encode(zeros, encodedZeros);
+    }
+}
 
 void Agent::processAgentAvatarAudio() {
     if (_isAvatar && (_isListeningToAudioStream || _avatarSound)) {
+        // after sound is done playing, encoder has a bit of state in it, 
+        // and needs some 0s to forget or you get a little click next time
+        // you play something
+        if (_flushEncoder) {
+            flushEncoder();
+        }
+
         // if we have an avatar audio stream then send it out to our audio-mixer
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         bool silentFrame = true;
@@ -513,6 +524,7 @@ void Agent::processAgentAvatarAudio() {
                 // and our sent bytes back to zero
                 _avatarSound.clear();
                 _numAvatarSoundSentBytes = 0;
+                _flushEncoder = true;
             }
         }
 

@@ -81,7 +81,8 @@ signals:
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
-    
+    void flushEncoder();
+
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
@@ -107,6 +108,7 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; 
     QThread _avatarAudioTimerThread;
+    bool _flushEncoder { false };
 };
 
 #endif // hifi_Agent_h
