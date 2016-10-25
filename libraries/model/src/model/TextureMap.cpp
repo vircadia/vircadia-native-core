@@ -15,7 +15,7 @@
 #include <QDebug>
 
 #include "ModelLogging.h"
-#include <gpu/TextureUtils.h>
+#include <gpu/Image.cpp>
 using namespace model;
 using namespace gpu;
 
