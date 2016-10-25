@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <QtGlobal>
+#include <atomic>
 
 #if defined(Q_OS_WIN)
 #include <Windows.h>
@@ -23,7 +24,7 @@ class QThread;
 
 namespace gl {
 
-class Context {
+    class Context {
     protected:
         QWindow* _window { nullptr };
         static Context* PRIMARY;
@@ -57,6 +58,17 @@ class Context {
         virtual void create();
         QOpenGLContext* qglContext();
         void moveToThread(QThread* thread);
+
+        static size_t evalSurfaceMemoryUsage(uint32_t width, uint32_t height, uint32_t pixelSize);
+        static size_t getSwapchainMemoryUsage();
+        static void updateSwapchainMemoryUsage(size_t prevSize, size_t newSize);
+
+     private:
+        static std::atomic<size_t> _totalSwapchainMemoryUsage;
+
+        size_t _swapchainMemoryUsage { 0 };
+        size_t _swapchainPixelSize { 0 };
+        void updateSwapchainMemoryCounter();
     };
 
     class OffscreenContext : public Context {
@@ -67,6 +79,7 @@ class Context {
         virtual ~OffscreenContext();
         void create() override;
     };
+
 }
 
 #endif // hifi_gpu_GPUConfig_h
