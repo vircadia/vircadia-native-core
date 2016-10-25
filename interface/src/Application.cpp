@@ -1576,6 +1576,12 @@ void Application::cleanupBeforeQuit() {
 #endif
 
     DependencyManager::destroy<OffscreenUi>();
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
+    qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {

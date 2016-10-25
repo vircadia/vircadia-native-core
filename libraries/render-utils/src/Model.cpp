@@ -862,8 +862,12 @@ void Model::setURL(const QUrl& url) {
     {
         render::PendingChanges pendingChanges;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        if (scene) {
+            removeFromScene(scene, pendingChanges);
+            scene->enqueuePendingChanges(pendingChanges);
+        } else {
+            qCWarning(renderutils) << "Model::setURL(), Unexpected null scene, possibly during application shutdown";
+        }
     }
 
     _needsReload = true;
