@@ -155,6 +155,8 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
 
+    void beforeAboutToQuit();
+
     virtual void setIsStereoInput(bool stereo) override;
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
@@ -332,6 +334,8 @@ private:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; // for outbound mic stream
+
+    QThread* _checkDevicesThread { nullptr };
 };
 
 
