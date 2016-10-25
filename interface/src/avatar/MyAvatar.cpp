@@ -88,6 +88,8 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 extern glm::vec3 TRUNCATE_IK_CAPSULE_POSITION;
 extern float TRUNCATE_IK_CAPSULE_LENGTH;
 extern float TRUNCATE_IK_CAPSULE_RADIUS;
+extern float MIN_OUT_OF_BODY_DISTANCE;
+extern float MAX_OUT_OF_BODY_DISTANCE;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -364,6 +366,27 @@ void MyAvatar::update(float deltaTime) {
     }
 
     simulate(deltaTime);
+
+    // Request to show the hand controllers if we're out-of-body for more then HAND_CONTROLLER_SHOW_TIME.
+    // Similarlly request to hide the controllers when we return to our bodies.
+    const float HAND_CONTROLLER_SHOW_TIME = 0.75f;
+    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+    if (isOutOfBody() != _handControllerShow) {
+        _handControllerShowTimer += deltaTime;
+        if (_handControllerShowTimer > HAND_CONTROLLER_SHOW_TIME) {
+            if (isOutOfBody()) {
+                hmdInterface->requestShowHandControllers();
+                _handControllerShow = true;
+                _handControllerShowTimer = 0.0f;
+            } else {
+                hmdInterface->requestHideHandControllers();
+                _handControllerShow = false;
+                _handControllerShowTimer = 0.0f;
+            }
+        }
+    } else {
+        _handControllerShowTimer = 0.0f;
+    }
 
     currentEnergy += energyChargeRate;
     currentEnergy -= getAccelerationEnergy();
@@ -2210,6 +2233,10 @@ glm::quat MyAvatar::getOrientationForAudio() {
     return quat();
 }
 
+bool MyAvatar::isOutOfBody() const {
+    return _follow._isOutOfBody;
+}
+
 void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
     if (_audioListenerMode != audioListenerMode) {
         _audioListenerMode = audioListenerMode;
@@ -2361,6 +2388,7 @@ void MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar) {
     glm::vec3 capsuleStart = myAvatar.getPosition() + Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
     glm::vec3 capsuleEnd = myAvatar.getPosition() - Vectors::UNIT_Y * (TRUNCATE_IK_CAPSULE_LENGTH / 2.0f);
     _isOutOfBody = !pointIsInsideCapsule(worldHMDPosition, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
+    _outOfBodyDistance = distanceFromCapsule(worldHMDPosition, capsuleStart, capsuleEnd, TRUNCATE_IK_CAPSULE_RADIUS);
 }
 
 float MyAvatar::getAccelerationEnergy() {

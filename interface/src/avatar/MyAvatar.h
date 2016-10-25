@@ -333,7 +333,7 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
-    bool isOutOfBody() const { return _follow._isOutOfBody; }
+    bool isOutOfBody() const;
 
 signals:
     void audioListenerModeChanged();
@@ -467,6 +467,7 @@ private:
         };
         uint8_t _activeBits { 0 };
         bool _isOutOfBody { false };
+        float _outOfBodyDistance { 0.0f };
 
         void deactivate();
         void deactivate(FollowType type);
@@ -541,6 +542,9 @@ private:
     };
     DebugDrawVertex _debugLineLoop[DEBUG_LINE_LOOP_SIZE];
     size_t _debugLineLoopIndex { 0 };
+
+    bool _handControllerShow { false };
+    float _handControllerShowTimer { 0.0f };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
