@@ -63,9 +63,9 @@ public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    QUrl currentAddress() const;
+    QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
-    QUrl currentShareableAddress() const;
+    QUrl currentShareableAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
