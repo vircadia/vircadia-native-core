@@ -1181,8 +1181,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["current_path"] = currentPath;
         properties["build_version"] = BuildInfo::VERSION;
 
-        qDebug() << "just sent stats with:" << currentDomain << currentPath << "build:" << BuildInfo::VERSION;
-
         auto displayPlugin = qApp->getActiveDisplayPlugin();
 
         properties["fps"] = _frameCounter.rate();
@@ -1232,6 +1230,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
+
+        auto glInfo = getGLContextData();
+        properties["gl_info"] = glInfo;
+        properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
