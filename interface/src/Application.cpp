@@ -1567,7 +1567,7 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
-    // stop audio after QML, as the qtwebengine may use it, and may crash if it is already stopped
+    // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
     // stop the AudioClient, synchronously
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
