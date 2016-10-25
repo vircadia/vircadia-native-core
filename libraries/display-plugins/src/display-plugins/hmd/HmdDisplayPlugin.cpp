@@ -368,8 +368,11 @@ void HmdDisplayPlugin::updateFrameData() {
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
-    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints{ { vec2(-1), vec2(-1) } };
-    vec2 extraGlowPoint(-1);
+    static const float OUT_OF_BOUNDS = -1;
+    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints { { vec2(OUT_OF_BOUNDS), vec2(OUT_OF_BOUNDS) } };
+    vec2 extraGlowPoint(OUT_OF_BOUNDS);
+
+    float uiRadius = compositorHelper->getHmdUiRadius();
 
     // compute the glow point interesections
     for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
@@ -395,9 +398,6 @@ void HmdDisplayPlugin::updateFrameData() {
             grabPointOffset.x *= -1.0f; // this changes between left and right hands
         }
         castStart += glm::quat_cast(model) * grabPointOffset;
-
-        // FIXME fetch the actual UI radius from... somewhere?
-        float uiRadius = 1.0f;
 
         // Find the intersection of the laser with he UI and use it to scale the model matrix
         float distance;

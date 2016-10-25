@@ -455,10 +455,10 @@ function clearSystemLaser() {
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
 
-    if (!HMD.isHandControllerAvailable()){
+    if (!HMD.isHandControllerAvailable()) {
         var position = MyAvatar.getHeadPosition();
         var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
-        return HMD.setExtraLaser(position,true, color, direction);
+        return HMD.setExtraLaser(position, true, color, direction);
     }
 
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
@@ -510,7 +510,7 @@ function update() {
                 var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
                 var position = MyAvatar.getHeadPosition();
                 var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
-                HMD.setExtraLaser(position,true, color, direction);
+                HMD.setExtraLaser(position, true, color, direction);
             }
         }
 

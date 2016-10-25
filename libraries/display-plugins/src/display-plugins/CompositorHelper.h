@@ -111,6 +111,8 @@ public:
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
     void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }
 
+    float getHmdUiRadius() const { return _hmdUIRadius; }
+
 signals:
     void allowMouseCaptureChanged();
     void alphaChanged();
