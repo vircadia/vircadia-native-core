@@ -19,6 +19,7 @@ import "windows"
 import "controls-uit"
 import "styles-uit"
 
+
 ScrollingWindow {
     id: toolWindow
     resizable: true
@@ -41,98 +42,111 @@ ScrollingWindow {
         }
     }
 
+    onShownChanged: {
+        keyboardEnabled = HMD.active;
+    }
+
     Settings {
         category: "ToolWindow.Position"
         property alias x: toolWindow.x
         property alias y: toolWindow.y
     }
 
-    TabView {
-        id: tabView;
+    Item {
+        id: toolWindowTabViewItem
+        height: pane.scrollHeight
         width: pane.contentWidth
-        height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
-        property int tabCount: 0
+        anchors.left: parent.left
+        anchors.top: parent.top
 
-        Repeater {
-            model: 4
-            Tab {
-                // Force loading of the content even if the tab is not visible
-                // (required for letting the C++ code access the webview)
-                active: true
-                enabled: false
-                property string originalUrl: "";
+        TabView {
+            id: tabView
+            width: pane.contentWidth
+            // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
+            height: pane.scrollHeight
+            property int tabCount: 0
 
-                WebView {
-                    id: webView;
-                    anchors.fill: parent
+            Repeater {
+                model: 4
+                Tab {
+                    // Force loading of the content even if the tab is not visible
+                    // (required for letting the C++ code access the webview)
+                    active: true
                     enabled: false
-                    property alias eventBridgeWrapper: eventBridgeWrapper 
-                    
-                    QtObject {
-                        id: eventBridgeWrapper
-                        WebChannel.id: "eventBridgeWrapper"
-                        property var eventBridge;
+                    property string originalUrl: ""
+
+                    WebView {
+                        id: webView
+                        anchors.fill: parent
+                        enabled: false
+                        property alias eventBridgeWrapper: eventBridgeWrapper
+
+                        QtObject {
+                            id: eventBridgeWrapper
+                            WebChannel.id: "eventBridgeWrapper"
+                            property var eventBridge
+                        }
+
+                        webChannel.registeredObjects: [eventBridgeWrapper]
+                        onEnabledChanged: toolWindow.updateVisiblity()
+                    }
+                }
+            }
+
+            style: TabViewStyle {
+
+                frame: Rectangle {  // Background shown before content loads.
+                    anchors.fill: parent
+                    color: hifi.colors.baseGray
+                }
+
+                frameOverlap: 0
+
+                tab: Rectangle {
+                    implicitWidth: text.width
+                    implicitHeight: 3 * text.height
+                    color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
+
+                    RalewayRegular {
+                        id: text
+                        text: styleData.title
+                        font.capitalization: Font.AllUppercase
+                        size: hifi.fontSizes.tabName
+                        width: tabView.tabCount > 1 ? styleData.availableWidth / tabView.tabCount : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
+                        elide: Text.ElideRight
+                        color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
+                        horizontalAlignment: Text.AlignHCenter
+                        anchors.centerIn: parent
                     }
 
-                    webChannel.registeredObjects: [eventBridgeWrapper]
-                    onEnabledChanged: toolWindow.updateVisiblity();
-                }
-            }
-        }
-
-        style: TabViewStyle {
-
-            frame: Rectangle {  // Background shown before content loads.
-                anchors.fill: parent
-                color: hifi.colors.baseGray
-            }
-
-            frameOverlap: 0
-
-            tab: Rectangle {
-                implicitWidth: text.width
-                implicitHeight: 3 * text.height
-                color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
-
-                RalewayRegular {
-                    id: text
-                    text: styleData.title
-                    font.capitalization: Font.AllUppercase
-                    size: hifi.fontSizes.tabName
-                    width: tabView.tabCount > 1 ? styleData.availableWidth / tabView.tabCount : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
-                    elide: Text.ElideRight
-                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.centerIn: parent
-                }
-
-                Rectangle {  // Separator.
-                    width: 1
-                    height: parent.height
-                    color: hifi.colors.black
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    visible: styleData.index > 0
-
-                    Rectangle {
+                    Rectangle {  // Separator.
                         width: 1
-                        height: 1
-                        color: hifi.colors.baseGray
+                        height: parent.height
+                        color: hifi.colors.black
                         anchors.left: parent.left
+                        anchors.top: parent.top
+                        visible: styleData.index > 0
+
+                        Rectangle {
+                            width: 1
+                            height: 1
+                            color: hifi.colors.baseGray
+                            anchors.left: parent.left
+                            anchors.bottom: parent.bottom
+                        }
+                    }
+
+                    Rectangle {  // Active underline.
+                        width: parent.width - (styleData.index > 0 ? 1 : 0)
+                        height: 1
+                        anchors.right: parent.right
                         anchors.bottom: parent.bottom
+                        color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.baseGray
                     }
                 }
 
-                Rectangle {  // Active underline.
-                    width: parent.width - (styleData.index > 0 ? 1 : 0)
-                    height: 1
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.baseGray
-                }
+                tabOverlap: 0
             }
-
-            tabOverlap: 0
         }
     }
 
@@ -223,7 +237,6 @@ ScrollingWindow {
             console.warn("Unable to add new tab");
             return;
         }
-
 
         if (properties.width) {
             tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);

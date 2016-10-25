@@ -11,13 +11,16 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings, Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset */
+
+/* global setEntityCustomData, getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
+   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
 
-Script.include("/~/system/libraries/utils.js");
-Script.include("/~/system/libraries/Xform.js");
-Script.include("/~/system/libraries/controllers.js");
+Script.include("../libraries/utils.js");
+Script.include("../libraries/Xform.js");
+Script.include("../libraries/controllers.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -26,8 +29,8 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
-var FORCE_IGNORE_IK = true;
-var SHOW_GRAB_POINT_SPHERE = true;
+var FORCE_IGNORE_IK = false;
+var SHOW_GRAB_POINT_SPHERE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -101,7 +104,7 @@ var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
-var NEAR_GRAB_RADIUS = 0.04; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_RADIUS = 0.1; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
 
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
@@ -112,7 +115,7 @@ var CHECK_TOO_FAR_UNEQUIP_TIME = 0.3; // seconds, duration between checks
 
 
 var GRAB_POINT_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
-var GRAB_POINT_SPHERE_COLOR = { red: 20, green: 90, blue: 238 };
+var GRAB_POINT_SPHERE_COLOR = { red: 240, green: 240, blue: 240 };
 var GRAB_POINT_SPHERE_ALPHA = 0.85;
 
 
@@ -183,6 +186,10 @@ var STATE_NEAR_TRIGGER = 4;
 var STATE_FAR_TRIGGER = 5;
 var STATE_HOLD = 6;
 var STATE_ENTITY_TOUCHING = 7;
+
+var holdEnabled = true;
+var nearGrabEnabled = true;
+var farGrabEnabled = true;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -344,7 +351,7 @@ function entityHasActions(entityID) {
 }
 
 function findRayIntersection(pickRay, precise, include, exclude) {
-    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude);
+    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude, true);
     var overlays = Overlays.findRayIntersection(pickRay);
     if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
         return entities;
@@ -788,7 +795,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-
+        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_NEAR_GRABBING));
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
@@ -831,7 +838,7 @@ function MyController(hand) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
                 localPosition: getGrabPointSphereOffset(this.handToController()),
                 localRotation: { x: 0, y: 0, z: 0, w: 1 },
-                dimensions: GRAB_POINT_SPHERE_RADIUS,
+                dimensions: GRAB_POINT_SPHERE_RADIUS * 2,
                 color: GRAB_POINT_SPHERE_COLOR,
                 alpha: GRAB_POINT_SPHERE_ALPHA,
                 solid: true,
@@ -1002,6 +1009,9 @@ function MyController(hand) {
 
     this.secondaryPress = function(value) {
         _this.rawSecondaryValue = value;
+        if (value > 0) {
+            _this.release();
+        }
     };
 
     this.updateSmoothedTrigger = function() {
@@ -1068,12 +1078,6 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldHandPosition = controllerLocation.position;
 
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
-
         var candidateEntities = Entities.findEntities(worldHandPosition, MAX_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateEntities);
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntities);
@@ -1096,9 +1100,11 @@ function MyController(hand) {
             if (!this.grabPointIntersectsEntity) {
                 Controller.triggerHapticPulse(1, 20, this.hand);
                 this.grabPointIntersectsEntity = true;
+                this.grabPointSphereOn();
             }
         } else {
             this.grabPointIntersectsEntity = false;
+            this.grabPointSphereOff();
         }
     };
 
@@ -1155,9 +1161,9 @@ function MyController(hand) {
 
         var intersection;
         if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = findRayIntersection(pickRay, true, [], blacklist);
+            intersection = findRayIntersection(pickRay, true, [], blacklist, true);
         } else {
-            intersection = findRayIntersection(pickRay, true);
+            intersection = findRayIntersection(pickRay, true, [], [], true);
         }
 
         if (intersection.intersects) {
@@ -1379,10 +1385,11 @@ function MyController(hand) {
     this.chooseBestEquipHotspot = function(candidateEntities) {
         var DISTANCE = 0;
         var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
+        var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
             equippableHotspots.sort(function(a, b) {
-                var handControllerLocation = getControllerWorldLocation(this.handToController(), true);
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
                 var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
                 var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
                 return aDistance - bDistance;
@@ -1420,12 +1427,6 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var handPosition = controllerLocation.position;
 
-        if (controllerLocation.valid) {
-            this.grabPointSphereOn();
-        } else {
-            this.grabPointSphereOff();
-        }
-
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
         if (rayPickInfo.entityID) {
@@ -1437,7 +1438,7 @@ function MyController(hand) {
 
         var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateHotSpotEntities);
         if (potentialEquipHotspot) {
-            if (this.triggerSmoothedGrab()) {
+            if (this.triggerSmoothedGrab() && holdEnabled) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
                 this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
@@ -1480,7 +1481,7 @@ function MyController(hand) {
                     // potentialNearTriggerEntity = entity;
                 }
             } else {
-                if (this.triggerSmoothedGrab()) {
+                if (this.triggerSmoothedGrab() && nearGrabEnabled) {
                     var props = entityPropertiesCache.getProps(entity);
                     var grabProps = entityPropertiesCache.getGrabProps(entity);
                     var refCount = grabProps.refCount ? grabProps.refCount : 0;
@@ -1568,7 +1569,7 @@ function MyController(hand) {
                     // potentialFarTriggerEntity = entity;
                 }
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
-                if (this.triggerSmoothedGrab() && !isEditing()) {
+                if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled) {
                     this.grabbedEntity = entity;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
@@ -1586,7 +1587,9 @@ function MyController(hand) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
         }
 
-        this.searchIndicatorOn(rayPickInfo.searchRay);
+        if (farGrabEnabled) {
+            this.searchIndicatorOn(rayPickInfo.searchRay);
+        }
         Reticle.setVisible(false);
     };
 
@@ -1605,7 +1608,6 @@ function MyController(hand) {
     };
 
     this.distanceHoldingEnter = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'both');
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
@@ -1849,7 +1851,7 @@ function MyController(hand) {
             z: 0
         };
 
-        var DROP_ANGLE = Math.PI / 6;
+        var DROP_ANGLE = Math.PI / 3;
         var HYSTERESIS_FACTOR = 1.1;
         var ROTATION_ENTER_THRESHOLD = Math.cos(DROP_ANGLE);
         var ROTATION_EXIT_THRESHOLD = Math.cos(DROP_ANGLE * HYSTERESIS_FACTOR);
@@ -1869,12 +1871,6 @@ function MyController(hand) {
     };
 
     this.nearGrabbingEnter = function() {
-        if (this.hand === 0) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'left');
-        }
-        if (this.hand === 1) {
-            Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'right');
-        }
         this.grabPointSphereOff();
         this.lineOff();
         this.overlayLineOff();
@@ -1904,7 +1900,7 @@ function MyController(hand) {
         if (FORCE_IGNORE_IK) {
             this.ignoreIK = true;
         } else {
-            this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
+            this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
         }
 
         var handRotation;
@@ -2098,12 +2094,12 @@ function MyController(hand) {
                 var TEAR_AWAY_DISTANCE = 0.1;
                 var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
                 if (dist > TEAR_AWAY_DISTANCE) {
-                    this.autoUnequipCounter += 1;
+                    this.autoUnequipCounter += deltaTime;
                 } else {
                     this.autoUnequipCounter = 0;
                 }
 
-                if (this.autoUnequipCounter > 1) {
+                if (this.autoUnequipCounter > 0.25) {
                         // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
                         props.parentID + ", dist = " + dist);
@@ -2212,7 +2208,7 @@ function MyController(hand) {
 
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = findRayIntersection(pickRay, true);
+            var intersection = findRayIntersection(pickRay, true, [], [], true);
             if (intersection.accurate || intersection.overlayID) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
@@ -2223,7 +2219,9 @@ function MyController(hand) {
                 if (intersection.intersects) {
                     this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 }
-                this.searchIndicatorOn(pickRay);
+                if (farGrabEnabled) {
+                    this.searchIndicatorOn(pickRay);
+                }
             }
         }
 
@@ -2331,7 +2329,9 @@ function MyController(hand) {
             }
 
             this.intersectionDistance = intersectInfo.distance;
-            this.searchIndicatorOn(intersectInfo.searchRay);
+            if (farGrabEnabled) {
+                this.searchIndicatorOn(intersectInfo.searchRay);
+            }
             Reticle.setVisible(false);
         } else {
             this.setState(STATE_OFF, "grabbed entity was destroyed");
@@ -2340,7 +2340,6 @@ function MyController(hand) {
     };
 
     this.release = function() {
-        Messages.sendLocalMessage('Hifi-Teleport-Disabler', 'none');
         this.turnOffVisualizations();
 
         var noVelocity = false;
@@ -2665,6 +2664,15 @@ mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.
 
 Controller.enableMapping(MAPPING_NAME);
 
+function handleMenuEvent(menuItem) {
+    if (menuItem === "Show Grab Sphere") {
+        SHOW_GRAB_POINT_SPHERE = Menu.isOptionChecked("Show Grab Sphere");
+    }
+}
+
+Menu.addMenuItem({ menuName: "Developer", menuItemName: "Show Grab Sphere", isCheckable: true, isChecked: false });
+Menu.menuItemEvent.connect(handleMenuEvent);
+
 // the section below allows the grab script to listen for messages
 // that disable either one or both hands.  useful for two handed items
 var handToDisable = 'none';
@@ -2686,6 +2694,7 @@ function update(deltaTime) {
     entityPropertiesCache.update();
 }
 
+Messages.subscribe('Hifi-Grab-Disable');
 Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
@@ -2710,6 +2719,20 @@ var handleHandMessages = function(channel, message, sender) {
 
                 }
                 handToDisable = message;
+            }
+        } else if (channel === 'Hifi-Grab-Disable') {
+            data = JSON.parse(message);
+            if (data.holdEnabled !== undefined) {
+                print("holdEnabled: ", data.holdEnabled);
+                holdEnabled = data.holdEnabled;
+            }
+            if (data.nearGrabEnabled !== undefined) {
+                print("nearGrabEnabled: ", data.nearGrabEnabled);
+                nearGrabEnabled = data.nearGrabEnabled;
+            }
+            if (data.farGrabEnabled !== undefined) {
+                print("farGrabEnabled: ", data.farGrabEnabled);
+                farGrabEnabled = data.farGrabEnabled;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
@@ -2759,7 +2782,14 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.messageReceived.connect(handleHandMessages);
 
+var BASIC_TIMER_INTERVAL_MS = 20; // 20ms = 50hz good enough
+var updateIntervalTimer = Script.setInterval(function(){
+    update(BASIC_TIMER_INTERVAL_MS / 1000);
+}, BASIC_TIMER_INTERVAL_MS);
+
 function cleanup() {
+    Menu.removeMenuItem("Developer", "Show Grab Sphere");
+    Script.clearInterval(updateIntervalTimer);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
@@ -2767,6 +2797,5 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
-Script.update.connect(update);
 
 }()); // END LOCAL_SCOPE

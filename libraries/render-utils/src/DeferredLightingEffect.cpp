@@ -346,12 +346,11 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
     }
 
     if (!_primaryFramebuffer) {
-        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredPrimary"));
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         auto primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
-        primaryColorTexture->setSource("PreparePrimaryFramebuffer::primaryColorTexture");
 
 
         _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
@@ -359,7 +358,6 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
         auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
-        primaryDepthTexture->setSource("PreparePrimaryFramebuffer::primaryDepthTexture");
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
     }
@@ -478,6 +476,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
                     program = deferredLightingEffect->_directionalSkyboxLightShadow;
                     locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
@@ -486,11 +486,11 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                     locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
                 }
             } else {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
-                    program = deferredLightingEffect->_directionalAmbientSphereLight;
-                    locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
-                    //program = deferredLightingEffect->_directionalSkyboxLight;
-                    //locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                    program = deferredLightingEffect->_directionalSkyboxLight;
+                    locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
                     program = deferredLightingEffect->_directionalAmbientSphereLight;
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;

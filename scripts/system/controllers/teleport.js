@@ -91,7 +91,6 @@ function Teleporter() {
     this.tooClose = false;
     this.inCoolIn = false;
 
-
     this.initialize = function() {
         this.createMappings();
     };
@@ -142,7 +141,10 @@ function Teleporter() {
 
     };
 
-    this.createTargetOverlay = function() {
+    this.createTargetOverlay = function(visible) {
+        if (visible == undefined) {
+            visible = true;
+        }
 
         if (_this.targetOverlay !== null) {
             return;
@@ -150,20 +152,17 @@ function Teleporter() {
         var targetOverlayProps = {
             url: TARGET_MODEL_URL,
             dimensions: TARGET_MODEL_DIMENSIONS,
-            visible: true
-        };
-
-        var cancelOverlayProps = {
-            url: TOO_CLOSE_MODEL_URL,
-            dimensions: TARGET_MODEL_DIMENSIONS,
-            visible: true
+            visible: visible
         };
 
         _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
 
     };
 
-    this.createCancelOverlay = function() {
+    this.createCancelOverlay = function(visible) {
+        if (visible == undefined) {
+            visible = true;
+        }
 
         if (_this.cancelOverlay !== null) {
             return;
@@ -172,7 +171,7 @@ function Teleporter() {
         var cancelOverlayProps = {
             url: TOO_CLOSE_MODEL_URL,
             dimensions: TARGET_MODEL_DIMENSIONS,
-            visible: true
+            visible: visible
         };
 
         _this.cancelOverlay = Overlays.addOverlay("model", cancelOverlayProps);
@@ -187,6 +186,23 @@ function Teleporter() {
         this.cancelOverlay = null;
     }
 
+    this.hideCancelOverlay = function() {
+        if (this.cancelOverlay === null) {
+            return;
+        }
+
+        this.intersection = null;
+        Overlays.editOverlay(this.cancelOverlay, { visible: false });
+    }
+
+    this.showCancelOverlay = function() {
+        if (this.cancelOverlay === null) {
+            return this.createCancelOverlay();
+        }
+        Overlays.editOverlay(this.cancelOverlay, { visible: true });
+    }
+
+
     this.deleteTargetOverlay = function() {
         if (this.targetOverlay === null) {
             return;
@@ -195,6 +211,22 @@ function Teleporter() {
         Overlays.deleteOverlay(this.targetOverlay);
         this.intersection = null;
         this.targetOverlay = null;
+    }
+
+    this.hideTargetOverlay = function() {
+        if (this.targetOverlay === null) {
+            return;
+        }
+
+        this.intersection = null;
+        Overlays.editOverlay(this.targetOverlay, { visible: false });
+    }
+
+    this.showTargetOverlay = function() {
+        if (this.targetOverlay === null) {
+            return this.createTargetOverlay();
+        }
+        Overlays.editOverlay(this.targetOverlay, { visible: true });
     }
 
     this.turnOffOverlayBeams = function() {
@@ -232,8 +264,8 @@ function Teleporter() {
             if ((leftPad.buttonValue === 0) && inTeleportMode === true) {
                 if (_this.inCoolIn === true) {
                     _this.exitTeleportMode();
-                    _this.deleteTargetOverlay();
-                    _this.deleteCancelOverlay();
+                    _this.hideTargetOverlay();
+                    _this.hideCancelOverlay();
                 } else {
                     _this.teleport();
                 }
@@ -248,8 +280,8 @@ function Teleporter() {
             if ((rightPad.buttonValue === 0) && inTeleportMode === true) {
                 if (_this.inCoolIn === true) {
                     _this.exitTeleportMode();
-                    _this.deleteTargetOverlay();
-                    _this.deleteCancelOverlay();
+                    _this.hideTargetOverlay();
+                    _this.hideCancelOverlay();
                 } else {
                     _this.teleport();
                 }
@@ -279,11 +311,11 @@ function Teleporter() {
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 50));
 
 
-        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
+        var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity], true, true);
 
         if (rightIntersection.intersects) {
             if (this.tooClose === true) {
-                this.deleteTargetOverlay();
+                this.hideTargetOverlay();
 
                 this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                 if (this.cancelOverlay !== null) {
@@ -293,7 +325,7 @@ function Teleporter() {
                 }
             } else {
                 if (this.inCoolIn === true) {
-                    this.deleteTargetOverlay();
+                    this.hideTargetOverlay();
                     this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                     if (this.cancelOverlay !== null) {
                         this.updateCancelOverlay(rightIntersection);
@@ -301,7 +333,7 @@ function Teleporter() {
                         this.createCancelOverlay();
                     }
                 } else {
-                    this.deleteCancelOverlay();
+                    this.hideCancelOverlay();
 
                     this.rightLineOn(rightPickRay.origin, rightIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
                     if (this.targetOverlay !== null) {
@@ -316,7 +348,7 @@ function Teleporter() {
 
         } else {
 
-            this.deleteTargetOverlay();
+            this.hideTargetOverlay();
             this.rightLineOn(rightPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     }
@@ -342,12 +374,12 @@ function Teleporter() {
         var location = Vec3.sum(MyAvatar.position, Vec3.multiply(leftPickRay.direction, 50));
 
 
-        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
+        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity], true, true);
 
         if (leftIntersection.intersects) {
 
             if (this.tooClose === true) {
-                this.deleteTargetOverlay();
+                this.hideTargetOverlay();
                 this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                 if (this.cancelOverlay !== null) {
                     this.updateCancelOverlay(leftIntersection);
@@ -356,7 +388,7 @@ function Teleporter() {
                 }
             } else {
                 if (this.inCoolIn === true) {
-                    this.deleteTargetOverlay();
+                    this.hideTargetOverlay();
                     this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_TOO_CLOSE);
                     if (this.cancelOverlay !== null) {
                         this.updateCancelOverlay(leftIntersection);
@@ -364,7 +396,7 @@ function Teleporter() {
                         this.createCancelOverlay();
                     }
                 } else {
-                    this.deleteCancelOverlay();
+                    this.hideCancelOverlay();
                     this.leftLineOn(leftPickRay.origin, leftIntersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
 
                     if (this.targetOverlay !== null) {
@@ -380,7 +412,7 @@ function Teleporter() {
 
         } else {
 
-            this.deleteTargetOverlay();
+            this.hideTargetOverlay();
             this.leftLineOn(leftPickRay.origin, location, COLORS_TELEPORT_CANNOT_TELEPORT);
         }
     };
@@ -459,10 +491,11 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.targetOverlay, {
+            visible: true,
             position: position,
             rotation: towardUs
         });
@@ -480,10 +513,11 @@ function Teleporter() {
             z: intersection.intersection.z
         };
 
-        this.tooClose = isTooCloseToTeleport(position);
+        this.tooClose = isValidTeleportLocation(position, intersection.surfaceNormal);
         var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
 
         Overlays.editOverlay(this.cancelOverlay, {
+            visible: true,
             position: position,
             rotation: towardUs
         });
@@ -503,13 +537,18 @@ function Teleporter() {
         if (this.intersection !== null) {
             if (this.tooClose === true) {
                 this.exitTeleportMode();
-                this.deleteCancelOverlay();
+                this.hideCancelOverlay();
                 return;
             }
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
-            this.smoothArrival();
+            // Disable smooth arrival, possibly temporarily
+            //this.smoothArrival();
+            MyAvatar.position = _this.intersection.intersection;
+            _this.hideTargetOverlay();
+            _this.hideCancelOverlay();
+            HMD.centerUI();
         }
     };
 
@@ -551,14 +590,16 @@ function Teleporter() {
             MyAvatar.position = landingPoint;
 
             if (_this.arrivalPoints.length === 1 || _this.arrivalPoints.length === 0) {
-                _this.deleteTargetOverlay();
-                _this.deleteCancelOverlay();
+                _this.hideTargetOverlay();
+                _this.hideCancelOverlay();
             }
 
         }, SMOOTH_ARRIVAL_SPACING);
-
-
     }
+
+    this.createTargetOverlay(false);
+    this.createCancelOverlay(false);
+
 }
 
 //related to repositioning the avatar after you teleport
@@ -627,8 +668,17 @@ function isMoving() {
     }
 };
 
-function isTooCloseToTeleport(position) {
-    return Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
+// When determininig whether you can teleport to a location, the normal of the
+// point that is being intersected with is looked at. If this normal is more
+// than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+// you can't teleport there.
+var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
+function isValidTeleportLocation(position, surfaceNormal) {
+    var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
+    var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+    return angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        Vec3.distance(MyAvatar.position, position) <= TELEPORT_CANCEL_RANGE;
 };
 
 function registerMappings() {

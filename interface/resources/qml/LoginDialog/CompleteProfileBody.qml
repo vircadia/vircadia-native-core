@@ -29,8 +29,9 @@ Item {
         readonly property int maxHeight: 720
 
         function resize() {
-            var targetWidth = Math.max(titleWidth, additionalTextContainer.contentWidth)
-            var targetHeight = 4 * hifi.dimensions.contentSpacing.y + buttons.height + additionalTextContainer.height
+            var targetWidth = Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
+                                                            termsContainer.contentWidth))
+            var targetHeight = 5 * hifi.dimensions.contentSpacing.y + buttons.height + additionalTextContainer.height + termsContainer.height
 
             root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
@@ -43,7 +44,7 @@ Item {
             top: parent.top
             horizontalCenter: parent.horizontalCenter
             margins: 0
-            topMargin: 3 * hifi.dimensions.contentSpacing.y
+            topMargin: 2 * hifi.dimensions.contentSpacing.y
         }
         spacing: hifi.dimensions.contentSpacing.x
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
@@ -89,6 +90,25 @@ Item {
             bodyLoader.item.width = root.pane.width
             bodyLoader.item.height = root.pane.height
         }
+    }
+
+    InfoItem {
+        id: termsContainer
+        anchors {
+            top: additionalTextContainer.bottom
+            left: parent.left
+            margins: 0
+            topMargin: 2 * hifi.dimensions.contentSpacing.y
+        }
+
+        text: qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+        wrapMode: Text.WordWrap
+        color: hifi.colors.baseGrayHighlight
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
+
+        onLinkActivated: loginDialog.openUrl(link)
     }
 
     Component.onCompleted: {

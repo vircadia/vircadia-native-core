@@ -42,6 +42,7 @@ public:
         using Parent = GLTexture;
         GLuint allocate();
     public:
+        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLuint externalId);
         GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
 
     protected:

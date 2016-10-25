@@ -32,6 +32,7 @@
 #include <UUID.h>
 
 #include "AccountManager.h"
+#include "AssetClient.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
@@ -41,7 +42,8 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
-    NodeType::AudioMixer
+    NodeType::AudioMixer,
+    NodeType::AssetServer
 };
 
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
@@ -112,6 +114,12 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     // set our isPacketVerified method as the verify operator for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
+
+    // set our socketBelongsToNode method as the connection creation filter operator for the udt::Socket
+    _nodeSocket.setConnectionCreationFilterOperator(std::bind(&LimitedNodeList::sockAddrBelongsToNode, this, _1));
+
+    // handle when a socket connection has its receiver side reset - might need to emit clientConnectionToNodeReset
+    connect(&_nodeSocket, &udt::Socket::clientHandshakeRequestComplete, this, &LimitedNodeList::clientConnectionToSockAddrReset);
 
     _packetStatTimer.start();
 
@@ -292,7 +300,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
             qCDebug(networking) << "Packet of type" << headerType
-                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
         }
     }
 
@@ -316,6 +324,8 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
         packet.writeVerificationHashGivenSecret(connectionSecret);
     }
 }
+
+static const qint64 ERROR_SENDING_PACKET_BYTES = -1;
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
@@ -353,7 +363,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
-        return 0;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -392,7 +402,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
             << " - not sending.";
-        return 0;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -438,7 +448,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node. Not sending.";
-        return 0;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 }
 
@@ -446,7 +456,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
                                    const HifiSockAddr& overridenSockAddr) {
     if (overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node. Not sending.";
-        return 0;
+        return ERROR_SENDING_PACKET_BYTES;
     }
 
     // use the node's active socket as the destination socket if there is no overriden socket address
@@ -1136,3 +1146,23 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, q
         }
     }
 }
+
+void LimitedNodeList::clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr) {
+    // for certain reliable channels higher level classes may need to know if the udt::Connection has been reset
+    auto matchingNode = findNodeWithAddr(sockAddr);
+
+    if (matchingNode) {
+        emit clientConnectionToNodeReset(matchingNode);
+    }
+}
+
+#if (PR_BUILD || DEV_BUILD)
+
+void LimitedNodeList::sendFakedHandshakeRequestToNode(SharedNodePointer node) {
+
+    if (node && node->getActiveSocket()) {
+        _nodeSocket.sendFakedHandshakeRequest(*node->getActiveSocket());
+    }
+}
+
+#endif

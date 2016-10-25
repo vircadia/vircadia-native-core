@@ -61,6 +61,10 @@ void OculusBaseDisplayPlugin::customizeContext() {
     Parent::customizeContext();
 }
 
+void OculusBaseDisplayPlugin::uncustomizeContext() {
+    Parent::uncustomizeContext();
+}
+
 bool OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
     if (!_session) {
@@ -121,4 +125,8 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
     //auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
     //_currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
     _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
+}
+
+OculusBaseDisplayPlugin::~OculusBaseDisplayPlugin() {
+    qDebug() << "Destroying OculusBaseDisplayPlugin";
 }

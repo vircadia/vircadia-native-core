@@ -27,7 +27,7 @@ ModalWindow {
     id: root
     resizable: true
     implicitWidth: 480
-    implicitHeight: 360
+    implicitHeight: 360 + (fileDialogItem.keyboardEnabled && fileDialogItem.keyboardRaised ? keyboard.raisedHeight + hifi.dimensions.contentSpacing.y : 0)
 
     minSize: Qt.vector2d(360, 240)
     draggable: true
@@ -70,7 +70,9 @@ ModalWindow {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives)
+        console.log("Helper " + helper + " drives " + drives);
+
+        fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
         // works properly from the initial screen.
@@ -85,6 +87,8 @@ ModalWindow {
 
         if (selectDirectory) {
             currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+            d.currentSelectionIsFolder = true;
+            d.currentSelectionUrl = initialFolder;
         }
 
         helper.contentsChanged.connect(function() {
@@ -100,16 +104,24 @@ ModalWindow {
     }
 
     Item {
+        id: fileDialogItem
         clip: true
         width: pane.width
         height: pane.height
         anchors.margins: 0
 
+        property bool keyboardEnabled: false
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         MouseArea {
             // Clear selection when click on internal unused area.
             anchors.fill: parent
             drag.target: root
-            onClicked: d.clearSelection()
+            onClicked: {
+                d.clearSelection();
+                frame.forceActiveFocus();  // Defocus text field so that the keyboard gets hidden.
+            }
         }
 
         Row {
@@ -619,7 +631,7 @@ ModalWindow {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right
                 rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
-                bottom: buttonRow.top
+                bottom: keyboard.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             readOnly: !root.saveDialog
@@ -638,6 +650,18 @@ ModalWindow {
             visible: !selectDirectory && filtersCount > 1
             KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
+        }
+
+        Keyboard {
+            id: keyboard
+            raised: parent.keyboardEnabled && parent.keyboardRaised
+            numeric: parent.punctuationMode
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: buttonRow.top
+                bottomMargin: visible ? hifi.dimensions.contentSpacing.y : 0
+            }
         }
 
         Row {

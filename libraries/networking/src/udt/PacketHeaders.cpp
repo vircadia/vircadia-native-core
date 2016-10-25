@@ -58,8 +58,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            // Removal of extension from Asset requests
-            return 18;
+            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
@@ -77,7 +76,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::InjectAudio:
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
-            return static_cast<PacketVersion>(AudioVersion::Exactly10msAudioPackets);
+        case PacketType::AudioStreamStats:
+            return static_cast<PacketVersion>(AudioVersion::TerminatingStreamStats);
 
         default:
             return 17;

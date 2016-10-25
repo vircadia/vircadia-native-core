@@ -55,6 +55,7 @@ typedef unsigned long long quint64;
 #include <NumericalConstants.h>
 #include <Packed.h>
 #include <ThreadSafeValueCache.h>
+#include <SharedUtil.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -137,10 +138,6 @@ class QDataStream;
 class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
-
-// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
-// the value to be reset when the sessionID changes.
-const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
 
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
@@ -402,6 +399,7 @@ protected:
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
+    const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;

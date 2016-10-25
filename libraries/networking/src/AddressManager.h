@@ -23,9 +23,14 @@
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
-const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
+
+#if USE_STABLE_GLOBAL_SERVICES
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+#else
+const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+#endif
+
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
-const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
 const QString INDEX_PATH = "/";
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -58,9 +63,9 @@ public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    QUrl currentAddress() const;
+    QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
-    QUrl currentShareableAddress() const;
+    QUrl currentShareableAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
@@ -78,11 +83,6 @@ public:
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
-    /// determines if the local sandbox is likely running. It does not account for custom setups, and is only 
-    /// intended to detect the standard local sandbox install.
-    void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
-                                   std::function<void()> localSandboxNotRunningDoThat);
-
 public slots:
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
@@ -92,7 +92,7 @@ public slots:
 
     void goBack();
     void goForward();
-    void goToLocalSandbox(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS, trigger); }
+    void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
     void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
     void goToUser(const QString& username);

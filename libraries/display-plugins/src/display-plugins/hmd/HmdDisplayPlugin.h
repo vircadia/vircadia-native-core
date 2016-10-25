@@ -23,6 +23,7 @@
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
+    ~HmdDisplayPlugin();
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
@@ -76,9 +77,9 @@ protected:
 
     Transform _presentUiModelTransform;
     std::array<HandLaserInfo, 2> _presentHandLasers;
+    std::array<int, 2> _geometryIds;
     std::array<mat4, 2> _presentHandPoses;
     std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
-
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
     std::array<mat4, 2> _eyeInverseProjections;

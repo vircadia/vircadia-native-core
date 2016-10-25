@@ -12,6 +12,7 @@
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
+    ~OculusDisplayPlugin();
     const QString& getName() const override { return NAME; }
 
     void init() override;
@@ -31,5 +32,6 @@ private:
     static const QString NAME;
     ovrTextureSwapChain _textureSwapChain;
     gpu::FramebufferPointer _outputFramebuffer;
+    bool _customized { false };
 };
 

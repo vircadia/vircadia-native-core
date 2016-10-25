@@ -66,7 +66,7 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
     QString infoViewName(NAME + "_" + path);
     offscreenUi->show(QML, NAME + "_" + path, [=](QQmlContext* context, QObject* newObject){
         QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
-        item->setWidth(720);
+        item->setWidth(1024);
         item->setHeight(720);
         InfoView* newInfoView = newObject->findChild<InfoView*>();
         Q_ASSERT(newInfoView);

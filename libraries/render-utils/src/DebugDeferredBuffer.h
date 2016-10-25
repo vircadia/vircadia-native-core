@@ -42,6 +42,7 @@ public:
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     
     DebugDeferredBuffer();
+    ~DebugDeferredBuffer();
 
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -96,6 +97,7 @@ private:
     
     StandardPipelines _pipelines;
     CustomPipelines _customPipelines;
+    int _geometryId { 0 };
 };
 
 #endif // hifi_DebugDeferredBuffer_h

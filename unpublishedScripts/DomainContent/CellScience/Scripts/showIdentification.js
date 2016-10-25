@@ -47,8 +47,7 @@
                 stereo: true,
                 loop: false,
                 localOnly: true,
-                volume: 0.035,
-                position: properties.position
+                volume: 0.45,
             };
             self.sound = SoundCache.getSound(self.soundURL);
             self.buttonImageURL = baseURL + "GUI/GUI_audio.png?" + version;
@@ -142,6 +141,7 @@
                 Overlays.editOverlay(self.button, {
                     visible: false
                 });
+                self.soundOptions.position = MyAvatar.position;
                 this.soundPlaying = Audio.playSound(self.sound, self.soundOptions);
             } else {
                 // print("not downloaded");

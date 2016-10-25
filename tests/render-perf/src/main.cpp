@@ -18,9 +18,11 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QSettings>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
+
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>
@@ -64,7 +66,6 @@
 #include <SceneScriptingInterface.h>
 
 #include "Camera.hpp"
-#include "TextOverlay.hpp"
 
 
 static const QString LAST_SCENE_KEY = "lastSceneFile";
@@ -1051,19 +1052,6 @@ private:
             return true;
         }
     } };
-
-    struct TextElement {
-        const glm::vec2 position;
-        const std::string text;
-        TextOverlay::TextAlign alignment;
-    };
-
-    enum TextBlock {
-        Help,
-        Info,
-    };
-
-    std::map<TextBlock, std::list<TextElement>> _textBlocks;
 
     render::EnginePointer _renderEngine { new render::Engine() };
     render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };

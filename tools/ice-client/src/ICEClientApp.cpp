@@ -178,16 +178,9 @@ void ICEClientApp::doSomething() {
                 qDebug() << "sending STUN request";
             }
             _socket->writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
-            _stunResponseTimerCanceled = false;
-            _stunResponseTimer.singleShot(stunResponseTimeoutMilliSeconds, this, [&] {
-                if (_stunResponseTimerCanceled) {
-                    return;
-                }
-                if (_verbose) {
-                    qDebug() << "timeout waiting for stun-server response";
-                }
-                QCoreApplication::exit(stunFailureExitStatus);
-            });
+            _stunResponseTimer.setSingleShot(true);
+            connect(&_stunResponseTimer, SIGNAL(timeout()), this, SLOT(stunResponseTimeout()));
+            _stunResponseTimer.start(stunResponseTimeoutMilliSeconds);
 
             setState(waitForStunResponse);
         } else {
@@ -215,16 +208,9 @@ void ICEClientApp::doSomething() {
         }
 
         sendPacketToIceServer(PacketType::ICEServerQuery, _iceServerAddr, _sessionUUID, peerID);
-        _iceResponseTimerCanceled = false;
-        _iceResponseTimer.singleShot(iceResponseTimeoutMilliSeconds, this, [=] {
-            if (_iceResponseTimerCanceled) {
-                return;
-            }
-            if (_verbose) {
-                qDebug() << "timeout waiting for ice-server response";
-            }
-            QCoreApplication::exit(iceFailureExitStatus);
-        });
+        _iceResponseTimer.setSingleShot(true);
+        connect(&_iceResponseTimer, SIGNAL(timeout()), this, SLOT(iceResponseTimeout()));
+        _iceResponseTimer.start(iceResponseTimeoutMilliSeconds);
     } else if (_state == pause0) {
         setState(pause1);
     } else if (_state == pause1) {
@@ -235,6 +221,20 @@ void ICEClientApp::doSomething() {
         setState(sendStunRequestPacket);
         _actionCount++;
     }
+}
+
+void ICEClientApp::iceResponseTimeout() {
+    if (_verbose) {
+        qDebug() << "timeout waiting for ice-server response";
+    }
+    QCoreApplication::exit(iceFailureExitStatus);
+}
+
+void ICEClientApp::stunResponseTimeout() {
+    if (_verbose) {
+        qDebug() << "timeout waiting for stun-server response";
+    }
+    QCoreApplication::exit(stunFailureExitStatus);
 }
 
 void ICEClientApp::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
@@ -298,7 +298,6 @@ void ICEClientApp::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) 
     }
 
     _stunResponseTimer.stop();
-    _stunResponseTimerCanceled = true;
 
     uint16_t newPublicPort;
     QHostAddress newPublicAddress;
@@ -331,7 +330,6 @@ void ICEClientApp::processPacket(std::unique_ptr<udt::Packet> packet) {
     if (nlPacket->getType() == PacketType::ICEServerPeerInformation) {
         // cancel the timeout timer
         _iceResponseTimer.stop();
-        _iceResponseTimerCanceled = true;
 
         QDataStream iceResponseStream(message->getMessage());
         if (!_domainServerPeerSet) {

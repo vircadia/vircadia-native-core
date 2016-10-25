@@ -19,6 +19,7 @@
         <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
         <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
         <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/keyboardControl.js"></script>
         <script type="text/javascript" src="js/entityProperties.js"></script>
         <script src="js/jsoneditor.min.js"></script>
     </head>
@@ -311,15 +312,11 @@
                 <input type="number" id="property-lifetime">
             </div>
             <hr class="behavior-group" />
-            <div class="behavior-group property url ">
-                <!--
-                FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated
-                code should be removed.
+            <div class="behavior-group property url refresh">
                 <input type="hidden" id="property-script-timestamp" class="value">
-                <input type="button" id="reload-script-button" value="Reload">
-                -->
                 <label for="property-script-url">Script URL</label>
                 <input type="text" id="property-script-url">
+                <input type="button" id="reload-script-button" class="glyph" value="F">
             </div>
             <div class="section-header model-group model-section zone-section">
                 <label>Model</label><span>M</span>

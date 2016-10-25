@@ -319,7 +319,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
         makePipeline = gpu::Pipeline::create(program, state);
     }
 
-    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseProfile"));
     makeFramebuffer->setRenderBuffer(0, profileMap);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
@@ -356,7 +356,7 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
         makePipeline = gpu::Pipeline::create(program, state);
     }
 
-    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
@@ -393,7 +393,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
         makePipeline = gpu::Pipeline::create(program, state);
     }
 
-    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("computeSpecularBeckmann"));
     makeFramebuffer->setRenderBuffer(0, beckmannMap);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {

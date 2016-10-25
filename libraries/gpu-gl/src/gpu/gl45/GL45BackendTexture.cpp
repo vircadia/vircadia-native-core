@@ -243,17 +243,28 @@ GLuint GL45Backend::getTextureID(const TexturePointer& texture, bool transfer) {
     return GL45Texture::getId<GL45Texture>(*this, texture, transfer);
 }
 
+GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId)
+    : GLTexture(backend, texture, externalId), _sparseInfo(*this), _transferState(*this) {
+}
+
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable)
     : GLTexture(backend, texture, allocate(texture), transferrable), _sparseInfo(*this), _transferState(*this) {
 
     if (_transferrable && Texture::getEnableSparseTextures()) {
         _sparseInfo.maybeMakeSparse();
+        if (_sparseInfo.sparse) {
+            Backend::incrementTextureGPUSparseCount();
+        }
     }
 }
 
 GL45Texture::~GL45Texture() {
-    qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
+    // External textures cycle very quickly, so don't spam the log with messages about them.
+    if (!_gpuObject.getUsage().isExternal()) {
+        qCDebug(gpugl45logging) << "Destroying texture " << _id << " from source " << _source.c_str();
+    }
     if (_sparseInfo.sparse) {
+        Backend::decrementTextureGPUSparseCount();
         // Remove this texture from the candidate list of derezzable textures
         {
             auto mipLevels = usedMipLevels();
@@ -293,6 +304,7 @@ GL45Texture::~GL45Texture() {
         }
 
         auto size = _size;
+        const_cast<GLuint&>(_size) = 0;
         _textureTransferHelper->queueExecution([id, size, destructionFunctions] {
             for (auto function : destructionFunctions) {
                 function();
@@ -300,6 +312,7 @@ GL45Texture::~GL45Texture() {
             glDeleteTextures(1, &id);
             Backend::decrementTextureGPUCount();
             Backend::updateTextureGPUMemoryUsage(size, 0);
+            Backend::updateTextureGPUSparseMemoryUsage(size, 0);
         });
     }
 }
@@ -331,7 +344,9 @@ void GL45Texture::updateSize() const {
         qFatal("Compressed textures not yet supported");
     }
 
-    if (_transferrable) {
+    if (_transferrable && _sparseInfo.sparse) {
+        auto size = _allocatedPages * _sparseInfo.pageBytes;
+        Backend::updateTextureGPUSparseMemoryUsage(_size, size);
         setSize(_allocatedPages * _sparseInfo.pageBytes);
     } else {
         setSize(_virtualSize);

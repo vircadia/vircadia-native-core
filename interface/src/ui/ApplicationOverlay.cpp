@@ -40,18 +40,18 @@ ApplicationOverlay::ApplicationOverlay()
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
-
-    // Once we move UI rendering and screen rendering to different
-    // threads, we need to use a sync object to deteremine when
-    // the current UI texture is no longer being read from, and only
-    // then release it back to the UI for re-use
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
-        _uiTexture = textureId;
-    });
+    _qmlGeometryId = geometryCache->allocateID();
+    _rearViewGeometryId = geometryCache->allocateID();
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_domainStatusBorder);
+        geometryCache->releaseID(_magnifierBorder);
+        geometryCache->releaseID(_qmlGeometryId);
+        geometryCache->releaseID(_rearViewGeometryId);
+    }
 }
 
 // Renders the overlays either to a texture or to the screen
@@ -96,18 +96,30 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_uiTexture) {
-        gpu::Batch& batch = *renderArgs->_batch;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
 
-        geometryCache->useSimpleDrawPipeline(batch);
-        batch.setProjectionTransform(mat4());
-        batch.setModelTransform(Transform());
-        batch.resetViewTransform();
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _uiTexture);
-
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    if (!_uiTexture) {
+        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
+        _uiTexture->setSource(__FUNCTION__);
     }
+    // Once we move UI rendering and screen rendering to different
+    // threads, we need to use a sync object to deteremine when
+    // the current UI texture is no longer being read from, and only
+    // then release it back to the UI for re-use
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = offscreenUi->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _uiTexture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+    }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    gpu::Batch& batch = *renderArgs->_batch;
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch.setProjectionTransform(mat4());
+    batch.setModelTransform(Transform());
+    batch.resetViewTransform();
+    batch.setResourceTexture(0, _uiTexture);
+    geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
 }
 
 void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
@@ -183,7 +195,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
 
         batch.setResourceTexture(0, selfieTexture);
         float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha), _rearViewGeometryId);
 
         batch.setResourceTexture(0, renderArgs->_whiteTexture);
     }
@@ -253,7 +265,7 @@ void ApplicationOverlay::buildFramebufferObject() {
 
     auto uiSize = qApp->getUiSize();
     if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
-        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ApplicationOverlay"));
     }
 
     auto width = uiSize.x;

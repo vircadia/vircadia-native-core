@@ -46,10 +46,11 @@ static const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
 static const quint64 FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
-InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, int numStaticJitterFrames) :
-    _ringBuffer(numFrameSamples, numFramesCapacity),
-    _dynamicJitterBufferEnabled(numStaticJitterFrames == -1),
-    _staticJitterBufferFrames(std::max(numStaticJitterFrames, DEFAULT_STATIC_JITTER_FRAMES)),
+InboundAudioStream::InboundAudioStream(int numChannels, int numFrames, int numBlocks, int numStaticJitterBlocks) :
+    _ringBuffer(numChannels * numFrames, numBlocks),
+    _numChannels(numChannels),
+    _dynamicJitterBufferEnabled(numStaticJitterBlocks == -1),
+    _staticJitterBufferFrames(std::max(numStaticJitterBlocks, DEFAULT_STATIC_JITTER_FRAMES)),
     _desiredJitterBufferFrames(_dynamicJitterBufferEnabled ? 1 : _staticJitterBufferFrames),
     _incomingSequenceNumberStats(STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
     _starveHistory(STARVE_HISTORY_CAPACITY),
@@ -121,11 +122,11 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
     packetReceivedUpdateTimingStats();
 
-    int networkSamples;
-    
+    int networkFrames;
+
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = message.getPosition();
-    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
+    int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
     message.seek(prePropertyPosition + propertyBytes);
 
     // handle this packet based on its arrival status.
@@ -135,7 +136,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // NOTE: we assume that each dropped packet contains the same number of samples
             // as the packet we just received.
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            writeSamplesForDroppedPackets(packetsDropped * networkSamples);
+            writeFramesForDroppedPackets(packetsDropped * networkFrames);
 
             // fall through to OnTime case
         }
@@ -143,7 +144,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
                 // FIXME - Some codecs need to know about these silent frames... and can produce better output
-                writeDroppableSilentSamples(networkSamples);
+                writeDroppableSilentFrames(networkFrames);
             } else {
                 // note: PCM and no codec are identical
                 bool selectedPCM = _selectedCodecName == "pcm" || _selectedCodecName == "";
@@ -153,7 +154,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     parseAudioData(message.getType(), afterProperties);
                 } else {
                     qDebug() << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
-                    writeDroppableSilentSamples(networkSamples);
+                    writeDroppableSilentFrames(networkFrames);
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
                     emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
@@ -218,12 +219,13 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
     return _ringBuffer.writeData(decodedBuffer.data(), actualSize);
 }
 
-int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
+int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     if (_decoder) {
-        _decoder->trackLostFrames(silentSamples);
+        _decoder->trackLostFrames(silentFrames);
     }
 
     // calculate how many silent frames we should drop.
+    int silentSamples = silentFrames * _numChannels;
     int samplesPerFrame = _ringBuffer.getNumFrameSamples();
     int desiredJitterBufferFramesPlusPadding = _desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING;
     int numSilentFramesToDrop = 0;
@@ -414,14 +416,14 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     _lastPacketReceivedTime = now;
 }
 
-int InboundAudioStream::writeSamplesForDroppedPackets(int networkSamples) {
-    return writeLastFrameRepeatedWithFade(networkSamples);
+int InboundAudioStream::writeFramesForDroppedPackets(int networkFrames) {
+    return writeLastFrameRepeatedWithFade(networkFrames);
 }
 
-int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
+int InboundAudioStream::writeLastFrameRepeatedWithFade(int frames) {
     AudioRingBuffer::ConstIterator frameToRepeat = _ringBuffer.lastFrameWritten();
     int frameSize = _ringBuffer.getNumFrameSamples();
-    int samplesToWrite = samples;
+    int samplesToWrite = frames * _numChannels;
     int indexOfRepeat = 0;
     do {
         int samplesToWriteThisIteration = std::min(samplesToWrite, frameSize);
@@ -434,7 +436,7 @@ int InboundAudioStream::writeLastFrameRepeatedWithFade(int samples) {
         indexOfRepeat++;
     } while (samplesToWrite > 0);
 
-    return samples;
+    return frames;
 }
 
 AudioStreamStats InboundAudioStream::getAudioStreamStats() const {
@@ -469,8 +471,8 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     const float INITIAL_MSECS_NO_FADE = 20.0f;
     const float MSECS_FADE_TO_ZERO = 320.0f;
 
-    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE * AudioConstants::NETWORK_FRAME_MSECS;
-    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO * AudioConstants::NETWORK_FRAME_MSECS;
+    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE / AudioConstants::NETWORK_FRAME_MSECS;
+    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO / AudioConstants::NETWORK_FRAME_MSECS;
 
     const float SAMPLE_RANGE = std::numeric_limits<int16_t>::max();
 
@@ -478,8 +480,6 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
         return 1.0f;
     } else if (indexOfRepeat <= INITIAL_FRAMES_NO_FADE + FRAMES_FADE_TO_ZERO) {
         return pow(SAMPLE_RANGE, -(indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
-
-        //return 1.0f - ((indexOfRepeat - INITIAL_FRAMES_NO_FADE) / FRAMES_FADE_TO_ZERO);
     }
     return 0.0f;
 }

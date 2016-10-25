@@ -18,11 +18,6 @@ using namespace gpu::gl;
 
 std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
 
-// FIXME placeholder for texture memory over-use
-#define DEFAULT_MAX_MEMORY_MB 256
-#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
-#define OVER_MEMORY_PRESSURE 2.0f
-
 const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
     GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
@@ -94,48 +89,43 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
+// Default texture memory = GPU total memory - 2GB
+#define GPU_MEMORY_RESERVE_BYTES MB_TO_BYTES(2048)
+// Minimum texture memory = 1GB
+#define TEXTURE_MEMORY_MIN_BYTES MB_TO_BYTES(1024)
+
 
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
+    
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
-        auto totalGpuMemory = getDedicatedMemory();
-
-        if (!totalGpuMemory) {
-            // If we can't query the dedicated memory just use a fallback fixed value of 256 MB
-            totalGpuMemory = MB_TO_BYTES(DEFAULT_MAX_MEMORY_MB);
+        auto totalMemory = getDedicatedMemory();
+        if ((GPU_MEMORY_RESERVE_BYTES + TEXTURE_MEMORY_MIN_BYTES) > totalMemory) {
+            availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
         } else {
-            // Check the global free GPU memory
-            auto freeGpuMemory = getFreeDedicatedMemory();
-            if (freeGpuMemory) {
-                static gpu::Size lastFreeGpuMemory = 0;
-                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
-                if (freeGpuMemory != lastFreeGpuMemory) {
-                    lastFreeGpuMemory = freeGpuMemory;
-                    if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
-                        qDebug() << "Exceeded max GPU memory";
-                        return OVER_MEMORY_PRESSURE;
-                    }
-                }
-            }
+            availableTextureMemory = totalMemory - GPU_MEMORY_RESERVE_BYTES;
         }
-
-        // Allow 50% of all available GPU memory to be consumed by textures
-        // FIXME overly conservative?
-        availableTextureMemory = (totalGpuMemory >> 1);
     }
 
     // Return the consumed texture memory divided by the available texture memory.
-    auto consumedGpuMemory = Context::getTextureGPUMemoryUsage();
-    return (float)consumedGpuMemory / (float)availableTextureMemory;
+    auto consumedGpuMemory = Context::getTextureGPUSparseMemoryUsage();
+    float memoryPressure = (float)consumedGpuMemory / (float)availableTextureMemory;
+    static Context::Size lastConsumedGpuMemory = 0;
+    if (memoryPressure > 1.0f && lastConsumedGpuMemory != consumedGpuMemory) {
+        lastConsumedGpuMemory = consumedGpuMemory;
+        qCDebug(gpugllogging) << "Exceeded max allowed texture memory: " << consumedGpuMemory << " / " << availableTextureMemory;
+    }
+    return memoryPressure;
 }
 
 
 // Create the texture and allocate storage
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
     GLObject(backend, texture, id),
+    _external(false),
     _source(texture.source()),
     _storageStamp(texture.getStamp()),
     _target(getGLTextureType(texture)),
@@ -152,10 +142,43 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     Backend::setGPUObject(texture, this);
 }
 
+GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :
+    GLObject(backend, texture, id),
+    _external(true),
+    _source(texture.source()),
+    _storageStamp(0),
+    _target(getGLTextureType(texture)),
+    _internalFormat(GL_RGBA8),
+    // FIXME force mips to 0?
+    _maxMip(texture.maxMip()),
+    _minMip(texture.minMip()),
+    _virtualSize(0),
+    _transferrable(false) 
+{
+    Backend::setGPUObject(texture, this);
+
+    // FIXME Is this necessary?
+    //withPreservedTexture([this] {
+    //    syncSampler();
+    //    if (_gpuObject.isAutogenerateMips()) {
+    //        generateMips();
+    //    }
+    //});
+}
+
 GLTexture::~GLTexture() {
-    if (_id) {
-        auto backend = _backend.lock();
-        if (backend) {
+    auto backend = _backend.lock();
+    if (backend) {
+        if (_external) {
+            auto recycler = _gpuObject.getExternalRecycler();
+            if (recycler) {
+                backend->releaseExternalTexture(_id, recycler);
+            } else {
+                qWarning() << "No recycler available for texture " << _id << " possible leak";
+            }
+        } else if (_id) {
+            // WARNING!  Sparse textures do not use this code path.  See GL45BackendTexture for 
+            // the GL45Texture destructor for doing any required work tracking GPU stats
             backend->releaseTexture(_id, _size);
         }
     }

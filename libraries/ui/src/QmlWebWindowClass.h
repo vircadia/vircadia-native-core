@@ -19,7 +19,7 @@ class QmlWebWindowClass : public QmlWindowClass {
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
-    public slots:
+public slots:
     QString getURL() const;
     void setURL(const QString& url);
 
@@ -33,6 +33,9 @@ signals:
 
 protected:
     QString qmlSource() const override { return "QmlWebWindow.qml"; }
+
+private:
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
 };
 
 #endif

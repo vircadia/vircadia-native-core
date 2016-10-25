@@ -15,25 +15,29 @@ import "styles"
 import "windows"
 import "hifi"
 import "hifi/toolbars"
+import "styles-uit" as HifiStyles
 import "controls-uit" as HifiControls
 
 Window {
     id: root
     HifiConstants { id: hifi }
+    HifiStyles.HifiConstants { id: hifiStyleConstants }
 
     objectName: "AddressBarDialog"
-    frame: HiddenFrame {}
-    hideBackground: true
+    title: "Go To"
 
     shown: false
     destroyOnHidden: false
     resizable: false
-    scale: 1.25  // Make this dialog a little larger than normal
+    pinnable: false;
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
 
-    onShownChanged: addressBarDialog.observeShownChanged(shown);
+    onShownChanged: {
+        addressBarDialog.keyboardEnabled = HMD.active;
+        addressBarDialog.observeShownChanged(shown);
+    }
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
@@ -58,20 +62,31 @@ Window {
         }
         addressLine.text = targetString;
         toggleOrGo(true);
+        clearAddressLineTimer.start();
     }
     property var allStories: [];
     property int cardWidth: 200;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
+    property bool isCursorVisible: false  // Override default cursor visibility.
 
     AddressBarDialog {
         id: addressBarDialog
+
+        property bool keyboardEnabled: false
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
         implicitWidth: backgroundImage.width
-        implicitHeight: backgroundImage.height
+        implicitHeight: backgroundImage.height + (keyboardEnabled ? keyboard.height : 0) + cardHeight;
+
         // The buttons have their button state changed on hover, so we have to manually fix them up here
         onBackEnabledChanged: backArrow.buttonState = addressBarDialog.backEnabled ? 1 : 0;
         onForwardEnabledChanged: forwardArrow.buttonState = addressBarDialog.forwardEnabled ? 1 : 0;
         onReceivedHifiSchemeURL: resetAfterTeleport();
+
+        // Update location after using back and forward buttons.
+        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
 
         ListModel { id: suggestions }
 
@@ -82,8 +97,7 @@ Window {
             spacing: hifi.layout.spacing;
             clip: true;
             anchors {
-                bottom: backgroundImage.top;
-                bottomMargin: 2 * hifi.layout.spacing;
+                bottom: backgroundImage.top
                 horizontalCenter: backgroundImage.horizontalCenter
             }
             model: suggestions;
@@ -118,12 +132,16 @@ Window {
                 verticalCenter: scroll.verticalCenter;
             }
         }
+
         Image {
             id: backgroundImage
             source: "../images/address-bar.svg"
-            width: 576 * root.scale
-            height: 80 * root.scale
-            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
+            width: 720
+            height: 100
+            anchors {
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
+            }
+            property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             ToolbarButton {
@@ -168,7 +186,24 @@ Window {
                 }
             }
 
-            // FIXME replace with TextField
+            HifiStyles.RalewayLight {
+                id: notice;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
+                anchors {
+                    top: parent.top
+                    topMargin: parent.inputAreaStep + 12
+                    left: addressLine.left
+                    right: addressLine.right
+                }
+            }
+            HifiStyles.FiraSansRegular {
+                id: location;
+                font.pixelSize: addressLine.font.pixelSize;
+                color: "gray";
+                clip: true;
+                anchors.fill: addressLine;
+                visible: addressLine.text.length === 0
+            }
             TextInput {
                 id: addressLine
                 focus: true
@@ -179,21 +214,58 @@ Window {
                     right: parent.right
                     leftMargin: forwardArrow.width
                     rightMargin: forwardArrow.width / 2
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
+                    bottomMargin: parent.inputAreaStep
                 }
-                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
-                helperText: "Go to: place, @user, /path, network address"
-                helperPixelSize: font.pixelSize * 0.75
-                helperItalic: true
-                onTextChanged: filterChoicesByText()
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
+                cursorVisible: false
+                onTextChanged: {
+                    filterChoicesByText();
+                    updateLocationText(text.length > 0);
+                    if (!isCursorVisible && text.length > 0) {
+                        isCursorVisible = true;
+                        cursorVisible = true;
+                    }
+                }
+                onActiveFocusChanged: {
+                    cursorVisible = isCursorVisible && focus;
+                }
+                MouseArea {
+                    // If user clicks in address bar show cursor to indicate ability to enter address.
+                    anchors.fill: parent
+                    onClicked: {
+                        isCursorVisible = true;
+                        parent.cursorVisible = true;
+                        parent.forceActiveFocus();
+                    }
+                }
+            }
+        }
+
+        Timer {
+            // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
+            id: updateLocationTextTimer
+            running: false
+            interval: 500  // ms
+            repeat: false
+            onTriggered: updateLocationText(false);
+        }
+
+        Timer {
+            // Delay clearing address line so as to avoid flicker of "not connected" being displayed after entering an address.
+            id: clearAddressLineTimer
+            running: false
+            interval: 100  // ms
+            repeat: false
+            onTriggered: {
+                addressLine.text = "";
+                isCursorVisible = false;
             }
         }
 
         Window {
-            width: 938;
-            height: 625;
-            scale: 0.8  // Reset scale of Window to 1.0 (counteract address bar's scale value of 1.25)
+            width: 938
+            height: 625
             HifiControls.WebView {
                 anchors.fill: parent;
                 id: storyCardHTML;
@@ -207,6 +279,18 @@ Window {
             anchors {
                 verticalCenter: backgroundImage.verticalCenter;
                 horizontalCenter: scroll.horizontalCenter;
+            }
+            z: 100
+        }
+
+        HifiControls.Keyboard {
+            id: keyboard
+            raised: parent.keyboardEnabled  // Ignore keyboardRaised; keep keyboard raised if enabled (i.e., in HMD).
+            numeric: parent.punctuationMode
+            anchors {
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
             }
         }
     }
@@ -344,12 +428,23 @@ Window {
         });
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            addressLine.forceActiveFocus()
-            fillDestinations();
+    function updateLocationText(enteringAddress) {
+        if (enteringAddress) {
+            notice.text = "Go to a place, @user, path or network address";
+            notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
-            addressLine.text = ""
+            notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
+            // Display hostname, which includes ip address, localhost, and other non-placenames.
+            location.text = (AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
+        }
+    }
+
+    onVisibleChanged: {
+        updateLocationText(false);
+        if (visible) {
+            addressLine.forceActiveFocus();
+            fillDestinations();
         }
     }
 
@@ -365,11 +460,13 @@ Window {
             case Qt.Key_Escape:
             case Qt.Key_Back:
                 root.shown = false
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 toggleOrGo()
+                clearAddressLineTimer.start();
                 event.accepted = true
                 break
         }

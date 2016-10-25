@@ -976,10 +976,16 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
     packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
 }
 
+static const QUrl emptyURL("");
+const QUrl& AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) {
+    // We don't put file urls on the wire, but instead convert to empty.
+    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
+}
+
 bool AvatarData::processAvatarIdentity(const Identity& identity) {
     bool hasIdentityChanged = false;
 
-    if (_firstSkeletonCheck || (identity.skeletonModelURL != _skeletonModelURL)) {
+    if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         hasIdentityChanged = true;
         _firstSkeletonCheck = false;
@@ -1010,8 +1016,7 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    QUrl emptyURL("");
-    const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
+    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
@@ -1773,7 +1778,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }

@@ -192,6 +192,11 @@ void GLBackend::resetResourceStage() {
 
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
+    if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {
+        // "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" + slot + " which doesn't exist. MaxNumResourceTextures = " + getMaxNumResourceTextures());
+        return;
+    }
+
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
     if (!resourceTexture) {

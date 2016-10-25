@@ -30,15 +30,51 @@ public:
     static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
 
     template <typename GLTextureType>
-    static GLTextureType* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
+    static GLTexture* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
         const Texture& texture = *texturePointer;
+
+        // Special case external textures
+        if (texture.getUsage().isExternal()) {
+            Texture::ExternalUpdates updates = texture.getUpdates();
+            if (!updates.empty()) {
+                Texture::ExternalRecycler recycler = texture.getExternalRecycler();
+                Q_ASSERT(recycler);
+                // Discard any superfluous updates
+                while (updates.size() > 1) {
+                    const auto& update = updates.front();
+                    // Superfluous updates will never have been read, but we want to ensure the previous 
+                    // writes to them are complete before they're written again, so return them with the 
+                    // same fences they arrived with.  This can happen on any thread because no GL context 
+                    // work is involved
+                    recycler(update.first, update.second);
+                    updates.pop_front();
+                }
+
+                // The last texture remaining is the one we'll use to create the GLTexture
+                const auto& update = updates.front();
+                // Check for a fence, and if it exists, inject a wait into the command stream, then destroy the fence
+                if (update.second) {
+                    GLsync fence = static_cast<GLsync>(update.second);
+                    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+                    glDeleteSync(fence);
+                }
+
+                // Create the new texture object (replaces any previous texture object)
+                new GLTextureType(backend.shared_from_this(), texture, update.first);
+            }
+
+            // Return the texture object (if any) associated with the texture, without extensive logic
+            // (external textures are 
+            return Backend::getGPUObject<GLTextureType>(texture);
+        }
+
         if (!texture.isDefined()) {
             // NO texture definition yet so let's avoid thinking
             return nullptr;
         }
 
         // If the object hasn't been created, or the object definition is out of date, drop and re-create
-        GLTextureType* object = Backend::getGPUObject<GLTextureType>(texture);
+        GLTexture* object = Backend::getGPUObject<GLTextureType>(texture);
 
         // Create the texture if need be (force re-creation if the storage stamp changes
         // for easier use of immutable storage)
@@ -48,6 +84,7 @@ public:
             if (!object->_transferrable) {
                 object->createTexture();
                 object->_contentStamp = texture.getDataStamp();
+                object->updateSize();
                 object->postTransfer();
             }
         }
@@ -83,7 +120,7 @@ public:
         if (!texture) {
             return 0;
         }
-        GLTextureType* object { nullptr };
+        GLTexture* object { nullptr };
         if (shouldSync) {
             object = sync<GLTextureType>(backend, texture, shouldSync);
         } else {
@@ -110,6 +147,8 @@ public:
 
     ~GLTexture();
 
+    // Is this texture generated outside the GPU library?
+    const bool _external;
     const GLuint& _texture { _id };
     const std::string _source;
     const Stamp _storageStamp;
@@ -159,6 +198,7 @@ protected:
     std::atomic<GLSyncState> _syncState { GLSyncState::Idle };
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable);
+    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
 
     void setSyncState(GLSyncState syncState) { _syncState = syncState; }
 

@@ -79,13 +79,16 @@ public:
 
     void setMaxBandwidth(int maxBandwidth);
 
+    void sendHandshakeRequest();
+
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);
-    
+    void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
+
 private slots:
-    void recordSentPackets(int payload, int total);
-    void recordRetransmission();
+    void recordSentPackets(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void recordRetransmission(int wireSize, SequenceNumber sequenceNumber, p_high_resolution_clock::time_point timePoint);
     void queueInactive();
     void queueTimeout();
     void queueShortCircuitLoss(quint32 sequenceNumber);
@@ -129,6 +132,7 @@ private:
     
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
+    bool _didRequestHandshake { false }; // flag for request of handshake from server
    
     p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender

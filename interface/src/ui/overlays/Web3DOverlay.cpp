@@ -32,7 +32,9 @@ static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 QString const Web3DOverlay::TYPE = "web3d";
 
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) { }
+Web3DOverlay::Web3DOverlay() : _dpi(DPI) { 
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+}
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     Billboard3DOverlay(Web3DOverlay),
@@ -40,12 +42,15 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _dpi(Web3DOverlay->_dpi),
     _resolution(Web3DOverlay->_resolution)
 {
+    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Web3DOverlay::~Web3DOverlay() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
+
+
         // The lifetime of the QML surface MUST be managed by the main thread
         // Additionally, we MUST use local variables copied by value, rather than
         // member variables, since they would implicitly refer to a this that
@@ -54,6 +59,10 @@ Web3DOverlay::~Web3DOverlay() {
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
             webSurface->deleteLater();
         });
+    }
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_geometryId);
     }
 }
 
@@ -73,16 +82,21 @@ void Web3DOverlay::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = new OffscreenQmlSurface();
+        auto deleter = [](OffscreenQmlSurface* webSurface) {
+            AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+                webSurface->deleteLater();
+            });
+        };
+        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
+        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+        // and the current rendering load)
+        _webSurface->setMaxFps(10);
         _webSurface->create(currentContext);
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/controls/"));
         _webSurface->load("WebView.qml");
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
-        _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
-            _texture = textureId;
-        });
         currentContext->makeCurrent(currentSurface);
     }
 
@@ -97,14 +111,20 @@ void Web3DOverlay::render(RenderArgs* args) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }
 
-    Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    if (_texture) {
-        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    if (!_texture) {
+        auto webSurface = _webSurface;
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
+        _texture->setSource(__FUNCTION__);
+    }
+    OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    bool newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+    if (newTextureAvailable) {
+        _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
     }
 
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setResourceTexture(0, _texture);
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
@@ -112,7 +132,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     } else {
         geometryCache->bindOpaqueWebBrowserProgram(batch);
     }
-    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
+    geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 

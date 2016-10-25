@@ -54,8 +54,8 @@ public:
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
-    qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -131,6 +131,8 @@ private:
     void parseNodeFromPacketStream(QDataStream& packetStream);
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
+
+    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
 
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;

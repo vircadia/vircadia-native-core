@@ -29,12 +29,15 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
+#include <QtCore/QProcess>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
 #include <BugSplat.h>
 #include <CrashReporter.h>
 #endif
+
+
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
@@ -121,6 +124,16 @@ int main(int argc, const char* argv[]) {
         }
     }
 
+    QCommandLineParser parser;
+    QCommandLineOption runServerOption("runServer", "Whether to run the server");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    parser.addOption(runServerOption);
+    parser.addOption(serverContentPathOption);
+    parser.parse(arguments);
+    bool runServer = parser.isSet(runServerOption);
+    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
+    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
+
     QElapsedTimer startupTime;
     startupTime.start();
 
@@ -142,10 +155,11 @@ int main(int argc, const char* argv[]) {
 
     SteamClient::init();
 
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startupTime);
+        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
@@ -199,7 +213,6 @@ int main(int argc, const char* argv[]) {
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
-
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();

@@ -127,7 +127,7 @@ const gpu::TexturePointer& TextureCache::getGrayTexture() {
     if (!_grayTexture) {
         _grayTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
         _grayTexture->setSource("TextureCache::_grayTexture");
-        _grayTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_GRAY);
+        _grayTexture->assignStoredMip(0, _grayTexture->getTexelFormat(), sizeof(OPAQUE_GRAY), OPAQUE_GRAY);
     }
     return _grayTexture;
 }
@@ -145,7 +145,7 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     if (!_blackTexture) {
         _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
         _blackTexture->setSource("TextureCache::_blackTexture");
-        _blackTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+        _blackTexture->assignStoredMip(0, _blackTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
     }
     return _blackTexture;
 }
