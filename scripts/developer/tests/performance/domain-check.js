@@ -34,7 +34,7 @@ var ANIMATION_DATA = {
     "loopFlag": true
 };
 
-var version = 11;
+var version = 3;
 function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
@@ -267,7 +267,7 @@ function doRender(continuation) {
         if (MINIMUM_AVATARS && !fail) {
             if (0 === summonedAgents.length) {
                 fail = "FAIL: No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
-http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/crowd-agent.js\n\
+http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=3\n\
 on your domain server.";
             } else if (total < MINIMUM_AVATARS) {
                 fail = "FAIL: Only " + summonedAgents.length + " of the expected " + (MINIMUM_AVATARS - total) + " agents reported in.";
