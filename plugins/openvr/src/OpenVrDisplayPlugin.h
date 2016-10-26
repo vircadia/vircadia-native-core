@@ -15,9 +15,6 @@
 
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
-#define OPENVR_THREADED_SUBMIT 0
-
-#if OPENVR_THREADED_SUBMIT
 namespace gl {
     class OffscreenContext;
 }
@@ -34,7 +31,6 @@ struct CompositeInfo {
     glm::mat4 pose;
     GLsync fence{ 0 };
 };
-#endif
 
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
@@ -58,10 +54,8 @@ public:
     void unsuppressKeyboard() override;
     bool isKeyboardVisible() override;
 
-#if OPENVR_THREADED_SUBMIT
-    // Needs an additional thread for VR submission
-    int getRequiredThreadCount() const override { return Parent::getRequiredThreadCount() + 1; }
-#endif
+    // Possibly needs an additional thread for VR submission
+    int getRequiredThreadCount() const override; 
 
 protected:
     bool internalActivate() override;
@@ -73,7 +67,6 @@ protected:
     bool isHmdMounted() const override;
     void postPreview() override;
 
-
 private:
     vr::IVRSystem* _system { nullptr };
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
@@ -82,12 +75,11 @@ private:
 
     vr::HmdMatrix34_t _lastGoodHMDPose;
     mat4 _sensorResetMat;
+    bool _threadedSubmit { true };
 
-#if OPENVR_THREADED_SUBMIT
     CompositeInfo::Array _compositeInfos;
     size_t _renderingIndex { 0 };
     std::shared_ptr<OpenVrSubmitThread> _submitThread;
     std::shared_ptr<gl::OffscreenContext> _submitCanvas;
     friend class OpenVrSubmitThread;
-#endif
 };
