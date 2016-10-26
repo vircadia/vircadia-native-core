@@ -1491,6 +1491,7 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
+    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1592,6 +1593,8 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    DependencyManager::destroy<Preferences>();
+
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
 
