@@ -51,8 +51,8 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
-    NodeType_t getOwnerType() const { return _ownerType; }
-    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType.load(); }
+    void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
     Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
     Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
@@ -134,7 +134,7 @@ private:
 
     bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
 
-    NodeType_t _ownerType;
+    std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
