@@ -270,7 +270,7 @@ function doRender(continuation) {
 http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=3\n\
 on your domain server.";
             } else if (total < MINIMUM_AVATARS) {
-                fail = "FAIL: Only " + summonedAgents.length + " of the expected " + (MINIMUM_AVATARS - total) + " agents reported in.";
+                fail = "FAIL: Only " + summonedAgents.length + " avatars reported. Missing " + (MINIMUM_AVATARS - total) + ".";
             }
         }
         continuation();
