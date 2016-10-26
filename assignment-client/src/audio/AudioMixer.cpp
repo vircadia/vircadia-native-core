@@ -90,8 +90,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::InjectAudio, PacketType::SilentAudioFrame,
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
-    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
@@ -481,6 +481,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 }
 
 void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    getOrCreateClientData(sendingNode.data());
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
 
@@ -579,18 +580,8 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-
-    // FIXME - why would we not have client data at this point??
-    if (!clientData) {
-        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
-        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
-        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    }
-
+    auto clientData = getOrCreateClientData(sendingNode.data());
     clientData->setupCodec(selectedCodec, selectedCodecName);
-
     qDebug() << "selectedCodecName:" << selectedCodecName;
     clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
 }
@@ -707,17 +698,24 @@ void AudioMixer::run() {
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 }
 
+AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+
+    if (!clientData) {
+        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    return clientData;
+}
+
 void AudioMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = [&](Node* node) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
-        auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    };
+    nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     DomainHandler& domainHandler = nodeList->getDomainHandler();
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();

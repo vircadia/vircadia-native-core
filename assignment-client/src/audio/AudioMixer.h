@@ -52,6 +52,7 @@ private slots:
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
+    AudioMixerClientData* getOrCreateClientData(Node* node);
     void domainSettingsRequestComplete();
     
     /// adds one stream to the mix for a listening node
