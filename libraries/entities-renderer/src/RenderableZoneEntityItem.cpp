@@ -248,9 +248,12 @@ void RenderableZoneEntityItem::notifyBoundChanged() {
     }
     render::PendingChanges pendingChanges;
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    if (scene) {
+        pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+        });
 
-    pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
-    });
-
-    scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
+    }
 }
