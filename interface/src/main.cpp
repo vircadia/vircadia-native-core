@@ -165,8 +165,7 @@ int main(int argc, const char* argv[]) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
-        QVariant launchedFromSteamVariant(launchedFromSteam);
-        app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteamVariant);
+        app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
