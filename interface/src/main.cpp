@@ -127,16 +127,12 @@ int main(int argc, const char* argv[]) {
     QCommandLineParser parser;
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
-    QCommandLineOption launchedFromSteamOption("launchedFromSteam", "Whether we were launched from SteamVR.");
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
-    parser.addOption(launchedFromSteamOption);
     parser.parse(arguments);
     bool runServer = parser.isSet(runServerOption);
     bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
     QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
-
-    bool launchedFromSteam = parser.isSet(launchedFromSteamOption);
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -165,6 +161,7 @@ int main(int argc, const char* argv[]) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
+        bool launchedFromSteam = SteamClient::isRunning();
         app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
 
         // If we failed the OpenGLVersion check, log it.
