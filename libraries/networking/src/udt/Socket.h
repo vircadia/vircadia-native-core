@@ -101,6 +101,7 @@ public slots:
     
 private slots:
     void readPendingDatagrams();
+    void checkForReadyReadBackup();
     void rateControlSync();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
@@ -135,6 +136,8 @@ private:
     
     int _synInterval { 10 }; // 10ms
     QTimer* _synTimer { nullptr };
+
+    QTimer* _readyReadBackupTimer { nullptr };
 
     int _maxBandwidth { -1 };
 
