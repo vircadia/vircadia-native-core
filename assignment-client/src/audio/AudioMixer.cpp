@@ -730,30 +730,25 @@ void AudioMixer::domainSettingsRequestComplete() {
 }
 
 void AudioMixer::broadcastMixes() {
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+
+    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+
+    const float RATIO_BACK_OFF = 0.02f;
+
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto nextFrameTimestamp = p_high_resolution_clock::now();
     auto timeToSleep = std::chrono::microseconds(0);
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
+    int currentFrame = 1;
+    int numFramesPerSecond = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
-    int currentFrame { 1 };
-    int numFramesPerSecond { (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC) };
-
     while (!_isFinished) {
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
-
-        const float RATIO_BACK_OFF = 0.02f;
-
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-
-        if (timeToSleep.count() < 0) {
-            timeToSleep = std::chrono::microseconds(0);
-        }
-
         _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
             + (timeToSleep.count() * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
 
@@ -886,14 +881,20 @@ void AudioMixer::broadcastMixes() {
             break;
         }
 
-        // push the next frame timestamp to when we should send the next
-        nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+        // sleep until the next frame, if necessary
+        {
+            nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
 
-        // sleep as long as we need until next frame, if we can
-        auto now = p_high_resolution_clock::now();
-        timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
+            auto now = p_high_resolution_clock::now();
+            timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
 
-        std::this_thread::sleep_for(timeToSleep);
+            if (timeToSleep.count() < 0) {
+                nextFrameTimestamp = now;
+                timeToSleep = std::chrono::microseconds(0);
+            }
+
+            std::this_thread::sleep_for(timeToSleep);
+        }
     }
 }
 
