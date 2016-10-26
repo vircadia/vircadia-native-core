@@ -161,6 +161,9 @@ int main(int argc, const char* argv[]) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
+        bool launchedFromSteam = SteamClient::isRunning();
+        app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
+
         // If we failed the OpenGLVersion check, log it.
         if (override) {
             auto accountManager = DependencyManager::get<AccountManager>();

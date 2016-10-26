@@ -619,6 +619,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsSimulationTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));

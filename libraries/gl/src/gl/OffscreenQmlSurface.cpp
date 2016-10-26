@@ -430,26 +430,23 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
 }
 
+static uvec2 clampSize(const uvec2& size, uint32_t maxDimension) {
+    return glm::clamp(size, glm::uvec2(1), glm::uvec2(maxDimension));
+}
+
+static QSize clampSize(const QSize& qsize, uint32_t maxDimension) {
+    return fromGlm(clampSize(toGlm(qsize), maxDimension));
+}
+
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
     if (!_quickWindow) {
         return;
     }
 
-    const float MAX_OFFSCREEN_DIMENSION = 4096;
-    QSize newSize = newSize_;
-
-    if (newSize.width() > MAX_OFFSCREEN_DIMENSION || newSize.height() > MAX_OFFSCREEN_DIMENSION) {
-        float scale = std::min(
-                ((float)newSize.width() / MAX_OFFSCREEN_DIMENSION),
-                ((float)newSize.height() / MAX_OFFSCREEN_DIMENSION));
-        newSize = QSize(
-                std::max(static_cast<int>(scale * newSize.width()), 10),
-                std::max(static_cast<int>(scale * newSize.height()), 10));
-    }
-
-    QSize currentSize = _quickWindow->geometry().size();
-    if (newSize == currentSize && !forceResize) {
+    const uint32_t MAX_OFFSCREEN_DIMENSION = 4096;
+    const QSize newSize = clampSize(newSize_, MAX_OFFSCREEN_DIMENSION);
+    if (!forceResize && newSize == _quickWindow->geometry().size()) {
         return;
     }
 
@@ -465,17 +462,12 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
     // Qt bug in 5.4 forces this check of pixel ratio,
     // even though we're rendering offscreen.
-    qreal pixelRatio = 1.0;
-    if (_renderControl && _renderControl->_renderWindow) {
-        pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
-    }
-
-    uvec2 newOffscreenSize = toGlm(newSize * pixelRatio);
+    uvec2 newOffscreenSize = toGlm(newSize);
     if (newOffscreenSize == _size) {
         return;
     }
 
-    qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
+    qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
 
     _canvas->makeCurrent();
 

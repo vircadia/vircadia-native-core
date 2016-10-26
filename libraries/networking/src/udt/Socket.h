@@ -54,7 +54,7 @@ class Socket : public QObject {
 public:
     using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
     
-    Socket(QObject* object = 0);
+    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -101,6 +101,7 @@ public slots:
     
 private slots:
     void readPendingDatagrams();
+    void checkForReadyReadBackup();
     void rateControlSync();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
@@ -136,9 +137,13 @@ private:
     int _synInterval { 10 }; // 10ms
     QTimer* _synTimer { nullptr };
 
+    QTimer* _readyReadBackupTimer { nullptr };
+
     int _maxBandwidth { -1 };
 
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
+
+    bool _shouldChangeSocketOptions { true };
     
     friend UDTTest;
 };

@@ -21,12 +21,59 @@ using namespace gpu;
 
 // FIXME: Declare this to enable compression
 //#define COMPRESS_TEXTURES
-
+static const uvec2 SPARSE_PAGE_SIZE(128);
+static const uvec2 MAX_TEXTURE_SIZE(4096);
 bool DEV_DECIMATE_TEXTURES = false;
-QImage processSourceImage(const QImage& srcImage) {
-    if (DEV_DECIMATE_TEXTURES) {
-        return srcImage.scaled(srcImage.size() * 0.5f);
+
+bool needsSparseRectification(const uvec2& size) {
+    // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
+    if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
+        return false;
     }
+
+    // Don't rectify textures that are already an exact multiple of sparse page size
+    if (uvec2(0) == (size % SPARSE_PAGE_SIZE)) {
+        return false;
+    }
+
+    // Texture is not sparse compatible, but is bigger than the sparse page size in both dimensions, rectify!
+    return true;
+}
+
+uvec2 rectifyToSparseSize(const uvec2& size) {
+    uvec2 pages = ((size / SPARSE_PAGE_SIZE) + glm::clamp(size % SPARSE_PAGE_SIZE, uvec2(0), uvec2(1)));
+    uvec2 result = pages * SPARSE_PAGE_SIZE;
+    return result;
+}
+
+std::atomic<size_t> DECIMATED_TEXTURE_COUNT { 0 };
+std::atomic<size_t> RECTIFIED_TEXTURE_COUNT { 0 };
+
+QImage processSourceImage(const QImage& srcImage, bool cubemap) {
+    const uvec2 srcImageSize = toGlm(srcImage.size());
+    uvec2 targetSize = srcImageSize;
+
+    while (glm::any(glm::greaterThan(targetSize, MAX_TEXTURE_SIZE))) {
+        targetSize /= 2;
+    }
+    if (targetSize != srcImageSize) {
+        ++DECIMATED_TEXTURE_COUNT;
+    }
+
+    if (!cubemap && needsSparseRectification(targetSize)) {
+        ++RECTIFIED_TEXTURE_COUNT;
+        targetSize = rectifyToSparseSize(targetSize);
+    }
+
+    if (DEV_DECIMATE_TEXTURES && glm::all(glm::greaterThanEqual(targetSize / SPARSE_PAGE_SIZE, uvec2(2)))) {
+        targetSize /= 2;
+    }
+
+    if (targetSize != srcImageSize) {
+        qDebug() << "Resizing texture from " << srcImageSize.x << "x" << srcImageSize.y << " to " << targetSize.x << "x" << targetSize.y;
+        return srcImage.scaled(fromGlm(targetSize));
+    }
+
     return srcImage;
 }
 
@@ -60,7 +107,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 }
 
 const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
     validAlpha = false;
     alphaAsMask = true;
     const uint8 OPAQUE_ALPHA = 255;
@@ -228,7 +275,7 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
 
 
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
 
     if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
@@ -262,7 +309,7 @@ double mapComponent(double sobelValue) {
 }
 
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
 
     if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
@@ -334,7 +381,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -368,7 +415,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 }
 
 gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -406,7 +453,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 }
 
 gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = processSourceImage(srcImage);
+    QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
@@ -699,7 +746,7 @@ const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
-        QImage image = processSourceImage(srcImage);
+        QImage image = processSourceImage(srcImage, true);
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
@@ -709,7 +756,8 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
 
         // Find the layout of the cubemap in the 2D image
-        int foundLayout = CubeLayout::findLayout(image.width(), image.height());
+        // Use the original image size since processSourceImage may have altered the size / aspect ratio 
+        int foundLayout = CubeLayout::findLayout(srcImage.width(), srcImage.height());
 
         std::vector<QImage> faces;
         // If found, go extract the faces as separate images

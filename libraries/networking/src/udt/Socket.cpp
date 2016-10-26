@@ -29,9 +29,11 @@
 
 using namespace udt;
 
-Socket::Socket(QObject* parent) :
+Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _synTimer(new QTimer(this))
+    _synTimer(new QTimer(this)),
+    _readyReadBackupTimer(new QTimer(this)),
+    _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
 
@@ -45,21 +47,29 @@ Socket::Socket(QObject* parent) :
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(handleSocketError(QAbstractSocket::SocketError)));
     connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
+
+    // in order to help track down the zombie server bug, add a timer to check if we missed a readyRead
+    const int READY_READ_BACKUP_CHECK_MSECS = 10 * 1000;
+    connect(_readyReadBackupTimer, &QTimer::timeout, this, &Socket::checkForReadyReadBackup);
+    _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
 
 void Socket::bind(const QHostAddress& address, quint16 port) {
     _udpSocket.bind(address, port);
-    setSystemBufferSizes();
+
+    if (_shouldChangeSocketOptions) {
+        setSystemBufferSizes();
 
 #if defined(Q_OS_LINUX)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = IP_PMTUDISC_DONT;
-    setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = IP_PMTUDISC_DONT;
+        setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
 #elif defined(Q_OS_WINDOWS)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = 0; // false
-    setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = 0; // false
+        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
 #endif
+    }
 }
 
 void Socket::rebind() {
@@ -292,9 +302,25 @@ void Socket::messageFailed(Connection* connection, Packet::MessageNumber message
     }
 }
 
+void Socket::checkForReadyReadBackup() {
+    if (_udpSocket.hasPendingDatagrams()) {
+        qCDebug(networking) << "Socket::checkForReadyReadBackup() detected blocked readyRead signal. Flushing pending datagrams.";
+
+        // drop all of the pending datagrams on the floor
+        while (_udpSocket.hasPendingDatagrams()) {
+            _udpSocket.readDatagram(nullptr, 0);
+        }
+    }
+}
+
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
+
     while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+
+        // we're reading a packet so re-start the readyRead backup timer
+        _readyReadBackupTimer->start();
+
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
         

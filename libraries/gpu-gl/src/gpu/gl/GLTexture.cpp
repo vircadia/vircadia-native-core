@@ -18,22 +18,6 @@ using namespace gpu::gl;
 
 std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
 
-// FIXME placeholder for texture memory over-use
-#define DEFAULT_MAX_MEMORY_MB 256
-#define OVER_MEMORY_PRESSURE 2.0f
-
-// FIXME other apps show things like Oculus home consuming large amounts of GPU memory
-// which causes us to blur textures needlessly (since other app GPU memory usage will likely 
-// be swapped out and not cause any actual impact
-//#define CHECK_MIN_FREE_GPU_MEMORY
-#ifdef CHECK_MIN_FREE_GPU_MEMORY
-#define MIN_FREE_GPU_MEMORY_PERCENTAGE 0.25f
-#endif
-
-// Allow 65% of all available GPU memory to be consumed by textures
-// FIXME overly conservative?
-#define MAX_CONSUMED_TEXTURE_MEMORY_PERCENTAGE 0.65f
-
 const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
     GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
@@ -105,37 +89,30 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
+// Default texture memory = GPU total memory - 2GB
+#define GPU_MEMORY_RESERVE_BYTES MB_TO_BYTES(2048)
+// Minimum texture memory = 1GB
+#define TEXTURE_MEMORY_MIN_BYTES MB_TO_BYTES(1024)
+
 
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
+    
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
-        auto totalGpuMemory = getDedicatedMemory();
-
-        if (!totalGpuMemory) {
-            // If we can't query the dedicated memory just use a fallback fixed value of 256 MB
-            totalGpuMemory = MB_TO_BYTES(DEFAULT_MAX_MEMORY_MB);
+#if 0
+        auto totalMemory = getDedicatedMemory();
+        if ((GPU_MEMORY_RESERVE_BYTES + TEXTURE_MEMORY_MIN_BYTES) > totalMemory) {
+            availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
         } else {
-#ifdef CHECK_MIN_FREE_GPU_MEMORY
-            // Check the global free GPU memory
-            auto freeGpuMemory = getFreeDedicatedMemory();
-            if (freeGpuMemory) {
-                static gpu::Size lastFreeGpuMemory = 0;
-                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
-                if (freeGpuMemory != lastFreeGpuMemory) {
-                    lastFreeGpuMemory = freeGpuMemory;
-                    if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
-                        qCDebug(gpugllogging) << "Exceeded min free GPU memory " << freePercentage;
-                        return OVER_MEMORY_PRESSURE;
-                    }
-                }
-            }
-#endif
+            availableTextureMemory = totalMemory - GPU_MEMORY_RESERVE_BYTES;
         }
-
-        availableTextureMemory = static_cast<gpu::Size>(totalGpuMemory * MAX_CONSUMED_TEXTURE_MEMORY_PERCENTAGE);
+#else 
+        // Hardcode texture limit for sparse textures at 1 GB for now
+        availableTextureMemory = GPU_MEMORY_RESERVE_BYTES;
+#endif
     }
 
     // Return the consumed texture memory divided by the available texture memory.
@@ -209,6 +186,10 @@ GLTexture::~GLTexture() {
             // the GL45Texture destructor for doing any required work tracking GPU stats
             backend->releaseTexture(_id, _size);
         }
+
+        if (!_external && !_transferrable) {
+            Backend::updateTextureGPUFramebufferMemoryUsage(_size, 0);
+        }
     }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
 }
@@ -245,6 +226,9 @@ void GLTexture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GLTexture::setSize(GLuint size) const {
+    if (!_external && !_transferrable) {
+        Backend::updateTextureGPUFramebufferMemoryUsage(_size, size);
+    }
     Backend::updateTextureGPUMemoryUsage(_size, size);
     const_cast<GLuint&>(_size) = size;
 }

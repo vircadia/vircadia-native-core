@@ -25,6 +25,8 @@
 #include <PerfStat.h>
 #include <plugins/DisplayPlugin.h>
 
+#include <gl/Context.h>
+
 #include "BandwidthRecorder.h"
 #include "Menu.h"
 #include "Util.h"
@@ -55,7 +57,9 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/myAvatar/")) {
+            if (name.startsWith("/idle/update/physics/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
                 }
@@ -92,6 +96,8 @@ bool Stats::includeTimingRecord(const QString& name) {
         } \
     }
 
+extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
+extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
     if (!force) {
@@ -285,14 +291,21 @@ void Stats::updateStats(bool force) {
     }
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
     STAT_UPDATE(gpuTexturesSparse, (int)gpu::Context::getTextureGPUSparseCount());
+
+    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+
     STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
     STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
+    STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
     STAT_UPDATE(gpuSparseTextureEnabled, gpu::Texture::getEnableSparseTextures() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
+    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
 
     // Incoming packets
     QLocale locale(QLocale::English);
@@ -369,7 +382,7 @@ void Stats::updateStats(bool force) {
             QString functionName = j.value();
             const PerformanceTimerRecord& record = allRecords.value(functionName);
             perfLines += QString("%1: %2 [%3]\n").
-                arg(QString(qPrintable(functionName)), 90, noBreakingSpace).
+                arg(QString(qPrintable(functionName)), -80, noBreakingSpace).
                 arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
                 arg((int)record.getCount(), 6, 10, noBreakingSpace);
             linesDisplayed++;

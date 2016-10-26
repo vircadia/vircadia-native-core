@@ -23,8 +23,8 @@ public:
     void init();
 
 private slots:
-    void disconnectedFromDomain();
-    void connectedToDomain(const QString& name);
+    void startTimer();
+    void stopTimer();
 
 private:
     QTimer _timer;

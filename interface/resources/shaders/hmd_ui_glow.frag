@@ -13,6 +13,9 @@ struct OverlayData {
     vec4 glowPoints;
     vec4 glowColors[2];
     vec4 resolutionRadiusAlpha;
+
+    vec4 extraGlowColor;
+    vec2 extraGlowPoint;
 };
 
 layout(std140) uniform overlayBuffer {
@@ -24,6 +27,9 @@ float radius = overlay.resolutionRadiusAlpha.z;
 float alpha = overlay.resolutionRadiusAlpha.w;
 vec4 glowPoints = overlay.glowPoints;
 vec4 glowColors[2] = overlay.glowColors;
+
+vec2 extraGlowPoint = overlay.extraGlowPoint;
+vec4 extraGlowColor = overlay.extraGlowColor;
 
 in vec3 vPosition;
 in vec2 vTexCoord;
@@ -48,10 +54,15 @@ void main() {
     float glowIntensity = 0.0;
     float dist1 = distance(vTexCoord * aspect, glowPoints.xy * aspect);
     float dist2 = distance(vTexCoord * aspect, glowPoints.zw * aspect);
-    float dist = min(dist1, dist2);
+    float dist3 = distance(vTexCoord * aspect, extraGlowPoint * aspect);
+    float distX = min(dist1, dist2);
+    float dist = min(distX, dist3);
     vec3 glowColor = glowColors[0].rgb;
     if (dist2 < dist1) {
         glowColor = glowColors[1].rgb;
+    }
+    if (dist3 < dist2) {
+        glowColor = extraGlowColor.rgb;
     }
 
     if (dist <= radius) {

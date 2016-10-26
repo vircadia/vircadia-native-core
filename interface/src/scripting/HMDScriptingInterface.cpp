@@ -159,6 +159,27 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
         color, direction);
 }
 
+bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
+    });
+
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
+    auto worldToSensor = glm::inverse(sensorToWorld);
+    auto sensorStart = ::transformPoint(worldToSensor, worldStart);
+    auto sensorDirection = ::transformVectorFast(worldToSensor, direction);
+
+    return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, sensorStart, sensorDirection);
+}
+
+void HMDScriptingInterface::disableExtraLaser() const {
+    setExtraLaser(vec3(0), false, vec4(0), vec3(0));
+}
+
 void HMDScriptingInterface::disableHandLasers(int hands) const {
     setHandLasers(hands, false, vec4(0), vec3(0));
 }

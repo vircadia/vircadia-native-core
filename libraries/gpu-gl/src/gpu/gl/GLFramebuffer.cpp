@@ -13,7 +13,7 @@ using namespace gpu;
 using namespace gpu::gl;
 
 GLFramebuffer::~GLFramebuffer() { 
-    if (_id) { 
+    if (_id) {
         auto backend = _backend.lock();
         if (backend) {
             backend->releaseFramebuffer(_id);

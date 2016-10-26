@@ -102,6 +102,11 @@ Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
     return Context::getTextureGPUVirtualMemoryUsage();
 }
 
+
+Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
+    return Context::getTextureGPUFramebufferMemoryUsage();
+}
+
 Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
     return Context::getTextureGPUSparseMemoryUsage();
 }

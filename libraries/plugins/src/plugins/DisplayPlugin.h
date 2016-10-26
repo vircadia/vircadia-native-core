@@ -115,6 +115,10 @@ public:
         return false;
     }
 
+    virtual bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
+        return false;
+    }
+
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }
