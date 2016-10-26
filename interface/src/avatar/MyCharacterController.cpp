@@ -214,7 +214,7 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
     btScalar lengthAxis = axis.length();
     if (lengthAxis > FLT_EPSILON) {
         // non-zero sideways component
-        btScalar angle = acosf(lengthAxis / horizontalDirection.length());
+        btScalar angle = asinf(lengthAxis / horizontalDirection.length());
         if (stepDirection.dot(forward) < 0.0f) {
             angle = PI - angle;
         }
@@ -224,6 +224,53 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
         // backwards
         rotation = btMatrix3x3(btQuaternion(_currentUp, PI)) * rotation;
     }
+
+    CharacterRayResult rayResult(&_ghost);
+    btVector3 rayStart;
+    btVector3 rayEnd;
+    btVector3 penetration = btVector3(0.0f, 0.0f, 0.0f);
+    int32_t numPenetrations = 0;
+
+    { // first we scan straight out from capsule center to see if we're stuck on anything
+        btScalar forwardRatio = 0.5f;
+        btScalar backRatio = 0.25f;
+
+        btVector3 radial;
+        bool stuck = false;
+        for (int32_t i = 0; i < _topPoints.size(); ++i) {
+            rayStart = rotation * _topPoints[i];
+            radial = rayStart - rayStart.dot(_currentUp) * _currentUp;
+            rayEnd = newPosition + rayStart + forwardRatio * radial;
+            rayStart += newPosition - backRatio * radial;
+
+            // reset rayResult for next test
+            rayResult.m_closestHitFraction = 1.0f;
+            rayResult.m_collisionObject = nullptr;
+
+            if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+                btScalar totalRatio = backRatio + forwardRatio;
+                btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * totalRatio - backRatio) / forwardRatio;
+                if (adjustedHitFraction < 0.0f) {
+                    penetration += adjustedHitFraction * radial;
+                    ++numPenetrations;
+                } else {
+                    stuck = true;
+                }
+            }
+        }
+        if (numPenetrations > 0) {
+            if (numPenetrations > 1) {
+                penetration /= (btScalar)numPenetrations;
+            }
+            return bulletToGLM(penetration);
+        } else if (stuck) {
+            return glm::vec3(0.0f);
+        }
+    }
+
+    // if we get here then we're not stuck pushing into any surface
+    // so now we scan to see if the way before us is "walkable"
+
     // scan the top
     // NOTE: if we scan an extra distance forward we can detect flat surfaces that are too steep to walk on.
     // The approximate extra distance can be derived with trigonometry.
@@ -236,7 +283,7 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
     //
     btScalar cosTheta = _minFloorNormalDotUp;
     btScalar sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
-    const btScalar MIN_FORWARD_SLOP = 0.12f; // HACK: not sure why this is necessary to detect steepest walkable slope
+    const btScalar MIN_FORWARD_SLOP = 0.10f; // HACK: not sure why this is necessary to detect steepest walkable slope
     btScalar forwardSlop = (_maxStepHeight + _radius / cosTheta - _radius) * (cosTheta / sinTheta) - (_radius + stepLength) + MIN_FORWARD_SLOP;
     if (forwardSlop < 0.0f) {
         // BIG step, no slop necessary
@@ -244,101 +291,56 @@ glm::vec3 MyCharacterController::computeHMDStep(const glm::vec3& position, const
     }
 
     // we push the step forward by stepMargin to help reduce accidental penetration
-    btScalar stepMargin = glm::max(_radius, 0.4f);
+    const btScalar MIN_STEP_MARGIN = 0.04f;
+    btScalar stepMargin = glm::max(_radius, MIN_STEP_MARGIN);
     btScalar expandedStepLength = stepLength + forwardSlop + stepMargin;
-    bool slideOnWalls = false; // HACK: hard coded for now, maybe we'll make it optional
 
-    // loop
-    CharacterRayResult rayResult(&_ghost);
-    btVector3 rayStart;
-    btVector3 rayEnd;
-    btVector3 penetration = btVector3(0.0f, 0.0f, 0.0f);
-    int32_t numPenetrations = 0;
-    btScalar closestHitFraction = 1.0f;
+    // loop over topPoints
     bool walkable = true;
     for (int32_t i = 0; i < _topPoints.size(); ++i) {
         rayStart = newPosition + rotation * _topPoints[i];
         rayEnd = rayStart + expandedStepLength * stepDirection;
-        rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
+
+        // reset rayResult for next test
+        rayResult.m_closestHitFraction = 1.0f;
+        rayResult.m_collisionObject = nullptr;
+
         if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
-            // check if walkable
-            if (walkable) {
-                if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
-                    walkable = false;
-                }
-            }
-            btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
-            if (adjustedHitFraction < 1.0f) {
-                if (slideOnWalls) {
-                    // sum penetration
-                    btScalar depth = ((1.0f - adjustedHitFraction) * stepLength) * stepDirection.dot(rayResult.m_hitNormalWorld);
-                    penetration -= depth * rayResult.m_hitNormalWorld;
-                    ++numPenetrations;
-                } else if (adjustedHitFraction < 0.0f) {
-                    // evidence suggests we need to back out of penetration however there is a
-                    // literal corner case where backing out may put us in deeper penetration,
-                    // so we check for it by casting another ray straight out from center
-                    rayEnd = rayStart;
-                    rayStart = rayStart.dot(_currentUp) * _currentUp;
-                    btVector3 segment = rayEnd - rayStart;
-                    btScalar radius = segment.length();
-                    if (radius > FLT_EPSILON) {
-                        rayEnd += (stepMargin / radius) * segment;
-                        CharacterRayResult checkResult(&_ghost);
-                        if (_ghost.rayTest(rayStart, rayEnd, checkResult)) {
-                            if (checkResult.m_hitNormalWorld.dot(stepDirection) > 0.0f) {
-                                // the second test says backing out would be a bad idea
-                                continue;
-                            }
-                        }
-                    }
-                }
-                if (adjustedHitFraction < closestHitFraction) {
-                    closestHitFraction = adjustedHitFraction;
-                    const btScalar STEEP_ENOUGH_TO_BACK_OUT = -0.3f;
-                    if (adjustedHitFraction < 0.0f && stepDirection.dot(rayResult.m_hitNormalWorld) < STEEP_ENOUGH_TO_BACK_OUT) {
-                        closestHitFraction = 0.0f;
-                    }
-                }
+            if (rayResult.m_hitNormalWorld.dot(_currentUp) < _minFloorNormalDotUp) {
+                walkable = false;
+                break;
             }
         }
     }
 
-    /* TODO: implement sliding along sloped floors
+    // scan the bottom
+    // TODO: implement sliding along sloped floors
     bool steppingUp = false;
-    if (walkable && closestHitFraction > 0.0f) {
-        // scan the bottom
-        for (int32_t i = 0; i < _bottomPoints.size(); ++i) {
-            rayStart = newPosition + rotation * _bottomPoints[i];
-            rayEnd = rayStart + (stepLength + stepMargin) * stepDirection;
-            rayResult.m_closestHitFraction = 1.0f; // reset rayResult for next test
-            if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
-                btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - stepMargin) / stepLength;
-                if (adjustedHitFraction < 1.0f) {
-                    steppingUp = true;
-                    break;
-                }
+    expandedStepLength = stepLength + MIN_FORWARD_SLOP + MIN_STEP_MARGIN;
+    for (int32_t i = _bottomPoints.size() - 1; i > -1; --i) {
+        rayStart = newPosition + rotation * _bottomPoints[i] - MIN_STEP_MARGIN * stepDirection;
+        rayEnd = rayStart + expandedStepLength * stepDirection;
+
+        // reset rayResult for next test
+        rayResult.m_closestHitFraction = 1.0f;
+        rayResult.m_collisionObject = nullptr;
+
+        if (_ghost.rayTest(rayStart, rayEnd, rayResult)) {
+            btScalar adjustedHitFraction = (rayResult.m_closestHitFraction * expandedStepLength - MIN_STEP_MARGIN) / (stepLength + MIN_FORWARD_SLOP);
+            if (adjustedHitFraction < 1.0f) {
+                steppingUp = true;
+                break;
             }
         }
     }
-    */
 
-    btVector3 finalStep = stepLength * stepDirection;
-    if (slideOnWalls) {
-        if (numPenetrations > 1) {
-            penetration /= (btScalar)numPenetrations;
-        }
-        finalStep += penetration;
-    } else {
-        finalStep *= closestHitFraction;
+    if (!walkable && steppingUp ) {
+        return glm::vec3(0.0f);
     }
-    /* TODO: implement sliding along sloped floors
-    if (steppingUp) {
-        finalStep += stepLength * _currentUp;
-    }
-    */
+    // else it might not be walkable, but we aren't steppingUp yet which means we can still move forward
 
-    return bulletToGLM(finalStep);
+    // TODO: slide up ramps and fall off edges (then we can remove the vertical follow of Avatar's RigidBody)
+    return step;
 }
 
 btConvexHullShape* MyCharacterController::computeShape() const {
@@ -405,23 +407,23 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
     const btScalar topHeight = fullHalfHeight - divisionLine;
     const btScalar slop = 0.02f;
 
-    const int32_t numRows = 3; // must be odd number > 1
-    const int32_t numColumns = 3; // must be odd number > 1
+    const int32_t NUM_ROWS = 5; // must be odd number > 1
+    const int32_t NUM_COLUMNS = 5; // must be odd number > 1
     btVector3 reach = (2.0f * _radius) * btVector3(0.0f, 0.0f, 1.0f);
 
     { // top points
         _topPoints.clear();
-        _topPoints.reserve(numRows * numColumns);
-        btScalar stepY = (topHeight - slop) / (btScalar)(numRows - 1);
-        btScalar stepX = 2.0f * (_radius - slop) / (btScalar)(numColumns - 1);
+        _topPoints.reserve(NUM_ROWS * NUM_COLUMNS);
+        btScalar stepY = (topHeight - slop) / (btScalar)(NUM_ROWS - 1);
+        btScalar stepX = 2.0f * (_radius - slop) / (btScalar)(NUM_COLUMNS - 1);
 
         btTransform transform = _rigidBody->getWorldTransform();
         btVector3 position = transform.getOrigin();
         btMatrix3x3 rotation = transform.getBasis();
 
-        for (int32_t i = 0; i < numRows; ++i) {
-            int32_t maxJ = numColumns;
-            btScalar offsetX = -(btScalar)((numColumns - 1) / 2) * stepX;
+        for (int32_t i = 0; i < NUM_ROWS; ++i) {
+            int32_t maxJ = NUM_COLUMNS;
+            btScalar offsetX = -(btScalar)((NUM_COLUMNS - 1) / 2) * stepX;
             if (i%2 == 1) {
                 // odd rows have one less point and start a halfStep closer
                 maxJ -= 1;
@@ -441,18 +443,19 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
 
     { // bottom points
         _bottomPoints.clear();
-        _bottomPoints.reserve(numRows * numColumns);
+        _bottomPoints.reserve(NUM_ROWS * NUM_COLUMNS);
 
-        btScalar stepY = (_maxStepHeight - 2.0f * slop) / (btScalar)(numRows - 1);
-        btScalar stepX = 2.0f * (_radius - slop) / (btScalar)(numColumns - 1);
+        btScalar steepestStepHitHeight = (_radius + 0.04f) * (1.0f - DEFAULT_MIN_FLOOR_NORMAL_DOT_UP);
+        btScalar stepY = (_maxStepHeight - slop - steepestStepHitHeight) / (btScalar)(NUM_ROWS - 1);
+        btScalar stepX = 2.0f * (_radius - slop) / (btScalar)(NUM_COLUMNS - 1);
 
         btTransform transform = _rigidBody->getWorldTransform();
         btVector3 position = transform.getOrigin();
         btMatrix3x3 rotation = transform.getBasis();
 
-        for (int32_t i = 0; i < numRows; ++i) {
-            int32_t maxJ = numColumns;
-            btScalar offsetX = -(btScalar)((numColumns - 1) / 2) * stepX;
+        for (int32_t i = 0; i < NUM_ROWS; ++i) {
+            int32_t maxJ = NUM_COLUMNS;
+            btScalar offsetX = -(btScalar)((NUM_COLUMNS - 1) / 2) * stepX;
             if (i%2 == 1) {
                 // odd rows have one less point and start a halfStep closer
                 maxJ -= 1;
