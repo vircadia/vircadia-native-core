@@ -24,11 +24,7 @@
 
 const QString HIFI_URL_SCHEME = "hifi";
 
-#if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
-#else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
-#endif
+extern const QString DEFAULT_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString INDEX_PATH = "/";
