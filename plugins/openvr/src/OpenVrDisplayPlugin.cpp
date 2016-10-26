@@ -373,6 +373,9 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
+// FIXME remove once OpenVR header is updated
+#define VRCompositor_ReprojectionAsync 0x04
+
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -391,7 +394,13 @@ bool OpenVrDisplayPlugin::internalActivate() {
         return false;
     }
 
-    _threadedSubmit = _container->isOptionChecked(OpenVrThreadedSubmit);
+    vr::Compositor_FrameTiming timing;
+    memset(&timing, 0, sizeof(timing));
+    timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
+    vr::VRCompositor()->GetFrameTiming(&timing);
+    bool asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+
+    _threadedSubmit = !asyncReprojectionActive;
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
