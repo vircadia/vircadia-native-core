@@ -96,6 +96,8 @@ bool Stats::includeTimingRecord(const QString& name) {
         } \
     }
 
+extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
+extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
     if (!force) {
@@ -289,6 +291,7 @@ void Stats::updateStats(bool force) {
     }
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemoryUsage()));
     STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
     STAT_UPDATE(gpuTexturesSparse, (int)gpu::Context::getTextureGPUSparseCount());
 
@@ -301,6 +304,8 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
     STAT_UPDATE(gpuSparseTextureEnabled, gpu::Texture::getEnableSparseTextures() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
+    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
 
     // Incoming packets
     QLocale locale(QLocale::English);
