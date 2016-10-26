@@ -16,6 +16,7 @@
 #include <QRegExp>
 #include <QStringList>
 
+#include <BuildInfo.h>
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
@@ -27,6 +28,11 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
+#if USE_STABLE_GLOBAL_SERVICES
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+#else
+const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+#endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
