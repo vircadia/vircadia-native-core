@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, MyAvatar, Quat, Render, ScriptDiscoveryService, Window, LODManager, Entities, print*/
+/*globals Script, MyAvatar, Quat, Vec3, Render, ScriptDiscoveryService, Window, LODManager, Entities, Messages, AvatarList, Menu, Stats, HMD, location, print*/
 //
 //  loadedMachine.js
 //  scripts/developer/tests/
@@ -39,16 +39,6 @@ function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
 
-var cachePlaces = ['localhost', 'welcome'].map(canonicalizePlacename); // For now, list the lighter weight one first.
-var defaultPlace = location.hostname;
-var prompt = "domain-check.js version " + version + "\n\nWhat place should we enter?";
-debug(cachePlaces, defaultPlace, prompt);
-var entryPlace = Window.prompt(prompt, defaultPlace);
-var runTribbles = Window.confirm("Run tribbles?\n\n\
-At most, only one participant should say yes.");
-MINIMUM_AVATARS = parseInt(Window.prompt("Total avatars (including yourself and any already present)?", MINIMUM_AVATARS.toString()) || "0");
-AVATARS_CHATTERING_AT_ONCE = MINIMUM_AVATARS ? parseInt(Window.prompt("Number making sound?", Math.min(MINIMUM_AVATARS - 1, AVATARS_CHATTERING_AT_ONCE).toString()) || "0") : 0;
-
 function canonicalizePlacename(name) {
     var prefix = 'dev-';
     name = name.toLowerCase();
@@ -57,6 +47,16 @@ function canonicalizePlacename(name) {
     }
     return name;
 }
+var cachePlaces = ['localhost', 'welcome'].map(canonicalizePlacename); // For now, list the lighter weight one first.
+var defaultPlace = location.hostname;
+var prompt = "domain-check.js version " + version + "\n\nWhat place should we enter?";
+debug(cachePlaces, defaultPlace, prompt);
+var entryPlace = Window.prompt(prompt, defaultPlace);
+var runTribbles = Window.confirm("Run tribbles?\n\n\
+At most, only one participant should say yes.");
+MINIMUM_AVATARS = parseInt(Window.prompt("Total avatars (including yourself and any already present)?", MINIMUM_AVATARS.toString()) || "0", 10);
+AVATARS_CHATTERING_AT_ONCE = MINIMUM_AVATARS ? parseInt(Window.prompt("Number making sound?", Math.min(MINIMUM_AVATARS - 1, AVATARS_CHATTERING_AT_ONCE).toString()) || "0", 10) : 0;
+
 function placesMatch(a, b) { // handling case and 'dev-' variations
     return canonicalizePlacename(a) === canonicalizePlacename(b);
 }
@@ -109,7 +109,7 @@ function messageHandler(channel, messageString, senderID) {
         // There can be avatars we've summoned that do not yet appear in the AvatarList.
         avatarIdentifiers = without(AvatarList.getAvatarIdentifiers(), summonedAgents);
         debug('present', avatarIdentifiers, summonedAgents);
-        if ((summonedAgents.length + avatarIdentifiers.length) < MINIMUM_AVATARS ) {
+        if ((summonedAgents.length + avatarIdentifiers.length) < MINIMUM_AVATARS) {
             var chatter = chattering.length < AVATARS_CHATTERING_AT_ONCE;
             if (chatter) {
                 chattering.push(senderID);
@@ -266,7 +266,7 @@ function doRender(continuation) {
         var total = AvatarList.getAvatarIdentifiers().length;
         if (MINIMUM_AVATARS && !fail) {
             if (0 === summonedAgents.length) {
-                fail = "FAIL: No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
+                fail = "FAIL: No agents reported.\nPlease run " + MINIMUM_AVATARS + " instances of\n\
 http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=3\n\
 on your domain server.";
             } else if (total < MINIMUM_AVATARS) {
@@ -295,7 +295,7 @@ function prepareCache(continuation) {
     if (targetInCache !== -1) {
         cachePlaces.splice(targetInCache, 1);
     }
-    debug('cachePlaces', cachePlaces)
+    debug('cachePlaces', cachePlaces);
     go(cachePlaces[1] || entryPlace); // Not quite right for entryPlace case (allows some qt pre-caching), but close enough.
     Script.setTimeout(function () {
         Menu.triggerOption("Reload Content (Clears all caches)");
