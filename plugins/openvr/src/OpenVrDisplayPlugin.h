@@ -58,8 +58,10 @@ public:
     void unsuppressKeyboard() override;
     bool isKeyboardVisible() override;
 
+#if OPENVR_THREADED_SUBMIT
     // Needs an additional thread for VR submission
     int getRequiredThreadCount() const override { return Parent::getRequiredThreadCount() + 1; }
+#endif
 
 protected:
     bool internalActivate() override;
