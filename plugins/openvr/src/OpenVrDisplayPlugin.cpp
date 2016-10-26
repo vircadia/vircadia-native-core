@@ -42,7 +42,6 @@ PoseData _nextSimPoseData;
 #define MIN_CORES_FOR_NORMAL_RENDER 5
 bool forceInterleavedReprojection = (QThread::idealThreadCount() < MIN_CORES_FOR_NORMAL_RENDER);
 
-
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 bool _openVrDisplayActive { false };
 // Flip y-axis since GL UV coords are backwards.
@@ -355,6 +354,10 @@ public:
 
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
+}
+
+float OpenVrDisplayPlugin::getTargetFrameRate() const {
+    return forceInterleavedReprojection ? (TARGET_RATE_OpenVr / 2.0f) : TARGET_RATE_OpenVr;
 }
 
 void OpenVrDisplayPlugin::init() {

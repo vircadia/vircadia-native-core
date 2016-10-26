@@ -44,7 +44,7 @@ public:
 
     void init() override;
 
-    float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+    float getTargetFrameRate() const override;
 
     void customizeContext() override;
     void uncustomizeContext() override;
