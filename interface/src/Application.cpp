@@ -858,7 +858,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
-        { "gl_sl_version", glContextData["slVersion"] },
+        { "gl_sl_version", glContextData["sl_version"] },
         { "gl_renderer", glContextData["renderer"] },
         { "ideal_thread_count", QThread::idealThreadCount() }
     };
@@ -1173,10 +1173,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["process_memory_used"] = static_cast<qint64>(memInfo.processUsedMemoryBytes);
         }
 
+        // content location and build info - useful for filtering stats
+        auto addressManager = DependencyManager::get<AddressManager>();
+        auto currentDomain = addressManager->currentShareableAddress(true).toString(); // domain only
+        auto currentPath = addressManager->currentPath(true); // with orientation
+        properties["current_domain"] = currentDomain;
+        properties["current_path"] = currentPath;
+        properties["build_version"] = BuildInfo::VERSION;
+
         auto displayPlugin = qApp->getActiveDisplayPlugin();
 
         properties["fps"] = _frameCounter.rate();
         properties["target_frame_rate"] = getTargetFrameRate();
+        properties["render_rate"] = displayPlugin->renderRate();
         properties["present_rate"] = displayPlugin->presentRate();
         properties["new_frame_present_rate"] = displayPlugin->newFramePresentRate();
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
@@ -1221,6 +1230,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
+
+        auto glInfo = getGLContextData();
+        properties["gl_info"] = glInfo;
+        properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
@@ -1478,6 +1491,7 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
+    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1576,9 +1590,17 @@ void Application::cleanupBeforeQuit() {
     // destroy Audio so it and its threads have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
+    qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {
+    DependencyManager::destroy<Preferences>();
+
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
 

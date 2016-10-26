@@ -90,9 +90,11 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuBuffers, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
     STATS_PROPERTY(int, gpuTexturesSparse, 0)
+    STATS_PROPERTY(int, glContextSwapchainMemory, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
     STATS_PROPERTY(int, gpuTextureMemory, 0)
     STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
     STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
     STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
     STATS_PROPERTY(int, gpuFreeMemory, 0)
@@ -181,12 +183,14 @@ signals:
     void localInternalChanged();
     void localLeavesChanged();
     void timingStatsChanged();
+    void glContextSwapchainMemoryChanged();
     void qmlTextureMemoryChanged();
     void gpuBuffersChanged();
     void gpuTexturesChanged();
     void gpuTexturesSparseChanged();
     void gpuTextureMemoryChanged();
     void gpuTextureVirtualMemoryChanged();
+    void gpuTextureFramebufferMemoryChanged();
     void gpuTextureSparseMemoryChanged();
     void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();

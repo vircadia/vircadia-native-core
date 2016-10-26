@@ -47,7 +47,7 @@ void RunningMarker::startRunningMarker() {
 
 RunningMarker::~RunningMarker() {
     deleteRunningMarkerFile();
-    _runningMarkerTimer->stop();
+    QMetaObject::invokeMethod(_runningMarkerTimer, "stop", Qt::BlockingQueuedConnection);
     _runningMarkerThread->quit();
     _runningMarkerTimer->deleteLater();
     _runningMarkerThread->deleteLater();

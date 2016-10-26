@@ -47,7 +47,7 @@ bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
-QUrl AddressManager::currentAddress() const {
+QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL;
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
@@ -57,7 +57,9 @@ QUrl AddressManager::currentAddress() const {
         hifiURL.setPort(_port);
     }
     
-    hifiURL.setPath(currentPath());
+    if (!domainOnly) {
+        hifiURL.setPath(currentPath());
+    }
 
     return hifiURL;
 }
@@ -69,8 +71,7 @@ QUrl AddressManager::currentFacingAddress() const {
     return hifiURL;
 }
 
-
-QUrl AddressManager::currentShareableAddress() const {
+QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
     if (!_shareablePlaceName.isEmpty()) {
         // if we have a shareable place name use that instead of whatever the current host is
         QUrl hifiURL;
@@ -78,11 +79,13 @@ QUrl AddressManager::currentShareableAddress() const {
         hifiURL.setScheme(HIFI_URL_SCHEME);
         hifiURL.setHost(_shareablePlaceName);
 
-        hifiURL.setPath(currentPath());
+        if (!domainOnly) {
+            hifiURL.setPath(currentPath());
+        }
 
         return hifiURL;
     } else {
-        return currentAddress();
+        return currentAddress(domainOnly);
     }
 }
 
