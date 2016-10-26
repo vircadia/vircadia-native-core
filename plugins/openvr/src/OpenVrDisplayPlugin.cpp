@@ -625,6 +625,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
     vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
     vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
     vr::VRCompositor()->PostPresentHandoff();
+    _presentRate.increment();
 #endif
 }
 
