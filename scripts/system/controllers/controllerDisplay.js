@@ -43,10 +43,8 @@ function debug() {
 createControllerDisplay = function(config) {
     var controllerDisplay = {
         overlays: [],
-        partOverlays: {
-        },
-        parts: {
-        },
+        partOverlays: {},
+        parts: {},
         mappingName: "mapping-display-" + Math.random(),
 
         setVisible: function(visible) {
