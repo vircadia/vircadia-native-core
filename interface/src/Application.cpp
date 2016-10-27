@@ -506,7 +506,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption, bool launchedFromSteam) :
     QApplication(argc, argv),
     _shouldRunServer(runServer),
     _runServerPath(runServerPathOption),
@@ -534,6 +534,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
+    setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
+
     _runningMarker.startRunningMarker();
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care

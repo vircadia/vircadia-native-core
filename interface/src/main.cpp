@@ -159,10 +159,8 @@ int main(int argc, const char* argv[]) {
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
-
         bool launchedFromSteam = SteamClient::isRunning();
-        app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
+        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue, launchedFromSteam);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
