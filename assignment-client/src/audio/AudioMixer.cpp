@@ -747,48 +747,46 @@ void AudioMixer::broadcastMixes() {
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
     while (!_isFinished) {
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (timeToSleep.count() * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
+        // manage mixer load
+        {
+            _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio) +
+                // ratio of frame spent sleeping / total frame time
+                ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
 
-        float lastCutoffRatio = _performanceThrottlingRatio;
-        bool hasRatioChanged = false;
+            float lastCutoffRatio = _performanceThrottlingRatio;
+            bool hasRatioChanged = false;
 
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                // we're struggling - change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-
-                qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
-
-                if (_performanceThrottlingRatio < 0) {
-                    _performanceThrottlingRatio = 0;
+            if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+                if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+                    qDebug() << "Mixer is struggling";
+                    // change our min required loudness to reduce some load
+                    _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
+                    hasRatioChanged = true;
+                } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
+                    qDebug() << "Mixer is recovering";
+                    // back off the required loudness
+                    _performanceThrottlingRatio = std::max(0.0f, _performanceThrottlingRatio - RATIO_BACK_OFF);
+                    hasRatioChanged = true;
                 }
 
-                qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
+                if (hasRatioChanged) {
+                    // set out min audability threshold from the new ratio
+                    _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
+                    framesSinceCutoffEvent = 0;
+
+                    qDebug() << "Sleeping" << _trailingSleepRatio << "of frame";
+                    qDebug() << "Cutoff is" << _performanceThrottlingRatio;
+                    qDebug() << "Minimum audibility to be mixed is" << _minAudibilityThreshold;
+                }
             }
 
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
-
-                framesSinceCutoffEvent = 0;
+            if (!hasRatioChanged) {
+                ++framesSinceCutoffEvent;
             }
         }
 
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
-
+        // mix
         nodeList->eachNode([&](const SharedNodePointer& node) {
-
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
@@ -869,14 +867,16 @@ void AudioMixer::broadcastMixes() {
 
         ++_numStatFrames;
 
-        // since we're a while loop we need to help Qt's event processing
-        QCoreApplication::processEvents();
+        // play nice with qt event-looping
+        {
+            // since we're a while loop we need to help qt's event processing
+            QCoreApplication::processEvents();
 
-        if (_isFinished) {
-            // at this point the audio-mixer is done
-            // check if we have a deferred delete event to process (which we should once finished)
-            QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
-            break;
+            if (_isFinished) {
+                // alert qt that this is finished
+                QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
+                break;
+            }
         }
 
         // sleep until the next frame, if necessary
