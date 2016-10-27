@@ -139,7 +139,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption, bool launchedFromSteam);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;
