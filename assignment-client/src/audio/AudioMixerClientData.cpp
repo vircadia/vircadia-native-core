@@ -209,7 +209,7 @@ int AudioMixerClientData::checkBuffersBeforeFrameSend() {
         }
     }
 
-    return _audioStreams.size();
+    return (int)_audioStreams.size();
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {
