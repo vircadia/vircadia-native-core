@@ -43,7 +43,6 @@ PoseData _nextSimPoseData;
 #define MIN_CORES_FOR_NORMAL_RENDER 5
 bool forceInterleavedReprojection = (QThread::idealThreadCount() < MIN_CORES_FOR_NORMAL_RENDER);
 
-
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 bool _openVrDisplayActive { false };
 // Flip y-axis since GL UV coords are backwards.
@@ -354,6 +353,13 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
 
+float OpenVrDisplayPlugin::getTargetFrameRate() const {
+    if (forceInterleavedReprojection && !_asyncReprojectionActive) {
+        return TARGET_RATE_OpenVr / 2.0f;
+    }
+    return TARGET_RATE_OpenVr;
+}
+
 void OpenVrDisplayPlugin::init() {
     Plugin::init();
 
@@ -398,9 +404,10 @@ bool OpenVrDisplayPlugin::internalActivate() {
     memset(&timing, 0, sizeof(timing));
     timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
     vr::VRCompositor()->GetFrameTiming(&timing);
-    bool asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+    _asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
 
-    _threadedSubmit = !asyncReprojectionActive;
+    _threadedSubmit = !_asyncReprojectionActive;
+    qDebug() << "OpenVR Async Reprojection active:  " << _asyncReprojectionActive;
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;

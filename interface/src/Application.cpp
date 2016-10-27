@@ -1194,6 +1194,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
+        properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -1237,6 +1238,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["ideal_thread_count"] = QThread::idealThreadCount();
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
