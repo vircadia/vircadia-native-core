@@ -64,7 +64,7 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
     }
 }
 
-bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
+bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer) {
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
         return false;
@@ -133,10 +133,11 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             handlePointerEvent(event);
         }
     };
-    _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
-    _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
-    _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
-    _hoverLeaveConnection = QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const PointerEvent& event) {
+    _mousePressConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
+    _mouseReleaseConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
+    _mouseMoveConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
+    _hoverLeaveConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity,
+                                             [=](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (this->_pressed && this->getID() == entityItemID) {
             // If the user mouses off the entity while the button is down, simulate a touch end.
             QTouchEvent::TouchPoint point;
@@ -184,7 +185,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        if (!buildWebSurface(static_cast<EntityTreeRenderer*>(args->_renderer))) {
+        auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
+        if (!buildWebSurface(renderer)) {
             return;
         }
         _fadeStartTime = usecTimestampNow();

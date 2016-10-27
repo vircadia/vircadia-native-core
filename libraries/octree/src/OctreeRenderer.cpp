@@ -216,7 +216,7 @@ bool OctreeRenderer::renderOperation(OctreeElementPointer element, void* extraDa
 
 void OctreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree) {
-        renderArgs->_renderer = this;
+        renderArgs->_renderer = sharedFromThis();
         _tree->withReadLock([&] {
             _tree->recurseTreeWithOperation(renderOperation, renderArgs);
         });

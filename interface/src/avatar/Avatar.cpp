@@ -109,7 +109,7 @@ Avatar::Avatar(RigPointer rig) :
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -199,7 +199,7 @@ void Avatar::updateAvatarEntities() {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
         return;

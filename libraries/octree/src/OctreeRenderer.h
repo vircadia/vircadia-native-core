@@ -29,7 +29,7 @@ class OctreeRenderer;
 
 
 // Generic client side Octree renderer class.
-class OctreeRenderer : public QObject {
+class OctreeRenderer : public QObject, public QEnableSharedFromThis<OctreeRenderer> {
     Q_OBJECT
 public:
     OctreeRenderer();
