@@ -3,6 +3,11 @@
     "channels": [
         { "from": "GamePad.LY", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateZ" },
         { "from": "GamePad.LX", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
+
+        { "from": "GamePad.LT", "to": "Standard.LTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
         { "from": "GamePad.LT", "to": "Standard.LT" }, 
         { "from": "GamePad.LB", "to": "Standard.LB" }, 
         { "from": "GamePad.LS", "to": "Standard.LS" },
@@ -31,6 +36,10 @@
             ]
         }, 
 
+        { "from": "GamePad.RT", "to": "Standard.RTClick",  
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.85, "max": 0.9 } ]
+        },
         { "from": "GamePad.RT", "to": "Standard.RT" }, 
         { "from": "GamePad.RB", "to": "Standard.RB" }, 
         { "from": "GamePad.RS", "to": "Standard.RS" },

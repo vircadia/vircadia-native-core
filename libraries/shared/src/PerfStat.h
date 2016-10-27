@@ -45,7 +45,7 @@ public:
         _alwaysDisplay(alwaysDisplay),
         _runningTotal(runningTotal),
         _totalCalls(totalCalls) { }
-        
+
     quint64 elapsed() const { return (usecTimestampNow() - _start); };
 
     ~PerformanceWarning();
@@ -56,14 +56,14 @@ public:
 class PerformanceTimerRecord {
 public:
     PerformanceTimerRecord() : _runningTotal(0), _lastTotal(0), _numAccumulations(0), _numTallies(0), _expiry(0) {}
-    
+
     void accumulateResult(const quint64& elapsed) { _runningTotal += elapsed; ++_numAccumulations; }
     void tallyResult(const quint64& now);
     bool isStale(const quint64& now) const { return now > _expiry; }
     quint64 getAverage() const { return (_numTallies == 0) ? 0 : _runningTotal / _numTallies; }
     quint64 getMovingAverage() const { return (_numTallies == 0) ? 0 : _movingAverage.getAverage(); }
     quint64 getCount() const { return _numTallies; }
-    
+
 private:
     quint64 _runningTotal;
     quint64 _lastTotal;
@@ -81,7 +81,9 @@ public:
 
     static bool isActive();
     static void setActive(bool active);
-    
+
+    static QString getContextName();
+    static void addTimerRecord(const QString& fullName, quint64 elapsedUsec);
     static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
     static const QMap<QString, PerformanceTimerRecord>& getAllTimerRecords() { return _records; };
     static void tallyAllTimerRecords();

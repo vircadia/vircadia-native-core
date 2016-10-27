@@ -304,9 +304,9 @@ function setEnabled(value) {
 
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
-    print("Got away message");
-    if (channel == CHANNEL_AWAY_ENABLE) {
-        setEnabled(message == 'enable');
+    if (channel === CHANNEL_AWAY_ENABLE) {
+        print("away.js | Got message on Hifi-Away-Enable: ", message);
+        setEnabled(message === 'enable');
     }
 }
 Messages.subscribe(CHANNEL_AWAY_ENABLE);
@@ -343,6 +343,7 @@ Script.scriptEnding.connect(function () {
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
+    Messages.messageReceived.disconnect(handleMessage);
 });
 
 if (HMD.active && !HMD.mounted) {

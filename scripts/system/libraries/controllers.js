@@ -34,6 +34,7 @@ getControllerWorldLocation = function (handController, doOffset) {
     var orientation;
     var position;
     var pose = Controller.getPoseValue(handController);
+    var valid = pose.valid;
     if (pose.valid) {
         orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
         position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);
@@ -41,10 +42,15 @@ getControllerWorldLocation = function (handController, doOffset) {
         if (doOffset) {
             position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, getGrabPointSphereOffset(handController)));
         }
+    } else if (!HMD.isHandControllerAvailable()) {
+        position = MyAvatar.getHeadPosition();
+        orientation = Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+        valid = true;
     }
+
     return {position: position,
             translation: position,
             orientation: orientation,
             rotation: orientation,
-            valid: pose.valid};
+            valid: valid};
 };

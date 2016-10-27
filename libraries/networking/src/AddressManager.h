@@ -24,11 +24,7 @@
 
 const QString HIFI_URL_SCHEME = "hifi";
 
-#if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
-#else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
-#endif
+extern const QString DEFAULT_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString INDEX_PATH = "/";
@@ -63,9 +59,9 @@ public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
-    QUrl currentAddress() const;
+    QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
-    QUrl currentShareableAddress() const;
+    QUrl currentShareableAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;

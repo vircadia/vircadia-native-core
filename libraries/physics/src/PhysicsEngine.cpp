@@ -11,6 +11,8 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include <PerfStat.h>
+
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
@@ -284,6 +286,47 @@ void PhysicsEngine::stepSimulation() {
 
         _hasOutgoingChanges = true;
     }
+}
+
+void PhysicsEngine::harvestPerformanceStats() {
+    // unfortunately the full context names get too long for our stats presentation format
+    //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
+    QString contextName("...");
+
+    CProfileIterator* profileIterator = CProfileManager::Get_Iterator();
+    if (profileIterator) {
+        // hunt for stepSimulation context
+        profileIterator->First();
+        for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
+            if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
+                profileIterator->Enter_Child(childIndex);
+                recursivelyHarvestPerformanceStats(profileIterator, contextName);
+                break;
+            }
+            profileIterator->Next();
+        }
+    }
+}
+
+void PhysicsEngine::recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName) {
+    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
+    // get the stats for the children
+    int32_t numChildren = 0;
+    profileIterator->First();
+    while (!profileIterator->Is_Done()) {
+        QString childContextName = parentContextName + QString("/") + QString(profileIterator->Get_Current_Name());
+        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
+        PerformanceTimer::addTimerRecord(childContextName, time);
+        profileIterator->Next();
+        ++numChildren;
+    }
+    // recurse the children
+    for (int32_t i = 0; i < numChildren; ++i) {
+        profileIterator->Enter_Child(i);
+        recursivelyHarvestPerformanceStats(profileIterator, contextName);
+    }
+    // retreat back to parent
+    profileIterator->Enter_Parent();
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {

@@ -87,12 +87,17 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, localElements, 0)
     STATS_PROPERTY(int, localInternal, 0)
     STATS_PROPERTY(int, localLeaves, 0)
+    STATS_PROPERTY(int, rectifiedTextureCount, 0)
+    STATS_PROPERTY(int, decimatedTextureCount, 0)
     STATS_PROPERTY(int, gpuBuffers, 0)
+    STATS_PROPERTY(int, gpuBufferMemory, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
     STATS_PROPERTY(int, gpuTexturesSparse, 0)
+    STATS_PROPERTY(int, glContextSwapchainMemory, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
     STATS_PROPERTY(int, gpuTextureMemory, 0)
     STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
     STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
     STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
     STATS_PROPERTY(int, gpuFreeMemory, 0)
@@ -181,15 +186,20 @@ signals:
     void localInternalChanged();
     void localLeavesChanged();
     void timingStatsChanged();
+    void glContextSwapchainMemoryChanged();
     void qmlTextureMemoryChanged();
     void gpuBuffersChanged();
+    void gpuBufferMemoryChanged();
     void gpuTexturesChanged();
     void gpuTexturesSparseChanged();
     void gpuTextureMemoryChanged();
     void gpuTextureVirtualMemoryChanged();
+    void gpuTextureFramebufferMemoryChanged();
     void gpuTextureSparseMemoryChanged();
     void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();
+    void rectifiedTextureCountChanged();
+    void decimatedTextureCountChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process

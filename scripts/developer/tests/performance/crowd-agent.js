@@ -16,7 +16,7 @@
 
 var MESSAGE_CHANNEL = "io.highfidelity.summon-crowd";
 
-print('crowd-agent version 2');
+print('crowd-agent version 3');
 
 /* Observations:
 - File urls for AC scripts silently fail. Use a local server (e.g., python SimpleHTTPServer) for development.
@@ -102,6 +102,7 @@ function messageHandler(channel, messageString, senderID) {
         messageSend({key: 'hello'}); // Allow the coordinator to count responses and make assignments.
         break;
     case 'hello': // ignore responses (e.g., from other agents)
+    case 'finishedSound':
         break;
     case "SUMMON":
         if (message.rcpt === Agent.sessionUUID) {
