@@ -812,7 +812,8 @@ for (var key in trayIcons) {
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
 function onContentLoaded() {
-    maybeShowSplash();
+    // Disable splash window for now.
+    // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION') {
         var currentVersion = null;
