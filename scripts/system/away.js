@@ -344,6 +344,7 @@ Script.scriptEnding.connect(function () {
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
     Messages.messageReceived.disconnect(handleMessage);
+    Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
 
 if (HMD.active && !HMD.mounted) {
