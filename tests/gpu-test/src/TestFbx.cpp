@@ -13,6 +13,7 @@
 #include <QtCore/QFile>
 
 #include <FBXReader.h>
+#include <OctreeRenderer.h>
 
 struct MyVertex {
     vec3 position;
