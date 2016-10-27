@@ -753,7 +753,6 @@ void AudioMixer::broadcastMixes() {
                 // ratio of frame spent sleeping / total frame time
                 ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
 
-            float lastCutoffRatio = _performanceThrottlingRatio;
             bool hasRatioChanged = false;
 
             if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
