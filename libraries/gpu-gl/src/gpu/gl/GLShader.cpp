@@ -54,9 +54,24 @@ static const std::array<std::string, NUM_SHADER_DOMAINS> DOMAIN_DEFINES { {
     "#define GPU_GEOMETRY_SHADER",
 } };
 
+// Stereo specific defines
+static const std::string stereoVersion {
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    "#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED\n#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN"
+#endif
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+#ifdef GPU_STEREO_CAMERA_BUFFER
+    "#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED"
+#else
+    "#define GPU_TRANSFORM_IS_STEREO"
+#endif
+#endif
+};
+
 // Versions specific of the shader
 static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
-    ""
+    "",
+    stereoVersion
 } };
 
 GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {

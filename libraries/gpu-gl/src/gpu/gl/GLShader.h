@@ -19,6 +19,8 @@ public:
 
     enum Version {
         Mono = 0,
+        Stereo,
+
         NumVersions
     };
 
