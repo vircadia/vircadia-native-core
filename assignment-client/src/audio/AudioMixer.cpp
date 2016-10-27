@@ -857,9 +857,6 @@ void AudioMixer::broadcastMixes() {
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                         mixPacket->writePrimitive(numSilentSamples);
-
-                        // we will need to flush encoder since we are sending silent packets outside it
-                        nodeData->shouldFlushEncoder();
                     }
 
                     // Send audio environment
