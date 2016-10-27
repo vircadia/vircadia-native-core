@@ -202,7 +202,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
 
         image::PB_RGB32 pb;
-        image::CB_8 cb;
+        image::CB_BC1 cb;
         
         image::compress(pb, cb);
         

@@ -1,28 +1,45 @@
 #include "Image.h"
 
 
-int image::Pixel::cpp { 0 };
+int image::BC::cpp { 0 };
 
 namespace image {
 
-    template <> void compress(const PB_RGB32& src, CB_8& dst) {
+    namespace pixel {
+        template <> const RGB16_565 mix(const RGB16_565 p0, const RGB16_565 p1, const Byte alpha) {
+            return RGB16_565(
+                mix5_4(p0.r, p1.r, alpha),
+                mix6_4(p0.g, p1.g, alpha),
+                mix5_4(p0.b, p1.b, alpha));
+        }
+    }
+    
+template <> void compress(const PB_RGB32& src, CB_BC1& dst) {
     
     for (auto& b : dst.bytes) {
         b = 12;
     }
 }
 
-template <> void uncompress(const CB_8& src, PB_RGB32& dst) {
-    for (auto& b : dst.bytes) {
-        b = 12;
+template <> void uncompress(const CB_BC1& src, PB_RGB32& dst) {
+    auto bc1 = src.bc;
+    auto c0 = bc1.color0;
+    auto c1 = bc1.color1;
+    
+    for (auto& p : dst.pixels) {
+        auto r = pixel::mix(
+                       c0,
+                       c1,
+                       (pixel::Byte)bc1.table);
+        ///p.val =
     }
 }
 
-template <> void compress(const PB_RGBA32& src, CB_8& dst) {
+template <> void compress(const PB_RGBA32& src, CB_BC4& dst) {
     
 }
 
-template <> void uncompress(const CB_8& src, PB_RGBA32& dst) {
+template <> void uncompress(const CB_BC4& src, PB_RGBA32& dst) {
 
 }
 
