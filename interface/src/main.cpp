@@ -37,9 +37,11 @@
 #include <CrashReporter.h>
 #endif
 
+#ifdef Q_OS_WIN
 extern "C" {
     typedef int(__stdcall * CHECKMINSPECPROC) ();
 }
+#endif
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
