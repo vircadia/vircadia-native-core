@@ -494,12 +494,16 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    qCWarning(networking) << "udt::Socket error -" << socketError;
+    static const QString SOCKET_REGEX = "udt::Socket error - ";
+    static QString repeatedMessage
+        = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
+
+    qCDebug(networking) << "udt::Socket error - " << socketError;
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
-        qCWarning(networking) << "udt::Socket state changed - state is now" << socketState;
+        qCDebug(networking) << "udt::Socket state changed - state is now" << socketState;
     }
 }
 
