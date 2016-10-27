@@ -15,19 +15,23 @@
 // this should send a signal every 10ms, with pretty good precision.  Hardcoding
 // to 10ms since that's what you'd want for audio.  
 void AvatarAudioTimer::start() {
-    qDebug() << "AvatarAudioTimer::start called";
+    qDebug() << __FUNCTION__;
     auto startTime = usecTimestampNow();
     quint64 frameCounter = 0;
     const int TARGET_INTERVAL_USEC = 10000; // 10ms
     while (!_quit) {
-        frameCounter++;
-        // simplest possible timer
+        ++frameCounter;
+
+        // tick every 10ms from startTime
         quint64 targetTime = startTime + frameCounter * TARGET_INTERVAL_USEC;
-        quint64 interval = std::max((quint64)0, targetTime - usecTimestampNow());
-        usleep(interval);
+        quint64 now = usecTimestampNow();
+
+        // avoid quint64 underflow
+        if (now < targetTime) {
+            usleep(targetTime - now);
+        }
+
         emit avatarTick();
     }
     qDebug() << "AvatarAudioTimer is finished";
 }
-
-

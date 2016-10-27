@@ -180,7 +180,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend() {
+int AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QWriteLocker writeLocker { &_streamsLock };
 
     auto it = _audioStreams.begin();
@@ -208,6 +208,8 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
             ++it;
         }
     }
+
+    return (int)_audioStreams.size();
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {

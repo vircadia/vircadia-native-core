@@ -646,7 +646,8 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
+    statsObject["avg_streams_per_frame"] = (float)_sumStreams / (float)_numStatFrames;
+    statsObject["avg_listeners_per_frame"] = (float)_sumListeners / (float)_numStatFrames;
 
     QJsonObject mixStats;
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
@@ -660,6 +661,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["mix_stats"] = mixStats;
 
+    _sumStreams = 0;
     _sumListeners = 0;
     _hrtfRenders = 0;
     _hrtfSilentRenders = 0;
@@ -802,7 +804,7 @@ void AudioMixer::broadcastMixes() {
                 // this function will attempt to pop a frame from each audio stream.
                 // a pointer to the popped data is stored as a member in InboundAudioStream.
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
-                nodeData->checkBuffersBeforeFrameSend();
+                _sumStreams += nodeData->checkBuffersBeforeFrameSend();
 
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
