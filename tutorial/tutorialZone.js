@@ -120,7 +120,6 @@ if (!Function.prototype.bind) {
             print("TutorialZone | EXITED THE TUTORIAL AREA");
             if (this.token) {
                 print("TutorialZone | Destroying token");
-                //HMD.requestHideHandControllers();
                 this.token.destroy();
                 this.token = null;
             }
