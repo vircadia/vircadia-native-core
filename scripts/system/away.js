@@ -304,7 +304,7 @@ function setEnabled(value) {
 
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
-    if (channel === CHANNEL_AWAY_ENABLE) {
+    if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
         print("away.js | Got message on Hifi-Away-Enable: ", message);
         setEnabled(message === 'enable');
     }
