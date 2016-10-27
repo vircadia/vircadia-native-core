@@ -819,6 +819,9 @@ void AudioMixer::broadcastMixes() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (mixHasAudio) {
+                        // may need to flush, this checks
+                        nodeData->flushEncoder();
+                        
                         int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
                                                              + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
@@ -852,6 +855,9 @@ void AudioMixer::broadcastMixes() {
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                         mixPacket->writePrimitive(numSilentSamples);
+
+                        // we will need to flush encoder since we are sending silent packets outside it
+                        nodeData->shouldFlushEncoder();
                     }
 
                     // Send audio environment

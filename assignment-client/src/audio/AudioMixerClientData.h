@@ -77,6 +77,8 @@ public:
             encodedBuffer = decodedBuffer;
         }
     }
+    void flushEncoder();
+    void shouldFlushEncoder() { _shouldFlushEncoder = true; }
 
     QString getCodecName() { return _selectedCodecName; }
 
@@ -105,6 +107,8 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder{ nullptr }; // for outbound mixed stream
     Decoder* _decoder{ nullptr }; // for mic stream
+
+    bool _shouldFlushEncoder { false };
 };
 
 #endif // hifi_AudioMixerClientData_h
