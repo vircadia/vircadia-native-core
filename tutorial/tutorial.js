@@ -784,8 +784,8 @@ stepTurnAround.prototype = {
 
         this.interval = Script.setInterval(function() {
             debug("TurnAround | Checking if finished", this.numTimesTurnPressed);
-            var FORWARD_THRESHOLD = 30;
-            var REQ_NUM_TIMES_PRESSED = 6;
+            var FORWARD_THRESHOLD = 90;
+            var REQ_NUM_TIMES_PRESSED = 3;
 
             var dir = Quat.getFront(MyAvatar.orientation);
             var angle = Math.atan2(dir.z, dir.x);
