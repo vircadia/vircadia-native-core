@@ -354,7 +354,10 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 float OpenVrDisplayPlugin::getTargetFrameRate() const {
-    return forceInterleavedReprojection ? (TARGET_RATE_OpenVr / 2.0f) : TARGET_RATE_OpenVr;
+    if (forceInterleavedReprojection && !_asyncReprojectionActive) {
+        return TARGET_RATE_OpenVr / 2.0f;
+    }
+    return TARGET_RATE_OpenVr;
 }
 
 void OpenVrDisplayPlugin::init() {
@@ -401,9 +404,10 @@ bool OpenVrDisplayPlugin::internalActivate() {
     memset(&timing, 0, sizeof(timing));
     timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
     vr::VRCompositor()->GetFrameTiming(&timing);
-    bool asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+    _asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
 
-    _threadedSubmit = !asyncReprojectionActive;
+    _threadedSubmit = !_asyncReprojectionActive;
+    qDebug() << "OpenVR Async Reprojection active:  " << _asyncReprojectionActive;
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
