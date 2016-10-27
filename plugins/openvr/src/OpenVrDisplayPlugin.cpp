@@ -643,9 +643,10 @@ void OpenVrDisplayPlugin::postPreview() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
-    if (_threadedSubmit) {
-        _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-    } else {
+
+    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
+
+    if (!_threadedSubmit) {
         vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
 
         glm::mat4 resetMat;
@@ -659,8 +660,6 @@ void OpenVrDisplayPlugin::postPreview() {
         });
         _nextRenderPoseData = nextRender;
 
-        // FIXME - this looks wrong!
-        _hmdActivityLevel = vr::k_EDeviceActivityLevel_UserInteraction; // _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
     }
 }
 
