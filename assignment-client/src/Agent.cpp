@@ -474,10 +474,9 @@ void Agent::processAgentAvatar() {
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
 }
-void Agent::flushEncoder() {
+void Agent::flushEncoder(QByteArray& encodedZeros) {
     _flushEncoder = false;
-    static QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
-    static QByteArray encodedZeros;
+    static const QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
     if (_encoder) {
         _encoder->encode(zeros, encodedZeros);
     }
@@ -485,13 +484,6 @@ void Agent::flushEncoder() {
 
 void Agent::processAgentAvatarAudio() {
     if (_isAvatar && (_isListeningToAudioStream || _avatarSound)) {
-        // after sound is done playing, encoder has a bit of state in it, 
-        // and needs some 0s to forget or you get a little click next time
-        // you play something
-        if (_flushEncoder) {
-            flushEncoder();
-        }
-
         // if we have an avatar audio stream then send it out to our audio-mixer
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         bool silentFrame = true;
@@ -528,7 +520,7 @@ void Agent::processAgentAvatarAudio() {
             }
         }
 
-        auto audioPacket = NLPacket::create(silentFrame
+        auto audioPacket = NLPacket::create(silentFrame && !_flushEncoder
                 ? PacketType::SilentAudioFrame
                 : PacketType::MicrophoneAudioNoEcho);
 
@@ -564,13 +556,20 @@ void Agent::processAgentAvatarAudio() {
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
 
-            QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
             QByteArray encodedBuffer;
-            // encode it
-            if(_encoder) {
-                _encoder->encode(decodedBuffer, encodedBuffer);
+            if (_flushEncoder) {
+                // after sound is done playing, encoder has a bit of state in it, 
+                // and needs some 0s to forget or you get a little click next time
+                // you play something.  So, basically 0-pad the end of the sound buffer
+                flushEncoder(encodedBuffer);
             } else {
-                encodedBuffer = decodedBuffer;
+                // encode it
+                QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+                if (_encoder) {
+                    _encoder->encode(decodedBuffer, encodedBuffer);
+                } else {
+                    encodedBuffer = decodedBuffer;
+                }
             }
             audioPacket->write(encodedBuffer.constData(), encodedBuffer.size());
         }

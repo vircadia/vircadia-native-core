@@ -81,7 +81,7 @@ signals:
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
-    void flushEncoder();
+    void flushEncoder(QByteArray& encodedZeros);
 
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
