@@ -50,18 +50,18 @@ void BatchLoader::start() {
 
         qCDebug(scriptengine) << "Loading script at " << url;
 
-		auto scriptCache = DependencyManager::get<ScriptCache>();
+        auto scriptCache = DependencyManager::get<ScriptCache>();
 
-		// Use a proxy callback to handle the call and emit the signal in a thread-safe way.
-		// If BatchLoader is deleted before the callback is called, the subsequent "emit" call will not do
-		// anything.
-		ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
-		scriptCache->getScriptContents(url.toString(), [proxy](const QString& url, const QString& contents, bool isURL, bool success) {
-			proxy->receivedContent(url, contents, isURL, success);
-			proxy->deleteLater();
-		}, false);
+        // Use a proxy callback to handle the call and emit the signal in a thread-safe way.
+        // If BatchLoader is deleted before the callback is called, the subsequent "emit" call will not do
+        // anything.
+        ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
+        scriptCache->getScriptContents(url.toString(), [proxy](const QString& url, const QString& contents, bool isURL, bool success) {
+            proxy->receivedContent(url, contents, isURL, success);
+            proxy->deleteLater();
+        }, false);
 
-		connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
+        connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
             if (isURL && success) {
                 _data.insert(url, contents);
                 qCDebug(scriptengine) << "Loaded: " << url;
@@ -74,10 +74,10 @@ void BatchLoader::start() {
                 _finished = true;
                 emit finished(_data);
             }
-		});
+        });
     }
 }
 
 void ScriptCacheSignalProxy::receivedContent(const QString& url, const QString& contents, bool isURL, bool success) {
-	emit contentAvailable(url, contents, isURL, success);
+    emit contentAvailable(url, contents, isURL, success);
 }
