@@ -14,7 +14,7 @@ endif ()
 
 if (HIFI_MEMORY_DEBUGGING)
   if (UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -U_FORTIFY_SOURCE -fno-stack-protector -fno-omit-frame-pointer")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan -static-libstdc++ -fsanitize=address")
   endif (UNIX)
 endif ()
