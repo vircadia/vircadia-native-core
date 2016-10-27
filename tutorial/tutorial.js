@@ -244,11 +244,10 @@ function playFirecrackerSound(position) {
 // STEP: DISABLE CONTROLLERS                                                 //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-var stepDisableControllers = function(name) {
+var stepStart = function(name) {
     this.tag = name;
-    this.shouldLog = false;
 }
-stepDisableControllers.prototype = {
+stepStart.prototype = {
     start: function(onFinish) {
         disableEverything();
 
@@ -1035,7 +1034,7 @@ TutorialManager = function() {
         currentStep = null;
         startedTutorialAt = Date.now();
         STEPS = [
-            new stepDisableControllers("step0"),
+            new stepStart("start"),
             new stepOrient("orient"),
             //new stepRaiseAboveHead("raiseHands"),
             new stepNearGrab("nearGrab"),
