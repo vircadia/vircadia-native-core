@@ -105,7 +105,7 @@ if (!Function.prototype.bind) {
 
             // If the start zone was exited, and the tutorial hasn't started, go ahead and
             // re-enable the HUD/Overlays
-            if (!self.tutorialManager) {
+            if (!this.tutorialManager) {
                 Menu.setIsOptionChecked("Overlays", true);
                 MyAvatar.shouldRenderLocally = true;
                 setAwayEnabled(true);
@@ -120,12 +120,13 @@ if (!Function.prototype.bind) {
             print("TutorialZone | EXITED THE TUTORIAL AREA");
             if (this.token) {
                 print("TutorialZone | Destroying token");
+                //HMD.requestHideHandControllers();
                 this.token.destroy();
                 this.token = null;
             }
-            if (self.tutorialManager) {
-                self.tutorialManager.stopTutorial();
-                self.tutorialManager = null;
+            if (this.tutorialManager) {
+                this.tutorialManager.stopTutorial();
+                this.tutorialManager = null;
             }
         }
     };
