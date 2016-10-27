@@ -13,18 +13,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
     function debug() {
-        return;
-        print.apply(null, arguments);
+        //print.apply(null, arguments);
     }
 
     var rawProgress = 100, // % raw value.
         displayProgress = 100, // % smoothed value to display.
-        DISPLAY_PROGRESS_MINOR_MAXIMUM = 8, // % displayed progress bar goes up to while 0% raw progress.
-        DISPLAY_PROGRESS_MINOR_INCREMENT = 0.1, // % amount to increment display value each update when 0% raw progress.
-        DISPLAY_PROGRESS_MAJOR_INCREMENT = 5, // % maximum amount to increment display value when >0% raw progress.
         alpha = 0.0,
         alphaDelta = 0.0, // > 0 if fading in; < 0 if fading out.
         ALPHA_DELTA_IN = 0.15,
@@ -46,7 +42,28 @@
         windowHeight = 0,
         background2D = {},
         bar2D = {},
-        SCALE_2D = 0.35; // Scale the SVGs for 2D display.
+        SCALE_2D = 0.35, // Scale the SVGs for 2D display.
+
+        // Max seen since downloads started. This is reset when all downloads have completed.
+        maxSeen = 0,
+
+        // Progress is defined as: (pending_downloads + active_downloads) / max_seen
+        // We keep track of both the current progress (rawProgress) and the
+        // best progress we've seen (bestRawProgress). As you are downloading, you may
+        // encounter new assets that require downloads, increasing the number of
+        // pending downloads and thus decreasing your overall progress.
+        bestRawProgress = 0,
+
+        // True if we have known active downloads
+        isDownloading = false,
+
+        // Entities are streamed to users, so you don't receive them all at once; instead, you
+        // receive them over a period of time. In many cases we end up in a situation where
+        //
+        // The initial delay cooldown keeps us from tracking progress before the allotted time
+        // has passed.
+        INITIAL_DELAY_COOLDOWN_TIME = 1000,
+        initialDelayCooldown = 0;
 
     function fade() {
 
@@ -77,35 +94,14 @@
         });
     }
 
-    Window.domainChanged.connect(function() {
+    Window.domainChanged.connect(function () {
         isDownloading = false;
         bestRawProgress = 100;
         rawProgress = 100;
         displayProgress = 100;
     });
 
-    // Max seen since downloads started. This is reset when all downloads have completed.
-    var maxSeen = 0;
-
-    // Progress is defined as: (pending_downloads + active_downloads) / max_seen
-    // We keep track of both the current progress (rawProgress) and the
-    // best progress we've seen (bestRawProgress). As you are downloading, you may
-    // encounter new assets that require downloads, increasing the number of
-    // pending downloads and thus decreasing your overall progress.
-    var bestRawProgress = 0;
-
-    // True if we have known active downloads
-    var isDownloading = false;
-
-    // Entities are streamed to users, so you don't receive them all at once; instead, you
-    // receive them over a period of time. In many cases we end up in a situation where
-    //
-    // The initial delay cooldown keeps us from tracking progress before the allotted time
-    // has passed.
-    var INITIAL_DELAY_COOLDOWN_TIME = 1000;
-    var initialDelayCooldown = 0;
     function onDownloadInfoChanged(info) {
-        var i;
 
         debug("PROGRESS: Download info changed ", info.downloading.length, info.pending, maxSeen);
 
@@ -167,16 +163,36 @@
         Overlays.deleteOverlay(bar2D.overlay);
     }
 
-    var b = 0;
-    var currentOrientation = null;
+    function updateProgressBarLocation() {
+        var viewport = Controller.getViewportDimensions(),
+            yOffset;
+        windowWidth = viewport.x;
+        windowHeight = viewport.y;
+
+        yOffset = HMD.active ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
+
+        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
+        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
+        bar2D.width = SCALE_2D * BAR_WIDTH;
+        bar2D.height = SCALE_2D * BAR_HEIGHT;
+
+        Overlays.editOverlay(background2D.overlay, {
+            x: windowWidth / 2 - background2D.width / 2,
+            y: windowHeight - background2D.height - bar2D.height + yOffset
+        });
+
+        Overlays.editOverlay(bar2D.overlay, {
+            x: windowWidth / 2 - bar2D.width / 2,
+            y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
+        });
+    }
+
     function update() {
         initialDelayCooldown -= 30;
-        var viewport,
-            eyePosition,
-            avatarOrientation;
+        var viewport, diff;
 
         if (displayProgress < rawProgress) {
-            var diff = rawProgress - displayProgress;
+            diff = rawProgress - displayProgress;
             if (diff < 0.5) {
                 displayProgress = rawProgress;
             } else {
@@ -204,7 +220,7 @@
         } else { // Fully visible because downloading or recently so
             if (fadeWaitTimer === null) {
                 if (rawProgress === 100) { // Was downloading but have finished so fade out soon
-                    fadeWaitTimer = Script.setTimeout(function() {
+                    fadeWaitTimer = Script.setTimeout(function () {
                         alphaDelta = ALPHA_DELTA_OUT;
                         fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
                         fadeWaitTimer = null;
@@ -228,11 +244,11 @@
                     y: 0,
                     width: BAR_WIDTH,
                     height: BAR_HEIGHT
-                },
+                }
             });
 
             Overlays.editOverlay(background2D.overlay, {
-                visible: true,
+                visible: true
             });
 
             // Update 2D overlays to maintain positions at bottom middle of window
@@ -242,29 +258,6 @@
                 updateProgressBarLocation();
             }
         }
-    }
-
-    function updateProgressBarLocation() {
-        var viewport = Controller.getViewportDimensions();
-        windowWidth = viewport.x;
-        windowHeight = viewport.y;
-
-        var yOffset = HMD.active ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
-
-        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
-        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
-        bar2D.width = SCALE_2D * BAR_WIDTH;
-        bar2D.height = SCALE_2D * BAR_HEIGHT;
-
-        Overlays.editOverlay(background2D.overlay, {
-            x: windowWidth / 2 - background2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + yOffset
-        });
-
-        Overlays.editOverlay(bar2D.overlay, {
-            x: windowWidth / 2 - bar2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
-        });
     }
 
     function setUp() {
@@ -283,7 +276,7 @@
     setUp();
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
-    Script.setInterval(update, 1000/60);
+    Script.setInterval(update, 1000 / 60);
     Script.scriptEnding.connect(tearDown);
 
 }()); // END LOCAL_SCOPE
