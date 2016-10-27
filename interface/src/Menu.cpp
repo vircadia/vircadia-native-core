@@ -620,6 +620,14 @@ Menu::Menu() {
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
 
+    action = addActionToQMenuAndActionHash(audioDebugMenu, "Stats...");
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/audio/stats.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
+
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
