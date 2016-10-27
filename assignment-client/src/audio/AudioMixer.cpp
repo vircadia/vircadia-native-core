@@ -90,8 +90,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::InjectAudio, PacketType::SilentAudioFrame,
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
-    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
@@ -481,6 +481,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 }
 
 void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    getOrCreateClientData(sendingNode.data());
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
 
@@ -579,18 +580,8 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         }
     }
 
-    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-
-    // FIXME - why would we not have client data at this point??
-    if (!clientData) {
-        qDebug() << "UNEXPECTED -- didn't have node linked data in " << __FUNCTION__;
-        sendingNode->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(sendingNode->getUUID()) });
-        clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    }
-
+    auto clientData = getOrCreateClientData(sendingNode.data());
     clientData->setupCodec(selectedCodec, selectedCodecName);
-
     qDebug() << "selectedCodecName:" << selectedCodecName;
     clientData->sendSelectAudioFormat(sendingNode, selectedCodecName);
 }
@@ -646,7 +637,8 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
+    statsObject["avg_streams_per_frame"] = (float)_sumStreams / (float)_numStatFrames;
+    statsObject["avg_listeners_per_frame"] = (float)_sumListeners / (float)_numStatFrames;
 
     QJsonObject mixStats;
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
@@ -660,6 +652,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["mix_stats"] = mixStats;
 
+    _sumStreams = 0;
     _sumListeners = 0;
     _hrtfRenders = 0;
     _hrtfSilentRenders = 0;
@@ -707,17 +700,24 @@ void AudioMixer::run() {
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 }
 
+AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+
+    if (!clientData) {
+        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
+        clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
+    }
+
+    return clientData;
+}
+
 void AudioMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = [&](Node* node) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
-        auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
-    };
+    nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     DomainHandler& domainHandler = nodeList->getDomainHandler();
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
@@ -730,79 +730,71 @@ void AudioMixer::domainSettingsRequestComplete() {
 }
 
 void AudioMixer::broadcastMixes() {
+    const int TRAILING_AVERAGE_FRAMES = 100;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+
+    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+
+    const float RATIO_BACK_OFF = 0.02f;
+
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto nextFrameTimestamp = p_high_resolution_clock::now();
     auto timeToSleep = std::chrono::microseconds(0);
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
+    int currentFrame = 1;
+    int numFramesPerSecond = (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC);
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
-    int currentFrame { 1 };
-    int numFramesPerSecond { (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC) };
-
     while (!_isFinished) {
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+        // manage mixer load
+        {
+            _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio) +
+                // ratio of frame spent sleeping / total frame time
+                ((CURRENT_FRAME_RATIO * timeToSleep.count()) / (float) AudioConstants::NETWORK_FRAME_USECS);
 
-        const float RATIO_BACK_OFF = 0.02f;
+            bool hasRatioChanged = false;
 
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-
-        if (timeToSleep.count() < 0) {
-            timeToSleep = std::chrono::microseconds(0);
-        }
-
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (timeToSleep.count() * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
-
-        float lastCutoffRatio = _performanceThrottlingRatio;
-        bool hasRatioChanged = false;
-
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                // we're struggling - change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
-
-                qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
-
-                if (_performanceThrottlingRatio < 0) {
-                    _performanceThrottlingRatio = 0;
+            if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+                if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+                    qDebug() << "Mixer is struggling";
+                    // change our min required loudness to reduce some load
+                    _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
+                    hasRatioChanged = true;
+                } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
+                    qDebug() << "Mixer is recovering";
+                    // back off the required loudness
+                    _performanceThrottlingRatio = std::max(0.0f, _performanceThrottlingRatio - RATIO_BACK_OFF);
+                    hasRatioChanged = true;
                 }
 
-                qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
+                if (hasRatioChanged) {
+                    // set out min audability threshold from the new ratio
+                    _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
+                    framesSinceCutoffEvent = 0;
+
+                    qDebug() << "Sleeping" << _trailingSleepRatio << "of frame";
+                    qDebug() << "Cutoff is" << _performanceThrottlingRatio;
+                    qDebug() << "Minimum audibility to be mixed is" << _minAudibilityThreshold;
+                }
             }
 
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
-
-                framesSinceCutoffEvent = 0;
+            if (!hasRatioChanged) {
+                ++framesSinceCutoffEvent;
             }
         }
 
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
-
+        // mix
         nodeList->eachNode([&](const SharedNodePointer& node) {
-
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
                 // this function will attempt to pop a frame from each audio stream.
                 // a pointer to the popped data is stored as a member in InboundAudioStream.
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
-                nodeData->checkBuffersBeforeFrameSend();
+                _sumStreams += nodeData->checkBuffersBeforeFrameSend();
 
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
@@ -881,24 +873,32 @@ void AudioMixer::broadcastMixes() {
 
         ++_numStatFrames;
 
-        // since we're a while loop we need to help Qt's event processing
-        QCoreApplication::processEvents();
+        // play nice with qt event-looping
+        {
+            // since we're a while loop we need to help qt's event processing
+            QCoreApplication::processEvents();
 
-        if (_isFinished) {
-            // at this point the audio-mixer is done
-            // check if we have a deferred delete event to process (which we should once finished)
-            QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
-            break;
+            if (_isFinished) {
+                // alert qt that this is finished
+                QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
+                break;
+            }
         }
 
-        // push the next frame timestamp to when we should send the next
-        nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+        // sleep until the next frame, if necessary
+        {
+            nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
 
-        // sleep as long as we need until next frame, if we can
-        auto now = p_high_resolution_clock::now();
-        timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
+            auto now = p_high_resolution_clock::now();
+            timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
 
-        std::this_thread::sleep_for(timeToSleep);
+            if (timeToSleep.count() < 0) {
+                nextFrameTimestamp = now;
+                timeToSleep = std::chrono::microseconds(0);
+            }
+
+            std::this_thread::sleep_for(timeToSleep);
+        }
     }
 }
 

@@ -180,7 +180,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend() {
+int AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QWriteLocker writeLocker { &_streamsLock };
 
     auto it = _audioStreams.begin();
@@ -208,6 +208,8 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
             ++it;
         }
     }
+
+    return (int)_audioStreams.size();
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {
@@ -355,7 +357,10 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 }
 
 void AudioMixerClientData::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    qDebug() << __FUNCTION__ <<
+        "sendingNode:" << *node <<
+        "currentCodec:" << currentCodec <<
+        "receivedCodec:" << recievedCodec;
     sendSelectAudioFormat(node, currentCodec);
 }
 

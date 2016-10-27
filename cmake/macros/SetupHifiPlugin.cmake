@@ -17,6 +17,12 @@ macro(SETUP_HIFI_PLUGIN)
         set(PLUGIN_PATH "plugins")
     endif()
 
+    if (WIN32)
+        # produce PDB files for plugins as well
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
+    endif()
+
     if (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_GENERATOR STREQUAL "Unix Makefiles")
         set(PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/interface/${PLUGIN_PATH}/")
     else()
