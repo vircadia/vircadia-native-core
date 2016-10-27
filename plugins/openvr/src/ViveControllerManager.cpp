@@ -210,6 +210,11 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+
+    if (!_system) {
+        return;
+    }
+
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     handleOpenVrEvents();
     if (openVrQuitRequested()) {
