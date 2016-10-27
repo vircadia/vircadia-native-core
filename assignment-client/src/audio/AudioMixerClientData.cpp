@@ -357,7 +357,10 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 }
 
 void AudioMixerClientData::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    qDebug() << __FUNCTION__ <<
+        "sendingNode:" << *node <<
+        "currentCodec:" << currentCodec <<
+        "receivedCodec:" << recievedCodec;
     sendSelectAudioFormat(node, currentCodec);
 }
 
