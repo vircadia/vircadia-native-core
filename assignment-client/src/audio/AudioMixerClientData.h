@@ -76,9 +76,11 @@ public:
         } else {
             encodedBuffer = decodedBuffer;
         }
+        // once you have encoded, you need to flush eventually.
+        _shouldFlushEncoder = true;
     }
-    void flushEncoder();
-    void shouldFlushEncoder() { _shouldFlushEncoder = true; }
+    void flushEncoder(QByteArray& encodedZeros);
+    bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }
 

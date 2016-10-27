@@ -479,6 +479,8 @@ void Agent::flushEncoder(QByteArray& encodedZeros) {
     static const QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
     if (_encoder) {
         _encoder->encode(zeros, encodedZeros);
+    } else {
+        encodedZeros = zeros;
     }
 }
 
