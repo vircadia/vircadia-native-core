@@ -250,9 +250,9 @@ var stepDisableControllers = function(name) {
 }
 stepDisableControllers.prototype = {
     start: function(onFinish) {
-        HMD.requestShowHandControllers();
-
         disableEverything();
+
+        HMD.requestShowHandControllers();
 
         onFinish();
     },
@@ -276,8 +276,6 @@ function disableEverything() {
 
     hideEntitiesWithTag('finish');
 
-    controllerDisplayManager = new ControllerDisplayManager();
-
     setAwayEnabled(false);
 }
 
@@ -295,7 +293,6 @@ function reenableEverything() {
     setControllerPartLayer('touchpad', 'blank');
     setControllerPartLayer('tips', 'blank');
     MyAvatar.shouldRenderLocally = true;
-    HMD.requestHideHandControllers();
     setAwayEnabled(true);
 }
 
@@ -313,6 +310,7 @@ var stepEnableControllers = function(name) {
 stepEnableControllers.prototype = {
     start: function(onFinish) {
         reenableEverything();
+        HMD.requestHideHandControllers();
         onFinish();
     },
     cleanup: function() {
@@ -1099,6 +1097,7 @@ TutorialManager = function() {
     this.stopTutorial = function() {
         if (currentStep) {
             currentStep.cleanup();
+            HMD.requestHideHandControllers();
         }
         reenableEverything();
         currentStepNum = -1;
