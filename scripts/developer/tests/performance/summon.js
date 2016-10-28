@@ -139,7 +139,7 @@ Script.setTimeout(function () {
     var total = AvatarList.getAvatarIdentifiers().length;
     if (0 === summonedAgents.length) {
         Window.alert("No agents reported.\n\Please run " + MINIMUM_AVATARS + " instances of\n\
-http://cdn.highfidelity.com/davidkelly/production/scripts/tests/performance/crowd-agent.js\n\
+http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js\n\
 on your domain server.");
     } else if (total < MINIMUM_AVATARS) {
         Window.alert("Only " + summonedAgents.length + " agents reported. Now missing " + (MINIMUM_AVATARS - total) + " avatars, total.");
