@@ -1654,7 +1654,8 @@ Application::~Application() {
     
     _window->deleteLater();
 
-    qInstallMessageHandler(nullptr); // NOTE: Do this as late as possible so we continue to get our log messages
+    // Can't log to file passed this point, FileLogger about to be deleted
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
 }
 
 void Application::initializeGL() {
