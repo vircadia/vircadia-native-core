@@ -212,6 +212,14 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToWorldDir(cameraTransform, objectTransform, modelDir, worldDir)@>
+    { // transformModelToEyeDir		
+        vec3 mr0 = <$objectTransform$>._modelInverse[0].xyz;
+        vec3 mr1 = <$objectTransform$>._modelInverse[1].xyz;
+        vec3 mr2 = <$objectTransform$>._modelInverse[2].xyz;
+        <$worldDir$> = vec3(dot(mr0, <$modelDir$>), dot(mr1, <$modelDir$>), dot(mr2, <$modelDir$>));
+    }
+<@endfunc@>
 
 <@func transformModelToEyeDir(cameraTransform, objectTransform, modelDir, eyeDir)@>
     { // transformModelToEyeDir
