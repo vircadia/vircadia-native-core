@@ -36,13 +36,13 @@
         BAR_DESKTOP_HEIGHT = 3,  // Display height of SVG
         BAR_DESKTOP_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
 
-        BAR_HMD_WIDTH = 4430, // Width of SVG image in pixels. Sized for Rift with 6 visible repeats.
-        BAR_HMD_REPEAT = 585,  // Length of repeat in bar = 4430 / 7.
-        BAR_HMD_HEIGHT = 4,  // Display height of SVG
-        BAR_HMD_URL = Script.resolvePath("assets/images/progress-bar-hmd.svg"),
+        BAR_HMD_WIDTH = 2240,  // Desktop image works with HMD well.
+        BAR_HMD_REPEAT = 320,
+        BAR_HMD_HEIGHT = 3,
+        BAR_HMD_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
 
-        BAR_Y_OFFSET_2D = -10, // Offset of progress bar while in desktop mode
-        BAR_Y_OFFSET_HMD = -300, // Offset of progress bar while in HMD
+        BAR_Y_OFFSET_DESKTOP = 0, // Offset of progress bar while in desktop mode
+        BAR_Y_OFFSET_HMD = -100, // Offset of progress bar while in HMD
 
         TEXT_HEIGHT = 32,
         TEXT_WIDTH = 256,
@@ -214,30 +214,28 @@
         isHMD = HMD.active;
 
         if (isHMD) {
-            barHMD.width = windowWidth;
 
             Overlays.editOverlay(barHMD.overlay, {
                 x: windowWidth / 2 - barHMD.width / 2,
-                y: windowHeight - 2 * barHMD.height + BAR_Y_OFFSET_HMD,
-                width: barHMD.width
+                y: windowHeight - 2 * barHMD.height + BAR_Y_OFFSET_HMD
             });
 
             Overlays.editOverlay(textHMD.overlay, {
                 x: windowWidth / 2 - textHMD.width / 2,
-                y: windowHeight - 2 * textHMD.height + BAR_Y_OFFSET_HMD
+                y: windowHeight - 2 * barHMD.height - textHMD.height + BAR_Y_OFFSET_HMD
             });
+
         } else {
-            barDesktop.width = windowWidth;
 
             Overlays.editOverlay(barDesktop.overlay, {
                 x: windowWidth / 2 - barDesktop.width / 2,
-                y: windowHeight - 2 * barDesktop.height + BAR_Y_OFFSET_2D,
+                y: windowHeight - 2 * barDesktop.height + BAR_Y_OFFSET_DESKTOP,
                 width: barDesktop.width
             });
 
             Overlays.editOverlay(textDesktop.overlay, {
                 x: windowWidth / 2 - textDesktop.width / 2,
-                y: windowHeight - 2 * textDesktop.height + BAR_Y_OFFSET_2D
+                y: windowHeight - 2 * barDesktop.height - textDesktop.height + BAR_Y_OFFSET_DESKTOP
             });
         }
     }
