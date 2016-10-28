@@ -425,6 +425,7 @@ protected:
         return vec3();
     }
 
+    bool isAboutToQuit() const override { return false; }
     void postLambdaEvent(std::function<void()> f) override {}
 
     qreal getDevicePixelRatio() override {

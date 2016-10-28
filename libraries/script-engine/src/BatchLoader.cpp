@@ -56,10 +56,6 @@ void BatchLoader::start() {
         // If BatchLoader is deleted before the callback is called, the subsequent "emit" call will not do
         // anything.
         ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
-        scriptCache->getScriptContents(url.toString(), [proxy](const QString& url, const QString& contents, bool isURL, bool success) {
-            proxy->receivedContent(url, contents, isURL, success);
-            proxy->deleteLater();
-        }, false);
 
         connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
             if (isURL && success) {
@@ -75,6 +71,11 @@ void BatchLoader::start() {
                 emit finished(_data);
             }
         });
+
+        scriptCache->getScriptContents(url.toString(), [proxy](const QString& url, const QString& contents, bool isURL, bool success) {
+            proxy->receivedContent(url, contents, isURL, success);
+            proxy->deleteLater();
+        }, false);
     }
 }
 

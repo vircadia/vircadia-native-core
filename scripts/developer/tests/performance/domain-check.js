@@ -21,6 +21,10 @@ var NOMINAL_LOAD_TIME = 30;         // seconds
 var MAXIMUM_LOAD_TIME = NOMINAL_LOAD_TIME * 2;
 var MINIMUM_AVATARS = 25; // changeable by prompt
 
+// If we add or remove things too quickly, we get problems (e.g., audio, fogbugz 2095).
+// For now, spread them out this timing apart.
+var SPREAD_TIME_MS = 500;
+
 var DENSITY = 0.3; // square meters per person. Some say 10 sq ft is arm's length (0.9m^2), 4.5 is crowd (0.4m^2), 2.5 is mosh pit (0.2m^2).
 var SOUND_DATA = {url: "http://hifi-content.s3.amazonaws.com/howard/sounds/piano1.wav"};
 var AVATARS_CHATTERING_AT_ONCE = 4; // How many of the agents should we request to play SOUND at once.
@@ -34,7 +38,7 @@ var ANIMATION_DATA = {
     "loopFlag": true
 };
 
-var version = 3;
+var version = 4;
 function debug() {
     print.apply(null, [].concat.apply(['hrs fixme', version], [].map.call(arguments, JSON.stringify)));
 }
@@ -86,6 +90,7 @@ function nextAfter(array, id) { // Wrapping next element in array after id.
 
 var summonedAgents = [];
 var chattering = [];
+var accumulatedDelay = 0;
 var MESSAGE_CHANNEL = "io.highfidelity.summon-crowd";
 function messageSend(message) {
     Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
@@ -106,25 +111,29 @@ function messageHandler(channel, messageString, senderID) {
     }
     switch (message.key) {
     case "hello":
-        // There can be avatars we've summoned that do not yet appear in the AvatarList.
-        avatarIdentifiers = without(AvatarList.getAvatarIdentifiers(), summonedAgents);
-        debug('present', avatarIdentifiers, summonedAgents);
-        if ((summonedAgents.length + avatarIdentifiers.length) < MINIMUM_AVATARS) {
-            var chatter = chattering.length < AVATARS_CHATTERING_AT_ONCE;
-            if (chatter) {
-                chattering.push(senderID);
+        Script.setTimeout(function () {
+            // There can be avatars we've summoned that do not yet appear in the AvatarList.
+            avatarIdentifiers = without(AvatarList.getAvatarIdentifiers(), summonedAgents);
+            debug('present', avatarIdentifiers, summonedAgents);
+            if ((summonedAgents.length + avatarIdentifiers.length) < MINIMUM_AVATARS) {
+                var chatter = chattering.length < AVATARS_CHATTERING_AT_ONCE;
+                if (chatter) {
+                    chattering.push(senderID);
+                }
+                summonedAgents.push(senderID);
+                messageSend({
+                    key: 'SUMMON',
+                    rcpt: senderID,
+                    position: Vec3.sum(MyAvatar.position, {x: coord(), y: 0, z: coord()}),
+                    orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
+                    soundData: chatter && SOUND_DATA,
+                    listen: true,
+                    skeletonModelURL: "http://hifi-content.s3.amazonaws.com/howard/resources/meshes/defaultAvatar_full.fst",
+                    animationData: ANIMATION_DATA
+                });
             }
-            summonedAgents.push(senderID);
-            messageSend({
-                key: 'SUMMON',
-                rcpt: senderID,
-                position: Vec3.sum(MyAvatar.position, {x: coord(), y: 0, z: coord()}),
-                orientation: Quat.fromPitchYawRollDegrees(0, Quat.safeEulerAngles(MyAvatar.orientation).y + (turnSpread * (Math.random() - 0.5)), 0),
-                soundData: chatter && SOUND_DATA,
-                skeletonModelURL: "http://hifi-content.s3.amazonaws.com/howard/resources/meshes/defaultAvatar_full.fst",
-                animationData: ANIMATION_DATA
-            });
-        }
+        }, accumulatedDelay);
+        accumulatedDelay += SPREAD_TIME_MS; // assume we'll get all the hello respsponses more or less together.
         break;
     case "finishedSound": // Give someone else a chance.
         chattering = without(chattering, [senderID]);
@@ -147,13 +156,15 @@ Messages.subscribe(MESSAGE_CHANNEL);
 Messages.messageReceived.connect(messageHandler);
 Script.scriptEnding.connect(function () {
     debug('stopping agents', summonedAgents);
-    summonedAgents.forEach(function (id) { messageSend({key: 'STOP', rcpt: id}); });
+    Messages.messageReceived.disconnect(messageHandler); // don't respond to any messages during shutdown
+    accumulatedDelay = 0;
+    summonedAgents.forEach(function (id) {
+        messageSend({key: 'STOP', rcpt: id, delay: accumulatedDelay});
+        accumulatedDelay += SPREAD_TIME_MS;
+    });
     debug('agents stopped');
-    Script.setTimeout(function () {
-        Messages.messageReceived.disconnect(messageHandler);
-        Messages.unsubscribe(MESSAGE_CHANNEL);
-        debug('unsubscribed');
-    }, 500);
+    Messages.unsubscribe(MESSAGE_CHANNEL);
+    debug('unsubscribed');
 });
 
 var fail = false, results = "";
@@ -257,7 +268,7 @@ function doRender(continuation) {
     }
 
     config.newStats.connect(onNewStats);
-    startTwirl(720, 1, 15, 0.08, function () {
+    startTwirl(720, 1, 20, 0.08, function () {
         var end = Date.now();
         config.newStats.disconnect(onNewStats);
         addResult('frame rate', 1000 * frames / (end - start),
@@ -270,7 +281,7 @@ function doRender(continuation) {
 http://hifi-content.s3.amazonaws.com/howard/scripts/tests/performance/crowd-agent.js?v=3\n\
 on your domain server.";
             } else if (total < MINIMUM_AVATARS) {
-                fail = "FAIL: Only " + summonedAgents.length + " avatars reported. Missing " + (MINIMUM_AVATARS - total) + ".";
+                fail = "FAIL: Only " + summonedAgents.length + " agents reported. Now missing " + (MINIMUM_AVATARS - total) + " avatars, total.";
             }
         }
         continuation();
