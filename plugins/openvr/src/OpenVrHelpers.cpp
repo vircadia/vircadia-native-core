@@ -329,8 +329,8 @@ controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat
 
 #define FAILED_MIN_SPEC_OVERLAY_NAME "FailedMinSpecOverlay"
 #define FAILED_MIN_SPEC_OVERLAY_FRIENDLY_NAME "Minimum specifications for SteamVR not met"
-#define OVERLAY_UPDATE_INTERVAL_MS 10
-#define OVERLAY_DISPLAY_INTERVAL_MS (MSECS_PER_SECOND * 10)
+#define FAILED_MIN_SPEC_UPDATE_INTERVAL_MS 10
+#define FAILED_MIN_SPEC_AUTO_QUIT_INTERVAL_MS (MSECS_PER_SECOND * 30)
 #define MIN_CORES_SPEC 5
 
 void showMinSpecWarning() {
@@ -352,19 +352,43 @@ void showMinSpecWarning() {
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
     vrOverlay->SetOverlayFromFile(minSpecFailedOverlay, imagePath.toLocal8Bit().toStdString().c_str());
     vrOverlay->SetHighQualityOverlay(minSpecFailedOverlay);
+    vrOverlay->SetOverlayWidthInMeters(minSpecFailedOverlay, 1.4f);
+    vrOverlay->SetOverlayInputMethod(minSpecFailedOverlay, vr::VROverlayInputMethod_Mouse);
     vrOverlay->ShowOverlay(minSpecFailedOverlay);
 
-    QTimer* positionTimer = new QTimer(&miniApp);
-    positionTimer->setInterval(OVERLAY_UPDATE_INTERVAL_MS);
-    QObject::connect(positionTimer, &QTimer::timeout, [&] {
+    QTimer* timer = new QTimer(&miniApp);
+    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS);
+    QObject::connect(timer, &QTimer::timeout, [&] {
         vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
         vrSystem->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, 0, vrPoses, vr::k_unMaxTrackedDeviceCount);
         auto headPose = toGlm(vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         auto overlayPose = toOpenVr(headPose * glm::translate(glm::mat4(), vec3(0, 0, -1)));
         vrOverlay->SetOverlayTransformAbsolute(minSpecFailedOverlay, vr::TrackingUniverseSeated, &overlayPose);
+        
+        vr::VREvent_t event;
+        while (vrSystem->PollNextEvent(&event, sizeof(event))) {
+            switch (event.eventType) {
+                case vr::VREvent_Quit:
+                    vrSystem->AcknowledgeQuit_Exiting();
+                    QCoreApplication::quit();
+                    break;
+
+                case vr::VREvent_ButtonPress:
+                    // Quit on any button press except for 'putting on the headset'
+                    if (event.data.controller.button != vr::k_EButton_ProximitySensor) {
+                        QCoreApplication::quit();
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
     });
-    positionTimer->start();
-    QTimer::singleShot(OVERLAY_DISPLAY_INTERVAL_MS, &miniApp, &QCoreApplication::quit);
+    timer->start();
+
+    QTimer::singleShot(FAILED_MIN_SPEC_AUTO_QUIT_INTERVAL_MS, &miniApp, &QCoreApplication::quit);
     miniApp.exec();
 }
 
