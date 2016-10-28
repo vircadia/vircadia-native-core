@@ -95,7 +95,13 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 
     auto deleter = [](OffscreenQmlSurface* webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            webSurface->deleteLater();
+            if (AbstractViewStateInterface::instance()->isAboutToQuit()) {
+                // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+                // if the application has already stopped its event loop, delete must be explicit
+                delete webSurface;
+            } else {
+                webSurface->deleteLater();
+            }
         });
     };
     _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
@@ -331,6 +337,7 @@ void RenderableWebEntityItem::destroyWebSurface() {
         if (rootItem) {
             QObject* obj = rootItem->findChild<QObject*>("webEngineView");
             if (obj) {
+                // stop loading
                 QMetaObject::invokeMethod(obj, "stop");
             }
         }
