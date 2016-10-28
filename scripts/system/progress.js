@@ -31,10 +31,15 @@
         FADE_OUT_WAIT = 1000, // Wait before starting to fade out after progress 100%.
         visible = false,
 
-        BAR_DESKTOP_WIDTH = 2240, // Width of SVG image in pixels. Sized for 1920 x 1080 display with 6 visible repeats.
-        BAR_DESKTOP_REPEAT = 320,  // Length of repeat in bar = 2240 / 7.
-        BAR_DESKTOP_HEIGHT = 3,  // Display height of SVG
-        BAR_DESKTOP_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
+        BAR_DESKTOP_2K_WIDTH = 2240, // Width of SVG image in pixels. Sized for 1920 x 1080 display with 6 visible repeats.
+        BAR_DESKTOP_2K_REPEAT = 320,  // Length of repeat in bar = 2240 / 7.
+        BAR_DESKTOP_2K_HEIGHT = 3,  // Display height of SVG
+        BAR_DESKTOP_2K_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
+
+        BAR_DESKTOP_4K_WIDTH = 4480, // Width of SVG image in pixels. Sized for 1920 x 1080 display with 6 visible repeats.
+        BAR_DESKTOP_4K_REPEAT = 640,  // Length of repeat in bar = 2240 / 7.
+        BAR_DESKTOP_4K_HEIGHT = 6,  // Display height of SVG
+        BAR_DESKTOP_4K_URL = Script.resolvePath("assets/images/progress-bar-4k.svg"),
 
         BAR_HMD_WIDTH = 2240,  // Desktop image works with HMD well.
         BAR_HMD_REPEAT = 320,
@@ -158,12 +163,12 @@
 
     function createOverlays() {
         barDesktop.overlay = Overlays.addOverlay("image", {
-            imageURL: BAR_DESKTOP_URL,
+            imageURL: barDesktop.url,
             subImage: {
                 x: 0,
                 y: 0,
-                width: BAR_DESKTOP_WIDTH - BAR_DESKTOP_REPEAT,
-                height: BAR_DESKTOP_HEIGHT
+                width: barDesktop.width - barDesktop.repeat,
+                height: barDesktop.height
             },
             width: barDesktop.width,
             height: barDesktop.height,
@@ -293,10 +298,10 @@
             Overlays.editOverlay(barDesktop.overlay, {
                 visible: !isHMD,
                 subImage: {
-                    x: BAR_DESKTOP_REPEAT * (1 - displayProgress / 100),
+                    x: barDesktop.repeat * (1 - displayProgress / 100),
                     y: 0,
-                    width: BAR_DESKTOP_WIDTH - BAR_DESKTOP_REPEAT,
-                    height: BAR_DESKTOP_HEIGHT
+                    width: barDesktop.width - barDesktop.repeat,
+                    height: barDesktop.height
                 }
             });
 
@@ -328,10 +333,14 @@
     }
 
     function setUp() {
+        var is4k = Window.innerWidth > 3000;
+
         isHMD = HMD.active;
 
-        barDesktop.width = BAR_DESKTOP_WIDTH;
-        barDesktop.height = BAR_DESKTOP_HEIGHT;
+        barDesktop.width = is4k ? BAR_DESKTOP_4K_WIDTH : BAR_DESKTOP_2K_WIDTH;
+        barDesktop.height = is4k ? BAR_DESKTOP_4K_HEIGHT : BAR_DESKTOP_2K_HEIGHT;
+        barDesktop.repeat = is4k ? BAR_DESKTOP_4K_REPEAT : BAR_DESKTOP_2K_REPEAT;
+        barDesktop.url = is4k ? BAR_DESKTOP_4K_URL : BAR_DESKTOP_2K_URL;
         barHMD.width = BAR_HMD_WIDTH;
         barHMD.height = BAR_HMD_HEIGHT;
 
