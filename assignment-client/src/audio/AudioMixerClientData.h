@@ -52,7 +52,8 @@ public:
 
     int parseData(ReceivedMessage& message) override;
 
-    void checkBuffersBeforeFrameSend();
+    // attempt to pop a frame from each audio stream, and return the number of streams from this client
+    int checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 

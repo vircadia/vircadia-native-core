@@ -139,6 +139,7 @@ public:
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
     virtual float getTargetFrameRate() const { return 0.0f; }
+    virtual bool hasAsyncReprojection() const { return false; }
 
     /// Returns a boolean value indicating whether the display is currently visible 
     /// to the user.  For monitor displays, false might indicate that a screensaver,

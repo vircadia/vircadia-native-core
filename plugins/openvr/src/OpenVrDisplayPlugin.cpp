@@ -35,6 +35,7 @@ Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
+const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; // this probably shouldn't be hardcoded here
 
 PoseData _nextRenderPoseData;
 PoseData _nextSimPoseData;
@@ -42,14 +43,11 @@ PoseData _nextSimPoseData;
 #define MIN_CORES_FOR_NORMAL_RENDER 5
 bool forceInterleavedReprojection = (QThread::idealThreadCount() < MIN_CORES_FOR_NORMAL_RENDER);
 
-
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 bool _openVrDisplayActive { false };
 // Flip y-axis since GL UV coords are backwards.
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_LEFT{ 0, 0, 0.5f, 1 };
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };
-
-#if OPENVR_THREADED_SUBMIT
 
 #define REPROJECTION_BINDING 1
 
@@ -351,10 +349,15 @@ public:
     OpenVrDisplayPlugin& _plugin;
 };
 
-#endif
-
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
+}
+
+float OpenVrDisplayPlugin::getTargetFrameRate() const {
+    if (forceInterleavedReprojection && !_asyncReprojectionActive) {
+        return TARGET_RATE_OpenVr / 2.0f;
+    }
+    return TARGET_RATE_OpenVr;
 }
 
 void OpenVrDisplayPlugin::init() {
@@ -393,6 +396,16 @@ bool OpenVrDisplayPlugin::internalActivate() {
         _system = nullptr;
         return false;
     }
+
+    vr::Compositor_FrameTiming timing;
+    memset(&timing, 0, sizeof(timing));
+    timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
+    vr::VRCompositor()->GetFrameTiming(&timing);
+    _asyncReprojectionActive = timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync;
+
+    _threadedSubmit = !_asyncReprojectionActive;
+    qDebug() << "OpenVR Async Reprojection active:  " << _asyncReprojectionActive;
+    qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
@@ -434,16 +447,16 @@ bool OpenVrDisplayPlugin::internalActivate() {
         #endif
     }
 
-#if OPENVR_THREADED_SUBMIT
-    _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
-    if (!_submitCanvas) {
-        withMainThreadContext([&] {
-            _submitCanvas = std::make_shared<gl::OffscreenContext>();
-            _submitCanvas->create();
-            _submitCanvas->doneCurrent();
-        });
+    if (_threadedSubmit) {
+        _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
+        if (!_submitCanvas) {
+            withMainThreadContext([&] {
+                _submitCanvas = std::make_shared<gl::OffscreenContext>();
+                _submitCanvas->create();
+                _submitCanvas->doneCurrent();
+            });
+        }
     }
-#endif
 
     return Parent::internalActivate();
 }
@@ -473,27 +486,27 @@ void OpenVrDisplayPlugin::customizeContext() {
 
     Parent::customizeContext();
 
-#if OPENVR_THREADED_SUBMIT
-    _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
-    for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
-        if (0 != i) {
-            _compositeInfos[i].texture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x, _renderTargetSize.y, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT)));
+    if (_threadedSubmit) {
+        _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
+        for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
+            if (0 != i) {
+                _compositeInfos[i].texture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x, _renderTargetSize.y, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT)));
+            }
+            _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
         }
-        _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture, false);
+        _submitThread->_canvas = _submitCanvas;
+        _submitThread->start(QThread::HighPriority);
     }
-    _submitThread->_canvas = _submitCanvas;
-    _submitThread->start(QThread::HighPriority);
-#endif
 }
 
 void OpenVrDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 
-#if OPENVR_THREADED_SUBMIT
-    _submitThread->_quit = true;
-    _submitThread->wait();
-    _submitThread.reset();
-#endif
+    if (_threadedSubmit) {
+        _submitThread->_quit = true;
+        _submitThread->wait();
+        _submitThread.reset();
+    }
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
@@ -582,75 +595,76 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 }
 
 void OpenVrDisplayPlugin::compositeLayers() {
-#if OPENVR_THREADED_SUBMIT
-    ++_renderingIndex;
-    _renderingIndex %= COMPOSITING_BUFFER_SIZE;
+    if (_threadedSubmit) {
+        ++_renderingIndex;
+        _renderingIndex %= COMPOSITING_BUFFER_SIZE;
 
-    auto& newComposite = _compositeInfos[_renderingIndex];
-    newComposite.pose = _currentPresentFrameInfo.presentPose;
-    _compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
-#endif
+        auto& newComposite = _compositeInfos[_renderingIndex];
+        newComposite.pose = _currentPresentFrameInfo.presentPose;
+        _compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
+    }
 
     Parent::compositeLayers();
 
-#if OPENVR_THREADED_SUBMIT
-    newComposite.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    // https://www.opengl.org/registry/specs/ARB/sync.txt:
-    // > The simple flushing behavior defined by
-    // > SYNC_FLUSH_COMMANDS_BIT will not help when waiting for a fence
-    // > command issued in another context's command stream to complete.
-    // > Applications which block on a fence sync object must take
-    // > additional steps to assure that the context from which the
-    // > corresponding fence command was issued has flushed that command
-    // > to the graphics pipeline.
-    glFlush();
+    if (_threadedSubmit) {
+        auto& newComposite = _compositeInfos[_renderingIndex];
+        newComposite.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // https://www.opengl.org/registry/specs/ARB/sync.txt:
+        // > The simple flushing behavior defined by
+        // > SYNC_FLUSH_COMMANDS_BIT will not help when waiting for a fence
+        // > command issued in another context's command stream to complete.
+        // > Applications which block on a fence sync object must take
+        // > additional steps to assure that the context from which the
+        // > corresponding fence command was issued has flushed that command
+        // > to the graphics pipeline.
+        glFlush();
 
-    if (!newComposite.textureID) {
-        newComposite.textureID = getGLBackend()->getTextureID(newComposite.texture, false);
+        if (!newComposite.textureID) {
+            newComposite.textureID = getGLBackend()->getTextureID(newComposite.texture, false);
+        }
+        withPresentThreadLock([&] {
+            _submitThread->update(newComposite);
+        });
     }
-    withPresentThreadLock([&] {
-        _submitThread->update(newComposite);
-    });
-#endif
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
-#if OPENVR_THREADED_SUBMIT
-    _submitThread->waitForPresent();
-#else
-    GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
-    vr::Texture_t vrTexture{ (void*)glTexId, vr::API_OpenGL, vr::ColorSpace_Auto };
-    vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
-    vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
-    vr::VRCompositor()->PostPresentHandoff();
-#endif
+    if (_threadedSubmit) {
+        _submitThread->waitForPresent();
+    } else {
+        GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0), false);
+        vr::Texture_t vrTexture { (void*)glTexId, vr::API_OpenGL, vr::ColorSpace_Auto };
+        vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
+        vr::VRCompositor()->PostPresentHandoff();
+        _presentRate.increment();
+    }
 }
 
 void OpenVrDisplayPlugin::postPreview() {
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
-#if !OPENVR_THREADED_SUBMIT
-    vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
 
-    glm::mat4 resetMat;
-    withPresentThreadLock([&] {
-        resetMat = _sensorResetMat;
-    });
-    nextRender.update(resetMat);
-    nextSim.update(resetMat);
-    withPresentThreadLock([&] {
-        _nextSimPoseData = nextSim;
-    });
-    _nextRenderPoseData = nextRender;
-
-    // FIXME - this looks wrong!
-    _hmdActivityLevel = vr::k_EDeviceActivityLevel_UserInteraction; // _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-#else
     _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-#endif
+
+    if (!_threadedSubmit) {
+        vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
+
+        glm::mat4 resetMat;
+        withPresentThreadLock([&] {
+            resetMat = _sensorResetMat;
+        });
+        nextRender.update(resetMat);
+        nextSim.update(resetMat);
+        withPresentThreadLock([&] {
+            _nextSimPoseData = nextSim;
+        });
+        _nextRenderPoseData = nextRender;
+
+    }
 }
 
 bool OpenVrDisplayPlugin::isHmdMounted() const {
@@ -683,4 +697,8 @@ void OpenVrDisplayPlugin::unsuppressKeyboard() {
 
 bool OpenVrDisplayPlugin::isKeyboardVisible() {
     return isOpenVrKeyboardShown(); 
+}
+
+int OpenVrDisplayPlugin::getRequiredThreadCount() const { 
+    return Parent::getRequiredThreadCount() + (_threadedSubmit ? 1 : 0);
 }

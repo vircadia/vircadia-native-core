@@ -37,7 +37,11 @@
 #include <CrashReporter.h>
 #endif
 
-
+#ifdef Q_OS_WIN
+extern "C" {
+    typedef int(__stdcall * CHECKMINSPECPROC) ();
+}
+#endif
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
@@ -155,14 +159,32 @@ int main(int argc, const char* argv[]) {
 
     SteamClient::init();
 
+#ifdef Q_OS_WIN
+    // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
+    if (SteamClient::isRunning()) {
+        QString appPath;
+        {
+            char filename[MAX_PATH];
+            GetModuleFileName(NULL, filename, MAX_PATH);
+            QFileInfo appInfo(filename);
+            appPath = appInfo.absolutePath();
+        }
+        QString openvrDllPath = appPath + "/plugins/openvr.dll";
+        HMODULE openvrDll;
+        CHECKMINSPECPROC checkMinSpecPtr;
+        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) && 
+            (checkMinSpecPtr = (CHECKMINSPECPROC)GetProcAddress(openvrDll, "CheckMinSpec"))) {
+            if (!checkMinSpecPtr()) {
+                return -1;
+            }
+        }
+    }
+#endif
 
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
-
-        bool launchedFromSteam = SteamClient::isRunning();
-        app.setProperty("com.highfidelity.launchedFromSteam", launchedFromSteam);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {

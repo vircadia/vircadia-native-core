@@ -304,7 +304,7 @@ function setEnabled(value) {
 
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
-    if (channel === CHANNEL_AWAY_ENABLE) {
+    if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
         print("away.js | Got message on Hifi-Away-Enable: ", message);
         setEnabled(message === 'enable');
     }
@@ -344,6 +344,7 @@ Script.scriptEnding.connect(function () {
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
     Messages.messageReceived.disconnect(handleMessage);
+    Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
 
 if (HMD.active && !HMD.mounted) {
