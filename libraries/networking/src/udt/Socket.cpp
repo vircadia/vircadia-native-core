@@ -49,7 +49,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
 
     // in order to help track down the zombie server bug, add a timer to check if we missed a readyRead
-    const int READY_READ_BACKUP_CHECK_MSECS = 10 * 1000;
+    const int READY_READ_BACKUP_CHECK_MSECS = 2 * 1000;
     connect(_readyReadBackupTimer, &QTimer::timeout, this, &Socket::checkForReadyReadBackup);
     _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
