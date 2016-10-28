@@ -36,7 +36,7 @@
         BAR_DESKTOP_2K_HEIGHT = 3,  // Display height of SVG
         BAR_DESKTOP_2K_URL = Script.resolvePath("assets/images/progress-bar-2k.svg"),
 
-        BAR_DESKTOP_4K_WIDTH = 4480, // Width of SVG image in pixels. Sized for 1920 x 1080 display with 6 visible repeats.
+        BAR_DESKTOP_4K_WIDTH = 4480, // Width of SVG image in pixels. Sized for 4096 x 1920 display with 6 visible repeats.
         BAR_DESKTOP_4K_REPEAT = 640,  // Length of repeat in bar = 2240 / 7.
         BAR_DESKTOP_4K_HEIGHT = 6,  // Display height of SVG
         BAR_DESKTOP_4K_URL = Script.resolvePath("assets/images/progress-bar-4k.svg"),
