@@ -322,7 +322,9 @@ void GL45Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GL45Texture::generateMips() const {
-    qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
+    if (_transferrable) {
+        qCDebug(gpugl45logging) << "Generating mipmaps for " << _source.c_str();
+    }
     glGenerateTextureMipmap(_id);
     (void)CHECK_GL_ERROR();
 }
