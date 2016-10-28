@@ -379,9 +379,6 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
-// FIXME remove once OpenVR header is updated
-#define VRCompositor_ReprojectionAsync 0x04
-
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
