@@ -145,6 +145,7 @@ private:
 
     bool _shouldChangeSocketOptions { true };
 
+    int _lastPacketSizeRead { 0 };
     SequenceNumber _lastReceivedSequenceNumber;
     HifiSockAddr _lastPacketSockAddr;
     
