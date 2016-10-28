@@ -328,7 +328,17 @@ void RenderableWebEntityItem::handlePointerEvent(const PointerEvent& event) {
 void RenderableWebEntityItem::destroyWebSurface() {
     if (_webSurface) {
         --_currentWebCount;
+
+        QQuickItem* rootItem = _webSurface->getRootItem();
+        if (rootItem) {
+            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
+            if (obj) {
+                QMetaObject::invokeMethod(obj, "stop");
+            }
+        }
+
         _webSurface->pause();
+
         _webSurface->disconnect(_connection);
         QObject::disconnect(_mousePressConnection);
         _mousePressConnection = QMetaObject::Connection();

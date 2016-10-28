@@ -40,7 +40,8 @@ public:
 
     void init() override;
 
-    float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+    float getTargetFrameRate() const override;
+    bool hasAsyncReprojection() const override { return _asyncReprojectionActive; }
 
     void customizeContext() override;
     void uncustomizeContext() override;
@@ -82,4 +83,6 @@ private:
     std::shared_ptr<OpenVrSubmitThread> _submitThread;
     std::shared_ptr<gl::OffscreenContext> _submitCanvas;
     friend class OpenVrSubmitThread;
+
+    bool _asyncReprojectionActive { false };
 };

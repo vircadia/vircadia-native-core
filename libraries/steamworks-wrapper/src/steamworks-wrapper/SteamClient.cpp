@@ -245,6 +245,32 @@ void SteamClient::shutdown() {
     steamCallbackManager.getTicketRequests().stopAll();
 }
 
+int SteamClient::getSteamVRBuildID() {
+    if (initialized) {
+        static const int MAX_PATH_SIZE = 512;
+        static const int STEAMVR_APPID = 250820;
+        char rawPath[MAX_PATH_SIZE];
+        SteamApps()->GetAppInstallDir(STEAMVR_APPID, rawPath, MAX_PATH_SIZE);
+
+        QString path(rawPath);
+        path += "\\bin\\version.txt";
+        qDebug() << "SteamVR version file path:" << path;
+
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly)) {
+            QString buildIDString = file.readLine();
+
+            bool ok = false;
+            int buildID = buildIDString.toInt(&ok);
+            if (ok) {
+                return buildID;
+            }
+        }
+    }
+    return 0;
+}
+
+
 void SteamClient::runCallbacks() {
     if (!initialized) {
         return;

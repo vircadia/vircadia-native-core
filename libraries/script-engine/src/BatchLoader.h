@@ -21,10 +21,20 @@
 
 #include <mutex>
 
+class ScriptCacheSignalProxy : public QObject {
+    Q_OBJECT
+public:
+    ScriptCacheSignalProxy(QObject* parent) : QObject(parent) { }
+    void receivedContent(const QString& url, const QString& contents, bool isURL, bool success);
+
+signals:
+    void contentAvailable(const QString& url, const QString& contents, bool isURL, bool success);
+};
+
 class BatchLoader : public QObject {
     Q_OBJECT
 public:
-    BatchLoader(const QList<QUrl>& urls) ;
+    BatchLoader(const QList<QUrl>& urls);
 
     void start();
     bool isFinished() const { return _finished; };
@@ -39,7 +49,6 @@ private:
     bool _finished;
     QSet<QUrl> _urls;
     QMap<QUrl, QString> _data;
-    std::mutex _dataLock;
 };
 
 #endif // hifi_BatchLoader_h

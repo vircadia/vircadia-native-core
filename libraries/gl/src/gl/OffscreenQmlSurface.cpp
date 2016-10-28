@@ -344,7 +344,6 @@ bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
 OffscreenQmlSurface::OffscreenQmlSurface() {
 }
 
-static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
 OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);

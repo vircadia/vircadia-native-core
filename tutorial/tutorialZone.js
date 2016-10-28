@@ -27,10 +27,14 @@ if (!Function.prototype.bind) {
 }
 
 (function() {
-    var ownershipTokenPath = Script.resolvePath("ownershipToken.js");
-    var tutorialPath = Script.resolvePath("tutorial.js");
-    Script.include(ownershipTokenPath);
-    Script.include(tutorialPath);
+    Script.include("ownershipToken.js");
+    Script.include("tutorial.js");
+
+    var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
+    function setAwayEnabled(value) {
+        var message = value ? 'enable' : 'disable';
+        Messages.sendLocalMessage(CHANNEL_AWAY_ENABLE, message);
+    }
 
     var TutorialZone = function() {
         print("TutorialZone | Creating");
@@ -59,11 +63,16 @@ if (!Function.prototype.bind) {
             print("TutorialZone | Preload");
             this.entityID = entityID;
         },
-        start: function() {
-            print("TutorialZone | Got start");
+        onEnteredStartZone: function() {
+            print("TutorialZone | Got onEnteredStartZone");
             var self = this;
             if (!this.token) {
                 print("TutorialZone | Creating token");
+                // The start zone has been entered, hide the overlays immediately
+                setAwayEnabled(false);
+                Menu.setIsOptionChecked("Overlays", false);
+                MyAvatar.shouldRenderLocally = false;
+                Toolbars.getToolbar("com.highfidelity.interface.toolbar.system").writeProperty("visible", false);
                 this.token = new OwnershipToken(Math.random() * 100000, this.entityID, {
                     onGainedOwnership: function(token) {
                         print("TutorialZone | GOT OWNERSHIP");
@@ -91,6 +100,18 @@ if (!Function.prototype.bind) {
                 });
             }
         },
+        onLeftStartZone: function() {
+            print("TutorialZone | Got onLeftStartZone");
+
+            // If the start zone was exited, and the tutorial hasn't started, go ahead and
+            // re-enable the HUD/Overlays
+            if (!this.tutorialManager) {
+                Menu.setIsOptionChecked("Overlays", true);
+                MyAvatar.shouldRenderLocally = true;
+                setAwayEnabled(true);
+                Toolbars.getToolbar("com.highfidelity.interface.toolbar.system").writeProperty("visible", true);
+            }
+        },
 
         enterEntity: function() {
             print("TutorialZone | ENTERED THE TUTORIAL AREA");
@@ -101,6 +122,10 @@ if (!Function.prototype.bind) {
                 print("TutorialZone | Destroying token");
                 this.token.destroy();
                 this.token = null;
+            }
+            if (this.tutorialManager) {
+                this.tutorialManager.stopTutorial();
+                this.tutorialManager = null;
             }
         }
     };
