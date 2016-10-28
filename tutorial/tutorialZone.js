@@ -113,6 +113,14 @@ if (!Function.prototype.bind) {
             }
         },
 
+        onEnteredEntryPortal: function() {
+            print("TutorialZone | Got onEnteredEntryPortal");
+            if (this.tutorialManager) {
+                print("TutorialZone | Calling enteredEntryPortal");
+                this.tutorialManager.enteredEntryPortal();
+            }
+        },
+
         enterEntity: function() {
             print("TutorialZone | ENTERED THE TUTORIAL AREA");
         },
@@ -125,7 +133,7 @@ if (!Function.prototype.bind) {
             }
             if (this.tutorialManager) {
                 this.tutorialManager.stopTutorial();
-                this.tutorialManager = null;
+                //this.tutorialManager = null;
             }
         }
     };
