@@ -810,7 +810,8 @@ void AudioMixer::broadcastMixes() {
 
                     std::unique_ptr<NLPacket> mixPacket;
 
-                    if (mixHasAudio) {
+                    if (mixHasAudio || nodeData->shouldFlushEncoder()) {
+                        
                         int mixPacketBytes = sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE 
                                                              + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
@@ -823,12 +824,17 @@ void AudioMixer::broadcastMixes() {
                         QString codecInPacket = nodeData->getCodecName();
                         mixPacket->writeString(codecInPacket);
 
-                        QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                         QByteArray encodedBuffer;
-                        nodeData->encode(decodedBuffer, encodedBuffer);
-
+                        if (mixHasAudio) {
+                            QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                            nodeData->encode(decodedBuffer, encodedBuffer);
+                        } else {
+                            // time to flush, which resets the shouldFlush until next time we encode something
+                            nodeData->encodeFrameOfZeros(encodedBuffer);
+                        }
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
+                    
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
