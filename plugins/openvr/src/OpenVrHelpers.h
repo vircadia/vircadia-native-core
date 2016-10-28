@@ -82,5 +82,7 @@ struct PoseData {
     }
 };
 
+// FIXME remove once OpenVR header is updated
+#define VRCompositor_ReprojectionAsync 0x04
 
 controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity);
