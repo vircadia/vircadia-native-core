@@ -474,7 +474,7 @@ void Agent::processAgentAvatar() {
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
 }
-void Agent::flushEncoder(QByteArray& encodedZeros) {
+void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
     _flushEncoder = false;
     static const QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
     if (_encoder) {
@@ -560,14 +560,11 @@ void Agent::processAgentAvatarAudio() {
 
             QByteArray encodedBuffer;
             if (_flushEncoder) {
-                // after sound is done playing, encoder has a bit of state in it, 
-                // and needs some 0s to forget or you get a little click next time
-                // you play something.  So, basically 0-pad the end of the sound buffer
-                flushEncoder(encodedBuffer);
+                encodeFrameOfZeros(encodedBuffer);
             } else {
-                // encode it
                 QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
                 if (_encoder) {
+                    // encode it
                     _encoder->encode(decodedBuffer, encodedBuffer);
                 } else {
                     encodedBuffer = decodedBuffer;

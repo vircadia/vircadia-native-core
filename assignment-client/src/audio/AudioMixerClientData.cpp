@@ -371,7 +371,7 @@ void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const Q
     nodeList->sendPacket(std::move(replyPacket), *node);
 }
 
-void AudioMixerClientData::flushEncoder(QByteArray& encodedZeros) {
+void AudioMixerClientData::encodeFrameOfZeros(QByteArray& encodedZeros) {
     static QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_STEREO, 0);
     if (_shouldFlushEncoder) {
         if (_encoder) {

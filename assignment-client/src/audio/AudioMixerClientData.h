@@ -80,7 +80,7 @@ public:
         // once you have encoded, you need to flush eventually.
         _shouldFlushEncoder = true;
     }
-    void flushEncoder(QByteArray& encodedZeros);
+    void encodeFrameOfZeros(QByteArray& encodedZeros);
     bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }

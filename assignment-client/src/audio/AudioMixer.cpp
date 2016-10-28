@@ -825,15 +825,16 @@ void AudioMixer::broadcastMixes() {
                         mixPacket->writeString(codecInPacket);
 
                         QByteArray encodedBuffer;
-                        if ( mixHasAudio) {
+                        if (mixHasAudio) {
                             QByteArray decodedBuffer(reinterpret_cast<char*>(_clampedSamples), AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                             nodeData->encode(decodedBuffer, encodedBuffer);
                         } else {
                             // time to flush, which resets the shouldFlush until next time we encode something
-                            nodeData->flushEncoder(encodedBuffer);
+                            nodeData->encodeFrameOfZeros(encodedBuffer);
                         }
                         // pack mixed audio samples
                         mixPacket->write(encodedBuffer.constData(), encodedBuffer.size());
+                    
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16) + AudioConstants::MAX_CODEC_NAME_LENGTH_ON_WIRE;
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
