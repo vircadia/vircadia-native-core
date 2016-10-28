@@ -972,7 +972,7 @@ TutorialManager = function() {
     var startedTutorialAt = 0;
     var startedLastStepAt = 0;
 
-    var WENT_TO_ENTRY_STEP_NUM = 20;
+    var wentToEntryStepNum;
     var VERSION = 1;
     var tutorialID;
 
@@ -982,7 +982,7 @@ TutorialManager = function() {
         currentStepNum = -1;
         currentStep = null;
         startedTutorialAt = Date.now();
-        tutorialID = Script.generateUUID();
+        tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
             new stepStart("start"),
             new stepOrient("orient"),
@@ -994,6 +994,7 @@ TutorialManager = function() {
             new stepFinish("finish"),
             new stepEnableControllers("enableControllers"),
         ];
+        wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
         }
@@ -1066,7 +1067,7 @@ TutorialManager = function() {
     // after the tutorial has finished.
     this.enteredEntryPortal = function() {
         info("Got enteredEntryPortal, tracking");
-        this.trackStep("wentToEntry", WENT_TO_ENTRY_STEP_NUM);
+        this.trackStep("wentToEntry", wentToEntryStepNum);
     }
 }
 
