@@ -306,6 +306,11 @@ void Socket::checkForReadyReadBackup() {
     if (_udpSocket.hasPendingDatagrams()) {
         qCDebug(networking) << "Socket::checkForReadyReadBackup() detected blocked readyRead signal. Flushing pending datagrams.";
 
+        // so that birarda can possibly figure out how the heck we get into this state in the first place
+        // output the sequence number and socket address of the last processed packet
+        qCDebug(networking) << "Socket::checkForReadyReadyBackup() last sequence number"
+            << (uint32_t) _lastReceivedSequenceNumber << "from" << _lastPacketSockAddr;
+
         // drop all of the pending datagrams on the floor
         while (_udpSocket.hasPendingDatagrams()) {
             _udpSocket.readDatagram(nullptr, 0);
@@ -372,6 +377,10 @@ void Socket::readPendingDatagrams() {
             // setup a Packet from the data we just read
             auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
             packet->setReceiveTime(receiveTime);
+
+            // save the sequence number and socket for this packet, in case this is the packet that sticks readyRead
+            _lastPacketSockAddr = senderSockAddr;
+            _lastReceivedSequenceNumber = packet->getSequenceNumber();
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {

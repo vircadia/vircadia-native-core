@@ -144,6 +144,9 @@ private:
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<TCPVegasCC>() };
 
     bool _shouldChangeSocketOptions { true };
+
+    SequenceNumber _lastReceivedSequenceNumber;
+    HifiSockAddr _lastPacketSockAddr;
     
     friend UDTTest;
 };
