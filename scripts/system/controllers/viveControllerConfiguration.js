@@ -148,10 +148,10 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
-                            defaultTextureURL: viveTriggerModelURL + "/Trigger.fbm/black.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg",
                         },
                         highlight: {
-                            defaultTextureURL: viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
                         }
                     }
                 },
@@ -280,10 +280,10 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
-                            defaultTextureURL: viveTriggerModelURL + "/Trigger.fbm/black.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg",
                         },
                         highlight: {
-                            defaultTextureURL: viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
                         }
                     }
                 },
