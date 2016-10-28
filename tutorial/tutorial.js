@@ -391,61 +391,6 @@ stepOrient.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: Raise hands above head                                              //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepRaiseAboveHead = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
-}
-stepRaiseAboveHead.prototype = {
-    start: function(onFinish) {
-        var tag = this.tag;
-
-        var STATE_START = 0;
-        var STATE_HANDS_DOWN = 1;
-        var STATE_HANDS_UP = 2;
-        this.state = STATE_START;
-
-        editEntitiesWithTag(this.tag, { visible: true });
-
-        // Wait 2 seconds before starting to check for hands
-        this.checkIntervalID = null;
-        function checkForHandsAboveHead() {
-            debug("RaiseAboveHead | Checking hands");
-            if (this.state == STATE_START) {
-                if (MyAvatar.getLeftPalmPosition().y < (MyAvatar.getHeadPosition().y - 0.1)) {
-                    this.state = STATE_HANDS_DOWN;
-                }
-            } else if (this.state == STATE_HANDS_DOWN) {
-                if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
-                    this.state = STATE_HANDS_UP;
-                    Script.clearInterval(this.checkIntervalID);
-                    this.checkIntervalID = null;
-                    playSuccessSound();
-                    onFinish();
-                }
-            }
-        }
-        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
-    },
-    cleanup: function() {
-        debug("RaiseAboveHead | Cleanup");
-        if (this.checkIntervalID) {
-            Script.clearInterval(this.checkIntervalID);
-            this.checkIntervalID = null
-        }
-        if (this.waitTimeoutID) {
-            Script.clearTimeout(this.waitTimeoutID);
-            this.waitTimeoutID = null;
-        }
-        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
-        deleteEntitiesWithTag(this.tempTag);
-    }
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1036,7 +981,6 @@ TutorialManager = function() {
         STEPS = [
             new stepStart("start"),
             new stepOrient("orient"),
-            //new stepRaiseAboveHead("raiseHands"),
             new stepNearGrab("nearGrab"),
             new stepFarGrab("farGrab"),
             new stepEquip("equip"),
