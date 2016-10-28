@@ -972,12 +972,17 @@ TutorialManager = function() {
     var startedTutorialAt = 0;
     var startedLastStepAt = 0;
 
+    var WENT_TO_ENTRY_STEP_NUM = 20;
+    var VERSION = 1;
+    var tutorialID;
+
     var self = this;
 
     this.startTutorial = function() {
         currentStepNum = -1;
         currentStep = null;
         startedTutorialAt = Date.now();
+        tutorialID = Script.generateUUID();
         STEPS = [
             new stepStart("start"),
             new stepOrient("orient"),
@@ -999,10 +1004,7 @@ TutorialManager = function() {
     this.onFinish = function() {
         debug("onFinish", currentStepNum);
         if (currentStep && currentStep.shouldLog !== false) {
-            var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
-            var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
-            UserActivityLogger.tutorialProgress(
-                    currentStep.tag, currentStepNum, timeToFinishStep, tutorialTimeElapsed);
+            self.trackStep(currentStep.tag, currentStepNum);
         }
 
         self.startNextStep();
@@ -1015,6 +1017,12 @@ TutorialManager = function() {
 
         ++currentStepNum;
 
+        // This always needs to be set because we use this value when
+        // tracking that the user has gone through the entry portal. When the
+        // tutorial finishes, there is a last "pseudo" step that the user
+        // finishes when stepping into the portal.
+        startedLastStepAt = Date.now();
+
         if (currentStepNum >= STEPS.length) {
             // Done
             info("DONE WITH TUTORIAL");
@@ -1024,7 +1032,6 @@ TutorialManager = function() {
         } else {
             info("Starting step", currentStepNum);
             currentStep = STEPS[currentStepNum];
-            startedLastStepAt = Date.now();
             currentStep.start(this.onFinish);
             return true;
         }
@@ -1045,6 +1052,21 @@ TutorialManager = function() {
         reenableEverything();
         currentStepNum = -1;
         currentStep = null;
+    }
+
+    this.trackStep = function(name, stepNum) {
+        var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
+        var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
+        UserActivityLogger.tutorialProgress(
+                name, stepNum, timeToFinishStep, tutorialTimeElapsed,
+                tutorialID, VERSION);
+    }
+
+    // This is a message sent from the "entry" portal in the courtyard,
+    // after the tutorial has finished.
+    this.enteredEntryPortal = function() {
+        info("Got enteredEntryPortal, tracking");
+        this.trackStep("wentToEntry", WENT_TO_ENTRY_STEP_NUM);
     }
 }
 
