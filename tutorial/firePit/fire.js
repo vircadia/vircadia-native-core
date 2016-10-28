@@ -4,6 +4,12 @@
 
 (function() {
 
+    function debug() {
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift("fire.js | ");
+        print.apply(this, args);
+    }
+
     var _this = this;
 
     function Fire() {
@@ -54,30 +60,45 @@
 
     var colors = [RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET];
 
+    var firePitSoundURL = Script.resolvePath("fire_burst.wav");
+    debug("Firepit burst sound url is: ", firePitSoundURL);
+
+    var explodeTextureURL = Script.resolvePath("explode.png");
+    debug("Firepit explode texture url is: ", explodeTextureURL);
+
     Fire.prototype = {
         preload: function(entityID) {
+            debug("Preload");
             this.entityID = entityID;
-            this.EXPLOSION_SOUND = SoundCache.getSound("atp:/firepit/fire_burst.wav");
+            this.EXPLOSION_SOUND = SoundCache.getSound(firePitSoundURL);
         },
         collisionWithEntity: function(myID, otherID, collisionInfo) {
+            debug("Collided with entity: ", myID, otherID);
             var otherProps = Entities.getEntityProperties(otherID);
             var data = null;
             try {
-                data = JSON.parse(otherProps.userData)
+                data = JSON.parse(otherProps.userData);
             } catch (err) {
-                print('ERROR GETTING USERDATA!');
+                debug('ERROR GETTING USERDATA!');
             }
             if (data === null || "") {
+                debug("Data is null or empty", data);
                 return;
             } else {
+                debug("Got data", data);
                 if (data.hasOwnProperty('hifiHomeKey')) {
+                    debug("Has hifiHomeKey");
                     if (data.hifiHomeKey.reset === true) {
+                        debug("Reset is true");
                         _this.playSoundAtCurrentPosition();
                         _this.explodeWithColor();
                         Entities.deleteEntity(otherID)
+                        debug("Sending local message");
                         Messages.sendLocalMessage('Entity-Exploded', JSON.stringify({
                             entityID: otherID,
+                            position: Entities.getEntityProperties(this.entityID).position
                         }));
+                        debug("Done sending local message");
                     }
                 }
             }
@@ -137,7 +158,7 @@
                 "alphaStart": -0.2,
                 "alphaFinish": 0.5,
                 "emitterShouldTrail": 0,
-                "textures": "atp:/firepit/explode.png",
+                "textures": explodeTextureURL,
                 "type": "ParticleEffect",
                 lifetime: 1,
                 position: myProps.position

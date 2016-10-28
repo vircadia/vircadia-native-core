@@ -69,7 +69,6 @@ ControllerDisplayManager = function() {
         }
     }
 
-    Messages.subscribe('Controller-Display');
     var handleMessages = function(channel, message, sender) {
         var i, data, name, visible;
         if (!controllerLeft && !controllerRight) {
