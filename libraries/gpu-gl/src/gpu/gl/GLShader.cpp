@@ -196,7 +196,8 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
             // Define the public slots only from the default version
             if (version == 0) {
                 shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
-            } else {
+            } // else
+            {
                 GLShader::UniformMapping mapping;
                 for (auto srcUniform : shader.getUniforms()) {
                     mapping[srcUniform._location] = uniforms.findLocation(srcUniform._name);
