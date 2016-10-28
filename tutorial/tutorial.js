@@ -982,6 +982,9 @@ TutorialManager = function() {
         currentStepNum = -1;
         currentStep = null;
         startedTutorialAt = Date.now();
+
+        // Old versions of interface do not have the Script.generateUUID function.
+        // If Script.generateUUID is not available, default to an empty string.
         tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
             new stepStart("start"),
