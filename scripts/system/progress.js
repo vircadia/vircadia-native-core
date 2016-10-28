@@ -38,13 +38,9 @@
         TEXT_HEIGHT = 32,
         TEXT_WIDTH = 256,
         TEXT_URL = Script.resolvePath("assets/images/progress-bar-text.svg"),
-        BACKGROUND_WIDTH = 520,
-        BACKGROUND_HEIGHT = 50,
-        BACKGROUND_URL = Script.resolvePath("assets/images/progress-bar-background.svg"),
         windowWidth = 0,
         windowHeight = 0,
         bar2D = {},
-        background2D = {},
         textDesktop = {},  // Separate desktop and HMD overlays because can't change text size after overlay created.
         textHMD = {},
         SCALE_2D = 0.35, // Scale the SVGs for 2D display.
@@ -92,10 +88,6 @@
             visible = false;
         }
 
-        Overlays.editOverlay(background2D.overlay, {
-            alpha: alpha,
-            visible: visible
-        });
         Overlays.editOverlay(bar2D.overlay, {
             alpha: alpha,
             visible: visible
@@ -152,13 +144,6 @@
     }
 
     function createOverlays() {
-        background2D.overlay = Overlays.addOverlay("image", {
-            imageURL: BACKGROUND_URL,
-            width: background2D.width,
-            height: background2D.height,
-            visible: false,
-            alpha: 0.0
-        });
         bar2D.overlay = Overlays.addOverlay("image", {
             imageURL: BAR_URL,
             subImage: {
@@ -189,8 +174,9 @@
     }
 
     function deleteOverlays() {
-        Overlays.deleteOverlay(background2D.overlay);
         Overlays.deleteOverlay(bar2D.overlay);
+        Overlays.deleteOverlay(textDesktop.overlay);
+        Overlays.deleteOverlay(textHMD.overlay);
     }
 
     function updateProgressBarLocation() {
@@ -202,14 +188,9 @@
         isHMD = HMD.active;
         yOffset = isHMD ? BAR_Y_OFFSET_HMD : BAR_Y_OFFSET_2D;
 
-        Overlays.editOverlay(background2D.overlay, {
-            x: windowWidth / 2 - background2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + yOffset
-        });
-
         Overlays.editOverlay(bar2D.overlay, {
             x: windowWidth / 2 - bar2D.width / 2,
-            y: windowHeight - background2D.height - bar2D.height + (background2D.height - bar2D.height) / 2 + yOffset
+            y: windowHeight - 2 * bar2D.height + yOffset
         });
 
         Overlays.editOverlay(textDesktop.overlay, {
@@ -276,18 +257,11 @@
             Overlays.editOverlay(bar2D.overlay, {
                 visible: true,
                 subImage: {
-
-                    // $$$$$$$
-
                     x: BAR_WIDTH * (1 - displayProgress / 100),
                     y: 0,
                     width: BAR_WIDTH,
                     height: BAR_HEIGHT
                 }
-            });
-
-            Overlays.editOverlay(background2D.overlay, {
-                visible: true
             });
 
             Overlays.editOverlay(textDesktop.overlay, {
@@ -310,8 +284,6 @@
     function setUp() {
         isHMD = HMD.active;
 
-        background2D.width = SCALE_2D * BACKGROUND_WIDTH;
-        background2D.height = SCALE_2D * BACKGROUND_HEIGHT;
         bar2D.width = SCALE_2D * BAR_WIDTH;
         bar2D.height = SCALE_2D * BAR_HEIGHT;
         textDesktop.width = SCALE_TEXT_DESKTOP * TEXT_WIDTH;
