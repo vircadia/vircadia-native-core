@@ -351,13 +351,6 @@ void GLBackend::setupStereoSide(int side) {
 
 }
 #else
-void GLBackend::setupStereoSide(int side) {
-    ivec4 vp = _transform._viewport;
-    vp.z /= 2;
-    glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
-
-    _transform.bindCurrentCamera(side);
-}
 #endif
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
@@ -412,7 +405,7 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 #ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo())
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo())
 #else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
 #endif

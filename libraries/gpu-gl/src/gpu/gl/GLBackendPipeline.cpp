@@ -51,7 +51,7 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
         // check the program cache
         // pick the program version 
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        GLuint glprogram = pipelineObject->_program->getProgram(isStereo());
+        GLuint glprogram = pipelineObject->_program->getProgram((GLShader::Version) isStereo());
 #else
         GLuint glprogram = pipelineObject->_program->getProgram();
 #endif

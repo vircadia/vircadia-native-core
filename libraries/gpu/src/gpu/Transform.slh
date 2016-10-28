@@ -18,6 +18,7 @@ struct TransformCamera {
     mat4 _projection;
     mat4 _projectionInverse;
     vec4 _viewport;
+    vec4 _stereoInfo;
 };
 
 layout(std140) uniform transformCameraBuffer {
@@ -32,7 +33,7 @@ layout(std140) uniform transformCameraBuffer {
 #endif
 };
 
-#ifdef VERTEX_SHADER
+#ifdef GPU_VERTEX_SHADER
 #ifdef GPU_TRANSFORM_IS_STEREO
 
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
@@ -47,7 +48,7 @@ flat out int _stereoSide;
 
 #endif
 
-#ifdef PIXEL_SHADER
+#ifdef GPU_PIXEL_SHADER
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
 flat in int _stereoSide;
 #endif
@@ -56,7 +57,7 @@ flat in int _stereoSide;
 TransformCamera getTransformCamera() {
 #ifdef GPU_TRANSFORM_IS_STEREO
     #ifdef GPU_TRANSFORM_STEREO_CAMERA
-        #ifdef VERTEX_SHADER
+        #ifdef GPU_VERTEX_SHADER
             #ifdef GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
                 _stereoSide = _inStereoSide;
             #endif
@@ -72,8 +73,32 @@ TransformCamera getTransformCamera() {
     return _camera;
 #endif
 }
-<@endfunc@>
 
+vec3 getEyeWorldPos() {
+    return getTransformCamera()._viewInverse[3].xyz;
+}
+
+bool cam_isStereo() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+    return true;
+#else
+    return _camera._stereoInfo.x > 0.0;
+#endif
+}
+
+float cam_getStereoSide() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_CAMERA
+    return float(_stereoSide);
+#else
+    return _camera._stereoInfo.y;
+#endif
+#else
+    return _camera._stereoInfo.y;
+#endif
+}
+
+<@endfunc@>
 
 <@func declareStandardObjectTransform()@>
 struct TransformObject {

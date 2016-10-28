@@ -25,11 +25,14 @@ void GL41Backend::do_draw(const Batch& batch, size_t paramOffset) {
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
 
     if (isStereo()) {
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
+#else
         setupStereoSide(0);
         glDrawArrays(mode, startVertex, numVertices);
         setupStereoSide(1);
         glDrawArrays(mode, startVertex, numVertices);
-
+#endif
         _stats._DSNumTriangles += 2 * numVertices / 3;
         _stats._DSNumDrawcalls += 2;
 
@@ -55,11 +58,14 @@ void GL41Backend::do_drawIndexed(const Batch& batch, size_t paramOffset) {
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
     if (isStereo()) {
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, 2);
+#else
         setupStereoSide(0);
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
         setupStereoSide(1);
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
-
+#endif
         _stats._DSNumTriangles += 2 * numIndices / 3;
         _stats._DSNumDrawcalls += 2;
     } else {
@@ -83,11 +89,14 @@ void GL41Backend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
     if (isStereo()) {
         GLint trueNumInstances = 2 * numInstances;
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glDrawArraysInstanced(mode, startVertex, numVertices, trueNumInstances);
+#else
         setupStereoSide(0);
-        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+        glDrawArraysInstanced(mode, startVertex, numVertices, numInstances);
         setupStereoSide(1);
-        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-
+        glDrawArraysInstanced(mode, startVertex, numVertices, numInstances);
+#endif
         _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
@@ -124,10 +133,14 @@ void GL41Backend::do_drawIndexedInstanced(const Batch& batch, size_t paramOffset
     if (isStereo()) {
         GLint trueNumInstances = 2 * numInstances;
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, trueNumInstances, 0, startInstance);
+#else
         setupStereoSide(0);
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
         setupStereoSide(1);
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+#endif
 
         _stats._DSNumTriangles += (trueNumInstances * numIndices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;

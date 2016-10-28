@@ -31,9 +31,9 @@
 
 
 // Pick one from the 3: THis version is the most efficient as of now
-#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
-//#define GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_TECHNIQUE_INSTANCED
 
 
 // Let these be configured by the one define picked above
