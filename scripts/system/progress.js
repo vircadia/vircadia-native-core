@@ -49,6 +49,8 @@
         BAR_Y_OFFSET_DESKTOP = 0, // Offset of progress bar while in desktop mode
         BAR_Y_OFFSET_HMD = -100, // Offset of progress bar while in HMD
 
+        ANIMATION_SECONDS_PER_REPEAT = 4,  // Speed of bar animation
+
         TEXT_HEIGHT = 32,
         TEXT_WIDTH = 256,
         TEXT_URL = Script.resolvePath("assets/images/progress-bar-text.svg"),
@@ -246,7 +248,7 @@
     }
 
     function update() {
-        var viewport, diff;
+        var viewport, diff, x;
 
         initialDelayCooldown -= 30;
 
@@ -294,11 +296,18 @@
         }
 
         if (visible) {
+            x = ((Date.now() / 1000) % ANIMATION_SECONDS_PER_REPEAT) / ANIMATION_SECONDS_PER_REPEAT;
+            if (isHMD) {
+                x = x * barDesktop.repeat;
+            } else {
+                x = x * BAR_HMD_REPEAT;
+            }
+
             // Update progress bar
             Overlays.editOverlay(barDesktop.overlay, {
                 visible: !isHMD,
                 subImage: {
-                    x: barDesktop.repeat * (1 - displayProgress / 100),
+                    x: barDesktop.repeat - x,
                     y: 0,
                     width: barDesktop.width - barDesktop.repeat,
                     height: barDesktop.height
@@ -308,7 +317,7 @@
             Overlays.editOverlay(barHMD.overlay, {
                 visible: isHMD,
                 subImage: {
-                    x: BAR_HMD_REPEAT * (1 - displayProgress / 100),
+                    x: BAR_HMD_REPEAT - x,
                     y: 0,
                     width: BAR_HMD_WIDTH - BAR_HMD_REPEAT,
                     height: BAR_HMD_HEIGHT
@@ -337,11 +346,11 @@
 
         isHMD = HMD.active;
 
-        barDesktop.width = is4k ? BAR_DESKTOP_4K_WIDTH : BAR_DESKTOP_2K_WIDTH;
+        barDesktop.width = is4k ? BAR_DESKTOP_4K_WIDTH - BAR_DESKTOP_4K_REPEAT : BAR_DESKTOP_2K_WIDTH - BAR_DESKTOP_2K_REPEAT;
         barDesktop.height = is4k ? BAR_DESKTOP_4K_HEIGHT : BAR_DESKTOP_2K_HEIGHT;
         barDesktop.repeat = is4k ? BAR_DESKTOP_4K_REPEAT : BAR_DESKTOP_2K_REPEAT;
         barDesktop.url = is4k ? BAR_DESKTOP_4K_URL : BAR_DESKTOP_2K_URL;
-        barHMD.width = BAR_HMD_WIDTH;
+        barHMD.width = BAR_HMD_WIDTH - BAR_HMD_REPEAT;
         barHMD.height = BAR_HMD_HEIGHT;
 
         textDesktop.width = SCALE_TEXT_DESKTOP * TEXT_WIDTH;
