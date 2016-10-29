@@ -41,15 +41,6 @@ Rectangle {
         focus: true
 
         Timer {
-            id: zipTimer
-            running: false
-            repeat: false
-            interval: 1500
-            property var handler;
-            onTriggered: handler();
-        }
-
-        Timer {
             id: alertTimer
             running: false
             repeat: false
@@ -113,13 +104,13 @@ Rectangle {
             request.openIn(newWindow.webView);
             if (File.isZippedFbx(desktop.currentUrl)) {
                 runJavaScript(autoCancel);
-                zipTimer.handler = function() {
-                    newWindow.destroy();
-                }
-                zipTimer.start();
+                newWindow.loadingChanged.connect(function(status) {
+                    if (status > 0) {
+                        newWindow.destroy();  // Download has kicked off so we can destroy the Web window.
+                    }
+                });
             }
         }
-
     }
 
     Rectangle {
