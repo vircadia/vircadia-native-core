@@ -199,7 +199,7 @@ ScrollingWindow {
 
         WebView {
             id: webview
-            url: "https://highfidelity.com"
+            url: "https://highfidelity.com/"
 
             property alias eventBridgeWrapper: eventBridgeWrapper
 
