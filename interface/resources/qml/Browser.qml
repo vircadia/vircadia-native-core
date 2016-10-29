@@ -23,6 +23,8 @@ ScrollingWindow {
 
     property alias eventBridge: eventBridgeWrapper.eventBridge
 
+    signal loadingChanged(int status)
+
     x: 100
     y: 100
 
@@ -243,6 +245,7 @@ ScrollingWindow {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
                 }
+                root.loadingChanged(loadRequest.status);
             }
 
             onIconChanged: {
