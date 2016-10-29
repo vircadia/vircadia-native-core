@@ -24,7 +24,7 @@ out vec4 _texCoord0;
 
 void main(void) {
     if (sphereParam.w != 0.0) {
-
+        
         // standard transform
         TransformCamera cam = getTransformCamera();
         TransformObject obj = getTransformObject();

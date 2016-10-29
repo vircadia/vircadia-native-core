@@ -80,7 +80,7 @@ vec3 getEyeWorldPos() {
 
 bool cam_isStereo() {
 #ifdef GPU_TRANSFORM_IS_STEREO
-    return true;
+    return getTransformCamera()._stereoInfo.x > 0.0;
 #else
     return _camera._stereoInfo.x > 0.0;
 #endif
@@ -89,7 +89,7 @@ bool cam_isStereo() {
 float cam_getStereoSide() {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
-    return float(_stereoSide);
+    return getTransformCamera()._stereoInfo.y;
 #else
     return _camera._stereoInfo.y;
 #endif
