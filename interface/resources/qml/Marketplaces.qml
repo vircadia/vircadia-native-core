@@ -103,6 +103,7 @@ Rectangle {
             var newWindow = component.createObject(desktop);
             request.openIn(newWindow.webView);
             if (File.isZippedFbx(desktop.currentUrl)) {
+                newWindow.setAutoAdd(true);
                 runJavaScript(autoCancel);
                 newWindow.loadingChanged.connect(function(status) {
                     if (status > 0) {
