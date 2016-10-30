@@ -46,6 +46,10 @@ ScrollingWindow {
         hidePermissionsBar();
     }
 
+    function setAutoAdd(auto) {
+        desktop.setAutoAdd(auto);
+    }
+
     Item {
         id:item
         width: pane.contentWidth
@@ -257,7 +261,7 @@ ScrollingWindow {
             }
 
             Component.onCompleted: {
-                desktop.initWebviewProfileHandlers(webview.profile, false);
+                desktop.initWebviewProfileHandlers(webview.profile);
             }
         }
 

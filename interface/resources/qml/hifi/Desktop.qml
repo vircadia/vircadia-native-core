@@ -104,10 +104,9 @@ OriginalDesktop.Desktop {
     property string tempDir: ""
     property bool autoAdd: false
 
-    function initWebviewProfileHandlers(profile, auto) {
+    function initWebviewProfileHandlers(profile) {
         console.log("The webview url in desktop is: " + currentUrl);
         if (webViewProfileSetup) return;
-        autoAdd = auto;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
@@ -117,6 +116,7 @@ OriginalDesktop.Desktop {
             console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
             console.log("Path where object should download: " + download.path);
+            console.log("Auto add: " + autoAdd);
             download.accept();
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
                 console.log("download failed to complete");
@@ -129,7 +129,12 @@ OriginalDesktop.Desktop {
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }
+            autoAdd = false;
         })
+    }
+
+    function setAutoAdd(auto) {
+        autoAdd = auto;
     }
 
     // Create or fetch a toolbar with the given name
