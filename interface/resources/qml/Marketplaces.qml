@@ -101,6 +101,14 @@ Rectangle {
         onNewViewRequested: {
             var component = Qt.createComponent("Browser.qml");
             var newWindow = component.createObject(desktop);
+
+            // Hide brief flash of browser window behind marketplace window.
+            newWindow.x = x;
+            newWindow.y = y;
+            newWindow.z = 0;
+            newWindow.width = 0;
+            newWindow.height = 0;
+
             request.openIn(newWindow.webView);
             if (File.isZippedFbx(desktop.currentUrl)) {
                 newWindow.setAutoAdd(true);
