@@ -28,11 +28,11 @@ public slots:
     bool isZipped(QUrl url);
     bool isClaraLink(QUrl url);
     QString convertUrlToPath(QUrl url);
-    void runUnzip(QString path, QUrl url);
+    void runUnzip(QString path, QUrl url, bool autoAdd);
     QString getTempDir();
 
 signals:
-    void unzipSuccess(QString url);
+    void unzipSuccess(QString url, bool autoAdd);
 
 private:
     bool isTempDir(QString tempDir);

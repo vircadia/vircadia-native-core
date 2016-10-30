@@ -102,10 +102,12 @@ OriginalDesktop.Desktop {
     property string currentUrl: ""
     property string adaptedPath: ""
     property string tempDir: ""
+    property bool autoAdd: false
 
-    function initWebviewProfileHandlers(profile) {
+    function initWebviewProfileHandlers(profile, auto) {
         console.log("The webview url in desktop is: " + currentUrl);
         if (webViewProfileSetup) return;
+        autoAdd = auto;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
@@ -123,7 +125,7 @@ OriginalDesktop.Desktop {
 
         profile.downloadFinished.connect(function(download){
             if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, currentUrl);
+                File.runUnzip(download.path, currentUrl, autoAdd);
             } else {
                 console.log("The download was corrupted, state: " + download.state);
             }

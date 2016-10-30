@@ -257,7 +257,7 @@ ScrollingWindow {
             }
 
             Component.onCompleted: {
-                desktop.initWebviewProfileHandlers(webview.profile)
+                desktop.initWebviewProfileHandlers(webview.profile, false);
             }
         }
 
