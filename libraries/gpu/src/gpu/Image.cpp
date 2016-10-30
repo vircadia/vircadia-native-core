@@ -23,15 +23,16 @@ template <> void compress(const PB_RGB32& src, CB_BC1& dst) {
 
 template <> void uncompress(const CB_BC1& src, PB_RGB32& dst) {
     auto bc1 = src.bc;
-    auto c0 = bc1.color0;
-    auto c1 = bc1.color1;
     
-    for (auto& p : dst.pixels) {
+    auto c0 = bc1.color0.val;
+    auto c1 = bc1.color1.val;
+    
+    for (int i = 0; i < PB_RGB32::SIZE; ++i) {
+        //dst.pixels[i] = ;
         auto r = pixel::mix(
                        c0,
                        c1,
                        (pixel::Byte)bc1.table);
-        ///p.val =
     }
 }
 

@@ -7,19 +7,25 @@
 
 namespace image {
 
+    // Storage types
+    using Byte = uint8_t;
+    using Byte2 = uint16_t;
+    using Byte4 = uint32_t;
+    
+    static const Byte BLACK8 { 0 };
+    static const Byte WHITE8 { 255 };
+    
+    template <int N> int bitVal() { return 1 << N; }
+    template <int Tn, int An> int bitProduct() { return bitVal<Tn>() * bitVal<An>(); }
+    template <int Tn, int An, typename T = Byte, typename A = T> T mix(const T x, const T y, const A a) { return T(((bitVal<An>() - a) * x + a * y) / bitProduct<Tn, An>()); }
+    
+    Byte mix5_4(const Byte x, const Byte y, const Byte a) { return mix<5, 4>(x, y, a); }
+    Byte mix6_4(const Byte x, const Byte y, const Byte a) { return mix<6, 4>(x, y, a); }
+    
+    
     namespace pixel {
         
-        using Byte = uint8_t;
-        using Byte2 = uint16_t;
-        using Byte4 = uint32_t;
-
-        static const Byte BLACK8 { 0 };
-        static const Byte WHITE8 { 255 };
-
-        template <int N> int bitVal() { return 1 << N; }
-        template <int Tn, int An> int bitProduct() { return bitVal<Tn>() * bitVal<An>(); }
-        template <int Tn, int An, typename T = Byte, typename A = T> T mix(const T x, const T y, const A a) { return T(((bitVal<An>() - a) * x + a * y) / bitProduct<Tn, An>()); }
-        
+   
         struct RGB32 {
             Byte r { BLACK8 };
             Byte g { BLACK8 };
@@ -43,16 +49,9 @@ namespace image {
             RGB16_565() : b(BLACK8), g(BLACK8), r(BLACK8) {}
             RGB16_565(Byte pR, Byte pG, Byte pB) : b(pB), g(pG), r(pR) {}
         };
-        
-        
-        Byte mix5_4(const Byte x, const Byte y, const Byte a) { return mix<5, 4>(x, y, a); }
-        Byte mix6_4(const Byte x, const Byte y, const Byte a) { return mix<6, 4>(x, y, a); }
-        
-        
+
         template <typename P, typename S> const P mix(const P p0, const P p1, const S alpha) { return p0; }
-        
         template <> const RGB16_565 mix(const RGB16_565 p0, const RGB16_565 p1, const Byte alpha);
-        
 
     };
 
@@ -62,8 +61,8 @@ namespace image {
         using Storage = S;
         
         union {
-            Format val;
             Storage raw;
+            Format val{ Format() }; // Format last to be initialized by Format's default constructor
         };
         
         Pixel() {};
@@ -75,11 +74,16 @@ namespace image {
     using PixRGB32 = Pixel<pixel::RGB32, pixel::Byte4>;
     using PixRGBA32 = Pixel<pixel::RGBA32, pixel::Byte4>;
     
+    
     template <typename P> class PixelBlock {
     public:
+        using Format = typename P::Format;
+        using Storage = typename P::Storage;
+
         static const uint32_t WIDTH { 4 };
         static const uint32_t HEIGHT { WIDTH };
         static const uint32_t SIZE { WIDTH * HEIGHT };
+        
         uint32_t getSize() const { return SIZE * sizeof(P); }
         
         P pixels[SIZE];
@@ -94,6 +98,8 @@ namespace image {
         void setPixels(const P* srcPixels) {
             memcpy(pixels, srcPixels, getSize());
         }
+        
+        const Storage* getStorage() const { return static_cast<const Storage*> (&pixels->raw); }
     };
     
     class BC {
@@ -104,6 +110,9 @@ namespace image {
             PixRGB565 color0;
             PixRGB565 color1;
             pixel::Byte4 table;
+            
+            
+            Byte
         };
         struct BC4 {
             PixRGB565 color0;

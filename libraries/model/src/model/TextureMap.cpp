@@ -248,10 +248,26 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
 
-        image::PB_RGB32 pb;
-        image::CB_BC1 cb;
+        image::PixRGB32 pix0;
         
-        image::compress(pb, cb);
+        image::PixRGBA32 pix1;
+        
+        image::PixRGB565 pix3;
+        
+        image::PB_RGB32 pb0;
+        image::CB_BC1 cb;
+        image::PB_RGB32 pb1;
+        
+        auto pix0_s = sizeof(pix0);
+        auto pix1_s = sizeof(pix1);
+        auto pix3_s = sizeof(pix3);
+        
+        auto pb0_s = sizeof(pb0);
+        auto cb_s = sizeof(cb);
+        
+        auto cb_bytes = pb0.getStorage();
+        image::compress(pb0, cb);
+        image::uncompress(cb, pb1);
         
         if (generateMips) {
             ::generateMips(theTexture, image, formatMip);
