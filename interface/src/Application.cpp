@@ -1769,7 +1769,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     FileScriptingInterface* fileDownload = new FileScriptingInterface(engine);
     rootContext->setContextProperty("File", fileDownload);
-    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::showAssetServerWidget);
+    connect(fileDownload, &FileScriptingInterface::unzipSuccess, this, &Application::handleUnzip);
     rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
@@ -5328,6 +5328,20 @@ void Application::showAssetServerWidget(QString filePath) {
     };
     DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
     startUpload(nullptr, nullptr);
+}
+
+void Application::addAssetToWorld(QString filePath) {
+    // Automatically upload and add asset to world rather than proceeding manually per showAssetServerWidget().
+
+    // TODO
+}
+
+void Application::handleUnzip(QString filePath, bool autoAdd) {
+    if (autoAdd && !filePath.isEmpty()) {
+        addAssetToWorld(filePath);
+    } else {
+        showAssetServerWidget(filePath);
+    }
 }
 
 void Application::packageModel() {

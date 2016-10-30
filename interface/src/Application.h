@@ -306,6 +306,8 @@ public slots:
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
+    void addAssetToWorld(QString filePath);
+    void handleUnzip(QString filePath = "", bool autoAdd = false);
 
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;

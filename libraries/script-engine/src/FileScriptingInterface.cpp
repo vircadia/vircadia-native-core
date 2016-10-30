@@ -31,7 +31,7 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd) {
     qDebug() << "Url that was downloaded: " + url.toString();
     qDebug() << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
@@ -47,7 +47,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url) {
     if (file != "") {
         qDebug() << "Object file to upload: " + file;
         QUrl url = QUrl::fromLocalFile(file);
-        emit unzipSuccess(url.toString());
+        emit unzipSuccess(url.toString(), autoAdd);
     } else {
         qDebug() << "unzip failed";
     }
