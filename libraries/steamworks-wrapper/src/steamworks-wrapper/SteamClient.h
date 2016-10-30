@@ -37,6 +37,7 @@ public:
     static void openInviteOverlay();
     static void joinLobby(QString lobbyId);
 
+    static int getSteamVRBuildID();
 };
 
 class SteamScriptingInterface : public QObject {

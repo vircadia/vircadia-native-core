@@ -163,17 +163,19 @@ function shutdownCallback(idx) {
         if (homeServer.state == ProcessGroupStates.STOPPED) {
             // if the home server is already down, take down the server console now
             log.debug("Quitting.");
-            app.quit();
+            app.exit(0);
         } else {
             // if the home server is still running, wait until we get a state change or timeout
             // before quitting the app
             log.debug("Server still shutting down. Waiting");
-            var timeoutID = setTimeout(app.quit, 5000);
+            var timeoutID = setTimeout(function() {
+                app.exit(0);
+            }, 5000);
             homeServer.on('state-update', function(processGroup) {
                 if (processGroup.state == ProcessGroupStates.STOPPED) {
                     clearTimeout(timeoutID);
                     log.debug("Quitting.");
-                    app.quit();
+                    app.exit(0);
                 }
             });
         }
@@ -240,7 +242,7 @@ var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) 
 
 if (shouldQuit) {
     log.warn("Another instance of the Sandbox is already running - this instance will quit.");
-    app.quit();
+    app.exit(0);
     return;
 }
 
@@ -288,12 +290,12 @@ function binaryMissingMessage(displayName, executableName, required) {
 
 if (!dsPath) {
     dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
-    app.quit();
+    app.exit(0);
 }
 
 if (!acPath) {
     dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true));
-    app.quit();
+    app.exit(0);
 }
 
 function openFileBrowser(path) {
@@ -812,7 +814,8 @@ for (var key in trayIcons) {
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
 function onContentLoaded() {
-    maybeShowSplash();
+    // Disable splash window for now.
+    // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION') {
         var currentVersion = null;
