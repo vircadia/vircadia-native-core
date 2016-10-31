@@ -603,6 +603,9 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
     if (clientData) {
         clientData->removeAgentAvatarAudioStream();
+        // when you don't specify a stream, this removes just the QUuid() 
+        // stream (which is the avatar's mic stream)
+        clientData->removeHRTFForStream(sendingNode->getUUID());
     }
 }
 
