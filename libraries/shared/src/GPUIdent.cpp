@@ -10,6 +10,7 @@
 
 #include <QtCore/QtGlobal>
 
+
 #ifdef Q_OS_WIN
 #include <atlbase.h>
 #include <Wbemidl.h>
@@ -139,7 +140,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
                 var.ChangeType(CIM_UINT64);  // We're going to receive some integral type, but it might not be uint.
                 // We might be hosed here. The parameter is documented to be UINT32, but that's only 4 GB!
                 const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
-                _dedicatedMemoryMB = (uint) (var.ullVal / BYTES_PER_MEGABYTE);
+                _dedicatedMemoryMB = (uint64_t) (var.ullVal / BYTES_PER_MEGABYTE);
             }
             else {
                 qCDebug(shared) << "Unable to get video AdapterRAM";
