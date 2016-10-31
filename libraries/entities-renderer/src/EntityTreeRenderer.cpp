@@ -520,7 +520,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
-        ModelPointer model = modelEntityItem->getModel(this);
+        ModelPointer model = modelEntityItem->getModel(getSharedFromThis());
         if (model && model->isLoaded()) {
             result = &model->getFBXGeometry();
         }
@@ -533,7 +533,7 @@ ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityI
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        result = modelEntityItem->getModel(this);
+        result = modelEntityItem->getModel(getSharedFromThis());
     }
     return result;
 }

@@ -22,6 +22,7 @@
 #include <DeferredLightingEffect.h>
 #include <FramebufferCache.h>
 #include <TextureCache.h>
+#include <OctreeRenderer.h>
 
 #ifdef DEFERRED_LIGHTING
 extern void initDeferredPipelines(render::ShapePlumber& plumber);

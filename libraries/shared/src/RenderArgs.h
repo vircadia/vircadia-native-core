@@ -79,7 +79,7 @@ public:
     };
 
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
-               OctreeRenderer* renderer = nullptr,
+               QSharedPointer<OctreeRenderer> renderer = QSharedPointer<OctreeRenderer>(nullptr),
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -110,7 +110,7 @@ public:
     std::shared_ptr<gpu::Context> _context = nullptr;
     std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
     std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
-    OctreeRenderer* _renderer = nullptr;
+    QSharedPointer<OctreeRenderer> _renderer;
     std::stack<ViewFrustum> _viewFrustums;
     glm::ivec4 _viewport{ 0.0f, 0.0f, 1.0f, 1.0f };
     glm::vec3 _boomOffset{ 0.0f, 0.0f, 1.0f };

@@ -65,7 +65,7 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
 
 void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
-    EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
+    auto renderer = DependencyManager::get<EntityTreeRenderer>();
     assert(renderer);
     {
         PerformanceTimer perfTimer("getModel");
@@ -368,7 +368,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");
-                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
                 getModel(renderer);
 
                 // Remap textures immediately after loading to avoid flicker
@@ -470,7 +470,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
     if (!renderer) {
         return nullptr;
     }
@@ -495,7 +495,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
-            QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
+            QMetaObject::invokeMethod(_myRenderer.data(), "updateModel", Qt::QueuedConnection,
                 Q_ARG(ModelPointer, _model),
                 Q_ARG(const QString&, getModelURL()));
             _needsInitialSimulation = true;
