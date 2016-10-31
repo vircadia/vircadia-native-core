@@ -73,6 +73,15 @@ void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid&
     }
 }
 
+void AudioMixerClientData::removeAgentAvatarAudioStream() {
+    QWriteLocker writeLocker { &_streamsLock };
+    auto it = _audioStreams.find(QUuid());
+    if (it != _audioStreams.end()) {
+        _audioStreams.erase(it);
+    }
+    writeLocker.unlock();
+}
+
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
     PacketType packetType = message.getType();
 

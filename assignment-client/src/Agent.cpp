@@ -439,7 +439,8 @@ void Agent::setIsAvatar(bool isAvatar) {
             packetList->write(getSessionUUID().toRfc4122());
             nodeList->eachMatchingNode(
                 [&](const SharedNodePointer& node)->bool {
-                return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+                return (node->getType() == NodeType::AvatarMixer || node->getType() == NodeType::AudioMixer)
+                        && node->getActiveSocket();
             },
                 [&](const SharedNodePointer& node) {
                 nodeList->sendPacketList(std::move(packetList), *node);
