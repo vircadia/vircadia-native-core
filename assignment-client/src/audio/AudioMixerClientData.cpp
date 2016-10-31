@@ -49,7 +49,7 @@ AudioMixerClientData::~AudioMixerClientData() {
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
-    
+
     auto it = _audioStreams.find(QUuid());
     if (it != _audioStreams.end()) {
         return dynamic_cast<AvatarAudioStream*>(it->second.get());
@@ -75,7 +75,7 @@ void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid&
 
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
     PacketType packetType = message.getType();
-    
+
     if (packetType == PacketType::AudioStreamStats) {
 
         // skip over header, appendFlag, and num stats packed
@@ -109,11 +109,11 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
-                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings());
+                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
-                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::sendSelectAudioFormat);
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::handleMismatchAudioFormat);
 
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
@@ -143,7 +143,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
-                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings());
+                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
 
 #if INJECTORS_SUPPORT_CODECS
                 injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
@@ -180,7 +180,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend() {
+int AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QWriteLocker writeLocker { &_streamsLock };
 
     auto it = _audioStreams.begin();
@@ -208,6 +208,8 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
             ++it;
         }
     }
+
+    return (int)_audioStreams.size();
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {
@@ -218,11 +220,10 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // The append flag is a boolean value that will be packed right after the header.  The first packet sent
-    // inside this method will have 0 for this flag, while every subsequent packet will have 1 for this flag.
-    // The sole purpose of this flag is so the client can clear its map of injected audio stream stats when
-    // it receives a packet with an appendFlag of 0. This prevents the buildup of dead audio stream stats in the client.
-    quint8 appendFlag = 0;
+    // The append flag is a boolean value that will be packed right after the header.
+    // This flag allows the client to know when it has received all stats packets, so it can group any downstream effects,
+    // and clear its cache of injector stream stats; it helps to prevent buildup of dead audio stream stats in the client.
+    quint8 appendFlag = AudioStreamStats::START;
 
     auto streamsCopy = getAudioStreams();
 
@@ -233,14 +234,21 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     while (numStreamStatsRemaining > 0) {
         auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
 
-        // pack the append flag in this packet
-        statsPacket->writePrimitive(appendFlag);
-        appendFlag = 1;
-
         int numStreamStatsRoomFor = (int)(statsPacket->size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
-        // calculate and pack the number of stream stats to follow
+        // calculate the number of stream stats to follow
         quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
+
+        // is this the terminal packet?
+        if (numStreamStatsRemaining <= numStreamStatsToPack) {
+            appendFlag |= AudioStreamStats::END;
+        }
+
+        // pack the append flag in this packet
+        statsPacket->writePrimitive(appendFlag);
+        appendFlag = 0;
+
+        // pack the number of stream stats to follow
         statsPacket->writePrimitive(numStreamStatsToPack);
 
         // pack the calculated number of stream stats
@@ -270,6 +278,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     downstreamStats["desired"] = streamStats._desiredJitterBufferFrames;
     downstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
     downstreamStats["available"] = (double) streamStats._framesAvailable;
+    downstreamStats["unplayed"] = (double) streamStats._unplayedMs;
     downstreamStats["starves"] = (double) streamStats._starveCount;
     downstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
     downstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -294,6 +303,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
         upstreamStats["desired_calc"] = avatarAudioStream->getCalculatedJitterBufferFrames();
         upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
         upstreamStats["available"] = (double) streamStats._framesAvailable;
+        upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
         upstreamStats["starves"] = (double) streamStats._starveCount;
         upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
         upstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -323,6 +333,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
             upstreamStats["desired_calc"] = injectorPair.second->getCalculatedJitterBufferFrames();
             upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
             upstreamStats["available"] = (double) streamStats._framesAvailable;
+            upstreamStats["unplayed"] = (double) streamStats._unplayedMs;
             upstreamStats["starves"] = (double) streamStats._starveCount;
             upstreamStats["not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
             upstreamStats["overflows"] = (double) streamStats._overflowCount;
@@ -345,6 +356,14 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     return result;
 }
 
+void AudioMixerClientData::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
+    qDebug() << __FUNCTION__ <<
+        "sendingNode:" << *node <<
+        "currentCodec:" << currentCodec <<
+        "receivedCodec:" << recievedCodec;
+    sendSelectAudioFormat(node, currentCodec);
+}
+
 void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName) {
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
     replyPacket->writeString(selectedCodecName);
@@ -352,6 +371,17 @@ void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const Q
     nodeList->sendPacket(std::move(replyPacket), *node);
 }
 
+void AudioMixerClientData::encodeFrameOfZeros(QByteArray& encodedZeros) {
+    static QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_STEREO, 0);
+    if (_shouldFlushEncoder) {
+        if (_encoder) {
+            _encoder->encode(zeros, encodedZeros);
+        } else {
+            encodedZeros = zeros;
+        }
+    }
+    _shouldFlushEncoder = false;
+}
 
 void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
     cleanupCodec(); // cleanup any previously allocated coders first

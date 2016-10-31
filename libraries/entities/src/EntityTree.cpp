@@ -29,6 +29,28 @@ static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC *
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
 
 
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 direction;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& distance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    void** intersectedObject;
+    bool found;
+};
+
+
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
     _fbxService(NULL),
@@ -538,40 +560,28 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
     // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
     return false;
 }
-// combines the ray cast arguments into a single object
-class RayArgs {
-public:
-    glm::vec3 origin;
-    glm::vec3 direction;
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    const QVector<EntityItemID>& entityIdsToInclude;
-    const QVector<EntityItemID>& entityIdsToDiscard;
-    void** intersectedObject;
-    bool found;
-    bool precisionPicking;
-};
-
 
 bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
-    if (entityTreeElementPointer ->findRayIntersection(args->origin, args->direction, keepSearching,
+    if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->intersectedObject, args->precisionPicking)) {
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
     return keepSearching;
 }
 
 bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElementPointer& element, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, void** intersectedObject,
-                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, entityIdsToDiscard, intersectedObject, false, precisionPicking };
+                                    QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+                                    OctreeElementPointer& element, float& distance,
+                                    BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
+                                    Octree::lockType lockType, bool* accurateResult) {
+    RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
+            visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, surfaceNormal,  intersectedObject, false };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
@@ -688,6 +698,31 @@ void EntityTree::findEntities(const AABox& box, QVector<EntityItemPointer>& foun
     foundEntities.swap(args._foundEntities);
 }
 
+class FindInFrustumArgs {
+public:
+    ViewFrustum frustum;
+    QVector<EntityItemPointer> entities;
+};
+
+bool EntityTree::findInFrustumOperation(OctreeElementPointer element, void* extraData) {
+    FindInFrustumArgs* args = static_cast<FindInFrustumArgs*>(extraData);
+    if (element->isInView(args->frustum)) {
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+        entityTreeElement->getEntities(args->frustum, args->entities);
+        return true;
+    }
+    return false;
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities) {
+    FindInFrustumArgs args = { frustum, QVector<EntityItemPointer>() };
+    // NOTE: This should use recursion, since this is a spatial operation
+    recurseTreeWithOperation(findInFrustumOperation, &args);
+    // swap the two lists of entity pointers instead of copy
+    foundEntities.swap(args.entities);
+}
+
 EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
@@ -723,13 +758,10 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         int index = changedProperties.indexOf("velocity");
         if (index >= 0) {
             glm::vec3 value = properties.getVelocity();
-            QString changeHint = "0";
-            if (value.x + value.y + value.z > 0) {
-                changeHint = "+";
-            } else if (value.x + value.y + value.z < 0) {
-                changeHint = "-";
-            }
-            changedProperties[index] = QString("velocity:") + changeHint;
+            changedProperties[index] = QString("velocity:") +
+                QString::number((int)value.x) + "," +
+                QString::number((int)value.y) + "," +
+                QString::number((int)value.z);
         }
     }
 
@@ -913,6 +945,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     properties.setLifetime(_maxTmpEntityLifetime);
                     // also bump up the lastEdited time of the properties so that the interface that created this edit
                     // will accept our adjustment to lifetime back into its own entity-tree.
+                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+                        properties.setLastEdited(usecTimestampNow());
+                    }
                     properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
                 }
             }
@@ -1307,8 +1342,8 @@ void EntityTree::debugDumpMap() {
 
 class ContentsDimensionOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
     glm::vec3 getDimensions() const { return _contentExtents.size(); }
     float getLargestDimension() const { return _contentExtents.largestDimension(); }
 private:
@@ -1335,8 +1370,8 @@ float EntityTree::getContentsLargestDimension() {
 
 class DebugOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element);
-    virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    virtual bool preRecursion(OctreeElementPointer element) override;
+    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
 };
 
 bool DebugOperator::preRecursion(OctreeElementPointer element) {
@@ -1353,8 +1388,8 @@ void EntityTree::dumpTree() {
 
 class PruneOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element) { return true; }
-    virtual bool postRecursion(OctreeElementPointer element);
+    virtual bool preRecursion(OctreeElementPointer element) override { return true; }
+    virtual bool postRecursion(OctreeElementPointer element) override;
 };
 
 bool PruneOperator::postRecursion(OctreeElementPointer element) {

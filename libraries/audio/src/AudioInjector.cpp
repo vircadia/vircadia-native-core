@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioInjector.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 
@@ -24,9 +26,9 @@
 #include "SoundCache.h"
 #include "AudioSRC.h"
 
-#include "AudioInjector.h"
-
 int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
+
+AbstractAudioInterface* AudioInjector::_localAudioInterface{ nullptr };
 
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
     return static_cast<AudioInjectorState>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
@@ -37,24 +39,15 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
     return lhs;
 };
 
-AudioInjector::AudioInjector(QObject* parent) :
-    QObject(parent)
-{
-
-}
-
 AudioInjector::AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions) :
-    _audioData(sound.getByteArray()),
-    _options(injectorOptions)
+    AudioInjector(sound.getByteArray(), injectorOptions)
 {
-
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
-    _options(injectorOptions) 
+    _options(injectorOptions)
 {
-
 }
 
 bool AudioInjector::stateHas(AudioInjectorState state) const {
@@ -62,7 +55,7 @@ bool AudioInjector::stateHas(AudioInjectorState state) const {
 }
 
 void AudioInjector::setOptions(const AudioInjectorOptions& options) {
-    // since options.stereo is computed from the audio stream, 
+    // since options.stereo is computed from the audio stream,
     // we need to copy it from existing options just in case.
     bool currentlyStereo = _options.stereo;
     _options = options;
@@ -71,7 +64,7 @@ void AudioInjector::setOptions(const AudioInjectorOptions& options) {
 
 void AudioInjector::finishNetworkInjection() {
     _state |= AudioInjectorState::NetworkInjectionFinished;
-    
+
     // if we are already finished with local
     // injection, then we are finished
     if(stateHas(AudioInjectorState::LocalInjectionFinished)) {
@@ -103,26 +96,6 @@ void AudioInjector::finish() {
     }
 }
 
-void AudioInjector::setupInjection() {
-    if (!_hasSetup) {
-        _hasSetup = true;
-
-        // check if we need to offset the sound by some number of seconds
-        if (_options.secondOffset > 0.0f) {
-
-            // convert the offset into a number of bytes
-            int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
-            byteOffset *= sizeof(int16_t);
-
-            _currentSendOffset = byteOffset;
-        } else {
-            _currentSendOffset = 0;
-        }
-    } else {
-        qCDebug(audio) << "AudioInjector::setupInjection called but already setup.";
-    }
-}
-
 void AudioInjector::restart() {
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();
@@ -150,28 +123,35 @@ void AudioInjector::restart() {
 
     // check our state to decide if we need extra handling for the restart request
     if (stateHas(AudioInjectorState::Finished)) {
-        // we finished playing, need to reset state so we can get going again
-        _hasSetup = false;
-        _shouldStop = false;
-        _state = AudioInjectorState::NotFinished;
-        
-        // call inject audio to start injection over again
-        setupInjection();
-
-        // inject locally
-        if(injectLocally()) {
-        
-            // if not localOnly, wake the AudioInjectorManager back up if it is stuck waiting
-            if (!_options.localOnly) {
-
-                if (!injectorManager->restartFinishedInjector(this)) {
-                    _state = AudioInjectorState::Finished; // we're not playing, so reset the state used by isPlaying.
-                }
-            }
-        } else {
-            _state = AudioInjectorState::Finished; // we failed to play, so we are finished again
+        if (!inject(&AudioInjectorManager::restartFinishedInjector)) {
+            qWarning() << "AudioInjector::restart failed to thread injector";
         }
     }
+}
+
+bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*)) {
+    _state = AudioInjectorState::NotFinished;
+
+    int byteOffset = 0;
+    if (_options.secondOffset > 0.0f) {
+        byteOffset = (int)floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        byteOffset *= sizeof(AudioConstants::SAMPLE_SIZE);
+    }
+    _currentSendOffset = byteOffset;
+
+    if (!injectLocally()) {
+        finishLocalInjection();
+    }
+
+    bool success = true;
+    if (!_options.localOnly) {
+        auto injectorManager = DependencyManager::get<AudioInjectorManager>();
+        if (!(*injectorManager.*injection)(this)) {
+            success = false;
+            finishNetworkInjection();
+        }
+    }
+    return success;
 }
 
 bool AudioInjector::injectLocally() {
@@ -202,11 +182,6 @@ bool AudioInjector::injectLocally() {
         qCDebug(audio) << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
 
-    if (!success) {
-        // we never started so we are finished, call our stop method
-        stop();
-    }
-
     return success;
 }
 
@@ -217,8 +192,15 @@ static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 qint64 writeStringToStream(const QString& string, QDataStream& stream) {
     QByteArray data = string.toUtf8();
     uint32_t length = data.length();
-    stream << static_cast<quint32>(length);
-    stream << data;
+    if (length == 0) {
+        stream << static_cast<quint32>(length);
+    } else {
+        // http://doc.qt.io/qt-5/datastreamformat.html
+        // QDataStream << QByteArray -
+        //   If the byte array is null : 0xFFFFFFFF (quint32)
+        //   Otherwise : the array size(quint32) followed by the array bytes, i.e.size bytes
+        stream << data;
+    }
     return length + sizeof(uint32_t);
 }
 
@@ -229,6 +211,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     // if we haven't setup the packet to send then do so now
+    static int loopbackOptionOffset = -1;
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
@@ -278,10 +261,9 @@ int64_t AudioInjector::injectNextFrame() {
             // pack the stereo/mono type of the stream
             audioPacketStream << _options.stereo;
 
-            // pack the flag for loopback.  Now, we don't loopback
-            // and _always_ play locally, so loopbackFlag should be 
-            // false always.
-            uchar loopbackFlag = (uchar)false;
+            // pack the flag for loopback, if requested
+            loopbackOptionOffset = _currentPacket->pos();
+            uchar loopbackFlag = (_localAudioInterface && _localAudioInterface->shouldLoopbackInjectors());
             audioPacketStream << loopbackFlag;
 
             // pack the position for injected audio
@@ -301,7 +283,6 @@ int64_t AudioInjector::injectNextFrame() {
             volumeOptionOffset = _currentPacket->pos();
             quint8 volume = MAX_INJECTOR_VOLUME;
             audioPacketStream << volume;
-
             audioPacketStream << _options.ignorePenumbra;
 
             audioDataOffset = _currentPacket->pos();
@@ -337,6 +318,9 @@ int64_t AudioInjector::injectNextFrame() {
     // pack the sequence number
     _currentPacket->writePrimitive(_outgoingSequenceNumber);
 
+    _currentPacket->seek(loopbackOptionOffset);
+    _currentPacket->writePrimitive((uchar)(_localAudioInterface && _localAudioInterface->shouldLoopbackInjectors()));
+
     _currentPacket->seek(positionOptionOffset);
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
@@ -360,7 +344,7 @@ int64_t AudioInjector::injectNextFrame() {
             _currentSendOffset = 0;
         }
     }
-    // FIXME -- good place to call codec encode here. We need to figure out how to tell the AudioInjector which 
+    // FIXME -- good place to call codec encode here. We need to figure out how to tell the AudioInjector which
     // codec to use... possible through AbstractAudioInterface.
     QByteArray encodedAudio = decodedAudio;
     _currentPacket->write(encodedAudio.data(), encodedAudio.size());
@@ -402,7 +386,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
-    
+
     return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
@@ -418,7 +402,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
         return;
     }
 
-    if (_state == AudioInjectorState::Finished) {
+    if (stateHas(AudioInjectorState::Finished)) {
         stopAndDeleteLater();
     } else {
         _state |= AudioInjectorState::PendingDelete;
@@ -442,7 +426,7 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
 
     QByteArray samples = sound->getByteArray();
     if (stretchFactor == 1.0f) {
-        return playSoundAndDelete(samples, options, nullptr);
+        return playSoundAndDelete(samples, options);
     }
 
     const int standardRate = AudioConstants::SAMPLE_RATE;
@@ -460,11 +444,11 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
                                          nInputFrames);
 
     Q_UNUSED(nOutputFrames);
-    return playSoundAndDelete(resampled, options, nullptr);
+    return playSoundAndDelete(resampled, options);
 }
 
-AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
-    AudioInjector* sound = playSound(buffer, options, localInterface);
+AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
+    AudioInjector* sound = playSound(buffer, options);
 
     if (sound) {
         sound->_state |= AudioInjectorState::PendingDelete;
@@ -474,33 +458,10 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
 }
 
 
-AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
+AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
     AudioInjector* injector = new AudioInjector(buffer, options);
-    injector->setLocalAudioInterface(localInterface);
-
-    // grab the AudioInjectorManager
-    auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-
-    // setup parameters required for injection
-    injector->setupInjection();
-
-    // we always inject locally
-    //
-    if (!injector->injectLocally()) {
-        // failed, so don't bother sending to server
-        qDebug() << "AudioInjector::playSound failed to inject locally";
-        return nullptr;
-    }
-    // if localOnly, we are done, just return injector.
-    if (options.localOnly) {
-        return injector;
-    }
-
-    // send off to server for everyone else
-    if (!injectorManager->threadInjector(injector)) {
-        // we failed to thread the new injector (we are at the max number of injector threads)
-        qDebug() << "AudioInjector::playSound failed to thread injector";
+    if (!injector->inject(&AudioInjectorManager::threadInjector)) {
+        qWarning() << "AudioInjector::playSound failed to thread injector";
     }
     return injector;
-
 }

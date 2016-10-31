@@ -15,6 +15,7 @@
 #include <QUuid>
 
 #include <EntityItem.h>
+#include <AnimPose.h>
 #include <ObjectActionSpring.h>
 
 #include "avatar/MyAvatar.h"
@@ -40,6 +41,8 @@ public:
                            glm::vec3& linearVelocity, glm::vec3& angularVelocity) override;
 
     virtual void prepareForPhysicsSimulation() override;
+
+    void lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, const AnimPose& postAvatarUpdateRoomPose);
 
 private:
     void doKinematicUpdate(float deltaTimeStep);

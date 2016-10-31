@@ -33,9 +33,9 @@ FocusScope {
         }
 
     }
-
-    onHeightChanged: d.handleSizeChanged();
     
+    onHeightChanged: d.handleSizeChanged();
+
     onWidthChanged: d.handleSizeChanged();
 
     // Controls and windows can trigger this signal to ensure the desktop becomes visible
@@ -70,8 +70,8 @@ FocusScope {
             }
             var oldRecommendedRect = recommendedRect;
             var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
-            var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
-                                    newRecommendedRectJS.width, 
+            var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y,
+                                    newRecommendedRectJS.width,
                                     newRecommendedRectJS.height);
 
             var oldChildren = expectedChildren;
@@ -366,8 +366,8 @@ FocusScope {
         }
 
         var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
-        var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
-                                newRecommendedRectJS.width, 
+        var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y,
+                                newRecommendedRectJS.width,
                                 newRecommendedRectJS.height);
         var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
         var newX = newRecommendedRect.x + ((newRecommendedRect.width - targetWindow.width) / 2);
@@ -402,7 +402,7 @@ FocusScope {
         repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
     }
 
-    function repositionWindow(targetWindow, forceReposition, 
+    function repositionWindow(targetWindow, forceReposition,
                     oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions) {
 
         if (desktop.width === 0 || desktop.height === 0) {
@@ -456,6 +456,11 @@ FocusScope {
         return inputDialogBuilder.createObject(desktop, properties);
     }
 
+    Component { id: customInputDialogBuilder; CustomQueryDialog { } }
+    function customInputDialog(properties) {
+        return customInputDialogBuilder.createObject(desktop, properties);
+    }
+
     Component { id: fileDialogBuilder; FileDialog { } }
     function fileDialog(properties) {
         return fileDialogBuilder.createObject(desktop, properties);
@@ -487,7 +492,7 @@ FocusScope {
     }
 
     function unfocusWindows() {
-        // First find the active focus item, and unfocus it, all the way 
+        // First find the active focus item, and unfocus it, all the way
         // up the parent chain to the window
         var currentFocus = offscreenWindow.activeFocusItem;
         var targetWindow = d.getDesktopWindow(currentFocus);

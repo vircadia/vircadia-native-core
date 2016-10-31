@@ -78,7 +78,10 @@ Decoration {
                 id: closeClickArea
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: window.shown = false;
+                onClicked: {
+                    window.shown = false;
+                    window.windowClosed();
+                }
             }
         }
     }
@@ -106,7 +109,7 @@ Decoration {
         verticalOffset: 2
         samples: 2
         color: hifi.colors.baseGrayShadow60
-        visible: (window && window.focus)
+        visible: (desktop.gradientsSupported && window && window.focus)
         cached: true
     }
 }

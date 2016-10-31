@@ -244,21 +244,6 @@ void SunSkyStage::updateGraphicsObject() const {
         double originAlt = _earthSunModel.getAltitude();
         _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
     }
-
-    // Background
-    switch (getBackgroundMode()) {
-        case NO_BACKGROUND: {
-            break;
-        }
-        case SKY_DOME: {
-            break;
-        }
-        case SKY_BOX: {
-            break;
-        }
-        case NUM_BACKGROUND_MODES:
-            Q_UNREACHABLE();
-    };
 }
 
 void SunSkyStage::setBackgroundMode(BackgroundMode mode) {

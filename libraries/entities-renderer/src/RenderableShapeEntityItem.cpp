@@ -40,7 +40,6 @@ static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING { {
     GeometryCache::Cylinder,
 } };
 
-
 RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     Pointer entity = std::make_shared<RenderableShapeEntityItem>(entityID);
     entity->setProperties(properties);
@@ -72,18 +71,29 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
     }
 }
 
+bool RenderableShapeEntityItem::isTransparent() {
+    if (_procedural && _procedural->isFading()) {
+        float isFading = Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
+        _procedural->setIsFading(isFading);
+        return isFading;
+    } else {
+        return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
+    }
+}
+
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
+    checkFading();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
         _procedural->_vertexSource = simple_vert;
         _procedural->_fragmentSource = simple_frag;
-        _procedural->_state->setCullMode(gpu::State::CULL_NONE);
-        _procedural->_state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        _procedural->_state->setBlendFunction(false,
+        _procedural->_opaqueState->setCullMode(gpu::State::CULL_NONE);
+        _procedural->_opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
+        _procedural->_opaqueState->setBlendFunction(false,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
@@ -102,13 +112,16 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
+        outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        DependencyManager::get<GeometryCache>()->renderSolidShapeInstance(batch, MAPPING[_shape], color);
+        color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
     }
-
 
     static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(MAPPING[_shape]);
     args->_details._trianglesRendered += (int)triCount;

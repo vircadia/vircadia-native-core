@@ -33,6 +33,7 @@ public:
 
 public slots:
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
+    virtual bool shouldLoopbackInjectors() { return false; }
     
     virtual void setIsStereoInput(bool stereo) = 0;
 };

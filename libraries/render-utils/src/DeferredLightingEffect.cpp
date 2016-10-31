@@ -67,6 +67,7 @@ enum DeferredShader_MapSlot {
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    CAMERA_CORRECTION_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
@@ -181,10 +182,12 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
 
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -334,10 +337,16 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
-        glm::ivec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
+    // rendering
+    if (_primaryFramebuffer && _primaryFramebuffer->getSize() != frameSize) {
+        _primaryFramebuffer.reset();
+    }
 
     if (!_primaryFramebuffer) {
-        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredPrimary"));
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
@@ -351,9 +360,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
         auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
-
     }
-    _primaryFramebuffer->resize(frameSize.x, frameSize.y);
 
     primaryFramebuffer = _primaryFramebuffer;
 }
@@ -400,7 +407,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
-    const gpu::FramebufferPointer& lowCurvatureNormalFramebuffer,
+    const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
@@ -431,7 +438,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         
         // FIXME: Different render modes should have different tasks
         if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
-            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
@@ -446,9 +453,6 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
-        }
-        if (lowCurvatureNormalFramebuffer) {
-           // batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, lowCurvatureNormalFramebuffer->getRenderBuffer(0));
             batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (subsurfaceScatteringResource) {
@@ -472,6 +476,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
                     program = deferredLightingEffect->_directionalSkyboxLightShadow;
                     locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
@@ -480,6 +486,8 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                     locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
                 }
             } else {
+                // If the keylight has an ambient Map then use the Skybox version of the pass
+                // otherwise use the ambient sphere version
                 if (keyLight->getAmbientMap()) {
                     program = deferredLightingEffect->_directionalSkyboxLight;
                     locations = deferredLightingEffect->_directionalSkyboxLightLocations;
@@ -562,7 +570,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), monoViewport);
 
         batch.setProjectionTransform(monoProjMat);
-        batch.setViewTransform(monoViewTransform);
+        batch.setViewTransform(monoViewTransform, true);
 
         // Splat Point lights
         if (points && !deferredLightingEffect->_pointLights.empty()) {
@@ -693,7 +701,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     auto deferredFramebuffer = inputs.get1();
     auto lightingModel = inputs.get2();
     auto surfaceGeometryFramebuffer = inputs.get3();
-    auto lowCurvatureNormalFramebuffer = inputs.get4();
+    auto ssaoFramebuffer = inputs.get4();
     auto subsurfaceScatteringResource = inputs.get5();
     auto args = renderContext->args;
 
@@ -701,7 +709,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
        _gpuTimer.begin(batch);
     });
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lowCurvatureNormalFramebuffer, subsurfaceScatteringResource);
+    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel);
 
@@ -712,5 +720,5 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     });
     
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-    config->gpuTime = _gpuTimer.getAverage();
+    config->setGPUBatchRunTime(_gpuTimer.getGPUAverage(), _gpuTimer.getBatchAverage());
 }

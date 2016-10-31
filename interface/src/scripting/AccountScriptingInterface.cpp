@@ -15,12 +15,20 @@
 
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
+    auto accountManager = DependencyManager::get<AccountManager>();
+    QObject::connect(accountManager.data(), &AccountManager::profileChanged,
+                     &sharedInstance, &AccountScriptingInterface::usernameChanged);
     return &sharedInstance;
 }
 
 bool AccountScriptingInterface::isLoggedIn() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return accountManager->isLoggedIn();
+}
+
+bool AccountScriptingInterface::checkAndSignalForAccessToken() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->checkAndSignalForAccessToken();
 }
 
 QString AccountScriptingInterface::getUsername() {

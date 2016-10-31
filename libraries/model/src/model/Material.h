@@ -11,6 +11,8 @@
 #ifndef hifi_model_Material_h
 #define hifi_model_Material_h
 
+#include <QMutex>
+
 #include <bitset>
 #include <map>
 
@@ -324,7 +326,7 @@ public:
 
     // The texture map to channel association
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
-    const TextureMaps& getTextureMaps() const { return _textureMaps; }
+    const TextureMaps& getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe... 
     const TextureMapPointer getTextureMap(MapChannel channel) const;
 
     // Albedo maps cannot have opacity detected until they are loaded
@@ -344,12 +346,25 @@ public:
     };
 
     const UniformBufferView& getTexMapArrayBuffer() const { return _texMapArrayBuffer; }
+
+    int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
+    size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
+    bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
+
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
     mutable UniformBufferView _texMapArrayBuffer;
 
     TextureMaps _textureMaps;
+
+    mutable QMutex _textureMapsMutex { QMutex::Recursive };
+    mutable size_t _textureSize { 0 };
+    mutable int _textureCount { 0 };
+    mutable bool _hasCalculatedTextureInfo { false };
+    bool calculateMaterialInfo() const;
+
+
 };
 typedef std::shared_ptr< Material > MaterialPointer;
 

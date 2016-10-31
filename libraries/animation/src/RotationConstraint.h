@@ -35,6 +35,9 @@ public:
     /// \brief clear previous adjustment and adjust constraint limits to allow rotation
     virtual void dynamicallyAdjustLimits(const glm::quat& rotation) {}
 
+    /// \brief reset any remembered joint limit history
+    virtual void clearHistory() {};
+
 protected:
     glm::quat _referenceRotation = glm::quat();
 };

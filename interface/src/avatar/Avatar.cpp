@@ -98,12 +98,18 @@ Avatar::Avatar(RigPointer rig) :
     _headData = static_cast<HeadData*>(new Head(this));
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    _nameRectGeometryID = geometryCache->allocateID();
+    _leftPointerGeometryID = geometryCache->allocateID();
+    _rightPointerGeometryID = geometryCache->allocateID();
 }
 
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -117,6 +123,13 @@ Avatar::~Avatar() {
     if (_motionState) {
         delete _motionState;
         _motionState = nullptr;
+    }
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        geometryCache->releaseID(_nameRectGeometryID);
+        geometryCache->releaseID(_leftPointerGeometryID);
+        geometryCache->releaseID(_rightPointerGeometryID);
     }
 }
 
@@ -186,7 +199,7 @@ void Avatar::updateAvatarEntities() {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    auto treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
         return;
@@ -298,7 +311,9 @@ void Avatar::simulate(float deltaTime) {
         {
             PerformanceTimer perfTimer("head");
             glm::vec3 headPosition = getPosition();
-            _skeletonModel->getHeadPosition(headPosition);
+            if (!_skeletonModel->getHeadPosition(headPosition)) {
+                headPosition = getPosition();
+            }
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
@@ -306,6 +321,7 @@ void Avatar::simulate(float deltaTime) {
         }
     } else {
         // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+        getHead()->setPosition(getPosition());
         _skeletonModel->simulate(deltaTime, false);
     }
 
@@ -488,7 +504,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _leftPointerGeometryID);
             }
         }
 
@@ -512,7 +528,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
                 geometryCache->bindSimpleProgram(batch);
-                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
+                geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor, _rightPointerGeometryID);
             }
         }
     }
@@ -599,14 +615,14 @@ void Avatar::fixupModelsInScene() {
         _skeletonModel->removeFromScene(scene, pendingChanges);
         _skeletonModel->addToScene(scene, pendingChanges);
     }
-    for (auto& attachmentModel : _attachmentModels) {
+    for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
 
-    for (auto& attachmentModelToRemove : _attachmentsToRemove) {
+    for (auto attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, pendingChanges);
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
@@ -776,9 +792,9 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
 
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, true, true, true);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
-                bevelDistance, backgroundColor);
+                bevelDistance, backgroundColor, _nameRectGeometryID);
         }
 
         // Render actual name
@@ -847,15 +863,55 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
-    glm::quat rotation;
-    _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
-    return Quaternions::Y_180 * rotation;
+    switch(index) {
+        case SENSOR_TO_WORLD_MATRIX_INDEX: {
+            glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return glmExtractRotation(invAvatarMat * sensorToWorldMatrix);
+        }
+        case CONTROLLER_LEFTHAND_INDEX: {
+            Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
+            return controllerLeftHandTransform.getRotation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
+            return controllerRightHandTransform.getRotation();
+        }
+        default: {
+            glm::quat rotation;
+            _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
+            return Quaternions::Y_180 * rotation;
+        }
+    }
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    glm::vec3 translation;
-    _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
-    return Quaternions::Y_180 * translation;
+    switch(index) {
+        case SENSOR_TO_WORLD_MATRIX_INDEX: {
+            glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+            bool success;
+            Transform avatarTransform;
+            Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
+            glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
+            return extractTranslation(invAvatarMat * sensorToWorldMatrix);
+        }
+        case CONTROLLER_LEFTHAND_INDEX: {
+            Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
+            return controllerLeftHandTransform.getTranslation();
+        }
+        case CONTROLLER_RIGHTHAND_INDEX: {
+            Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
+            return controllerRightHandTransform.getTranslation();
+        }
+        default: {
+            glm::vec3 translation;
+            _skeletonModel->getAbsoluteJointTranslationInRigFrame(index, translation);
+            return Quaternions::Y_180 * translation;
+        }
+    }
 }
 
 int Avatar::getJointIndex(const QString& name) const {
@@ -863,6 +919,10 @@ int Avatar::getJointIndex(const QString& name) const {
         int result;
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
+        return result;
+    }
+    int result = getFauxJointIndex(name);
+    if (result != -1) {
         return result;
     }
     return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointIndex(name) : -1;
@@ -915,6 +975,17 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
 }
+
+void Avatar::setModelURLFinished(bool success) {
+    if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
+        // we don't redo this every time we receive an identity packet from the avatar with the bad url.
+        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
+                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+    }
+}
+
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {

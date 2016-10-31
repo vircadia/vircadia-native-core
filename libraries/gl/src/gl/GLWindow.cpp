@@ -8,10 +8,11 @@
 
 #include "GLWindow.h"
 
+#include <QtCore/QDebug>
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
 
 #include "GLHelpers.h"
+#include "GLLogging.h"
 
 void GLWindow::createContext(QOpenGLContext* shareContext) {
     createContext(getDefaultOpenGLSurfaceFormat(), shareContext);
@@ -41,10 +42,10 @@ bool GLWindow::makeCurrent() {
     Q_ASSERT(makeCurrentResult);
     
     std::call_once(_reportOnce, []{
-        qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-        qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-        qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+        qCDebug(glLogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(glLogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(glLogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qCDebug(glLogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
     
     Q_ASSERT(_context == QOpenGLContext::currentContext());

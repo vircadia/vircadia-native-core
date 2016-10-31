@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -68,6 +67,8 @@ class EntityItemProperties {
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
+
+    void merge(const EntityItemProperties& other);
 
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
@@ -201,6 +202,8 @@ public:
     // these are used when bouncing location data into and out of scripts
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
@@ -213,11 +216,13 @@ public:
     DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
 
+    DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
 public:
-    float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
+    float getMaxDimension() const { return glm::compMax(_dimensions); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
@@ -281,6 +286,19 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+    // render info related items
+    size_t getRenderInfoVertexCount() const { return _renderInfoVertexCount; }
+    void setRenderInfoVertexCount(size_t value) { _renderInfoVertexCount = value; }
+    int getRenderInfoTextureCount() const { return _renderInfoTextureCount; }
+    void setRenderInfoTextureCount(int value) { _renderInfoTextureCount = value; }
+    size_t getRenderInfoTextureSize() const { return _renderInfoTextureSize; }
+    void setRenderInfoTextureSize(size_t value) { _renderInfoTextureSize = value; }
+    int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
+    void setRenderInfoDrawCalls(int value) { _renderInfoDrawCalls = value; }
+    bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
+    void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
+
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
@@ -303,6 +321,12 @@ private:
     QVariantMap _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    size_t _renderInfoVertexCount { 0 };
+    int _renderInfoTextureCount { 0 };
+    size_t _renderInfoTextureSize { 0 };
+    int _renderInfoDrawCalls { 0 };
+    bool _renderInfoHasTransparent { false };
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };
@@ -343,6 +367,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Created, created, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");

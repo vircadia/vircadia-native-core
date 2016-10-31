@@ -13,6 +13,15 @@
 
 <@func declareDeferredFrameTransform()@>
 
+struct CameraCorrection {
+    mat4 _correction;
+    mat4 _correctionInverse;
+};
+ 
+uniform cameraCorrectionBuffer {
+    CameraCorrection cameraCorrection;
+};
+
 struct DeferredFrameTransform {
     vec4 _pixelInfo;
     vec4 _invPixelInfo;
@@ -29,7 +38,10 @@ uniform deferredFrameTransformBuffer {
 };
 
 DeferredFrameTransform getDeferredFrameTransform() {
-    return frameTransform;
+    DeferredFrameTransform result = frameTransform;
+    result._view = result._view * cameraCorrection._correctionInverse;  
+    result._viewInverse = result._viewInverse * cameraCorrection._correction;  
+    return result;
 }
 
 vec2 getWidthHeight(int resolutionLevel) {
@@ -67,11 +79,11 @@ float getPosLinearDepthFar() {
 }
 
 mat4 getViewInverse() {
-    return frameTransform._viewInverse;
+    return frameTransform._viewInverse * cameraCorrection._correction;
 }
 
 mat4 getView() {
-    return frameTransform._view;
+    return frameTransform._view * cameraCorrection._correctionInverse;
 }
 
 bool isStereo() {
@@ -80,6 +92,13 @@ bool isStereo() {
 
 float getStereoSideWidth(int resolutionLevel) {
     return float(int(frameTransform._stereoInfo.y) >> resolutionLevel);
+}
+float getStereoSideHeight(int resolutionLevel) {
+    return float(int(frameTransform._pixelInfo.w) >> resolutionLevel);
+}
+
+vec2 getSideImageSize(int resolutionLevel) {
+    return vec2(float(int(frameTransform._stereoInfo.y) >> resolutionLevel), float(int(frameTransform._pixelInfo.w) >> resolutionLevel));
 }
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {

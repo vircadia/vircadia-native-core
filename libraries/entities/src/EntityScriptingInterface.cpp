@@ -12,6 +12,7 @@
 
 #include "EntityItemID.h"
 #include <VariantMapToScriptValue.h>
+#include <SharedUtil.h>
 #include <SpatialParentFinder.h>
 
 #include "EntitiesLogging.h"
@@ -21,6 +22,7 @@
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "QVariantGLM.h"
 #include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
 
@@ -38,6 +40,12 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
+}
+
+void EntityScriptingInterface::resetActivityTracking() {
+    _activityTracking.addedEntityCount = 0;
+    _activityTracking.deletedEntityCount = 0;
+    _activityTracking.editedEntityCount = 0;
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -78,6 +86,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     EntityItemProperties scriptSideProperties = entitySideProperties;
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+    scriptSideProperties.setLocalVelocity(entitySideProperties.getLocalVelocity());
+    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getLocalAngularVelocity());
 
     bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
@@ -88,10 +98,19 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
-    // TODO -- handle velocity and angularVelocity
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity(),
+                                                                      entitySideProperties.getParentID(),
+                                                                      entitySideProperties.getParentJointIndex(),
+                                                                      success);
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                                                    entitySideProperties.getParentID(),
+                                                                                    entitySideProperties.getParentJointIndex(),
+                                                                                    success);
 
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
+    scriptSideProperties.setVelocity(worldVelocity);
+    scriptSideProperties.setAngularVelocity(worldAngularVelocity);
 
     return scriptSideProperties;
 }
@@ -125,11 +144,34 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
         entitySideProperties.setRotation(localRotation);
     }
 
+    if (scriptSideProperties.localVelocityChanged()) {
+        entitySideProperties.setVelocity(scriptSideProperties.getLocalVelocity());
+    } else if (scriptSideProperties.velocityChanged()) {
+        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity(),
+                                                                          entitySideProperties.getParentID(),
+                                                                          entitySideProperties.getParentJointIndex(),
+                                                                          success);
+        entitySideProperties.setVelocity(localVelocity);
+    }
+
+    if (scriptSideProperties.localAngularVelocityChanged()) {
+        entitySideProperties.setAngularVelocity(scriptSideProperties.getLocalAngularVelocity());
+    } else if (scriptSideProperties.angularVelocityChanged()) {
+        glm::vec3 localAngularVelocity =
+            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity(),
+                                                           entitySideProperties.getParentID(),
+                                                           entitySideProperties.getParentJointIndex(),
+                                                           success);
+        entitySideProperties.setAngularVelocity(localAngularVelocity);
+    }
+
     return entitySideProperties;
 }
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
@@ -138,6 +180,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesWithSimID.setClientOnly(clientOnly);
         propertiesWithSimID.setOwningAvatarID(myNodeID);
+    }
+
+    if (propertiesWithSimID.getParentID() == AVATAR_SELF_ID) {
+        qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+        propertiesWithSimID.setParentID(QUuid());
     }
 
     auto dimensions = propertiesWithSimID.getDimensions();
@@ -198,12 +245,18 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
+                                               bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+    _activityTracking.addedEntityCount++;
+
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(name);
     properties.setModelURL(modelUrl);
+    properties.setShapeTypeFromString(shapeType);
+    properties.setDynamic(dynamic);
     properties.setPosition(position);
+    properties.setGravity(gravity);
     return addEntity(properties);
 }
 
@@ -259,6 +312,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    _activityTracking.editedEntityCount++;
+
     EntityItemProperties properties = scriptSideProperties;
 
     auto dimensions = properties.getDimensions();
@@ -308,6 +363,9 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
+            } else if (scriptSideProperties.getParentID() == AVATAR_SELF_ID) {
+                qDebug() << "ERROR: Cannot set entity parent ID to the local-only MyAvatar ID";
+                properties.setParentID(QUuid());
             }
             if (!scriptSideProperties.parentJointIndexChanged()) {
                 properties.setParentJointIndex(entity->getParentJointIndex());
@@ -337,9 +395,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
     });
 
-    if (!updatedEntity) {
-        return QUuid();
-    }
+    // FIXME: We need to figure out a better way to handle this. Allowing these edits to go through potentially
+    // breaks avatar energy and entities that are parented.
+    //
+    // To handle cases where a script needs to edit an entity with a _known_ entity id but doesn't exist
+    // in the local entity tree, we need to allow those edits to go through to the server.
+    // if (!updatedEntity) {
+    //     return QUuid();
+    // }
 
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
@@ -402,6 +465,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 }
 
 void EntityScriptingInterface::deleteEntity(QUuid id) {
+    _activityTracking.deletedEntityCount++;
+
     EntityItemID entityID(id);
     bool shouldDelete = true;
 
@@ -516,12 +581,54 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frustum) const {
+    QVector<QUuid> result;
+
+    const QString POSITION_PROPERTY = "position";
+    bool positionOK = frustum.contains(POSITION_PROPERTY);
+    glm::vec3 position = positionOK ? qMapToGlmVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
+
+    const QString ORIENTATION_PROPERTY = "orientation";
+    bool orientationOK = frustum.contains(ORIENTATION_PROPERTY);
+    glm::quat orientation = orientationOK ? qMapToGlmQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
+
+    const QString PROJECTION_PROPERTY = "projection";
+    bool projectionOK = frustum.contains(PROJECTION_PROPERTY);
+    glm::mat4 projection = projectionOK ? qMapToGlmMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
+
+    const QString CENTER_RADIUS_PROPERTY = "centerRadius";
+    bool centerRadiusOK = frustum.contains(CENTER_RADIUS_PROPERTY);
+    float centerRadius = centerRadiusOK ? frustum[CENTER_RADIUS_PROPERTY].toFloat() : 0.0f;
+
+    if (positionOK && orientationOK && projectionOK && centerRadiusOK) {
+        ViewFrustum viewFrustum;
+        viewFrustum.setPosition(position);
+        viewFrustum.setOrientation(orientation);
+        viewFrustum.setProjection(projection);
+        viewFrustum.setCenterRadius(centerRadius);
+        viewFrustum.calculate();
+
+        if (_entityTree) {
+            QVector<EntityItemPointer> entities;
+            _entityTree->withReadLock([&] {
+                _entityTree->findEntities(viewFrustum, entities);
+            });
+
+            foreach(EntityItemPointer entity, entities) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+
+    return result;
+}
+
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
 
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard, visibleOnly, collidableOnly);
 }
 
 // FIXME - we should remove this API and encourage all users to use findRayIntersection() instead. We've changed
@@ -536,17 +643,18 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
-                                                                                    Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
+        Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
 
 
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-            result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, (void**)&intersectedEntity, lockType, &result.accurate,
-                                                                precisionPicking);
+        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction,
+            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+            element, result.distance, result.face, result.surfaceNormal,
+            (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
@@ -1180,6 +1288,76 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
     return result;
 }
 
+QUuid EntityScriptingInterface::getKeyboardFocusEntity() const {
+    QUuid result;
+    QMetaObject::invokeMethod(qApp, "getKeyboardFocusEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
+    return result;
+}
+
+void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
+    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::QueuedConnection, Q_ARG(QUuid, id));
+}
+
+void EntityScriptingInterface::sendMousePressOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMousePressOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseMoveOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendMouseReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickDownOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickDownOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoldingClickOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendClickReleaseOnEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverEnterEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverEnterEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverOverEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverOverEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+void EntityScriptingInterface::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
+    QMetaObject::invokeMethod(qApp, "sendHoverLeaveEntity", Qt::QueuedConnection, Q_ARG(QUuid, id), Q_ARG(PointerEvent, event));
+}
+
+bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(id));
+            if (entity) {
+                result = entity->wantsHandControllerPointerEvents();
+            }
+        });
+    }
+    return result;
+}
+
+void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, const QVariant& message) {
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                entity->emitScriptEvent(message);
+            }
+        });
+    }
+}
+
 float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }
@@ -1196,3 +1374,4 @@ float EntityScriptingInterface::getCostMultiplier() {
 void EntityScriptingInterface::setCostMultiplier(float value) {
     costMultiplier = value;
 }
+

@@ -43,11 +43,15 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
+#include <ThreadSafeValueCache.h>
+#include <shared/FileLogger.h>
+
+#include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
-#include "FileLogger.h"
+#include "ConnectionMonitor.h"
 #include "gpu/Context.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
@@ -55,7 +59,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
-#include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -63,6 +66,9 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
+
+#include <procedural/ProceduralSkybox.h>
+#include <model/Skybox.h>
 
 class OffscreenGLCanvas;
 class GLCanvas;
@@ -82,6 +88,8 @@ static const UINT UWM_SHOW_APPLICATION =
     RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
 #endif
 
+static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+
 class Application;
 #if defined(qApp)
 #undef qApp
@@ -98,7 +106,16 @@ class Application : public QApplication,
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
 
+private:
+    bool _shouldRunServer { false };
+    QString _runServerPath;
+    RunningMarker _runningMarker;
+
 public:
+    // startup related getter/setters
+    bool shouldRunServer() const { return _shouldRunServer; }
+    bool hasRunServerPath() const { return !_runServerPath.isEmpty(); }
+    QString getRunServerPath() const { return _runServerPath; }
 
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
@@ -108,8 +125,6 @@ public:
     virtual MainWindow* getPrimaryWindow() override;
     virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool makeRenderingContextCurrent() override;
-    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
-    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
     virtual bool isForeground() const override;
 
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
@@ -124,7 +139,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;
@@ -165,7 +180,7 @@ public:
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
     void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
+    QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
@@ -214,12 +229,13 @@ public:
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const { return _aboutToQuit; }
+    bool isAboutToQuit() const override { return _aboutToQuit; }
+    bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
-    bool isHMDMode() const;
+    virtual bool isHMDMode() const override;
     glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
@@ -246,6 +262,25 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    
+    void takeSnapshot(bool notify, float aspectRatio = 0.0f);
+    void shareSnapshot(const QString& filename);
+
+    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
+    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
+
+    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+
+    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -256,19 +291,21 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
+    void updateThreadPoolCount() const;
 
     static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleRunningScriptsWidget() const;
-    void toggleAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection() const;
     void readArgumentsFromLocalSocket() const;
@@ -298,6 +335,7 @@ public slots:
     void cameraMenuChanged();
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
+    Q_INVOKABLE void centerUI();
 
     void resetPhysicsReadyInformation();
 
@@ -310,6 +348,10 @@ public slots:
     void rotationModeChanged() const;
 
     static void runTests();
+
+    QUuid getKeyboardFocusEntity() const;  // thread-safe
+    void setKeyboardFocusEntity(QUuid id);
+    void setKeyboardFocusEntity(EntityItemID entityItemID);
 
 private slots:
     void showDesktop();
@@ -345,7 +387,7 @@ private slots:
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
-    void domainConnectionRefused(const QString& reasonMessage, int reason);
+    void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
 private:
     static void initDisplay();
@@ -371,9 +413,7 @@ private:
 
     int sendNackPackets();
 
-    void takeSnapshot();
-
-    MyAvatar* getMyAvatar() const;
+    std::shared_ptr<MyAvatar> getMyAvatar() const;
 
     void checkSkeleton() const;
 
@@ -424,7 +464,6 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -524,7 +563,7 @@ private:
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
-    EntityItemID _keyboardFocusedItem;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
@@ -560,6 +599,13 @@ private:
     bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
+
+    ConnectionMonitor _connectionMonitor;
+
+    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    gpu::TexturePointer _defaultSkyboxTexture;
+    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
+
 
 #endif // hifi_Application_h

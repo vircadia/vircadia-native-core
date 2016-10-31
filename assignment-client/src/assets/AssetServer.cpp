@@ -453,7 +453,7 @@ bool AssetServer::loadMappingsFromFile() {
                 while (it != _fileMappings.end()) {
                     bool shouldDrop = false;
 
-                    if (!isValidPath(it.key())) {
+                    if (!isValidFilePath(it.key())) {
                         qWarning() << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
                         shouldDrop = true;
                     }
@@ -508,7 +508,7 @@ bool AssetServer::writeMappingsToFile() {
 bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     path = path.trimmed();
 
-    if (!isValidPath(path)) {
+    if (!isValidFilePath(path)) {
         qWarning() << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
         return false;
     }
@@ -637,8 +637,8 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     oldPath = oldPath.trimmed();
     newPath = newPath.trimmed();
 
-    if (!isValidPath(oldPath) || !isValidPath(newPath)) {
-        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
+    if (!isValidFilePath(oldPath) || !isValidFilePath(newPath)) {
+        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward and no ending slashes:"
             << oldPath << "=>" << newPath;
 
         return false;

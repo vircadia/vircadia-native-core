@@ -4,13 +4,11 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 You will need the following tools to build our Android targets.
 
-* [cmake](http://www.cmake.org/download/) ~> 3.1.0
-  * Note that this is a newer version required than the minimum for hifi desktop targets.
-* [Qt](http://www.qt.io/download-open-source/#) ~> 5.4.0
-  * Note that this is a newer version required than the minimum for hifi desktop targets.
+* [cmake](http://www.cmake.org/download/) ~> 3.5.1
+* [Qt](http://www.qt.io/download-open-source/#) ~> 5.5.1
 * [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
-* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
-* [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
+* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r10d
+* [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.4.1.1
   * Install the latest Platform-tools
   * Install the latest Build-tools
   * Install the SDK Platform for API Level 19
@@ -18,6 +16,12 @@ You will need the following tools to build our Android targets.
   * Install the ARM EABI v7a System Image if you want to run an emulator.
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
+
+####Scribe
+
+High Fidelity has a shader pre-processing tool called `scribe` that various libraries will call on during the build process. You must compile scribe using your native toolchain (following the build instructions for your platform) and then pass a CMake variable or set an ENV variable `SCRIBE_PATH` that is a path to the scribe executable.
+
+CMake will fatally error if it does not find the scribe executable while using the android toolchain.
 
 ####Optional Components
 
@@ -31,11 +35,11 @@ This is most easily accomplished by installing all Android dependencies in the s
 
 ####Qt
 
-Install Qt 5.4 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation. 
+Install Qt 5.5.1 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation.
 
 The component required for the Android build is the `Android armv7` component.
 
-If you would like to install Qt to a different location, or attempt to build with a different Qt version, you can pass `ANDROID_QT_CMAKE_PREFIX_PATH` to CMake. Point to the `cmake` folder inside `$VERSION_NUMBER/android_armv7/lib`. Otherwise, our root CMakeLists will set it to `$ANDROID_LIB_DIR/Qt/5.3/android_armv7/lib/cmake`.
+If you would like to install Qt to a different location, or attempt to build with a different Qt version, you can pass `ANDROID_QT_CMAKE_PREFIX_PATH` to CMake. Point to the `cmake` folder inside `$VERSION_NUMBER/android_armv7/lib`. Otherwise, our root CMakeLists will set it to `$ANDROID_LIB_DIR/Qt/5.5/android_armv7/lib/cmake`.
 
 ####OpenSSL
 

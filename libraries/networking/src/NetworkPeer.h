@@ -81,9 +81,12 @@ public:
 public slots:
     void startPingTimer();
     void stopPingTimer();
+
 signals:
     void pingTimerTimeout();
     void socketActivated(const HifiSockAddr& sockAddr);
+    void socketUpdated();
+
 protected:
     void setActiveSocket(HifiSockAddr* discoveredSocket);
 

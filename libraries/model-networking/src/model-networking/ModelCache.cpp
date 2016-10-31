@@ -67,6 +67,18 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
+        auto animGraphVariant = mapping.value("animGraphUrl");
+        if (animGraphVariant.isValid()) {
+            QUrl fstUrl(animGraphVariant.toString());
+            if (fstUrl.isValid()) {
+                _animGraphOverrideUrl = _url.resolved(fstUrl);
+            } else {
+                _animGraphOverrideUrl = QUrl();
+            }
+        } else {
+            _animGraphOverrideUrl = QUrl();
+        }
+
         auto modelCache = DependencyManager::get<ModelCache>();
         GeometryExtra extra{ mapping, _textureBaseUrl };
 
@@ -284,6 +296,8 @@ Geometry::Geometry(const Geometry& geometry) {
     for (const auto& material : geometry._materials) {
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
+
+    _animGraphOverrideUrl = geometry._animGraphOverrideUrl;
 }
 
 void Geometry::setTextures(const QVariantMap& textureMap) {
@@ -316,9 +330,22 @@ bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
         for (auto& material : _materials) {
             // Check if material textures are loaded
-            if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [](const NetworkMaterial::Textures::value_type& it) { return it.texture && !it.texture->isLoaded(); })) {
+            bool materialMissingTexture = std::any_of(material->_textures.cbegin(), material->_textures.cend(),
+                [](const NetworkMaterial::Textures::value_type& it) { 
+                auto texture = it.texture;
+                if (!texture) {
+                    return false;
+                }
+                // Failed texture downloads need to be considered as 'loaded' 
+                // or the object will never fade in
+                bool finished = texture->isLoaded() || texture->isFailed();
+                if (!finished) {
+                    return true;
+                }
+                return false;
+            });
 
+            if (materialMissingTexture) {
                 return false;
             }
 
@@ -350,8 +377,10 @@ void GeometryResource::deleter() {
 }
 
 void GeometryResource::setTextures() {
-    for (const FBXMaterial& material : _fbxGeometry->materials) {
-        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+    if (_fbxGeometry) {
+        for (const FBXMaterial& material : _fbxGeometry->materials) {
+            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+        }
     }
 }
 
@@ -390,6 +419,7 @@ void GeometryResourceWatcher::resourceFinished(bool success) {
     if (success) {
         _geometryRef = std::make_shared<Geometry>(*_resource);
     }
+    emit finished(success);
 }
 
 void GeometryResourceWatcher::resourceRefreshed() {
@@ -429,7 +459,9 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, c
     _textures[channel] = Texture { fbxTexture.name, texture };
 
     auto map = std::make_shared<model::TextureMap>();
-    map->setTextureSource(texture->_textureSource);
+    if (texture) {
+        map->setTextureSource(texture->_textureSource);
+    }
     map->setTextureTransform(fbxTexture.transform);
 
     return map;

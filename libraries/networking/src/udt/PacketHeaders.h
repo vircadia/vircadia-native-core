@@ -98,7 +98,8 @@ public:
         NegotiateAudioFormat,
         SelectedAudioFormat,
         MoreEntityShapes,
-        LAST_PACKET_TYPE = MoreEntityShapes
+        NodeKickRequest,
+        LAST_PACKET_TYPE = NodeKickRequest
     };
 };
 
@@ -185,12 +186,20 @@ const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
 const PacketVersion VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS = 60;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
+const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
+const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
+
+enum class AssetServerPacketVersion: PacketVersion {
+    VegasCongestionControl = 19
+};
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
     AvatarEntities,
-    AbsoluteSixByteRotations
+    AbsoluteSixByteRotations,
+    SensorToWorldMat,
+    HandControllerJoints
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -201,7 +210,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
     ReasonMessageOnly = 17,
-    IncludesReasonCode
+    IncludesReasonCode,
+    IncludesExtraInfo
 };
 
 enum class DomainServerAddedNodeVersion : PacketVersion {
@@ -216,7 +226,9 @@ enum class DomainListVersion : PacketVersion {
 
 enum class AudioVersion : PacketVersion {
     HasCompressedAudio = 17,
-    CodecNameInAudioPackets
+    CodecNameInAudioPackets,
+    Exactly10msAudioPackets,
+    TerminatingStreamStats,
 };
 
 #endif // hifi_PacketHeaders_h

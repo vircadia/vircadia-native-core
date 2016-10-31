@@ -11,12 +11,9 @@
 
 #include <QSize>
 
-#include <gpu/Framebuffer.h>
+#include <mutex>
+#include <gpu/Forward.h>
 #include <DependencyManager.h>
-
-namespace gpu {
-class Batch;
-}
 
 /// Stores cached textures, including render-to-texture targets.
 class FramebufferCache : public Dependency {
@@ -30,12 +27,6 @@ public:
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
-    void setAmbientOcclusionResolutionLevel(int level);
-    gpu::FramebufferPointer getOcclusionFramebuffer();
-    gpu::TexturePointer getOcclusionTexture();
-    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
-    gpu::TexturePointer getOcclusionBlurredTexture();
-
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
 
@@ -47,27 +38,16 @@ public:
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
 
 private:
-    FramebufferCache();
-    virtual ~FramebufferCache();
-
     void createPrimaryFramebuffer();
 
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
-    gpu::FramebufferPointer _occlusionFramebuffer;
-    gpu::TexturePointer _occlusionTexture;
-    
-    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
-    gpu::TexturePointer _occlusionBlurredTexture;
-
     QSize _frameBufferSize{ 100, 100 };
-    int _AOResolutionLevel = 1; // AO perform at half res
 
-    // Resize/reallocate the buffers used for AO
-    // the size of the AO buffers is scaled by the AOResolutionScale;
-    void resizeAmbientOcclusionBuffers();
+    std::mutex _mutex;
+    std::list<gpu::FramebufferPointer> _cachedFramebuffers;
 };
 
 #endif // hifi_FramebufferCache_h

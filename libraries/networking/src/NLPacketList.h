@@ -31,7 +31,7 @@ private:
     NLPacketList(const NLPacketList& other) = delete;
     NLPacketList& operator=(const NLPacketList& other) = delete;
 
-    virtual std::unique_ptr<udt::Packet> createPacket();
+    virtual std::unique_ptr<udt::Packet> createPacket() override;
 
 
     PacketVersion _packetVersion;

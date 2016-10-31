@@ -184,10 +184,10 @@ void DomainMetadata::securityChanged(bool send) {
     QString restriction;
 
     const auto& settingsManager = static_cast<DomainServer*>(parent())->_settingsManager;
-    bool hasAnonymousAccess =
-        settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous).canConnectToDomain;
-    bool hasHifiAccess = 
-        settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn).canConnectToDomain;
+    bool hasAnonymousAccess = settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous).can(
+        NodePermissions::Permission::canConnectToDomain);
+    bool hasHifiAccess = settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn).can(
+        NodePermissions::Permission::canConnectToDomain);
     if (hasAnonymousAccess) {
         restriction = hasHifiAccess ? RESTRICTION_OPEN : RESTRICTION_ANON;
     } else if (hasHifiAccess) {

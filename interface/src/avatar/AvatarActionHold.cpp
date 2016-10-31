@@ -25,19 +25,34 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
 {
     _type = ACTION_TYPE_HOLD;
     _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
+
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    if (myAvatar) {
+        myAvatar->addHoldAction(this);
+    }
+
 #if WANT_DEBUG
-    qDebug() << "AvatarActionHold::AvatarActionHold";
+    qDebug() << "AvatarActionHold::AvatarActionHold" << (void*)this;
 #endif
 }
 
 AvatarActionHold::~AvatarActionHold() {
+    // Sometimes actions are destroyed after the AvatarManager is destroyed by the Application.
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    if (avatarManager) {
+        auto myAvatar = avatarManager->getMyAvatar();
+        if (myAvatar) {
+            myAvatar->removeHoldAction(this);
+        }
+    }
+
 #if WANT_DEBUG
-    qDebug() << "AvatarActionHold::~AvatarActionHold";
+    qDebug() << "AvatarActionHold::~AvatarActionHold" << (void*)this;
 #endif
 }
 
 bool AvatarActionHold::getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
     if (!controller) {
         qDebug() << "AvatarActionHold::getAvatarRigidBodyLocation failed to get character controller";
@@ -56,6 +71,10 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
     }
 
     withWriteLock([&]{
+        glm::vec3 avatarRigidBodyPosition;
+        glm::quat avatarRigidBodyRotation;
+        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
         if (_ignoreIK) {
             return;
         }
@@ -70,9 +89,6 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
             palmRotation = holdingAvatar->getUncachedLeftPalmRotation();
         }
 
-        glm::vec3 avatarRigidBodyPosition;
-        glm::quat avatarRigidBodyRotation;
-        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
 
         // determine the difference in translation and rotation between the avatar's
         // rigid body and the palm position.  The avatar's rigid body will be moved by bullet
@@ -124,13 +140,20 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             if (pose.isValid()) {
                 linearVelocity = pose.getVelocity();
                 angularVelocity = pose.getAngularVelocity();
+
+                if (isRightHand) {
+                    pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInAvatarFrame();
+                } else {
+                    pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInAvatarFrame();
+                }
             }
 
             if (_ignoreIK && pose.isValid()) {
-                // We cannot ignore other avatars IK and this is not the point of this option
-                // This is meant to make the grabbing behavior more reactive.
-                palmPosition = pose.getTranslation();
-                palmRotation = pose.getRotation();
+                Transform avatarTransform;
+                auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+                avatarTransform = myAvatar->getTransform();
+                palmPosition = avatarTransform.transform(pose.getTranslation() / myAvatar->getTargetScale());
+                palmRotation = avatarTransform.getRotation() * pose.getRotation();
             } else {
                 glm::vec3 avatarRigidBodyPosition;
                 glm::quat avatarRigidBodyRotation;
@@ -159,11 +182,17 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             }
         } else { // regular avatar
             if (isRightHand) {
-                palmPosition = holdingAvatar->getRightPalmPosition();
-                palmRotation = holdingAvatar->getRightPalmRotation();
+                Transform controllerRightTransform = Transform(holdingAvatar->getControllerRightHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerRightTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerRightTransform.getTranslation());
             } else {
-                palmPosition = holdingAvatar->getLeftPalmPosition();
-                palmRotation = holdingAvatar->getLeftPalmRotation();
+                Transform controllerLeftTransform = Transform(holdingAvatar->getControllerLeftHandMatrix());
+                Transform avatarTransform = holdingAvatar->getTransform();
+                palmRotation = avatarTransform.getRotation() * controllerLeftTransform.getRotation();
+                palmPosition = avatarTransform.getTranslation() +
+                    (avatarTransform.getRotation() * controllerLeftTransform.getTranslation());
             }
         }
 
@@ -230,14 +259,19 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             //     3 -- ignore i of 0 1 2
             //     4 -- ignore i of 1 2 3
             //     5 -- ignore i of 2 3 4
-            if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-                (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
-                continue;
-            }
+
+            // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
+            // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+            //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
+            //     continue;
+            // }
+
             measuredLinearVelocity += _measuredLinearVelocities[i];
         }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames - 3); // 3 because of the 3 we skipped, above
+        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
+                                          // - 3  // 3 because of the 3 we skipped, above
+                                          );
 
         if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
@@ -440,4 +474,41 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
     });
 
     forceBodyNonStatic();
+}
+
+void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, const AnimPose& postAvatarUpdateRoomPose) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        return;
+    }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState ? motionState->getRigidBody() : nullptr;
+    if (!rigidBody) {
+        return;
+    }
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+    if (!holdingAvatar || !holdingAvatar->isMyAvatar()) {
+        return;
+    }
+
+    btTransform worldTrans = rigidBody->getWorldTransform();
+    AnimPose worldBodyPose(glm::vec3(1), bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
+
+    // transform the body transform into sensor space with the prePhysics sensor-to-world matrix.
+    // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.
+    AnimPose newWorldBodyPose = postAvatarUpdateRoomPose * prePhysicsRoomPose.inverse() * worldBodyPose;
+
+    worldTrans.setOrigin(glmToBullet(newWorldBodyPose.trans));
+    worldTrans.setRotation(glmToBullet(newWorldBodyPose.rot));
+    rigidBody->setWorldTransform(worldTrans);
+
+    bool positionSuccess;
+    ownerEntity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
+    bool orientationSuccess;
+    ownerEntity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
 }

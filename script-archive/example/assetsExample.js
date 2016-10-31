@@ -2,7 +2,7 @@ var data = "this is some data";
 var extension = "txt";
 var uploadedFile;
 
-Assets.uploadData(data, extension, function (url) {
+Assets.uploadData(data, function (url) {
     print("data uploaded to:" + url);
     uploadedFile = url;
     Assets.downloadData(url, function (data) {

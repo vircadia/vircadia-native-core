@@ -13,6 +13,7 @@
 #include <EntityTree.h>
 #include <EntityTreeRenderer.h>
 #include <avatar/AvatarManager.h>
+#include <AvatarData.h>
 
 #include "InterfaceParentFinder.h"
 
@@ -28,7 +29,7 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& s
     if (entityTree) {
         parent = entityTree->findByID(parentID);
     } else {
-        EntityTreeRenderer* treeRenderer = qApp->getEntities();
+        auto treeRenderer = qApp->getEntities();
         EntityTreePointer tree = treeRenderer ? treeRenderer->getTree() : nullptr;
         parent = tree ? tree->findEntityByEntityItemID(parentID) : nullptr;
     }
@@ -43,6 +44,11 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& s
     if (!parent.expired()) {
         success = true;
         return parent;
+    }
+
+    if (parentID == AVATAR_SELF_ID) {
+        success = true;
+        return avatarManager->getMyAvatar();
     }
 
     success = false;

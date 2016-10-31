@@ -18,12 +18,15 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <QImageReader>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include <gpu/Batch.h>
 
+#include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 
 #include <Finally.h>
@@ -32,8 +35,7 @@
 #include "ModelNetworkingLogging.h"
 
 TextureCache::TextureCache() {
-    const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
-    setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
+    setUnusedResourceCacheSize(0);
     setObjectName("TextureCache");
 
     // Expose enum Type to JS/QML via properties
@@ -115,6 +117,7 @@ const unsigned char OPAQUE_BLACK[] = { 0x00, 0x00, 0x00, 0xFF };
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _whiteTexture->setSource("TextureCache::_whiteTexture");
         _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
     return _whiteTexture;
@@ -123,7 +126,8 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
 const gpu::TexturePointer& TextureCache::getGrayTexture() {
     if (!_grayTexture) {
         _grayTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
-        _grayTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_GRAY);
+        _grayTexture->setSource("TextureCache::_grayTexture");
+        _grayTexture->assignStoredMip(0, _grayTexture->getTexelFormat(), sizeof(OPAQUE_GRAY), OPAQUE_GRAY);
     }
     return _grayTexture;
 }
@@ -131,6 +135,7 @@ const gpu::TexturePointer& TextureCache::getGrayTexture() {
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _blueTexture->setSource("TextureCache::_blueTexture");
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
     return _blueTexture;
@@ -139,7 +144,8 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
 const gpu::TexturePointer& TextureCache::getBlackTexture() {
     if (!_blackTexture) {
         _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 1, 1));
-        _blackTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+        _blackTexture->setSource("TextureCache::_blackTexture");
+        _blackTexture->assignStoredMip(0, _blackTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
     }
     return _blackTexture;
 }
@@ -171,7 +177,8 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const
 }
 
 
-NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type) {
+NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type,
+                                                          const QVariantMap& options = QVariantMap()) {
     using Type = NetworkTexture;
 
     switch (type) {
@@ -188,7 +195,11 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
             break;
         }
         case Type::CUBE_TEXTURE: {
-            return model::TextureUsage::createCubeTextureFromImage;
+            if (options.value("generateIrradiance", true).toBool()) {
+                return model::TextureUsage::createCubeTextureFromImage;
+            } else {
+                return model::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
+            }
             break;
         }
         case Type::BUMP_TEXTURE: {
@@ -225,9 +236,9 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type, QVariantMap options) {
     QImage image = QImage(path);
-    auto loader = getTextureLoaderForType(type);
+    auto loader = getTextureLoaderForType(type, options);
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
@@ -277,7 +288,7 @@ public:
 
     ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data, const QUrl& url = QUrl());
 
-    virtual void run();
+    virtual void run() override;
 
 private:
     static void listSupportedImageFormats();
@@ -302,6 +313,24 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArra
     _url(url),
     _content(data)
 {
+#if DEBUG_DUMP_TEXTURE_LOADS
+    static auto start = usecTimestampNow() / USECS_PER_MSEC;
+    auto now = usecTimestampNow() / USECS_PER_MSEC - start;
+    QString urlStr = _url.toString();
+    auto dot = urlStr.lastIndexOf(".");
+    QString outFileName = QString(QCryptographicHash::hash(urlStr.toLocal8Bit(), QCryptographicHash::Md5).toHex()) + urlStr.right(urlStr.length() - dot);
+    QFile loadRecord("h:/textures/loads.txt");
+    loadRecord.open(QFile::Text | QFile::Append | QFile::ReadWrite);
+    loadRecord.write(QString("%1 %2\n").arg(now).arg(outFileName).toLocal8Bit());
+    outFileName = "h:/textures/" + outFileName;
+    QFileInfo outInfo(outFileName);
+    if (!outInfo.exists()) {
+        QFile outFile(outFileName);
+        outFile.open(QFile::WriteOnly | QFile::Truncate);
+        outFile.write(data);
+        outFile.close();
+    }
+#endif
 }
 
 void ImageReader::listSupportedImageFormats() {

@@ -19,12 +19,14 @@
 #include <Sound.h>
 
 #include <controllers/Pose.h>
+#include <controllers/Actions.h>
 
 #include "Avatar.h"
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
+class AvatarActionHold;
 class ModelItemID;
 
 enum DriveKeys {
@@ -79,8 +81,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
-    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
-
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
@@ -96,7 +96,11 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    Q_INVOKABLE void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
+    void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
+
+    Q_INVOKABLE void centerBody(); // thread-safe
+    Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
+
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime) override;
     void preDisplaySide(RenderArgs* renderArgs);
@@ -106,9 +110,6 @@ public:
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
 
-    // thread safe
-    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
-
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
 
@@ -117,6 +118,9 @@ public:
     // This can also update the avatar's position to follow the HMD
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    // read the location of a hand controller and save the transform
+    void updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache);
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -271,6 +275,13 @@ public:
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
     Q_INVOKABLE bool getCharacterControllerEnabled();
 
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
+    void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -288,8 +299,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
-
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
@@ -299,7 +308,11 @@ public slots:
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
-    Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
+
+    QUrl getAnimGraphOverrideUrl() const;  // thread-safe
+    void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
+    QUrl getAnimGraphUrl() const;  // thread-safe
+    void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
@@ -403,9 +416,14 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
-    QUrl _animGraphUrl {""};
+    ThreadSafeValueCache<QUrl> _currentAnimGraphUrl;
+    ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
+    QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
+
+    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
@@ -418,10 +436,6 @@ private:
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
     glm::mat4 _bodySensorMatrix;
-
-    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
-    glm::mat4 _sensorToWorldMatrix;
-    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
 
     struct FollowHelper {
         FollowHelper();
@@ -478,6 +492,10 @@ private:
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
+
+    AnimPose _prePhysicsRoomPose;
+    std::mutex _holdActionsMutex;
+    std::vector<AvatarActionHold*> _holdActions;
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

@@ -37,9 +37,9 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
 const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<model::MaterialPointer> _collisionHullMaterials;
+std::vector<model::MaterialPointer> _collisionMaterials;
 
-void initCollisionHullMaterials() {
+void initCollisionMaterials() {
     // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
     // (no browns, greys, or dark shades)
     float component[NUM_COLLISION_HULL_COLORS] = {
@@ -50,7 +50,7 @@ void initCollisionHullMaterials() {
         1.0f, 1.0f, 1.0f, 1.0f,
         0.8f, 0.6f, 0.4f, 0.2f
     };
-    _collisionHullMaterials.reserve(NUM_COLLISION_HULL_COLORS);
+    _collisionMaterials.reserve(NUM_COLLISION_HULL_COLORS);
 
     // each component gets the same cuve
     // but offset by a multiple of one third the full width
@@ -72,7 +72,7 @@ void initCollisionHullMaterials() {
             material->setAlbedo(glm::vec3(red, green, blue));
             material->setMetallic(0.02f);
             material->setRoughness(0.5f);
-            _collisionHullMaterials.push_back(material);
+            _collisionMaterials.push_back(material);
         }
     }
 }
@@ -82,7 +82,6 @@ Model::Model(RigPointer rig, QObject* parent) :
     _renderGeometry(),
     _collisionGeometry(),
     _renderWatcher(_renderGeometry),
-    _collisionWatcher(_collisionGeometry),
     _translation(0.0f),
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
@@ -100,15 +99,17 @@ Model::Model(RigPointer rig, QObject* parent) :
     _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
-    _meshGroupsKnown(false),
     _isWireframe(false),
-    _rig(rig) {
+    _rig(rig)
+{
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
     }
 
     setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
+
+    connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, &Model::loadURLFinished);
 }
 
 Model::~Model() {
@@ -118,18 +119,11 @@ Model::~Model() {
 AbstractViewStateInterface* Model::_viewState = NULL;
 
 bool Model::needsFixupInScene() const {
-    if (readyToAddToScene()) {
-        if (_needsUpdateTextures && _renderGeometry->areTexturesLoaded()) {
-            _needsUpdateTextures = false;
-            return true;
-        }
-        if (!_readyWhenAdded) {
-            return true;
-        }
-    }
-    return false;
+    return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
+// TODO?: should we combine translation and rotation into single method to avoid double-work?
+// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -167,15 +161,51 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-void Model::updateRenderItems() {
+void Model::calculateTextureInfo() {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItems.isEmpty()) {
+        size_t textureSize = 0;
+        int textureCount = 0;
+        bool allTexturesLoaded = true;
+        foreach(auto renderItem, _modelMeshRenderItemsSet) {
+            auto meshPart = renderItem.get();
+            textureSize += meshPart->getMaterialTextureSize();
+            textureCount += meshPart->getMaterialTextureCount();
+            allTexturesLoaded = allTexturesLoaded & meshPart->hasTextureInfo();
+        }
+        _renderInfoTextureSize = textureSize;
+        _renderInfoTextureCount = textureCount;
+        _hasCalculatedTextureInfo = allTexturesLoaded; // only do this once
+    }
+}
 
+size_t Model::getRenderInfoTextureSize() {
+    calculateTextureInfo();
+    return _renderInfoTextureSize;
+}
+
+int Model::getRenderInfoTextureCount() {
+    calculateTextureInfo();
+    return _renderInfoTextureCount;
+}
+
+void Model::updateRenderItems() {
+    if (!_addedToScene) {
+        return;
+    }
+
+    glm::vec3 scale = getScale();
+    if (_collisionGeometry) {
+        // _collisionGeometry is already scaled
+        scale = glm::vec3(1.0f);
+    }
     _needsUpdateClusterMatrices = true;
+    _renderItemsNeedUpdate = false;
 
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
     std::weak_ptr<Model> weakSelf = shared_from_this();
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
@@ -186,7 +216,7 @@ void Model::updateRenderItems() {
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         Transform modelTransform;
-        modelTransform.setScale(self->_scale);
+        modelTransform.setScale(scale);
         modelTransform.setTranslation(self->_translation);
         modelTransform.setRotation(self->_rotation);
 
@@ -198,15 +228,14 @@ void Model::updateRenderItems() {
             modelMeshOffset.postTranslate(self->_offset);
         }
 
-        // only apply offset only, collision mesh does not share the same unit scale as the FBX file's mesh.
-        Transform collisionMeshOffset;
-        collisionMeshOffset.postTranslate(self->_offset);
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+                if (!data.hasStartedFade() && data._model && data._model->isLoaded() && data._model->getGeometry()->areTexturesLoaded()) {
+                    data.startFade();
+                }
                 // Ensure the model geometry was not reset between frames
                 if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                     // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
@@ -219,6 +248,9 @@ void Model::updateRenderItems() {
             });
         }
 
+        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
+        Transform collisionMeshOffset;
+        collisionMeshOffset.setIdentity();
         foreach (auto itemID, self->_collisionRenderItems.keys()) {
             pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
@@ -566,8 +598,8 @@ void Model::renderSetup(RenderArgs* args) {
         }
     }
 
-    if (!_meshGroupsKnown && isLoaded()) {
-        segregateMeshGroups();
+    if (!_addedToScene && isLoaded()) {
+        createRenderItemSet();
     }
 }
 
@@ -588,43 +620,56 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
-                       render::Item::Status::Getters& statusGetters,
-                       bool showCollisionHull) {
-    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
-        _showCollisionHull = showCollisionHull;
-        segregateMeshGroups();
+                       render::Item::Status::Getters& statusGetters) {
+    bool readyToRender = _collisionGeometry || isLoaded();
+    if (!_addedToScene && readyToRender) {
+        createRenderItemSet();
     }
 
     bool somethingAdded = false;
-
-    if (_modelMeshRenderItems.empty()) {
-        foreach (auto renderItem, _modelMeshRenderItemsSet) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-            if (statusGetters.size()) {
-                renderPayload->addStatusGetters(statusGetters);
+    if (_collisionGeometry) {
+        if (_collisionRenderItems.empty()) {
+            foreach (auto renderItem, _collisionRenderItemsSet) {
+                auto item = scene->allocateID();
+                auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
+                if (statusGetters.size()) {
+                    renderPayload->addStatusGetters(statusGetters);
+                }
+                pendingChanges.resetItem(item, renderPayload);
+                _collisionRenderItems.insert(item, renderPayload);
             }
-            pendingChanges.resetItem(item, renderPayload);
-            _modelMeshRenderItems.insert(item, renderPayload);
-            somethingAdded = true;
+            somethingAdded = !_collisionRenderItems.empty();
+        }
+    } else {
+        if (_modelMeshRenderItems.empty()) {
+
+            bool hasTransparent = false;
+            size_t verticesCount = 0;
+            foreach(auto renderItem, _modelMeshRenderItemsSet) {
+                auto item = scene->allocateID();
+                auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+                if (statusGetters.size()) {
+                    renderPayload->addStatusGetters(statusGetters);
+                }
+                pendingChanges.resetItem(item, renderPayload);
+
+                hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+                verticesCount += renderItem.get()->getVerticesCount();
+                _modelMeshRenderItems.insert(item, renderPayload);
+            }
+            somethingAdded = !_modelMeshRenderItems.empty();
+
+            _renderInfoVertexCount = verticesCount;
+            _renderInfoDrawCalls = _modelMeshRenderItems.count();
+            _renderInfoHasTransparent = hasTransparent;
         }
     }
-    if (_collisionRenderItems.empty()) {
-        foreach (auto renderItem, _collisionRenderItemsSet) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            if (statusGetters.size()) {
-                renderPayload->addStatusGetters(statusGetters);
-            }
-            pendingChanges.resetItem(item, renderPayload);
-            _collisionRenderItems.insert(item, renderPayload);
-            somethingAdded = true;
-        }
+
+    if (somethingAdded) {
+        _addedToScene = true;
+        updateRenderItems();
+        _needsFixupInScene = false;
     }
-
-    updateRenderItems();
-
-    _readyWhenAdded = readyToAddToScene();
 
     return somethingAdded;
 }
@@ -635,13 +680,18 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _modelMeshRenderItems.clear();
     _modelMeshRenderItemsSet.clear();
+
     foreach (auto item, _collisionRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
     _collisionRenderItems.clear();
     _collisionRenderItemsSet.clear();
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false;
+    _addedToScene = false;
+
+    _renderInfoVertexCount = 0;
+    _renderInfoDrawCalls = 0;
+    _renderInfoTextureSize = 0;
+    _renderInfoHasTransparent = false;
 }
 
 void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
@@ -796,6 +846,7 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
         _needsUpdateTextures = true;
+        _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
     }
 }
@@ -811,26 +862,32 @@ void Model::setURL(const QUrl& url) {
     {
         render::PendingChanges pendingChanges;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        if (scene) {
+            removeFromScene(scene, pendingChanges);
+            scene->enqueuePendingChanges(pendingChanges);
+        } else {
+            qCWarning(renderutils) << "Model::setURL(), Unexpected null scene, possibly during application shutdown";
+        }
     }
 
     _needsReload = true;
     _needsUpdateTextures = true;
-    _meshGroupsKnown = false;
+    _visualGeometryRequestFailed = false;
+    _needsFixupInScene = true;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _renderWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+    auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+    resource->setLoadPriority(this, _loadingPriority);
+    _renderWatcher.setResource(resource);
     onInvalidate();
 }
 
-void Model::setCollisionModelURL(const QUrl& url) {
-    if (_collisionUrl == url && _collisionWatcher.getURL() == url) {
-        return;
+void Model::loadURLFinished(bool success) {
+    if (!success) {
+        _visualGeometryRequestFailed = true;
     }
-    _collisionUrl = url;
-    _collisionWatcher.setResource(DependencyManager::get<ModelCache>()->getGeometryResource(url));
+    emit setURLFinished(success);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -889,7 +946,7 @@ public:
     Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
-    virtual void run();
+    virtual void run() override;
 
 private:
 
@@ -1192,6 +1249,8 @@ void Model::deleteGeometry() {
     _meshStates.clear();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
+    _renderGeometry.reset();
+    _collisionGeometry.reset();
 }
 
 AABox Model::getRenderableMeshBound() const {
@@ -1207,21 +1266,21 @@ AABox Model::getRenderableMeshBound() const {
     }
 }
 
-void Model::segregateMeshGroups() {
-    Geometry::Pointer geometry;
-    bool showingCollisionHull = false;
-    if (_showCollisionHull && _collisionGeometry) {
-        if (isCollisionLoaded()) {
-            geometry = _collisionGeometry;
-            showingCollisionHull = true;
-        } else {
-            return;
+void Model::createRenderItemSet() {
+    if (_collisionGeometry) {
+        if (_collisionRenderItemsSet.empty()) {
+            createCollisionRenderItemSet();
         }
     } else {
-        assert(isLoaded());
-        geometry = _renderGeometry;
+        if (_modelMeshRenderItemsSet.empty()) {
+            createVisibleRenderItemSet();
+        }
     }
-    const auto& meshes = geometry->getMeshes();
+};
+
+void Model::createVisibleRenderItemSet() {
+    assert(isLoaded());
+    const auto& meshes = _renderGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
     if ((int)meshes.size() != _meshStates.size()) {
@@ -1230,13 +1289,9 @@ void Model::segregateMeshGroups() {
     }
 
     // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_modelMeshRenderItems.isEmpty());
     Q_ASSERT(_modelMeshRenderItemsSet.isEmpty());
-    Q_ASSERT(_collisionRenderItems.isEmpty());
-    Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
     _modelMeshRenderItemsSet.clear();
-    _collisionRenderItemsSet.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1251,60 +1306,125 @@ void Model::segregateMeshGroups() {
     uint32_t numMeshes = (uint32_t)meshes.size();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
-        if (mesh) {
+        if (!mesh) {
+            continue;
+        }
 
-            // Create the render payloads
-            int numParts = (int)mesh->getNumParts();
-            for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (showingCollisionHull) {
-                    if (_collisionHullMaterials.empty()) {
-                        initCollisionHullMaterials();
-                    }
-                    _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(mesh, partIndex, _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS], transform, offset);
-                } else {
-                    _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
-                }
-
-                shapeID++;
-            }
+        // Create the render payloads
+        int numParts = (int)mesh->getNumParts();
+        for (int partIndex = 0; partIndex < numParts; partIndex++) {
+            _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            shapeID++;
         }
     }
-    _meshGroupsKnown = true;
+}
+
+void Model::createCollisionRenderItemSet() {
+    assert((bool)_collisionGeometry);
+    if (_collisionMaterials.empty()) {
+        initCollisionMaterials();
+    }
+
+    const auto& meshes = _collisionGeometry->getMeshes();
+
+    // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_collisionRenderItemsSet.isEmpty());
+
+    Transform identity;
+    identity.setIdentity();
+    Transform offset;
+    offset.postTranslate(_offset);
+
+    // Run through all of the meshes, and place them into their segregated, but unsorted buckets
+    uint32_t numMeshes = (uint32_t)meshes.size();
+    for (uint32_t i = 0; i < numMeshes; i++) {
+        const auto& mesh = meshes.at(i);
+        if (!mesh) {
+            continue;
+        }
+
+        // Create the render payloads
+        int numParts = (int)mesh->getNumParts();
+        for (int partIndex = 0; partIndex < numParts; partIndex++) {
+            model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
+            auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
+            payload->updateTransform(identity, offset);
+            _collisionRenderItemsSet << payload;
+        }
+    }
+}
+
+bool Model::isRenderable() const {
+    return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 bool Model::initWhenReady(render::ScenePointer scene) {
-    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoaded()) {
-        segregateMeshGroups();
+    // NOTE: this only called by SkeletonModel
+    if (_addedToScene || !isRenderable()) {
+        return false;
+    }
 
-        render::PendingChanges pendingChanges;
+    createRenderItemSet();
 
-        Transform transform;
-        transform.setTranslation(_translation);
-        transform.setRotation(_rotation);
+    render::PendingChanges pendingChanges;
 
-        Transform offset;
-        offset.setScale(_scale);
-        offset.postTranslate(_offset);
-
-        foreach (auto renderItem, _modelMeshRenderItemsSet) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-            _modelMeshRenderItems.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
-        }
+    bool addedPendingChanges = false;
+    if (_collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _collisionRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
-        scene->enqueuePendingChanges(pendingChanges);
-        updateRenderItems();
+        addedPendingChanges = !_collisionRenderItems.empty();
+    } else {
+        bool hasTransparent = false;
+        size_t verticesCount = 0;
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
 
-        _readyWhenAdded = true;
-        return true;
+            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+            verticesCount += renderItem.get()->getVerticesCount();
+            _modelMeshRenderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+        addedPendingChanges = !_modelMeshRenderItems.empty();
+        _renderInfoVertexCount = verticesCount;
+        _renderInfoDrawCalls = _modelMeshRenderItems.count();
+        _renderInfoHasTransparent = hasTransparent;
     }
-    return false;
+    _addedToScene = addedPendingChanges;
+    if (addedPendingChanges) {
+        scene->enqueuePendingChanges(pendingChanges);
+        // NOTE: updateRender items enqueues identical pendingChanges (using a lambda)
+        // so it looks like we're doing double work here, but I don't want to remove the call
+        // for fear there is some side effect we'll miss. -- Andrew 2016.07.21
+        // TODO: figure out if we really need this call to updateRenderItems() or not.
+        updateRenderItems();
+    }
+
+    return true;
+}
+
+class CollisionRenderGeometry : public Geometry {
+public:
+    CollisionRenderGeometry(model::MeshPointer mesh) {
+        _fbxGeometry = std::make_shared<FBXGeometry>();
+        std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
+        meshes->push_back(mesh);
+        _meshes = meshes;
+        _meshParts = std::shared_ptr<const GeometryMeshParts>();
+    }
+};
+
+void Model::setCollisionMesh(model::MeshPointer mesh) {
+    if (mesh) {
+        _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
+    } else {
+        _collisionGeometry.reset();
+    }
+    _needsFixupInScene = true;
 }
 
 ModelBlender::ModelBlender() :

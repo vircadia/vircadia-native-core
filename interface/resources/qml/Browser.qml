@@ -1,6 +1,7 @@
-import QtQuick 2.3
+import QtQuick 2.5
 import QtQuick.Controls 1.2
-import QtWebEngine 1.1
+import QtWebChannel 1.0
+import QtWebEngine 1.2
 
 import "controls-uit"
 import "styles" as HifiStyles
@@ -16,7 +17,12 @@ ScrollingWindow {
     destroyOnHidden: true
     width: 800
     height: 600
+    property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
+    property alias url: webview.url
     property alias webView: webview
+
+    property alias eventBridge: eventBridgeWrapper.eventBridge
+
     x: 100
     y: 100
 
@@ -25,11 +31,17 @@ ScrollingWindow {
         addressBar.text = webview.url
     }
 
-    onParentChanged: {
-        if (visible) {
-            addressBar.forceActiveFocus();
-            addressBar.selectAll()
-        }
+    function showPermissionsBar(){
+        permissionsContainer.visible=true;
+    }
+
+    function hidePermissionsBar(){
+      permissionsContainer.visible=false;
+    }
+
+    function allowPermissions(){
+        webview.grantFeaturePermission(permissionsBar.securityOrigin, permissionsBar.feature, true);
+        hidePermissionsBar();
     }
 
     Item {
@@ -70,6 +82,7 @@ ScrollingWindow {
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
+
         }
 
         Item {
@@ -114,38 +127,140 @@ ScrollingWindow {
                         case Qt.Key_Return:
                             event.accepted = true
                             if (text.indexOf("http") != 0) {
-                                text = "http://" + text
+                                text = "http://" + text;
                             }
-                            webview.url = text
+                            root.hidePermissionsBar();
+                            root.keyboardRaised = false;
+                            webview.url = text;
                             break;
                     }
                 }
             }
         }
 
-        WebEngineView {
+        Rectangle {
+            id:permissionsContainer
+            visible:false
+            color: "#000000"
+            width:  parent.width
+            anchors.top: buttons.bottom
+            height:40
+            z:100
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "black" }
+                GradientStop { position: 1.0; color: "grey" }
+            }
+
+            RalewayLight {
+                    id: permissionsInfo
+                    anchors.right:permissionsRow.left
+                    anchors.rightMargin: 32
+                    anchors.topMargin:8
+                    anchors.top:parent.top
+                    text: "This site wants to use your microphone/camera"
+                    size: 18
+                    color: hifi.colors.white
+            }
+         
+            Row {
+                id: permissionsRow
+                spacing: 4
+                anchors.top:parent.top
+                anchors.topMargin: 8
+                anchors.right: parent.right
+                visible: true
+                z:101
+                
+                Button {
+                    id:allow
+                    text: "Allow"
+                    color: hifi.buttons.blue
+                    colorScheme: root.colorScheme
+                    width: 120
+                    enabled: true
+                    onClicked: root.allowPermissions(); 
+                    z:101
+                }
+
+                Button {
+                    id:block
+                    text: "Block"
+                    color: hifi.buttons.red
+                    colorScheme: root.colorScheme
+                    width: 120
+                    enabled: true
+                    onClicked: root.hidePermissionsBar();
+                    z:101
+                }
+            }
+        }
+
+        WebView {
             id: webview
-            url: "http://highfidelity.com"
+            url: "https://highfidelity.com"
+
+            property alias eventBridgeWrapper: eventBridgeWrapper
+
+            QtObject {
+                id: eventBridgeWrapper
+                WebChannel.id: "eventBridgeWrapper"
+                property var eventBridge;
+            }
+
+            webChannel.registeredObjects: [eventBridgeWrapper]
+
+            // Create a global EventBridge object for raiseAndLowerKeyboard.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.DocumentCreation
+                worldId: WebEngineScript.MainWorld
+            }
+
+            // Detect when may want to raise and lower keyboard.
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
+
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
+
+            onFeaturePermissionRequested: {
+                permissionsBar.securityOrigin = securityOrigin;
+                permissionsBar.feature = feature;
+                root.showPermissionsBar();
+            }
+
             onLoadingChanged: {
                 if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
                 }
             }
+
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
-            
-            //profile: desktop.browserProfile
-    
+
+            onWindowCloseRequested: {
+                root.destroy();
+            }
+
+            Component.onCompleted: {
+                desktop.initWebviewProfileHandlers(webview.profile)
+            }
         }
 
     } // item
-    
+
+
     Keys.onPressed: {
         switch(event.key) {
             case Qt.Key_L:

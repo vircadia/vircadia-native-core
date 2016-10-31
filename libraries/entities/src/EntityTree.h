@@ -31,6 +31,7 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 
+
 class NewlyCreatedEntityHook {
 public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
@@ -40,7 +41,6 @@ class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
     virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) = 0;
-    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) = 0;
 };
 
 
@@ -90,13 +90,11 @@ public:
                                       const SharedNodePointer& senderNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-        const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
-        const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>(),
-        void** intersectedObject = NULL,
-        Octree::lockType lockType = Octree::TryLock,
-        bool* accurateResult = NULL,
-        bool precisionPicking = false);
+        QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+        OctreeElementPointer& node, float& distance,
+        BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject = NULL,
+        Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }
 
@@ -153,6 +151,11 @@ public:
     /// \param foundEntities[out] vector of non-EntityItemPointer
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities within a frustum
+    /// \parameter frustum the query frustum
+    /// \param foundEntities[out] vector of EntityItemPointer
+    void findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -277,6 +280,7 @@ protected:
     static bool findInSphereOperation(OctreeElementPointer element, void* extraData);
     static bool findInCubeOperation(OctreeElementPointer element, void* extraData);
     static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
+    static bool findInFrustumOperation(OctreeElementPointer element, void* extraData);
     static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);

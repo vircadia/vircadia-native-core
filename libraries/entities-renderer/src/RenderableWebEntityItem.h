@@ -10,15 +10,21 @@
 #define hifi_RenderableWebEntityItem_h
 
 #include <QSharedPointer>
+#include <QMouseEvent>
+#include <QTouchEvent>
+#include <PointerEvent.h>
+#include <gl/OffscreenQmlSurface.h>
 
 #include <WebEntityItem.h>
 
 #include "RenderableEntityItem.h"
 
-class OffscreenQmlSurface;
+
 class QWindow;
 class QObject;
 class EntityTreeRenderer;
+class RenderableWebEntityItem;
+
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -28,32 +34,42 @@ public:
 
     virtual void render(RenderArgs* args) override;
     virtual void setSourceUrl(const QString& value) override;
-    
-    void setProxyWindow(QWindow* proxyWindow);
-    QObject* getEventHandler();
+
+    virtual bool wantsHandControllerPointerEvents() const override { return true; }
+    virtual bool wantsKeyboardFocus() const override { return true; }
+    virtual void setProxyWindow(QWindow* proxyWindow) override;
+    virtual QObject* getEventHandler() override;
+
+    void handlePointerEvent(const PointerEvent& event);
 
     void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
+    virtual void emitScriptEvent(const QVariant& message) override;
+
     SIMPLE_RENDERABLE();
 
-private:
-    bool buildWebSurface(EntityTreeRenderer* renderer);
-    void destroyWebSurface();
+    virtual bool isTransparent() override;
 
-    OffscreenQmlSurface* _webSurface{ nullptr };
+private:
+    bool buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer);
+    void destroyWebSurface();
+    glm::vec2 getWindowSize() const;
+
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
-    uint32_t _texture{ 0 };
-    ivec2  _lastPress{ INT_MIN };
+    gpu::TexturePointer _texture;
+    ivec2  _lastPress { INT_MIN };
     bool _pressed{ false };
-    ivec2 _lastMove{ INT_MIN };
+    QTouchEvent _lastTouchEvent { QEvent::TouchUpdate };
     uint64_t _lastRenderTime{ 0 };
+    QTouchDevice _touchDevice;
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
+    int _geometryId { 0 };
 };
-
 
 #endif // hifi_RenderableWebEntityItem_h

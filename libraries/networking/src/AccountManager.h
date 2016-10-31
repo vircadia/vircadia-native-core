@@ -16,6 +16,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
+#include <QUrlQuery>
 
 #include "NetworkAccessManager.h"
 
@@ -67,7 +68,8 @@ public:
                                  const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                  const QByteArray& dataByteArray = QByteArray(),
                                  QHttpMultiPart* dataMultiPart = NULL,
-                                 const QVariantMap& propertyMap = QVariantMap());
+                                 const QVariantMap& propertyMap = QVariantMap(),
+                                 QUrlQuery query = QUrlQuery());
 
     void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
@@ -94,6 +96,7 @@ public:
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
+    void requestAccessTokenWithSteam(QByteArray authSessionTicket);
 
     void requestAccessTokenFinished();
     void requestProfileFinished();

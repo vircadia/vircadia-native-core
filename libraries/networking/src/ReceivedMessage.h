@@ -78,7 +78,7 @@ public:
     template<typename T> qint64 readHeadPrimitive(T* data);
 
 signals:
-    void progress();
+    void progress(qint64 size);
     void completed();
 
 private slots:

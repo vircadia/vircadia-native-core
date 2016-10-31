@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+#include <QtCore/QThread>
+
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
 #include <fstream>
@@ -56,6 +58,32 @@ bool checkGLErrorDebug(const char* name) {
     Q_UNUSED(name);
     return false;
 #endif
+}
+
+gpu::Size getFreeDedicatedMemory() {
+    Size result { 0 };
+    static bool nvidiaMemorySupported { true };
+    static bool atiMemorySupported { true };
+    if (nvidiaMemorySupported) {
+        
+        GLint nvGpuMemory { 0 };
+        glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &nvGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(nvGpuMemory);
+        } else {
+            nvidiaMemorySupported = false;
+        }
+    } else if (atiMemorySupported) {
+        GLint atiGpuMemory[4];
+        // not really total memory, but close enough if called early enough in the application lifecycle
+        glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
+        if (GL_NO_ERROR == glGetError()) {
+            result = KB_TO_BYTES(atiGpuMemory[0]);
+        } else {
+            atiMemorySupported = false;
+        }
+    }
+    return result;
 }
 
 gpu::Size getDedicatedMemory() {
@@ -557,46 +585,67 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
     std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
 
+    struct UniformBlockInfo {
+        using Vector = std::vector<UniformBlockInfo>;
+        const GLuint index{ 0 };
+        const std::string name;
+        GLint binding{ -1 };
+        GLint size{ 0 };
+
+        static std::string getName(GLuint glprogram, GLuint i) {
+            static const GLint NAME_LENGTH = 256;
+            GLint length = 0;
+            GLchar nameBuffer[NAME_LENGTH];
+            glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
+            glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, nameBuffer);
+            return std::string(nameBuffer);
+        }
+
+        UniformBlockInfo(GLuint glprogram, GLuint i) : index(i), name(getName(glprogram, i)) {
+            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_BINDING, &binding);
+            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+        }
+    };
+
+    UniformBlockInfo::Vector uniformBlocks;
+    uniformBlocks.reserve(buffersCount);
     for (int i = 0; i < buffersCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLint binding = -1;
+        uniformBlocks.push_back(UniformBlockInfo(glprogram, i));
+    }
 
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
-        glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-
-        GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
-
-        // CHeck if there is a requested binding for this block
-        auto requestedBinding = slotBindings.find(std::string(name));
+    for (auto& info : uniformBlocks) {
+        auto requestedBinding = slotBindings.find(info.name);
         if (requestedBinding != slotBindings.end()) {
-            // If yes force it
-            if (binding != (*requestedBinding)._location) {
-                binding = (*requestedBinding)._location;
-                glUniformBlockBinding(glprogram, blockIndex, binding);
-            }
-        } else if (binding == 0) {
+            info.binding = (*requestedBinding)._location;
+            glUniformBlockBinding(glprogram, info.index, info.binding);
+            uniformBufferSlotMap[info.binding] = info.index;
+        }
+    }
+
+    for (auto& info : uniformBlocks) {
+        if (slotBindings.count(info.name)) {
+            continue;
+        }
+
+        // If the binding is 0, or the binding maps to an already used binding
+        if (info.binding == 0 || uniformBufferSlotMap[info.binding] != UNUSED_SLOT) {
             // If no binding was assigned then just do it finding a free slot
             auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), isUnusedSlot);
             if (slotIt != uniformBufferSlotMap.end()) {
-                binding = slotIt - uniformBufferSlotMap.begin();
-                glUniformBlockBinding(glprogram, blockIndex, binding);
+                info.binding = slotIt - uniformBufferSlotMap.begin();
+                glUniformBlockBinding(glprogram, info.index, info.binding);
             } else {
                 // This should neve happen, an active ubo cannot find an available slot among the max available?!
-                binding = -1;
+                info.binding = -1;
             }
         }
-        // If binding is valid record it
-        if (binding >= 0) {
-            uniformBufferSlotMap[binding] = blockIndex;
-        }
 
-        Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
-        buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
+        uniformBufferSlotMap[info.binding] = info.index;
+    }
+
+    for (auto& info : uniformBlocks) {
+        static const Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
+        buffers.insert(Shader::Slot(info.name, info.binding, element, Resource::BUFFER, info.size));
     }
     return buffersCount;
 }
@@ -642,187 +691,6 @@ int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Sh
     */
     return 0; //inputsCount;
 }
-
-
-bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject) {
-    if (shaderSource.empty()) {
-        qCDebug(gpugllogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
-        return false;
-    }
-
-    // Create the shader object
-    GLuint glshader = glCreateShader(shaderDomain);
-    if (!glshader) {
-        qCDebug(gpugllogging) << "GLShader::compileShader - failed to create the gl shader object";
-        return false;
-    }
-
-    // Assign the source
-    const int NUM_SOURCE_STRINGS = 2;
-    const GLchar* srcstr[] = { defines.c_str(), shaderSource.c_str() };
-    glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
-
-    // Compile !
-    glCompileShader(glshader);
-
-    // check if shader compiled
-    GLint compiled = 0;
-    glGetShaderiv(glshader, GL_COMPILE_STATUS, &compiled);
-
-    // if compilation fails
-    if (!compiled) {
-
-        // save the source code to a temp file so we can debug easily
-        /*
-        std::ofstream filestream;
-        filestream.open("debugshader.glsl");
-        if (filestream.is_open()) {
-        filestream << srcstr[0];
-        filestream << srcstr[1];
-        filestream.close();
-        }
-        */
-
-        GLint infoLength = 0;
-        glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
-
-        char* temp = new char[infoLength];
-        glGetShaderInfoLog(glshader, infoLength, NULL, temp);
-
-
-        /*
-        filestream.open("debugshader.glsl.info.txt");
-        if (filestream.is_open()) {
-        filestream << std::string(temp);
-        filestream.close();
-        }
-        */
-
-        qCWarning(gpugllogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        for (auto s : srcstr) {
-            qCWarning(gpugllogging) << s;
-        }
-        qCWarning(gpugllogging) << "GLShader::compileShader - errors:";
-        qCWarning(gpugllogging) << temp;
-        delete[] temp;
-
-        glDeleteShader(glshader);
-        return false;
-    }
-
-    GLuint glprogram = 0;
-#ifdef SEPARATE_PROGRAM
-    // so far so good, program is almost done, need to link:
-    GLuint glprogram = glCreateProgram();
-    if (!glprogram) {
-        qCDebug(gpugllogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
-        return false;
-    }
-
-    glProgramParameteri(glprogram, GL_PROGRAM_SEPARABLE, GL_TRUE);
-    glAttachShader(glprogram, glshader);
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-
-    if (!linked) {
-        /*
-        // save the source code to a temp file so we can debug easily
-        std::ofstream filestream;
-        filestream.open("debugshader.glsl");
-        if (filestream.is_open()) {
-        filestream << shaderSource->source;
-        filestream.close();
-        }
-        */
-
-        GLint infoLength = 0;
-        glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
-
-        char* temp = new char[infoLength];
-        glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
-
-        qCDebug(gpugllogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
-        qCDebug(gpugllogging) << temp;
-
-        /*
-        filestream.open("debugshader.glsl.info.txt");
-        if (filestream.is_open()) {
-        filestream << String(temp);
-        filestream.close();
-        }
-        */
-        delete[] temp;
-
-        glDeleteShader(glshader);
-        glDeleteProgram(glprogram);
-        return false;
-    }
-#endif
-
-    shaderObject = glshader;
-    programObject = glprogram;
-
-    return true;
-}
-
-GLuint compileProgram(const std::vector<GLuint>& glshaders) {
-    // A brand new program:
-    GLuint glprogram = glCreateProgram();
-    if (!glprogram) {
-        qCDebug(gpugllogging) << "GLShader::compileProgram - failed to create the gl program object";
-        return 0;
-    }
-
-    // glProgramParameteri(glprogram, GL_PROGRAM_, GL_TRUE);
-    // Create the program from the sub shaders
-    for (auto so : glshaders) {
-        glAttachShader(glprogram, so);
-    }
-
-    // Link!
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-
-    if (!linked) {
-        /*
-        // save the source code to a temp file so we can debug easily
-        std::ofstream filestream;
-        filestream.open("debugshader.glsl");
-        if (filestream.is_open()) {
-        filestream << shaderSource->source;
-        filestream.close();
-        }
-        */
-
-        GLint infoLength = 0;
-        glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
-
-        char* temp = new char[infoLength];
-        glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
-
-        qCDebug(gpugllogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
-        qCDebug(gpugllogging) << temp;
-
-        /*
-        filestream.open("debugshader.glsl.info.txt");
-        if (filestream.is_open()) {
-        filestream << std::string(temp);
-        filestream.close();
-        }
-        */
-        delete[] temp;
-
-        glDeleteProgram(glprogram);
-        return 0;
-    }
-
-    return glprogram;
-}
-
 
 void makeProgramBindings(ShaderObject& shaderObject) {
     if (!shaderObject.glprogram) {
@@ -912,8 +780,27 @@ void makeProgramBindings(ShaderObject& shaderObject) {
     (void)CHECK_GL_ERROR();
 }
 
+void serverWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(fence);
+}
+
+void clientWait() {
+    auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    assert(fence);
+    auto result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+    while (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
+        // Minimum sleep
+        QThread::usleep(1);
+        result = glClientWaitSync(fence, 0, 0);
+    }
+    glDeleteSync(fence);
+}
 
 } }
+
 
 using namespace gpu;
 

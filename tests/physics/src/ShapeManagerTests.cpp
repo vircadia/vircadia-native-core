@@ -12,6 +12,7 @@
 #include <iostream>
 #include <ShapeManager.h>
 #include <StreamUtils.h>
+#include <Extents.h>
 
 #include "ShapeManagerTests.h"
 
@@ -26,14 +27,14 @@ void ShapeManagerTests::testShapeAccounting() {
     QCOMPARE(numReferences, 0);
 
     // create one shape and verify we get a valid pointer
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
     QCOMPARE(shape != nullptr, true);
 
     // verify number of shapes
     QCOMPARE(shapeManager.getNumShapes(), 1);
 
     // reference the shape again and verify that we get the same pointer
-    btCollisionShape* otherShape = shapeManager.getShape(info);
+    const btCollisionShape* otherShape = shapeManager.getShape(info);
     QCOMPARE(otherShape, shape);
 
     // verify number of references
@@ -83,7 +84,7 @@ void ShapeManagerTests::testShapeAccounting() {
 void ShapeManagerTests::addManyShapes() {
     ShapeManager shapeManager;
 
-    QVector<btCollisionShape*> shapes;
+    QVector<const btCollisionShape*> shapes;
 
     int numSizes = 100;
     float startSize = 1.0f;
@@ -95,7 +96,7 @@ void ShapeManagerTests::addManyShapes() {
         float s = startSize + (float)i * deltaSize;
         glm::vec3 scale(s, 1.23f + s, s - 0.573f);
         info.setBox(0.5f * scale);
-        btCollisionShape* shape = shapeManager.getShape(info);
+        const btCollisionShape* shape = shapeManager.getShape(info);
         shapes.push_back(shape);
         QCOMPARE(shape != nullptr, true);
 
@@ -113,14 +114,14 @@ void ShapeManagerTests::addManyShapes() {
 
     // release each shape by pointer
     for (int i = 0; i < numShapes; ++i) {
-        btCollisionShape* shape = shapes[i];
+        const btCollisionShape* shape = shapes[i];
         bool success = shapeManager.releaseShape(shape);
         QCOMPARE(success, true);
     }
 
     // verify zero references
     for (int i = 0; i < numShapes; ++i) {
-        btCollisionShape* shape = shapes[i];
+        const btCollisionShape* shape = shapes[i];
         int numReferences = shapeManager.getNumReferences(shape);
         QCOMPARE(numReferences, 0);
     }
@@ -132,10 +133,10 @@ void ShapeManagerTests::addBoxShape() {
     info.setBox(halfExtents);
 
     ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
+    const btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     QCOMPARE(shape, otherShape);
 }
 
@@ -145,10 +146,10 @@ void ShapeManagerTests::addSphereShape() {
     info.setSphere(radius);
 
     ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
+    const btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     QCOMPARE(shape, otherShape);
 }
 
@@ -160,10 +161,10 @@ void ShapeManagerTests::addCylinderShape() {
     info.setCylinder(radius, height);
 
     ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
+    const btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     QCOMPARE(shape, otherShape);
     */
 }
@@ -176,10 +177,10 @@ void ShapeManagerTests::addCapsuleShape() {
     info.setCapsule(radius, height);
 
     ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo = info;
-    btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
+    const btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     QCOMPARE(shape, otherShape);
     */
 }
@@ -197,6 +198,7 @@ void ShapeManagerTests::addCompoundShape() {
     ShapeInfo::PointCollection pointCollection;
     int numHulls = 5;
     glm::vec3 offsetNormal(1.0f, 0.0f, 0.0f);
+    Extents extents;
     for (int i = 0; i < numHulls; ++i) {
         glm::vec3 offset = (float)(i - numHulls/2) * offsetNormal;
         ShapeInfo::PointList pointList;
@@ -204,24 +206,27 @@ void ShapeManagerTests::addCompoundShape() {
         for (int j = 0; j < numHullPoints; ++j) {
             glm::vec3 point = radius * tetrahedron[j] + offset;
             pointList.push_back(point);
+            extents.addPoint(point);
         }
         pointCollection.push_back(pointList);
     }
 
     // create the ShapeInfo
     ShapeInfo info;
-    info.setPointCollection(hulls);
+    glm::vec3 halfExtents = 0.5f * (extents.maximum - extents.minimum);
+    info.setParams(SHAPE_TYPE_COMPOUND, halfExtents);
+    info.setPointCollection(pointCollection);
 
     // create the shape
     ShapeManager shapeManager;
-    btCollisionShape* shape = shapeManager.getShape(info);
+    const btCollisionShape* shape = shapeManager.getShape(info);
     QVERIFY(shape != nullptr);
 
     // verify the shape is correct type
     QCOMPARE(shape->getShapeType(), (int)COMPOUND_SHAPE_PROXYTYPE);
 
     // verify the shape has correct number of children
-    btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
+    const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
     QCOMPARE(compoundShape->getNumChildShapes(), numHulls);
 
     // verify manager has only one shape

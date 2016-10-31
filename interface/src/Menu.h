@@ -37,7 +37,6 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
@@ -80,6 +79,7 @@ namespace MenuOption {
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
+    const QString DefaultSkybox = "Default Skybox";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
@@ -97,11 +97,14 @@ namespace MenuOption {
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableIncrementalTextureTransfer = "Enable Incremental Texture Transfer";
+    const QString EnableDynamicTextureManagement = "Enable Dynamic Texture Management";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
+    const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
@@ -128,15 +131,17 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NamesAboveHeads = "Names Above Heads";
+    const QString Networking = "Networking...";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
     const QString Overlays = "Overlays";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
-    const QString PhysicsShowHulls = "Draw Collision Hulls";
+    const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";
@@ -175,7 +180,6 @@ namespace MenuOption {
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
-    const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";

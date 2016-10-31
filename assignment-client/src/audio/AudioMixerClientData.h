@@ -49,17 +49,18 @@ public:
 
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
-    
-    int parseData(ReceivedMessage& message);
 
-    void checkBuffersBeforeFrameSend();
+    int parseData(ReceivedMessage& message) override;
+
+    // attempt to pop a frame from each audio stream, and return the number of streams from this client
+    int checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
-    
+
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
-    
+
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
@@ -76,7 +77,11 @@ public:
         } else {
             encodedBuffer = decodedBuffer;
         }
+        // once you have encoded, you need to flush eventually.
+        _shouldFlushEncoder = true;
     }
+    void encodeFrameOfZeros(QByteArray& encodedZeros);
+    bool shouldFlushEncoder() { return _shouldFlushEncoder; }
 
     QString getCodecName() { return _selectedCodecName; }
 
@@ -84,6 +89,7 @@ signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
 public slots:
+    void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
     void sendSelectAudioFormat(SharedNodePointer node, const QString& selectedCodecName);
 
 private:
@@ -104,6 +110,8 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder{ nullptr }; // for outbound mixed stream
     Decoder* _decoder{ nullptr }; // for mic stream
+
+    bool _shouldFlushEncoder { false };
 };
 
 #endif // hifi_AudioMixerClientData_h

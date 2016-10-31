@@ -19,9 +19,6 @@ class CrashHandler {
 public:
     static bool checkForResetSettings(bool suppressPrompt = false);
 
-    static void writeRunningMarkerFiler();
-    static void deleteRunningMarkerFile();
-
 private:
     enum Action {
         DELETE_INTERFACE_INI,
@@ -31,8 +28,6 @@ private:
 
     static Action promptUserForAction(bool showCrashMessage);
     static void handleCrash(Action action);
-
-    static const QString runningMarkerFilePath();
 };
 
 #endif // hifi_CrashHandler_h

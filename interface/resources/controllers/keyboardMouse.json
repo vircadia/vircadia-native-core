@@ -63,6 +63,19 @@
                 ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
             ]
           },
+          "when": "Application.CameraFirstPerson",
+          "to": "Actions.Yaw"
+        },
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraThirdPerson",
+          "to": "Actions.Yaw"
+        },
+        { "from": { "makeAxis" : [ ["Keyboard.A"], ["Keyboard.D"] ] },
+          "when": "Application.CameraFSM",
           "to": "Actions.Yaw"
         },
 
@@ -81,9 +94,10 @@
         { "from": "Keyboard.Right", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Down", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
         { "from": "Keyboard.Up", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
-
-        { "from": "Keyboard.Up", "to": "Actions.LONGITUDINAL_FORWARD" },
-        { "from": "Keyboard.Down", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Up", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.Down", "when": "Application.CameraThirdPerson", "to": "Actions.LONGITUDINAL_BACKWARD" },
 
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },

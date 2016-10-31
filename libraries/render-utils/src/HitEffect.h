@@ -24,12 +24,14 @@ public:
     using JobModel = render::Job::Model<HitEffect, Config>;
     
     HitEffect();
+    ~HitEffect();
     void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
     const gpu::PipelinePointer& getHitEffectPipeline();
     
 private:
+    int _geometryId { 0 };
     gpu::PipelinePointer _hitEffectPipeline;
 };
 

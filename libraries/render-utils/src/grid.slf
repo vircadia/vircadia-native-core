@@ -20,7 +20,7 @@ struct Grid {
 };
 
 uniform gridBuffer { Grid grid; };
-Grid getGrid() { return grid; };
+Grid getGrid() { return grid; }
 
 in vec2 varTexCoord0;
 in vec4 varColor;

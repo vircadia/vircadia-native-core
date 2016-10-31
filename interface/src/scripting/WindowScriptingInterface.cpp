@@ -21,12 +21,25 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "OffscreenUi.h"
-#include "WebWindowClass.h"
 
 #include "WindowScriptingInterface.h"
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
+
+
+QScriptValue CustomPromptResultToScriptValue(QScriptEngine* engine, const CustomPromptResult& result) {
+    if (!result.value.isValid()) {
+        return QScriptValue::UndefinedValue;
+    }
+
+    Q_ASSERT(result.value.userType() == qMetaTypeId<QVariantMap>());
+    return engine->toScriptValue(result.value.toMap());
+}
+
+void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptResult& result) {
+    result.value = object.toVariant();
+}
 
 
 WindowScriptingInterface::WindowScriptingInterface() {
@@ -45,10 +58,6 @@ WindowScriptingInterface::WindowScriptingInterface() {
             OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
         }
     });
-}
-
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
-    return new WebWindowClass(title, url, width, height);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
@@ -82,7 +91,7 @@ void WindowScriptingInterface::alert(const QString& message) {
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message)));
+    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No)));
 }
 
 /// Display a prompt with a text box
@@ -93,6 +102,14 @@ QScriptValue WindowScriptingInterface::prompt(const QString& message, const QStr
     bool ok = false;
     QString result = OffscreenUi::getText(nullptr, "", message, QLineEdit::Normal, defaultText, &ok);
     return ok ? QScriptValue(result) : QScriptValue::NullValue;
+}
+
+CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {
+    CustomPromptResult result;
+    bool ok = false;
+    auto configMap = config.toMap();
+    result.value = OffscreenUi::getCustomInfo(OffscreenUi::ICON_NONE, "", configMap, &ok);
+    return ok ? result : CustomPromptResult();
 }
 
 QString fixupPathForMac(const QString& directory) {
@@ -157,6 +174,10 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
 
+void WindowScriptingInterface::showAssetServer(const QString& upload) {
+    QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getWindow()->geometry().width();
 }
@@ -176,4 +197,16 @@ int WindowScriptingInterface::getY() {
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
     qDebug() << "Copying";
     QApplication::clipboard()->setText(text);
+}
+
+void WindowScriptingInterface::takeSnapshot(bool notify, float aspectRatio) {
+    qApp->takeSnapshot(notify, aspectRatio);
+}
+
+void WindowScriptingInterface::shareSnapshot(const QString& path) {
+    qApp->shareSnapshot(path);
+}
+
+bool WindowScriptingInterface::isPhysicsEnabled() {
+    return qApp->isPhysicsEnabled();
 }

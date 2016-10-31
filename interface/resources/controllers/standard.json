@@ -11,7 +11,7 @@
             [
                 { "type": "deadZone", "min": 0.15 },
                 "constrainToInteger",
-                { "type": "pulse", "interval": 0.5 },
+                { "type": "pulse", "interval": 0.25 },
                 { "type": "scale", "scale": 22.5 }
             ]
         },
@@ -31,9 +31,6 @@
 
         { "from": "Standard.Back", "to": "Actions.CycleCamera" },
         { "from": "Standard.Start", "to": "Actions.ContextMenu" },
-
-        { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
-        { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
 
         { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },

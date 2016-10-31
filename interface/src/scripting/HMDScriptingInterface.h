@@ -38,9 +38,20 @@ public:
     Q_INVOKABLE QString preferredAudioInput() const;
     Q_INVOKABLE QString preferredAudioOutput() const;
 
-    Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
+    Q_INVOKABLE bool isHMDAvailable();
+    Q_INVOKABLE bool isHandControllerAvailable();
 
+    Q_INVOKABLE void requestShowHandControllers();
+    Q_INVOKABLE void requestHideHandControllers();
+    Q_INVOKABLE bool shouldShowHandControllers() const;
+
+    Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
     Q_INVOKABLE void disableHandLasers(int hands) const;
+
+    Q_INVOKABLE bool setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
+    Q_INVOKABLE void disableExtraLaser() const;
+
+
     /// Suppress the activation of any on-screen keyboard so that a script operation will 
     /// not be interrupted by a keyboard popup
     /// Returns false if there is already an active keyboard displayed.
@@ -54,6 +65,12 @@ public:
 
     /// Query the display plugin to determine the current VR keyboard visibility
     Q_INVOKABLE bool isKeyboardVisible();
+
+    // rotate the overlay UI sphere so that it is centered about the the current HMD position and orientation
+    Q_INVOKABLE void centerUI();
+
+signals:
+    bool shouldShowHandControllersChanged();
 
 public:
     HMDScriptingInterface();
@@ -71,6 +88,7 @@ private:
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
     glm::mat4 getWorldHMDMatrix() const;
+    std::atomic<int> _showHandControllersCount { 0 };
 };
 
 #endif // hifi_HMDScriptingInterface_h

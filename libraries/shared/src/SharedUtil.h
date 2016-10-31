@@ -23,6 +23,12 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
+#include <QUuid>
+
+
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
 
 // Access to the global instance pointer to enable setting / unsetting
 template <typename T>
@@ -213,5 +219,16 @@ struct MemoryInfo {
 };
 
 bool getMemoryInfo(MemoryInfo& info);
+
+struct ProcessorInfo {
+    int32_t numPhysicalProcessorPackages;
+    int32_t numProcessorCores;
+    int32_t numLogicalProcessors;
+    int32_t numProcessorCachesL1;
+    int32_t numProcessorCachesL2;
+    int32_t numProcessorCachesL3;
+};
+
+bool getProcessorInfo(ProcessorInfo& info);
 
 #endif // hifi_SharedUtil_h

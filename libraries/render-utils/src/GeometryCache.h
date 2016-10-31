@@ -148,16 +148,24 @@ public:
     };
 
     int allocateID() { return _nextID++; }
+    void releaseID(int id);
     static const int UNKNOWN_ID;
-    
-    
+
     // Bind the pipeline and get the state to render static geometry
-    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
     // Get the pipeline to render static geometry
-    gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
+    gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
-    render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
+
+    void bindOpaqueWebBrowserProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getOpaqueWebBrowserProgram();
+
+    void bindTransparentWebBrowserProgram(gpu::Batch& batch);
+    gpu::PipelinePointer getTransparentWebBrowserProgram();
+
+    render::ShapePipelinePointer getOpaqueShapePipeline() { return GeometryCache::_simpleOpaquePipeline; }
+    render::ShapePipelinePointer getTransparentShapePipeline() { return GeometryCache::_simpleTransparentPipeline; }
     render::ShapePipelinePointer getWireShapePipeline() { return GeometryCache::_simpleWirePipeline; }
 
     // Static (instanced) geometry
@@ -165,42 +173,42 @@ public:
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
 
     void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
     void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
         renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
 
     void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
-        const render::ShapePipelinePointer& pipeline = _simplePipeline);
+        const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
     void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
-        const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
         renderWireShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
 
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
         renderSolidSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+                                    const render::ShapePipelinePointer& pipeline = _simpleWirePipeline);
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
         renderWireSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
     void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec3& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+                                    const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
         renderSolidCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color,
-                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+                                    const render::ShapePipelinePointer& pipeline = _simpleWirePipeline);
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
         renderWireCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
@@ -222,73 +230,79 @@ public:
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
         int majorRows, int majorCols, float majorEdge,
         int minorRows, int minorCols, float minorEdge,
-        const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID);
+        const glm::vec4& color, bool isLayered, int id);
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
-        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID) {
+        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id) {
         renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, isLayered, id);
     }
 
-    void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id);
 
-    void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
+    void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, int id);
 
-    void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
+    void renderUnitQuad(gpu::Batch& batch, int id) {
+        renderUnitQuad(batch, glm::vec4(1), id);
+    }
+
+    void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id)
             { renderQuad(batch, glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
     // TODO: I think there's a bug in this version of the renderQuad() that's not correctly rebuilding the vbos
     // if the color changes by the corners are the same, as evidenced by the audio meter which should turn white
     // when it's clipping
-    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id);
 
     void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
-                    const glm::vec4& color, int id = UNKNOWN_ID);
+                    const glm::vec4& color, int id);
 
-    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id);
 
     void renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
-                    const glm::vec4& color, int id = UNKNOWN_ID);
+                    const glm::vec4& color, int id);
 
 
-    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id)
                     { renderLine(batch, p1, p2, color, color, id); }
     
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
-                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    const glm::vec3& color1, const glm::vec3& color2, int id)
                     { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
 
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
-                    const glm::vec4& color, int id = UNKNOWN_ID)
+                    const glm::vec4& color, int id)
                     { renderLine(batch, p1, p2, color, color, id); }
 
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
-                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+                    const glm::vec4& color1, const glm::vec4& color2, int id);
 
     void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-                    const glm::vec4& color, float glowIntensity = 1.0f, float glowWidth = 0.05f, int id = UNKNOWN_ID);
+                    const glm::vec4& color, float glowIntensity, float glowWidth, int id);
 
-    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
-                          int id = UNKNOWN_ID)
+    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec4& color, int id) 
+                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, id); }
+
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id)
                           { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }
 
     void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color,
-                          const float dash_length, const float gap_length, int id = UNKNOWN_ID);
+                          const float dash_length, const float gap_length, int id);
 
-    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id)
                     { renderLine(batch, p1, p2, glm::vec4(color, 1.0f), id); }
 
-    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id)
                     { renderLine(batch, p1, p2, color, color, id); }
 
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,
-                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    const glm::vec3& color1, const glm::vec3& color2, int id)
                     { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
 
     void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,
-                                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+                                    const glm::vec4& color1, const glm::vec4& color2, int id);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec2>& points, const QVector<glm::vec4>& colors);
@@ -373,49 +387,47 @@ private:
     int _nextID{ 1 };
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
-    QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
     QHash<int, BatchItemDetails> _registeredQuad3DTextures;
 
     QHash<int, Vec4PairVec4> _lastRegisteredQuad2DTexture;
-    QHash<Vec4PairVec4, BatchItemDetails> _quad2DTextures;
     QHash<int, BatchItemDetails> _registeredQuad2DTextures;
 
     QHash<int, Vec3PairVec4> _lastRegisteredQuad3D;
-    QHash<Vec3PairVec4, BatchItemDetails> _quad3D;
     QHash<int, BatchItemDetails> _registeredQuad3D;
 
     QHash<int, Vec4Pair> _lastRegisteredQuad2D;
-    QHash<Vec4Pair, BatchItemDetails> _quad2D;
     QHash<int, BatchItemDetails> _registeredQuad2D;
 
     QHash<int, Vec3Pair> _lastRegisteredBevelRects;
-    QHash<Vec3Pair, BatchItemDetails> _bevelRects;
     QHash<int, BatchItemDetails> _registeredBevelRects;
 
     QHash<int, Vec3Pair> _lastRegisteredLine3D;
-    QHash<Vec3Pair, BatchItemDetails> _line3DVBOs;
     QHash<int, BatchItemDetails> _registeredLine3DVBOs;
 
     QHash<int, Vec2Pair> _lastRegisteredLine2D;
-    QHash<Vec2Pair, BatchItemDetails> _line2DVBOs;
     QHash<int, BatchItemDetails> _registeredLine2DVBOs;
     
     QHash<int, BatchItemDetails> _registeredVertices;
 
     QHash<int, Vec3PairVec2Pair> _lastRegisteredDashedLines;
-    QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
     QHash<int, Vec2FloatPairPair> _lastRegisteredGridBuffer;
-    QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _unlitShader;
-    static render::ShapePipelinePointer _simplePipeline;
+    static render::ShapePipelinePointer _simpleOpaquePipeline;
+    static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
+
+    gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
+
+    gpu::ShaderPointer _simpleTransparentWebBrowserShader;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 };
 
 #endif // hifi_GeometryCache_h

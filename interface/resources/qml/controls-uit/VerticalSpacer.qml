@@ -13,6 +13,9 @@ import QtQuick 2.5
 import "../styles-uit"
 
 Item {
+    id: root
+    property alias size: root.height
+
     width: 1  // Must be non-zero
     height: hifi.dimensions.controlInterlineHeight
 }

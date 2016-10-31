@@ -54,14 +54,14 @@ void ReceivedMessage::appendPacket(NLPacket& packet) {
                "We should not be appending to a complete message");
 
     // Limit progress signal to every X packets
-    const int EMIT_PROGRESS_EVERY_X_PACKETS = 100;
+    const int EMIT_PROGRESS_EVERY_X_PACKETS = 50;
 
     ++_numPackets;
 
     _data.append(packet.getPayload(), packet.getPayloadSize());
 
     if (_numPackets % EMIT_PROGRESS_EVERY_X_PACKETS == 0) {
-        emit progress();
+        emit progress(getSize());
     }
 
     if (packet.getPacketPosition() == NLPacket::PacketPosition::LAST) {

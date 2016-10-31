@@ -14,21 +14,30 @@
 #define hifi_AddressBarDialog_h
 
 #include <OffscreenQmlDialog.h>
+#include <NetworkingConstants.h>
 
 class AddressBarDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
     Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
+    Q_PROPERTY(bool useFeed READ useFeed WRITE setUseFeed NOTIFY useFeedChanged)
+    Q_PROPERTY(QString metaverseServerUrl READ metaverseServerUrl NOTIFY metaverseServerUrlChanged)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
     bool backEnabled() { return _backEnabled; }
     bool forwardEnabled() { return _forwardEnabled; }
+    bool useFeed() { return _useFeed; }
+    void setUseFeed(bool useFeed) { if (_useFeed != useFeed) { _useFeed = useFeed; emit useFeedChanged(); } }
+    QString metaverseServerUrl() { return NetworkingConstants::METAVERSE_SERVER_URL.toString(); }
 
 signals:
     void backEnabledChanged();
     void forwardEnabledChanged();
+    void useFeedChanged();
+    void receivedHifiSchemeURL(const QString& url);
+    void metaverseServerUrlChanged();
 
 protected:
     void displayAddressOfflineMessage();
@@ -42,6 +51,7 @@ protected:
 
     bool _backEnabled;
     bool _forwardEnabled;
+    bool _useFeed { false };
 };
 
 #endif

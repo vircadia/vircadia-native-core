@@ -12,3 +12,5 @@
 #include "AudioLogging.h"
 
 Q_LOGGING_CATEGORY(audio, "hifi.audio")
+Q_LOGGING_CATEGORY(audiostream, "hifi.audio-stream", QtWarningMsg)
+

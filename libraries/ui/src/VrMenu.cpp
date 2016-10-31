@@ -155,7 +155,7 @@ void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     QObject::connect(qmlAction, SIGNAL(triggered()), action, SLOT(trigger()));
 }
 
-class QQuickMenuItem;
+class QQuickMenuItem1;
 
 void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(!MenuUserData::hasData(action));
@@ -167,10 +167,9 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     }
     QObject* menuQml = findMenuObject(userData->uuid.toString());
     Q_ASSERT(menuQml);
-    QQuickMenuItem* returnedValue { nullptr };
-    
+    QQuickMenuItem1* returnedValue { nullptr };
     bool invokeResult = QMetaObject::invokeMethod(menuQml, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_RETURN_ARG(QQuickMenuItem1*, returnedValue),
         Q_ARG(QString, action->text()));
 
     Q_ASSERT(invokeResult);
@@ -206,10 +205,10 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         beforeQml = findMenuObject(beforeUserData->uuid.toString());
     }
     QObject* menu = beforeQml->parent();
-    QQuickMenuItem* returnedValue { nullptr };
+    QQuickMenuItem1* returnedValue { nullptr };
     // FIXME this needs to find the index of the beforeQml item and call insertItem(int, object)
     bool invokeResult = QMetaObject::invokeMethod(menu, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_RETURN_ARG(QQuickMenuItem1*, returnedValue),
         Q_ARG(QString, action->text()));
     Q_ASSERT(invokeResult);
     QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();

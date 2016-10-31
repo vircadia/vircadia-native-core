@@ -39,6 +39,8 @@ public:
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
+    void locationChanged(bool tellPhysics) override;
+
 private:
 
     ModelPointer _model;

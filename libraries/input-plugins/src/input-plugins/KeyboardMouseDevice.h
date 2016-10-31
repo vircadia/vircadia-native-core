@@ -68,6 +68,8 @@ public:
     bool isSupported() const override { return true; }
     const QString& getName() const override { return NAME; }
 
+    bool isHandController() const override { return false; }
+
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 

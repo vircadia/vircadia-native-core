@@ -15,7 +15,6 @@
 #include <QtGui/QResizeEvent>
 
 #include <gl/GLHelpers.h>
-#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <gpu/gl/GLBackend.h>
 
@@ -23,6 +22,7 @@
 #include <DeferredLightingEffect.h>
 #include <FramebufferCache.h>
 #include <TextureCache.h>
+#include <OctreeRenderer.h>
 
 #ifdef DEFERRED_LIGHTING
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
@@ -74,7 +74,6 @@ void TestWindow::initGl() {
     DependencyManager::set<DeferredLightingEffect>();
     resize(QSize(800, 600));
 
-    setupDebugLogger(this);
 #ifdef DEFERRED_LIGHTING
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     deferredLightingEffect->init();
@@ -93,7 +92,6 @@ void TestWindow::resizeWindow(const QSize& size) {
 }
 
 void TestWindow::beginFrame() {
-    _renderArgs->_context->syncCache();
 
 #ifdef DEFERRED_LIGHTING
 

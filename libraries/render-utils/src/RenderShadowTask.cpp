@@ -55,7 +55,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
             vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
 
         batch.setProjectionTransform(shadow.getProjection());
-        batch.setViewTransform(shadow.getView());
+        batch.setViewTransform(shadow.getView(), false);
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, ShapeKey());
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, ShapeKey::Builder().withSkinned());

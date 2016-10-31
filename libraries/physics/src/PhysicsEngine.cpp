@@ -11,6 +11,8 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include <PerfStat.h>
+
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
@@ -76,7 +78,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {
             if (!body) {
-                btCollisionShape* shape = motionState->getShape();
+                btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 motionState->setRigidBody(body);
@@ -88,11 +90,12 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             motionState->updateBodyVelocities();
             motionState->updateLastKinematicStep();
             body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
+            motionState->clearInternalKinematicChanges();
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
-            btCollisionShape* shape = motionState->getShape();
+            btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
@@ -119,7 +122,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         default: {
             if (!body) {
                 assert(motionState->getShape());
-                body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
+                body = new btRigidBody(mass, motionState, const_cast<btCollisionShape*>(motionState->getShape()), inertia);
                 motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
@@ -283,6 +286,47 @@ void PhysicsEngine::stepSimulation() {
 
         _hasOutgoingChanges = true;
     }
+}
+
+void PhysicsEngine::harvestPerformanceStats() {
+    // unfortunately the full context names get too long for our stats presentation format
+    //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
+    QString contextName("...");
+
+    CProfileIterator* profileIterator = CProfileManager::Get_Iterator();
+    if (profileIterator) {
+        // hunt for stepSimulation context
+        profileIterator->First();
+        for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
+            if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
+                profileIterator->Enter_Child(childIndex);
+                recursivelyHarvestPerformanceStats(profileIterator, contextName);
+                break;
+            }
+            profileIterator->Next();
+        }
+    }
+}
+
+void PhysicsEngine::recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName) {
+    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
+    // get the stats for the children
+    int32_t numChildren = 0;
+    profileIterator->First();
+    while (!profileIterator->Is_Done()) {
+        QString childContextName = parentContextName + QString("/") + QString(profileIterator->Get_Current_Name());
+        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
+        PerformanceTimer::addTimerRecord(childContextName, time);
+        profileIterator->Next();
+        ++numChildren;
+    }
+    // recurse the children
+    for (int32_t i = 0; i < numChildren; ++i) {
+        profileIterator->Enter_Child(i);
+        recursivelyHarvestPerformanceStats(profileIterator, contextName);
+    }
+    // retreat back to parent
+    profileIterator->Enter_Parent();
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {

@@ -11,16 +11,23 @@
 
 #include <stdint.h>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include <glm/glm.hpp>
 
 namespace gpu {
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
     class Batch;
     class Backend;
+    using BackendPointer = std::shared_ptr<Backend>;
     class Context;
     using ContextPointer = std::shared_ptr<Context>;
     class GPUObject;
+    class Frame;
+    using FramePointer = std::shared_ptr<Frame>;
 
     using Stamp = int;
     using uint32 = uint32_t;
@@ -32,6 +39,8 @@ namespace gpu {
 
     using Byte = uint8;
     using Size = size_t;
+    static const Size INVALID_SIZE = (Size)-1;
+
     using Offset = size_t;
     using Offsets = std::vector<Offset>;
 
@@ -82,16 +91,46 @@ namespace gpu {
     class TextureView;
     using TextureViews = std::vector<TextureView>;
 
+    struct StereoState {
+        bool _enable{ false };
+        bool _skybox{ false };
+        // 0 for left eye, 1 for right eye
+        uint8 _pass{ 0 };
+        Mat4 _eyeViews[2];
+        Mat4 _eyeProjections[2];
+    };
+
+    class GPUObject {
+    public:
+        virtual ~GPUObject() = default;
+    };
+
+    class GPUObjectPointer {
+    private:
+        using GPUObjectUniquePointer = std::unique_ptr<GPUObject>;
+
+        // This shouldn't be used by anything else than the Backend class with the proper casting.
+        mutable GPUObjectUniquePointer _gpuObject;
+        void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
+        GPUObject* getGPUObject() const { return _gpuObject.get(); }
+
+        friend class Backend;
+        friend class Texture;
+    };
+
     namespace gl {
+        class GLBackend;
         class GLBuffer;
     }
 
     namespace gl41 {
         class GL41Backend;
+        class GL41Buffer;
     }
 
     namespace gl45 {
         class GL45Backend;
+        class GL45Buffer;
     }
 }
 

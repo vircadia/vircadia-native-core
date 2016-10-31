@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Server Backup</title>
+    <script src="content-update.js"></script>
+    <link rel="stylesheet" type="text/css" href="content-update.css"></link>
+</head>
+<body onload="ready()">
+    <div class="colmask"  id="content">
+        <h3>We backed up your old Sandbox content, just in case.</h3>
+        <p><b>To restore it, follow these steps:</b>
+
+        <div class="colmid">
+            <div class="colin">
+
+                <div class="colleft">
+
+                    <!--  I know the content of the columns are swapped -->
+                    <!--  If you manage to fix the CSS, you get to swap it back! -->
+                    <div class="col1">
+                        <img src="images/step2.jpg" alt="Step 2">
+                        <p><b>2.</b> Go to your backup directory:
+                        <span id="directory"></span>
+                    </div>
+
+                    <div class="col2">
+                        <img src="images/step1.jpg" alt="Step 1">
+                        <p><b>1.</b> Stop your Sandbox server.
+                    </div>
+
+                    <div class="col3">
+                      <img src="images/step3.jpg" alt="Step 3">
+                      <p><b>3.</b> Copy the backed up content and paste it into the parent directory.
+                    </div>
+
+                    <div class="col4">
+                      <img src="images/step4.jpg" alt="Step 4">
+                      <p><b>4.</b> Restart your Sandbox server.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p>For more information about managing your high Fidelity Sandbox Server, check out our docs: <a href="https://wiki.highfidelity.com/wiki/Sandbox" target="_blank">wiki.highfidelity.com/wiki/Sandbox</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

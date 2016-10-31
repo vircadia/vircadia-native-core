@@ -30,7 +30,7 @@ const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 IceServer::IceServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
-    _serverSocket(),
+    _serverSocket(0, false),
     _activePeers()
 {
     // start the ice-server socket
@@ -213,6 +213,7 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     publicKeyURL.setPath(publicKeyPath);
 
     QNetworkRequest publicKeyRequest { publicKeyURL };
+    publicKeyRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     publicKeyRequest.setAttribute(QNetworkRequest::User, domainID);
 
     qDebug() << "Requesting public key for domain with ID" << domainID;

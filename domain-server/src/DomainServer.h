@@ -41,11 +41,17 @@ class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
 public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
-    
+
+    enum DomainType {
+        NonMetaverse,
+        MetaverseDomain,
+        MetaverseTemporaryDomain
+    };
+
     static int const EXIT_CODE_REBOOT;
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 public slots:
     /// Called by NodeList to inform us a node has been added
@@ -64,7 +70,7 @@ public slots:
     void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
-    
+
 private slots:
     void aboutToQuit();
 
@@ -74,7 +80,7 @@ private slots:
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
     void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
     void sendHeartbeatToIceServer();
-    
+
     void handleConnectedNode(SharedNodePointer newNode);
 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
@@ -90,15 +96,17 @@ private slots:
     void handleICEHostInfo(const QHostInfo& hostInfo);
 
     void sendICEServerAddressToMetaverseAPI();
+    void handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
 
 signals:
     void iceServerChanged();
     void userConnected();
     void userDisconnected();
-    
+
 private:
     const QUuid& getID();
+    void parseCommandLine();
 
     void setupNodeListAndAssignments();
     bool optionallySetupOAuth();
@@ -136,7 +144,7 @@ private:
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
-    
+
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
 
@@ -151,7 +159,9 @@ private:
 
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-    
+
+    void setupGroupCacheRefresh();
+
     DomainGatekeeper _gatekeeper;
 
     HTTPManager _httpManager;
@@ -184,6 +194,7 @@ private:
     DomainMetadata* _metadata { nullptr };
     QTimer* _iceHeartbeatTimer { nullptr };
     QTimer* _metaverseHeartbeatTimer { nullptr };
+    QTimer* _metaverseGroupCacheTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -192,8 +203,18 @@ private:
     int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
 
+    DomainType _type { DomainType::NonMetaverse };
+
     friend class DomainGatekeeper;
     friend class DomainMetadata;
+
+    QString _iceServerAddr;
+    int _iceServerPort;
+    bool _overrideDomainID { false }; // should we override the domain-id from settings?
+    QUuid _overridingDomainID { QUuid() }; // what should we override it with?
+
+    bool _sendICEServerAddressToMetaverseAPIInProgress { false };
+    bool _sendICEServerAddressToMetaverseAPIRedo { false };
 };
 
 

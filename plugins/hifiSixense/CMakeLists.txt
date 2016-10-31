@@ -6,7 +6,9 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-set(TARGET_NAME hifiSixense)
-setup_hifi_plugin(Script Qml Widgets)
-link_hifi_libraries(shared controllers ui plugins ui-plugins input-plugins)
-target_sixense()
+if (NOT ANDROID)
+  set(TARGET_NAME hifiSixense)
+  setup_hifi_plugin(Script Qml Widgets)
+  link_hifi_libraries(shared controllers ui plugins ui-plugins input-plugins)
+  target_sixense()
+endif ()

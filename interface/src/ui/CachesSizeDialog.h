@@ -21,19 +21,19 @@ class CachesSizeDialog : public QDialog {
 public:
     // Sets up the UI
     CachesSizeDialog(QWidget* parent);
-    
+
 signals:
     void closed();
-    
+
 public slots:
-    void reject();
+    void reject() override;
     void confirmClicked(bool checked);
     void resetClicked(bool checked);
-    
+
 protected:
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent* event);
-    
+    void closeEvent(QCloseEvent* event) override;
+
 private:
     QDoubleSpinBox* _animations = nullptr;
     QDoubleSpinBox* _geometries = nullptr;
