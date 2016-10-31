@@ -51,6 +51,7 @@
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
 #include <AssetClient.h>
+#include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
@@ -75,6 +76,7 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <MappingRequest.h>
 #include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
@@ -5331,9 +5333,72 @@ void Application::showAssetServerWidget(QString filePath) {
 }
 
 void Application::addAssetToWorld(QString filePath) {
-    // Automatically upload and add asset to world rather than proceeding manually per showAssetServerWidget().
+    // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
 
-    // TODO
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        qCDebug(interfaceapp) << "Error downloading asset: Do not have permissions to write to asset server";
+        OffscreenUi::warning("Error Downloading Asset", "Do not have permissions to write to asset server");
+        return;
+    }
+
+    QString path = QUrl(filePath).toLocalFile();
+    QString mapping = path.right(path.length() - path.lastIndexOf("/"));
+
+    addAssetToWorldUpload(path, mapping);
+}
+
+void Application::addAssetToWorldUpload(QString path, QString mapping) {
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
+    QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+        if (upload->getError() != AssetUpload::NoError) {
+            QString errorInfo = "Could not upload asset to asset server";
+            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            OffscreenUi::warning("Error Downloading Asset", errorInfo);
+        } else {
+            addAssetToWorldSetMapping(mapping, hash);
+        }
+        upload->deleteLater();
+    });
+
+    upload->start();
+}
+
+void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
+    auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
+    connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
+        if (request->getError() != SetMappingRequest::NoError) {
+            QString errorInfo = "Could not set asset mapping";
+            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            OffscreenUi::warning("Error Downloading Asset", errorInfo);
+        } else {
+            addAssetToWorldAddEntity(mapping);
+        }
+        request->deleteLater();
+    });
+
+    request->start();
+}
+
+void Application::addAssetToWorldAddEntity(QString mapping) {
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setName(mapping.right(mapping.length() - 1));
+    properties.setModelURL("atp:" + mapping);
+    properties.setShapeType(SHAPE_TYPE_STATIC_MESH);
+    properties.setDynamic(false);
+    properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
+    properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+    auto result = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
+    
+    if (result == QUuid()) {
+        QString errorInfo = "Could not add downloaded asset " + mapping + " to world";
+        qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+        OffscreenUi::warning("Error Downloading Asset", errorInfo);
+    } else {
+        QString successInfo = "Downloaded asset " + mapping + " added to world";
+        qCDebug(interfaceapp) << "Downloading asset completed: " + successInfo;
+        OffscreenUi::information("Downloading Asset Completed", successInfo);
+    }
 }
 
 void Application::handleUnzip(QString filePath, bool autoAdd) {

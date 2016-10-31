@@ -307,6 +307,9 @@ public slots:
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     void addAssetToWorld(QString filePath);
+    void addAssetToWorldUpload(QString path, QString mapping);
+    void addAssetToWorldSetMapping(QString mapping, QString hash);
+    void addAssetToWorldAddEntity(QString mapping);
     void handleUnzip(QString filePath = "", bool autoAdd = false);
 
     void handleLocalServerConnection() const;
