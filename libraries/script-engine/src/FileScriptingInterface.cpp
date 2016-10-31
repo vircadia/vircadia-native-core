@@ -51,8 +51,6 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd) {
     } else {
         qDebug() << "unzip failed";
     }
-    qDebug() << "Removing temporary directory at: " + tempDir;
-    QDir(tempDir).removeRecursively();
 }
 
 // fix to check that we are only referring to a temporary directory

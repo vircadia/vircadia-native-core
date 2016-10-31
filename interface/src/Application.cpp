@@ -5495,6 +5495,15 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
         } else {
             addAssetToWorldSetMapping(mapping, hash);
         }
+
+        // Remove temporary directory created by Clara.io market place download.
+        int index = path.lastIndexOf("/model_repo/");
+        if (index > 0) {
+            QString tempDir = path.left(index);
+            qCDebug(interfaceapp) << "Removing temporary directory at: " + tempDir;
+            QDir(tempDir).removeRecursively();
+        }
+
         upload->deleteLater();
     });
 
