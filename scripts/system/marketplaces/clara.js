@@ -19,7 +19,7 @@ var qml = Script.resolvePath("../../../resources/qml/Marketplaces.qml")
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 
 var marketplaceWindow = new OverlayWindow({
-    title: "Marketplace",
+    title: "Marketplaces",
     source: qml,
     width: 1000,
     height: 900,
