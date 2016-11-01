@@ -88,6 +88,7 @@ void Agent::playAvatarSound(SharedSoundPointer sound) {
         QMetaObject::invokeMethod(this, "playAvatarSound", Q_ARG(SharedSoundPointer, sound));
         return;
     } else {
+        _numAvatarSoundSentBytes = 0;
         setAvatarSound(sound);
     }
 }
