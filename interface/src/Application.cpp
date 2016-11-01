@@ -5482,7 +5482,32 @@ void Application::addAssetToWorld(QString filePath) {
     QString path = QUrl(filePath).toLocalFile();
     QString mapping = path.right(path.length() - path.lastIndexOf("/"));
 
-    addAssetToWorldUpload(path, mapping);
+    addAssetToWorldWithNewMapping(path, mapping, 0);
+}
+
+void Application::addAssetToWorldWithNewMapping(QString path, QString mapping, int copy) {
+    auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
+    QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
+        const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
+        if (request->getError() == GetMappingRequest::NotFound) {
+            addAssetToWorldUpload(path, mapping);
+        } else if (copy < MAX_COPY_COUNT - 1) {
+            if (copy > 0) {
+                mapping = mapping.remove(mapping.lastIndexOf("-"), QString::number(copy).length() + 1);
+            }
+            copy++;
+            mapping = mapping.insert(mapping.lastIndexOf("."), "-" + QString::number(copy));
+            addAssetToWorldWithNewMapping(path, mapping, copy);
+        } else {
+            QString errorInfo = "Too many copies of asset name: " 
+                + mapping.left(mapping.length() - QString::number(copy).length() - 1);
+            qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+            OffscreenUi::warning("Error Downloading Asset", errorInfo);
+        }
+        request->deleteLater();
+    });
+
+    request->start();
 }
 
 void Application::addAssetToWorldUpload(QString path, QString mapping) {

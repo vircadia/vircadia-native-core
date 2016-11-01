@@ -310,6 +310,7 @@ public slots:
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     void addAssetToWorld(QString filePath);
+    void addAssetToWorldWithNewMapping(QString path, QString mapping, int copy);
     void addAssetToWorldUpload(QString path, QString mapping);
     void addAssetToWorldSetMapping(QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString mapping);
