@@ -5669,13 +5669,22 @@ void Application::updateDisplayMode() {
         standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
         standard.insert(std::end(standard), std::begin(developer), std::end(developer));
 
+        DisplayPluginPointer defaultDisplayPlugin;
+
+        // Default to the first HMD plugin, otherwise use the first in the list.
+        auto hmdPluginIt = find_if(standard.begin(), standard.end(), [](DisplayPluginPointer& plugin) { return plugin->isHmd(); });
+        if (hmdPluginIt != standard.end()) {
+            defaultDisplayPlugin = *hmdPluginIt;
+        } else if (standard.size() > 0) {
+            defaultDisplayPlugin = standard[0];
+        }
+
         foreach(auto displayPlugin, standard) {
-            addDisplayPluginToMenu(displayPlugin, first);
+            addDisplayPluginToMenu(displayPlugin, displayPlugin.get() == defaultDisplayPlugin.get());
             auto displayPluginName = displayPlugin->getName();
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
-            first = false;
         }
 
         // after all plugins have been added to the menu, add a separator to the menu
