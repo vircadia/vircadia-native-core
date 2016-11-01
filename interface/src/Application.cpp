@@ -2155,7 +2155,17 @@ void Application::aboutApp() {
 }
 
 void Application::showHelp() {
-    InfoView::show(INFO_HELP_PATH);
+    static const QString QUERY_STRING_XBOX = "xbox";
+    static const QString QUERY_STRING_VIVE = "vive";
+
+    QString queryString = "";
+    if (PluginUtils::isViveControllerAvailable()) {
+        queryString = QUERY_STRING_VIVE;
+    } else if (PluginUtils::isXboxControllerAvailable()) {
+        queryString = QUERY_STRING_XBOX;
+    }
+
+    InfoView::show(INFO_HELP_PATH, false, queryString);
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
