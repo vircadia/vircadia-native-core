@@ -30,7 +30,8 @@
 #include "GLShared.h"
 
 
-// Pick one from the 3: THis version is the most efficient as of now
+// Different versions for the stereo drawcall
+// Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 #define GPU_STEREO_TECHNIQUE_INSTANCED

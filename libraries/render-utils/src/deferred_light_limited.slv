@@ -33,9 +33,14 @@ void main(void) {
         vec4 projected = gl_Position / gl_Position.w;
         projected.xy = (projected.xy + 1.0) * 0.5;
 
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+#else
         if (cam_isStereo()) {
             projected.x = 0.5 * (projected.x + cam_getStereoSide());
         }
+#endif
+#endif
         _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
     } else {
         const float depth = -1.0; //Draw at near plane
@@ -47,11 +52,27 @@ void main(void) {
         );
         vec4 pos = UNIT_QUAD[gl_VertexID];
 
+
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+        TransformCamera cam = getTransformCamera();
+        <$transformStereoClipsSpace(cam, pos)$>
+#endif
+#endif
+
         _texCoord0 = vec4((pos.xy + 1.0) * 0.5, 0.0, 1.0);
 
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+#else
         if (cam_isStereo()) {
             _texCoord0.x = 0.5 * (_texCoord0.x + cam_getStereoSide());
         }
+#endif
+#endif
+
         gl_Position = pos;
+
     }
+
 }
