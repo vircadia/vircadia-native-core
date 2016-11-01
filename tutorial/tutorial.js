@@ -391,61 +391,6 @@ stepOrient.prototype = {
     }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-// STEP: Raise hands above head                                              //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-var stepRaiseAboveHead = function(name) {
-    this.tag = name;
-    this.tempTag = name + "-temporary";
-}
-stepRaiseAboveHead.prototype = {
-    start: function(onFinish) {
-        var tag = this.tag;
-
-        var STATE_START = 0;
-        var STATE_HANDS_DOWN = 1;
-        var STATE_HANDS_UP = 2;
-        this.state = STATE_START;
-
-        editEntitiesWithTag(this.tag, { visible: true });
-
-        // Wait 2 seconds before starting to check for hands
-        this.checkIntervalID = null;
-        function checkForHandsAboveHead() {
-            debug("RaiseAboveHead | Checking hands");
-            if (this.state == STATE_START) {
-                if (MyAvatar.getLeftPalmPosition().y < (MyAvatar.getHeadPosition().y - 0.1)) {
-                    this.state = STATE_HANDS_DOWN;
-                }
-            } else if (this.state == STATE_HANDS_DOWN) {
-                if (MyAvatar.getLeftPalmPosition().y > (MyAvatar.getHeadPosition().y + 0.1)) {
-                    this.state = STATE_HANDS_UP;
-                    Script.clearInterval(this.checkIntervalID);
-                    this.checkIntervalID = null;
-                    playSuccessSound();
-                    onFinish();
-                }
-            }
-        }
-        this.checkIntervalID = Script.setInterval(checkForHandsAboveHead.bind(this), 500);
-    },
-    cleanup: function() {
-        debug("RaiseAboveHead | Cleanup");
-        if (this.checkIntervalID) {
-            Script.clearInterval(this.checkIntervalID);
-            this.checkIntervalID = null
-        }
-        if (this.waitTimeoutID) {
-            Script.clearTimeout(this.waitTimeoutID);
-            this.waitTimeoutID = null;
-        }
-        editEntitiesWithTag(this.tag, { visible: false, collisionless: 1 });
-        deleteEntitiesWithTag(this.tempTag);
-    }
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1027,16 +972,23 @@ TutorialManager = function() {
     var startedTutorialAt = 0;
     var startedLastStepAt = 0;
 
+    var wentToEntryStepNum;
+    var VERSION = 1;
+    var tutorialID;
+
     var self = this;
 
     this.startTutorial = function() {
         currentStepNum = -1;
         currentStep = null;
         startedTutorialAt = Date.now();
+
+        // Old versions of interface do not have the Script.generateUUID function.
+        // If Script.generateUUID is not available, default to an empty string.
+        tutorialID = Script.generateUUID ? Script.generateUUID() : "";
         STEPS = [
             new stepStart("start"),
             new stepOrient("orient"),
-            //new stepRaiseAboveHead("raiseHands"),
             new stepNearGrab("nearGrab"),
             new stepFarGrab("farGrab"),
             new stepEquip("equip"),
@@ -1045,6 +997,7 @@ TutorialManager = function() {
             new stepFinish("finish"),
             new stepEnableControllers("enableControllers"),
         ];
+        wentToEntryStepNum = STEPS.length;
         for (var i = 0; i < STEPS.length; ++i) {
             STEPS[i].cleanup();
         }
@@ -1055,10 +1008,7 @@ TutorialManager = function() {
     this.onFinish = function() {
         debug("onFinish", currentStepNum);
         if (currentStep && currentStep.shouldLog !== false) {
-            var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
-            var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
-            UserActivityLogger.tutorialProgress(
-                    currentStep.tag, currentStepNum, timeToFinishStep, tutorialTimeElapsed);
+            self.trackStep(currentStep.tag, currentStepNum);
         }
 
         self.startNextStep();
@@ -1071,6 +1021,12 @@ TutorialManager = function() {
 
         ++currentStepNum;
 
+        // This always needs to be set because we use this value when
+        // tracking that the user has gone through the entry portal. When the
+        // tutorial finishes, there is a last "pseudo" step that the user
+        // finishes when stepping into the portal.
+        startedLastStepAt = Date.now();
+
         if (currentStepNum >= STEPS.length) {
             // Done
             info("DONE WITH TUTORIAL");
@@ -1080,7 +1036,6 @@ TutorialManager = function() {
         } else {
             info("Starting step", currentStepNum);
             currentStep = STEPS[currentStepNum];
-            startedLastStepAt = Date.now();
             currentStep.start(this.onFinish);
             return true;
         }
@@ -1101,6 +1056,21 @@ TutorialManager = function() {
         reenableEverything();
         currentStepNum = -1;
         currentStep = null;
+    }
+
+    this.trackStep = function(name, stepNum) {
+        var timeToFinishStep = (Date.now() - startedLastStepAt) / 1000;
+        var tutorialTimeElapsed = (Date.now() - startedTutorialAt) / 1000;
+        UserActivityLogger.tutorialProgress(
+                name, stepNum, timeToFinishStep, tutorialTimeElapsed,
+                tutorialID, VERSION);
+    }
+
+    // This is a message sent from the "entry" portal in the courtyard,
+    // after the tutorial has finished.
+    this.enteredEntryPortal = function() {
+        info("Got enteredEntryPortal, tracking");
+        this.trackStep("wentToEntry", wentToEntryStepNum);
     }
 }
 

@@ -1145,7 +1145,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
+    connect(getEntities().data(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
@@ -3472,7 +3472,7 @@ void Application::init() {
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
-            getEntities(), &EntityTreeRenderer::entityCollisionWithEntity);
+            getEntities().data(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities

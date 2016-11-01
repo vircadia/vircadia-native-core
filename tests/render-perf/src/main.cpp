@@ -425,6 +425,7 @@ protected:
         return vec3();
     }
 
+    bool isAboutToQuit() const override { return false; }
     void postLambdaEvent(std::function<void()> f) override {}
 
     qreal getDevicePixelRatio() override {
@@ -641,7 +642,7 @@ private:
         _renderCount = _renderThread._presentCount.load();
         update();
 
-        RenderArgs renderArgs(_renderThread._gpuContext, _octree.data(), DEFAULT_OCTREE_SIZE_SCALE,
+        RenderArgs renderArgs(_renderThread._gpuContext, _octree, DEFAULT_OCTREE_SIZE_SCALE,
             0, RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 

@@ -51,7 +51,7 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-    ModelPointer getModel(EntityTreeRenderer* renderer);
+    ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
@@ -105,7 +105,7 @@ private:
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
-    EntityTreeRenderer* _myRenderer = nullptr;
+    QSharedPointer<EntityTreeRenderer> _myRenderer;
     QString _lastTextures;
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;

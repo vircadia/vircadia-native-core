@@ -180,7 +180,7 @@ public:
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
     void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
+    QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
@@ -229,7 +229,7 @@ public:
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const { return _aboutToQuit; }
+    bool isAboutToQuit() const override { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
