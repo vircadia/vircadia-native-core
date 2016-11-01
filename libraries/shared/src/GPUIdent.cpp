@@ -15,6 +15,9 @@
 #include <atlbase.h>
 #include <Wbemidl.h>
 
+#include <dxgi1_3.h>
+#pragma comment(lib, "dxgi.lib")
+
 #elif defined(Q_OS_MAC)
 #include <OpenGL/OpenGL.h>
 #endif
@@ -54,9 +57,44 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     CGLDestroyRendererInfo(rendererInfo);
 
 #elif defined(Q_OS_WIN)
+
+
+    // Create the DXGI factory
+    // Let s get into DXGI land:
+    HRESULT hr = S_OK;
+
+    IDXGIFactory1* pFactory = nullptr;
+    hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&pFactory) );
+
+    // Select our adapter
+    IDXGIAdapter1* capableAdapter = nullptr;
+    {
+        for (UINT adapter = 0; !capableAdapter; ++adapter) {
+            // get a candidate DXGI adapter
+            IDXGIAdapter1* pAdapter = nullptr;
+            hr = pFactory->EnumAdapters1(adapter, &pAdapter);
+            if (FAILED(hr)) {
+                break;
+            }
+            // query to see if there exists a corresponding compute device
+
+            // if so, mark it as the one against which to create our d3d10 device
+            capableAdapter = pAdapter;
+            capableAdapter->AddRef();
+
+            pAdapter->Release();
+        }
+    }
+
+    DXGI_ADAPTER_DESC1 adapterDesc;
+    capableAdapter->GetDesc1(&adapterDesc);
+
+    capableAdapter->Release();
+    pFactory->Release();
+
     // COM must be initialized already using CoInitialize. E.g., by the audio subsystem.
     CComPtr<IWbemLocator> spLoc = NULL;
-    HRESULT hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
+    hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
     if (hr != S_OK || spLoc == NULL) {
         qCDebug(shared) << "Unable to connect to WMI";
         return this;
@@ -150,6 +188,11 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         }
         hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     }
+
+    const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
+    _dedicatedMemoryMB = (uint64_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+
+
 #endif
     return this;
 }
