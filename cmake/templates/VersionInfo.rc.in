@@ -1,0 +1,22 @@
+// Language and character set information as described at
+// https://msdn.microsoft.com/en-us/library/windows/desktop/aa381049(v=vs.85).aspx
+#define US_ENGLISH_UNICODE "040904B0"
+
+// More information about the format of this file can be found at
+// https://msdn.microsoft.com/en-us/library/windows/desktop/aa381058(v=vs.85).aspx
+1 VERSIONINFO
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK US_ENGLISH_UNICODE
+        BEGIN
+            VALUE "CompanyName",      "@BUILD_ORGANIZATION@"
+            VALUE "FileDescription",  "@APP_FULL_NAME@"
+            VALUE "FileVersion",      "@BUILD_VERSION@"
+            VALUE "InternalName",     "@TARGET_NAME@"
+            VALUE "OriginalFilename", "@EXE_NAME@"
+            VALUE "ProductName",      "@APP_FULL_NAME@"
+            VALUE "ProductVersion",   "@BUILD_VERSION@"
+        END
+    END
+END
