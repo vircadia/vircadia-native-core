@@ -5557,7 +5557,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
     properties.setModelURL("atp:" + mapping);
-    properties.setShapeType(SHAPE_TYPE_STATIC_MESH);
+    properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     properties.setDynamic(false);
     properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
