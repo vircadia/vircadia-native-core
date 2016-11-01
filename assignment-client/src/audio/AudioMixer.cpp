@@ -602,10 +602,16 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
 void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
     if (clientData) {
-        clientData->removeAgentAvatarAudioStream();
-        // when you don't specify a stream, this removes just the QUuid() 
-        // stream (which is the avatar's mic stream)
-        clientData->removeHRTFForStream(sendingNode->getUUID());
+        QUuid streamID = clientData->removeAgentAvatarAudioStream();
+        if (streamID != QUuid()) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->eachNode([sendingNode, &streamID](const SharedNodePointer& node){
+                auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+                if (listenerClientData) {
+                    listenerClientData->removeHRTFForStream(sendingNode->getUUID(), streamID);
+                }
+            });
+        }
     }
 }
 

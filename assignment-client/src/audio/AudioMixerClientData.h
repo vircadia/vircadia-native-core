@@ -50,7 +50,7 @@ public:
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
 
-    void removeAgentAvatarAudioStream();
+    QUuid removeAgentAvatarAudioStream();
 
     int parseData(ReceivedMessage& message) override;
 

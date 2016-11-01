@@ -73,20 +73,26 @@ void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid&
     }
 }
 
-void AudioMixerClientData::removeAgentAvatarAudioStream() {
+QUuid AudioMixerClientData::removeAgentAvatarAudioStream() {
     QWriteLocker writeLocker { &_streamsLock };
+    QUuid streamId;
     auto it = _audioStreams.find(QUuid());
     if (it != _audioStreams.end()) {
+        AvatarAudioStream* stream = dynamic_cast<AvatarAudioStream*>(it->second.get());
+        if (stream) {
+            streamId = stream->getStreamIdentifier();
+        }
         _audioStreams.erase(it);
     }
     writeLocker.unlock();
+
+    return streamId;
 }
 
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
     PacketType packetType = message.getType();
 
     if (packetType == PacketType::AudioStreamStats) {
-
         // skip over header, appendFlag, and num stats packed
         message.seek(sizeof(quint8) + sizeof(quint16));
 
