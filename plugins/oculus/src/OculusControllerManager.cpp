@@ -117,6 +117,17 @@ void OculusControllerManager::stopHapticPulse(bool leftHand) {
     }
 }
 
+QStringList OculusControllerManager::getSubdeviceNames() {
+    QStringList devices;
+    if (_touch) {
+        devices << _touch->getName();
+    }
+    if (_remote) {
+        devices << _remote->getName();
+    }
+    return devices;
+}
+
 using namespace controller;
 
 static const std::vector<std::pair<ovrButton, StandardButtonChannel>> BUTTON_MAP { {
