@@ -90,7 +90,7 @@ public:
     }
 
     void run() override {
-        for (;;) {
+        while (true) {
             {
                 Lock lock(_checkDevicesMutex);
                 if (_quit) {
