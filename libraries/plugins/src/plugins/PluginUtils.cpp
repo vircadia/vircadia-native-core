@@ -32,3 +32,24 @@ bool PluginUtils::isHandControllerAvailable() {
     }
     return false;
 };
+
+bool isSubdeviceContainingNameAvailable(QString name) {
+    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        auto subdeviceNames = inputPlugin->getSubdeviceNames();
+        for (auto& name : subdeviceNames) {
+            if (name.contains(name)) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
+
+bool PluginUtils::isViveControllerAvailable() {
+    return isSubdeviceContainingNameAvailable("Vive");
+};
+
+bool PluginUtils::isXboxControllerAvailable() {
+    return isSubdeviceContainingNameAvailable("X360 Controller");
+};
+
