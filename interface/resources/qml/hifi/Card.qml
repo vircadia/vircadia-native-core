@@ -113,9 +113,8 @@ Rectangle {
     }
     FiraSansRegular {
         id: users;
-        visible: true;
-        text: ((action === 'concurrency') ? (onlineUsers) : ('Snapshot'));
-        size: textSize;
+        text: (action === 'concurrency') ? onlineUsers : 'snapshot';
+        size: (action === 'concurrency') ? textSize : textSizeSmall;
         color: hifi.colors.white;
         anchors {
             verticalCenter: usersImage.verticalCenter;
