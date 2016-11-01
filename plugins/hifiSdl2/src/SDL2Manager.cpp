@@ -65,8 +65,10 @@ void SDL2Manager::init() {
                     _openJoysticks[id] = joystick;
                     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                     userInputMapper->registerDevice(joystick);
+                    auto name = SDL_GameControllerName(controller);
+                    _subdeviceNames << name;
                     emit joystickAdded(joystick.get());
-                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
+                    emit subdeviceConnected(getName(), name);
                 }
             }
         }
@@ -76,6 +78,10 @@ void SDL2Manager::init() {
     else {
         qDebug() << "Error initializing SDL2 Manager";
     }
+}
+
+QStringList SDL2Manager::getSubdeviceNames() {
+    return _subdeviceNames;
 }
 
 void SDL2Manager::deinit() {
