@@ -88,7 +88,10 @@ void Agent::playAvatarSound(SharedSoundPointer sound) {
         QMetaObject::invokeMethod(this, "playAvatarSound", Q_ARG(SharedSoundPointer, sound));
         return;
     } else {
-        _numAvatarSoundSentBytes = 0;
+        // TODO: seems to add occasional artifact in tests.  I believe it is 
+        // correct to do this, but need to figure out for sure, so commenting this
+        // out until I verify.  
+        // _numAvatarSoundSentBytes = 0;
         setAvatarSound(sound);
     }
 }
