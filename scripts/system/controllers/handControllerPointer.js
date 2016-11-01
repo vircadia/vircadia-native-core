@@ -458,7 +458,7 @@ clickMapping.from(Controller.Hardware.GamePad.Back).peek().to(function () {
 clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
     // Allow the reticle depth to be set correctly:
     // Wait a tick for the context menu to be displayed, and then simulate a (non-hand-controller) mouse move
-    // so that the system updates qml state (Reticle.pointingAtSystemverlay) before it gives us a mouseMove.
+    // so that the system updates qml state (Reticle.pointingAtSystemOverlay) before it gives us a mouseMove.
     // We don't want the system code to always do this for us, because, e.g., we do not want to get a mouseMove
     // after the Left/RightSecondaryThumb gives us a context menu. Only from the mouse.
     Script.setTimeout(function () {
