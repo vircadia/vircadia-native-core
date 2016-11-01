@@ -25,6 +25,7 @@ Rectangle {
     HifiConstants { id: hifi }
     id: marketplace
     anchors.fill: parent
+
     property var marketplacesUrl: "../../scripts/system/html/marketplaces.html"
     property int statusBarHeight: 50
     property int statusMargin: 50
@@ -85,7 +86,6 @@ Rectangle {
                 statusIcon.text = hifi.glyphs.alert;
                 runJavaScript(notFbxHandler, displayErrorStatus());
             }
-            
         }
 
         onLoadingChanged: {
@@ -138,7 +138,7 @@ Rectangle {
             width: 150
             text: "See all markets"
             onClicked: {
-                webview.url = "../../scripts/system/html/marketplaces.html";
+                webview.url = marketplacesUrl;
                 statusLabel.text = standardMessage;
             }
         }
@@ -163,5 +163,4 @@ Rectangle {
         }
 
     }
-
 }

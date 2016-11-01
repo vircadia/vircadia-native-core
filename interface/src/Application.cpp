@@ -5336,8 +5336,9 @@ void Application::addAssetToWorld(QString filePath) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
-        qCDebug(interfaceapp) << "Error downloading asset: Do not have permissions to write to asset server";
-        OffscreenUi::warning("Error Downloading Asset", "Do not have permissions to write to asset server");
+        QString errorInfo = "Do not have permissions to write to asset server.";
+        qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
+        OffscreenUi::warning("Error Downloading Asset", errorInfo);
         return;
     }
 
@@ -5376,7 +5377,7 @@ void Application::addAssetToWorldUpload(QString path, QString mapping) {
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
-            QString errorInfo = "Could not upload asset to asset server";
+            QString errorInfo = "Could not upload asset to asset server.";
             qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
             OffscreenUi::warning("Error Downloading Asset", errorInfo);
         } else {
@@ -5401,7 +5402,7 @@ void Application::addAssetToWorldSetMapping(QString mapping, QString hash) {
     auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
-            QString errorInfo = "Could not set asset mapping";
+            QString errorInfo = "Could not set asset mapping.";
             qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
             OffscreenUi::warning("Error Downloading Asset", errorInfo);
         } else {
@@ -5425,7 +5426,7 @@ void Application::addAssetToWorldAddEntity(QString mapping) {
     auto result = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
     
     if (result == QUuid()) {
-        QString errorInfo = "Could not add downloaded asset " + mapping + " to world";
+        QString errorInfo = "Could not add downloaded asset " + mapping + " to world.";
         qCDebug(interfaceapp) << "Error downloading asset: " + errorInfo;
         OffscreenUi::warning("Error Downloading Asset", errorInfo);
     } else {
