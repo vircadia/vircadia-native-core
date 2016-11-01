@@ -204,7 +204,7 @@ function overlayFromWorldPoint(point) {
 }
 
 function activeHudPoint2dGamePad() {
-    if(!HMD.active){
+    if (!HMD.active) {
       return;
     }
     var headPosition = MyAvatar.getHeadPosition();
@@ -227,6 +227,7 @@ function activeHudPoint2dGamePad() {
     return hudPoint2d;
 }
 
+var gamePad = Controller.findDevice("GamePad");
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
     var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
@@ -377,7 +378,6 @@ var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
 var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
-var gamePad = Controller.findDevice("GamePad");
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
 var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
@@ -449,6 +449,8 @@ clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (cl
     wantsMenu = clicked;
 });
 clickMapping.from(Controller.Hardware.GamePad.Back).peek().to(function () {
+    // Wait a tick an allow the reticle to be correctly set to the players look at position before invoking
+    // ContextMenu action
     Script.setTimeout(function () {
       activeHudPoint2dGamePad();
     }, 0);
@@ -505,16 +507,16 @@ function update() {
         expireMouseCursor();
         clearSystemLaser();
     }
-    //print("In updating HandControllerPointer");
+
     updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
         return off(); // Let them use mouse in peace.
     }
-    //print("test2");
+
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
     }
-    //print("test3");
+
     if ((!Window.hasFocus() && !HMD.active) || !Reticle.allowMouseCapture) {
         // In desktop it's pretty clear when another app is on top. In that case we bail, because
         // hand controllers might be sputtering "valid" data and that will keep someone from deliberately
