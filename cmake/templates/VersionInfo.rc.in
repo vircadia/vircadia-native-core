@@ -14,7 +14,7 @@ BEGIN
             VALUE "FileDescription",  "@APP_FULL_NAME@"
             VALUE "FileVersion",      "@BUILD_VERSION@"
             VALUE "InternalName",     "@TARGET_NAME@"
-            VALUE "OriginalFilename", "@EXE_NAME@"
+            VALUE "OriginalFilename", "@TARGET_NAME@.exe"
             VALUE "ProductName",      "@APP_FULL_NAME@"
             VALUE "ProductVersion",   "@BUILD_VERSION@"
         END
