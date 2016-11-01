@@ -206,6 +206,12 @@ Item {
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
+                        text: "  Rectified: " + root.rectifiedTextureCount;
+                    }
+                    StatText {
+                        text: "  Decimated: " + root.decimatedTextureCount;
+                    }
+                    StatText {
                         text: "  Sparse Count: " + root.gpuTexturesSparse;
                         visible: 0 != root.gpuSparseTextureEnabled;
                     }
@@ -216,6 +222,9 @@ Item {
                         text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {
+                        text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
+                    }
+                    StatText {
                         text: "  Sparse Memory: " + root.gpuTextureSparseMemory + " MB";
                         visible: 0 != root.gpuSparseTextureEnabled;
                     }
@@ -224,6 +233,12 @@ Item {
                     }
                     StatText {
                         text: "  Count: " + root.gpuTextures;
+                    }
+                    StatText {
+                        text: "  Memory: " + root.gpuBufferMemory;
+                    }
+                    StatText {
+                        text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
                     }
                     StatText {
                         text: "QML Texture Memory: " + root.qmlTextureMemory + " MB";

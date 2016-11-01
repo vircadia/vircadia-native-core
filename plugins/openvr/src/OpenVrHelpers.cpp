@@ -12,11 +12,13 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QProcessEnvironment>
 #include <QtGui/QInputMethodEvent>
 #include <QtQuick/QQuickWindow>
 
+#include <PathUtils.h>
 #include <Windows.h>
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
@@ -323,4 +325,108 @@ controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat
     result.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
     result.angularVelocity = angularVelocity;
     return result;
+}
+
+#define FAILED_MIN_SPEC_OVERLAY_NAME "FailedMinSpecOverlay"
+#define FAILED_MIN_SPEC_OVERLAY_FRIENDLY_NAME "Minimum specifications for SteamVR not met"
+#define FAILED_MIN_SPEC_UPDATE_INTERVAL_MS 10
+#define FAILED_MIN_SPEC_AUTO_QUIT_INTERVAL_MS (MSECS_PER_SECOND * 30)
+#define MIN_CORES_SPEC 5
+
+void showMinSpecWarning() {
+    auto vrSystem = acquireOpenVrSystem();
+    auto vrOverlay = vr::VROverlay();
+    if (!vrOverlay) {
+        qFatal("Unable to initialize SteamVR overlay manager");
+    }
+
+    vr::VROverlayHandle_t minSpecFailedOverlay = 0;
+    if (vr::VROverlayError_None != vrOverlay->CreateOverlay(FAILED_MIN_SPEC_OVERLAY_NAME, FAILED_MIN_SPEC_OVERLAY_FRIENDLY_NAME, &minSpecFailedOverlay)) {
+        qFatal("Unable to create overlay");
+    }
+
+    // Needed here for PathUtils
+    QCoreApplication miniApp(__argc, __argv);
+
+    vrSystem->ResetSeatedZeroPose();
+    QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
+    vrOverlay->SetOverlayFromFile(minSpecFailedOverlay, imagePath.toLocal8Bit().toStdString().c_str());
+    vrOverlay->SetHighQualityOverlay(minSpecFailedOverlay);
+    vrOverlay->SetOverlayWidthInMeters(minSpecFailedOverlay, 1.4f);
+    vrOverlay->SetOverlayInputMethod(minSpecFailedOverlay, vr::VROverlayInputMethod_Mouse);
+    vrOverlay->ShowOverlay(minSpecFailedOverlay);
+
+    QTimer* timer = new QTimer(&miniApp);
+    timer->setInterval(FAILED_MIN_SPEC_UPDATE_INTERVAL_MS);
+    QObject::connect(timer, &QTimer::timeout, [&] {
+        vr::TrackedDevicePose_t vrPoses[vr::k_unMaxTrackedDeviceCount];
+        vrSystem->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, 0, vrPoses, vr::k_unMaxTrackedDeviceCount);
+        auto headPose = toGlm(vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
+        auto overlayPose = toOpenVr(headPose * glm::translate(glm::mat4(), vec3(0, 0, -1)));
+        vrOverlay->SetOverlayTransformAbsolute(minSpecFailedOverlay, vr::TrackingUniverseSeated, &overlayPose);
+        
+        vr::VREvent_t event;
+        while (vrSystem->PollNextEvent(&event, sizeof(event))) {
+            switch (event.eventType) {
+                case vr::VREvent_Quit:
+                    vrSystem->AcknowledgeQuit_Exiting();
+                    QCoreApplication::quit();
+                    break;
+
+                case vr::VREvent_ButtonPress:
+                    // Quit on any button press except for 'putting on the headset'
+                    if (event.data.controller.button != vr::k_EButton_ProximitySensor) {
+                        QCoreApplication::quit();
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+    });
+    timer->start();
+
+    QTimer::singleShot(FAILED_MIN_SPEC_AUTO_QUIT_INTERVAL_MS, &miniApp, &QCoreApplication::quit);
+    miniApp.exec();
+}
+
+
+bool checkMinSpecImpl() {
+    // If OpenVR isn't supported, we have no min spec, so pass
+    if (!openVrSupported()) {
+        return true;
+    }
+
+    // If we have at least 5 cores, pass
+    auto coreCount = QThread::idealThreadCount();
+    if (coreCount >= MIN_CORES_SPEC) {
+        return true;
+    }
+
+    // Even if we have too few cores... if the compositor is using async reprojection, pass
+    auto system = acquireOpenVrSystem();
+    auto compositor = vr::VRCompositor();
+    if (system && compositor) {
+        vr::Compositor_FrameTiming timing;
+        memset(&timing, 0, sizeof(timing));
+        timing.m_nSize = sizeof(vr::Compositor_FrameTiming);
+        compositor->GetFrameTiming(&timing);
+        releaseOpenVrSystem();
+        if (timing.m_nReprojectionFlags & VRCompositor_ReprojectionAsync) {
+            return true;
+        }
+    }
+
+    // We're using OpenVR and we don't have enough cores...
+    showMinSpecWarning();
+
+    return false;
+}
+
+extern "C" {
+    __declspec(dllexport) int __stdcall CheckMinSpec() {
+        return checkMinSpecImpl() ? 1 : 0;
+    }
 }

@@ -30,7 +30,7 @@ const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 IceServer::IceServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
-    _serverSocket(),
+    _serverSocket(0, false),
     _activePeers()
 {
     // start the ice-server socket

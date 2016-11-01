@@ -534,6 +534,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
+    setProperty("com.highfidelity.launchedFromSteam", SteamClient::isRunning());
+
     _runningMarker.startRunningMarker();
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
@@ -569,6 +571,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
     _deadlockWatchdogThread->start();
 
+    qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << SteamClient::getSteamVRBuildID();
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -1191,6 +1194,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
         properties["sim_rate"] = getAverageSimsPerSecond();
         properties["avatar_sim_rate"] = getAvatarSimrate();
+        properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -1234,6 +1238,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["ideal_thread_count"] = QThread::idealThreadCount();
 
         auto hmdHeadPose = getHMDSensorPose();
         properties["hmd_head_pose_changed"] = isHMDMode() && (hmdHeadPose != lastHMDHeadPose);
@@ -1491,6 +1496,7 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
+    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1569,17 +1575,6 @@ void Application::cleanupBeforeQuit() {
     saveSettings();
     _window->saveGeometry();
 
-    // stop the AudioClient
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-
-    // destroy the AudioClient so it and its thread have a chance to go down safely
-    DependencyManager::destroy<AudioClient>();
-
-    // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
-    // this will also stop any ongoing network injectors
-    DependencyManager::destroy<AudioInjectorManager>();
-
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
     DependencyManager::destroy<DdeFaceTracker>();
@@ -1588,10 +1583,29 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<EyeTracker>();
 #endif
 
+    // stop QML
     DependencyManager::destroy<OffscreenUi>();
+
+    // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
+
+    // stop the AudioClient, synchronously
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+
+    // destroy Audio so it and its threads have a chance to go down safely
+    DependencyManager::destroy<AudioClient>();
+    DependencyManager::destroy<AudioInjectorManager>();
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
+    qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {
+    DependencyManager::destroy<Preferences>();
+
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
 
@@ -1609,7 +1623,6 @@ Application::~Application() {
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
 
-    DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();

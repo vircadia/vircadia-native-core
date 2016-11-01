@@ -361,10 +361,6 @@ void Agent::executeScript() {
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
 
-    // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why
-    // viewers would need this called.
-    //_scriptEngine->init(); // must be done before we set up the viewers
-
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
@@ -478,6 +474,15 @@ void Agent::processAgentAvatar() {
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
 }
+void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
+    _flushEncoder = false;
+    static const QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
+    if (_encoder) {
+        _encoder->encode(zeros, encodedZeros);
+    } else {
+        encodedZeros = zeros;
+    }
+}
 
 void Agent::processAgentAvatarAudio() {
     if (_isAvatar && (_isListeningToAudioStream || _avatarSound)) {
@@ -513,10 +518,11 @@ void Agent::processAgentAvatarAudio() {
                 // and our sent bytes back to zero
                 _avatarSound.clear();
                 _numAvatarSoundSentBytes = 0;
+                _flushEncoder = true;
             }
         }
 
-        auto audioPacket = NLPacket::create(silentFrame
+        auto audioPacket = NLPacket::create(silentFrame && !_flushEncoder
                 ? PacketType::SilentAudioFrame
                 : PacketType::MicrophoneAudioNoEcho);
 
@@ -529,14 +535,16 @@ void Agent::processAgentAvatarAudio() {
                 return;
             }
 
+            // write the codec
+            audioPacket->writeString(_selectedCodecName);
+            
             // write the number of silent samples so the audio-mixer can uphold timing
-            audioPacket->writePrimitive(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+            audioPacket->writePrimitive(numAvailableSamples);
 
             // use the orientation and position of this avatar for the source of this audio
             audioPacket->writePrimitive(scriptedAvatar->getPosition());
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
-
         } else if (nextSoundOutput) {
             
             // write the codec
@@ -550,30 +558,32 @@ void Agent::processAgentAvatarAudio() {
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
 
-            // encode it
-            if(_encoder) {
+            QByteArray encodedBuffer;
+            if (_flushEncoder) {
+                encodeFrameOfZeros(encodedBuffer);
+            } else {
                 QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
-                QByteArray encodedBuffer;
-                _encoder->encode(decodedBuffer, encodedBuffer);
-                audioPacket->write(encodedBuffer.data(), encodedBuffer.size());
-             } else {
-                audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
+                if (_encoder) {
+                    // encode it
+                    _encoder->encode(decodedBuffer, encodedBuffer);
+                } else {
+                    encodedBuffer = decodedBuffer;
+                }
             }
-
+            audioPacket->write(encodedBuffer.constData(), encodedBuffer.size());
         }
 
-            // write audio packet to AudioMixer nodes
+        // write audio packet to AudioMixer nodes
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachNode([this, &nodeList, &audioPacket](const SharedNodePointer& node) {
             // only send to nodes of type AudioMixer
             if (node->getType() == NodeType::AudioMixer) {
-            // pack sequence number
-            quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
-            audioPacket->seek(0);
-            audioPacket->writePrimitive(sequence);
-
-            // send audio packet
-            nodeList->sendUnreliablePacket(*audioPacket, *node);
+                // pack sequence number
+                quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
+                audioPacket->seek(0);
+                audioPacket->writePrimitive(sequence);
+                // send audio packet
+                nodeList->sendUnreliablePacket(*audioPacket, *node);
             }
         });
     }

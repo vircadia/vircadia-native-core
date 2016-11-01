@@ -180,7 +180,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend() {
+int AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QWriteLocker writeLocker { &_streamsLock };
 
     auto it = _audioStreams.begin();
@@ -208,6 +208,8 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
             ++it;
         }
     }
+
+    return (int)_audioStreams.size();
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {
@@ -355,7 +357,10 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
 }
 
 void AudioMixerClientData::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
+    qDebug() << __FUNCTION__ <<
+        "sendingNode:" << *node <<
+        "currentCodec:" << currentCodec <<
+        "receivedCodec:" << recievedCodec;
     sendSelectAudioFormat(node, currentCodec);
 }
 
@@ -366,6 +371,17 @@ void AudioMixerClientData::sendSelectAudioFormat(SharedNodePointer node, const Q
     nodeList->sendPacket(std::move(replyPacket), *node);
 }
 
+void AudioMixerClientData::encodeFrameOfZeros(QByteArray& encodedZeros) {
+    static QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_STEREO, 0);
+    if (_shouldFlushEncoder) {
+        if (_encoder) {
+            _encoder->encode(zeros, encodedZeros);
+        } else {
+            encodedZeros = zeros;
+        }
+    }
+    _shouldFlushEncoder = false;
+}
 
 void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& codecName) {
     cleanupCodec(); // cleanup any previously allocated coders first

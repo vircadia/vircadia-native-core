@@ -11,12 +11,16 @@
 (function() {
     Script.include('utils.js');
 
-    var DEBUG = false;
+    var DEBUG = true;
     function debug() {
         if (DEBUG) {
-            print.apply(self, arguments);
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift("fuse.js | ");
+            print.apply(this, args);
         }
     }
+
+    var active = false;
 
     var fuseSound = SoundCache.getSound("atp:/tutorial_sounds/fuse.wav");
     function getChildProperties(entityID, propertyNames) {
@@ -33,12 +37,20 @@
     };
     Fuse.prototype = {
         light: function() {
-            debug("LIT", this.entityID);
-            var anim = Entities.getEntityProperties(this.entityID, ['animation']).animation;
+            debug("Received light()", this.entityID);
 
-            if (anim.currentFrame < 140) {
+            var visible = Entities.getEntityProperties(this.entityID, ['visible']).visible;
+            if (!visible) {
+                debug("Fuse is not visible, returning");
                 return;
             }
+
+            if (active) {
+                debug("Fuse is active, returning");
+                return;
+            }
+            active = true;
+
             Entities.editEntity(this.entityID, {
                 animation: {
                     currentFrame: 1,
@@ -56,6 +68,7 @@
 
             var childrenProps = getChildProperties(this.entityID, ['type']);
             for (var childEntityID in childrenProps) {
+                debug("Updating: ", childEntityID);
                 var props = childrenProps[childEntityID];
                 if (props.type == "ParticleEffect") {
                     Entities.editEntity(childEntityID, {
@@ -70,13 +83,14 @@
 
             var self = this;
             Script.setTimeout(function() {
-                debug("BLOW UP");
-                var spinnerID = Utils.findEntity({ name: "tutorial/equip/spinner" }, 20); 
+                debug("Setting off fireworks");
+                var spinnerID = "{dd13fcd5-616f-4749-ab28-2e1e8bc512e9}";
                 Entities.callEntityMethod(spinnerID, "onLit");
                 injector.stop();
 
                 var childrenProps = getChildProperties(self.entityID, ['type']);
                 for (var childEntityID in childrenProps) {
+                    debug("Updating: ", childEntityID);
                     var props = childrenProps[childEntityID];
                     if (props.type == "ParticleEffect") {
                         Entities.editEntity(childEntityID, {
@@ -90,8 +104,14 @@
                 }
 
             }, 4900);
+
+            Script.setTimeout(function() {
+                debug("Setting fuse to inactive");
+                active = false;
+            }, 14000);
         },
         preload: function(entityID) {
+            debug("Preload");
             this.entityID = entityID;
         },
     };

@@ -136,6 +136,7 @@ namespace MenuOption {
     const QString OctreeStats = "Entity Statistics";
     const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
     const QString Overlays = "Overlays";
     const QString PackageModel = "Package Model...";

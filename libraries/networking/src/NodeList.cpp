@@ -350,7 +350,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {

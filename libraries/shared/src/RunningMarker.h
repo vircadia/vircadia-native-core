@@ -15,6 +15,9 @@
 #include <QObject>
 #include <QString>
 
+class QThread;
+class QTimer;
+
 class RunningMarker {
 public:
     RunningMarker(QObject* parent, QString name);
@@ -30,6 +33,8 @@ protected:
 
     QObject* _parent { nullptr };
     QString _name;
+    QThread* _runningMarkerThread { nullptr };
+    QTimer* _runningMarkerTimer { nullptr };
 };
 
 #endif // hifi_RunningMarker_h

@@ -29,9 +29,11 @@
 
 using namespace udt;
 
-Socket::Socket(QObject* parent) :
+Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _synTimer(new QTimer(this))
+    _synTimer(new QTimer(this)),
+    _readyReadBackupTimer(new QTimer(this)),
+    _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
 
@@ -45,21 +47,29 @@ Socket::Socket(QObject* parent) :
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(handleSocketError(QAbstractSocket::SocketError)));
     connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
+
+    // in order to help track down the zombie server bug, add a timer to check if we missed a readyRead
+    const int READY_READ_BACKUP_CHECK_MSECS = 2 * 1000;
+    connect(_readyReadBackupTimer, &QTimer::timeout, this, &Socket::checkForReadyReadBackup);
+    _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
 
 void Socket::bind(const QHostAddress& address, quint16 port) {
     _udpSocket.bind(address, port);
-    setSystemBufferSizes();
+
+    if (_shouldChangeSocketOptions) {
+        setSystemBufferSizes();
 
 #if defined(Q_OS_LINUX)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = IP_PMTUDISC_DONT;
-    setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = IP_PMTUDISC_DONT;
+        setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
 #elif defined(Q_OS_WINDOWS)
-    auto sd = _udpSocket.socketDescriptor();
-    int val = 0; // false
-    setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        auto sd = _udpSocket.socketDescriptor();
+        int val = 0; // false
+        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
 #endif
+    }
 }
 
 void Socket::rebind() {
@@ -292,9 +302,32 @@ void Socket::messageFailed(Connection* connection, Packet::MessageNumber message
     }
 }
 
+void Socket::checkForReadyReadBackup() {
+    if (_udpSocket.hasPendingDatagrams()) {
+        qCDebug(networking) << "Socket::checkForReadyReadBackup() detected blocked readyRead signal. Flushing pending datagrams.";
+
+        // so that birarda can possibly figure out how the heck we get into this state in the first place
+        // output the sequence number and socket address of the last processed packet
+        qCDebug(networking) << "Socket::checkForReadyReadyBackup() last sequence number"
+            << (uint32_t) _lastReceivedSequenceNumber << "from" << _lastPacketSockAddr << "-"
+            << _lastPacketSizeRead << "bytes";
+
+
+        // drop all of the pending datagrams on the floor
+        while (_udpSocket.hasPendingDatagrams()) {
+            _udpSocket.readDatagram(nullptr, 0);
+        }
+    }
+}
+
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
+
     while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+
+        // we're reading a packet so re-start the readyRead backup timer
+        _readyReadBackupTimer->start();
+
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
         
@@ -307,6 +340,10 @@ void Socket::readPendingDatagrams() {
         // pull the datagram
         auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+
+        // save information for this packet, in case it is the one that sticks readyRead
+        _lastPacketSizeRead = sizeRead;
+        _lastPacketSockAddr = senderSockAddr;
 
         if (sizeRead <= 0) {
             // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
@@ -346,6 +383,9 @@ void Socket::readPendingDatagrams() {
             // setup a Packet from the data we just read
             auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
             packet->setReceiveTime(receiveTime);
+
+            // save the sequence number in case this is the packet that sticks readyRead
+            _lastReceivedSequenceNumber = packet->getSequenceNumber();
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
