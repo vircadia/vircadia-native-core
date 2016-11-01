@@ -65,7 +65,12 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
     IDXGIFactory1* pFactory = nullptr;
     hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&pFactory) );
+    if (hr != S_OK || pFactory == nullptr) {
+        qCDebug(shared) << "Unable to create DXGI";
+        return this;
+    }
 
+    std::vector<DXGI_ADAPTER_DESC1> adapterDescs;
     // Select our adapter
     IDXGIAdapter1* capableAdapter = nullptr;
     {
@@ -77,20 +82,20 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
                 break;
             }
             // query to see if there exists a corresponding compute device
-
-            // if so, mark it as the one against which to create our d3d10 device
-            capableAdapter = pAdapter;
-            capableAdapter->AddRef();
-
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            pAdapter->GetDesc1(&adapterDesc);
             pAdapter->Release();
+
+            qCDebug(shared) << "Found adapter: " << adapterDesc.Description;
+
+            adapterDescs.push_back(adapterDesc);
+
         }
     }
-
-    DXGI_ADAPTER_DESC1 adapterDesc;
-    capableAdapter->GetDesc1(&adapterDesc);
-
-    capableAdapter->Release();
     pFactory->Release();
+
+
+
 
     // COM must be initialized already using CoInitialize. E.g., by the audio subsystem.
     CComPtr<IWbemLocator> spLoc = NULL;
@@ -189,9 +194,10 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     }
 
-    const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
-    _dedicatedMemoryMB = (uint64_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
-
+    if (adapterDescs.size()) {
+        const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
+        _dedicatedMemoryMB = (uint64_t)(adapterDescs[0].DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+    }
 
 #endif
     return this;
