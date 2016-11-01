@@ -15,9 +15,13 @@
 #include "scripting/WindowScriptingInterface.h"
 #include "SnapshotUploader.h"
 
+SnapshotUploader::SnapshotUploader(QUrl inWorldLocation, QString pathname) :
+    _inWorldLocation(inWorldLocation),
+    _pathname(pathname) {
+}
+
 void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
     const QString STORY_UPLOAD_URL = "/api/v1/user_stories";
-    static SnapshotUploader uploader;
 
     // parse the reply for the thumbnail_url
     QByteArray contents = reply.readAll();
@@ -28,11 +32,8 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         QString thumbnailUrl = dataObject.value("thumbnail_url").toString();
         QString imageUrl = dataObject.value("image_url").toString();
         auto addressManager = DependencyManager::get<AddressManager>();
-        QString placeName = addressManager->getPlaceName();
-        if (placeName.isEmpty()) {
-            placeName = addressManager->getHost();
-        }
-        QString currentPath = addressManager->currentPath(true);
+        QString placeName = _inWorldLocation.authority(); // We currently only upload shareable places, in which case this is just host.
+        QString currentPath = _inWorldLocation.path();
 
         // create json post data
         QJsonObject rootObject;
@@ -48,7 +49,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         rootObject.insert("user_story", userStoryObject);
 
         auto accountManager = DependencyManager::get<AccountManager>();
-        JSONCallbackParameters callbackParams(&uploader, "createStorySuccess", &uploader, "createStoryFailure");
+        JSONCallbackParameters callbackParams(this, "createStorySuccess", this, "createStoryFailure");
 
         accountManager->sendRequest(STORY_UPLOAD_URL,
             AccountManagerAuth::Required,
@@ -63,13 +64,16 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
 }
 
 void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll()); // maybe someday include _inWorldLocation, _filename?
+    delete this;
 }
 
 void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(QString());
+    delete this;
 }
 
 void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
+     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(reply.readAll());
+     delete this;
 }
