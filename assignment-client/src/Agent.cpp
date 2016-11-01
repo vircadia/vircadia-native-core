@@ -420,11 +420,10 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
             [&](const SharedNodePointer& node)->bool {
-            return (node->getType() == NodeType::AudioMixer)
-            && node->getActiveSocket();
+            return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
         },
             [&](const SharedNodePointer& node) {
-            qDebug() << "sending KillAvatar message to Avatar and Audio Mixers";
+            qDebug() << "sending KillAvatar message to Audio Mixers";
             auto packetList = NLPacketList::create(PacketType::KillAvatar, QByteArray(), true, true);
             packetList->write(getSessionUUID().toRfc4122());
             nodeList->sendPacketList(std::move(packetList), *node);
