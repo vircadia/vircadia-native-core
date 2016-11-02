@@ -17,7 +17,10 @@
     var KEYBOARD_HEIGHT = 200;
 
     function shouldRaiseKeyboard() {
-        if (document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA") {
+        var nodeName = document.activeElement.nodeName;
+        var nodeType = document.activeElement.type;
+        if (nodeName === "INPUT" && (nodeType === "text" || nodeType === "number")
+            || document.activeElement.nodeName === "TEXTAREA") {
             return true;
         } else {
             // check for contenteditable attribute
