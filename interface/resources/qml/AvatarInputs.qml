@@ -95,46 +95,10 @@ Hifi.AvatarInputs {
             anchors.fill: parent
             color: root.mirrorVisible ? (root.audioClipping ? "red" : "#696969") : "#00000000"
 
-            Image {
-                id: faceMute
-                width: root.iconSize
-                height: root.iconSize
-                visible: root.cameraEnabled
-                anchors.left: parent.left
-                anchors.leftMargin: root.iconPadding
-                anchors.verticalCenter: parent.verticalCenter
-                source: root.cameraMuted ? "../images/face-mute.svg" : "../images/face.svg"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        root.toggleCameraMute()
-                    }
-                    onDoubleClicked: {
-                        root.resetSensors();
-                    }
-                }
-            }
-
-            Image {
-                id: micMute
-                width: root.iconSize
-                height: root.iconSize
-                anchors.left: root.cameraEnabled ? faceMute.right : parent.left
-                anchors.leftMargin: root.iconPadding
-                anchors.verticalCenter: parent.verticalCenter
-                source: root.audioMuted ? "../images/mic-mute.svg" : "../images/mic.svg"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        root.toggleAudioMute()
-                    }
-                }
-            }
-
             Item {
                 id: audioMeter
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.left: micMute.right
+                anchors.left: parent.left
                 anchors.leftMargin: root.iconPadding
                 anchors.right: parent.right
                 anchors.rightMargin: root.iconPadding
