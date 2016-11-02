@@ -114,6 +114,9 @@ Window {
         // and allow scripts to be idempotent so they don't duplicate buttons if they're reloaded
         var result = findButton(properties.objectName);
         if (result) {
+            for (var property in properties) {
+                result[property] = properties[property];
+            }
             return result;
         }
         properties.toolbar = this;

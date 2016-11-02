@@ -51,27 +51,35 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        // These values will be overridden by sysToolbar.x/y if there is a saved position in Settings
-        // On exit, the sysToolbar position is saved to settings
-        x: 30
+        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings.
+        x: settings.firstRun ? (desktop.width - sysToolbar.width) / 2 : sysToolbar.x;
         y: 50
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
         map[sysToolbar.objectName] = sysToolbar;
         return map; })({});
 
+    Settings {
+        id: settings
+        property bool firstRun: true
+    }
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
         WebEngine.settings.javascriptCanAccessClipboard = false;
         WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
-        var toggleHudButton = sysToolbar.addButton({
-            objectName: "hudToggle",
-            imageURL: "../../../icons/hud.svg",
-            visible: true,
-            pinned: true,
+        [ // Allocate the standard buttons in the correct order. They will get images, etc., via scripts.
+            "hmdToggle", "mute", "mod", "help",
+            "hudToggle",
+            "com.highfidelity.interface.system.editButton", "marketplace", "snapshot", "goto"
+        ].forEach(function (name) {
+            sysToolbar.addButton({objectName: name});
         });
+        var toggleHudButton = sysToolbar.findButton("hudToggle");
+        toggleHudButton.imageURL = "../../../icons/hud.svg";
+        toggleHudButton.pinned = true;
+        sysToolbar.updatePinned(); // automatic when adding buttons only IFF button is pinned at creation.
 
         toggleHudButton.buttonState = Qt.binding(function(){
             return desktop.pinned ? 1 : 0
