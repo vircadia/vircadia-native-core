@@ -12,8 +12,10 @@
 
 
 #ifdef Q_OS_WIN
-#include <atlbase.h>
-#include <Wbemidl.h>
+#include <string>
+
+//#include <atlbase.h>
+//#include <Wbemidl.h>
 
 #include <dxgi1_3.h>
 #pragma comment(lib, "dxgi.lib")
@@ -58,6 +60,19 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
 #elif defined(Q_OS_WIN)
 
+    struct ConvertLargeIntegerToQString {
+        QString convert(const LARGE_INTEGER& version) {
+            QString value;
+            value.append(QString::number(uint32_t(((version.HighPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.HighPart) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.LowPart) & 0x0000FFFF)));
+            return value;
+        }
+    } convertDriverVersionToString;
 
     // Create the DXGI factory
     // Let s get into DXGI land:
@@ -70,33 +85,72 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         return this;
     }
 
-    std::vector<DXGI_ADAPTER_DESC1> adapterDescs;
-    // Select our adapter
-    IDXGIAdapter1* capableAdapter = nullptr;
+    std::vector<int> validAdapterList;
+    using AdapterEntry = std::pair<std::pair<DXGI_ADAPTER_DESC1, LARGE_INTEGER>, std::vector<DXGI_OUTPUT_DESC>>;
+    std::vector<AdapterEntry> adapterToOutputs;
+    // Enumerate adapters and outputs
     {
-        for (UINT adapter = 0; !capableAdapter; ++adapter) {
-            // get a candidate DXGI adapter
-            IDXGIAdapter1* pAdapter = nullptr;
-            hr = pFactory->EnumAdapters1(adapter, &pAdapter);
-            if (FAILED(hr)) {
-                break;
-            }
-            // query to see if there exists a corresponding compute device
+        UINT adapterNum = 0;
+        IDXGIAdapter1* pAdapter = nullptr;
+        while (pFactory->EnumAdapters1(adapterNum, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+
+            // Found an adapter, get descriptor
             DXGI_ADAPTER_DESC1 adapterDesc;
             pAdapter->GetDesc1(&adapterDesc);
+
+            LARGE_INTEGER version;
+            hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
+
+            std::wstring wDescription (adapterDesc.Description);
+            std::string description(wDescription.begin(), wDescription.end());
+            qCDebug(shared) << "Found adapter: " << description.c_str()
+                << " Driver version: " << convertDriverVersionToString.convert(version);
+
+            AdapterEntry adapterEntry;
+            adapterEntry.first.first = adapterDesc;
+            adapterEntry.first.second = version;
+
+
+
+            UINT outputNum = 0;
+            IDXGIOutput * pOutput;
+            bool hasOutputConnectedToDesktop = false;
+            while (pAdapter->EnumOutputs(outputNum, &pOutput) != DXGI_ERROR_NOT_FOUND) {
+
+                // FOund an output attached to the adapter, get descriptor
+                DXGI_OUTPUT_DESC outputDesc;
+                pOutput->GetDesc(&outputDesc);
+
+                adapterEntry.second.push_back(outputDesc);
+
+                std::wstring wDeviceName(outputDesc.DeviceName);
+                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+                qCDebug(shared) << "    Found output: " << deviceName.c_str() << " desktop: " << (outputDesc.AttachedToDesktop ? "true" : "false")
+                    << " Rect [ l=" << outputDesc.DesktopCoordinates.left << " r=" << outputDesc.DesktopCoordinates.right
+                    << " b=" << outputDesc.DesktopCoordinates.bottom << " t=" << outputDesc.DesktopCoordinates.top << " ]";
+
+                hasOutputConnectedToDesktop |= (bool) outputDesc.AttachedToDesktop;
+
+                pOutput->Release();
+                outputNum++;
+            }
+
+            adapterToOutputs.push_back(adapterEntry);
+
+            // add this adapter to the valid list if has output
+            if (hasOutputConnectedToDesktop && !adapterEntry.second.empty()) {
+                validAdapterList.push_back(adapterNum);
+            }
+
             pAdapter->Release();
-
-            qCDebug(shared) << "Found adapter: " << adapterDesc.Description;
-
-            adapterDescs.push_back(adapterDesc);
-
+            adapterNum++;
         }
     }
     pFactory->Release();
 
 
-
-
+    // THis was the previous technique used to detect the platform we are running on on windows.
+    /*
     // COM must be initialized already using CoInitialize. E.g., by the audio subsystem.
     CComPtr<IWbemLocator> spLoc = NULL;
     hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
@@ -193,10 +247,20 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         }
         hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     }
+    */
 
-    if (adapterDescs.size()) {
+    if (!validAdapterList.empty()) {
+        auto& adapterEntry = adapterToOutputs[validAdapterList.front()];
+
+        std::wstring wDescription(adapterEntry.first.first.Description);
+        std::string description(wDescription.begin(), wDescription.end());
+        _name = QString(description.c_str());
+
+        _driver = convertDriverVersionToString.convert(adapterEntry.first.second);
+
         const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
-        _dedicatedMemoryMB = (uint64_t)(adapterDescs[0].DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+        _dedicatedMemoryMB = (uint64_t)(adapterEntry.first.first.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+        _isValid = true;
     }
 
 #endif
