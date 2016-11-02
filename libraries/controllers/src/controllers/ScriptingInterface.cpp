@@ -68,7 +68,7 @@ controller::ScriptingInterface::ScriptingInterface() {
 
         // Expose the IDs to JS
         QString cleanActionName = QString(actionName).remove(SANITIZE_NAME_EXPRESSION);
-        _actions.insert(cleanActionName, actionInput.getChannel());
+        _actions.insert(cleanActionName, actionInput.getID());
     }
 
     updateMaps();
