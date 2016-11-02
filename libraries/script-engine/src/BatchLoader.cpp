@@ -44,6 +44,7 @@ void BatchLoader::start() {
         return;
     }
 
+
     for (const auto& rawURL : _urls) {
         QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
 
@@ -56,12 +57,12 @@ void BatchLoader::start() {
         // anything.
         ScriptCacheSignalProxy* proxy = new ScriptCacheSignalProxy(scriptCache.data());
 
-        connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this, rawURL](const QString& url, const QString& contents, bool isURL, bool success) {
+        connect(proxy, &ScriptCacheSignalProxy::contentAvailable, this, [this](const QString& url, const QString& contents, bool isURL, bool success) {
             if (isURL && success) {
-                _data.insert(rawURL, contents);
+                _data.insert(url, contents);
                 qCDebug(scriptengine) << "Loaded: " << url;
             } else {
-                _data.insert(rawURL, QString());
+                _data.insert(url, QString());
                 qCDebug(scriptengine) << "Could not load: " << url;
             }
 

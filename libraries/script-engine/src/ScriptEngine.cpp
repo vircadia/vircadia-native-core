@@ -1187,6 +1187,8 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             thisURL = resolvePath(file);
         }
 
+        thisURL = expandScriptUrl(normalizeScriptURL(ResourceManager::normalizeURL(thisURL)));
+
         if (!_includedURLs.contains(thisURL)) {
             if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
                 (currentSandboxURL.scheme() != "file" ||
