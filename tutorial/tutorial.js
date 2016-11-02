@@ -753,19 +753,8 @@ stepTurnAround.prototype = {
         }.bind(this), 100);
     },
     onAction: function(action, value) {
-        // NOTE(Huffman, 11/2/16): The checks below are for backward compatibility
-        // Old versions of High Fidelity returned invalid action ids from
-        // Controller.Actions.Yaw/StepYaw which were above 10000. If they are
-        // above 10000 then we can assume we are on an old version and hard-code
-        // the values. Eventually we should remove these checks.
-        var STEP_YAW_ACTION = Controller.Actions.StepYaw;
-        if (STEP_YAW_ACTION > 10000) {
-            STEP_YAW_ACTION = 6;
-        }
-        var SMOOTH_YAW_ACTION = Controller.Actions.Yaw;
-        if (SMOOTH_YAW_ACTION > 10000) {
-            SMOOTH_YAW_ACTION = 4;
-        }
+        var STEP_YAW_ACTION = 6;
+        var SMOOTH_YAW_ACTION = 4;
 
         if (action == STEP_YAW_ACTION && value != 0) {
             debug("TurnAround | Got step yaw action");
