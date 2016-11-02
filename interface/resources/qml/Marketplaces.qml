@@ -33,12 +33,20 @@ Rectangle {
     property string claraMessage: "Choose a model and click Download -> Autodesk FBX."
     property string claraError: "High Fidelity only supports Autodesk FBX models."
 
+    property bool keyboardEnabled: true
+    property bool keyboardRaised: true
+    property bool punctuationMode: false
+
+    onVisibleChanged: {
+        keyboardEnabled = HMD.active;
+    }
+
     Controls.BaseWebView {
         id: webview
         url: marketplacesUrl
         anchors.top: marketplace.top
         width: parent.width
-        height: parent.height - statusBarHeight
+        height: parent.height - statusBarHeight - keyboard.height
         focus: true
 
         Timer {
@@ -136,7 +144,7 @@ Rectangle {
     Rectangle {
         id: statusBar
         anchors.top: webview.bottom
-        anchors.bottom: parent.bottom
+        anchors.bottom: keyboard.top
         anchors.left: parent.left
         anchors.right: parent.right
         color: hifi.colors.blueHighlight
@@ -172,6 +180,17 @@ Rectangle {
             color: hifi.colors.white
             size: hifi.fontSizes.tableHeadingIcon
         }
+    }
 
+    Controls.Keyboard {
+        id: keyboard
+        enabled: keyboardEnabled
+        raised: keyboardEnabled && keyboardRaised
+        numeric: punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
     }
 }
