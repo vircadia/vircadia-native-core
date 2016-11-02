@@ -49,6 +49,16 @@ Rectangle {
         height: parent.height - statusBarHeight - keyboard.height
         focus: true
 
+        // Detect when may want to raise and lower keyboard.
+        WebEngineScript {
+            id: raiseAndLowerKeyboard
+            injectionPoint: WebEngineScript.Deferred
+            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+            worldId: WebEngineScript.MainWorld
+        }
+
+        userScripts: [ raiseAndLowerKeyboard ]
+
         Timer {
             id: alertTimer
             running: false
