@@ -20,10 +20,10 @@ ScrollingWindow {
     anchors.centerIn: parent
     UpdateDialog {
         id: updateDialog
-        
+
         implicitWidth: backgroundRectangle.width
         implicitHeight: backgroundRectangle.height
-        
+
         readonly property int contentWidth: 500
         readonly property int logoSize: 60
         readonly property int borderWidth: 30
@@ -36,7 +36,7 @@ ScrollingWindow {
 
         signal triggerBuildDownload
         signal closeUpdateDialog
-        
+
         Rectangle {
             id: backgroundRectangle
             color: "#ffffff"
@@ -47,7 +47,7 @@ ScrollingWindow {
 
         Image {
             id: logo
-            source: "../images/interface-logo.svg"
+            source: "../images/hifi-logo.svg"
             width: updateDialog.logoSize
             height: updateDialog.logoSize
             anchors {
@@ -65,7 +65,7 @@ ScrollingWindow {
                 topMargin: updateDialog.borderWidth
                 top: parent.top
             }
-            
+
             Rectangle {
                 id: header
                 width: parent.width - updateDialog.logoSize - updateDialog.inputSpacing
