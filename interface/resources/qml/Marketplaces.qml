@@ -11,9 +11,8 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebChannel 1.0
-import QtWebEngine 1.1
+import QtWebEngine 1.2
 import QtWebSockets 1.0
-import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
 import "controls"
 import "controls-uit" as Controls
@@ -33,10 +32,6 @@ Rectangle {
     property string claraMessage: "Choose a model and click Download -> Autodesk FBX."
     property string claraError: "High Fidelity only supports Autodesk FBX models."
 
-    property bool keyboardEnabled: true
-    property bool keyboardRaised: true
-    property bool punctuationMode: false
-
     onVisibleChanged: {
         keyboardEnabled = HMD.active;
     }
@@ -49,6 +44,16 @@ Rectangle {
         height: parent.height - statusBarHeight - keyboard.height
         focus: true
 
+        webChannel.registeredObjects: [eventBridgeWrapper]
+
+        // Create a global EventBridge object for raiseAndLowerKeyboard.
+        WebEngineScript {
+            id: createGlobalEventBridge
+            sourceCode: eventBridgeJavaScriptToInject
+            injectionPoint: WebEngineScript.DocumentCreation
+            worldId: WebEngineScript.MainWorld
+        }
+
         // Detect when may want to raise and lower keyboard.
         WebEngineScript {
             id: raiseAndLowerKeyboard
@@ -57,7 +62,7 @@ Rectangle {
             worldId: WebEngineScript.MainWorld
         }
 
-        userScripts: [ raiseAndLowerKeyboard ]
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
 
         Timer {
             id: alertTimer
