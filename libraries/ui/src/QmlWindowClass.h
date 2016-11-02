@@ -51,6 +51,10 @@ public slots:
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
 
+    // QmlWindow content may include WebView requiring EventBridge.
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+
 signals:
     void visibleChanged();
     void positionChanged();
@@ -60,6 +64,10 @@ signals:
     void closed();
     // Scripts can connect to this signal to receive messages from the QML object
     void fromQml(const QVariant& message);
+
+    // QmlWindow content may include WebView requiring EventBridge.
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
 
 protected slots:
     void hasMoved(QVector2D);
@@ -81,6 +89,10 @@ protected:
     bool _toolWindow { false };
     QPointer<QObject> _qmlWindow;
     QString _source;
+
+private:
+    // QmlWindow content may include WebView requiring EventBridge.
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
 };
 
 #endif
