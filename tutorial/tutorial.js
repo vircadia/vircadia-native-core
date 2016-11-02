@@ -971,6 +971,7 @@ TutorialManager = function() {
     var currentStep = null;
     var startedTutorialAt = 0;
     var startedLastStepAt = 0;
+    var didFinishTutorial = false;
 
     var wentToEntryStepNum;
     var VERSION = 1;
@@ -1032,6 +1033,7 @@ TutorialManager = function() {
             info("DONE WITH TUTORIAL");
             currentStepNum = -1;
             currentStep = null;
+            didFinishTutorial = true;
             return false;
         } else {
             info("Starting step", currentStepNum);
@@ -1069,8 +1071,11 @@ TutorialManager = function() {
     // This is a message sent from the "entry" portal in the courtyard,
     // after the tutorial has finished.
     this.enteredEntryPortal = function() {
-        info("Got enteredEntryPortal, tracking");
-        this.trackStep("wentToEntry", wentToEntryStepNum);
+        info("Got enteredEntryPortal");
+        if (didFinishTutorial) {
+            info("Tracking wentToEntry");
+            this.trackStep("wentToEntry", wentToEntryStepNum);
+        }
     }
 }
 
