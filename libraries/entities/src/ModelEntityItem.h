@@ -143,14 +143,14 @@ protected:
     ReadWriteLockable _jointDataLock;
 
     bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::quat> _absoluteJointRotationsInObjectFrame;
-    QVector<bool> _absoluteJointRotationsInObjectFrameSet; // ever set?
-    QVector<bool> _absoluteJointRotationsInObjectFrameDirty; // needs a relay to model/rig?
-    
+    QVector<glm::quat> _localJointRotations;
+    QVector<bool> _localJointRotationsSet; // ever set?
+    QVector<bool> _localJointRotationsDirty; // needs a relay to model/rig?
+
     bool _jointTranslationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::vec3> _absoluteJointTranslationsInObjectFrame;
-    QVector<bool> _absoluteJointTranslationsInObjectFrameSet; // ever set?
-    QVector<bool> _absoluteJointTranslationsInObjectFrameDirty; // needs a relay to model/rig?
+    QVector<glm::vec3> _localJointTranslations;
+    QVector<bool> _localJointTranslationsSet; // ever set?
+    QVector<bool> _localJointTranslationsDirty; // needs a relay to model/rig?
     int _lastKnownCurrentFrame;
     virtual void resizeJointArrays(int newSize = -1);
 

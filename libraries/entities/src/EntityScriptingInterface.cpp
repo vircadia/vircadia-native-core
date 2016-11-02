@@ -1110,12 +1110,11 @@ glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const 
     }
 }
 
-bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID,
-                                                                        int jointIndex, glm::vec3 translation) {
+bool EntityScriptingInterface::setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        bool result = modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
+        bool result = modelEntity->setLocalJointTranslation(jointIndex, translation);
         if (result) {
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
@@ -1132,12 +1131,11 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QU
     return false;
 }
 
-bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid& entityID,
-                                                                     int jointIndex, glm::quat rotation) {
+bool EntityScriptingInterface::setLocalJointRotation(const QUuid& entityID, int jointIndex, glm::quat rotation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        bool result = modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
+        bool result = modelEntity->setLocalJointRotation(jointIndex, rotation);
         if (result) {
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
@@ -1156,15 +1154,14 @@ bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid
 
 
 
-bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
-                                                                      const QVector<glm::quat>& rotations) {
+bool EntityScriptingInterface::setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
 
         bool result = false;
         for (int index = 0; index < rotations.size(); index++) {
-            result |= modelEntity->setAbsoluteJointRotationInObjectFrame(index, rotations[index]);
+            result |= modelEntity->setLocalJointRotation(index, rotations[index]);
         }
         if (result) {
             EntityItemProperties properties;
@@ -1184,15 +1181,14 @@ bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUui
 }
 
 
-bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
-                                                                         const QVector<glm::vec3>& translations) {
+bool EntityScriptingInterface::setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
 
         bool result = false;
         for (int index = 0; index < translations.size(); index++) {
-            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
+            result |= modelEntity->setLocalJointTranslation(index, translations[index]);
         }
         if (result) {
             EntityItemProperties properties;
@@ -1211,12 +1207,12 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const Q
     return false;
 }
 
-bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
-                                                                  const QVector<glm::quat>& rotations,
-                                                                  const QVector<glm::vec3>& translations) {
+bool EntityScriptingInterface::setLocalJointsData(const QUuid& entityID,
+                                                  const QVector<glm::quat>& rotations,
+                                                  const QVector<glm::vec3>& translations) {
     // for a model with 80 joints, sending both these in one edit packet causes the packet to be too large.
-    return setAbsoluteJointRotationsInObjectFrame(entityID, rotations) ||
-        setAbsoluteJointTranslationsInObjectFrame(entityID, translations);
+    return setLocalJointRotations(entityID, rotations) ||
+        setLocalJointTranslations(entityID, translations);
 }
 
 int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString& name) {

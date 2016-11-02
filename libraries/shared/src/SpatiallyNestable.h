@@ -144,6 +144,9 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
+    virtual bool setLocalJointRotation(int index, const glm::quat& rotation) { return false; }
+    virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) { return false; }
+
     SpatiallyNestablePointer getThisPointer() const;
 
     void markAncestorMissing(bool value) { _missingAncestor = value; }

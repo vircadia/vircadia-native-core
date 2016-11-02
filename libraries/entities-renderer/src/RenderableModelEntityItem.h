@@ -71,8 +71,8 @@ public:
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
-    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
-    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
+    virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override;
+    virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override;
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations) override;
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet) override;

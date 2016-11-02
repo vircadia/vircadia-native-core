@@ -307,14 +307,14 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         }
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);
-                        _absoluteJointTranslationsInObjectFrame[j] = extractTranslation(finalMat);
-                        _absoluteJointTranslationsInObjectFrameSet[j] = true;
-                        _absoluteJointTranslationsInObjectFrameDirty[j] = true;
+                        _localJointTranslations[j] = extractTranslation(finalMat);
+                        _localJointTranslationsSet[j] = true;
+                        _localJointTranslationsDirty[j] = true;
 
-                        _absoluteJointRotationsInObjectFrame[j] = glmExtractRotation(finalMat);
+                        _localJointRotations[j] = glmExtractRotation(finalMat);
 
-                        _absoluteJointRotationsInObjectFrameSet[j] = true;
-                        _absoluteJointRotationsInObjectFrameDirty[j] = true;
+                        _localJointRotationsSet[j] = true;
+                        _localJointRotationsDirty[j] = true;
                     }
                 }
             }
@@ -387,18 +387,18 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     getAnimationFrame();
 
                     // relay any inbound joint changes from scripts/animation/network to the model/rig
-                    for (int index = 0; index < _absoluteJointRotationsInObjectFrame.size(); index++) {
-                        if (_absoluteJointRotationsInObjectFrameDirty[index]) {
-                            glm::quat rotation = _absoluteJointRotationsInObjectFrame[index];
+                    for (int index = 0; index < _localJointRotations.size(); index++) {
+                        if (_localJointRotationsDirty[index]) {
+                            glm::quat rotation = _localJointRotations[index];
                             _model->setJointRotation(index, true, rotation, 1.0f);
-                            _absoluteJointRotationsInObjectFrameDirty[index] = false;
+                            _localJointRotationsDirty[index] = false;
                         }
                     }
-                    for (int index = 0; index < _absoluteJointTranslationsInObjectFrame.size(); index++) {
-                        if (_absoluteJointTranslationsInObjectFrameDirty[index]) {
-                            glm::vec3 translation = _absoluteJointTranslationsInObjectFrame[index];
+                    for (int index = 0; index < _localJointTranslations.size(); index++) {
+                        if (_localJointTranslationsDirty[index]) {
+                            glm::vec3 translation = _localJointTranslations[index];
                             _model->setJointTranslation(index, true, translation, 1.0f);
-                            _absoluteJointTranslationsInObjectFrameDirty[index] = false;
+                            _localJointTranslationsDirty[index] = false;
                         }
                     }
                 });
@@ -1017,16 +1017,16 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
     return glm::vec3(0.0f);
 }
 
-bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
+bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         _jointRotationsExplicitlySet = true;
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
-            _absoluteJointRotationsInObjectFrame[index] != rotation) {
-            _absoluteJointRotationsInObjectFrame[index] = rotation;
-            _absoluteJointRotationsInObjectFrameSet[index] = true;
-            _absoluteJointRotationsInObjectFrameDirty[index] = true;
+        if (index >= 0 && index < _localJointRotations.size() &&
+            _localJointRotations[index] != rotation) {
+            _localJointRotations[index] = rotation;
+            _localJointRotationsSet[index] = true;
+            _localJointRotationsDirty[index] = true;
             result = true;
             _needsJointSimulation = true;
         }
@@ -1034,16 +1034,16 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     return result;
 }
 
-bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
+bool RenderableModelEntityItem::setLocalJointTranslation(int index, const glm::vec3& translation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = true;
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
-            _absoluteJointTranslationsInObjectFrame[index] != translation) {
-            _absoluteJointTranslationsInObjectFrame[index] = translation;
-            _absoluteJointTranslationsInObjectFrameSet[index] = true;
-            _absoluteJointTranslationsInObjectFrameDirty[index] = true;
+        if (index >= 0 && index < _localJointTranslations.size() &&
+            _localJointTranslations[index] != translation) {
+            _localJointTranslations[index] = translation;
+            _localJointTranslationsSet[index] = true;
+            _localJointTranslationsDirty[index] = true;
             result = true;
             _needsJointSimulation = true;
         }
