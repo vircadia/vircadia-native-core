@@ -86,6 +86,7 @@ const LoaderList& getLoadedPlugins() {
         QString pluginPath = QCoreApplication::applicationDirPath() + "/plugins/";
 #endif
         QDir pluginDir(pluginPath);
+        pluginDir.setSorting(QDir::Name);
         pluginDir.setFilter(QDir::Files);
         if (pluginDir.exists()) {
             qInfo() << "Loading runtime plugins from " << pluginPath;

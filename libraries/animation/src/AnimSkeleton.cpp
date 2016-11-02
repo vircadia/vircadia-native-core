@@ -118,11 +118,26 @@ void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& ro
     }
 }
 
+void AnimSkeleton::saveNonMirroredPoses(const AnimPoseVec& poses) const {
+    _nonMirroredPoses.clear();
+    for (int i = 0; i < (int)_nonMirroredIndices.size(); ++i) {
+        _nonMirroredPoses.push_back(poses[_nonMirroredIndices[i]]);
+    }
+}
+
+void AnimSkeleton::restoreNonMirroredPoses(AnimPoseVec& poses) const {
+    for (int i = 0; i < (int)_nonMirroredIndices.size(); ++i) {
+        int index = _nonMirroredIndices[i];
+        poses[index] = _nonMirroredPoses[i];
+    }
+}
 
 void AnimSkeleton::mirrorRelativePoses(AnimPoseVec& poses) const {
+    saveNonMirroredPoses(poses);
     convertRelativePosesToAbsolute(poses);
     mirrorAbsolutePoses(poses);
     convertAbsolutePosesToRelative(poses);
+    restoreNonMirroredPoses(poses);
 }
 
 void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
@@ -189,8 +204,14 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     }
 
     // build mirror map.
+    _nonMirroredIndices.clear();
     _mirrorMap.reserve(_joints.size());
     for (int i = 0; i < (int)joints.size(); i++) {
+        if (_joints[i].name.endsWith("tEye")) {
+            // HACK: we don't want to mirror some joints so we remember their indices
+            // so we can restore them after a future mirror operation
+            _nonMirroredIndices.push_back(i);
+        }
         int mirrorJointIndex = -1;
         if (_joints[i].name.startsWith("Left")) {
             QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
