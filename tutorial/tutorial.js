@@ -715,7 +715,8 @@ var stepTurnAround = function(name) {
     this.tempTag = name + "-temporary";
 
     this.onActionBound = this.onAction.bind(this);
-    this.numTimesTurnPressed = 0;
+    this.numTimesSnapTurnPressed = 0;
+    this.numTimesSmoothTurnPressed = 0;
 }
 stepTurnAround.prototype = {
     start: function(onFinish) {
@@ -724,19 +725,26 @@ stepTurnAround.prototype = {
 
         showEntitiesWithTag(this.tag);
 
-        this.numTimesTurnPressed = 0;
+        this.numTimesSnapTurnPressed = 0;
+        this.numTimesSmoothTurnPressed = 0;
+        this.smoothTurnDown = false;
         Controller.actionEvent.connect(this.onActionBound);
 
         this.interval = Script.setInterval(function() {
-            debug("TurnAround | Checking if finished", this.numTimesTurnPressed);
+            debug("TurnAround | Checking if finished",
+                  this.numTimesSnapTurnPressed, this.numTimesSmoothTurnPressed);
             var FORWARD_THRESHOLD = 90;
-            var REQ_NUM_TIMES_PRESSED = 3;
+            var REQ_NUM_TIMES_SNAP_TURN_PRESSED = 3;
+            var REQ_NUM_TIMES_SMOOTH_TURN_PRESSED = 2;
 
             var dir = Quat.getFront(MyAvatar.orientation);
             var angle = Math.atan2(dir.z, dir.x);
             var angleDegrees = ((angle / Math.PI) * 180);
 
-            if (this.numTimesTurnPressed >= REQ_NUM_TIMES_PRESSED && Math.abs(angleDegrees) < FORWARD_THRESHOLD) {
+            var hasTurnedEnough = this.numTimesSnapTurnPressed >= REQ_NUM_TIMES_SNAP_TURN_PRESSED
+                || this.numTimesSmoothTurnPressed >= REQ_NUM_TIMES_SMOOTH_TURN_PRESSED;
+            var facingForward = Math.abs(angleDegrees) < FORWARD_THRESHOLD
+            if (hasTurnedEnough && facingForward) {
                 Script.clearInterval(this.interval);
                 this.interval = null;
                 playSuccessSound();
@@ -746,9 +754,19 @@ stepTurnAround.prototype = {
     },
     onAction: function(action, value) {
         var STEP_YAW_ACTION = 6;
+        var SMOOTH_YAW_ACTION = 4;
+
         if (action == STEP_YAW_ACTION && value != 0) {
-            debug("TurnAround | Got yaw action");
-            this.numTimesTurnPressed += 1;
+            debug("TurnAround | Got step yaw action");
+            ++this.numTimesSnapTurnPressed;
+        } else if (action == SMOOTH_YAW_ACTION) {
+            debug("TurnAround | Got smooth yaw action");
+            if (this.smoothTurnDown && value === 0) {
+                this.smoothTurnDown = false;
+                ++this.numTimesSmoothTurnPressed;
+            } else if (!this.smoothTurnDown && value !== 0) {
+                this.smoothTurnDown = true;
+            }
         }
     },
     cleanup: function() {
