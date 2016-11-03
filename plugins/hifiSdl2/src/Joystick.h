@@ -31,6 +31,8 @@ public:
 
     const QString& getName() const { return _name; }
 
+    SDL_GameController* getGameController() { return _sdlGameController; }
+
     // Device functions
     virtual controller::Input::NamedVector getAvailableInputs() const override;
     virtual QString getDefaultMappingConfig() const override;
